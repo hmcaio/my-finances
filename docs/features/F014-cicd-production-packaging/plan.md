@@ -23,6 +23,9 @@
 - [ ] `test` job (frontend): `npm ci`, lint, test. Runs on every push and PR.
 - [ ] `build-and-push` job: builds both Dockerfiles, logs into `ghcr.io`, pushes with SHA/`latest` tags on `main` pushes and version tags on `v*` tag pushes. Gated on both test jobs passing and on the branch/tag condition (not run on arbitrary feature-branch pushes).
 
+## Release Process
+- [ ] Document the release steps (CHANGELOG update, version bump in both `build.gradle` and `package.json`, tag, push) in `CHANGELOG.md`'s header or this file — see ADR 0007.
+
 ## Verification
 - [ ] Local smoke test: `docker compose -f docker-compose.prod.yml up` (with images built locally and tagged to match `.env`'s `IMAGE_TAG`, simulating a real GHCR pull) brings up all three services and the app is reachable through nginx's exposed port, with API calls correctly proxied through to the backend.
 - [ ] Confirm F001's dev workflow (`docker-compose.yml`, native `bootRun`/`npm run dev`) still works unmodified after this feature is added.

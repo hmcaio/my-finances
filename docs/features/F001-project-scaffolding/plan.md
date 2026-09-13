@@ -3,7 +3,7 @@
 **Depends on**: none (foundation).
 
 ## Backend
-- [ ] Initialize Gradle project at `/backend` (Spring Boot Web, Data JPA, Validation, Flyway, Postgres driver starters).
+- [ ] Initialize Gradle project at `/backend` (Spring Boot Web, Data JPA, Validation, Flyway, Postgres driver starters), `version = "0.1.0"` (ADR 0007).
 - [ ] Create base package structure: `domain/shared`, `application`, `infrastructure/config`, `infrastructure/persistence`, `infrastructure/web`.
 - [ ] Add `IdGenerator` port in `domain/shared` and `RandomUuidGenerator` adapter + bean wiring in `infrastructure/config`.
 - [ ] Add `AuditableEntity` `@MappedSuperclass` in `infrastructure/persistence` and `JpaAuditingConfig` (`@EnableJpaAuditing`).
@@ -13,7 +13,7 @@
 - [ ] Verify `./gradlew bootRun` starts successfully against the Dockerized Postgres.
 
 ## Frontend
-- [ ] Scaffold `/frontend` with Vite + React + TypeScript template.
+- [ ] Scaffold `/frontend` with Vite + React + TypeScript template; set `package.json` version to `0.1.0` to match the backend (ADR 0007).
 - [ ] Establish folder structure: `src/api`, `src/components`, `src/features`.
 - [ ] Add a placeholder page that calls the backend health-check endpoint and displays the result, to confirm frontend↔backend connectivity end to end.
 - [ ] Verify `npm run dev` serves the app and it successfully reaches the backend.

@@ -58,5 +58,8 @@ A separate, distinct production packaging/deployment path layered on top of F001
   - Needs both `test` jobs to pass first.
   - Builds `backend/Dockerfile` and `frontend/Dockerfile`, logs into `ghcr.io` (using the built-in `GITHUB_TOKEN`, which has package-write permission for the repo's own GHCR namespace), pushes both images with the tags described above.
 
+## Release Process
+Per [ADR 0007](../../adr/0007-single-shared-semver-and-changelog.md): backend and frontend share one version. To cut a release: move `CHANGELOG.md`'s `[Unreleased]` entries under a new `[X.Y.Z] - YYYY-MM-DD` heading (add a fresh empty `[Unreleased]` above it), bump `version` in both `backend/build.gradle` and `frontend/package.json` to match, commit, then tag `vX.Y.Z` and push the tag — which is exactly the trigger the `build-and-push` CI job (above) watches for.
+
 ## Dependencies
 F001 (dev scaffolding this builds a separate prod path on top of). Does not depend on, block, or change F002–F013 — purely infrastructure around whatever domain features exist at the time it's built.

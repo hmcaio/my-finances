@@ -27,3 +27,7 @@ Each feature below has its own folder with a `spec.md` (technical specification)
 - **Repo layout**: `/backend` (Gradle, layer-then-context packages: `domain/`, `application/`, `infrastructure/`, each with subpackages per aggregate) and `/frontend` (Vite + React + TypeScript) at the repository root, alongside `docs/`.
 
 Each feature's `spec.md`/`plan.md` has explicit **Backend** and **Frontend** sections, and `plan.md` lists which other features (`FXXX`) it depends on.
+
+## Versioning & Changelog
+
+Backend and frontend share one [Semantic Versioning](https://semver.org/) number (starting `0.1.0`), and all notable changes are logged in [../../CHANGELOG.md](../../CHANGELOG.md) per [Keep a Changelog](https://keepachangelog.com/). See [ADR 0007](../adr/0007-single-shared-semver-and-changelog.md) for the full rationale and release steps (also documented in F014).

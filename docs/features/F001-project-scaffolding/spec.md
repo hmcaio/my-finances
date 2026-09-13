@@ -16,6 +16,7 @@ Set up the repository skeleton and shared conventions every later feature builds
 ### Module & build
 - Gradle project at `/backend`, Spring Boot (Web, Data JPA, Validation starters), Java toolchain version pinned in `build.gradle`.
 - Base package: `com.myfinances` (rename is a one-line change if a different package is preferred later; not a product decision, just a placeholder).
+- `version = "0.1.0"` in `build.gradle` — see [ADR 0007](../../adr/0007-single-shared-semver-and-changelog.md): backend and frontend share one SemVer version, bumped together at release time.
 - Package layout (layer-then-context):
   ```
   com.myfinances
@@ -80,7 +81,7 @@ Set up the repository skeleton and shared conventions every later feature builds
 ## Frontend
 
 ### Module & build
-- `/frontend`: Vite + React + TypeScript template (`npm create vite@latest -- --template react-ts`), default scripts (`dev`, `build`, `lint` if ESLint is included by the template).
+- `/frontend`: Vite + React + TypeScript template (`npm create vite@latest -- --template react-ts`), default scripts (`dev`, `build`, `lint` if ESLint is included by the template). Set `package.json`'s `version` to `0.1.0` (the Vite template defaults to `0.0.0`) to match the backend's starting version — ADR 0007.
 - No product UI yet — a single placeholder page confirming the app boots and can reach the backend (e.g. a health-check call), removed/replaced once F002+ add real screens.
 - Base folder structure to establish now (empty or near-empty, filled in by later features):
   ```
