@@ -9,12 +9,16 @@
 - [ ] Add `AuditableEntity` `@MappedSuperclass` in `infrastructure/persistence` and `JpaAuditingConfig` (`@EnableJpaAuditing`).
 - [ ] Configure Flyway (`src/main/resources/db/migration`), add empty/baseline `V1__baseline.sql`.
 - [ ] Add `application.yml` with local Postgres connection settings.
+- [ ] Add `springdoc-openapi-starter-webmvc-ui` dependency; verify `/v3/api-docs` and `/swagger-ui.html` serve.
+- [ ] Add the Spotless Gradle plugin (`google-java-format`); verify `spotlessCheck`/`spotlessApply` work.
 - [ ] Add a trivial health-check endpoint to verify the app boots and connects to Postgres.
 - [ ] Verify `./gradlew bootRun` starts successfully against the Dockerized Postgres.
 
 ## Frontend
 - [ ] Scaffold `/frontend` with Vite + React + TypeScript template; set `package.json` version to `0.1.0` to match the backend (ADR 0007).
 - [ ] Establish folder structure: `src/api`, `src/components`, `src/features`.
+- [ ] Configure ESLint + Prettier (`eslint-config-prettier`); verify `npm run lint` and a format-check script both work.
+- [ ] Add `openapi-typescript` (or equivalent) and an `npm run generate-api-types` script pulling from the backend's `/v3/api-docs`; verify it produces `src/api/generated/` types against the health-check endpoint.
 - [ ] Add a placeholder page that calls the backend health-check endpoint and displays the result, to confirm frontend↔backend connectivity end to end.
 - [ ] Verify `npm run dev` serves the app and it successfully reaches the backend.
 

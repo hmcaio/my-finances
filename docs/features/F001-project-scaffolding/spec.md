@@ -35,6 +35,11 @@ Set up the repository skeleton and shared conventions every later feature builds
   ```
 - No aggregate-specific code lives here — F002+ each add their own `domain/<aggregate>`, `application/<aggregate>`, `infrastructure/persistence/<aggregate>`, `infrastructure/web/<aggregate>` packages following this shape.
 
+### API documentation (OpenAPI)
+- `springdoc-openapi-starter-webmvc-ui` on the classpath — generates an OpenAPI 3 spec from the Spring controllers/DTOs added by F002+ with no manual spec-writing, served at `/v3/api-docs` (JSON) and browsable at `/swagger-ui.html`.
+- Every feature's REST controller (F002+) picks this up automatically; no per-feature OpenAPI work is needed beyond normal Spring annotations (`@RestController`, request/response DTOs) unless a specific endpoint needs extra description via `@Operation`/`@Schema`.
+- This spec doubles as the source for the frontend's typed API client generation (see Frontend below) — one contract, not two hand-maintained ones.
+
 ### IDs — single-point UUID generation
 - `domain/shared/IdGenerator.java`: a port —
   ```java
@@ -75,6 +80,9 @@ Set up the repository skeleton and shared conventions every later feature builds
 - `V1__baseline.sql`: intentionally empty/no-op placeholder (or just Flyway's own history table bootstrap) — first real schema migration belongs to F002.
 - Local Postgres via Docker Compose (see Frontend/Infra section below) — connection settings in `application.yml` (host `localhost`, port, db name, user/password all placeholders suitable for local dev only, matching the no-auth/localhost-only scope from the PRD).
 
+### Code style & formatting
+- [Spotless](https://github.com/diffplug/spotless) Gradle plugin, `google-java-format`. `spotlessApply` reformats, `spotlessCheck` fails the build on unformatted code — wired into CI (F014) alongside `./gradlew test`. Chosen over Checkstyle: Spotless auto-fixes rather than just flagging violations, less rules configuration to maintain, matching this project's minimal-tooling preference (ADR 0006, ADR 0009).
+
 ### Docker Compose
 - `docker-compose.yml` at repo root: one `postgres` service with a named volume for persistence (PRD §7.3 — data must survive container restarts), healthcheck, and exposed port for the backend to connect to from the host (backend itself run via `./gradlew bootRun` for now, not containerized — containerizing the backend is not required by the PRD, which only requires Postgres to persist across on-demand up/down cycles).
 
@@ -91,6 +99,12 @@ Set up the repository skeleton and shared conventions every later feature builds
   ├── features/     // one folder per feature area (accounts, transactions, ...)
   └── App.tsx
   ```
+
+### Code style & formatting
+- ESLint (extending the Vite react-ts template's baseline config) + Prettier for formatting, with `eslint-config-prettier` to disable any ESLint rules that'd conflict with Prettier. `npm run lint` fails CI (F014) on violations; a `format`/`format:check` script wraps Prettier.
+
+### Typed API client from OpenAPI
+- `npm run generate-api-types` (using `openapi-typescript` or equivalent): fetches the backend's `/v3/api-docs` and generates a TypeScript types file under `src/api/generated/` — one contract shared with the backend (see Backend § API documentation) instead of hand-typing request/response shapes on both sides and letting them drift. Re-run whenever a feature (F002+) changes an endpoint's shape; `src/api/*.ts` client functions (per-aggregate, F002+) are written against these generated types.
 
 ## Dependencies
 None — this is the foundation every other feature builds on.

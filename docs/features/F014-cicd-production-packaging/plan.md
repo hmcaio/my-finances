@@ -19,8 +19,8 @@
 
 ## CI/CD
 - [ ] Add `.github/workflows/ci.yml`.
-- [ ] `test` job (backend): Postgres service container, `./gradlew test`. Runs on every push and PR.
-- [ ] `test` job (frontend): `npm ci`, lint, test. Runs on every push and PR.
+- [ ] `test` job (backend): Postgres service container, `./gradlew spotlessCheck test`. Runs on every push and PR.
+- [ ] `test` job (frontend): `npm ci`, `npm run lint`, test. Runs on every push and PR.
 - [ ] `build-and-push` job: builds both Dockerfiles, logs into `ghcr.io`, pushes with SHA/`latest` tags on `main` pushes and version tags on `v*` tag pushes. Gated on both test jobs passing and on the branch/tag condition (not run on arbitrary feature-branch pushes).
 
 ## Release Process

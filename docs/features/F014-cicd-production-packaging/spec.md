@@ -52,8 +52,8 @@ A separate, distinct production packaging/deployment path layered on top of F001
 
 ### GitHub Actions (`.github/workflows/ci.yml`)
 - `test` jobs, run on every push and pull request (any branch):
-  - Backend: spins up a Postgres service container (matching the version used elsewhere), runs `./gradlew test` against it — needed since the domain-heavy logic (F006 budget versioning, F007 recurring catch-up) has integration-level tests that hit real persistence per the TDD approach called out in the PRD (§7.2).
-  - Frontend: `npm ci`, lint, and test (whatever test runner the frontend template ends up using).
+  - Backend: spins up a Postgres service container (matching the version used elsewhere), runs `./gradlew spotlessCheck test` against it — needed since the domain-heavy logic (F006 budget versioning, F007 recurring catch-up) has integration-level tests that hit real persistence per the TDD approach called out in the PRD (§7.2), and `spotlessCheck` (F001) gates formatting.
+  - Frontend: `npm ci`, `npm run lint`, and test (whatever test runner the frontend template ends up using).
 - `build-and-push` job, gated to only run on push to `main` or on a `v*` tag (per the answered clarification — every push runs tests, but images are only published for deliberate, deployable versions, not every branch commit):
   - Needs both `test` jobs to pass first.
   - Builds `backend/Dockerfile` and `frontend/Dockerfile`, logs into `ghcr.io` (using the built-in `GITHUB_TOKEN`, which has package-write permission for the repo's own GHCR namespace), pushes both images with the tags described above.
