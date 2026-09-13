@@ -3,8 +3,8 @@
 **Depends on**: F001.
 
 ## Backend
-- [ ] Add `application-prod.yml` with datasource settings sourced from environment variables.
-- [ ] Add `backend/Dockerfile` (multi-stage: Gradle build → slim JRE runtime), `SPRING_PROFILES_ACTIVE=prod` default.
+- [x] Add `application-prod.yml` with datasource settings sourced from environment variables.
+- [x] Add `backend/Dockerfile` (multi-stage: Gradle build → slim JRE runtime), `SPRING_PROFILES_ACTIVE=prod` default.
 - [ ] Confirm Flyway migrations run correctly against a freshly-provisioned prod-shaped Postgres (same migrations as dev, different connection target).
 
 ## Frontend
