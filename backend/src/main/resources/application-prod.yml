@@ -3,13 +3,18 @@
 # These env vars are supplied by docker-compose.prod.yml from the gitignored .env file — see
 # .env.example at the repo root for the required keys. Never commit real values.
 #
-# server.address is intentionally NOT pinned to 127.0.0.1 here (unlike dev's application.yml):
-# in docker-compose.prod.yml the backend and frontend run in separate containers, and the
-# frontend's nginx reaches this service over the Docker network by service name (`backend`),
-# which requires listening on all interfaces inside the container. The container itself is still
-# not published to the host/LAN in docker-compose.prod.yml (only nginx's port is), so the
-# PRD S7.1 "localhost/trusted-machine only" constraint still holds at the host boundary.
+# server.address is explicitly overridden to 0.0.0.0 here (unlike dev's application.yml, which
+# pins 127.0.0.1): Spring loads application-prod.yml *in addition to* application.yml, not
+# instead of it, so any key this file doesn't set (like server.address) would otherwise still
+# inherit dev's 127.0.0.1 — confirmed locally: with this key omitted, the backend container
+# passed its own healthcheck (loopback-local) but the frontend's nginx got "Connection refused"
+# reaching it over the Docker network, because a container's 127.0.0.1 isn't reachable from a
+# sibling container by service name. 0.0.0.0 is required for nginx to reach it as `backend`. The
+# container itself is still not published to the host/LAN in docker-compose.prod.yml (only
+# nginx's port is), so the PRD S7.1 "localhost/trusted-machine only" constraint still holds at
+# the host boundary.
 server:
+  address: 0.0.0.0
   port: 8080
 
 spring:

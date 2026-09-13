@@ -5,7 +5,7 @@
 ## Backend
 - [x] Add `application-prod.yml` with datasource settings sourced from environment variables.
 - [x] Add `backend/Dockerfile` (multi-stage: Gradle build → slim JRE runtime), `SPRING_PROFILES_ACTIVE=prod` default.
-- [ ] Confirm Flyway migrations run correctly against a freshly-provisioned prod-shaped Postgres (same migrations as dev, different connection target).
+- [x] Confirm Flyway migrations run correctly against a freshly-provisioned prod-shaped Postgres (same migrations as dev, different connection target). Verified locally: `V1__baseline.sql` applied cleanly against a fresh `postgres:17-alpine` container started by `docker-compose.prod.yml`.
 
 ## Frontend
 - [x] Add `.env.development` and `.env.production` (API base URL: relative dev default vs relative `/api` for the nginx-proxied prod setup).
