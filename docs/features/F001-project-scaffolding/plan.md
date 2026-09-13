@@ -7,7 +7,7 @@
 - [x] Create base package structure: `domain/shared`, `application`, `infrastructure/config`, `infrastructure/persistence`, `infrastructure/web`.
 - [x] Add `IdGenerator` port in `domain/shared` and `RandomUuidGenerator` adapter + bean wiring in `infrastructure/config`.
 - [x] Add `AuditableEntity` `@MappedSuperclass` in `infrastructure/persistence` and `JpaAuditingConfig` (`@EnableJpaAuditing`).
-- [ ] Configure Flyway (`src/main/resources/db/migration`), add empty/baseline `V1__baseline.sql`.
+- [x] Configure Flyway (`src/main/resources/db/migration`), add empty/baseline `V1__baseline.sql`.
 - [x] Add `application.yml` with local Postgres connection settings.
 - [ ] Add `springdoc-openapi-starter-webmvc-ui` dependency; verify `/v3/api-docs` and `/swagger-ui.html` serve.
 - [ ] Add the Spotless Gradle plugin (`google-java-format`); verify `spotlessCheck`/`spotlessApply` work.
