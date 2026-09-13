@@ -27,8 +27,8 @@
 - [ ] Verify the dark-mode toggle switches the theme immediately and the choice survives a page reload.
 
 ## Infra
-- [ ] Add `docker-compose.yml` with a `postgres` service (named volume, healthcheck, exposed port).
-- [ ] Verify `docker compose up -d` then `docker compose down` preserves data across restarts (PRD §7.3).
+- [x] Add `docker-compose.yml` with a `postgres` service (named volume, healthcheck, exposed port).
+- [x] Verify `docker compose up -d` then `docker compose down` preserves data across restarts (PRD §7.3).
 
 ## Verification
 - [ ] From a clean checkout: `docker compose up -d`, `./gradlew bootRun`, `npm run dev` all succeed with no manual steps beyond documented ones.
