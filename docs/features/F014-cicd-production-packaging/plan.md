@@ -1,0 +1,29 @@
+# F014 — Action Plan
+
+**Depends on**: F001.
+
+## Backend
+- [ ] Add `application-prod.yml` with datasource settings sourced from environment variables.
+- [ ] Add `backend/Dockerfile` (multi-stage: Gradle build → slim JRE runtime), `SPRING_PROFILES_ACTIVE=prod` default.
+- [ ] Confirm Flyway migrations run correctly against a freshly-provisioned prod-shaped Postgres (same migrations as dev, different connection target).
+
+## Frontend
+- [ ] Add `.env.development` and `.env.production` (API base URL: relative dev default vs relative `/api` for the nginx-proxied prod setup).
+- [ ] Add `frontend/nginx.conf`: static SPA serving with fallback to `index.html`, `location /api/` reverse-proxying to the backend service.
+- [ ] Add `frontend/Dockerfile` (multi-stage: `npm run build` → nginx runtime, copying `dist/` and `nginx.conf`).
+
+## Infra
+- [ ] Add `docker-compose.prod.yml` (postgres, backend, frontend services; images pulled by tag from GHCR, not built locally; `depends_on` with healthchecks).
+- [ ] Add `.env.example` (documented keys, no real secrets) and add `.env` to `.gitignore`.
+- [ ] Decide and document final image names/tag format in the compose file's comments (`ghcr.io/hmcaio/my-finances-backend`/`-frontend`).
+
+## CI/CD
+- [ ] Add `.github/workflows/ci.yml`.
+- [ ] `test` job (backend): Postgres service container, `./gradlew test`. Runs on every push and PR.
+- [ ] `test` job (frontend): `npm ci`, lint, test. Runs on every push and PR.
+- [ ] `build-and-push` job: builds both Dockerfiles, logs into `ghcr.io`, pushes with SHA/`latest` tags on `main` pushes and version tags on `v*` tag pushes. Gated on both test jobs passing and on the branch/tag condition (not run on arbitrary feature-branch pushes).
+
+## Verification
+- [ ] Local smoke test: `docker compose -f docker-compose.prod.yml up` (with images built locally and tagged to match `.env`'s `IMAGE_TAG`, simulating a real GHCR pull) brings up all three services and the app is reachable through nginx's exposed port, with API calls correctly proxied through to the backend.
+- [ ] Confirm F001's dev workflow (`docker-compose.yml`, native `bootRun`/`npm run dev`) still works unmodified after this feature is added.
+- [ ] Push a commit to `main` and confirm CI publishes `:latest` and `:<sha>` images; push a `v0.0.1`-style tag and confirm CI additionally publishes that version tag.

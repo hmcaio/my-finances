@@ -1,0 +1,34 @@
+# F005 — Transfers
+
+## Summary
+`Transfer` between two accounts — most commonly paying a credit card statement from checking (PRD §5.5, §6.2 transfer part). Keeps spend and debt correctly separated instead of double-counting (PRD §1).
+
+## Scope
+- `Transfer` entity: date, from-account, to-account, amount, optional note.
+- Two-sided balance effect, folded into `AccountBalanceQuery` (F003) alongside transactions.
+- Transfer history view.
+- Out of scope: any notion of a transfer being "categorized" or counted toward budgets — it explicitly isn't (PRD §5.5).
+
+## Backend
+
+### Domain
+- `domain/transfer/Transfer.java`: id, `date`, `fromAccountId`, `toAccountId`, `amount` (positive), `note` (nullable).
+- Invariant: `fromAccountId != toAccountId`. Both accounts must be open (not closed) at creation time — enforced via F003's `Account.isClosed()`.
+- Balance effect (implemented in F003's `AccountBalanceQuery`, specified here since it's this feature's data driving it): the source account's balance decreases by `amount`. The destination account's effect depends on its type — an asset account's balance increases; a credit card account's owed-balance decreases. No category, no budget impact, no direct net-worth impact (an asset down and a liability down by the same amount nets to zero — PRD §5.5).
+- No versioning, no editing after creation beyond a plain field update (like Transaction) — delete is a hard delete.
+
+### Persistence
+- `TransferJpaEntity extends AuditableEntity`; table `transfers`: `id uuid pk`, `date date not null`, `from_account_id uuid not null references accounts`, `to_account_id uuid not null references accounts`, `amount numeric not null`, `note text`, plus audit columns. Check constraint `from_account_id <> to_account_id`.
+- Migration `V5__transfers.sql`.
+
+### API
+- `POST /api/transfers`, `GET /api/transfers/{id}`, `PATCH /api/transfers/{id}`, `DELETE /api/transfers/{id}`.
+- `GET /api/transfers?dateFrom=&dateTo=&accountId=` — filtered list; `accountId` matches either side (PRD §6.9 export filter semantics mirror this).
+
+## Frontend
+- Transfer creation form: date, from-account, to-account (both dropdowns from F003, closed accounts excluded, can't pick the same account twice), amount, optional note.
+- Transfer history list, filterable by account.
+- Account detail view (F003) embeds transfer history alongside transaction history, both contributing to the same running-balance timeline.
+
+## Dependencies
+F001, F003 (accounts, balance calc).
