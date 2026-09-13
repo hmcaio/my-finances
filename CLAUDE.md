@@ -4,7 +4,40 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-This repository is pre-implementation: it currently contains only `LICENSE` and `docs/PRD.md`. No backend, frontend, build files, or tests exist yet. There are no build/lint/test commands to document until the project is scaffolded — do not invent any.
+F001 (project scaffolding) is done: `/backend` (Spring Boot/Gradle) and `/frontend` (Vite/React/TypeScript) skeletons exist and are buildable/runnable, per `docs/features/F001-project-scaffolding/`. No product functionality (accounts, transactions, ...) is implemented yet — that starts with F002.
+
+## Build / lint / test commands
+
+Local Postgres (required before running the backend):
+```
+docker compose up -d      # start (data persists in a named volume)
+docker compose down       # stop
+```
+
+Backend (`/backend`, run from that directory):
+```
+./gradlew bootRun         # run the API against local Postgres (http://localhost:8080)
+./gradlew build           # compile + test + package
+./gradlew test            # tests only
+./gradlew spotlessCheck   # formatting check (google-java-format); spotlessApply to fix
+```
+Swagger UI: `http://localhost:8080/swagger-ui.html`. OpenAPI spec: `http://localhost:8080/v3/api-docs`.
+
+Frontend (`/frontend`, run from that directory):
+```
+npm install               # first time (frontend/.npmrc sets legacy-peer-deps for openapi-typescript)
+npm run dev                    # dev server, http://localhost:5173
+npm run build                  # typecheck + production build
+npm run lint                   # ESLint
+npm run format / format:check  # Prettier
+npm run generate-api-types     # regenerate src/api/generated/schema.ts from the backend's /v3/api-docs (backend must be running)
+```
+
+## Structural conventions
+
+- Backend package layout is layer-then-context: `com.chm.myfinances.{domain,application,infrastructure}`, each with one subpackage per aggregate (see `docs/adr/0004-hexagonal-ddd-tdd.md`). `domain/shared` holds the `IdGenerator` port (ADR 0005); `infrastructure/persistence` holds the `AuditableEntity` base class every entity with its own table extends.
+- Frontend: `src/api` (typed HTTP clients, one module per aggregate, generated types under `src/api/generated/`), `src/components` (shared UI), `src/features/<area>` (one folder per feature area, mapping to a route).
+- Every commit follows Conventional Commits (`docs/adr/0009-conventional-commits.md`).
 
 ## Source of truth
 
