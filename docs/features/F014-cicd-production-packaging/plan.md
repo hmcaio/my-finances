@@ -8,9 +8,9 @@
 - [ ] Confirm Flyway migrations run correctly against a freshly-provisioned prod-shaped Postgres (same migrations as dev, different connection target).
 
 ## Frontend
-- [ ] Add `.env.development` and `.env.production` (API base URL: relative dev default vs relative `/api` for the nginx-proxied prod setup).
-- [ ] Add `frontend/nginx.conf`: static SPA serving with fallback to `index.html`, `location /api/` reverse-proxying to the backend service.
-- [ ] Add `frontend/Dockerfile` (multi-stage: `npm run build` → nginx runtime, copying `dist/` and `nginx.conf`).
+- [x] Add `.env.development` and `.env.production` (API base URL: relative dev default vs relative `/api` for the nginx-proxied prod setup).
+- [x] Add `frontend/nginx.conf`: static SPA serving with fallback to `index.html`, `location /api/` reverse-proxying to the backend service.
+- [x] Add `frontend/Dockerfile` (multi-stage: `npm run build` → nginx runtime, copying `dist/` and `nginx.conf`).
 
 ## Infra
 - [ ] Add `docker-compose.prod.yml` (postgres, backend, frontend services; images pulled by tag from GHCR, not built locally; `depends_on` with healthchecks).
