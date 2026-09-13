@@ -1,0 +1,11 @@
+# Local dev profile (F001). Active by default (see spring.profiles.default in application.yml)
+# whenever no other profile is set — matches F001's Dockerized-Postgres/native-bootRun dev setup.
+server:
+  address: 127.0.0.1
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/myfinances
+    username: myfinances
+    password: myfinances
+    driver-class-name: org.postgresql.Driver

@@ -1,16 +1,9 @@
-server:
-  port: 8080
-  address: 127.0.0.1
-
 spring:
   application:
     name: my-finances-backend
 
-  datasource:
-    url: jdbc:postgresql://localhost:5432/myfinances
-    username: myfinances
-    password: myfinances
-    driver-class-name: org.postgresql.Driver
+  profiles:
+    default: dev
 
   jpa:
     hibernate:
@@ -23,6 +16,9 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+
+server:
+  port: 8080
 
 springdoc:
   swagger-ui:

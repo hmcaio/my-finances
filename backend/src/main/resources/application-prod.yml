@@ -1,0 +1,19 @@
+# Production profile (F014), activated via SPRING_PROFILES_ACTIVE=prod in docker-compose.prod.yml.
+# Datasource credentials come from environment variables supplied by the gitignored .env file —
+# see .env.example at the repo root for the required keys. Never commit real values.
+#
+# server.address must be 0.0.0.0 (not dev's 127.0.0.1): the frontend's nginx container reaches
+# this one over the Docker network by service name, and a container's loopback address isn't
+# reachable from a sibling container. The container itself is still not published to the
+# host/LAN here (only nginx's port is, in docker-compose.prod.yml) — the PRD S7.1
+# localhost/trusted-machine-only constraint holds at the host boundary, this is purely
+# container-to-container.
+server:
+  address: 0.0.0.0
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver

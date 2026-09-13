@@ -4,6 +4,11 @@ springDependencyManagement = "1.1.7"
 spotless = "7.0.2"
 springdoc = "2.8.5"
 googleJavaFormat = "1.36.1"
+# Spring Boot's dependency-management BOM pins the core `testcontainers` artifact but not the
+# `junit-jupiter`/`postgresql` Testcontainers modules (see ADR 0010) — imported explicitly as a
+# platform BOM in build.gradle, pinned to the same version the Spring Boot BOM already resolved
+# for the core artifact so every Testcontainers module stays consistent.
+testcontainers = "2.0.5"
 
 [libraries]
 springdoc-openapi-starter-webmvc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
