@@ -17,5 +17,23 @@ services:
       timeout: 5s
       retries: 5
 
+  pgadmin:
+    image: dpage/pgadmin4:9.17
+    container_name: my-finances-pgadmin
+    restart: unless-stopped
+    environment:
+      # Plain-text dev-only credentials, matching this file's existing convention for postgres's
+      # own credentials above (local, no-auth, single-user dev environment per the PRD).
+      PGADMIN_DEFAULT_EMAIL: dev@myfinances.com
+      PGADMIN_DEFAULT_PASSWORD: myfinances
+    ports:
+      - "5050:80"
+    volumes:
+      - my-finances-pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   my-finances-postgres-data:
+  my-finances-pgadmin-data:
