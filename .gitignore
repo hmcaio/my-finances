@@ -14,6 +14,9 @@ npm-debug.log*
 # Environment secrets (see F014, ADR 0007) — never commit
 .env
 
+# Agent worktrees (created by subagents via isolation:"worktree", e.g. the implement-feature skill)
+.claude/worktrees/
+
 # IDE
 .idea/
 .vscode/
