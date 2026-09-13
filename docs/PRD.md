@@ -201,7 +201,7 @@ A time series for the net worth trend chart is computed by evaluating this formu
 ### 7.1 Stack
 - **Backend**: Java, Spring Boot (REST API), built with Gradle.
 - **Database migrations**: Flyway.
-- **Frontend**: React + TypeScript, built with Vite.
+- **Frontend**: React + TypeScript, built with Vite, Material UI (MUI) for components/theming, React Router for client-side routing.
 - **Database**: PostgreSQL, run via Docker (Docker Compose for local dev: db + backend, at minimum).
 - **Auth**: none. App assumes a trusted single user on a trusted machine.
 - **Network exposure**: backend/frontend bound to `localhost` only — not exposed to LAN or internet in this version.

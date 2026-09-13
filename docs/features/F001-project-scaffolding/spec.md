@@ -103,6 +103,25 @@ Set up the repository skeleton and shared conventions every later feature builds
 ### Code style & formatting
 - ESLint (extending the Vite react-ts template's baseline config) + Prettier for formatting, with `eslint-config-prettier` to disable any ESLint rules that'd conflict with Prettier. `npm run lint` fails CI (F014) on violations; a `format`/`format:check` script wraps Prettier.
 
+### UI library (Material UI) & routing (React Router)
+- `@mui/material`, `@mui/icons-material`, `@emotion/react`, `@emotion/styled`. `src/theme.ts` exports a `getTheme(mode: 'light' | 'dark')` function (one palette definition, two modes via MUI's `createTheme({ palette: { mode } })`) wrapped around the app via `ThemeProvider` + `CssBaseline` in `App.tsx`, so every later feature's components share one theme instead of ad hoc styling.
+- Dark mode toggle: a small React context/hook (`useColorMode`) holding the current mode, defaulting to the OS preference (`prefers-color-scheme`) on first load and persisted to `localStorage` after that (no backend involved — this is a per-device UI preference, not product data). A toggle control lives in the shared `Layout`'s `AppBar` (see below), available on every screen.
+- `react-router-dom`, `BrowserRouter` at the app root. Route tree (mounted only once onboarding, F011, has passed — see below), one path per feature area so `src/features/<area>` maps directly to a route:
+  ```
+  /                     → Dashboard (F012)
+  /transactions         → F004
+  /accounts             → F003
+  /transfers            → F005
+  /budgets              → F006
+  /recurring            → F007
+  /investments          → F008 / F009
+  /settings/categories  → F002
+  /settings/payment-methods → F002
+  /export               → F013
+  ```
+- A shared `Layout` component (MUI `AppBar` + `Drawer` navigation linking to the routes above, plus the dark-mode toggle in the `AppBar`) wraps every route except onboarding.
+- Onboarding (F011) is not part of the route tree — it's a top-level check in `App.tsx` ("does at least one account exist?") that renders the onboarding screen standalone when false, and the `BrowserRouter` + `Layout` + routes only when true. Keeps the "no accounts yet" case simple (no route guards/redirects to reason about) at the cost of the router not being mounted at all during onboarding — acceptable since onboarding is a one-time, single-screen flow.
+
 ### Typed API client from OpenAPI
 - `npm run generate-api-types` (using `openapi-typescript` or equivalent): fetches the backend's `/v3/api-docs` and generates a TypeScript types file under `src/api/generated/` — one contract shared with the backend (see Backend § API documentation) instead of hand-typing request/response shapes on both sides and letting them drift. Re-run whenever a feature (F002+) changes an endpoint's shape; `src/api/*.ts` client functions (per-aggregate, F002+) are written against these generated types.
 

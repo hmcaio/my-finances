@@ -13,7 +13,7 @@ This repository is pre-implementation: it currently contains only `LICENSE` and 
 ## Planned architecture (from the PRD)
 
 - **Backend**: Java + Spring Boot, built with Gradle; Flyway for schema migrations.
-- **Frontend**: React + TypeScript, built with Vite.
+- **Frontend**: React + TypeScript, built with Vite, Material UI (MUI) for components/theming, React Router for client-side routing.
 - **Database**: PostgreSQL, run via Docker Compose for local dev.
 - **Methodology**: Domain-Driven Design (entity clusters as aggregates — Account+Transfer, Budget+BudgetVersion, RecurringTemplate+RecurringTemplateVersion, the Investment* cluster), Hexagonal Architecture (domain/business logic isolated from Spring/JPA/Postgres behind ports), Test-Driven Design (tests-first for the rules-heavy logic: net worth calc, versioning, recurring catch-up generation).
 - **Runtime model**: local, single-user, no auth, bound to `localhost` only, run on-demand (brought up/down by the user) rather than kept always-on — this is why recurring-template generation must be catch-up-based, not cron-based.
