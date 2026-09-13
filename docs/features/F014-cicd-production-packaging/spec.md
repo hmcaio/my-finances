@@ -15,13 +15,14 @@ A separate, distinct production packaging/deployment path layered on top of F001
 
 ### Dockerfile (`backend/Dockerfile`)
 - Multi-stage:
-  - Build stage: a Gradle image, copies source, runs `./gradlew bootJar` (or `build -x test` — tests already ran in CI before this step, no need to repeat them inside the image build).
+  - Build stage: implemented as a JDK image (`eclipse-temurin:21-jdk-alpine`) running the project's own Gradle wrapper (`./gradlew bootJar -x test`), rather than an official `gradle:*` base image — this guarantees the exact Gradle version pinned in `gradle/wrapper/gradle-wrapper.properties` (9.7.1) is what actually builds the jar, matching local dev bit-for-bit instead of depending on a `gradle:*` tag happening to match.
   - Runtime stage: a slim JRE base image (e.g. `eclipse-temurin:<version>-jre-alpine` or equivalent), copies only the built jar from the build stage, `ENTRYPOINT ["java", "-jar", "app.jar"]`.
 - Runtime stage activates the `prod` Spring profile by default (`SPRING_PROFILES_ACTIVE=prod` env var set in the image or in `docker-compose.prod.yml`).
 
 ### `application-prod.yml`
 - Same shape as F001's dev `application.yml` but sourcing datasource host/port/db/user/password from environment variables (e.g. `${DB_HOST}`, `${DB_PORT}`, `${DB_NAME}`, `${DB_USER}`, `${DB_PASSWORD}`) instead of the hardcoded local-dev values — these env vars are supplied by `docker-compose.prod.yml` from the gitignored `.env` file, never committed.
 - Flyway remains enabled identically to dev — same migrations run against the prod database on startup.
+- Also explicitly overrides `server.address` to `0.0.0.0` (dev's `application.yml` pins it to `127.0.0.1`). Not anticipated when this spec was first written, but required: Spring loads `application-prod.yml` *in addition to* `application.yml`, not instead of it, so any key this file doesn't set still inherits dev's value. Confirmed by a local `docker-compose.prod.yml` run — without the override, the backend passed its own loopback healthcheck but the frontend's nginx got connection-refused reaching it by service name, since a container's `127.0.0.1` isn't reachable from a sibling container. The host/LAN exposure constraint (PRD S7.1) is unaffected since only nginx's port is published to the host in `docker-compose.prod.yml`.
 
 ## Frontend
 
@@ -29,7 +30,7 @@ A separate, distinct production packaging/deployment path layered on top of F001
 - Multi-stage:
   - Build stage: Node image, `npm ci`, `npm run build` (using `.env.production` for build-time env vars — Vite inlines these at build time).
   - Runtime stage: an nginx image, copies the build stage's `dist/` into nginx's web root, copies a project-provided `nginx.conf`.
-- `nginx.conf`: serves static files with SPA fallback (`try_files $uri /index.html`) and reverse-proxies `/api/` to the backend container by its Docker Compose service name (e.g. `proxy_pass http://backend:8080/`) — this makes the API same-origin from the browser's perspective, so no CORS configuration is needed in production (per the answered clarification).
+- `nginx.conf`: serves static files with SPA fallback (`try_files $uri /index.html`) and reverse-proxies `/api/` to the backend container by its Docker Compose service name — this makes the API same-origin from the browser's perspective, so no CORS configuration is needed in production (per the answered clarification). Implemented as `proxy_pass http://backend:8080;` **without** a trailing slash: the backend's own routes are mapped at `/api/...` (see `HealthController`'s `@GetMapping("/api/health")`), not bare paths, so the `/api/` prefix must reach the backend unchanged rather than being stripped — a trailing-slash `proxy_pass` (as originally sketched here) would strip it and 404.
 
 ### Env separation
 - `.env.development`: API base URL is empty/relative or points at `http://localhost:8080` for local dev against the natively-run backend (F001) — whichever the existing dev setup already assumes; this feature doesn't change dev behavior, only documents that `.env.development` exists for symmetry with `.env.production`.
