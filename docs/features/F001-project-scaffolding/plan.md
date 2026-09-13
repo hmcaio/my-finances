@@ -16,15 +16,15 @@
 
 ## Frontend
 - [x] Scaffold `/frontend` with Vite + React + TypeScript template; set `package.json` version to `0.1.0` to match the backend (ADR 0007).
-- [ ] Establish folder structure: `src/api`, `src/components`, `src/features`.
+- [x] Establish folder structure: `src/api`, `src/components`, `src/features`.
 - [x] Configure ESLint + Prettier (`eslint-config-prettier`); verify `npm run lint` and a format-check script both work.
 - [x] Add `openapi-typescript` (or equivalent) and an `npm run generate-api-types` script pulling from the backend's `/v3/api-docs`; verify it produces `src/api/generated/` types against the health-check endpoint.
-- [ ] Add MUI (`@mui/material`, `@mui/icons-material`, `@emotion/react`, `@emotion/styled`); add `src/theme.ts` (`getTheme(mode)`) and wrap `App.tsx` in `ThemeProvider` + `CssBaseline`.
+- [x] Add MUI (`@mui/material`, `@mui/icons-material`, `@emotion/react`, `@emotion/styled`); add `src/theme.ts` (`getTheme(mode)`) and wrap `App.tsx` in `ThemeProvider` + `CssBaseline`.
 - [x] Add the `useColorMode` context/hook (OS-preference default, `localStorage` persistence) and a dark-mode toggle control.
 - [x] Add `react-router-dom`; add the route tree (per `spec.md`'s table) and a shared `Layout` component (MUI `AppBar` + `Drawer`, with the dark-mode toggle in the `AppBar`), mounted only when at least one account exists (onboarding check gates the router itself).
-- [ ] Add a placeholder page that calls the backend health-check endpoint and displays the result, to confirm frontend↔backend connectivity end to end.
-- [ ] Verify `npm run dev` serves the app and it successfully reaches the backend.
-- [ ] Verify the dark-mode toggle switches the theme immediately and the choice survives a page reload.
+- [x] Add a placeholder page that calls the backend health-check endpoint and displays the result, to confirm frontend↔backend connectivity end to end.
+- [x] Verify `npm run dev` serves the app and it successfully reaches the backend.
+- [x] Verify the dark-mode toggle switches the theme immediately and the choice survives a page reload.
 
 ## Infra
 - [x] Add `docker-compose.yml` with a `postgres` service (named volume, healthcheck, exposed port).
