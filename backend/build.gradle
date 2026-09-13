@@ -25,6 +25,15 @@ repositories {
     mavenCentral()
 }
 
+dependencyManagement {
+    imports {
+        // Spring Boot's BOM pins the core `testcontainers` artifact but not the
+        // `junit-jupiter`/`postgresql` modules used below - import the Testcontainers BOM
+        // explicitly so every Testcontainers module resolves to one consistent version (ADR 0010).
+        mavenBom "org.testcontainers:testcontainers-bom:${libs.versions.testcontainers.get()}"
+    }
+}
+
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
@@ -41,6 +50,11 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    // Testcontainers 2.x (pulled in via the testcontainers-bom import above) renamed these
+    // modules from the old `junit-jupiter`/`postgresql` artifact ids to `testcontainers-*`.
+    testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
+    testImplementation 'org.testcontainers:testcontainers-postgresql'
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
