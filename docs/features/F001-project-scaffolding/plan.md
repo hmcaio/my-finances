@@ -9,10 +9,10 @@
 - [x] Add `AuditableEntity` `@MappedSuperclass` in `infrastructure/persistence` and `JpaAuditingConfig` (`@EnableJpaAuditing`).
 - [x] Configure Flyway (`src/main/resources/db/migration`), add empty/baseline `V1__baseline.sql`.
 - [x] Add `application.yml` with local Postgres connection settings.
-- [ ] Add `springdoc-openapi-starter-webmvc-ui` dependency; verify `/v3/api-docs` and `/swagger-ui.html` serve.
-- [ ] Add the Spotless Gradle plugin (`google-java-format`); verify `spotlessCheck`/`spotlessApply` work.
-- [ ] Add a trivial health-check endpoint to verify the app boots and connects to Postgres.
-- [ ] Verify `./gradlew bootRun` starts successfully against the Dockerized Postgres.
+- [x] Add `springdoc-openapi-starter-webmvc-ui` dependency; verify `/v3/api-docs` and `/swagger-ui.html` serve.
+- [x] Add the Spotless Gradle plugin (`google-java-format`); verify `spotlessCheck`/`spotlessApply` work.
+- [x] Add a trivial health-check endpoint to verify the app boots and connects to Postgres.
+- [x] Verify `./gradlew bootRun` starts successfully against the Dockerized Postgres.
 
 ## Frontend
 - [ ] Scaffold `/frontend` with Vite + React + TypeScript template; set `package.json` version to `0.1.0` to match the backend (ADR 0007).
