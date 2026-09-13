@@ -1,46 +1,19 @@
-# Production Spring profile (F014). Same shape as application.yml (dev), but datasource
-# credentials/host come from environment variables instead of hardcoded local-dev values.
-# These env vars are supplied by docker-compose.prod.yml from the gitignored .env file — see
-# .env.example at the repo root for the required keys. Never commit real values.
+# Production profile (F014), activated via SPRING_PROFILES_ACTIVE=prod in docker-compose.prod.yml.
+# Datasource credentials come from environment variables supplied by the gitignored .env file —
+# see .env.example at the repo root for the required keys. Never commit real values.
 #
-# server.address is explicitly overridden to 0.0.0.0 here (unlike dev's application.yml, which
-# pins 127.0.0.1): Spring loads application-prod.yml *in addition to* application.yml, not
-# instead of it, so any key this file doesn't set (like server.address) would otherwise still
-# inherit dev's 127.0.0.1 — confirmed locally: with this key omitted, the backend container
-# passed its own healthcheck (loopback-local) but the frontend's nginx got "Connection refused"
-# reaching it over the Docker network, because a container's 127.0.0.1 isn't reachable from a
-# sibling container by service name. 0.0.0.0 is required for nginx to reach it as `backend`. The
-# container itself is still not published to the host/LAN in docker-compose.prod.yml (only
-# nginx's port is), so the PRD S7.1 "localhost/trusted-machine only" constraint still holds at
-# the host boundary.
+# server.address must be 0.0.0.0 (not dev's 127.0.0.1): the frontend's nginx container reaches
+# this one over the Docker network by service name, and a container's loopback address isn't
+# reachable from a sibling container. The container itself is still not published to the
+# host/LAN here (only nginx's port is, in docker-compose.prod.yml) — the PRD S7.1
+# localhost/trusted-machine-only constraint holds at the host boundary, this is purely
+# container-to-container.
 server:
   address: 0.0.0.0
-  port: 8080
 
 spring:
-  application:
-    name: my-finances-backend
-
   datasource:
     url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
     username: ${DB_USER}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
-
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    open-in-view: false
-    properties:
-      hibernate:
-        format_sql: true
-
-  flyway:
-    enabled: true
-    locations: classpath:db/migration
-
-springdoc:
-  swagger-ui:
-    path: /swagger-ui.html
-  api-docs:
-    path: /v3/api-docs

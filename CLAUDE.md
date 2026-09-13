@@ -48,6 +48,7 @@ npm run generate-api-types     # regenerate src/api/generated/schema.ts from the
 - Backend package layout is layer-then-context: `com.chm.myfinances.{domain,application,infrastructure}`, each with one subpackage per aggregate (see `docs/adr/0004-hexagonal-ddd-tdd.md`). `domain/shared` holds the `IdGenerator` port (ADR 0005); `infrastructure/persistence` holds the `AuditableEntity` base class every entity with its own table extends.
 - Frontend: `src/api` (typed HTTP clients, one module per aggregate, generated types under `src/api/generated/`), `src/components` (shared UI), `src/features/<area>` (one folder per feature area, mapping to a route).
 - Every commit follows Conventional Commits (`docs/adr/0009-conventional-commits.md`).
+- Backend config is split by Spring profile: `application.yml` holds only settings identical across every environment, plus `spring.profiles.default: dev`. Environment-specific values (datasource, `server.address`) live only in `application-dev.yml` / `application-prod.yml` / `application-test.yml` — never in the base file, so nothing environment-specific is ever silently inherited across profiles.
 
 ## Source of truth
 

@@ -19,7 +19,7 @@
 
 ## CI/CD
 - [x] Add `.github/workflows/ci.yml`.
-- [x] `test` job (backend): Postgres service container, `./gradlew spotlessCheck test`. Runs on every push and PR. (Includes a `chmod +x gradlew` step — the wrapper script is checked in without the executable bit, since the repo was authored on Windows, which Linux runners need set explicitly.)
+- [x] `test` job (backend): Postgres service container, `./gradlew spotlessCheck test`. Runs on every push and PR. (Includes a `chmod +x gradlew` step — the wrapper script is checked in without the executable bit, since the repo was authored on Windows, which Linux runners need set explicitly. Activates an explicit `SPRING_PROFILES_ACTIVE=test`, matching `application-test.yml`, rather than implicitly riding the `dev` default.)
 - [x] `test` job (frontend): `npm ci`, `npm run lint`, test. Runs on every push and PR. (No test runner exists yet in `frontend/package.json` — the step checks for a `test` script at run time via `npm run` and skips gracefully instead of hardcoding `npm test`, so it activates automatically once a test runner is added.)
 - [x] `build-and-push` job: builds both Dockerfiles, logs into `ghcr.io`, pushes with SHA/`latest` tags on `main` pushes and version tags on `v*` tag pushes. Gated on both test jobs passing and on the branch/tag condition (not run on arbitrary feature-branch pushes).
 
