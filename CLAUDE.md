@@ -13,6 +13,7 @@ Local Postgres (required before running the backend):
 docker compose up -d      # start (data persists in a named volume)
 docker compose down       # stop
 ```
+Includes a `pgadmin` service for local database inspection: `http://localhost:5050` (login `dev@myfinances.com` / `myfinances`; register a server with host `postgres`, port `5432`, and Postgres's own dev credentials below).
 
 Backend (`/backend`, run from that directory):
 ```

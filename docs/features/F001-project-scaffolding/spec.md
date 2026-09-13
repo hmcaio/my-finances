@@ -86,6 +86,7 @@ Set up the repository skeleton and shared conventions every later feature builds
 
 ### Docker Compose
 - `docker-compose.yml` at repo root: one `postgres` service with a named volume for persistence (PRD §7.3 — data must survive container restarts), healthcheck, and exposed port for the backend to connect to from the host (backend itself run via `./gradlew bootRun` for now, not containerized — containerizing the backend is not required by the PRD, which only requires Postgres to persist across on-demand up/down cycles).
+- A `pgadmin` service (added later, on the F014 branch, as dev tooling rather than a product dependency) for local database inspection: `dpage/pgadmin4`, its own named volume for session/config persistence, `depends_on: postgres` gated on the same healthcheck condition, and plain-text dev-only credentials matching this file's existing convention for Postgres's own credentials above. Reachable at `http://localhost:5050` once `docker compose up -d` is running.
 
 ## Frontend
 
