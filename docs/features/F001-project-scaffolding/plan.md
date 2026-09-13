@@ -3,12 +3,12 @@
 **Depends on**: none (foundation).
 
 ## Backend
-- [ ] Initialize Gradle project at `/backend` (Spring Boot Web, Data JPA, Validation, Flyway, Postgres driver starters), `version = "0.1.0"` (ADR 0007).
-- [ ] Create base package structure: `domain/shared`, `application`, `infrastructure/config`, `infrastructure/persistence`, `infrastructure/web`.
+- [x] Initialize Gradle project at `/backend` (Spring Boot Web, Data JPA, Validation, Flyway, Postgres driver starters), `version = "0.1.0"` (ADR 0007).
+- [x] Create base package structure: `domain/shared`, `application`, `infrastructure/config`, `infrastructure/persistence`, `infrastructure/web`.
 - [ ] Add `IdGenerator` port in `domain/shared` and `RandomUuidGenerator` adapter + bean wiring in `infrastructure/config`.
 - [ ] Add `AuditableEntity` `@MappedSuperclass` in `infrastructure/persistence` and `JpaAuditingConfig` (`@EnableJpaAuditing`).
 - [ ] Configure Flyway (`src/main/resources/db/migration`), add empty/baseline `V1__baseline.sql`.
-- [ ] Add `application.yml` with local Postgres connection settings.
+- [x] Add `application.yml` with local Postgres connection settings.
 - [ ] Add `springdoc-openapi-starter-webmvc-ui` dependency; verify `/v3/api-docs` and `/swagger-ui.html` serve.
 - [ ] Add the Spotless Gradle plugin (`google-java-format`); verify `spotlessCheck`/`spotlessApply` work.
 - [ ] Add a trivial health-check endpoint to verify the app boots and connects to Postgres.
