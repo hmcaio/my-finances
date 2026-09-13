@@ -15,11 +15,11 @@ Set up the repository skeleton and shared conventions every later feature builds
 
 ### Module & build
 - Gradle project at `/backend`, Spring Boot (Web, Data JPA, Validation starters), Java toolchain version pinned in `build.gradle`.
-- Base package: `com.myfinances` (rename is a one-line change if a different package is preferred later; not a product decision, just a placeholder).
+- Base package: `com.chm.myfinances`.
 - `version = "0.1.0"` in `build.gradle` — see [ADR 0007](../../adr/0007-single-shared-semver-and-changelog.md): backend and frontend share one SemVer version, bumped together at release time.
 - Package layout (layer-then-context):
   ```
-  com.myfinances
+  com.chm.myfinances
   ├── domain
   │   ├── shared        // IdGenerator port, common value objects/exceptions
   │   └── <aggregate>    // one subpackage per aggregate, added by later features

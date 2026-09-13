@@ -1,6 +1,6 @@
-package com.myfinances.infrastructure.config;
+package com.chm.myfinances.infrastructure.config;
 
-import com.myfinances.domain.shared.IdGenerator;
+import com.chm.myfinances.domain.shared.IdGenerator;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 

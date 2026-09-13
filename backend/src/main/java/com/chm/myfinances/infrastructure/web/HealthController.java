@@ -1,4 +1,4 @@
-package com.myfinances.infrastructure.web;
+package com.chm.myfinances.infrastructure.web;
 
 import java.time.Instant;
 import java.util.Map;

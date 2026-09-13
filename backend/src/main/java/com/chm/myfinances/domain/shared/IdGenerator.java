@@ -1,4 +1,4 @@
-package com.myfinances.domain.shared;
+package com.chm.myfinances.domain.shared;
 
 import java.util.UUID;
 

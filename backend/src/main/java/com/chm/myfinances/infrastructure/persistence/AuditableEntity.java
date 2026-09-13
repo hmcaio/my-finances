@@ -1,4 +1,4 @@
-package com.myfinances.infrastructure.persistence;
+package com.chm.myfinances.infrastructure.persistence;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;

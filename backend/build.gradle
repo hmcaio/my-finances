@@ -5,7 +5,7 @@ plugins {
     alias(libs.plugins.spotless)
 }
 
-group = 'com.myfinances'
+group = 'com.chm.myfinances'
 version = '0.1.0'
 description = 'My Finances backend'
 

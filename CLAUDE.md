@@ -35,7 +35,7 @@ npm run generate-api-types     # regenerate src/api/generated/schema.ts from the
 
 ## Structural conventions
 
-- Backend package layout is layer-then-context: `com.myfinances.{domain,application,infrastructure}`, each with one subpackage per aggregate (see `docs/adr/0004-hexagonal-ddd-tdd.md`). `domain/shared` holds the `IdGenerator` port (ADR 0005); `infrastructure/persistence` holds the `AuditableEntity` base class every entity with its own table extends.
+- Backend package layout is layer-then-context: `com.chm.myfinances.{domain,application,infrastructure}`, each with one subpackage per aggregate (see `docs/adr/0004-hexagonal-ddd-tdd.md`). `domain/shared` holds the `IdGenerator` port (ADR 0005); `infrastructure/persistence` holds the `AuditableEntity` base class every entity with its own table extends.
 - Frontend: `src/api` (typed HTTP clients, one module per aggregate, generated types under `src/api/generated/`), `src/components` (shared UI), `src/features/<area>` (one folder per feature area, mapping to a route).
 - Every commit follows Conventional Commits (`docs/adr/0009-conventional-commits.md`).
 
