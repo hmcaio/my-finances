@@ -15,23 +15,10 @@ jobs:
   test-backend:
     name: Backend tests
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          # Matches backend/src/main/resources/application-test.yml, activated explicitly below
-          # via SPRING_PROFILES_ACTIVE=test — a distinct db/user/password from dev's, so nothing
-          # here is a secret and test correctness never depends on coincidentally matching dev.
-          POSTGRES_DB: myfinances_test
-          POSTGRES_USER: myfinances_test
-          POSTGRES_PASSWORD: myfinances_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U myfinances_test -d myfinances_test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
+    # No Postgres service container: backend tests use Testcontainers (see ADR 0010), which
+    # starts and tears down its own ephemeral Postgres container per run using the Docker
+    # daemon already available on GitHub's hosted Ubuntu runners. No credentials to provision
+    # or keep in sync here.
     steps:
       - uses: actions/checkout@v4
 
@@ -51,8 +38,6 @@ jobs:
       - name: spotlessCheck + test
         run: ./gradlew spotlessCheck test --no-daemon
         working-directory: backend
-        env:
-          SPRING_PROFILES_ACTIVE: test
 
   test-frontend:
     name: Frontend tests
