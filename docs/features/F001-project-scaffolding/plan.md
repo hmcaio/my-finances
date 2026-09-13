@@ -31,5 +31,5 @@
 - [x] Verify `docker compose up -d` then `docker compose down` preserves data across restarts (PRD §7.3).
 
 ## Verification
-- [ ] From a clean checkout: `docker compose up -d`, `./gradlew bootRun`, `npm run dev` all succeed with no manual steps beyond documented ones.
-- [ ] Confirm no `@GeneratedValue` usage and no domain-layer Lombok anywhere in the skeleton (nothing to check yet beyond the scaffolding itself, but worth a explicit look since this is the pattern every later feature must follow).
+- [x] From a clean checkout: `docker compose up -d`, `./gradlew bootRun`, `npm run dev` all succeed with no manual steps beyond documented ones.
+- [x] Confirm no `@GeneratedValue` usage and no domain-layer Lombok anywhere in the skeleton (nothing to check yet beyond the scaffolding itself, but worth a explicit look since this is the pattern every later feature must follow).
