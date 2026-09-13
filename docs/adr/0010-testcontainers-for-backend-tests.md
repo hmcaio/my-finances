@@ -1,0 +1,18 @@
+# 0010. Use Testcontainers for backend tests instead of a fixed CI Postgres service container
+
+Status: Accepted
+Date: 2026-09-13
+
+## Context
+F014 originally gave `./gradlew test` a real Postgres to run against only in CI: a GitHub Actions `services: postgres` container in `.github/workflows/ci.yml`, paired with a fixed-credential `application-test.yml` datasource block activated via `SPRING_PROFILES_ACTIVE=test`. This had two problems. First, the two files' db/user/password had to be kept in sync by hand, with nothing catching drift beyond a failed test run. Second, it only covered CI — a local `./gradlew test` had no database at all unless F001's dev `docker-compose.yml` happened to already be running, and even then it would be running tests against dev's own data rather than a clean, disposable instance. Neither problem is acceptable once F002+ start adding the integration-level tests ADR 0004 calls for, which hit real persistence.
+
+## Decision
+Replace the fixed Postgres service container and `application-test.yml` with [Testcontainers](https://testcontainers.com/): every test run — local `./gradlew test` or CI — starts its own real, ephemeral `postgres:17-alpine` container via a `@TestConfiguration` class (`TestcontainersConfiguration`, `backend/src/test/java/com/chm/myfinances`) exposing a `@ServiceConnection`-annotated `PostgreSQLContainer` bean. Spring Boot's service-connection support auto-configures the datasource to point at that container, so there's no fixed connection string, credentials, or profile to keep in sync — `application-test.yml` is deleted outright since nothing else in it justified keeping the file. CI's `test-backend` job drops its `services: postgres` block and the `SPRING_PROFILES_ACTIVE: test` env entirely; GitHub's hosted Ubuntu runners already have the Docker daemon Testcontainers needs, so no other CI setup changes. This matches ADR 0004's "real persistence" framing for the rules-heavy logic this project's tests exercise, without the bookkeeping a fixed shared database required.
+
+`org.testcontainers:testcontainers-bom` is imported explicitly as a platform BOM in `backend/build.gradle` (version tracked in `backend/gradle/libs.versions.toml`, matching this project's version-catalog convention) because Spring Boot's own dependency-management BOM pins the core `testcontainers` artifact but not the `testcontainers-junit-jupiter`/`testcontainers-postgresql` modules used here — without it, those two resolve with no version at all. Testcontainers 2.x also renamed those modules' artifact ids from the pre-2.x `junit-jupiter`/`postgresql` to `testcontainers-junit-jupiter`/`testcontainers-postgresql`, and moved `PostgreSQLContainer` from `org.testcontainers.containers` (kept only as a deprecated shim in 2.x) to `org.testcontainers.postgresql` — `TestcontainersConfiguration` uses the new, non-deprecated class.
+
+## Consequences
+- Docker must be running on any machine executing `./gradlew test`, not just for `./gradlew bootRun` against dev's compose — already true for this project per ADR 0006 (dev's Postgres runs in Docker too), so this isn't a new constraint, just a wider one.
+- A few seconds of container startup overhead per test run (Postgres container start + Flyway migration), acceptable for the correctness gained.
+- Real Postgres behavior is exercised faithfully in every test run, local or CI, instead of approximated or skipped locally — no more tests silently passing locally against no database at all, or against dev's own persistent data.
+- One less file to hand-maintain (`application-test.yml`) and one less place for credentials to drift out of sync between CI and application config.

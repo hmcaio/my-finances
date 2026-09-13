@@ -18,7 +18,7 @@ Backend (`/backend`, run from that directory):
 ```
 ./gradlew bootRun         # run the API against local Postgres (http://localhost:8080)
 ./gradlew build           # compile + test + package
-./gradlew test            # tests only
+./gradlew test            # tests only — needs Docker running (Testcontainers starts its own ephemeral Postgres, see ADR 0010)
 ./gradlew spotlessCheck   # formatting check (google-java-format); spotlessApply to fix
 ```
 Swagger UI: `http://localhost:8080/swagger-ui.html`. OpenAPI spec: `http://localhost:8080/v3/api-docs`.
@@ -31,7 +31,7 @@ cp .env.example .env               # then set IMAGE_TAG=local
 docker compose -f docker-compose.prod.yml up -d
 docker compose -f docker-compose.prod.yml down -v
 ```
-CI/CD: `.github/workflows/ci.yml` runs backend (`spotlessCheck test` against a Postgres service container) and frontend (`npm ci && npm run lint` + tests once a test runner exists) on every push/PR, and additionally builds+pushes both Docker images to GHCR on pushes to `main` and on `vX.Y.Z` tags.
+CI/CD: `.github/workflows/ci.yml` runs backend (`spotlessCheck test`, with Testcontainers providing its own ephemeral Postgres per ADR 0010) and frontend (`npm ci && npm run lint` + tests once a test runner exists) on every push/PR, and additionally builds+pushes both Docker images to GHCR on pushes to `main` and on `vX.Y.Z` tags.
 
 Frontend (`/frontend`, run from that directory):
 ```
@@ -48,7 +48,7 @@ npm run generate-api-types     # regenerate src/api/generated/schema.ts from the
 - Backend package layout is layer-then-context: `com.chm.myfinances.{domain,application,infrastructure}`, each with one subpackage per aggregate (see `docs/adr/0004-hexagonal-ddd-tdd.md`). `domain/shared` holds the `IdGenerator` port (ADR 0005); `infrastructure/persistence` holds the `AuditableEntity` base class every entity with its own table extends.
 - Frontend: `src/api` (typed HTTP clients, one module per aggregate, generated types under `src/api/generated/`), `src/components` (shared UI), `src/features/<area>` (one folder per feature area, mapping to a route).
 - Every commit follows Conventional Commits (`docs/adr/0009-conventional-commits.md`).
-- Backend config is split by Spring profile: `application.yml` holds only settings identical across every environment, plus `spring.profiles.default: dev`. Environment-specific values (datasource, `server.address`) live only in `application-dev.yml` / `application-prod.yml` / `application-test.yml` — never in the base file, so nothing environment-specific is ever silently inherited across profiles.
+- Backend config is split by Spring profile: `application.yml` holds only settings identical across every environment, plus `spring.profiles.default: dev`. Environment-specific values (datasource, `server.address`) live only in `application-dev.yml` / `application-prod.yml` — never in the base file, so nothing environment-specific is ever silently inherited across profiles. There is no `application-test.yml`: backend tests get their datasource from a Testcontainers-provisioned Postgres via `@ServiceConnection` instead of a profile file (ADR 0010).
 
 ## Source of truth
 
