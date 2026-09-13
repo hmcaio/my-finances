@@ -13,9 +13,9 @@
 - [x] Add `frontend/Dockerfile` (multi-stage: `npm run build` → nginx runtime, copying `dist/` and `nginx.conf`).
 
 ## Infra
-- [ ] Add `docker-compose.prod.yml` (postgres, backend, frontend services; images pulled by tag from GHCR, not built locally; `depends_on` with healthchecks).
-- [ ] Add `.env.example` (documented keys, no real secrets) and add `.env` to `.gitignore`.
-- [ ] Decide and document final image names/tag format in the compose file's comments (`ghcr.io/hmcaio/my-finances-backend`/`-frontend`).
+- [x] Add `docker-compose.prod.yml` (postgres, backend, frontend services; images pulled by tag from GHCR, not built locally; `depends_on` with healthchecks).
+- [x] Add `.env.example` (documented keys, no real secrets) and add `.env` to `.gitignore` (already gitignored — F001 added the `.env` rule preemptively with a comment pointing at F014/ADR 0007).
+- [x] Decide and document final image names/tag format in the compose file's comments (`ghcr.io/hmcaio/my-finances-backend`/`-frontend`).
 
 ## CI/CD
 - [ ] Add `.github/workflows/ci.yml`.
