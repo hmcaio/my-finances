@@ -23,6 +23,16 @@ Backend (`/backend`, run from that directory):
 ```
 Swagger UI: `http://localhost:8080/swagger-ui.html`. OpenAPI spec: `http://localhost:8080/v3/api-docs`.
 
+Production packaging (F014, `docker-compose.prod.yml` — a wholly separate file from dev's `docker-compose.yml`; see ADR 0006). Not part of the everyday dev loop; for a local smoke test of the prod images:
+```
+docker build -t ghcr.io/hmcaio/my-finances-backend:local backend
+docker build -t ghcr.io/hmcaio/my-finances-frontend:local frontend
+cp .env.example .env               # then set IMAGE_TAG=local
+docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml down -v
+```
+CI/CD: `.github/workflows/ci.yml` runs backend (`spotlessCheck test` against a Postgres service container) and frontend (`npm ci && npm run lint` + tests once a test runner exists) on every push/PR, and additionally builds+pushes both Docker images to GHCR on pushes to `main` and on `vX.Y.Z` tags.
+
 Frontend (`/frontend`, run from that directory):
 ```
 npm install               # first time (frontend/.npmrc sets legacy-peer-deps for openapi-typescript)

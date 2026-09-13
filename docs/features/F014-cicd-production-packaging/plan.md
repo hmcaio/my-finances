@@ -18,15 +18,15 @@
 - [x] Decide and document final image names/tag format in the compose file's comments (`ghcr.io/hmcaio/my-finances-backend`/`-frontend`).
 
 ## CI/CD
-- [ ] Add `.github/workflows/ci.yml`.
-- [ ] `test` job (backend): Postgres service container, `./gradlew spotlessCheck test`. Runs on every push and PR.
-- [ ] `test` job (frontend): `npm ci`, `npm run lint`, test. Runs on every push and PR.
-- [ ] `build-and-push` job: builds both Dockerfiles, logs into `ghcr.io`, pushes with SHA/`latest` tags on `main` pushes and version tags on `v*` tag pushes. Gated on both test jobs passing and on the branch/tag condition (not run on arbitrary feature-branch pushes).
+- [x] Add `.github/workflows/ci.yml`.
+- [x] `test` job (backend): Postgres service container, `./gradlew spotlessCheck test`. Runs on every push and PR. (Includes a `chmod +x gradlew` step — the wrapper script is checked in without the executable bit, since the repo was authored on Windows, which Linux runners need set explicitly.)
+- [x] `test` job (frontend): `npm ci`, `npm run lint`, test. Runs on every push and PR. (No test runner exists yet in `frontend/package.json` — the step checks for a `test` script at run time via `npm run` and skips gracefully instead of hardcoding `npm test`, so it activates automatically once a test runner is added.)
+- [x] `build-and-push` job: builds both Dockerfiles, logs into `ghcr.io`, pushes with SHA/`latest` tags on `main` pushes and version tags on `v*` tag pushes. Gated on both test jobs passing and on the branch/tag condition (not run on arbitrary feature-branch pushes).
 
 ## Release Process
-- [ ] Document the release steps (CHANGELOG update, version bump in both `build.gradle` and `package.json`, tag, push) in `CHANGELOG.md`'s header or this file — see ADR 0007.
+- [x] Document the release steps (CHANGELOG update, version bump in both `build.gradle` and `package.json`, tag, push) in `CHANGELOG.md`'s header or this file — see ADR 0007. Already documented: `CHANGELOG.md`'s header points at ADR 0007 and states the tag-triggers-CI relationship; this feature's own `spec.md` (## Release Process) spells out the exact steps. No further duplication added.
 
 ## Verification
-- [ ] Local smoke test: `docker compose -f docker-compose.prod.yml up` (with images built locally and tagged to match `.env`'s `IMAGE_TAG`, simulating a real GHCR pull) brings up all three services and the app is reachable through nginx's exposed port, with API calls correctly proxied through to the backend.
-- [ ] Confirm F001's dev workflow (`docker-compose.yml`, native `bootRun`/`npm run dev`) still works unmodified after this feature is added.
-- [ ] Push a commit to `main` and confirm CI publishes `:latest` and `:<sha>` images; push a `v0.0.1`-style tag and confirm CI additionally publishes that version tag.
+- [x] Local smoke test: `docker compose -f docker-compose.prod.yml up` (with images built locally and tagged to match `.env`'s `IMAGE_TAG`, simulating a real GHCR pull) brings up all three services and the app is reachable through nginx's exposed port, with API calls correctly proxied through to the backend. Verified for real (see report) — this surfaced and fixed two real bugs (backend `server.address` binding, healthcheck IPv6/IPv4 loopback resolution) that a paper read-through would have missed.
+- [x] Confirm F001's dev workflow (`docker-compose.yml`, native `bootRun`/`npm run dev`) still works unmodified after this feature is added. Verified: `docker-compose.yml` is untouched by this feature; `./gradlew spotlessCheck test` and `npm run lint` still pass against the unmodified dev config.
+- [ ] Push a commit to `main` and confirm CI publishes `:latest` and `:<sha>` images; push a `v0.0.1`-style tag and confirm CI additionally publishes that version tag. **Not verifiable from this feature branch** — requires merging to `main` first. Left open intentionally; do this after merge.
