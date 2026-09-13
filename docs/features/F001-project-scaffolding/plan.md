@@ -15,9 +15,9 @@
 - [x] Verify `./gradlew bootRun` starts successfully against the Dockerized Postgres.
 
 ## Frontend
-- [ ] Scaffold `/frontend` with Vite + React + TypeScript template; set `package.json` version to `0.1.0` to match the backend (ADR 0007).
+- [x] Scaffold `/frontend` with Vite + React + TypeScript template; set `package.json` version to `0.1.0` to match the backend (ADR 0007).
 - [ ] Establish folder structure: `src/api`, `src/components`, `src/features`.
-- [ ] Configure ESLint + Prettier (`eslint-config-prettier`); verify `npm run lint` and a format-check script both work.
+- [x] Configure ESLint + Prettier (`eslint-config-prettier`); verify `npm run lint` and a format-check script both work.
 - [ ] Add `openapi-typescript` (or equivalent) and an `npm run generate-api-types` script pulling from the backend's `/v3/api-docs`; verify it produces `src/api/generated/` types against the health-check endpoint.
 - [ ] Add MUI (`@mui/material`, `@mui/icons-material`, `@emotion/react`, `@emotion/styled`); add `src/theme.ts` (`getTheme(mode)`) and wrap `App.tsx` in `ThemeProvider` + `CssBaseline`.
 - [ ] Add the `useColorMode` context/hook (OS-preference default, `localStorage` persistence) and a dark-mode toggle control.
