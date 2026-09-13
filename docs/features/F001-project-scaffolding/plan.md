@@ -6,7 +6,7 @@
 - [x] Initialize Gradle project at `/backend` (Spring Boot Web, Data JPA, Validation, Flyway, Postgres driver starters), `version = "0.1.0"` (ADR 0007).
 - [x] Create base package structure: `domain/shared`, `application`, `infrastructure/config`, `infrastructure/persistence`, `infrastructure/web`.
 - [x] Add `IdGenerator` port in `domain/shared` and `RandomUuidGenerator` adapter + bean wiring in `infrastructure/config`.
-- [ ] Add `AuditableEntity` `@MappedSuperclass` in `infrastructure/persistence` and `JpaAuditingConfig` (`@EnableJpaAuditing`).
+- [x] Add `AuditableEntity` `@MappedSuperclass` in `infrastructure/persistence` and `JpaAuditingConfig` (`@EnableJpaAuditing`).
 - [ ] Configure Flyway (`src/main/resources/db/migration`), add empty/baseline `V1__baseline.sql`.
 - [x] Add `application.yml` with local Postgres connection settings.
 - [ ] Add `springdoc-openapi-starter-webmvc-ui` dependency; verify `/v3/api-docs` and `/swagger-ui.html` serve.
