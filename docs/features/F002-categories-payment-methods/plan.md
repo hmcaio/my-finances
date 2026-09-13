@@ -3,13 +3,12 @@
 **Depends on**: F001.
 
 ## Backend
-- [ ] Add `domain/category/Category.java` and `CategoryType` enum.
-- [ ] Add `domain/paymentmethod/PaymentMethod.java`.
+- [ ] Write tests first for the domain rules: `Category` type is immutable after creation; delete is blocked when referenced by a transaction (add this case once F004's transaction table exists).
+- [ ] Add `domain/category/Category.java` and `CategoryType` enum, and `domain/paymentmethod/PaymentMethod.java`, implementing the above to make those tests pass.
 - [ ] Add JPA entities (`CategoryJpaEntity`, `PaymentMethodJpaEntity`) extending `AuditableEntity`, Spring Data repositories, and adapters implementing domain repository ports.
 - [ ] Flyway migration: create `categories` and `payment_methods` tables, seed starter data.
-- [ ] Application services: create/rename/delete for both, with delete blocked (`409`) when referenced by transactions (query needed once F004 exists — until then, delete is unconditionally allowed; add the guard when F004 lands, or stub the check now against an empty transactions table).
+- [ ] Write tests for the application-service delete guard (`409` when referenced), then implement: create/rename/delete for both (until F004 exists, delete is unconditionally allowed — add the guard, and its test, when F004 lands).
 - [ ] REST controllers + DTOs for both resources.
-- [ ] Tests: category type immutability after creation, delete-blocked-when-referenced behavior (once F004's transaction table exists to reference).
 
 ## Frontend
 - [ ] `src/api/categories.ts`, `src/api/paymentMethods.ts` — typed client functions.

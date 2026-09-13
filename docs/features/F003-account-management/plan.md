@@ -3,14 +3,14 @@
 **Depends on**: F001.
 
 ## Backend
-- [ ] Add `domain/account/Account.java`, `AccountType` enum, with immutable opening balance/date and a `close()` behavior method.
+- [ ] Write tests first for `Account`'s domain rules: opening balance/date immutable after creation, `close()` sets `closedDate` and the account then rejects further activity.
+- [ ] Add `domain/account/Account.java`, `AccountType` enum, implementing the above to make those tests pass.
 - [ ] Add `AccountJpaEntity` (extends `AuditableEntity`), repository, adapter.
 - [ ] Flyway migration `V3__accounts.sql`.
-- [ ] Application services: create, edit (name/institution only), close, get, list (with closed-account filter).
-- [ ] `AccountBalanceQuery`: computes running balance from opening balance (+ transactions/transfers once F004/F005 exist — stub to opening-balance-only for now, revisit when those land).
+- [ ] Write tests for the list application service (closed accounts excluded by default), then implement: create, edit (name/institution only), close, get, list (with closed-account filter).
+- [ ] Write tests for `AccountBalanceQuery` (opening-balance-only case for now), then implement it: computes running balance from opening balance (+ transactions/transfers once F004/F005 exist — revisit tests and implementation when those land).
 - [ ] Domain event or port (`AccountClosedNotifier` or similar) fired on close, for F007 to consume later without F003 depending on F007.
 - [ ] REST controller + DTOs; no delete endpoint.
-- [ ] Tests: opening balance/date immutability, closed account rejects new activity, closed accounts excluded from default list.
 
 ## Frontend
 - [ ] `src/api/accounts.ts`.

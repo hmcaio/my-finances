@@ -3,14 +3,13 @@
 **Depends on**: F001, F008.
 
 ## Backend
-- [ ] Add `domain/investmentbuysell/InvestmentBuySellLog.java`, `domain/investmentsnapshot/InvestmentSnapshot.java`.
+- [ ] Write tests first for F008's `HasInvestmentHistoryChecker` implementation: returns `true` once either table has a row for the product.
+- [ ] Add `domain/investmentbuysell/InvestmentBuySellLog.java`, `domain/investmentsnapshot/InvestmentSnapshot.java`, and implement the checker to make that test pass.
 - [ ] Add JPA entities (extend `AuditableEntity`), repositories, adapters.
 - [ ] Flyway migration `V9__investment_buysell_and_snapshots.sql`.
-- [ ] Implement F008's `HasInvestmentHistoryChecker` port against these two tables.
-- [ ] `LatestInvestmentSnapshotQuery` application service (latest snapshot per product as of a date).
-- [ ] Allocation-by-category application service, grouping the above by `InvestmentCategory`.
+- [ ] Write tests for `LatestInvestmentSnapshotQuery` ("latest as of date" resolution when multiple snapshots exist), then implement it.
+- [ ] Write tests for the allocation-by-category grouping, then implement the application service grouping `LatestInvestmentSnapshotQuery` results by `InvestmentCategory`.
 - [ ] REST controllers + DTOs for logs, snapshots, and the allocation endpoint.
-- [ ] Tests: history checker returns `true` once either table has a row for the product, allocation grouping correctness, "latest as of date" resolution when multiple snapshots exist.
 
 ## Frontend
 - [ ] `src/api/investmentBuySellLogs.ts`, `src/api/investmentSnapshots.ts`, `src/api/investmentAllocation.ts`.

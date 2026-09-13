@@ -3,13 +3,12 @@
 **Depends on**: F001.
 
 ## Backend
-- [ ] Add `domain/investmentaccount/InvestmentAccount.java`, `domain/investmentcategory/InvestmentCategory.java`, `domain/investmentproduct/InvestmentProduct.java`.
-- [ ] Define `HasInvestmentHistoryChecker` port (fulfilled by F009 once it exists; return `false` unconditionally until then, so delete works normally pre-F009).
+- [ ] Write tests first for the delete-safety rule: delete is blocked once the (mockable) history checker returns `true`, allowed at zero history.
+- [ ] Add `domain/investmentaccount/InvestmentAccount.java`, `domain/investmentcategory/InvestmentCategory.java`, `domain/investmentproduct/InvestmentProduct.java`, and the `HasInvestmentHistoryChecker` port, implementing the above to make those tests pass (fulfilled by F009 once it exists; return `false` unconditionally until then).
 - [ ] Add JPA entities (extend `AuditableEntity`), repositories, adapters for all three.
 - [ ] Flyway migration `V8__investment_accounts_and_products.sql`.
-- [ ] Application services: CRUD for categories; create/edit/close/delete (guarded by the history checker) for accounts and products.
+- [ ] Write tests for category delete being blocked when referenced by a product, then implement application services: CRUD for categories; create/edit/close/delete (guarded by the history checker) for accounts and products.
 - [ ] REST controllers + DTOs.
-- [ ] Tests: delete blocked once history checker returns `true` (mockable ahead of F009), delete allowed at zero history, category delete blocked when referenced by a product.
 
 ## Frontend
 - [ ] `src/api/investmentCategories.ts`, `src/api/investmentAccounts.ts`, `src/api/investmentProducts.ts`.

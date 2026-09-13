@@ -3,13 +3,13 @@
 **Depends on**: F001, F003.
 
 ## Backend
-- [ ] Add `domain/transfer/Transfer.java` (distinct-accounts invariant, positive amount).
+- [ ] Write tests first for `Transfer`'s domain rules: `fromAccountId != toAccountId`, amount must be positive.
+- [ ] Add `domain/transfer/Transfer.java`, implementing the above to make those tests pass.
 - [ ] Add `TransferJpaEntity` (extends `AuditableEntity`), repository, adapter.
 - [ ] Flyway migration `V5__transfers.sql` with check constraint.
-- [ ] Application services: create (rejecting closed accounts, same-account transfers), edit, delete, filtered list.
-- [ ] Update F003's `AccountBalanceQuery` to fold in transfers (source decreases; destination increases or decreases owed balance depending on `AccountType`).
+- [ ] Write tests for the create application service (rejects closed-account transfers), then implement: create, edit, delete, filtered list.
+- [ ] Write tests for the updated `AccountBalanceQuery` covering asset→asset and asset→credit-card transfers (source decreases; destination increases balance or decreases owed amount depending on `AccountType`), then implement folding transfers into it.
 - [ ] REST controller + DTOs.
-- [ ] Tests: same-account rejection, closed-account rejection, balance effect correctness for asset→asset and asset→credit-card transfers.
 
 ## Frontend
 - [ ] `src/api/transfers.ts`.

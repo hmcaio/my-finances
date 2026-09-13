@@ -3,13 +3,13 @@
 **Depends on**: F001, F002, F003.
 
 ## Backend
-- [ ] Add `domain/transaction/Transaction.java` (positive-amount invariant, denormalized `type`).
+- [ ] Write tests first for `Transaction`'s domain rules: amount must be positive, `type` is captured at creation.
+- [ ] Add `domain/transaction/Transaction.java`, implementing the above to make those tests pass.
 - [ ] Add `TransactionJpaEntity` (extends `AuditableEntity`), repository (with filter query support), adapter.
 - [ ] Flyway migration `V4__transactions.sql` with FKs and indexes; nullable `recurring_template_version_id` column ahead of F007.
-- [ ] Application services: create (rejecting closed accounts), edit, delete, filtered list.
-- [ ] Update F003's `AccountBalanceQuery` to sum real transactions instead of returning opening balance only.
+- [ ] Write tests for the create application service (rejects transactions against a closed account), then implement: create, edit, delete, filtered list.
+- [ ] Write tests for the updated `AccountBalanceQuery` — an expense reduces an asset account's balance and increases a credit card account's owed balance — then implement the change: sum real transactions instead of returning opening balance only.
 - [ ] REST controller + DTOs, filter query params.
-- [ ] Tests: closed-account rejection, balance calc correctness for both asset and credit-card account types, filter combinations.
 
 ## Frontend
 - [ ] `src/api/transactions.ts`.

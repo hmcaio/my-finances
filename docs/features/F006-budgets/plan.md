@@ -3,13 +3,13 @@
 **Depends on**: F001, F002, F004.
 
 ## Backend
-- [ ] Add `domain/budget/Budget.java` and `BudgetVersion.java` (expense-category-only invariant, one-version-per-month invariant).
+- [ ] Write tests first for the domain rules: a `Budget` can only target an `EXPENSE` category, version resolution picks the latest `BudgetVersion` with `effectiveFrom <= target month`, editing the cap for an already-versioned month replaces that version instead of duplicating it.
+- [ ] Add `domain/budget/Budget.java` and `BudgetVersion.java`, implementing the above to make those tests pass.
 - [ ] Add `BudgetJpaEntity`/`BudgetVersionJpaEntity` (extend `AuditableEntity`), repositories, adapters.
 - [ ] Flyway migration `V6__budgets.sql` with unique constraints.
 - [ ] Application services: create budget (+ first version), add/replace a version for a month, resolve effective cap for a given month.
-- [ ] Budget-vs-actual report query joining resolved cap with F004's transaction sums per category/month.
+- [ ] Write tests for the budget-vs-actual report (correct cap resolved per month, actual summed across accounts), then implement the query joining resolved cap with F004's transaction sums per category/month.
 - [ ] REST controller + DTOs.
-- [ ] Tests: version resolution picks the latest version `<=` target month, same-month edit replaces rather than duplicates, income-category rejection.
 
 ## Frontend
 - [ ] `src/api/budgets.ts`.
