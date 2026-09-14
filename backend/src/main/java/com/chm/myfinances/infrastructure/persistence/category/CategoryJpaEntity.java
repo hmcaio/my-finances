@@ -1,6 +1,7 @@
 package com.chm.myfinances.infrastructure.persistence.category;
 
 import com.chm.myfinances.domain.category.CategoryType;
+import com.chm.myfinances.domain.shared.NameConstraints;
 import com.chm.myfinances.infrastructure.persistence.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -28,7 +29,7 @@ public class CategoryJpaEntity extends AuditableEntity {
 
   @Id private UUID id;
 
-  @Column(nullable = false)
+  @Column(nullable = false, length = NameConstraints.MAX_NAME_LENGTH)
   private String name;
 
   @Enumerated(EnumType.STRING)
