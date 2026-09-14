@@ -1,5 +1,6 @@
 package com.chm.myfinances.domain.paymentmethod;
 
+import com.chm.myfinances.domain.shared.NameConstraints;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -35,6 +36,10 @@ public final class PaymentMethod {
   private static String requireNonBlank(String value) {
     if (value == null || value.isBlank()) {
       throw new IllegalArgumentException("name must not be blank");
+    }
+    if (value.length() > NameConstraints.MAX_NAME_LENGTH) {
+      throw new IllegalArgumentException(
+          "name must not exceed " + NameConstraints.MAX_NAME_LENGTH + " characters");
     }
     return value;
   }

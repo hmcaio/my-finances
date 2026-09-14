@@ -3,6 +3,7 @@ package com.chm.myfinances.domain.paymentmethod;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.chm.myfinances.domain.shared.NameConstraints;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -42,5 +43,31 @@ class PaymentMethodTest {
     PaymentMethod paymentMethod = PaymentMethod.create(UUID.randomUUID(), "Debit Card");
 
     assertThatThrownBy(() -> paymentMethod.rename("")).isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void createAcceptsNameAtMaxLength() {
+    String maxLengthName = "a".repeat(NameConstraints.MAX_NAME_LENGTH);
+
+    PaymentMethod paymentMethod = PaymentMethod.create(UUID.randomUUID(), maxLengthName);
+
+    assertThat(paymentMethod.getName()).isEqualTo(maxLengthName);
+  }
+
+  @Test
+  void createRejectsNameOverMaxLength() {
+    String tooLongName = "a".repeat(NameConstraints.MAX_NAME_LENGTH + 1);
+
+    assertThatThrownBy(() -> PaymentMethod.create(UUID.randomUUID(), tooLongName))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void renameRejectsNameOverMaxLength() {
+    PaymentMethod paymentMethod = PaymentMethod.create(UUID.randomUUID(), "Debit Card");
+    String tooLongName = "a".repeat(NameConstraints.MAX_NAME_LENGTH + 1);
+
+    assertThatThrownBy(() -> paymentMethod.rename(tooLongName))
+        .isInstanceOf(IllegalArgumentException.class);
   }
 }
