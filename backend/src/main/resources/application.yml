@@ -17,6 +17,19 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+  web:
+    error:
+      # Defense in depth alongside GlobalExceptionHandler (infrastructure/web): keep this off in
+      # every profile so no error response ever carries an exception's message/stack trace/binding
+      # errors, even if someone adds a profile-specific override for local debugging and forgets to
+      # revert it (security-audit fix). These already default to "never" in this Spring Boot
+      # version - set explicitly so the guarantee is enforced by config, not by an implicit
+      # default someone could silently lose track of. (The older `server.error.*` spelling of
+      # these properties is deprecated as of this Spring Boot version in favor of `spring.web.error.*`.)
+      include-stacktrace: never
+      include-message: never
+      include-binding-errors: never
+
 server:
   port: 8080
 
