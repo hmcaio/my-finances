@@ -8,6 +8,8 @@ F001 (project scaffolding) is done: `/backend` (Spring Boot/Gradle) and `/fronte
 
 F002 (categories & payment methods) is done, per `docs/features/F002-categories-payment-methods/`: the first real domain entities (`Category`, `PaymentMethod`), first real Flyway migration (`V2__categories_and_payment_methods.sql`), first real REST controllers, and first real frontend screens (`/settings/categories`, `/settings/payment-methods`) — this establishes the vertical-slice pattern F003+ follow. One item is deliberately deferred, not forgotten: the referenced-by-transaction delete guard (409 when a category/payment method is in use) needs F004's transaction table to check against, so delete is unconditional for now — add the guard (and its test) when F004 lands.
 
+F015 (frontend test tooling) is done, per `docs/features/F015-frontend-test-tooling/`: Vitest + React Testing Library + MSW are wired up (`vite.config.ts`'s `test` key, `src/test/setup.ts`, `src/mocks/`), a real `npm test`/`npm run test` command exists, and F002's frontend (API clients + `CategoriesPage`/`PaymentMethodsPage`) has its first real test coverage — this is what F014's CI `test-frontend` job now actually runs instead of skipping. F003+ each add their own `src/mocks/handlers/<aggregate>.ts` and tests against this tooling rather than re-deriving it.
+
 ## Build / lint / test commands
 
 Local Postgres (required before running the backend):
@@ -34,7 +36,7 @@ cp .env.example .env               # then set IMAGE_TAG=local
 docker compose -f docker-compose.prod.yml up -d
 docker compose -f docker-compose.prod.yml down -v
 ```
-CI/CD: `.github/workflows/ci.yml` runs backend (`spotlessCheck test`, with Testcontainers providing its own ephemeral Postgres per ADR 0010) and frontend (`npm ci && npm run lint` + tests once a test runner exists) on every push/PR, and additionally builds+pushes both Docker images to GHCR on pushes to `main` and on `vX.Y.Z` tags.
+CI/CD: `.github/workflows/ci.yml` runs backend (`spotlessCheck test`, with Testcontainers providing its own ephemeral Postgres per ADR 0010) and frontend (`npm ci && npm run lint && npm test`, via a runtime check for a `"test"` script rather than a hardcoded step — see F015) on every push/PR, and additionally builds+pushes both Docker images to GHCR on pushes to `main` and on `vX.Y.Z` tags.
 
 Frontend (`/frontend`, run from that directory):
 ```
@@ -43,6 +45,7 @@ npm run dev                    # dev server, http://localhost:5173
 npm run build                  # typecheck + production build
 npm run lint                   # ESLint
 npm run format / format:check  # Prettier
+npm test / npm run test         # Vitest (jsdom + React Testing Library + MSW, see F015), non-watch, CI-friendly
 npm run generate-api-types     # regenerate src/api/generated/schema.ts from the backend's /v3/api-docs (backend must be running)
 ```
 
@@ -51,6 +54,7 @@ npm run generate-api-types     # regenerate src/api/generated/schema.ts from the
 - Backend package layout is layer-then-context: `com.chm.myfinances.{domain,application,infrastructure}`, each with one subpackage per aggregate (see `docs/adr/0004-hexagonal-ddd-tdd.md`). `domain/shared` holds the `IdGenerator` port (ADR 0005) and `NameConstraints` (see the free-text field convention below); `infrastructure/persistence` holds the `AuditableEntity` base class every entity with its own table extends.
 - Free-text "name" fields on flat taxonomy entities (`Category`, `PaymentMethod`, and future ones like F008's `InvestmentCategory`) are bounded, not unbounded `text`, at every layer: a length check in the domain constructor/mutator (alongside the existing non-blank check, throwing the same exception type), `@Size(max = ...)` next to `@NotBlank` on the request DTOs, and a matching `varchar(n)` column (narrowed via its own Flyway migration if added after the table already exists). `domain/shared/NameConstraints.MAX_NAME_LENGTH` (100) is the shared value/constant for this — reuse it rather than inventing a new number per aggregate.
 - Frontend: `src/api` (typed HTTP clients, one module per aggregate, generated types under `src/api/generated/`), `src/components` (shared UI), `src/features/<area>` (one folder per feature area, mapping to a route).
+- Frontend testing (F015): Vitest, configured entirely via `vite.config.ts`'s `test` key (`environment: 'jsdom'`, `setupFiles: ['src/test/setup.ts']`) — there is no separate `vitest.config.ts`. Test files are colocated next to what they test (`*.test.ts`/`*.test.tsx`, e.g. `src/api/categories.test.ts`, `src/features/categories/CategoriesPage.test.tsx`), queried via React Testing Library's accessibility-first queries (`getByRole`, `getByLabelText`) rather than test IDs. `src/mocks/handlers/<aggregate>.ts` (one file per aggregate, mirroring `src/api`) export MSW handler arrays combined in `src/mocks/handlers.ts` and served by `src/mocks/server.ts` (Node `setupServer`), started/reset/closed by `src/test/setup.ts` — every test file gets MSW automatically. `frontend/.env.test` sets `VITE_API_BASE_URL=/api` (relative, same-origin — like `.env.production`) so the axios base URL and MSW's relative handler-path matching resolve against the same jsdom-default origin. `src/test/setup.ts` also calls React Testing Library's `cleanup()` itself in `afterEach`, since Vitest's `globals: true` (which would let RTL auto-register that) is deliberately off here.
 - Frontend API clients share one Axios instance (`src/api/client.ts`), configured entirely from `VITE_API_BASE_URL` (`.env.development`/`.env.production`) — that base URL already includes the `/api` prefix, so every call site uses a bare relative path (e.g. `apiClient.get('/categories')`), never a hand-built `${API_BASE_URL}/api/...` string. Errors are unwrapped via `unwrap()`/`ApiError` in `src/api/apiError.ts` (Axios throws on non-2xx, unlike `fetch`) — a `409` can carry a call-site-specific `conflictMessage`.
 - Every commit follows Conventional Commits (`docs/adr/0009-conventional-commits.md`).
 - Backend config is split by Spring profile: `application.yml` holds only settings identical across every environment, plus `spring.profiles.default: dev`. Environment-specific values (datasource, `server.address`) live only in `application-dev.yml` / `application-prod.yml` — never in the base file, so nothing environment-specific is ever silently inherited across profiles. There is no `application-test.yml`: backend tests get their datasource from a Testcontainers-provisioned Postgres via `@ServiceConnection` instead of a profile file (ADR 0010).
