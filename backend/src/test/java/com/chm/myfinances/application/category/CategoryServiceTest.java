@@ -6,7 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
-import com.chm.myfinances.domain.shared.IdGenerator;
+import com.chm.myfinances.testsupport.FakeIdGenerator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +32,7 @@ class CategoryServiceTest {
   @Test
   void createAssignsIdFromIdGeneratorAndPersists() {
     UUID nextId = UUID.randomUUID();
-    idGenerator.nextId = nextId;
+    CategoryService service = new CategoryService(repository, new FakeIdGenerator(nextId));
 
     Category created = service.create("Groceries", CategoryType.EXPENSE);
 
@@ -83,17 +83,6 @@ class CategoryServiceTest {
   void deleteOfUnknownIdThrowsNotFound() {
     assertThatThrownBy(() -> service.delete(UUID.randomUUID()))
         .isInstanceOf(CategoryNotFoundException.class);
-  }
-
-  private static final class FakeIdGenerator implements IdGenerator {
-    // null unless a test pins the next id to assert on it; otherwise generates a fresh one per
-    // call, since a fixed value would make every create() collide on the same key.
-    private UUID nextId;
-
-    @Override
-    public UUID newId() {
-      return nextId != null ? nextId : UUID.randomUUID();
-    }
   }
 
   private static final class FakeCategoryRepository implements CategoryRepository {

@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
-import com.chm.myfinances.domain.shared.IdGenerator;
+import com.chm.myfinances.testsupport.FakeIdGenerator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +27,8 @@ class PaymentMethodServiceTest {
   @Test
   void createAssignsIdFromIdGeneratorAndPersists() {
     UUID nextId = UUID.randomUUID();
-    idGenerator.nextId = nextId;
+    PaymentMethodService service =
+        new PaymentMethodService(repository, new FakeIdGenerator(nextId));
 
     PaymentMethod created = service.create("Debit Card");
 
@@ -76,17 +77,6 @@ class PaymentMethodServiceTest {
   void deleteOfUnknownIdThrowsNotFound() {
     assertThatThrownBy(() -> service.delete(UUID.randomUUID()))
         .isInstanceOf(PaymentMethodNotFoundException.class);
-  }
-
-  private static final class FakeIdGenerator implements IdGenerator {
-    // null unless a test pins the next id to assert on it; otherwise generates a fresh one per
-    // call, since a fixed value would make every create() collide on the same key.
-    private UUID nextId;
-
-    @Override
-    public UUID newId() {
-      return nextId != null ? nextId : UUID.randomUUID();
-    }
   }
 
   private static final class FakePaymentMethodRepository implements PaymentMethodRepository {
