@@ -78,4 +78,41 @@ class PaymentMethodControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[?(@.name=='Renamed PM')]").doesNotExist());
   }
+
+  @Test
+  void createRejectsNameOverMaxLength() throws Exception {
+    String tooLongName = "a".repeat(101);
+    String createBody = objectMapper.writeValueAsString(Map.of("name", tooLongName));
+
+    mockMvc
+        .perform(
+            post("/api/payment-methods")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(createBody))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void renameRejectsNameOverMaxLength() throws Exception {
+    String createBody = objectMapper.writeValueAsString(Map.of("name", "Test PM 2"));
+    MvcResult createResult =
+        mockMvc
+            .perform(
+                post("/api/payment-methods")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(createBody))
+            .andExpect(status().isCreated())
+            .andReturn();
+    String id =
+        objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asText();
+
+    String tooLongName = "a".repeat(101);
+    String renameBody = objectMapper.writeValueAsString(Map.of("name", tooLongName));
+    mockMvc
+        .perform(
+            patch("/api/payment-methods/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(renameBody))
+        .andExpect(status().isBadRequest());
+  }
 }

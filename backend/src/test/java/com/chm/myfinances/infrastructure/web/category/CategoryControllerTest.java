@@ -124,4 +124,39 @@ class CategoryControllerTest {
       org.assertj.core.api.Assertions.assertThat(statusCode).isEqualTo(400);
     }
   }
+
+  @Test
+  void createRejectsNameOverMaxLength() throws Exception {
+    String tooLongName = "a".repeat(101);
+    String createBody =
+        objectMapper.writeValueAsString(Map.of("name", tooLongName, "type", "EXPENSE"));
+
+    mockMvc
+        .perform(
+            post("/api/categories").contentType(MediaType.APPLICATION_JSON).content(createBody))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void renameRejectsNameOverMaxLength() throws Exception {
+    String createBody =
+        objectMapper.writeValueAsString(Map.of("name", "Test Cat 2", "type", "EXPENSE"));
+    MvcResult createResult =
+        mockMvc
+            .perform(
+                post("/api/categories").contentType(MediaType.APPLICATION_JSON).content(createBody))
+            .andExpect(status().isCreated())
+            .andReturn();
+    String id =
+        objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asText();
+
+    String tooLongName = "a".repeat(101);
+    String renameBody = objectMapper.writeValueAsString(Map.of("name", tooLongName));
+    mockMvc
+        .perform(
+            patch("/api/categories/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(renameBody))
+        .andExpect(status().isBadRequest());
+  }
 }
