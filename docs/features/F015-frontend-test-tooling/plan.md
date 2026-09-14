@@ -9,7 +9,7 @@
 - [x] Add `src/test/setup.ts`: import `@testing-library/jest-dom` matchers, wire the MSW server's `beforeAll`/`afterEach: resetHandlers()`/`afterAll: close()` lifecycle. Also calls React Testing Library's `cleanup()` in that same `afterEach` — RTL only auto-registers that itself under Vitest's `globals: true`, which this config deliberately doesn't set (test functions are imported explicitly), so it's wired by hand instead.
 - [x] Add `"test": "vitest run"` to `package.json`; verify F014's CI `test-frontend` job picks it up with no workflow changes needed.
 - [x] Add `src/mocks/handlers/categories.ts` and `src/mocks/handlers/paymentMethods.ts` (success-path handlers for every endpoint, plus a `409` variant for the delete-conflict case), appended into `src/mocks/handlers.ts`.
-- [ ] Write API-client tests: `src/api/categories.test.ts`, `src/api/paymentMethods.test.ts` — every function's success path, plus the `409` → `conflictMessage` mapping.
+- [x] Write API-client tests: `src/api/categories.test.ts`, `src/api/paymentMethods.test.ts` — every function's success path, plus the `409` → `conflictMessage` mapping.
 - [ ] Write component tests: `src/features/categories/CategoriesPage.test.tsx`, `src/features/paymentMethods/PaymentMethodsPage.test.tsx` — list render, add, rename, delete, and the `409`-conflict message surfacing in the UI.
 
 ## Verification
