@@ -1,6 +1,6 @@
 # F003 — Action Plan
 
-**Depends on**: F001.
+**Depends on**: F001, F015.
 
 ## Backend
 - [ ] Write tests first for `Account`'s domain rules: opening balance/date immutable after creation, `close()` sets `closedDate` and the account then rejects further activity.

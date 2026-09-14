@@ -1,6 +1,6 @@
 # F009 — Action Plan
 
-**Depends on**: F001, F008.
+**Depends on**: F001, F008, F015.
 
 ## Backend
 - [ ] Write tests first for F008's `HasInvestmentHistoryChecker` implementation: returns `true` once either table has a row for the product.

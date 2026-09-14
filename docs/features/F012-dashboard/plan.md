@@ -1,6 +1,6 @@
 # F012 — Action Plan
 
-**Depends on**: F003, F004, F006, F007, F009, F010.
+**Depends on**: F003, F004, F006, F007, F009, F010, F015.
 
 ## Backend
 - [ ] (Optional but recommended) `GET /api/dashboard` composing the underlying feature endpoints into one response.

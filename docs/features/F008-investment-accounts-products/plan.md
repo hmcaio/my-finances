@@ -1,6 +1,6 @@
 # F008 — Action Plan
 
-**Depends on**: F001.
+**Depends on**: F001, F015.
 
 ## Backend
 - [ ] Write tests first for the delete-safety rule: delete is blocked once the (mockable) history checker returns `true`, allowed at zero history.

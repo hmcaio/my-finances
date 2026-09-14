@@ -1,6 +1,6 @@
 # F007 — Action Plan
 
-**Depends on**: F001, F002, F003, F004.
+**Depends on**: F001, F002, F003, F004, F015.
 
 ## Backend
 - [ ] Write tests first for `RecurringTemplate`/`RecurringTemplateVersion`'s domain rules: editing amount/day creates a new version rather than mutating one, `close()`/`active` toggling.

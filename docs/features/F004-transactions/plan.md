@@ -1,6 +1,6 @@
 # F004 — Action Plan
 
-**Depends on**: F001, F002, F003.
+**Depends on**: F001, F002, F003, F015.
 
 ## Backend
 - [ ] Write tests first for `Transaction`'s domain rules: amount must be positive, `type` is captured at creation.

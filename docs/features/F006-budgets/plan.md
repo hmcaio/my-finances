@@ -1,6 +1,6 @@
 # F006 — Action Plan
 
-**Depends on**: F001, F002, F004.
+**Depends on**: F001, F002, F004, F015.
 
 ## Backend
 - [ ] Write tests first for the domain rules: a `Budget` can only target an `EXPENSE` category, version resolution picks the latest `BudgetVersion` with `effectiveFrom <= target month`, editing the cap for an already-versioned month replaces that version instead of duplicating it.

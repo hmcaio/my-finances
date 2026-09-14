@@ -1,6 +1,6 @@
 # F013 — Action Plan
 
-**Depends on**: F002, F003, F004, F005, F006, F007, F008, F009 (all entity-owning features).
+**Depends on**: F002, F003, F004, F005, F006, F007, F008, F009, F015 (all entity-owning features, plus test tooling).
 
 ## Backend
 - [ ] Write tests first for filter applicability per the PRD §6.9 table: each filter affects only its documented files, reference-only files stay full regardless, no-filter export includes everything.
