@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.chm.myfinances.TestcontainersConfiguration;
+import com.chm.myfinances.domain.shared.NameConstraints;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -81,7 +82,7 @@ class PaymentMethodControllerTest {
 
   @Test
   void createRejectsNameOverMaxLength() throws Exception {
-    String tooLongName = "a".repeat(101);
+    String tooLongName = "a".repeat(NameConstraints.MAX_NAME_LENGTH + 1);
     String createBody = objectMapper.writeValueAsString(Map.of("name", tooLongName));
 
     mockMvc
@@ -106,7 +107,7 @@ class PaymentMethodControllerTest {
     String id =
         objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asText();
 
-    String tooLongName = "a".repeat(101);
+    String tooLongName = "a".repeat(NameConstraints.MAX_NAME_LENGTH + 1);
     String renameBody = objectMapper.writeValueAsString(Map.of("name", tooLongName));
     mockMvc
         .perform(
