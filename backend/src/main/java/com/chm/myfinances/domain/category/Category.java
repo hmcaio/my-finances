@@ -9,8 +9,8 @@ import java.util.UUID;
  *
  * <p>Renaming is allowed at any time; {@code type} is fixed at creation and deliberately has no
  * mutator anywhere on this class — changing a category's income/expense type after it may already
- * have transactions attached would silently corrupt budget and net-worth math, so the domain
- * model simply never exposes a way to do it (see F002 spec's "type is immutable after creation").
+ * have transactions attached would silently corrupt budget and net-worth math, so the domain model
+ * simply never exposes a way to do it (see F002 spec's "type is immutable after creation").
  */
 public final class Category {
 

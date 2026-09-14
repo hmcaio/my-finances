@@ -15,8 +15,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Application-layer tests for {@link PaymentMethodService}, against hand-written fakes — plain
- * JUnit, no Spring context (ADR 0004). Per F002 plan.md, the referenced-by-transaction delete
- * guard is deferred to F004; only unconditional create/rename/delete are covered here.
+ * JUnit, no Spring context (ADR 0004). Per F002 plan.md, the referenced-by-transaction delete guard
+ * is deferred to F004; only unconditional create/rename/delete are covered here.
  */
 class PaymentMethodServiceTest {
 
@@ -43,7 +43,9 @@ class PaymentMethodServiceTest {
 
     List<PaymentMethod> all = service.findAll();
 
-    assertThat(all).extracting(PaymentMethod::getName).containsExactlyInAnyOrder("Debit Card", "Cash");
+    assertThat(all)
+        .extracting(PaymentMethod::getName)
+        .containsExactlyInAnyOrder("Debit Card", "Cash");
   }
 
   @Test

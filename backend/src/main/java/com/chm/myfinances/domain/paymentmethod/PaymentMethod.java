@@ -5,8 +5,8 @@ import java.util.UUID;
 
 /**
  * PaymentMethod aggregate (PRD S5.2, F002 spec). A flat, user-editable taxonomy entry recording
- * which rail (debit card, PIX, cash, ...) a transaction went through — informational only, does
- * not affect balance math. No invariants beyond a non-blank name.
+ * which rail (debit card, PIX, cash, ...) a transaction went through — informational only, does not
+ * affect balance math. No invariants beyond a non-blank name.
  */
 public final class PaymentMethod {
 

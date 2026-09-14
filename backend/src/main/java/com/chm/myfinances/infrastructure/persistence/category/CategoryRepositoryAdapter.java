@@ -8,9 +8,9 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 /**
- * Adapter implementing the domain's {@link CategoryRepository} port on top of Spring
- * Data/Hibernate (ADR 0004). Translates between the framework-free {@link Category} aggregate and
- * {@link CategoryJpaEntity}.
+ * Adapter implementing the domain's {@link CategoryRepository} port on top of Spring Data/Hibernate
+ * (ADR 0004). Translates between the framework-free {@link Category} aggregate and {@link
+ * CategoryJpaEntity}.
  */
 @Component
 public class CategoryRepositoryAdapter implements CategoryRepository {

@@ -16,9 +16,9 @@ import org.springframework.context.annotation.Import;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Persistence-layer integration test for {@link CategoryRepositoryAdapter}: hits a real,
- * ephemeral Postgres via Testcontainers (ADR 0010) instead of an in-memory substitute, so Flyway's
- * {@code V2__categories_and_payment_methods.sql} runs for real too.
+ * Persistence-layer integration test for {@link CategoryRepositoryAdapter}: hits a real, ephemeral
+ * Postgres via Testcontainers (ADR 0010) instead of an in-memory substitute, so Flyway's {@code
+ * V2__categories_and_payment_methods.sql} runs for real too.
  *
  * <p>Spring Boot 4.x no longer ships {@code @DataJpaTest}/{@code @AutoConfigureTestDatabase} (both
  * test-slice annotations were removed from {@code spring-boot-test-autoconfigure}), so this uses

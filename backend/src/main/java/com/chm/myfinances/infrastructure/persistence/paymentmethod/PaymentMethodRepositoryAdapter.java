@@ -42,9 +42,7 @@ public class PaymentMethodRepositoryAdapter implements PaymentMethodRepository {
 
   @Override
   public List<PaymentMethod> findAll() {
-    return jpaRepository.findAll().stream()
-        .map(PaymentMethodRepositoryAdapter::toDomain)
-        .toList();
+    return jpaRepository.findAll().stream().map(PaymentMethodRepositoryAdapter::toDomain).toList();
   }
 
   @Override
