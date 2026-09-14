@@ -1,6 +1,5 @@
-// Local dev only: backend is always http://localhost:8080 (PRD S7.1 - localhost-only, no
-// LAN/internet exposure). A real env-based config is not needed at this scaffolding stage.
-const API_BASE_URL = 'http://localhost:8080'
+import { apiClient } from './client'
+import { unwrap } from './apiError'
 
 export interface HealthResponse {
   status: string
@@ -14,9 +13,5 @@ export interface HealthResponse {
  * generated against src/api/generated/schema.ts (see `npm run generate-api-types`).
  */
 export async function getHealth(): Promise<HealthResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/health`)
-  if (!response.ok) {
-    throw new Error(`Health check failed with status ${response.status}`)
-  }
-  return response.json() as Promise<HealthResponse>
+  return unwrap(apiClient.get<HealthResponse>('/health'))
 }

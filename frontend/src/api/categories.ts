@@ -1,8 +1,6 @@
-import { assertOk } from './apiError'
+import { apiClient } from './client'
+import { unwrap } from './apiError'
 import type { components } from './generated/schema'
-
-// Local dev only: backend is always http://localhost:8080 (PRD S7.1). See src/api/health.ts.
-const API_BASE_URL = 'http://localhost:8080'
 
 export type CategoryType = 'INCOME' | 'EXPENSE'
 
@@ -24,19 +22,11 @@ const CONFLICT_MESSAGE =
  * (Budgets), and F007 (Recurring Templates), per F002 spec.
  */
 export async function getCategories(): Promise<Category[]> {
-  const response = await fetch(`${API_BASE_URL}/api/categories`)
-  await assertOk(response)
-  return (await response.json()) as Category[]
+  return unwrap(apiClient.get<Category[]>('/categories'))
 }
 
 export async function createCategory(request: CreateCategoryRequest): Promise<Category> {
-  const response = await fetch(`${API_BASE_URL}/api/categories`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-  })
-  await assertOk(response)
-  return (await response.json()) as Category
+  return unwrap(apiClient.post<Category>('/categories', request))
 }
 
 /** Renames a category. Type is immutable after creation (F002 spec) - there's no way to change it. */
@@ -44,16 +34,9 @@ export async function renameCategory(
   id: string,
   request: UpdateCategoryRequest,
 ): Promise<Category> {
-  const response = await fetch(`${API_BASE_URL}/api/categories/${id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-  })
-  await assertOk(response)
-  return (await response.json()) as Category
+  return unwrap(apiClient.patch<Category>(`/categories/${id}`, request))
 }
 
 export async function deleteCategory(id: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/api/categories/${id}`, { method: 'DELETE' })
-  await assertOk(response, CONFLICT_MESSAGE)
+  await unwrap(apiClient.delete<void>(`/categories/${id}`), CONFLICT_MESSAGE)
 }
