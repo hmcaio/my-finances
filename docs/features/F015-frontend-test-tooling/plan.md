@@ -10,9 +10,9 @@
 - [x] Add `"test": "vitest run"` to `package.json`; verify F014's CI `test-frontend` job picks it up with no workflow changes needed.
 - [x] Add `src/mocks/handlers/categories.ts` and `src/mocks/handlers/paymentMethods.ts` (success-path handlers for every endpoint, plus a `409` variant for the delete-conflict case), appended into `src/mocks/handlers.ts`.
 - [x] Write API-client tests: `src/api/categories.test.ts`, `src/api/paymentMethods.test.ts` — every function's success path, plus the `409` → `conflictMessage` mapping.
-- [ ] Write component tests: `src/features/categories/CategoriesPage.test.tsx`, `src/features/paymentMethods/PaymentMethodsPage.test.tsx` — list render, add, rename, delete, and the `409`-conflict message surfacing in the UI.
+- [x] Write component tests: `src/features/categories/CategoriesPage.test.tsx`, `src/features/paymentMethods/PaymentMethodsPage.test.tsx` — list render, add, rename, delete, and the `409`-conflict message surfacing in the UI.
 
 ## Verification
-- [ ] `npm run test` passes locally — all F002 backfill tests green.
-- [ ] Push this branch and confirm `.github/workflows/ci.yml`'s frontend test step actually runs the new tests (not skipping) instead of gracefully no-oping.
-- [ ] `npm run lint` and `npm run build` still pass, unaffected by the new devDependencies/config.
+- [x] `npm run test` passes locally — all F002 backfill tests green (20/20).
+- [ ] Push this branch and confirm `.github/workflows/ci.yml`'s frontend test step actually runs the new tests (not skipping) instead of gracefully no-oping. Left open: not pushed as part of this implementation pass.
+- [x] `npm run lint` and `npm run build` still pass, unaffected by the new devDependencies/config. (`npm run format:check` also verified.)
