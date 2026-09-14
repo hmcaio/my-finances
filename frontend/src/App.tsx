@@ -7,6 +7,8 @@ import { getTheme } from './theme'
 import { Layout } from './components/Layout'
 import { ComingSoon } from './components/ComingSoon'
 import { DashboardPage } from './features/dashboard/DashboardPage'
+import { CategoriesPage } from './features/categories/CategoriesPage'
+import { PaymentMethodsPage } from './features/paymentMethods/PaymentMethodsPage'
 
 function ThemedApp() {
   const { mode } = useColorMode()
@@ -29,11 +31,8 @@ function ThemedApp() {
               <Route path="/budgets" element={<ComingSoon title="Budgets" />} />
               <Route path="/recurring" element={<ComingSoon title="Recurring Templates" />} />
               <Route path="/investments" element={<ComingSoon title="Investments" />} />
-              <Route path="/settings/categories" element={<ComingSoon title="Categories" />} />
-              <Route
-                path="/settings/payment-methods"
-                element={<ComingSoon title="Payment Methods" />}
-              />
+              <Route path="/settings/categories" element={<CategoriesPage />} />
+              <Route path="/settings/payment-methods" element={<PaymentMethodsPage />} />
               <Route path="/export" element={<ComingSoon title="Data Export" />} />
             </Routes>
           </Layout>

@@ -17,13 +17,13 @@ import org.testcontainers.utility.DockerImageName;
  * backward compatibility and is marked {@code @Deprecated} in 2.x.
  */
 @TestConfiguration(proxyBeanMethods = false)
-class TestcontainersConfiguration {
+public class TestcontainersConfiguration {
 
   // Same postgres:17-alpine tag used by docker-compose.yml/docker-compose.prod.yml/CI, so the
   // version under test always matches dev and prod.
   @Bean
   @ServiceConnection
-  PostgreSQLContainer postgresContainer() {
+  public PostgreSQLContainer postgresContainer() {
     return new PostgreSQLContainer(DockerImageName.parse("postgres:17-alpine"));
   }
 }

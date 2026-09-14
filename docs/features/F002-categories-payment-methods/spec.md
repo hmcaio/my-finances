@@ -15,16 +15,17 @@ CRUD for `Category` and `PaymentMethod`, the two simplest reference entities in 
 ### Domain
 - `domain/category/Category.java`: id (`UUID`), `name` (non-blank), `type` (`CategoryType` enum: `INCOME`, `EXPENSE`). Rename is allowed at any time; type is immutable after creation (changing income/expense type on a category with existing transactions would silently corrupt budget/net-worth math — reject the change instead of allowing it).
 - `domain/paymentmethod/PaymentMethod.java`: id (`UUID`), `name` (non-blank).
-- Both are simple entities with no internal invariants beyond non-blank names — no rich behavior needed.
+- Both are simple entities with no internal invariants beyond a non-blank name capped at 100 characters (`domain/shared/NameConstraints.MAX_NAME_LENGTH`) — no rich behavior needed.
 
 ### Persistence
-- `infrastructure/persistence/category/CategoryJpaEntity.java` extends `AuditableEntity` (F001); table `categories` (`id uuid primary key`, `name text not null`, `type text not null`, plus audit columns).
-- `infrastructure/persistence/paymentmethod/PaymentMethodJpaEntity.java` extends `AuditableEntity`; table `payment_methods` (`id uuid primary key`, `name text not null`, plus audit columns).
-- Flyway migration `V2__categories_and_payment_methods.sql` creates both tables and seeds the starter data:
+- `infrastructure/persistence/category/CategoryJpaEntity.java` extends `AuditableEntity` (F001); table `categories` (`id uuid primary key`, `name varchar(100) not null`, `type text not null`, plus audit columns).
+- `infrastructure/persistence/paymentmethod/PaymentMethodJpaEntity.java` extends `AuditableEntity`; table `payment_methods` (`id uuid primary key`, `name varchar(100) not null`, plus audit columns).
+- Flyway migration `V2__categories_and_payment_methods.sql` creates both tables (originally with unbounded `text` name columns) and seeds the starter data:
   - Categories (expense): Groceries, Rent, Utilities, Subscriptions, Transport, Dining, Health, Other.
   - Categories (income): Salary, Other Income.
   - Payment methods: Debit Card, Credit Card, PIX, Cash.
   - (Exact starter lists are the PRD's own open item, §8 — the above is a reasonable default, adjust freely at implementation time.)
+- Flyway migration `V3__bound_name_column_lengths.sql` (security-audit follow-up) narrows both `name` columns from `text` to `varchar(100)`, matching the domain-layer length invariant and the DTOs' `@Size(max = 100)`.
 
 ### API
 - `GET /api/categories`, `POST /api/categories`, `PATCH /api/categories/{id}` (name only, type immutable), `DELETE /api/categories/{id}`.
