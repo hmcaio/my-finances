@@ -1,0 +1,41 @@
+import { describe, expect, it } from 'vitest'
+import { http, HttpResponse } from 'msw'
+import { server } from '../mocks/server'
+import { seedCategories } from '../mocks/handlers/categories'
+import { ApiError } from './apiError'
+import { createCategory, deleteCategory, getCategories, renameCategory } from './categories'
+
+describe('categories API client', () => {
+  it('getCategories returns the seeded list', async () => {
+    await expect(getCategories()).resolves.toEqual(seedCategories)
+  })
+
+  it('createCategory posts the new category and returns the created one', async () => {
+    const created = await createCategory({ name: 'Rent', type: 'EXPENSE' })
+    expect(created).toMatchObject({ name: 'Rent', type: 'EXPENSE' })
+    expect(created.id).toBeTruthy()
+  })
+
+  it('renameCategory patches the name and returns the updated category', async () => {
+    const updated = await renameCategory('cat-1', { name: 'Groceries & Dining' })
+    expect(updated).toMatchObject({ id: 'cat-1', name: 'Groceries & Dining' })
+  })
+
+  it('deleteCategory resolves on success', async () => {
+    await expect(deleteCategory('cat-1')).resolves.toBeUndefined()
+  })
+
+  it('deleteCategory maps a 409 to the delete-conflict message', async () => {
+    server.use(
+      http.delete('/api/categories/:id', () =>
+        HttpResponse.json({ message: 'Category is in use' }, { status: 409 }),
+      ),
+    )
+
+    const error: unknown = await deleteCategory('cat-1').catch((err: unknown) => err)
+
+    expect(error).toBeInstanceOf(ApiError)
+    expect((error as ApiError).status).toBe(409)
+    expect((error as ApiError).message).toContain('reassign them')
+  })
+})

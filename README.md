@@ -61,7 +61,7 @@ A production-shaped smoke test (Docker images end to end, no cloud involved) is 
 
 ## Project status
 
-Built and merged to `develop`: **F001** (project scaffolding), **F002** (categories & payment methods — the first real domain feature), **F014** (CI/CD and production packaging). Documented and next up: **F015** (frontend test tooling), then **F003–F013** (accounts, transactions, transfers, budgets, recurring templates, investments, net worth, onboarding, dashboard, data export) — see [docs/features/](docs/features/) for the full breakdown, in build order, with each feature's spec and its dependencies on the others.
+Built and merged to `develop`: **F001** (project scaffolding), **F002** (categories & payment methods — the first real domain feature), **F014** (CI/CD and production packaging), **F015** (frontend test tooling — Vitest + React Testing Library + MSW, with real coverage backfilled for F002). Documented and next up: **F003–F013** (accounts, transactions, transfers, budgets, recurring templates, investments, net worth, onboarding, dashboard, data export) — see [docs/features/](docs/features/) for the full breakdown, in build order, with each feature's spec and its dependencies on the others.
 
 ## Workflow
 
