@@ -10,5 +10,11 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['src/test/setup.ts'],
+    reporters: ['default', ['html', { outputDir: 'test-results' }]],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      reportsDirectory: 'coverage',
+    },
   },
 })
