@@ -1,3 +1,4 @@
+import { accountsHandlers } from './handlers/accounts'
 import { categoriesHandlers } from './handlers/categories'
 import { paymentMethodsHandlers } from './handlers/paymentMethods'
 
@@ -9,4 +10,4 @@ import { paymentMethodsHandlers } from './handlers/paymentMethods'
  * F003+ each add their own `src/mocks/handlers/<aggregate>.ts` and append it here - the only
  * shared-file touch, so independently-built features don't collide on handler content.
  */
-export const handlers = [...categoriesHandlers, ...paymentMethodsHandlers]
+export const handlers = [...accountsHandlers, ...categoriesHandlers, ...paymentMethodsHandlers]

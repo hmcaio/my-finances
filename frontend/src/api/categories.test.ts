@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { http, HttpResponse } from 'msw'
 import { server } from '../mocks/server'
-import { seedCategories } from '../mocks/handlers/categories'
+import { categoryDeleteConflictHandler, seedCategories } from '../mocks/handlers/categories'
 import { ApiError } from './apiError'
 import { createCategory, deleteCategory, getCategories, renameCategory } from './categories'
 
@@ -26,11 +25,7 @@ describe('categories API client', () => {
   })
 
   it('deleteCategory maps a 409 to the delete-conflict message', async () => {
-    server.use(
-      http.delete('/api/categories/:id', () =>
-        HttpResponse.json({ message: 'Category is in use' }, { status: 409 }),
-      ),
-    )
+    server.use(categoryDeleteConflictHandler)
 
     const error: unknown = await deleteCategory('cat-1').catch((err: unknown) => err)
 

@@ -17,8 +17,8 @@
 - Running balance is **not** stored on the entity — it's computed by an application-layer query (`AccountBalanceQuery` or similar) that sums transactions (F004) and transfers (F005) on top of the opening balance, as of a given date. Until F004/F005 exist, this query trivially returns the opening balance.
 
 ### Persistence
-- `AccountJpaEntity extends AuditableEntity`; table `accounts`: `id uuid pk`, `name text not null`, `institution text`, `type text not null`, `opening_balance numeric not null`, `opening_balance_date date not null`, `closed_date date`, plus audit columns.
-- Migration `V3__accounts.sql`.
+- `AccountJpaEntity extends AuditableEntity`; table `accounts`: `id uuid pk`, `name varchar(100) not null`, `institution varchar(100)`, `type text not null`, `opening_balance numeric(19,2) not null`, `opening_balance_date date not null`, `closed_date date`, plus audit columns. `name`/`institution` are bounded via `NameConstraints.MAX_NAME_LENGTH` (domain constructor/mutator check + `@Size(max=...)` on the request DTOs + `varchar(100)` column), the same pattern F002 uses for `Category`/`PaymentMethod` — a deliberate minor extension of that convention, since `Account.name`/`institution` are also free text entered by the user, even though `Account` itself isn't a flat taxonomy entity.
+- Migration `V4__accounts.sql` (not `V3` as originally planned — `V3` was claimed by F002's `V3__bound_name_column_lengths.sql`, a security-audit fix migration added after F002 shipped and before F003 started).
 
 ### API
 - `POST /api/accounts` — create (name, institution, type, opening balance, opening balance date).
@@ -30,7 +30,7 @@
 
 ## Frontend
 - Account list view: name, institution, type, current running balance; toggle to show/hide closed accounts.
-- Create/edit account form (type and opening balance/date fields disabled once the account exists).
+- Create/edit account form (type and opening balance/date fields disabled once the account exists). Implemented as two separate UI surfaces rather than one shared form toggled between modes: an "Add account" form (all fields: name, institution, type, opening balance, opening balance date) and an inline name/institution-only edit on each existing row (matching F002's `CategoriesPage`/`PaymentMethodsPage` inline-edit pattern) — functionally equivalent (type/opening balance/date are never editable once an account exists), just two forms instead of one form with some fields disabled.
 - Close-account action with a confirmation dialog explaining it's not reversible through the UI (no "reopen" flow specified by the PRD) and that any recurring bills on it will stop.
 - Account detail view: running balance, transaction/transfer history (populated once F004/F005 exist).
 

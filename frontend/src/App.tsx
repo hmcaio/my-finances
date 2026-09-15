@@ -7,6 +7,8 @@ import { getTheme } from './theme'
 import { Layout } from './components/Layout'
 import { ComingSoon } from './components/ComingSoon'
 import { DashboardPage } from './features/dashboard/DashboardPage'
+import { AccountsPage } from './features/accounts/AccountsPage'
+import { AccountDetailPage } from './features/accounts/AccountDetailPage'
 import { CategoriesPage } from './features/categories/CategoriesPage'
 import { PaymentMethodsPage } from './features/paymentMethods/PaymentMethodsPage'
 
@@ -26,7 +28,8 @@ function ThemedApp() {
             <Routes>
               <Route path="/" element={<DashboardPage />} />
               <Route path="/transactions" element={<ComingSoon title="Transactions" />} />
-              <Route path="/accounts" element={<ComingSoon title="Accounts" />} />
+              <Route path="/accounts" element={<AccountsPage />} />
+              <Route path="/accounts/:id" element={<AccountDetailPage />} />
               <Route path="/transfers" element={<ComingSoon title="Transfers" />} />
               <Route path="/budgets" element={<ComingSoon title="Budgets" />} />
               <Route path="/recurring" element={<ComingSoon title="Recurring Templates" />} />
