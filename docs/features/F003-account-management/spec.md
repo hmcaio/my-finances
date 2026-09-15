@@ -30,7 +30,7 @@
 
 ## Frontend
 - Account list view: name, institution, type, current running balance; toggle to show/hide closed accounts.
-- Create/edit account form (type and opening balance/date fields disabled once the account exists).
+- Create/edit account form (type and opening balance/date fields disabled once the account exists). Implemented as two separate UI surfaces rather than one shared form toggled between modes: an "Add account" form (all fields: name, institution, type, opening balance, opening balance date) and an inline name/institution-only edit on each existing row (matching F002's `CategoriesPage`/`PaymentMethodsPage` inline-edit pattern) — functionally equivalent (type/opening balance/date are never editable once an account exists), just two forms instead of one form with some fields disabled.
 - Close-account action with a confirmation dialog explaining it's not reversible through the UI (no "reopen" flow specified by the PRD) and that any recurring bills on it will stop.
 - Account detail view: running balance, transaction/transfer history (populated once F004/F005 exist).
 

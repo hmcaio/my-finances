@@ -13,9 +13,9 @@
 - [x] REST controller + DTOs; no delete endpoint.
 
 ## Frontend
-- [ ] `src/api/accounts.ts`.
-- [ ] `src/features/accounts` — list (with closed toggle), create/edit form, detail view, close action with confirmation.
+- [x] `src/api/accounts.ts`.
+- [x] `src/features/accounts` — list (with closed toggle), create/edit form, detail view, close action with confirmation.
 
 ## Verification
-- [ ] Create an account, confirm opening balance/date can't be edited afterward.
-- [ ] Close an account, confirm it disappears from the default list/picker but is still viewable with history-to-date preserved.
+- [x] Create an account, confirm opening balance/date can't be edited afterward.
+- [x] Close an account, confirm it disappears from the default list/picker but is still viewable with history-to-date preserved.
