@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { http, HttpResponse } from 'msw'
 import { server } from '../mocks/server'
-import { seedPaymentMethods } from '../mocks/handlers/paymentMethods'
+import {
+  paymentMethodDeleteConflictHandler,
+  seedPaymentMethods,
+} from '../mocks/handlers/paymentMethods'
 import { ApiError } from './apiError'
 import {
   createPaymentMethod,
@@ -31,11 +33,7 @@ describe('paymentMethods API client', () => {
   })
 
   it('deletePaymentMethod maps a 409 to the delete-conflict message', async () => {
-    server.use(
-      http.delete('/api/payment-methods/:id', () =>
-        HttpResponse.json({ message: 'Payment method is in use' }, { status: 409 }),
-      ),
-    )
+    server.use(paymentMethodDeleteConflictHandler)
 
     const error: unknown = await deletePaymentMethod('pm-1').catch((err: unknown) => err)
 

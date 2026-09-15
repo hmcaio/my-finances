@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
-import { seedCategories } from '../../mocks/handlers/categories'
+import { categoryDeleteConflictHandler, seedCategories } from '../../mocks/handlers/categories'
 import { CategoriesPage } from './CategoriesPage'
 
 function findRow(name: string) {
@@ -60,11 +59,7 @@ describe('CategoriesPage', () => {
   })
 
   it('surfaces the 409 conflict message when delete fails', async () => {
-    server.use(
-      http.delete('/api/categories/:id', () =>
-        HttpResponse.json({ message: 'Category is in use' }, { status: 409 }),
-      ),
-    )
+    server.use(categoryDeleteConflictHandler)
     const user = userEvent.setup()
     render(<CategoriesPage />)
     const name = seedCategories[0].name

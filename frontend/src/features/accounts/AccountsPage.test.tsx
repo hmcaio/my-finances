@@ -2,9 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
-import { seedAccounts } from '../../mocks/handlers/accounts'
+import { accountAlreadyClosedConflictHandler, seedAccounts } from '../../mocks/handlers/accounts'
 import { AccountsPage } from './AccountsPage'
 
 function renderPage() {
@@ -115,11 +114,7 @@ describe('AccountsPage', () => {
   })
 
   it('surfaces an error message when closing fails', async () => {
-    server.use(
-      http.post('/api/accounts/:id/close', () =>
-        HttpResponse.json({ message: 'Account is already closed' }, { status: 409 }),
-      ),
-    )
+    server.use(accountAlreadyClosedConflictHandler)
     const user = userEvent.setup()
     renderPage()
     const openAccount = seedAccounts.find((a) => !a.closed)!

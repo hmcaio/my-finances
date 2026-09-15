@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
-import { seedPaymentMethods } from '../../mocks/handlers/paymentMethods'
+import {
+  paymentMethodDeleteConflictHandler,
+  seedPaymentMethods,
+} from '../../mocks/handlers/paymentMethods'
 import { PaymentMethodsPage } from './PaymentMethodsPage'
 
 function findRow(name: string) {
@@ -60,11 +62,7 @@ describe('PaymentMethodsPage', () => {
   })
 
   it('surfaces the 409 conflict message when delete fails', async () => {
-    server.use(
-      http.delete('/api/payment-methods/:id', () =>
-        HttpResponse.json({ message: 'Payment method is in use' }, { status: 409 }),
-      ),
-    )
+    server.use(paymentMethodDeleteConflictHandler)
     const user = userEvent.setup()
     render(<PaymentMethodsPage />)
     const name = seedPaymentMethods[0].name

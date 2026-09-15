@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { http, HttpResponse } from 'msw'
 import { server } from '../mocks/server'
-import { seedAccounts } from '../mocks/handlers/accounts'
+import { accountAlreadyClosedConflictHandler, seedAccounts } from '../mocks/handlers/accounts'
 import { ApiError } from './apiError'
 import { closeAccount, createAccount, editAccount, getAccount, getAccounts } from './accounts'
 
@@ -51,11 +50,7 @@ describe('accounts API client', () => {
   })
 
   it('closeAccount maps a 409 to an ApiError', async () => {
-    server.use(
-      http.post('/api/accounts/:id/close', () =>
-        HttpResponse.json({ message: 'Account is already closed' }, { status: 409 }),
-      ),
-    )
+    server.use(accountAlreadyClosedConflictHandler)
 
     const error: unknown = await closeAccount('acct-1').catch((err: unknown) => err)
 
