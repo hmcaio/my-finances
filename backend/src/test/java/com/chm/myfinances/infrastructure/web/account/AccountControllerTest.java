@@ -174,6 +174,20 @@ class AccountControllerTest {
   }
 
   @Test
+  void closedAccountStaysViewableAndBrowsableAfterClosing() throws Exception {
+    // F003 plan.md's verification bullet: closing an account removes it from the default list
+    // but it must stay viewable/browsable with its history-to-date preserved.
+    String id = createAccount("To Close", "CHECKING", "10.00", "2026-01-01");
+    mockMvc.perform(post("/api/accounts/" + id + "/close")).andExpect(status().isOk());
+
+    mockMvc
+        .perform(get("/api/accounts/" + id))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.closed").value(true))
+        .andExpect(jsonPath("$.openingBalance").value(10.00));
+  }
+
+  @Test
   void closingAnAlreadyClosedAccountReturns409() throws Exception {
     String id = createAccount("To Close", "CHECKING", "10.00", "2026-01-01");
     mockMvc.perform(post("/api/accounts/" + id + "/close")).andExpect(status().isOk());
