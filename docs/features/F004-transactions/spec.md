@@ -7,6 +7,7 @@
 - `Transaction` entity: date, amount, category, account, type (income/expense), payment method, optional note, optional recurring-template-version link.
 - List/filter by date range, category, account, payment method.
 - Wiring into `AccountBalanceQuery` (F003) so running balance reflects real activity.
+- F002's referenced-by-transaction delete guard (409 when a category/payment method is in use), deferred there until this feature's `transactions` table existed to check against (see CLAUDE.md's F002 status entry) — `CategoryService`/`PaymentMethodService.delete()` now reject via `CategoryInUseException`/`PaymentMethodInUseException`.
 - Out of scope: the recurring-template-generated flow itself (F007 creates transactions via this feature's application service, not a separate path).
 
 ## Backend
@@ -23,9 +24,9 @@
 - Reject inserting a transaction against a closed `Account` (enforced in the application service, calling into F003's `Account.isClosed()`).
 
 ### API
-- `POST /api/transactions`, `GET /api/transactions/{id}`, `PATCH /api/transactions/{id}`, `DELETE /api/transactions/{id}`.
-- `GET /api/transactions?dateFrom=&dateTo=&categoryId=&accountId=&paymentMethodId=` — filtered list, paginated.
-- `GET /api/accounts/{id}/balance?asOf=` (exposed here or in F003 — implemented in F003's `AccountBalanceQuery`, but only becomes meaningful once this feature's data exists).
+- `POST /api/transactions`, `GET /api/transactions/{id}`, `PATCH /api/transactions/{id}`, `DELETE /api/transactions/{id}`. `PATCH` is a full-replace body (every editable field required), matching F002/F003's existing update-endpoint convention rather than a partial patch.
+- `GET /api/transactions?dateFrom=&dateTo=&categoryId=&accountId=&paymentMethodId=&page=&size=&sort=` — filtered, paginated list (Spring Data `Pageable`/`Page`, default 20/page, most recent first), returned as a `PagedModel` (`{content, page: {size, number, totalElements, totalPages}}`) rather than a raw `Page` — Spring's recommended envelope shape, and the first paginated list endpoint in this codebase, so this is now the convention F006+'s own list endpoints should follow.
+- No separate `GET /api/accounts/{id}/balance?asOf=` endpoint was added: F003's existing `GET /api/accounts/{id}?asOf=` already returns the computed balance embedded in `AccountResponse.balance` (via `AccountBalanceQuery`), and now that this feature's transactions exist for it to sum, that endpoint is what makes the balance meaningful — a dedicated `/balance` sub-resource would just duplicate it.
 
 ## Frontend
 - Transaction list/table with filter controls (date range, category, account, payment method).

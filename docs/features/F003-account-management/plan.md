@@ -8,7 +8,7 @@
 - [x] Add `AccountJpaEntity` (extends `AuditableEntity`), repository, adapter.
 - [x] Flyway migration `V4__accounts.sql` (V3 was already taken by F002's `V3__bound_name_column_lengths.sql`, added after F002 shipped - see spec.md).
 - [x] Write tests for the list application service (closed accounts excluded by default), then implement: create, edit (name/institution only), close, get, list (with closed-account filter).
-- [x] Write tests for `AccountBalanceQuery` (opening-balance-only case for now), then implement it: computes running balance from opening balance (+ transactions/transfers once F004/F005 exist — revisit tests and implementation when those land).
+- [x] Write tests for `AccountBalanceQuery` (opening-balance-only case for now), then implement it: computes running balance from opening balance (+ transactions/transfers once F004/F005 exist — revisit tests and implementation when those land). F004 has since landed and did exactly that revisit (transaction activity now summed in); F005 will extend it again for transfers.
 - [x] Domain event or port (`AccountClosedNotifier` or similar) fired on close, for F007 to consume later without F003 depending on F007.
 - [x] REST controller + DTOs; no delete endpoint.
 
