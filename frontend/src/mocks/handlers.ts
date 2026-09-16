@@ -1,6 +1,7 @@
 import { accountsHandlers } from './handlers/accounts'
 import { categoriesHandlers } from './handlers/categories'
 import { paymentMethodsHandlers } from './handlers/paymentMethods'
+import { transactionsHandlers } from './handlers/transactions'
 
 /**
  * Combined MSW request handlers for every aggregate (F015 spec). Each aggregate owns one file
@@ -10,4 +11,9 @@ import { paymentMethodsHandlers } from './handlers/paymentMethods'
  * F003+ each add their own `src/mocks/handlers/<aggregate>.ts` and append it here - the only
  * shared-file touch, so independently-built features don't collide on handler content.
  */
-export const handlers = [...accountsHandlers, ...categoriesHandlers, ...paymentMethodsHandlers]
+export const handlers = [
+  ...accountsHandlers,
+  ...categoriesHandlers,
+  ...paymentMethodsHandlers,
+  ...transactionsHandlers,
+]

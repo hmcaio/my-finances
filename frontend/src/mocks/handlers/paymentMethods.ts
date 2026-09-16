@@ -40,9 +40,8 @@ export const paymentMethodsHandlers = [
 ]
 
 /**
- * `409` variant for the delete-conflict case (F002 spec's `conflictMessage`) - see
- * `categoryDeleteConflictHandler` in `categories.ts` for why this exists ahead of a real backend
- * guard.
+ * `409` variant for the delete-conflict case (F002 spec's `conflictMessage`, now backed for real by
+ * F004's `PaymentMethodInUseException`) - see `categoryDeleteConflictHandler` in `categories.ts`.
  */
 export const paymentMethodDeleteConflictHandler = http.delete(`${PAYMENT_METHODS_URL}/:id`, () =>
   HttpResponse.json({ message: 'Payment method is in use' }, { status: 409 }),

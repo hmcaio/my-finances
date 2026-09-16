@@ -13,7 +13,7 @@
 - [x] Add the F002-deferred referenced-by-transaction delete guard (409) to `CategoryService`/`PaymentMethodService`, now that `transactions` exists to check against (CLAUDE.md's F002 status entry).
 
 ## Frontend
-- [ ] `src/api/transactions.ts`.
+- [x] `src/api/transactions.ts`.
 - [ ] `src/features/transactions` — filterable list/table, create/edit form, delete.
 - [ ] Embed transaction list (pre-filtered) in F003's account detail view.
 
