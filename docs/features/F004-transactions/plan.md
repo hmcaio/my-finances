@@ -14,8 +14,8 @@
 
 ## Frontend
 - [x] `src/api/transactions.ts`.
-- [ ] `src/features/transactions` — filterable list/table, create/edit form, delete.
-- [ ] Embed transaction list (pre-filtered) in F003's account detail view.
+- [x] `src/features/transactions` — filterable list/table, create/edit form, delete.
+- [x] Embed transaction list (pre-filtered) in F003's account detail view.
 
 ## Verification
 - [ ] Create transactions on both an asset account and a credit card account, confirm balances move in the correct direction on each.

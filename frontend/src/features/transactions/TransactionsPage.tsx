@@ -1,0 +1,480 @@
+import { useEffect, useMemo, useState } from 'react'
+import {
+  Alert,
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  IconButton,
+  MenuItem,
+  Paper,
+  Select,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Typography,
+} from '@mui/material'
+import DeleteIcon from '@mui/icons-material/Delete'
+import EditIcon from '@mui/icons-material/Edit'
+import { getAccounts, type Account } from '../../api/accounts'
+import { getCategories, type Category } from '../../api/categories'
+import { getPaymentMethods, type PaymentMethod } from '../../api/paymentMethods'
+import {
+  createTransaction,
+  deleteTransaction,
+  editTransaction,
+  getTransactions,
+  type Transaction,
+  type TransactionFilter,
+} from '../../api/transactions'
+import { ApiError } from '../../api/apiError'
+import { nameLookup } from './nameLookup'
+
+const EMPTY_FORM = {
+  date: new Date().toISOString().slice(0, 10),
+  amount: '',
+  categoryId: '',
+  accountId: '',
+  paymentMethodId: '',
+  note: '',
+}
+
+const PAGE_SIZE = 20
+
+/**
+ * Transaction list/table with filter controls (date range, category, account, payment method),
+ * plus a create/edit form and delete-with-confirmation (F004 spec). One combined form toggles
+ * between create and edit mode - the fields (date/amount/category/account/payment method/note)
+ * are identical for both, matching F004's plain-in-place-edit semantics (no versioning).
+ */
+export function TransactionsPage() {
+  const [categories, setCategories] = useState<Category[] | null>(null)
+  const [accounts, setAccounts] = useState<Account[] | null>(null)
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[] | null>(null)
+
+  const [transactions, setTransactions] = useState<Transaction[] | null>(null)
+  const [pageInfo, setPageInfo] = useState<{ number: number; totalPages: number } | null>(null)
+  const [page, setPage] = useState(0)
+
+  const [filters, setFilters] = useState<TransactionFilter>({})
+  const [error, setError] = useState<string | null>(null)
+
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [form, setForm] = useState(EMPTY_FORM)
+  const [saving, setSaving] = useState(false)
+
+  const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  useEffect(() => {
+    getCategories()
+      .then(setCategories)
+      .catch((err: unknown) => setError(errorMessage(err)))
+    getAccounts(true)
+      .then(setAccounts)
+      .catch((err: unknown) => setError(errorMessage(err)))
+    getPaymentMethods()
+      .then(setPaymentMethods)
+      .catch((err: unknown) => setError(errorMessage(err)))
+  }, [])
+
+  function load(activeFilters: TransactionFilter, activePage: number) {
+    getTransactions(activeFilters, activePage, PAGE_SIZE)
+      .then((result) => {
+        setTransactions(result.content)
+        setPageInfo({ number: result.page.number, totalPages: result.page.totalPages })
+      })
+      .catch((err: unknown) => setError(errorMessage(err)))
+  }
+
+  useEffect(() => {
+    load(filters, page)
+  }, [filters, page])
+
+  function updateFilter(patch: Partial<TransactionFilter>) {
+    setFilters((prev) => ({ ...prev, ...patch }))
+    setPage(0)
+  }
+
+  const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
+  const accountName = useMemo(() => nameLookup(accounts ?? [], (a) => a.name), [accounts])
+  const paymentMethodName = useMemo(
+    () => nameLookup(paymentMethods ?? [], (p) => p.name),
+    [paymentMethods],
+  )
+  const openAccounts = useMemo(() => (accounts ?? []).filter((a) => !a.closed), [accounts])
+
+  function startEdit(transaction: Transaction) {
+    setEditingId(transaction.id)
+    setForm({
+      date: transaction.date,
+      amount: String(transaction.amount),
+      categoryId: transaction.categoryId,
+      accountId: transaction.accountId,
+      paymentMethodId: transaction.paymentMethodId,
+      note: transaction.note ?? '',
+    })
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+    setForm(EMPTY_FORM)
+  }
+
+  function isFormValid() {
+    return (
+      form.date !== '' &&
+      Number(form.amount) > 0 &&
+      form.categoryId !== '' &&
+      form.accountId !== '' &&
+      form.paymentMethodId !== ''
+    )
+  }
+
+  async function handleSubmit() {
+    if (!isFormValid()) return
+    setError(null)
+    setSaving(true)
+    const request = {
+      date: form.date,
+      amount: Number(form.amount),
+      categoryId: form.categoryId,
+      accountId: form.accountId,
+      paymentMethodId: form.paymentMethodId,
+      note: form.note.trim() || undefined,
+    }
+    try {
+      if (editingId) {
+        const updated = await editTransaction(editingId, request)
+        setTransactions((prev) => prev?.map((t) => (t.id === updated.id ? updated : t)) ?? null)
+      } else {
+        const created = await createTransaction(request)
+        setTransactions((prev) => (prev ? [created, ...prev] : [created]))
+      }
+      cancelEdit()
+    } catch (err) {
+      setError(errorMessage(err))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return
+    setError(null)
+    setDeleting(true)
+    try {
+      await deleteTransaction(deleteTarget.id)
+      setTransactions((prev) => prev?.filter((t) => t.id !== deleteTarget.id) ?? null)
+      setDeleteTarget(null)
+    } catch (err) {
+      setError(errorMessage(err))
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <Box sx={{ py: 4 }}>
+      <Typography variant="h4" component="h1" gutterBottom>
+        Transactions
+      </Typography>
+      <Typography color="text.secondary" sx={{ mb: 3 }}>
+        Every income and expense entry, filterable by date range, category, account, and payment
+        method.
+      </Typography>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+
+      <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
+        <Typography variant="subtitle2" gutterBottom>
+          Filters
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+          <TextField
+            label="From"
+            type="date"
+            size="small"
+            value={filters.dateFrom ?? ''}
+            onChange={(e) => updateFilter({ dateFrom: e.target.value || undefined })}
+            slotProps={{ inputLabel: { shrink: true } }}
+          />
+          <TextField
+            label="To"
+            type="date"
+            size="small"
+            value={filters.dateTo ?? ''}
+            onChange={(e) => updateFilter({ dateTo: e.target.value || undefined })}
+            slotProps={{ inputLabel: { shrink: true } }}
+          />
+          <Select
+            size="small"
+            displayEmpty
+            value={filters.categoryId ?? ''}
+            onChange={(e) => updateFilter({ categoryId: e.target.value || undefined })}
+            aria-label="Category filter"
+            sx={{ minWidth: 160 }}
+          >
+            <MenuItem value="">All categories</MenuItem>
+            {categories?.map((c) => (
+              <MenuItem key={c.id} value={c.id}>
+                {c.name}
+              </MenuItem>
+            ))}
+          </Select>
+          <Select
+            size="small"
+            displayEmpty
+            value={filters.accountId ?? ''}
+            onChange={(e) => updateFilter({ accountId: e.target.value || undefined })}
+            aria-label="Account filter"
+            sx={{ minWidth: 160 }}
+          >
+            <MenuItem value="">All accounts</MenuItem>
+            {accounts?.map((a) => (
+              <MenuItem key={a.id} value={a.id}>
+                {a.name}
+              </MenuItem>
+            ))}
+          </Select>
+          <Select
+            size="small"
+            displayEmpty
+            value={filters.paymentMethodId ?? ''}
+            onChange={(e) => updateFilter({ paymentMethodId: e.target.value || undefined })}
+            aria-label="Payment method filter"
+            sx={{ minWidth: 160 }}
+          >
+            <MenuItem value="">All payment methods</MenuItem>
+            {paymentMethods?.map((p) => (
+              <MenuItem key={p.id} value={p.id}>
+                {p.name}
+              </MenuItem>
+            ))}
+          </Select>
+          <Button
+            size="small"
+            onClick={() => {
+              setFilters({})
+              setPage(0)
+            }}
+          >
+            Clear filters
+          </Button>
+        </Box>
+      </Paper>
+
+      <Paper variant="outlined" sx={{ mb: 2 }}>
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Date</TableCell>
+                <TableCell>Category</TableCell>
+                <TableCell>Account</TableCell>
+                <TableCell>Payment Method</TableCell>
+                <TableCell align="right">Amount</TableCell>
+                <TableCell>Note</TableCell>
+                <TableCell align="right">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {transactions === null && (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">
+                    Loading…
+                  </TableCell>
+                </TableRow>
+              )}
+              {transactions?.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">
+                    <Typography color="text.secondary">No transactions found.</Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+              {transactions?.map((transaction) => (
+                <TableRow key={transaction.id}>
+                  <TableCell>{transaction.date}</TableCell>
+                  <TableCell>{categoryName(transaction.categoryId)}</TableCell>
+                  <TableCell>{accountName(transaction.accountId)}</TableCell>
+                  <TableCell>{paymentMethodName(transaction.paymentMethodId)}</TableCell>
+                  <TableCell align="right">
+                    {transaction.type === 'EXPENSE' ? '-' : '+'}
+                    {transaction.amount.toFixed(2)}
+                  </TableCell>
+                  <TableCell>{transaction.note ?? '—'}</TableCell>
+                  <TableCell align="right">
+                    <IconButton
+                      size="small"
+                      aria-label="Edit"
+                      onClick={() => startEdit(transaction)}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      aria-label="Delete"
+                      onClick={() => setDeleteTarget(transaction)}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
+
+      {pageInfo && pageInfo.totalPages > 1 && (
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 3 }}>
+          <Button
+            size="small"
+            disabled={pageInfo.number <= 0}
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+          >
+            Previous
+          </Button>
+          <Typography variant="body2">
+            Page {pageInfo.number + 1} of {pageInfo.totalPages}
+          </Typography>
+          <Button
+            size="small"
+            disabled={pageInfo.number + 1 >= pageInfo.totalPages}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            Next
+          </Button>
+        </Box>
+      )}
+
+      <Paper variant="outlined" sx={{ p: 2, maxWidth: 720 }}>
+        <Typography variant="subtitle1" gutterBottom>
+          {editingId ? 'Edit transaction' : 'Add transaction'}
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <TextField
+            label="Date"
+            type="date"
+            size="small"
+            value={form.date}
+            onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
+            slotProps={{ inputLabel: { shrink: true } }}
+          />
+          <TextField
+            label="Amount"
+            type="number"
+            size="small"
+            value={form.amount}
+            onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value }))}
+            slotProps={{ htmlInput: { step: '0.01', min: '0.01' } }}
+          />
+          <Select
+            size="small"
+            displayEmpty
+            value={form.categoryId}
+            onChange={(e) => setForm((prev) => ({ ...prev, categoryId: e.target.value }))}
+            aria-label="Category"
+            sx={{ minWidth: 160 }}
+          >
+            <MenuItem value="" disabled>
+              Category
+            </MenuItem>
+            {categories?.map((c) => (
+              <MenuItem key={c.id} value={c.id}>
+                {c.name}
+              </MenuItem>
+            ))}
+          </Select>
+          <Select
+            size="small"
+            displayEmpty
+            value={form.accountId}
+            onChange={(e) => setForm((prev) => ({ ...prev, accountId: e.target.value }))}
+            aria-label="Account"
+            sx={{ minWidth: 160 }}
+          >
+            <MenuItem value="" disabled>
+              Account
+            </MenuItem>
+            {openAccounts.map((a) => (
+              <MenuItem key={a.id} value={a.id}>
+                {a.name}
+              </MenuItem>
+            ))}
+          </Select>
+          <Select
+            size="small"
+            displayEmpty
+            value={form.paymentMethodId}
+            onChange={(e) => setForm((prev) => ({ ...prev, paymentMethodId: e.target.value }))}
+            aria-label="Payment Method"
+            sx={{ minWidth: 160 }}
+          >
+            <MenuItem value="" disabled>
+              Payment Method
+            </MenuItem>
+            {paymentMethods?.map((p) => (
+              <MenuItem key={p.id} value={p.id}>
+                {p.name}
+              </MenuItem>
+            ))}
+          </Select>
+          <TextField
+            label="Note"
+            size="small"
+            value={form.note}
+            onChange={(e) => setForm((prev) => ({ ...prev, note: e.target.value }))}
+          />
+          <Button
+            variant="contained"
+            disabled={saving || !isFormValid()}
+            onClick={() => void handleSubmit()}
+          >
+            {editingId ? 'Save changes' : 'Add'}
+          </Button>
+          {editingId && (
+            <Button onClick={cancelEdit} disabled={saving}>
+              Cancel
+            </Button>
+          )}
+        </Box>
+      </Paper>
+
+      <Dialog open={deleteTarget !== null} onClose={() => setDeleteTarget(null)}>
+        <DialogTitle>Delete this transaction?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This permanently removes the transaction and cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteTarget(null)} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button onClick={() => void confirmDelete()} color="error" disabled={deleting} autoFocus>
+            Delete transaction
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  )
+}
+
+function errorMessage(err: unknown): string {
+  if (err instanceof ApiError) return err.message
+  if (err instanceof Error) return err.message
+  return 'Something went wrong.'
+}

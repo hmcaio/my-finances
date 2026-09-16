@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { seedAccounts } from '../../mocks/handlers/accounts'
+import { seedTransactions } from '../../mocks/handlers/transactions'
 import { AccountDetailPage } from './AccountDetailPage'
 
 function renderDetail(id: string) {
@@ -26,13 +27,17 @@ describe('AccountDetailPage', () => {
     expect(screen.getByText(`${account.institution} · Checking`)).toBeInTheDocument()
   })
 
-  it('shows a placeholder for transaction/transfer history', async () => {
+  it('embeds the transaction history pre-filtered to this account', async () => {
     const account = seedAccounts[0]
     renderDetail(account.id)
 
     await screen.findByRole('heading', { name: account.name })
 
-    expect(screen.getByText(/Not available yet/)).toBeInTheDocument()
+    // Every seed transaction is posted to this account (acct-1) - all should render.
+    for (const transaction of seedTransactions) {
+      expect(await screen.findByText(transaction.date)).toBeInTheDocument()
+    }
+    expect(screen.getByText(/Transfer history .* isn't available yet/)).toBeInTheDocument()
   })
 
   it('shows an error message for an unknown account', async () => {
