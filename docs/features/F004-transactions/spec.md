@@ -19,7 +19,7 @@
 
 ### Persistence
 - `TransactionJpaEntity extends AuditableEntity`; table `transactions`: `id uuid pk`, `date date not null`, `amount numeric not null`, `category_id uuid not null references categories`, `type text not null`, `account_id uuid not null references accounts`, `payment_method_id uuid not null references payment_methods`, `recurring_template_version_id uuid references recurring_template_versions` (nullable; FK added once F007 exists — nullable column can be added now and left unpopulated), `note text`, plus audit columns.
-- Migration `V4__transactions.sql`. Indexes on `account_id`, `category_id`, `date` (all are filter/aggregation dimensions used here and by F006/F010/F013).
+- Migration `V5__transactions.sql` — not `V4`, as this spec originally said before F003 landed: F003 already claimed `V4__accounts.sql` (after F002's own out-of-band `V3__bound_name_column_lengths.sql` claimed `V3`), same renumbering story F003's own spec.md documented for its `V3`→`V4` move. Indexes on `account_id`, `category_id`, `date` (all are filter/aggregation dimensions used here and by F006/F010/F013).
 - Reject inserting a transaction against a closed `Account` (enforced in the application service, calling into F003's `Account.isClosed()`).
 
 ### API
