@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.domain.category.CategoryType;
-import com.chm.myfinances.domain.shared.DescriptionConstraints;
+import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -106,7 +106,7 @@ class TransactionTest {
 
   @Test
   void createRejectsDescriptionExceedingMaxLength() {
-    String tooLong = "a".repeat(DescriptionConstraints.MAX_DESCRIPTION_LENGTH + 1);
+    String tooLong = "a".repeat(TextFieldConstraints.MAX_DESCRIPTION_LENGTH + 1);
 
     assertThatThrownBy(
             () ->
@@ -126,7 +126,7 @@ class TransactionTest {
 
   @Test
   void createRejectsAdditionalNotesExceedingMaxLength() {
-    String tooLong = "a".repeat(DescriptionConstraints.MAX_ADDITIONAL_NOTES_LENGTH + 1);
+    String tooLong = "a".repeat(TextFieldConstraints.MAX_ADDITIONAL_NOTES_LENGTH + 1);
 
     assertThatThrownBy(
             () ->

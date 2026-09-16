@@ -3,7 +3,7 @@ package com.chm.myfinances.domain.account;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.chm.myfinances.domain.shared.NameConstraints;
+import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -213,7 +213,7 @@ class AccountTest {
 
   @Test
   void createAcceptsNameAtMaxLength() {
-    String maxLengthName = "a".repeat(NameConstraints.MAX_NAME_LENGTH);
+    String maxLengthName = "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH);
 
     Account account =
         Account.create(
@@ -229,7 +229,7 @@ class AccountTest {
 
   @Test
   void createRejectsNameOverMaxLength() {
-    String tooLongName = "a".repeat(NameConstraints.MAX_NAME_LENGTH + 1);
+    String tooLongName = "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1);
 
     assertThatThrownBy(
             () ->
@@ -245,7 +245,7 @@ class AccountTest {
 
   @Test
   void createRejectsInstitutionOverMaxLength() {
-    String tooLongInstitution = "a".repeat(NameConstraints.MAX_NAME_LENGTH + 1);
+    String tooLongInstitution = "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1);
 
     assertThatThrownBy(
             () ->
@@ -283,7 +283,7 @@ class AccountTest {
             AccountType.CHECKING,
             BigDecimal.ZERO,
             LocalDate.now());
-    String tooLongName = "a".repeat(NameConstraints.MAX_NAME_LENGTH + 1);
+    String tooLongName = "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1);
 
     assertThatThrownBy(() -> account.edit(tooLongName, null))
         .isInstanceOf(IllegalArgumentException.class);

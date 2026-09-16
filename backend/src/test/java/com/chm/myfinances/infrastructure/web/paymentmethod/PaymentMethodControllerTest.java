@@ -14,7 +14,7 @@ import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
-import com.chm.myfinances.domain.shared.NameConstraints;
+import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -138,7 +138,7 @@ class PaymentMethodControllerTest {
 
   @Test
   void createRejectsNameOverMaxLength() throws Exception {
-    String tooLongName = "a".repeat(NameConstraints.MAX_NAME_LENGTH + 1);
+    String tooLongName = "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1);
     String createBody = objectMapper.writeValueAsString(Map.of("name", tooLongName));
 
     mockMvc
@@ -163,7 +163,7 @@ class PaymentMethodControllerTest {
     String id =
         objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asText();
 
-    String tooLongName = "a".repeat(NameConstraints.MAX_NAME_LENGTH + 1);
+    String tooLongName = "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1);
     String renameBody = objectMapper.writeValueAsString(Map.of("name", tooLongName));
     mockMvc
         .perform(

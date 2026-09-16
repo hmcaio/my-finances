@@ -3,7 +3,7 @@ package com.chm.myfinances.domain.category;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.chm.myfinances.domain.shared.NameConstraints;
+import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -68,7 +68,7 @@ class CategoryTest {
 
   @Test
   void createAcceptsNameAtMaxLength() {
-    String maxLengthName = "a".repeat(NameConstraints.MAX_NAME_LENGTH);
+    String maxLengthName = "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH);
 
     Category category = Category.create(UUID.randomUUID(), maxLengthName, CategoryType.EXPENSE);
 
@@ -77,7 +77,7 @@ class CategoryTest {
 
   @Test
   void createRejectsNameOverMaxLength() {
-    String tooLongName = "a".repeat(NameConstraints.MAX_NAME_LENGTH + 1);
+    String tooLongName = "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1);
 
     assertThatThrownBy(() -> Category.create(UUID.randomUUID(), tooLongName, CategoryType.EXPENSE))
         .isInstanceOf(IllegalArgumentException.class);
@@ -86,7 +86,7 @@ class CategoryTest {
   @Test
   void renameRejectsNameOverMaxLength() {
     Category category = Category.create(UUID.randomUUID(), "Groceries", CategoryType.EXPENSE);
-    String tooLongName = "a".repeat(NameConstraints.MAX_NAME_LENGTH + 1);
+    String tooLongName = "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1);
 
     assertThatThrownBy(() -> category.rename(tooLongName))
         .isInstanceOf(IllegalArgumentException.class);

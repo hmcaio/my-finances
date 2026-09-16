@@ -3,7 +3,7 @@ package com.chm.myfinances.domain.paymentmethod;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.chm.myfinances.domain.shared.NameConstraints;
+import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -47,7 +47,7 @@ class PaymentMethodTest {
 
   @Test
   void createAcceptsNameAtMaxLength() {
-    String maxLengthName = "a".repeat(NameConstraints.MAX_NAME_LENGTH);
+    String maxLengthName = "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH);
 
     PaymentMethod paymentMethod = PaymentMethod.create(UUID.randomUUID(), maxLengthName);
 
@@ -56,7 +56,7 @@ class PaymentMethodTest {
 
   @Test
   void createRejectsNameOverMaxLength() {
-    String tooLongName = "a".repeat(NameConstraints.MAX_NAME_LENGTH + 1);
+    String tooLongName = "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1);
 
     assertThatThrownBy(() -> PaymentMethod.create(UUID.randomUUID(), tooLongName))
         .isInstanceOf(IllegalArgumentException.class);
@@ -65,7 +65,7 @@ class PaymentMethodTest {
   @Test
   void renameRejectsNameOverMaxLength() {
     PaymentMethod paymentMethod = PaymentMethod.create(UUID.randomUUID(), "Debit Card");
-    String tooLongName = "a".repeat(NameConstraints.MAX_NAME_LENGTH + 1);
+    String tooLongName = "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1);
 
     assertThatThrownBy(() -> paymentMethod.rename(tooLongName))
         .isInstanceOf(IllegalArgumentException.class);

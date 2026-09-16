@@ -1,6 +1,6 @@
 package com.chm.myfinances.infrastructure.web.transaction;
 
-import com.chm.myfinances.domain.shared.DescriptionConstraints;
+import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -19,5 +19,5 @@ public record CreateTransactionRequest(
     @NotNull UUID categoryId,
     @NotNull UUID accountId,
     @NotNull UUID paymentMethodId,
-    @NotBlank @Size(max = DescriptionConstraints.MAX_DESCRIPTION_LENGTH) String description,
-    @Size(max = DescriptionConstraints.MAX_ADDITIONAL_NOTES_LENGTH) String additionalNotes) {}
+    @NotBlank @Size(max = TextFieldConstraints.MAX_DESCRIPTION_LENGTH) String description,
+    @Size(max = TextFieldConstraints.MAX_ADDITIONAL_NOTES_LENGTH) String additionalNotes) {}

@@ -1,7 +1,7 @@
 package com.chm.myfinances.domain.transaction;
 
 import com.chm.myfinances.domain.category.CategoryType;
-import com.chm.myfinances.domain.shared.DescriptionConstraints;
+import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Objects;
@@ -29,9 +29,9 @@ import java.util.UUID;
  * delete - a transaction has no downstream history that would be orphaned by removing it.
  *
  * <p>{@code description} (mandatory) and {@code additionalNotes} (optional) are bounded free-text
- * fields, following the convention established for taxonomy "name" fields (F002/F003's {@code
- * NameConstraints}) but for narrative fields ({@code DescriptionConstraints}): a length check here,
- * a matching {@code @Size} on the request DTOs, and a matching {@code varchar(n)} column.
+ * fields, sharing the {@link TextFieldConstraints} convention used for taxonomy "name" fields
+ * (F002/F003): a length check here, a matching {@code @Size} on the request DTOs, and a matching
+ * {@code varchar(n)} column.
  */
 public final class Transaction {
 
@@ -157,20 +157,20 @@ public final class Transaction {
     if (value == null || value.isBlank()) {
       throw new IllegalArgumentException("description must not be blank");
     }
-    if (value.length() > DescriptionConstraints.MAX_DESCRIPTION_LENGTH) {
+    if (value.length() > TextFieldConstraints.MAX_DESCRIPTION_LENGTH) {
       throw new IllegalArgumentException(
           "description must not exceed "
-              + DescriptionConstraints.MAX_DESCRIPTION_LENGTH
+              + TextFieldConstraints.MAX_DESCRIPTION_LENGTH
               + " characters");
     }
     return value;
   }
 
   private static String requireValidAdditionalNotes(String value) {
-    if (value != null && value.length() > DescriptionConstraints.MAX_ADDITIONAL_NOTES_LENGTH) {
+    if (value != null && value.length() > TextFieldConstraints.MAX_ADDITIONAL_NOTES_LENGTH) {
       throw new IllegalArgumentException(
           "additionalNotes must not exceed "
-              + DescriptionConstraints.MAX_ADDITIONAL_NOTES_LENGTH
+              + TextFieldConstraints.MAX_ADDITIONAL_NOTES_LENGTH
               + " characters");
     }
     return value;

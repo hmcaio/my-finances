@@ -15,7 +15,7 @@ CRUD for `Category` and `PaymentMethod`, the two simplest reference entities in 
 ### Domain
 - `domain/category/Category.java`: id (`UUID`), `name` (non-blank), `type` (`CategoryType` enum: `INCOME`, `EXPENSE`). Rename is allowed at any time; type is immutable after creation (changing income/expense type on a category with existing transactions would silently corrupt budget/net-worth math — reject the change instead of allowing it).
 - `domain/paymentmethod/PaymentMethod.java`: id (`UUID`), `name` (non-blank).
-- Both are simple entities with no internal invariants beyond a non-blank name capped at 100 characters (`domain/shared/NameConstraints.MAX_NAME_LENGTH`) — no rich behavior needed.
+- Both are simple entities with no internal invariants beyond a non-blank name capped at 100 characters (`domain/shared/TextFieldConstraints.MAX_NAME_LENGTH`) — no rich behavior needed.
 
 ### Persistence
 - `infrastructure/persistence/category/CategoryJpaEntity.java` extends `AuditableEntity` (F001); table `categories` (`id uuid primary key`, `name varchar(100) not null`, `type text not null`, plus audit columns).
