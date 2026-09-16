@@ -17,6 +17,6 @@
 - [x] Embed transfer history in F003's account detail view alongside transactions.
 
 ## Verification
-- [ ] Transfer from checking to a credit card account; confirm checking balance drops and the card's owed balance drops by the same amount, with no net-worth change.
-- [ ] Transfer between two asset accounts; confirm one drops, the other rises.
-- [ ] Confirm same-account and closed-account transfers are rejected.
+- [x] Transfer from checking to a credit card account; confirm checking balance drops and the card's owed balance drops by the same amount, with no net-worth change. (`AccountBalanceQueryTest.balanceAsOfOnAssetToCreditCardTransferDecreasesSourceAndDecreasesDestinationOwedAmount`)
+- [x] Transfer between two asset accounts; confirm one drops, the other rises. (`AccountBalanceQueryTest.balanceAsOfOnAssetToAssetTransferDecreasesSourceAndIncreasesDestination`)
+- [x] Confirm same-account and closed-account transfers are rejected. (`TransferServiceTest`/`TransferControllerTest`'s same-account and closed-account cases)
