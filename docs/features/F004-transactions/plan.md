@@ -9,7 +9,7 @@
 - [x] Flyway migration `V5__transactions.sql` (see spec.md's migration-numbering note — F003 claimed `V4` first) with FKs and indexes; nullable `recurring_template_version_id` column ahead of F007.
 - [x] Write tests for the create application service (rejects transactions against a closed account), then implement: create, edit, delete, filtered list.
 - [x] Write tests for the updated `AccountBalanceQuery` — an expense reduces an asset account's balance and increases a credit card account's owed balance — then implement the change: sum real transactions instead of returning opening balance only.
-- [ ] REST controller + DTOs, filter query params.
+- [x] REST controller + DTOs, filter query params.
 - [ ] Add the F002-deferred referenced-by-transaction delete guard (409) to `CategoryService`/`PaymentMethodService`, now that `transactions` exists to check against (CLAUDE.md's F002 status entry).
 
 ## Frontend
