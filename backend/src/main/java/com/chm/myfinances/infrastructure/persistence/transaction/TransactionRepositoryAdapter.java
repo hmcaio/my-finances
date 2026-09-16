@@ -41,7 +41,8 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
                   existing.setType(transaction.getType());
                   existing.setAccountId(transaction.getAccountId());
                   existing.setPaymentMethodId(transaction.getPaymentMethodId());
-                  existing.setNote(transaction.getNote());
+                  existing.setDescription(transaction.getDescription());
+                  existing.setAdditionalNotes(transaction.getAdditionalNotes());
                   return existing;
                 })
             .orElseGet(
@@ -55,7 +56,8 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
                         transaction.getAccountId(),
                         transaction.getPaymentMethodId(),
                         transaction.getRecurringTemplateVersionId(),
-                        transaction.getNote()));
+                        transaction.getDescription(),
+                        transaction.getAdditionalNotes()));
     return toDomain(jpaRepository.save(entity));
   }
 
@@ -131,6 +133,7 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
         entity.getAccountId(),
         entity.getPaymentMethodId(),
         entity.getRecurringTemplateVersionId(),
-        entity.getNote());
+        entity.getDescription(),
+        entity.getAdditionalNotes());
   }
 }

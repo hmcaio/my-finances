@@ -101,7 +101,8 @@ class TransactionServiceTest {
             expenseCategory.getId(),
             openAccount.getId(),
             paymentMethod.getId(),
-            "Weekly groceries");
+            "Weekly groceries",
+            null);
 
     assertThat(created.getId()).isEqualTo(nextId);
     assertThat(created.getType()).isEqualTo(CategoryType.EXPENSE);
@@ -117,6 +118,7 @@ class TransactionServiceTest {
             incomeCategory.getId(),
             openAccount.getId(),
             paymentMethod.getId(),
+            "Salary",
             null);
 
     assertThat(created.getType()).isEqualTo(CategoryType.INCOME);
@@ -132,6 +134,7 @@ class TransactionServiceTest {
                     UUID.randomUUID(),
                     openAccount.getId(),
                     paymentMethod.getId(),
+                    "Groceries",
                     null))
         .isInstanceOf(CategoryNotFoundException.class);
   }
@@ -146,6 +149,7 @@ class TransactionServiceTest {
                     expenseCategory.getId(),
                     UUID.randomUUID(),
                     paymentMethod.getId(),
+                    "Groceries",
                     null))
         .isInstanceOf(AccountNotFoundException.class);
   }
@@ -160,6 +164,7 @@ class TransactionServiceTest {
                     expenseCategory.getId(),
                     openAccount.getId(),
                     UUID.randomUUID(),
+                    "Groceries",
                     null))
         .isInstanceOf(PaymentMethodNotFoundException.class);
   }
@@ -174,6 +179,7 @@ class TransactionServiceTest {
                     expenseCategory.getId(),
                     closedAccount.getId(),
                     paymentMethod.getId(),
+                    "Groceries",
                     null))
         .isInstanceOf(AccountClosedException.class);
   }
@@ -193,7 +199,8 @@ class TransactionServiceTest {
             expenseCategory.getId(),
             openAccount.getId(),
             paymentMethod.getId(),
-            "Original");
+            "Original description",
+            "Original note");
 
     Transaction edited =
         service.edit(
@@ -203,13 +210,15 @@ class TransactionServiceTest {
             incomeCategory.getId(),
             openAccount.getId(),
             paymentMethod.getId(),
-            "Edited");
+            "Edited description",
+            "Edited note");
 
     assertThat(edited.getDate()).isEqualTo(LocalDate.of(2026, 2, 2));
     assertThat(edited.getAmount()).isEqualByComparingTo("20.00");
     assertThat(edited.getCategoryId()).isEqualTo(incomeCategory.getId());
     assertThat(edited.getType()).isEqualTo(CategoryType.INCOME);
-    assertThat(edited.getNote()).isEqualTo("Edited");
+    assertThat(edited.getDescription()).isEqualTo("Edited description");
+    assertThat(edited.getAdditionalNotes()).isEqualTo("Edited note");
   }
 
   @Test
@@ -223,6 +232,7 @@ class TransactionServiceTest {
                     expenseCategory.getId(),
                     openAccount.getId(),
                     paymentMethod.getId(),
+                    "Groceries",
                     null))
         .isInstanceOf(TransactionNotFoundException.class);
   }
@@ -236,6 +246,7 @@ class TransactionServiceTest {
             expenseCategory.getId(),
             openAccount.getId(),
             paymentMethod.getId(),
+            "Groceries",
             null);
 
     assertThatThrownBy(
@@ -247,6 +258,7 @@ class TransactionServiceTest {
                     expenseCategory.getId(),
                     closedAccount.getId(),
                     paymentMethod.getId(),
+                    "Groceries",
                     null))
         .isInstanceOf(AccountClosedException.class);
   }
@@ -260,6 +272,7 @@ class TransactionServiceTest {
             expenseCategory.getId(),
             openAccount.getId(),
             paymentMethod.getId(),
+            "Groceries",
             null);
 
     service.delete(created.getId());
@@ -281,6 +294,7 @@ class TransactionServiceTest {
         expenseCategory.getId(),
         openAccount.getId(),
         paymentMethod.getId(),
+        "Groceries",
         null);
     service.create(
         LocalDate.of(2026, 2, 1),
@@ -288,6 +302,7 @@ class TransactionServiceTest {
         incomeCategory.getId(),
         openAccount.getId(),
         paymentMethod.getId(),
+        "Salary",
         null);
 
     Page<Transaction> page =

@@ -106,8 +106,9 @@ class TransactionControllerTest {
   }
 
   private String createTransactionBody(
-      String date, String amount, UUID categoryId, UUID accountId, String note) throws Exception {
-    return createTransactionBody(date, amount, categoryId, accountId, paymentMethodId, note);
+      String date, String amount, UUID categoryId, UUID accountId, String description)
+      throws Exception {
+    return createTransactionBody(date, amount, categoryId, accountId, paymentMethodId, description);
   }
 
   private String createTransactionBody(
@@ -116,7 +117,7 @@ class TransactionControllerTest {
       UUID categoryId,
       UUID accountId,
       UUID paymentMethodId,
-      String note)
+      String description)
       throws Exception {
     return objectMapper.writeValueAsString(
         Map.of(
@@ -130,8 +131,8 @@ class TransactionControllerTest {
             accountId.toString(),
             "paymentMethodId",
             paymentMethodId.toString(),
-            "note",
-            note != null ? note : ""));
+            "description",
+            description != null ? description : "Test description"));
   }
 
   private String createTransaction(String date, String amount, UUID categoryId, UUID accountId)
@@ -143,7 +144,8 @@ class TransactionControllerTest {
       String date, String amount, UUID categoryId, UUID accountId, UUID paymentMethodId)
       throws Exception {
     String body =
-        createTransactionBody(date, amount, categoryId, accountId, paymentMethodId, "Test note");
+        createTransactionBody(
+            date, amount, categoryId, accountId, paymentMethodId, "Test description");
     MvcResult result =
         mockMvc
             .perform(
@@ -168,7 +170,16 @@ class TransactionControllerTest {
         .andExpect(jsonPath("$.type").value("EXPENSE"))
         .andExpect(jsonPath("$.accountId").value(accountId.toString()))
         .andExpect(jsonPath("$.paymentMethodId").value(paymentMethodId.toString()))
-        .andExpect(jsonPath("$.note").value("Weekly groceries"));
+        .andExpect(jsonPath("$.description").value("Weekly groceries"));
+  }
+
+  @Test
+  void createRejectsBlankDescriptionWith400() throws Exception {
+    String body = createTransactionBody("2026-03-15", "10.00", expenseCategoryId, accountId, "  ");
+
+    mockMvc
+        .perform(post("/api/transactions").contentType(MediaType.APPLICATION_JSON).content(body))
+        .andExpect(status().isBadRequest());
   }
 
   @Test
@@ -201,7 +212,7 @@ class TransactionControllerTest {
 
   @Test
   void createRejectsMissingRequiredFields() throws Exception {
-    String body = objectMapper.writeValueAsString(Map.of("note", "Missing everything else"));
+    String body = objectMapper.writeValueAsString(Map.of("description", "Missing everything else"));
 
     mockMvc
         .perform(post("/api/transactions").contentType(MediaType.APPLICATION_JSON).content(body))
@@ -240,8 +251,10 @@ class TransactionControllerTest {
                 accountId.toString(),
                 "paymentMethodId",
                 paymentMethodId.toString(),
-                "note",
-                "Edited"));
+                "description",
+                "Edited",
+                "additionalNotes",
+                "Edited notes"));
 
     mockMvc
         .perform(
@@ -253,7 +266,8 @@ class TransactionControllerTest {
         .andExpect(jsonPath("$.amount").value(35.00))
         .andExpect(jsonPath("$.categoryId").value(incomeCategoryId.toString()))
         .andExpect(jsonPath("$.type").value("INCOME"))
-        .andExpect(jsonPath("$.note").value("Edited"));
+        .andExpect(jsonPath("$.description").value("Edited"))
+        .andExpect(jsonPath("$.additionalNotes").value("Edited notes"));
   }
 
   @Test
@@ -263,11 +277,18 @@ class TransactionControllerTest {
     String patchBody =
         objectMapper.writeValueAsString(
             Map.of(
-                "date", "2026-01-10",
-                "amount", "20.00",
-                "categoryId", expenseCategoryId.toString(),
-                "accountId", closedAccountId.toString(),
-                "paymentMethodId", paymentMethodId.toString()));
+                "date",
+                "2026-01-10",
+                "amount",
+                "20.00",
+                "categoryId",
+                expenseCategoryId.toString(),
+                "accountId",
+                closedAccountId.toString(),
+                "paymentMethodId",
+                paymentMethodId.toString(),
+                "description",
+                "Test description"));
 
     mockMvc
         .perform(

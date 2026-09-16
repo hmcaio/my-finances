@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.domain.category.CategoryType;
+import com.chm.myfinances.domain.shared.DescriptionConstraints;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -34,7 +35,8 @@ class TransactionTest {
             ACCOUNT_ID,
             PAYMENT_METHOD_ID,
             null,
-            "Weekly groceries");
+            "Weekly groceries",
+            "Bought extra for the weekend");
 
     assertThat(transaction.getId()).isEqualTo(id);
     assertThat(transaction.getDate()).isEqualTo(date);
@@ -44,11 +46,12 @@ class TransactionTest {
     assertThat(transaction.getAccountId()).isEqualTo(ACCOUNT_ID);
     assertThat(transaction.getPaymentMethodId()).isEqualTo(PAYMENT_METHOD_ID);
     assertThat(transaction.getRecurringTemplateVersionId()).isNull();
-    assertThat(transaction.getNote()).isEqualTo("Weekly groceries");
+    assertThat(transaction.getDescription()).isEqualTo("Weekly groceries");
+    assertThat(transaction.getAdditionalNotes()).isEqualTo("Bought extra for the weekend");
   }
 
   @Test
-  void createAllowsNullNote() {
+  void createAllowsNullAdditionalNotes() {
     Transaction transaction =
         Transaction.create(
             UUID.randomUUID(),
@@ -59,9 +62,86 @@ class TransactionTest {
             ACCOUNT_ID,
             PAYMENT_METHOD_ID,
             null,
+            "Salary",
             null);
 
-    assertThat(transaction.getNote()).isNull();
+    assertThat(transaction.getAdditionalNotes()).isNull();
+  }
+
+  @Test
+  void createRejectsNullDescription() {
+    assertThatThrownBy(
+            () ->
+                Transaction.create(
+                    UUID.randomUUID(),
+                    LocalDate.now(),
+                    BigDecimal.ONE,
+                    CATEGORY_ID,
+                    CategoryType.INCOME,
+                    ACCOUNT_ID,
+                    PAYMENT_METHOD_ID,
+                    null,
+                    null,
+                    null))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void createRejectsBlankDescription() {
+    assertThatThrownBy(
+            () ->
+                Transaction.create(
+                    UUID.randomUUID(),
+                    LocalDate.now(),
+                    BigDecimal.ONE,
+                    CATEGORY_ID,
+                    CategoryType.INCOME,
+                    ACCOUNT_ID,
+                    PAYMENT_METHOD_ID,
+                    null,
+                    "   ",
+                    null))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void createRejectsDescriptionExceedingMaxLength() {
+    String tooLong = "a".repeat(DescriptionConstraints.MAX_DESCRIPTION_LENGTH + 1);
+
+    assertThatThrownBy(
+            () ->
+                Transaction.create(
+                    UUID.randomUUID(),
+                    LocalDate.now(),
+                    BigDecimal.ONE,
+                    CATEGORY_ID,
+                    CategoryType.INCOME,
+                    ACCOUNT_ID,
+                    PAYMENT_METHOD_ID,
+                    null,
+                    tooLong,
+                    null))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void createRejectsAdditionalNotesExceedingMaxLength() {
+    String tooLong = "a".repeat(DescriptionConstraints.MAX_ADDITIONAL_NOTES_LENGTH + 1);
+
+    assertThatThrownBy(
+            () ->
+                Transaction.create(
+                    UUID.randomUUID(),
+                    LocalDate.now(),
+                    BigDecimal.ONE,
+                    CATEGORY_ID,
+                    CategoryType.INCOME,
+                    ACCOUNT_ID,
+                    PAYMENT_METHOD_ID,
+                    null,
+                    "Salary",
+                    tooLong))
+        .isInstanceOf(IllegalArgumentException.class);
   }
 
   @Test
@@ -78,6 +158,7 @@ class TransactionTest {
             ACCOUNT_ID,
             PAYMENT_METHOD_ID,
             recurringTemplateVersionId,
+            "Groceries",
             null);
 
     assertThat(transaction.getRecurringTemplateVersionId()).isEqualTo(recurringTemplateVersionId);
@@ -98,6 +179,7 @@ class TransactionTest {
             ACCOUNT_ID,
             PAYMENT_METHOD_ID,
             null,
+            "Salary",
             null);
 
     assertThat(incomeTransaction.getType()).isEqualTo(CategoryType.INCOME);
@@ -116,6 +198,7 @@ class TransactionTest {
                     ACCOUNT_ID,
                     PAYMENT_METHOD_ID,
                     null,
+                    "Groceries",
                     null))
         .isInstanceOf(NullPointerException.class);
   }
@@ -133,6 +216,7 @@ class TransactionTest {
                     ACCOUNT_ID,
                     PAYMENT_METHOD_ID,
                     null,
+                    "Groceries",
                     null))
         .isInstanceOf(NullPointerException.class);
   }
@@ -150,6 +234,7 @@ class TransactionTest {
                     ACCOUNT_ID,
                     PAYMENT_METHOD_ID,
                     null,
+                    "Groceries",
                     null))
         .isInstanceOf(IllegalArgumentException.class);
   }
@@ -167,6 +252,7 @@ class TransactionTest {
                     ACCOUNT_ID,
                     PAYMENT_METHOD_ID,
                     null,
+                    "Groceries",
                     null))
         .isInstanceOf(IllegalArgumentException.class);
   }
@@ -184,6 +270,7 @@ class TransactionTest {
                     ACCOUNT_ID,
                     PAYMENT_METHOD_ID,
                     null,
+                    "Groceries",
                     null))
         .isInstanceOf(NullPointerException.class);
   }
@@ -201,6 +288,7 @@ class TransactionTest {
                     ACCOUNT_ID,
                     PAYMENT_METHOD_ID,
                     null,
+                    "Groceries",
                     null))
         .isInstanceOf(NullPointerException.class);
   }
@@ -218,6 +306,7 @@ class TransactionTest {
                     null,
                     PAYMENT_METHOD_ID,
                     null,
+                    "Groceries",
                     null))
         .isInstanceOf(NullPointerException.class);
   }
@@ -235,6 +324,7 @@ class TransactionTest {
                     ACCOUNT_ID,
                     null,
                     null,
+                    "Groceries",
                     null))
         .isInstanceOf(NullPointerException.class);
   }
@@ -251,6 +341,7 @@ class TransactionTest {
             ACCOUNT_ID,
             PAYMENT_METHOD_ID,
             null,
+            "Original description",
             "Original note");
 
     UUID newCategoryId = UUID.randomUUID();
@@ -263,6 +354,7 @@ class TransactionTest {
         CategoryType.INCOME,
         newAccountId,
         newPaymentMethodId,
+        "Updated description",
         "Updated note");
 
     assertThat(transaction.getDate()).isEqualTo(LocalDate.of(2026, 2, 2));
@@ -271,7 +363,8 @@ class TransactionTest {
     assertThat(transaction.getType()).isEqualTo(CategoryType.INCOME);
     assertThat(transaction.getAccountId()).isEqualTo(newAccountId);
     assertThat(transaction.getPaymentMethodId()).isEqualTo(newPaymentMethodId);
-    assertThat(transaction.getNote()).isEqualTo("Updated note");
+    assertThat(transaction.getDescription()).isEqualTo("Updated description");
+    assertThat(transaction.getAdditionalNotes()).isEqualTo("Updated note");
   }
 
   @Test
@@ -288,6 +381,7 @@ class TransactionTest {
             ACCOUNT_ID,
             PAYMENT_METHOD_ID,
             recurringTemplateVersionId,
+            "Groceries",
             null);
 
     transaction.edit(
@@ -297,7 +391,8 @@ class TransactionTest {
         CategoryType.INCOME,
         UUID.randomUUID(),
         UUID.randomUUID(),
-        "Hand-edited, not template-edited (PRD S5.7)");
+        "Hand-edited, not template-edited (PRD S5.7)",
+        null);
 
     assertThat(transaction.getId()).isEqualTo(id);
     assertThat(transaction.getRecurringTemplateVersionId()).isEqualTo(recurringTemplateVersionId);
@@ -315,6 +410,7 @@ class TransactionTest {
             ACCOUNT_ID,
             PAYMENT_METHOD_ID,
             null,
+            "Groceries",
             null);
 
     assertThatThrownBy(
@@ -326,6 +422,7 @@ class TransactionTest {
                     CategoryType.EXPENSE,
                     ACCOUNT_ID,
                     PAYMENT_METHOD_ID,
+                    "Groceries",
                     null))
         .isInstanceOf(IllegalArgumentException.class);
   }
@@ -342,6 +439,7 @@ class TransactionTest {
             ACCOUNT_ID,
             PAYMENT_METHOD_ID,
             null,
+            "Groceries",
             null);
 
     assertThatThrownBy(
@@ -353,7 +451,37 @@ class TransactionTest {
                     CategoryType.EXPENSE,
                     ACCOUNT_ID,
                     PAYMENT_METHOD_ID,
+                    "Groceries",
                     null))
         .isInstanceOf(NullPointerException.class);
+  }
+
+  @Test
+  void editRejectsBlankDescription() {
+    Transaction transaction =
+        Transaction.create(
+            UUID.randomUUID(),
+            LocalDate.now(),
+            BigDecimal.TEN,
+            CATEGORY_ID,
+            CategoryType.EXPENSE,
+            ACCOUNT_ID,
+            PAYMENT_METHOD_ID,
+            null,
+            "Groceries",
+            null);
+
+    assertThatThrownBy(
+            () ->
+                transaction.edit(
+                    LocalDate.now(),
+                    BigDecimal.TEN,
+                    CATEGORY_ID,
+                    CategoryType.EXPENSE,
+                    ACCOUNT_ID,
+                    PAYMENT_METHOD_ID,
+                    "   ",
+                    null))
+        .isInstanceOf(IllegalArgumentException.class);
   }
 }

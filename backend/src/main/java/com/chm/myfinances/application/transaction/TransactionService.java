@@ -59,7 +59,8 @@ public class TransactionService {
       UUID categoryId,
       UUID accountId,
       UUID paymentMethodId,
-      String note) {
+      String description,
+      String additionalNotes) {
     Category category = requireCategory(categoryId);
     Account account = requireOpenAccount(accountId);
     requirePaymentMethod(paymentMethodId);
@@ -74,7 +75,8 @@ public class TransactionService {
             account.getId(),
             paymentMethodId,
             null,
-            note);
+            description,
+            additionalNotes);
     return transactionRepository.save(transaction);
   }
 
@@ -95,14 +97,22 @@ public class TransactionService {
       UUID categoryId,
       UUID accountId,
       UUID paymentMethodId,
-      String note) {
+      String description,
+      String additionalNotes) {
     Transaction transaction = findById(id);
     Category category = requireCategory(categoryId);
     Account account = requireOpenAccount(accountId);
     requirePaymentMethod(paymentMethodId);
 
     transaction.edit(
-        date, amount, categoryId, category.getType(), account.getId(), paymentMethodId, note);
+        date,
+        amount,
+        categoryId,
+        category.getType(),
+        account.getId(),
+        paymentMethodId,
+        description,
+        additionalNotes);
     return transactionRepository.save(transaction);
   }
 

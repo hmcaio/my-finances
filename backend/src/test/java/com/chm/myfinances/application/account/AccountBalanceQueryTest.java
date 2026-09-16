@@ -34,6 +34,7 @@ class AccountBalanceQueryTest {
         accountId,
         UUID.randomUUID(),
         null,
+        "Test transaction",
         null);
   }
 

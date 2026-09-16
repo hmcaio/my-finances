@@ -1,7 +1,10 @@
 package com.chm.myfinances.infrastructure.web.transaction;
 
+import com.chm.myfinances.domain.shared.DescriptionConstraints;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -16,4 +19,5 @@ public record CreateTransactionRequest(
     @NotNull UUID categoryId,
     @NotNull UUID accountId,
     @NotNull UUID paymentMethodId,
-    String note) {}
+    @NotBlank @Size(max = DescriptionConstraints.MAX_DESCRIPTION_LENGTH) String description,
+    @Size(max = DescriptionConstraints.MAX_ADDITIONAL_NOTES_LENGTH) String additionalNotes) {}

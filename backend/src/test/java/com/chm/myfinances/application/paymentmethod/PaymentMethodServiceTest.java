@@ -99,6 +99,7 @@ class PaymentMethodServiceTest {
             UUID.randomUUID(),
             created.getId(),
             null,
+            "In-use transaction",
             null));
 
     assertThatThrownBy(() -> service.delete(created.getId()))

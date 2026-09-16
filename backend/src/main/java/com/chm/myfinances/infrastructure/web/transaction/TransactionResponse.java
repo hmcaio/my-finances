@@ -16,7 +16,8 @@ public record TransactionResponse(
     UUID accountId,
     UUID paymentMethodId,
     UUID recurringTemplateVersionId,
-    String note) {
+    String description,
+    String additionalNotes) {
 
   public static TransactionResponse from(Transaction transaction) {
     return new TransactionResponse(
@@ -28,6 +29,7 @@ public record TransactionResponse(
         transaction.getAccountId(),
         transaction.getPaymentMethodId(),
         transaction.getRecurringTemplateVersionId(),
-        transaction.getNote());
+        transaction.getDescription(),
+        transaction.getAdditionalNotes());
   }
 }

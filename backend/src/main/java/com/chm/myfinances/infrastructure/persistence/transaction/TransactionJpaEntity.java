@@ -51,7 +51,11 @@ public class TransactionJpaEntity extends AuditableEntity {
   @Column(name = "recurring_template_version_id")
   private UUID recurringTemplateVersionId;
 
-  @Column private String note;
+  @Column(nullable = false)
+  private String description;
+
+  @Column(name = "additional_notes")
+  private String additionalNotes;
 
   public TransactionJpaEntity(
       UUID id,
@@ -62,7 +66,8 @@ public class TransactionJpaEntity extends AuditableEntity {
       UUID accountId,
       UUID paymentMethodId,
       UUID recurringTemplateVersionId,
-      String note) {
+      String description,
+      String additionalNotes) {
     this.id = id;
     this.date = date;
     this.amount = amount;
@@ -71,6 +76,7 @@ public class TransactionJpaEntity extends AuditableEntity {
     this.accountId = accountId;
     this.paymentMethodId = paymentMethodId;
     this.recurringTemplateVersionId = recurringTemplateVersionId;
-    this.note = note;
+    this.description = description;
+    this.additionalNotes = additionalNotes;
   }
 }

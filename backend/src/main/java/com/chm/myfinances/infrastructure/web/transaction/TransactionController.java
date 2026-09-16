@@ -69,7 +69,8 @@ public class TransactionController {
             request.categoryId(),
             request.accountId(),
             request.paymentMethodId(),
-            request.note());
+            request.description(),
+            request.additionalNotes());
     return TransactionResponse.from(transaction);
   }
 
@@ -89,7 +90,8 @@ public class TransactionController {
             request.categoryId(),
             request.accountId(),
             request.paymentMethodId(),
-            request.note());
+            request.description(),
+            request.additionalNotes());
     return TransactionResponse.from(transaction);
   }
 

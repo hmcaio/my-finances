@@ -174,6 +174,7 @@ class CategoryControllerTest {
             account.getId(),
             paymentMethod.getId(),
             null,
+            "In-use transaction",
             null));
 
     mockMvc.perform(delete("/api/categories/" + id)).andExpect(status().isConflict());

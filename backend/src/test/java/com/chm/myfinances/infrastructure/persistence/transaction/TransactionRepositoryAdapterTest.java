@@ -90,7 +90,16 @@ class TransactionRepositoryAdapterTest {
       UUID accountId,
       UUID paymentMethodId) {
     return Transaction.create(
-        UUID.randomUUID(), date, amount, categoryId, type, accountId, paymentMethodId, null, null);
+        UUID.randomUUID(),
+        date,
+        amount,
+        categoryId,
+        type,
+        accountId,
+        paymentMethodId,
+        null,
+        "Test transaction",
+        null);
   }
 
   @Test
@@ -105,7 +114,8 @@ class TransactionRepositoryAdapterTest {
             accountId,
             paymentMethodId,
             null,
-            "Weekly groceries");
+            "Weekly groceries",
+            "Bought extra for the weekend");
 
     transactionRepository.save(transaction);
 
@@ -118,7 +128,8 @@ class TransactionRepositoryAdapterTest {
     assertThat(reloaded.get().getAccountId()).isEqualTo(accountId);
     assertThat(reloaded.get().getPaymentMethodId()).isEqualTo(paymentMethodId);
     assertThat(reloaded.get().getRecurringTemplateVersionId()).isNull();
-    assertThat(reloaded.get().getNote()).isEqualTo("Weekly groceries");
+    assertThat(reloaded.get().getDescription()).isEqualTo("Weekly groceries");
+    assertThat(reloaded.get().getAdditionalNotes()).isEqualTo("Bought extra for the weekend");
   }
 
   @Test
@@ -133,7 +144,8 @@ class TransactionRepositoryAdapterTest {
         CategoryType.INCOME,
         transaction.getAccountId(),
         transaction.getPaymentMethodId(),
-        "Edited");
+        "Edited description",
+        "Edited notes");
     transactionRepository.save(transaction);
 
     Optional<Transaction> reloaded = transactionRepository.findById(transaction.getId());
@@ -142,7 +154,8 @@ class TransactionRepositoryAdapterTest {
     assertThat(reloaded.get().getAmount()).isEqualByComparingTo("20.00");
     assertThat(reloaded.get().getCategoryId()).isEqualTo(otherCategoryId);
     assertThat(reloaded.get().getType()).isEqualTo(CategoryType.INCOME);
-    assertThat(reloaded.get().getNote()).isEqualTo("Edited");
+    assertThat(reloaded.get().getDescription()).isEqualTo("Edited description");
+    assertThat(reloaded.get().getAdditionalNotes()).isEqualTo("Edited notes");
   }
 
   @Test

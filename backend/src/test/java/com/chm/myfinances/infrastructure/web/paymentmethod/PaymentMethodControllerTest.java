@@ -130,6 +130,7 @@ class PaymentMethodControllerTest {
             account.getId(),
             UUID.fromString(id),
             null,
+            "In-use transaction",
             null));
 
     mockMvc.perform(delete("/api/payment-methods/" + id)).andExpect(status().isConflict());

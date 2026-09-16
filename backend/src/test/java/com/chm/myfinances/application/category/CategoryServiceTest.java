@@ -103,6 +103,7 @@ class CategoryServiceTest {
             UUID.randomUUID(),
             UUID.randomUUID(),
             null,
+            "In-use transaction",
             null));
 
     assertThatThrownBy(() -> service.delete(created.getId()))
