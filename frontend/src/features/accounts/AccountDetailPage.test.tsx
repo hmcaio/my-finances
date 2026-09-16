@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { seedAccounts } from '../../mocks/handlers/accounts'
 import { seedTransactions } from '../../mocks/handlers/transactions'
+import { seedTransfers } from '../../mocks/handlers/transfers'
 import { AccountDetailPage } from './AccountDetailPage'
 
 function renderDetail(id: string) {
@@ -37,7 +38,18 @@ describe('AccountDetailPage', () => {
     for (const transaction of seedTransactions) {
       expect(await screen.findByText(transaction.date)).toBeInTheDocument()
     }
-    expect(screen.getByText(/Transfer history .* isn't available yet/)).toBeInTheDocument()
+  })
+
+  it('embeds the transfer history pre-filtered to this account', async () => {
+    const account = seedAccounts[0]
+    renderDetail(account.id)
+
+    await screen.findByRole('heading', { name: account.name })
+
+    // Every seed transfer touches this account (acct-1), on either side - all should render.
+    for (const transfer of seedTransfers) {
+      expect(await screen.findByText(transfer.description)).toBeInTheDocument()
+    }
   })
 
   it('shows an error message for an unknown account', async () => {

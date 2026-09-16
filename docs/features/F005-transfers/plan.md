@@ -12,9 +12,9 @@
 - [x] REST controller + DTOs.
 
 ## Frontend
-- [ ] `src/api/transfers.ts`.
-- [ ] `src/features/transfers` — create form, filterable history list.
-- [ ] Embed transfer history in F003's account detail view alongside transactions.
+- [x] `src/api/transfers.ts`.
+- [x] `src/features/transfers` — create form, filterable history list.
+- [x] Embed transfer history in F003's account detail view alongside transactions.
 
 ## Verification
 - [ ] Transfer from checking to a credit card account; confirm checking balance drops and the card's owed balance drops by the same amount, with no net-worth change.
