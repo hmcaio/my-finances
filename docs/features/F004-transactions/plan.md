@@ -18,6 +18,8 @@
 - [x] Embed transaction list (pre-filtered) in F003's account detail view.
 
 ## Verification
-- [ ] Create transactions on both an asset account and a credit card account, confirm balances move in the correct direction on each.
-- [ ] Confirm a transaction can't be created against a closed account.
-- [ ] Filter by each dimension (date range, category, account, payment method) independently and combined.
+- [x] Create transactions on both an asset account and a credit card account, confirm balances move in the correct direction on each. (`AccountBalanceQueryTest`)
+- [x] Confirm a transaction can't be created against a closed account. (`TransactionServiceTest`, `TransactionControllerTest`)
+- [x] Filter by each dimension (date range, category, account, payment method) independently and combined. (`TransactionControllerTest#listFiltersByEachDimensionIndependently`, `#listFiltersByCategoryAccountAndDateRange`, `TransactionRepositoryAdapterTest#findAllFiltersByEveryDimensionAndPaginates`)
+
+All three verified via automated tests rather than manual exploratory QA, consistent with this feature's test-first approach throughout.

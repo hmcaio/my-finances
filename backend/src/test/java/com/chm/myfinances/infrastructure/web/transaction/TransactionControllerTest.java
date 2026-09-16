@@ -55,8 +55,10 @@ class TransactionControllerTest {
   private UUID expenseCategoryId;
   private UUID incomeCategoryId;
   private UUID accountId;
+  private UUID otherAccountId;
   private UUID closedAccountId;
   private UUID paymentMethodId;
+  private UUID otherPaymentMethodId;
 
   @BeforeEach
   void setUp() {
@@ -81,6 +83,17 @@ class TransactionControllerTest {
                     BigDecimal.ZERO,
                     LocalDate.now()))
             .getId();
+    otherAccountId =
+        accountRepository
+            .save(
+                Account.create(
+                    UUID.randomUUID(),
+                    "Savings",
+                    null,
+                    AccountType.SAVINGS,
+                    BigDecimal.ZERO,
+                    LocalDate.now()))
+            .getId();
     Account closed =
         Account.create(
             UUID.randomUUID(), "Old", null, AccountType.CHECKING, BigDecimal.ZERO, LocalDate.now());
@@ -88,10 +101,23 @@ class TransactionControllerTest {
     closedAccountId = accountRepository.save(closed).getId();
     paymentMethodId =
         paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), "Debit Card")).getId();
+    otherPaymentMethodId =
+        paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), "Cash")).getId();
   }
 
   private String createTransactionBody(
       String date, String amount, UUID categoryId, UUID accountId, String note) throws Exception {
+    return createTransactionBody(date, amount, categoryId, accountId, paymentMethodId, note);
+  }
+
+  private String createTransactionBody(
+      String date,
+      String amount,
+      UUID categoryId,
+      UUID accountId,
+      UUID paymentMethodId,
+      String note)
+      throws Exception {
     return objectMapper.writeValueAsString(
         Map.of(
             "date",
@@ -110,7 +136,14 @@ class TransactionControllerTest {
 
   private String createTransaction(String date, String amount, UUID categoryId, UUID accountId)
       throws Exception {
-    String body = createTransactionBody(date, amount, categoryId, accountId, "Test note");
+    return createTransaction(date, amount, categoryId, accountId, paymentMethodId);
+  }
+
+  private String createTransaction(
+      String date, String amount, UUID categoryId, UUID accountId, UUID paymentMethodId)
+      throws Exception {
+    String body =
+        createTransactionBody(date, amount, categoryId, accountId, paymentMethodId, "Test note");
     MvcResult result =
         mockMvc
             .perform(
@@ -291,5 +324,46 @@ class TransactionControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.page.size").value(20))
         .andExpect(jsonPath("$.content[0].date").value("2026-01-31"));
+  }
+
+  @Test
+  void listFiltersByEachDimensionIndependently() throws Exception {
+    // Plan.md's verification bullet: "Filter by each dimension (date range, category, account,
+    // payment method) independently". One transaction unique on every dimension, so filtering by
+    // just that one dimension isolates it from every other transaction created here.
+    String uniqueByDate =
+        createTransaction("2020-06-15", "5.00", expenseCategoryId, accountId, paymentMethodId);
+    createTransaction("2026-01-01", "5.00", expenseCategoryId, accountId, paymentMethodId);
+    String uniqueByCategory =
+        createTransaction("2026-01-01", "5.00", incomeCategoryId, accountId, paymentMethodId);
+    String uniqueByAccount =
+        createTransaction("2026-01-01", "5.00", expenseCategoryId, otherAccountId, paymentMethodId);
+    String uniqueByPaymentMethod =
+        createTransaction("2026-01-01", "5.00", expenseCategoryId, accountId, otherPaymentMethodId);
+
+    mockMvc
+        .perform(
+            get("/api/transactions").param("dateFrom", "2020-01-01").param("dateTo", "2020-12-31"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.page.totalElements").value(1))
+        .andExpect(jsonPath("$.content[0].id").value(uniqueByDate));
+
+    mockMvc
+        .perform(get("/api/transactions").param("categoryId", incomeCategoryId.toString()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.page.totalElements").value(1))
+        .andExpect(jsonPath("$.content[0].id").value(uniqueByCategory));
+
+    mockMvc
+        .perform(get("/api/transactions").param("accountId", otherAccountId.toString()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.page.totalElements").value(1))
+        .andExpect(jsonPath("$.content[0].id").value(uniqueByAccount));
+
+    mockMvc
+        .perform(get("/api/transactions").param("paymentMethodId", otherPaymentMethodId.toString()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.page.totalElements").value(1))
+        .andExpect(jsonPath("$.content[0].id").value(uniqueByPaymentMethod));
   }
 }
