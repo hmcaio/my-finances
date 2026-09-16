@@ -55,7 +55,8 @@ public final class Transaction {
     this.categoryId = Objects.requireNonNull(categoryId, "categoryId must not be null");
     this.type = Objects.requireNonNull(type, "type must not be null");
     this.accountId = Objects.requireNonNull(accountId, "accountId must not be null");
-    this.paymentMethodId = Objects.requireNonNull(paymentMethodId, "paymentMethodId must not be null");
+    this.paymentMethodId =
+        Objects.requireNonNull(paymentMethodId, "paymentMethodId must not be null");
     this.recurringTemplateVersionId = recurringTemplateVersionId;
     this.note = note;
   }
@@ -72,7 +73,15 @@ public final class Transaction {
       UUID recurringTemplateVersionId,
       String note) {
     return new Transaction(
-        id, date, amount, categoryId, type, accountId, paymentMethodId, recurringTemplateVersionId, note);
+        id,
+        date,
+        amount,
+        categoryId,
+        type,
+        accountId,
+        paymentMethodId,
+        recurringTemplateVersionId,
+        note);
   }
 
   /** Rebuilds a Transaction from already-validated persisted state. */
@@ -87,7 +96,15 @@ public final class Transaction {
       UUID recurringTemplateVersionId,
       String note) {
     return new Transaction(
-        id, date, amount, categoryId, type, accountId, paymentMethodId, recurringTemplateVersionId, note);
+        id,
+        date,
+        amount,
+        categoryId,
+        type,
+        accountId,
+        paymentMethodId,
+        recurringTemplateVersionId,
+        note);
   }
 
   /**
@@ -108,7 +125,8 @@ public final class Transaction {
     this.categoryId = Objects.requireNonNull(categoryId, "categoryId must not be null");
     this.type = Objects.requireNonNull(type, "type must not be null");
     this.accountId = Objects.requireNonNull(accountId, "accountId must not be null");
-    this.paymentMethodId = Objects.requireNonNull(paymentMethodId, "paymentMethodId must not be null");
+    this.paymentMethodId =
+        Objects.requireNonNull(paymentMethodId, "paymentMethodId must not be null");
     this.note = note;
   }
 

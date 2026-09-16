@@ -79,7 +79,9 @@ public class TransactionService {
   }
 
   public Transaction findById(UUID id) {
-    return transactionRepository.findById(id).orElseThrow(() -> new TransactionNotFoundException(id));
+    return transactionRepository
+        .findById(id)
+        .orElseThrow(() -> new TransactionNotFoundException(id));
   }
 
   public Page<Transaction> findAll(TransactionFilter filter, Pageable pageable) {
@@ -99,7 +101,8 @@ public class TransactionService {
     Account account = requireOpenAccount(accountId);
     requirePaymentMethod(paymentMethodId);
 
-    transaction.edit(date, amount, categoryId, category.getType(), account.getId(), paymentMethodId, note);
+    transaction.edit(
+        date, amount, categoryId, category.getType(), account.getId(), paymentMethodId, note);
     return transactionRepository.save(transaction);
   }
 
@@ -111,7 +114,9 @@ public class TransactionService {
   }
 
   private Category requireCategory(UUID categoryId) {
-    return categoryRepository.findById(categoryId).orElseThrow(() -> new CategoryNotFoundException(categoryId));
+    return categoryRepository
+        .findById(categoryId)
+        .orElseThrow(() -> new CategoryNotFoundException(categoryId));
   }
 
   private void requirePaymentMethod(UUID paymentMethodId) {
@@ -126,7 +131,10 @@ public class TransactionService {
    * a different, possibly-closed account just as easily as create can target one directly.
    */
   private Account requireOpenAccount(UUID accountId) {
-    Account account = accountRepository.findById(accountId).orElseThrow(() -> new AccountNotFoundException(accountId));
+    Account account =
+        accountRepository
+            .findById(accountId)
+            .orElseThrow(() -> new AccountNotFoundException(accountId));
     if (account.isClosed()) {
       throw new AccountClosedException(accountId);
     }

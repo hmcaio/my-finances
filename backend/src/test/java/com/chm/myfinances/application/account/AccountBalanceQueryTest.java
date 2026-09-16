@@ -26,7 +26,15 @@ class AccountBalanceQueryTest {
   private static Transaction transactionOn(
       LocalDate date, BigDecimal amount, CategoryType type, UUID accountId) {
     return Transaction.create(
-        UUID.randomUUID(), date, amount, UUID.randomUUID(), type, accountId, UUID.randomUUID(), null, null);
+        UUID.randomUUID(),
+        date,
+        amount,
+        UUID.randomUUID(),
+        type,
+        accountId,
+        UUID.randomUUID(),
+        null,
+        null);
   }
 
   @Test
@@ -56,9 +64,17 @@ class AccountBalanceQueryTest {
             new BigDecimal("100.00"),
             LocalDate.of(2026, 1, 1));
     transactionRepository.save(
-        transactionOn(LocalDate.of(2026, 1, 5), new BigDecimal("50.00"), CategoryType.INCOME, account.getId()));
+        transactionOn(
+            LocalDate.of(2026, 1, 5),
+            new BigDecimal("50.00"),
+            CategoryType.INCOME,
+            account.getId()));
     transactionRepository.save(
-        transactionOn(LocalDate.of(2026, 1, 10), new BigDecimal("30.00"), CategoryType.EXPENSE, account.getId()));
+        transactionOn(
+            LocalDate.of(2026, 1, 10),
+            new BigDecimal("30.00"),
+            CategoryType.EXPENSE,
+            account.getId()));
 
     BigDecimal balance = query.balanceAsOf(account, LocalDate.of(2026, 1, 31));
 
@@ -78,10 +94,16 @@ class AccountBalanceQueryTest {
             LocalDate.of(2026, 1, 1));
     transactionRepository.save(
         transactionOn(
-            LocalDate.of(2026, 1, 5), new BigDecimal("75.00"), CategoryType.EXPENSE, creditCard.getId()));
+            LocalDate.of(2026, 1, 5),
+            new BigDecimal("75.00"),
+            CategoryType.EXPENSE,
+            creditCard.getId()));
     transactionRepository.save(
         transactionOn(
-            LocalDate.of(2026, 1, 10), new BigDecimal("25.00"), CategoryType.INCOME, creditCard.getId()));
+            LocalDate.of(2026, 1, 10),
+            new BigDecimal("25.00"),
+            CategoryType.INCOME,
+            creditCard.getId()));
 
     BigDecimal balance = query.balanceAsOf(creditCard, LocalDate.of(2026, 1, 31));
 
@@ -100,7 +122,11 @@ class AccountBalanceQueryTest {
             new BigDecimal("100.00"),
             LocalDate.of(2026, 1, 1));
     transactionRepository.save(
-        transactionOn(LocalDate.of(2026, 2, 1), new BigDecimal("999.00"), CategoryType.INCOME, account.getId()));
+        transactionOn(
+            LocalDate.of(2026, 2, 1),
+            new BigDecimal("999.00"),
+            CategoryType.INCOME,
+            account.getId()));
 
     BigDecimal balance = query.balanceAsOf(account, LocalDate.of(2026, 1, 31));
 
@@ -118,7 +144,11 @@ class AccountBalanceQueryTest {
             new BigDecimal("100.00"),
             LocalDate.of(2026, 1, 1));
     transactionRepository.save(
-        transactionOn(LocalDate.of(2026, 1, 31), new BigDecimal("15.00"), CategoryType.INCOME, account.getId()));
+        transactionOn(
+            LocalDate.of(2026, 1, 31),
+            new BigDecimal("15.00"),
+            CategoryType.INCOME,
+            account.getId()));
 
     BigDecimal balance = query.balanceAsOf(account, LocalDate.of(2026, 1, 31));
 
@@ -137,7 +167,10 @@ class AccountBalanceQueryTest {
             LocalDate.of(2026, 1, 1));
     transactionRepository.save(
         transactionOn(
-            LocalDate.of(2026, 1, 5), new BigDecimal("500.00"), CategoryType.INCOME, UUID.randomUUID()));
+            LocalDate.of(2026, 1, 5),
+            new BigDecimal("500.00"),
+            CategoryType.INCOME,
+            UUID.randomUUID()));
 
     BigDecimal balance = query.balanceAsOf(account, LocalDate.of(2026, 1, 31));
 

@@ -37,9 +37,9 @@ public class AccountBalanceQuery {
 
   /**
    * An expense reduces an asset account's balance and increases a credit card account's owed
-   * balance; income does the reverse (PRD S5.3: "An expense transaction on an asset account
-   * ... reduces that account's balance. An expense transaction on a credit card account
-   * *increases* the amount owed on that card.").
+   * balance; income does the reverse (PRD S5.3: "An expense transaction on an asset account ...
+   * reduces that account's balance. An expense transaction on a credit card account *increases* the
+   * amount owed on that card.").
    */
   private static BigDecimal signedContribution(Transaction transaction, AccountType accountType) {
     boolean isExpense = transaction.getType() == CategoryType.EXPENSE;

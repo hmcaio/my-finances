@@ -8,9 +8,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.chm.myfinances.TestcontainersConfiguration;
+import com.chm.myfinances.domain.account.Account;
+import com.chm.myfinances.domain.account.AccountRepository;
+import com.chm.myfinances.domain.account.AccountType;
+import com.chm.myfinances.domain.category.CategoryType;
+import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
+import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.shared.NameConstraints;
+import com.chm.myfinances.domain.transaction.Transaction;
+import com.chm.myfinances.domain.transaction.TransactionRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +52,9 @@ import org.springframework.web.context.WebApplicationContext;
 class CategoryControllerTest {
 
   @Autowired private WebApplicationContext webApplicationContext;
+  @Autowired private TransactionRepository transactionRepository;
+  @Autowired private AccountRepository accountRepository;
+  @Autowired private PaymentMethodRepository paymentMethodRepository;
 
   // Plain (non-Spring-managed) ObjectMapper used only to build/parse test JSON fixtures - no
   // need for the application's own configured bean here.
@@ -124,6 +138,45 @@ class CategoryControllerTest {
     } else {
       org.assertj.core.api.Assertions.assertThat(statusCode).isEqualTo(400);
     }
+  }
+
+  @Test
+  void deleteRejectsACategoryReferencedByATransactionWith409() throws Exception {
+    String createBody =
+        objectMapper.writeValueAsString(Map.of("name", "In Use", "type", "EXPENSE"));
+    MvcResult createResult =
+        mockMvc
+            .perform(
+                post("/api/categories").contentType(MediaType.APPLICATION_JSON).content(createBody))
+            .andExpect(status().isCreated())
+            .andReturn();
+    String id =
+        objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asText();
+
+    Account account =
+        accountRepository.save(
+            Account.create(
+                UUID.randomUUID(),
+                "Checking",
+                null,
+                AccountType.CHECKING,
+                BigDecimal.ZERO,
+                LocalDate.now()));
+    PaymentMethod paymentMethod =
+        paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), "Debit Card"));
+    transactionRepository.save(
+        Transaction.create(
+            UUID.randomUUID(),
+            LocalDate.now(),
+            BigDecimal.TEN,
+            UUID.fromString(id),
+            CategoryType.EXPENSE,
+            account.getId(),
+            paymentMethod.getId(),
+            null,
+            null));
+
+    mockMvc.perform(delete("/api/categories/" + id)).andExpect(status().isConflict());
   }
 
   @Test

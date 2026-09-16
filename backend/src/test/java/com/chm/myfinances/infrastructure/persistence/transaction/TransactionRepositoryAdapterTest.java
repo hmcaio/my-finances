@@ -78,7 +78,8 @@ class TransactionRepositoryAdapterTest {
   }
 
   private Transaction newTransaction(LocalDate date, BigDecimal amount) {
-    return newTransaction(date, amount, categoryId, CategoryType.EXPENSE, accountId, paymentMethodId);
+    return newTransaction(
+        date, amount, categoryId, CategoryType.EXPENSE, accountId, paymentMethodId);
   }
 
   private Transaction newTransaction(
@@ -232,7 +233,11 @@ class TransactionRepositoryAdapterTest {
 
     TransactionFilter filter =
         new TransactionFilter(
-            LocalDate.of(2026, 1, 1), LocalDate.of(2026, 2, 28), categoryId, accountId, paymentMethodId);
+            LocalDate.of(2026, 1, 1),
+            LocalDate.of(2026, 2, 28),
+            categoryId,
+            accountId,
+            paymentMethodId);
 
     Page<Transaction> page = transactionRepository.findAll(filter, PageRequest.of(0, 1));
 
@@ -246,7 +251,12 @@ class TransactionRepositoryAdapterTest {
     transactionRepository.save(newTransaction(LocalDate.now(), BigDecimal.TEN));
     transactionRepository.save(
         newTransaction(
-            LocalDate.now(), BigDecimal.TEN, otherCategoryId, CategoryType.INCOME, accountId, paymentMethodId));
+            LocalDate.now(),
+            BigDecimal.TEN,
+            otherCategoryId,
+            CategoryType.INCOME,
+            accountId,
+            paymentMethodId));
 
     Page<Transaction> page =
         transactionRepository.findAll(TransactionFilter.none(), PageRequest.of(0, 20));

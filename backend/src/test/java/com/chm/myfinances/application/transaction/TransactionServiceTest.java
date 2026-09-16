@@ -39,11 +39,16 @@ class TransactionServiceTest {
   private final FakeTransactionRepository transactionRepository = new FakeTransactionRepository();
   private final FakeCategoryRepository categoryRepository = new FakeCategoryRepository();
   private final FakeAccountRepository accountRepository = new FakeAccountRepository();
-  private final FakePaymentMethodRepository paymentMethodRepository = new FakePaymentMethodRepository();
+  private final FakePaymentMethodRepository paymentMethodRepository =
+      new FakePaymentMethodRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
   private final TransactionService service =
       new TransactionService(
-          transactionRepository, categoryRepository, accountRepository, paymentMethodRepository, idGenerator);
+          transactionRepository,
+          categoryRepository,
+          accountRepository,
+          paymentMethodRepository,
+          idGenerator);
 
   private Category expenseCategory;
   private Category incomeCategory;
@@ -53,19 +58,33 @@ class TransactionServiceTest {
 
   @BeforeEach
   void setUp() {
-    expenseCategory = categoryRepository.save(Category.create(UUID.randomUUID(), "Groceries", CategoryType.EXPENSE));
-    incomeCategory = categoryRepository.save(Category.create(UUID.randomUUID(), "Salary", CategoryType.INCOME));
+    expenseCategory =
+        categoryRepository.save(
+            Category.create(UUID.randomUUID(), "Groceries", CategoryType.EXPENSE));
+    incomeCategory =
+        categoryRepository.save(Category.create(UUID.randomUUID(), "Salary", CategoryType.INCOME));
     openAccount =
         accountRepository.save(
             Account.create(
-                UUID.randomUUID(), "Checking", null, AccountType.CHECKING, BigDecimal.ZERO, LocalDate.now()));
+                UUID.randomUUID(),
+                "Checking",
+                null,
+                AccountType.CHECKING,
+                BigDecimal.ZERO,
+                LocalDate.now()));
     closedAccount =
         accountRepository.save(
             Account.create(
-                UUID.randomUUID(), "Old", null, AccountType.CHECKING, BigDecimal.ZERO, LocalDate.now()));
+                UUID.randomUUID(),
+                "Old",
+                null,
+                AccountType.CHECKING,
+                BigDecimal.ZERO,
+                LocalDate.now()));
     closedAccount.close();
     accountRepository.save(closedAccount);
-    paymentMethod = paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), "Debit Card"));
+    paymentMethod =
+        paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), "Debit Card"));
   }
 
   @Test
@@ -216,7 +235,12 @@ class TransactionServiceTest {
   void editRejectsMovingATransactionOntoAClosedAccount() {
     Transaction created =
         service.create(
-            LocalDate.now(), BigDecimal.TEN, expenseCategory.getId(), openAccount.getId(), paymentMethod.getId(), null);
+            LocalDate.now(),
+            BigDecimal.TEN,
+            expenseCategory.getId(),
+            openAccount.getId(),
+            paymentMethod.getId(),
+            null);
 
     assertThatThrownBy(
             () ->
@@ -235,7 +259,12 @@ class TransactionServiceTest {
   void deleteRemovesTheTransaction() {
     Transaction created =
         service.create(
-            LocalDate.now(), BigDecimal.TEN, expenseCategory.getId(), openAccount.getId(), paymentMethod.getId(), null);
+            LocalDate.now(),
+            BigDecimal.TEN,
+            expenseCategory.getId(),
+            openAccount.getId(),
+            paymentMethod.getId(),
+            null);
 
     service.delete(created.getId());
 
@@ -251,16 +280,29 @@ class TransactionServiceTest {
   @Test
   void findAllDelegatesToRepositoryWithFilterAndPageable() {
     service.create(
-        LocalDate.of(2026, 1, 1), BigDecimal.TEN, expenseCategory.getId(), openAccount.getId(), paymentMethod.getId(), null);
+        LocalDate.of(2026, 1, 1),
+        BigDecimal.TEN,
+        expenseCategory.getId(),
+        openAccount.getId(),
+        paymentMethod.getId(),
+        null);
     service.create(
-        LocalDate.of(2026, 2, 1), BigDecimal.TEN, incomeCategory.getId(), openAccount.getId(), paymentMethod.getId(), null);
+        LocalDate.of(2026, 2, 1),
+        BigDecimal.TEN,
+        incomeCategory.getId(),
+        openAccount.getId(),
+        paymentMethod.getId(),
+        null);
 
     Page<Transaction> page =
         service.findAll(
-            new TransactionFilter(null, null, expenseCategory.getId(), null, null), PageRequest.of(0, 20));
+            new TransactionFilter(null, null, expenseCategory.getId(), null, null),
+            PageRequest.of(0, 20));
 
     assertThat(page.getTotalElements()).isEqualTo(1);
-    assertThat(page.getContent()).extracting(Transaction::getCategoryId).containsExactly(expenseCategory.getId());
+    assertThat(page.getContent())
+        .extracting(Transaction::getCategoryId)
+        .containsExactly(expenseCategory.getId());
   }
 
   private static final class FakeCategoryRepository implements CategoryRepository {

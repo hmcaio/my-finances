@@ -63,14 +63,23 @@ class TransactionControllerTest {
     mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
 
     expenseCategoryId =
-        categoryRepository.save(Category.create(UUID.randomUUID(), "Groceries", CategoryType.EXPENSE)).getId();
+        categoryRepository
+            .save(Category.create(UUID.randomUUID(), "Groceries", CategoryType.EXPENSE))
+            .getId();
     incomeCategoryId =
-        categoryRepository.save(Category.create(UUID.randomUUID(), "Salary", CategoryType.INCOME)).getId();
+        categoryRepository
+            .save(Category.create(UUID.randomUUID(), "Salary", CategoryType.INCOME))
+            .getId();
     accountId =
         accountRepository
             .save(
                 Account.create(
-                    UUID.randomUUID(), "Checking", null, AccountType.CHECKING, BigDecimal.ZERO, LocalDate.now()))
+                    UUID.randomUUID(),
+                    "Checking",
+                    null,
+                    AccountType.CHECKING,
+                    BigDecimal.ZERO,
+                    LocalDate.now()))
             .getId();
     Account closed =
         Account.create(
@@ -81,23 +90,31 @@ class TransactionControllerTest {
         paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), "Debit Card")).getId();
   }
 
-  private String createTransactionBody(String date, String amount, UUID categoryId, UUID accountId, String note)
-      throws Exception {
+  private String createTransactionBody(
+      String date, String amount, UUID categoryId, UUID accountId, String note) throws Exception {
     return objectMapper.writeValueAsString(
         Map.of(
-            "date", date,
-            "amount", amount,
-            "categoryId", categoryId.toString(),
-            "accountId", accountId.toString(),
-            "paymentMethodId", paymentMethodId.toString(),
-            "note", note != null ? note : ""));
+            "date",
+            date,
+            "amount",
+            amount,
+            "categoryId",
+            categoryId.toString(),
+            "accountId",
+            accountId.toString(),
+            "paymentMethodId",
+            paymentMethodId.toString(),
+            "note",
+            note != null ? note : ""));
   }
 
-  private String createTransaction(String date, String amount, UUID categoryId, UUID accountId) throws Exception {
+  private String createTransaction(String date, String amount, UUID categoryId, UUID accountId)
+      throws Exception {
     String body = createTransactionBody(date, amount, categoryId, accountId, "Test note");
     MvcResult result =
         mockMvc
-            .perform(post("/api/transactions").contentType(MediaType.APPLICATION_JSON).content(body))
+            .perform(
+                post("/api/transactions").contentType(MediaType.APPLICATION_JSON).content(body))
             .andExpect(status().isCreated())
             .andReturn();
     return objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asText();
@@ -105,7 +122,9 @@ class TransactionControllerTest {
 
   @Test
   void createReturnsTransactionWithDerivedType() throws Exception {
-    String body = createTransactionBody("2026-03-15", "42.50", expenseCategoryId, accountId, "Weekly groceries");
+    String body =
+        createTransactionBody(
+            "2026-03-15", "42.50", expenseCategoryId, accountId, "Weekly groceries");
 
     mockMvc
         .perform(post("/api/transactions").contentType(MediaType.APPLICATION_JSON).content(body))
@@ -121,7 +140,8 @@ class TransactionControllerTest {
 
   @Test
   void createRejectsAClosedAccountWith409() throws Exception {
-    String body = createTransactionBody("2026-03-15", "10.00", expenseCategoryId, closedAccountId, null);
+    String body =
+        createTransactionBody("2026-03-15", "10.00", expenseCategoryId, closedAccountId, null);
 
     mockMvc
         .perform(post("/api/transactions").contentType(MediaType.APPLICATION_JSON).content(body))
@@ -177,15 +197,24 @@ class TransactionControllerTest {
     String patchBody =
         objectMapper.writeValueAsString(
             Map.of(
-                "date", "2026-02-20",
-                "amount", "35.00",
-                "categoryId", incomeCategoryId.toString(),
-                "accountId", accountId.toString(),
-                "paymentMethodId", paymentMethodId.toString(),
-                "note", "Edited"));
+                "date",
+                "2026-02-20",
+                "amount",
+                "35.00",
+                "categoryId",
+                incomeCategoryId.toString(),
+                "accountId",
+                accountId.toString(),
+                "paymentMethodId",
+                paymentMethodId.toString(),
+                "note",
+                "Edited"));
 
     mockMvc
-        .perform(patch("/api/transactions/" + id).contentType(MediaType.APPLICATION_JSON).content(patchBody))
+        .perform(
+            patch("/api/transactions/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(patchBody))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.date").value("2026-02-20"))
         .andExpect(jsonPath("$.amount").value(35.00))
@@ -208,7 +237,10 @@ class TransactionControllerTest {
                 "paymentMethodId", paymentMethodId.toString()));
 
     mockMvc
-        .perform(patch("/api/transactions/" + id).contentType(MediaType.APPLICATION_JSON).content(patchBody))
+        .perform(
+            patch("/api/transactions/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(patchBody))
         .andExpect(status().isConflict());
   }
 

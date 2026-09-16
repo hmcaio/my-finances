@@ -76,7 +76,9 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
 
   @Override
   public Page<Transaction> findAll(TransactionFilter filter, Pageable pageable) {
-    return jpaRepository.findAll(toSpecification(filter), pageable).map(TransactionRepositoryAdapter::toDomain);
+    return jpaRepository
+        .findAll(toSpecification(filter), pageable)
+        .map(TransactionRepositoryAdapter::toDomain);
   }
 
   @Override
@@ -112,7 +114,8 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
         predicates.add(criteriaBuilder.equal(root.get("accountId"), filter.accountId()));
       }
       if (filter.paymentMethodId() != null) {
-        predicates.add(criteriaBuilder.equal(root.get("paymentMethodId"), filter.paymentMethodId()));
+        predicates.add(
+            criteriaBuilder.equal(root.get("paymentMethodId"), filter.paymentMethodId()));
       }
       return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
     };

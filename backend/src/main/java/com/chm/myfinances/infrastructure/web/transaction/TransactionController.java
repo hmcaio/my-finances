@@ -44,13 +44,17 @@ public class TransactionController {
    */
   @GetMapping
   public PagedModel<TransactionResponse> list(
-      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
-      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+          LocalDate dateFrom,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+          LocalDate dateTo,
       @RequestParam(required = false) UUID categoryId,
       @RequestParam(required = false) UUID accountId,
       @RequestParam(required = false) UUID paymentMethodId,
-      @PageableDefault(size = 20, sort = "date", direction = Sort.Direction.DESC) Pageable pageable) {
-    TransactionFilter filter = new TransactionFilter(dateFrom, dateTo, categoryId, accountId, paymentMethodId);
+      @PageableDefault(size = 20, sort = "date", direction = Sort.Direction.DESC)
+          Pageable pageable) {
+    TransactionFilter filter =
+        new TransactionFilter(dateFrom, dateTo, categoryId, accountId, paymentMethodId);
     Page<Transaction> page = transactionService.findAll(filter, pageable);
     return new PagedModel<>(page.map(TransactionResponse::from));
   }

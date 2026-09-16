@@ -3,6 +3,7 @@ package com.chm.myfinances.application.paymentmethod;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.shared.IdGenerator;
+import com.chm.myfinances.domain.transaction.TransactionRepository;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -11,18 +12,22 @@ import org.springframework.stereotype.Service;
  * Use cases for {@link PaymentMethod}: create/rename/delete (F002 spec). New ids come from the
  * {@link IdGenerator} port (ADR 0005).
  *
- * <p>Delete is currently unconditional, same caveat as {@code CategoryService}: F002 plan.md's
- * referenced-by-transaction delete guard is deferred to F004 (Transactions).
+ * <p>Delete now enforces F002 plan.md's referenced-by-transaction guard, same as {@code
+ * CategoryService} - deferred until F004 (Transactions) existed to check against.
  */
 @Service
 public class PaymentMethodService {
 
   private final PaymentMethodRepository paymentMethodRepository;
+  private final TransactionRepository transactionRepository;
   private final IdGenerator idGenerator;
 
   public PaymentMethodService(
-      PaymentMethodRepository paymentMethodRepository, IdGenerator idGenerator) {
+      PaymentMethodRepository paymentMethodRepository,
+      TransactionRepository transactionRepository,
+      IdGenerator idGenerator) {
     this.paymentMethodRepository = paymentMethodRepository;
+    this.transactionRepository = transactionRepository;
     this.idGenerator = idGenerator;
   }
 
@@ -47,6 +52,9 @@ public class PaymentMethodService {
   public void delete(UUID id) {
     if (!paymentMethodRepository.existsById(id)) {
       throw new PaymentMethodNotFoundException(id);
+    }
+    if (transactionRepository.existsByPaymentMethodId(id)) {
+      throw new PaymentMethodInUseException(id);
     }
     paymentMethodRepository.deleteById(id);
   }

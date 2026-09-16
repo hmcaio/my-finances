@@ -11,8 +11,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Domain-level unit tests for {@link Transaction} (PRD S5.3, F004 spec). Pure JUnit - no Spring
- * context, no database (ADR 0004) - written before {@link Transaction} itself, per F004's
- * plan.md.
+ * context, no database (ADR 0004) - written before {@link Transaction} itself, per F004's plan.md.
  */
 class TransactionTest {
 

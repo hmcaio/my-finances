@@ -51,7 +51,8 @@ public final class FakeTransactionRepository implements TransactionRepository {
         store.values().stream()
             .filter(t -> filter.dateFrom() == null || !t.getDate().isBefore(filter.dateFrom()))
             .filter(t -> filter.dateTo() == null || !t.getDate().isAfter(filter.dateTo()))
-            .filter(t -> filter.categoryId() == null || t.getCategoryId().equals(filter.categoryId()))
+            .filter(
+                t -> filter.categoryId() == null || t.getCategoryId().equals(filter.categoryId()))
             .filter(t -> filter.accountId() == null || t.getAccountId().equals(filter.accountId()))
             .filter(
                 t ->
@@ -62,7 +63,8 @@ public final class FakeTransactionRepository implements TransactionRepository {
 
     int start = (int) pageable.getOffset();
     int end = Math.min(start + pageable.getPageSize(), filtered.size());
-    List<Transaction> pageContent = start >= filtered.size() ? List.of() : filtered.subList(start, end);
+    List<Transaction> pageContent =
+        start >= filtered.size() ? List.of() : filtered.subList(start, end);
     return new PageImpl<>(pageContent, pageable, filtered.size());
   }
 

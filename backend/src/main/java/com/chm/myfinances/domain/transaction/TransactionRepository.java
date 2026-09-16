@@ -38,8 +38,8 @@ public interface TransactionRepository {
 
   /**
    * Whether any transaction references {@code categoryId} - backs {@code CategoryService}'s
-   * referenced-by-transaction delete guard (F002 plan.md's deferred item, added now that this
-   * table exists to check against).
+   * referenced-by-transaction delete guard (F002 plan.md's deferred item, added now that this table
+   * exists to check against).
    */
   boolean existsByCategoryId(UUID categoryId);
 
