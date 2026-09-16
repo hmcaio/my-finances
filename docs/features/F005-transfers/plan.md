@@ -7,8 +7,8 @@
 - [x] Add `domain/transfer/Transfer.java`, implementing the above to make those tests pass.
 - [x] Add `TransferJpaEntity` (extends `AuditableEntity`), repository, adapter.
 - [x] Flyway migration `V7__transfers.sql` with check constraint.
-- [ ] Write tests for the create application service (rejects closed-account transfers), then implement: create, edit, delete, filtered list.
-- [ ] Write tests for the updated `AccountBalanceQuery` covering asset→asset and asset→credit-card transfers (source decreases; destination increases balance or decreases owed amount depending on `AccountType`), then implement folding transfers into it.
+- [x] Write tests for the create application service (rejects closed-account transfers), then implement: create, edit, delete, filtered list.
+- [x] Write tests for the updated `AccountBalanceQuery` covering asset→asset and asset→credit-card transfers (source decreases; destination increases balance or decreases owed amount depending on `AccountType`), then implement folding transfers into it.
 - [ ] REST controller + DTOs.
 
 ## Frontend
