@@ -7,14 +7,12 @@ import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountClosedNotifier;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
+import com.chm.myfinances.testsupport.FakeAccountRepository;
 import com.chm.myfinances.testsupport.FakeIdGenerator;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -128,31 +126,6 @@ class AccountServiceTest {
         .isInstanceOf(AccountAlreadyClosedException.class);
     // Only one notification for the one successful close.
     assertThat(notifier.notifiedAccountIds).containsExactly(created.getId());
-  }
-
-  private static final class FakeAccountRepository implements AccountRepository {
-    private final Map<UUID, Account> store = new HashMap<>();
-
-    @Override
-    public Account save(Account account) {
-      store.put(account.getId(), account);
-      return account;
-    }
-
-    @Override
-    public Optional<Account> findById(UUID id) {
-      return Optional.ofNullable(store.get(id));
-    }
-
-    @Override
-    public List<Account> findAll() {
-      return List.copyOf(store.values());
-    }
-
-    @Override
-    public boolean existsById(UUID id) {
-      return store.containsKey(id);
-    }
   }
 
   private static final class FakeAccountClosedNotifier implements AccountClosedNotifier {

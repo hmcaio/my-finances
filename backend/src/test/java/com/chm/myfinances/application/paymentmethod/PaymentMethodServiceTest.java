@@ -3,32 +3,37 @@ package com.chm.myfinances.application.paymentmethod;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
-import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
+import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.testsupport.FakeIdGenerator;
-import java.util.HashMap;
+import com.chm.myfinances.testsupport.FakePaymentMethodRepository;
+import com.chm.myfinances.testsupport.FakeTransactionRepository;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 /**
  * Application-layer tests for {@link PaymentMethodService}, against hand-written fakes — plain
  * JUnit, no Spring context (ADR 0004). Per F002 plan.md, the referenced-by-transaction delete guard
- * is deferred to F004; only unconditional create/rename/delete are covered here.
+ * was deferred until F004 (Transactions) existed to check against — it's exercised here now via
+ * {@link FakeTransactionRepository}.
  */
 class PaymentMethodServiceTest {
 
   private final FakePaymentMethodRepository repository = new FakePaymentMethodRepository();
+  private final FakeTransactionRepository transactionRepository = new FakeTransactionRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
-  private final PaymentMethodService service = new PaymentMethodService(repository, idGenerator);
+  private final PaymentMethodService service =
+      new PaymentMethodService(repository, transactionRepository, idGenerator);
 
   @Test
   void createAssignsIdFromIdGeneratorAndPersists() {
     UUID nextId = UUID.randomUUID();
     PaymentMethodService service =
-        new PaymentMethodService(repository, new FakeIdGenerator(nextId));
+        new PaymentMethodService(repository, transactionRepository, new FakeIdGenerator(nextId));
 
     PaymentMethod created = service.create("Debit Card");
 
@@ -79,33 +84,26 @@ class PaymentMethodServiceTest {
         .isInstanceOf(PaymentMethodNotFoundException.class);
   }
 
-  private static final class FakePaymentMethodRepository implements PaymentMethodRepository {
-    private final Map<UUID, PaymentMethod> store = new HashMap<>();
+  @Test
+  void deleteRejectsAPaymentMethodReferencedByATransaction() {
+    // F002 plan.md's deferred delete guard: a payment method with existing transactions must not
+    // be hard-deletable, since that would orphan those transactions' payment method reference.
+    PaymentMethod created = service.create("Debit Card");
+    transactionRepository.save(
+        Transaction.create(
+            UUID.randomUUID(),
+            LocalDate.now(),
+            BigDecimal.TEN,
+            UUID.randomUUID(),
+            CategoryType.EXPENSE,
+            UUID.randomUUID(),
+            created.getId(),
+            null,
+            "In-use transaction",
+            null));
 
-    @Override
-    public PaymentMethod save(PaymentMethod paymentMethod) {
-      store.put(paymentMethod.getId(), paymentMethod);
-      return paymentMethod;
-    }
-
-    @Override
-    public Optional<PaymentMethod> findById(UUID id) {
-      return Optional.ofNullable(store.get(id));
-    }
-
-    @Override
-    public List<PaymentMethod> findAll() {
-      return List.copyOf(store.values());
-    }
-
-    @Override
-    public void deleteById(UUID id) {
-      store.remove(id);
-    }
-
-    @Override
-    public boolean existsById(UUID id) {
-      return store.containsKey(id);
-    }
+    assertThatThrownBy(() -> service.delete(created.getId()))
+        .isInstanceOf(PaymentMethodInUseException.class);
+    assertThat(repository.findById(created.getId())).isPresent();
   }
 }

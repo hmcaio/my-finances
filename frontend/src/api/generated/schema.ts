@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/api/payment-methods": {
+    "/api/transactions": {
         parameters: {
             query?: never;
             header?: never;
@@ -20,7 +20,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/categories": {
+    "/api/payment-methods": {
         parameters: {
             query?: never;
             header?: never;
@@ -36,7 +36,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/accounts": {
+    "/api/categories": {
         parameters: {
             query?: never;
             header?: never;
@@ -46,6 +46,22 @@ export interface paths {
         get: operations["list_2"];
         put?: never;
         post: operations["create_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_3"];
+        put?: never;
+        post: operations["create_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -68,6 +84,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/transactions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get"];
+        put?: never;
+        post?: never;
+        delete: operations["delete"];
+        options?: never;
+        head?: never;
+        patch: operations["edit"];
+        trace?: never;
+    };
     "/api/payment-methods/{id}": {
         parameters: {
             query?: never;
@@ -78,7 +110,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete: operations["delete"];
+        delete: operations["delete_1"];
         options?: never;
         head?: never;
         patch: operations["rename"];
@@ -94,7 +126,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete: operations["delete_1"];
+        delete: operations["delete_2"];
         options?: never;
         head?: never;
         patch: operations["rename_1"];
@@ -107,13 +139,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get"];
+        get: operations["get_1"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        patch: operations["edit"];
+        patch: operations["edit_1"];
         trace?: never;
     };
     "/api/health": {
@@ -136,6 +168,38 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        CreateTransactionRequest: {
+            /** Format: date */
+            date: string;
+            amount: number;
+            /** Format: uuid */
+            categoryId: string;
+            /** Format: uuid */
+            accountId: string;
+            /** Format: uuid */
+            paymentMethodId: string;
+            description: string;
+            additionalNotes?: string;
+        };
+        TransactionResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: date */
+            date?: string;
+            amount?: number;
+            /** Format: uuid */
+            categoryId?: string;
+            /** @enum {string} */
+            type?: "INCOME" | "EXPENSE";
+            /** Format: uuid */
+            accountId?: string;
+            /** Format: uuid */
+            paymentMethodId?: string;
+            /** Format: uuid */
+            recurringTemplateVersionId?: string;
+            description?: string;
+            additionalNotes?: string;
+        };
         CreatePaymentMethodRequest: {
             name: string;
         };
@@ -180,6 +244,19 @@ export interface components {
             closed?: boolean;
             balance?: number;
         };
+        UpdateTransactionRequest: {
+            /** Format: date */
+            date: string;
+            amount: number;
+            /** Format: uuid */
+            categoryId: string;
+            /** Format: uuid */
+            accountId: string;
+            /** Format: uuid */
+            paymentMethodId: string;
+            description: string;
+            additionalNotes?: string;
+        };
         UpdatePaymentMethodRequest: {
             name: string;
         };
@@ -189,6 +266,27 @@ export interface components {
         UpdateAccountRequest: {
             name: string;
             institution?: string;
+        };
+        Pageable: {
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            sort?: string[];
+        };
+        PageMetadata: {
+            /** Format: int64 */
+            size?: number;
+            /** Format: int64 */
+            number?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int64 */
+            totalPages?: number;
+        };
+        PagedModelTransactionResponse: {
+            content?: components["schemas"]["TransactionResponse"][];
+            page?: components["schemas"]["PageMetadata"];
         };
     };
     responses: never;
@@ -200,6 +298,57 @@ export interface components {
 export type $defs = Record<string, never>;
 export interface operations {
     list: {
+        parameters: {
+            query: {
+                dateFrom?: string;
+                dateTo?: string;
+                categoryId?: string;
+                accountId?: string;
+                paymentMethodId?: string;
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModelTransactionResponse"];
+                };
+            };
+        };
+    };
+    create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTransactionRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TransactionResponse"];
+                };
+            };
+        };
+    };
+    list_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -219,7 +368,7 @@ export interface operations {
             };
         };
     };
-    create: {
+    create_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -243,7 +392,7 @@ export interface operations {
             };
         };
     };
-    list_1: {
+    list_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -263,7 +412,7 @@ export interface operations {
             };
         };
     };
-    create_1: {
+    create_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -287,7 +436,7 @@ export interface operations {
             };
         };
     };
-    list_2: {
+    list_3: {
         parameters: {
             query?: {
                 includeClosed?: boolean;
@@ -309,7 +458,7 @@ export interface operations {
             };
         };
     };
-    create_2: {
+    create_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -355,7 +504,75 @@ export interface operations {
             };
         };
     };
+    get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TransactionResponse"];
+                };
+            };
+        };
+    };
     delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    edit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTransactionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TransactionResponse"];
+                };
+            };
+        };
+    };
+    delete_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -401,7 +618,7 @@ export interface operations {
             };
         };
     };
-    delete_1: {
+    delete_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -447,7 +664,7 @@ export interface operations {
             };
         };
     };
-    get: {
+    get_1: {
         parameters: {
             query?: {
                 asOf?: string;
@@ -471,7 +688,7 @@ export interface operations {
             };
         };
     };
-    edit: {
+    edit_1: {
         parameters: {
             query?: never;
             header?: never;

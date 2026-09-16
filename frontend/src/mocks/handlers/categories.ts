@@ -48,10 +48,9 @@ export const categoriesHandlers = [
 ]
 
 /**
- * `409` variant for the delete-conflict case (F002 spec's `conflictMessage`) - the backend can't
- * actually produce this yet (the referenced-by-transaction guard is deferred to F004), but tests
- * apply this via `server.use(...)` to exercise the `unwrap`/`ApiError` mapping and the UI's
- * conflict-message surfacing regardless.
+ * `409` variant for the delete-conflict case (F002 spec's `conflictMessage`, now backed for real by
+ * F004's `CategoryInUseException`) - applied via `server.use(...)` in tests that exercise that
+ * path, same pattern as `accountAlreadyClosedConflictHandler`.
  */
 export const categoryDeleteConflictHandler = http.delete(`${CATEGORIES_URL}/:id`, () =>
   HttpResponse.json({ message: 'Category is in use' }, { status: 409 }),

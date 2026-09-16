@@ -14,7 +14,7 @@ Versioned recurring bill/income templates with lazy/catch-up occurrence generati
 ## Backend
 
 ### Domain
-- `domain/recurringtemplate/RecurringTemplate.java`: id, `categoryId`, `accountId`, `label`, `active` (default `true`).
+- `domain/recurringtemplate/RecurringTemplate.java`: id, `categoryId`, `accountId`, `description` (mandatory, max 150 chars — bounded free-text field, same convention as F002/F003/F004: length check in the domain constructor/mutator, `@Size` on request DTOs, matching `varchar(150)` column), `active` (default `true`).
 - `domain/recurringtemplate/RecurringTemplateVersion.java`: id, `templateId`, `amount`, `dayOfMonth` (1–31, see clamping note below), `effectiveFrom`.
 - Editing amount/day-of-month creates a new version (`effectiveFrom` = the month the change takes effect), never mutates a prior version.
 - `dayOfMonth` values 29–31 clamp to the last day of shorter months at generation time (implementation detail, not specified further by the PRD — document the chosen clamping rule here once decided, e.g. "31" on a 30-day month generates on day 30).
@@ -28,7 +28,7 @@ Versioned recurring bill/income templates with lazy/catch-up occurrence generati
 - Rejecting/dismissing a pending occurrence without confirming it (not explicitly specified by the PRD, but a natural UI affordance) — treat as an open implementation detail: either allow dismiss-without-transaction (deletes the pending row, no transaction created) or require every occurrence to eventually be confirmed or the template stopped. Recommend allowing dismissal, since forcing a decision on every historical catch-up occurrence after a long time away would otherwise block the user.
 
 ### Persistence
-- `RecurringTemplateJpaEntity extends AuditableEntity`: table `recurring_templates` (`id uuid pk`, `category_id uuid not null references categories`, `account_id uuid not null references accounts`, `label text not null`, `active boolean not null default true`, `last_generated_for date`).
+- `RecurringTemplateJpaEntity extends AuditableEntity`: table `recurring_templates` (`id uuid pk`, `category_id uuid not null references categories`, `account_id uuid not null references accounts`, `description varchar(150) not null`, `active boolean not null default true`, `last_generated_for date`).
 - `RecurringTemplateVersionJpaEntity extends AuditableEntity`: table `recurring_template_versions` (`id uuid pk`, `template_id uuid not null references recurring_templates`, `amount numeric not null`, `day_of_month int not null check (day_of_month between 1 and 31)`, `effective_from date not null`).
 - `PendingRecurringOccurrenceJpaEntity extends AuditableEntity`: table `pending_recurring_occurrences` (`id uuid pk`, `template_id uuid not null references recurring_templates`, `template_version_id uuid not null references recurring_template_versions`, `due_date date not null`).
 - Migration `V7__recurring_templates.sql`. Also adds the FK from F004's `transactions.recurring_template_version_id` to `recurring_template_versions` (deferred there as a nullable column, constrained here once this table exists).
@@ -40,7 +40,7 @@ Versioned recurring bill/income templates with lazy/catch-up occurrence generati
 - `DELETE /api/recurring-templates/pending/{id}` — dismiss without confirming.
 
 ## Frontend
-- Recurring templates settings view: list (label, category, account, amount, day-of-month, active/inactive), create/edit-cap forms, stop/reactivate toggle.
+- Recurring templates settings view: list (description, category, account, amount, day-of-month, active/inactive), create/edit-cap forms, stop/reactivate toggle.
 - "Upcoming recurring bills" widget (also embedded in F012's dashboard): pending occurrences with confirm (opens a pre-filled transaction form for override) and dismiss actions.
 
 ## Dependencies

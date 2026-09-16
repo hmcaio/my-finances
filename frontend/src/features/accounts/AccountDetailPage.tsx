@@ -11,6 +11,7 @@ import {
 } from '@mui/material'
 import { getAccount, type Account, type AccountType } from '../../api/accounts'
 import { ApiError } from '../../api/apiError'
+import { AccountTransactionList } from '../transactions/AccountTransactionList'
 
 const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
   CHECKING: 'Checking',
@@ -20,9 +21,10 @@ const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
 }
 
 /**
- * Account detail view (F003 spec): running balance plus account fields. Transaction/transfer
- * history is populated once F004/F005 exist - this page renders a placeholder for it until then,
- * per spec's explicit "populated once F004/F005 exist" note.
+ * Account detail view (F003 spec): running balance plus account fields, plus F004's transaction
+ * history embedded and pre-filtered to this account (F004 spec: "Account detail view (F003)
+ * embeds this feature's list, pre-filtered to that account"). Transfer history (F005) still has no
+ * source to embed yet.
  */
 export function AccountDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -83,9 +85,9 @@ export function AccountDetailPage() {
             <Typography variant="h6" gutterBottom>
               Transaction &amp; transfer history
             </Typography>
-            <Typography color="text.secondary">
-              Not available yet - this view is populated once transactions (F004) and transfers
-              (F005) exist.
+            <AccountTransactionList accountId={account.id} />
+            <Typography color="text.secondary" sx={{ mt: 2 }}>
+              Transfer history (F005) isn't available yet.
             </Typography>
           </Paper>
         </>

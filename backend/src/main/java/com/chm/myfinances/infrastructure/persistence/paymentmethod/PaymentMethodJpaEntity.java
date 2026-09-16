@@ -1,6 +1,6 @@
 package com.chm.myfinances.infrastructure.persistence.paymentmethod;
 
-import com.chm.myfinances.domain.shared.NameConstraints;
+import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import com.chm.myfinances.infrastructure.persistence.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -21,7 +21,7 @@ public class PaymentMethodJpaEntity extends AuditableEntity {
 
   @Id private UUID id;
 
-  @Column(nullable = false, length = NameConstraints.MAX_NAME_LENGTH)
+  @Column(nullable = false, length = TextFieldConstraints.MAX_NAME_LENGTH)
   private String name;
 
   public PaymentMethodJpaEntity(UUID id, String name) {

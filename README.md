@@ -65,10 +65,11 @@ Built:
 - **F001** — project scaffolding
 - **F002** — categories & payment methods (the first real domain feature)
 - **F003** — account management (`Account` CRUD, types, opening balance, running balance, closing)
+- **F004** — transactions (CRUD, filtered/paginated list, running balance now driven by real activity)
 - **F014** — CI/CD and production packaging
 - **F015** — frontend test tooling (Vitest + React Testing Library + MSW, with real coverage backfilled for F002/F003)
 
-Documented and next up: **F004–F013** (transactions, transfers, budgets, recurring templates, investments, net worth, onboarding, dashboard, data export) — see [docs/features/](docs/features/) for the full breakdown, in build order, with each feature's spec and its dependencies on the others.
+Documented and next up: **F005–F013** (transfers, budgets, recurring templates, investments, net worth, onboarding, dashboard, data export) — see [docs/features/](docs/features/) for the full breakdown, in build order, with each feature's spec and its dependencies on the others.
 
 ## Workflow
 

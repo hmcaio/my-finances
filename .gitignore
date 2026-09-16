@@ -1,6 +1,7 @@
 # Backend (Gradle/Java)
 backend/.gradle/
 backend/build/
+backend/bin/
 !backend/gradle/wrapper/gradle-wrapper.jar
 *.class
 hs_err_pid*

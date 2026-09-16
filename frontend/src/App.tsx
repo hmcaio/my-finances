@@ -11,6 +11,7 @@ import { AccountsPage } from './features/accounts/AccountsPage'
 import { AccountDetailPage } from './features/accounts/AccountDetailPage'
 import { CategoriesPage } from './features/categories/CategoriesPage'
 import { PaymentMethodsPage } from './features/paymentMethods/PaymentMethodsPage'
+import { TransactionsPage } from './features/transactions/TransactionsPage'
 
 function ThemedApp() {
   const { mode } = useColorMode()
@@ -27,7 +28,7 @@ function ThemedApp() {
           <Layout>
             <Routes>
               <Route path="/" element={<DashboardPage />} />
-              <Route path="/transactions" element={<ComingSoon title="Transactions" />} />
+              <Route path="/transactions" element={<TransactionsPage />} />
               <Route path="/accounts" element={<AccountsPage />} />
               <Route path="/accounts/:id" element={<AccountDetailPage />} />
               <Route path="/transfers" element={<ComingSoon title="Transfers" />} />

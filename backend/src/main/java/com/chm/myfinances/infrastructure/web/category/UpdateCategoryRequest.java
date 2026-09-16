@@ -1,6 +1,6 @@
 package com.chm.myfinances.infrastructure.web.category;
 
-import com.chm.myfinances.domain.shared.NameConstraints;
+import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -10,4 +10,4 @@ import jakarta.validation.constraints.Size;
  * express a type change through this endpoint.
  */
 public record UpdateCategoryRequest(
-    @NotBlank @Size(max = NameConstraints.MAX_NAME_LENGTH) String name) {}
+    @NotBlank @Size(max = TextFieldConstraints.MAX_NAME_LENGTH) String name) {}

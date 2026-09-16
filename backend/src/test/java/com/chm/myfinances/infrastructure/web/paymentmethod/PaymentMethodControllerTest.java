@@ -8,9 +8,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.chm.myfinances.TestcontainersConfiguration;
-import com.chm.myfinances.domain.shared.NameConstraints;
+import com.chm.myfinances.domain.account.Account;
+import com.chm.myfinances.domain.account.AccountRepository;
+import com.chm.myfinances.domain.account.AccountType;
+import com.chm.myfinances.domain.category.Category;
+import com.chm.myfinances.domain.category.CategoryRepository;
+import com.chm.myfinances.domain.category.CategoryType;
+import com.chm.myfinances.domain.shared.TextFieldConstraints;
+import com.chm.myfinances.domain.transaction.Transaction;
+import com.chm.myfinances.domain.transaction.TransactionRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +45,9 @@ import org.springframework.web.context.WebApplicationContext;
 class PaymentMethodControllerTest {
 
   @Autowired private WebApplicationContext webApplicationContext;
+  @Autowired private TransactionRepository transactionRepository;
+  @Autowired private AccountRepository accountRepository;
+  @Autowired private CategoryRepository categoryRepository;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -81,8 +95,50 @@ class PaymentMethodControllerTest {
   }
 
   @Test
+  void deleteRejectsAPaymentMethodReferencedByATransactionWith409() throws Exception {
+    String createBody = objectMapper.writeValueAsString(Map.of("name", "In Use"));
+    MvcResult createResult =
+        mockMvc
+            .perform(
+                post("/api/payment-methods")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(createBody))
+            .andExpect(status().isCreated())
+            .andReturn();
+    String id =
+        objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asText();
+
+    Account account =
+        accountRepository.save(
+            Account.create(
+                UUID.randomUUID(),
+                "Checking",
+                null,
+                AccountType.CHECKING,
+                BigDecimal.ZERO,
+                LocalDate.now()));
+    Category category =
+        categoryRepository.save(
+            Category.create(UUID.randomUUID(), "Groceries", CategoryType.EXPENSE));
+    transactionRepository.save(
+        Transaction.create(
+            UUID.randomUUID(),
+            LocalDate.now(),
+            BigDecimal.TEN,
+            category.getId(),
+            CategoryType.EXPENSE,
+            account.getId(),
+            UUID.fromString(id),
+            null,
+            "In-use transaction",
+            null));
+
+    mockMvc.perform(delete("/api/payment-methods/" + id)).andExpect(status().isConflict());
+  }
+
+  @Test
   void createRejectsNameOverMaxLength() throws Exception {
-    String tooLongName = "a".repeat(NameConstraints.MAX_NAME_LENGTH + 1);
+    String tooLongName = "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1);
     String createBody = objectMapper.writeValueAsString(Map.of("name", tooLongName));
 
     mockMvc
@@ -107,7 +163,7 @@ class PaymentMethodControllerTest {
     String id =
         objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asText();
 
-    String tooLongName = "a".repeat(NameConstraints.MAX_NAME_LENGTH + 1);
+    String tooLongName = "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1);
     String renameBody = objectMapper.writeValueAsString(Map.of("name", tooLongName));
     mockMvc
         .perform(

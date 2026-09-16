@@ -1,6 +1,6 @@
 package com.chm.myfinances.domain.account;
 
-import com.chm.myfinances.domain.shared.NameConstraints;
+import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Objects;
@@ -106,9 +106,9 @@ public final class Account {
     if (value == null || value.isBlank()) {
       throw new IllegalArgumentException("name must not be blank");
     }
-    if (value.length() > NameConstraints.MAX_NAME_LENGTH) {
+    if (value.length() > TextFieldConstraints.MAX_NAME_LENGTH) {
       throw new IllegalArgumentException(
-          "name must not exceed " + NameConstraints.MAX_NAME_LENGTH + " characters");
+          "name must not exceed " + TextFieldConstraints.MAX_NAME_LENGTH + " characters");
     }
     return value;
   }
@@ -117,9 +117,9 @@ public final class Account {
     if (value == null) {
       return null;
     }
-    if (value.length() > NameConstraints.MAX_NAME_LENGTH) {
+    if (value.length() > TextFieldConstraints.MAX_NAME_LENGTH) {
       throw new IllegalArgumentException(
-          "institution must not exceed " + NameConstraints.MAX_NAME_LENGTH + " characters");
+          "institution must not exceed " + TextFieldConstraints.MAX_NAME_LENGTH + " characters");
     }
     return value;
   }

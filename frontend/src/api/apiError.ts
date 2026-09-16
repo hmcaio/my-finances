@@ -19,9 +19,8 @@ export class ApiError extends Error {
  * Runs an Axios call and unwraps its `data` on success. On failure, converts the `AxiosError`
  * (Axios throws on any non-2xx by default, unlike `fetch`) into an {@link ApiError}.
  * `conflictMessage`, when given, replaces the generic message for a `409` — e.g. "N transactions
- * use this - reassign them first" (F002 spec's delete-conflict UX). No endpoint returns 409 yet
- * (the referenced-by-transaction delete guard is deferred to F004 - see F002 plan.md), but the
- * plumbing is ready for when one does.
+ * use this - reassign them first" (F002 spec's delete-conflict UX; F003's account-already-closed
+ * and F004's referenced-by-transaction/closed-account guards are the other `409` sources).
  */
 export async function unwrap<T>(
   request: Promise<{ data: T }>,
