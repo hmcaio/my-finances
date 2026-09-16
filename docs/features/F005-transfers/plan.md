@@ -3,8 +3,8 @@
 **Depends on**: F001, F003, F015.
 
 ## Backend
-- [ ] Write tests first for `Transfer`'s domain rules: `fromAccountId != toAccountId`, amount must be positive.
-- [ ] Add `domain/transfer/Transfer.java`, implementing the above to make those tests pass.
+- [x] Write tests first for `Transfer`'s domain rules: `fromAccountId != toAccountId`, amount must be positive.
+- [x] Add `domain/transfer/Transfer.java`, implementing the above to make those tests pass.
 - [ ] Add `TransferJpaEntity` (extends `AuditableEntity`), repository, adapter.
 - [ ] Flyway migration `V5__transfers.sql` with check constraint.
 - [ ] Write tests for the create application service (rejects closed-account transfers), then implement: create, edit, delete, filtered list.
