@@ -5,16 +5,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
-import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.testsupport.FakeIdGenerator;
+import com.chm.myfinances.testsupport.FakePaymentMethodRepository;
 import com.chm.myfinances.testsupport.FakeTransactionRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -107,35 +104,5 @@ class PaymentMethodServiceTest {
     assertThatThrownBy(() -> service.delete(created.getId()))
         .isInstanceOf(PaymentMethodInUseException.class);
     assertThat(repository.findById(created.getId())).isPresent();
-  }
-
-  private static final class FakePaymentMethodRepository implements PaymentMethodRepository {
-    private final Map<UUID, PaymentMethod> store = new HashMap<>();
-
-    @Override
-    public PaymentMethod save(PaymentMethod paymentMethod) {
-      store.put(paymentMethod.getId(), paymentMethod);
-      return paymentMethod;
-    }
-
-    @Override
-    public Optional<PaymentMethod> findById(UUID id) {
-      return Optional.ofNullable(store.get(id));
-    }
-
-    @Override
-    public List<PaymentMethod> findAll() {
-      return List.copyOf(store.values());
-    }
-
-    @Override
-    public void deleteById(UUID id) {
-      store.remove(id);
-    }
-
-    @Override
-    public boolean existsById(UUID id) {
-      return store.containsKey(id);
-    }
   }
 }

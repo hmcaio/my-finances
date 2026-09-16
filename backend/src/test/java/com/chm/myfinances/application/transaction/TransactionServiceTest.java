@@ -7,23 +7,19 @@ import com.chm.myfinances.application.account.AccountNotFoundException;
 import com.chm.myfinances.application.category.CategoryNotFoundException;
 import com.chm.myfinances.application.paymentmethod.PaymentMethodNotFoundException;
 import com.chm.myfinances.domain.account.Account;
-import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.category.Category;
-import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
-import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionFilter;
+import com.chm.myfinances.testsupport.FakeAccountRepository;
+import com.chm.myfinances.testsupport.FakeCategoryRepository;
 import com.chm.myfinances.testsupport.FakeIdGenerator;
+import com.chm.myfinances.testsupport.FakePaymentMethodRepository;
 import com.chm.myfinances.testsupport.FakeTransactionRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -303,90 +299,5 @@ class TransactionServiceTest {
     assertThat(page.getContent())
         .extracting(Transaction::getCategoryId)
         .containsExactly(expenseCategory.getId());
-  }
-
-  private static final class FakeCategoryRepository implements CategoryRepository {
-    private final Map<UUID, Category> store = new HashMap<>();
-
-    @Override
-    public Category save(Category category) {
-      store.put(category.getId(), category);
-      return category;
-    }
-
-    @Override
-    public Optional<Category> findById(UUID id) {
-      return Optional.ofNullable(store.get(id));
-    }
-
-    @Override
-    public List<Category> findAll() {
-      return List.copyOf(store.values());
-    }
-
-    @Override
-    public void deleteById(UUID id) {
-      store.remove(id);
-    }
-
-    @Override
-    public boolean existsById(UUID id) {
-      return store.containsKey(id);
-    }
-  }
-
-  private static final class FakeAccountRepository implements AccountRepository {
-    private final Map<UUID, Account> store = new HashMap<>();
-
-    @Override
-    public Account save(Account account) {
-      store.put(account.getId(), account);
-      return account;
-    }
-
-    @Override
-    public Optional<Account> findById(UUID id) {
-      return Optional.ofNullable(store.get(id));
-    }
-
-    @Override
-    public List<Account> findAll() {
-      return List.copyOf(store.values());
-    }
-
-    @Override
-    public boolean existsById(UUID id) {
-      return store.containsKey(id);
-    }
-  }
-
-  private static final class FakePaymentMethodRepository implements PaymentMethodRepository {
-    private final Map<UUID, PaymentMethod> store = new HashMap<>();
-
-    @Override
-    public PaymentMethod save(PaymentMethod paymentMethod) {
-      store.put(paymentMethod.getId(), paymentMethod);
-      return paymentMethod;
-    }
-
-    @Override
-    public Optional<PaymentMethod> findById(UUID id) {
-      return Optional.ofNullable(store.get(id));
-    }
-
-    @Override
-    public List<PaymentMethod> findAll() {
-      return List.copyOf(store.values());
-    }
-
-    @Override
-    public void deleteById(UUID id) {
-      store.remove(id);
-    }
-
-    @Override
-    public boolean existsById(UUID id) {
-      return store.containsKey(id);
-    }
   }
 }

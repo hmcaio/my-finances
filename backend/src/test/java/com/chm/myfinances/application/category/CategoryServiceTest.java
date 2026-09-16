@@ -7,14 +7,12 @@ import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.transaction.Transaction;
+import com.chm.myfinances.testsupport.FakeCategoryRepository;
 import com.chm.myfinances.testsupport.FakeIdGenerator;
 import com.chm.myfinances.testsupport.FakeTransactionRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -110,35 +108,5 @@ class CategoryServiceTest {
     assertThatThrownBy(() -> service.delete(created.getId()))
         .isInstanceOf(CategoryInUseException.class);
     assertThat(repository.findById(created.getId())).isPresent();
-  }
-
-  private static final class FakeCategoryRepository implements CategoryRepository {
-    private final Map<UUID, Category> store = new HashMap<>();
-
-    @Override
-    public Category save(Category category) {
-      store.put(category.getId(), category);
-      return category;
-    }
-
-    @Override
-    public Optional<Category> findById(UUID id) {
-      return Optional.ofNullable(store.get(id));
-    }
-
-    @Override
-    public List<Category> findAll() {
-      return List.copyOf(store.values());
-    }
-
-    @Override
-    public void deleteById(UUID id) {
-      store.remove(id);
-    }
-
-    @Override
-    public boolean existsById(UUID id) {
-      return store.containsKey(id);
-    }
   }
 }
