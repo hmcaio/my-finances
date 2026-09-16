@@ -29,6 +29,17 @@ export const seedAccounts: Account[] = [
     closed: true,
     balance: 500,
   },
+  {
+    id: 'acct-3',
+    name: 'Nubank Credit Card',
+    institution: 'Nubank',
+    type: 'CREDIT_CARD',
+    openingBalance: 200,
+    openingBalanceDate: '2026-01-01',
+    closedDate: null,
+    closed: false,
+    balance: 200,
+  },
 ]
 
 const ACCOUNTS_URL = '/api/accounts'

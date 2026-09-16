@@ -1,0 +1,122 @@
+import { http, HttpResponse } from 'msw'
+import type { Transfer } from '../../api/transfers'
+
+/**
+ * Seed data returned by the default `GET /api/transfers` handler below. Spans both seed accounts
+ * (`acct-1` open, `acct-2` closed - see `accounts.ts`) so filter tests have something to
+ * discriminate on. Exported so tests can assert against it directly (F015 spec's F002 backfill
+ * pattern).
+ */
+export const seedTransfers: Transfer[] = [
+  {
+    id: 'trf-1',
+    date: '2026-01-10',
+    fromAccountId: 'acct-1',
+    toAccountId: 'acct-3',
+    amount: 200,
+    description: 'Credit card payment',
+    additionalNotes: null,
+  },
+  {
+    id: 'trf-2',
+    date: '2026-01-25',
+    fromAccountId: 'acct-3',
+    toAccountId: 'acct-1',
+    amount: 50,
+    description: 'Refund',
+    additionalNotes: 'Overpaid last month',
+  },
+]
+
+const TRANSFERS_URL = '/api/transfers'
+
+interface TransferRequestBody {
+  date: string
+  fromAccountId: string
+  toAccountId: string
+  amount: number
+  description: string
+  additionalNotes?: string
+}
+
+/**
+ * Default success-path handlers for every transfers endpoint (F005's REST API). List applies the
+ * same filter dimensions the real backend does (including `accountId` matching either side, PRD
+ * S6.9), against `seedTransfers`, and paginates with the same page/size defaults (page 0, size 20)
+ * as F004's transactions handlers. Create/edit echo the request body back rather than mutating
+ * `seedTransfers`, so every test starts from the same fixture regardless of execution order.
+ */
+export const transfersHandlers = [
+  http.get(TRANSFERS_URL, ({ request }) => {
+    const url = new URL(request.url)
+    const dateFrom = url.searchParams.get('dateFrom')
+    const dateTo = url.searchParams.get('dateTo')
+    const accountId = url.searchParams.get('accountId')
+    const page = Number(url.searchParams.get('page') ?? '0')
+    const size = Number(url.searchParams.get('size') ?? '20')
+
+    const filtered = seedTransfers
+      .filter((t) => !dateFrom || t.date >= dateFrom)
+      .filter((t) => !dateTo || t.date <= dateTo)
+      .filter((t) => !accountId || t.fromAccountId === accountId || t.toAccountId === accountId)
+      .sort((a, b) => (a.date < b.date ? 1 : -1))
+
+    const start = page * size
+    const content = filtered.slice(start, start + size)
+
+    return HttpResponse.json({
+      content,
+      page: {
+        size,
+        number: page,
+        totalElements: filtered.length,
+        totalPages: Math.max(1, Math.ceil(filtered.length / size)),
+      },
+    })
+  }),
+
+  http.get(`${TRANSFERS_URL}/:id`, ({ params }) => {
+    const transfer = seedTransfers.find((t) => t.id === params.id)
+    if (!transfer) return new HttpResponse(null, { status: 404 })
+    return HttpResponse.json(transfer)
+  }),
+
+  http.post(TRANSFERS_URL, async ({ request }) => {
+    const body = (await request.json()) as TransferRequestBody
+    const created: Transfer = {
+      id: 'trf-new',
+      date: body.date,
+      fromAccountId: body.fromAccountId,
+      toAccountId: body.toAccountId,
+      amount: body.amount,
+      description: body.description,
+      additionalNotes: body.additionalNotes ?? null,
+    }
+    return HttpResponse.json(created, { status: 201 })
+  }),
+
+  http.patch(`${TRANSFERS_URL}/:id`, async ({ request, params }) => {
+    const body = (await request.json()) as TransferRequestBody
+    const updated: Transfer = {
+      id: params.id as string,
+      date: body.date,
+      fromAccountId: body.fromAccountId,
+      toAccountId: body.toAccountId,
+      amount: body.amount,
+      description: body.description,
+      additionalNotes: body.additionalNotes ?? null,
+    }
+    return HttpResponse.json(updated)
+  }),
+
+  http.delete(`${TRANSFERS_URL}/:id`, () => new HttpResponse(null, { status: 204 })),
+]
+
+/**
+ * `409` variant for the closed-account-rejection case (F005 spec: "Both accounts must be open ...
+ * at creation time") - applied via `server.use(...)` in tests that exercise that path, same
+ * pattern as `transactionClosedAccountConflictHandler`.
+ */
+export const transferClosedAccountConflictHandler = http.post(TRANSFERS_URL, () =>
+  HttpResponse.json({ message: 'Account is closed' }, { status: 409 }),
+)

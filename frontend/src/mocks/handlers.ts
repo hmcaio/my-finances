@@ -2,6 +2,7 @@ import { accountsHandlers } from './handlers/accounts'
 import { categoriesHandlers } from './handlers/categories'
 import { paymentMethodsHandlers } from './handlers/paymentMethods'
 import { transactionsHandlers } from './handlers/transactions'
+import { transfersHandlers } from './handlers/transfers'
 
 /**
  * Combined MSW request handlers for every aggregate (F015 spec). Each aggregate owns one file
@@ -16,4 +17,5 @@ export const handlers = [
   ...categoriesHandlers,
   ...paymentMethodsHandlers,
   ...transactionsHandlers,
+  ...transfersHandlers,
 ]
