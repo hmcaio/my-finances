@@ -9,7 +9,7 @@
 - [x] Flyway migration `V7__transfers.sql` with check constraint.
 - [x] Write tests for the create application service (rejects closed-account transfers), then implement: create, edit, delete, filtered list.
 - [x] Write tests for the updated `AccountBalanceQuery` covering asset→asset and asset→credit-card transfers (source decreases; destination increases balance or decreases owed amount depending on `AccountType`), then implement folding transfers into it.
-- [ ] REST controller + DTOs.
+- [x] REST controller + DTOs.
 
 ## Frontend
 - [ ] `src/api/transfers.ts`.
