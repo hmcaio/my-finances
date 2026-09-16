@@ -15,7 +15,8 @@ export interface Transaction {
   accountId: string
   paymentMethodId: string
   recurringTemplateVersionId: string | null
-  note: string | null
+  description: string
+  additionalNotes: string | null
 }
 
 export type CreateTransactionRequest = components['schemas']['CreateTransactionRequest']
@@ -65,8 +66,8 @@ export async function createTransaction(request: CreateTransactionRequest): Prom
   return unwrap(apiClient.post<Transaction>('/transactions', request), CLOSED_ACCOUNT_MESSAGE)
 }
 
-/** Full-replace edit - every editable field (amount/date/category/account/payment method/note),
- * matching F002/F003's PATCH convention (F004 spec). */
+/** Full-replace edit - every editable field (amount/date/category/account/payment
+ * method/description/additional notes), matching F002/F003's PATCH convention (F004 spec). */
 export async function editTransaction(
   id: string,
   request: UpdateTransactionRequest,

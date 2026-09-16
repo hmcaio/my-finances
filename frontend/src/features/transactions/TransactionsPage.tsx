@@ -43,7 +43,8 @@ const EMPTY_FORM = {
   categoryId: '',
   accountId: '',
   paymentMethodId: '',
-  note: '',
+  description: '',
+  additionalNotes: '',
 }
 
 const PAGE_SIZE = 20
@@ -51,8 +52,9 @@ const PAGE_SIZE = 20
 /**
  * Transaction list/table with filter controls (date range, category, account, payment method),
  * plus a create/edit form and delete-with-confirmation (F004 spec). One combined form toggles
- * between create and edit mode - the fields (date/amount/category/account/payment method/note)
- * are identical for both, matching F004's plain-in-place-edit semantics (no versioning).
+ * between create and edit mode - the fields (date/amount/category/account/payment
+ * method/description/additional notes) are identical for both, matching F004's
+ * plain-in-place-edit semantics (no versioning).
  */
 export function TransactionsPage() {
   const [categories, setCategories] = useState<Category[] | null>(null)
@@ -119,7 +121,8 @@ export function TransactionsPage() {
       categoryId: transaction.categoryId,
       accountId: transaction.accountId,
       paymentMethodId: transaction.paymentMethodId,
-      note: transaction.note ?? '',
+      description: transaction.description,
+      additionalNotes: transaction.additionalNotes ?? '',
     })
   }
 
@@ -134,7 +137,8 @@ export function TransactionsPage() {
       Number(form.amount) > 0 &&
       form.categoryId !== '' &&
       form.accountId !== '' &&
-      form.paymentMethodId !== ''
+      form.paymentMethodId !== '' &&
+      form.description.trim() !== ''
     )
   }
 
@@ -148,7 +152,8 @@ export function TransactionsPage() {
       categoryId: form.categoryId,
       accountId: form.accountId,
       paymentMethodId: form.paymentMethodId,
-      note: form.note.trim() || undefined,
+      description: form.description.trim(),
+      additionalNotes: form.additionalNotes.trim() || undefined,
     }
     try {
       if (editingId) {
@@ -285,7 +290,7 @@ export function TransactionsPage() {
                 <TableCell>Account</TableCell>
                 <TableCell>Payment Method</TableCell>
                 <TableCell align="right">Amount</TableCell>
-                <TableCell>Note</TableCell>
+                <TableCell>Description</TableCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -314,7 +319,7 @@ export function TransactionsPage() {
                     {transaction.type === 'EXPENSE' ? '-' : '+'}
                     {transaction.amount.toFixed(2)}
                   </TableCell>
-                  <TableCell>{transaction.note ?? '—'}</TableCell>
+                  <TableCell>{transaction.description}</TableCell>
                   <TableCell align="right">
                     <IconButton
                       size="small"
@@ -433,10 +438,19 @@ export function TransactionsPage() {
             ))}
           </Select>
           <TextField
-            label="Note"
+            label="Description"
             size="small"
-            value={form.note}
-            onChange={(e) => setForm((prev) => ({ ...prev, note: e.target.value }))}
+            required
+            value={form.description}
+            onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+            slotProps={{ htmlInput: { maxLength: 150 } }}
+          />
+          <TextField
+            label="Additional Notes"
+            size="small"
+            value={form.additionalNotes}
+            onChange={(e) => setForm((prev) => ({ ...prev, additionalNotes: e.target.value }))}
+            slotProps={{ htmlInput: { maxLength: 500 } }}
           />
           <Button
             variant="contained"

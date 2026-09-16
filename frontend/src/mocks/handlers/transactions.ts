@@ -18,7 +18,8 @@ export const seedTransactions: Transaction[] = [
     accountId: 'acct-1',
     paymentMethodId: 'pm-1',
     recurringTemplateVersionId: null,
-    note: 'Weekly groceries',
+    description: 'Weekly groceries',
+    additionalNotes: null,
   },
   {
     id: 'txn-2',
@@ -29,7 +30,8 @@ export const seedTransactions: Transaction[] = [
     accountId: 'acct-1',
     paymentMethodId: 'pm-2',
     recurringTemplateVersionId: null,
-    note: 'Monthly salary deposit',
+    description: 'Monthly salary deposit',
+    additionalNotes: 'Direct deposit from employer',
   },
 ]
 
@@ -41,7 +43,8 @@ interface TransactionRequestBody {
   categoryId: string
   accountId: string
   paymentMethodId: string
-  note?: string
+  description: string
+  additionalNotes?: string
 }
 
 function typeForCategory(categoryId: string): TransactionType {
@@ -106,7 +109,8 @@ export const transactionsHandlers = [
       accountId: body.accountId,
       paymentMethodId: body.paymentMethodId,
       recurringTemplateVersionId: null,
-      note: body.note ?? null,
+      description: body.description,
+      additionalNotes: body.additionalNotes ?? null,
     }
     return HttpResponse.json(created, { status: 201 })
   }),
@@ -122,7 +126,8 @@ export const transactionsHandlers = [
       accountId: body.accountId,
       paymentMethodId: body.paymentMethodId,
       recurringTemplateVersionId: null,
-      note: body.note ?? null,
+      description: body.description,
+      additionalNotes: body.additionalNotes ?? null,
     }
     return HttpResponse.json(updated)
   }),

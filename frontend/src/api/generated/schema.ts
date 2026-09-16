@@ -178,7 +178,8 @@ export interface components {
             accountId: string;
             /** Format: uuid */
             paymentMethodId: string;
-            note?: string;
+            description: string;
+            additionalNotes?: string;
         };
         TransactionResponse: {
             /** Format: uuid */
@@ -196,7 +197,8 @@ export interface components {
             paymentMethodId?: string;
             /** Format: uuid */
             recurringTemplateVersionId?: string;
-            note?: string;
+            description?: string;
+            additionalNotes?: string;
         };
         CreatePaymentMethodRequest: {
             name: string;
@@ -252,7 +254,8 @@ export interface components {
             accountId: string;
             /** Format: uuid */
             paymentMethodId: string;
-            note?: string;
+            description: string;
+            additionalNotes?: string;
         };
         UpdatePaymentMethodRequest: {
             name: string;

@@ -78,7 +78,7 @@ export function AccountTransactionList({ accountId }: AccountTransactionListProp
               <TableCell>Category</TableCell>
               <TableCell>Payment Method</TableCell>
               <TableCell align="right">Amount</TableCell>
-              <TableCell>Note</TableCell>
+              <TableCell>Description</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -105,7 +105,7 @@ export function AccountTransactionList({ accountId }: AccountTransactionListProp
                   {transaction.type === 'EXPENSE' ? '-' : '+'}
                   {transaction.amount.toFixed(2)}
                 </TableCell>
-                <TableCell>{transaction.note ?? '—'}</TableCell>
+                <TableCell>{transaction.description}</TableCell>
               </TableRow>
             ))}
           </TableBody>

@@ -50,7 +50,7 @@ describe('transactions API client', () => {
       categoryId: 'cat-1',
       accountId: 'acct-1',
       paymentMethodId: 'pm-1',
-      note: 'Test',
+      description: 'Test',
     })
 
     expect(created).toMatchObject({ date: '2026-04-01', amount: 25, type: 'EXPENSE' })
@@ -66,6 +66,7 @@ describe('transactions API client', () => {
       categoryId: 'cat-1',
       accountId: 'acct-2',
       paymentMethodId: 'pm-1',
+      description: 'Test',
     }).catch((err: unknown) => err)
 
     expect(error).toBeInstanceOf(ApiError)
@@ -80,14 +81,14 @@ describe('transactions API client', () => {
       categoryId: 'cat-2',
       accountId: 'acct-1',
       paymentMethodId: 'pm-2',
-      note: 'Edited',
+      description: 'Edited',
     })
 
     expect(updated).toMatchObject({
       id: seedTransactions[0].id,
       date: '2026-05-01',
       amount: 99,
-      note: 'Edited',
+      description: 'Edited',
     })
   })
 
