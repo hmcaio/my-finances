@@ -119,7 +119,10 @@ export const recurringTemplatesHandlers = [
     })
   }),
 
-  http.delete(`${RECURRING_TEMPLATES_URL}/pending/:id`, () => new HttpResponse(null, { status: 204 })),
+  http.delete(
+    `${RECURRING_TEMPLATES_URL}/pending/:id`,
+    () => new HttpResponse(null, { status: 204 }),
+  ),
 ]
 
 /**

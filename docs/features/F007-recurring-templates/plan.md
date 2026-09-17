@@ -14,9 +14,9 @@
 - [x] REST controllers + DTOs.
 
 ## Frontend
-- [ ] `src/api/recurringTemplates.ts`.
-- [ ] `src/features/recurringTemplates` — settings list, create/edit-cap forms, stop/reactivate.
-- [ ] Pending-occurrences widget (confirm with pre-filled/overridable transaction form, dismiss).
+- [x] `src/api/recurringTemplates.ts`.
+- [x] `src/features/recurringTemplates` — settings list, create/edit-cap forms, stop/reactivate.
+- [x] Pending-occurrences widget (confirm with pre-filled/overridable transaction form, dismiss).
 
 ## Verification
 - [ ] Create a template, confirm a pending occurrence generates on/after its day-of-month.

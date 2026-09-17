@@ -86,9 +86,7 @@ describe('recurringTemplates API client', () => {
   })
 
   it('getPendingRecurringOccurrences returns the seeded list', async () => {
-    await expect(getPendingRecurringOccurrences()).resolves.toEqual(
-      seedPendingRecurringOccurrences,
-    )
+    await expect(getPendingRecurringOccurrences()).resolves.toEqual(seedPendingRecurringOccurrences)
   })
 
   it('confirmPendingRecurringOccurrence posts overrides and returns the created transaction', async () => {
