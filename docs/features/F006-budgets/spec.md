@@ -19,7 +19,7 @@ Versioned monthly caps per expense category, and budget-vs-actual reporting usin
 ### Persistence
 - `BudgetJpaEntity extends AuditableEntity`: table `budgets` (`id uuid pk`, `category_id uuid not null unique references categories`).
 - `BudgetVersionJpaEntity extends AuditableEntity`: table `budget_versions` (`id uuid pk`, `budget_id uuid not null references budgets`, `monthly_cap numeric not null`, `effective_from date not null` — stored as the first day of the month, unique constraint on `(budget_id, effective_from)`).
-- Migration `V6__budgets.sql`.
+- Migration `V8__budgets.sql`, not `V6` as originally planned above — F004 (transactions), which landed after this spec was written, already claimed both `V5` (its main table) and `V6` (its description/additional_notes follow-up), and F005 (transfers) then claimed `V7` — same renumbering story as F003's V3→V4 and F004/F005's own V4→V5/V5→V7 notes in their spec.md files.
 
 ### API
 - `POST /api/budgets` — create for a category (first `BudgetVersion` included in the payload).
