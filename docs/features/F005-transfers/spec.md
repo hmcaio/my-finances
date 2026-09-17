@@ -19,7 +19,7 @@
 
 ### Persistence
 - `TransferJpaEntity extends AuditableEntity`; table `transfers`: `id uuid pk`, `date date not null`, `from_account_id uuid not null references accounts`, `to_account_id uuid not null references accounts`, `amount numeric not null`, `description varchar(150) not null`, `additional_notes varchar(500)`, plus audit columns. Check constraint `from_account_id <> to_account_id`.
-- Migration `V5__transfers.sql`.
+- Migration `V7__transfers.sql` (not `V5` as originally planned — F004, which landed after this spec was written, already claimed `V5__transactions.sql` and `V6__transaction_description_and_notes.sql` by the time this feature was built; see V7's own migration header for the full story).
 
 ### API
 - `POST /api/transfers`, `GET /api/transfers/{id}`, `PATCH /api/transfers/{id}`, `DELETE /api/transfers/{id}`.

@@ -12,6 +12,7 @@ import {
 import { getAccount, type Account, type AccountType } from '../../api/accounts'
 import { ApiError } from '../../api/apiError'
 import { AccountTransactionList } from '../transactions/AccountTransactionList'
+import { AccountTransferList } from '../transfers/AccountTransferList'
 
 const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
   CHECKING: 'Checking',
@@ -22,9 +23,10 @@ const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
 
 /**
  * Account detail view (F003 spec): running balance plus account fields, plus F004's transaction
- * history embedded and pre-filtered to this account (F004 spec: "Account detail view (F003)
- * embeds this feature's list, pre-filtered to that account"). Transfer history (F005) still has no
- * source to embed yet.
+ * history and F005's transfer history, both embedded and pre-filtered to this account (F004 spec:
+ * "Account detail view (F003) embeds this feature's list, pre-filtered to that account"; F005
+ * spec: "Account detail view (F003) embeds transfer history alongside transaction history, both
+ * contributing to the same running-balance timeline").
  */
 export function AccountDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -81,14 +83,18 @@ export function AccountDetailPage() {
             </Typography>
           </Paper>
 
-          <Paper variant="outlined" sx={{ p: 3 }}>
+          <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
             <Typography variant="h6" gutterBottom>
-              Transaction &amp; transfer history
+              Transactions
             </Typography>
             <AccountTransactionList accountId={account.id} />
-            <Typography color="text.secondary" sx={{ mt: 2 }}>
-              Transfer history (F005) isn't available yet.
+          </Paper>
+
+          <Paper variant="outlined" sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Transfers
             </Typography>
+            <AccountTransferList accountId={account.id} />
           </Paper>
         </>
       )}

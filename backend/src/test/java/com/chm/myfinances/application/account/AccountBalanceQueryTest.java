@@ -6,22 +6,29 @@ import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.transaction.Transaction;
+import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.testsupport.FakeTransactionRepository;
+import com.chm.myfinances.testsupport.FakeTransferRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 /**
- * Tests for {@link AccountBalanceQuery} (F003 spec, extended by F004): opening balance plus real
- * transaction activity, with the sign of each transaction's contribution derived from its type and
- * the account's own type (PRD S5.3/S5.4) - an expense reduces an asset account's balance and
- * increases a credit card account's owed balance; income does the reverse.
+ * Tests for {@link AccountBalanceQuery} (F003 spec, extended by F004 and F005): opening balance
+ * plus real transaction and transfer activity. A transaction's contribution is signed by its type
+ * and the account's own type (PRD S5.3/S5.4) - an expense reduces an asset account's balance and
+ * increases a credit card account's owed balance; income does the reverse. A transfer's
+ * contribution (PRD S5.5) is simpler: the source account's balance always decreases by the transfer
+ * amount; the destination account's balance increases if it's an asset account, or its owed amount
+ * decreases if it's a credit card account.
  */
 class AccountBalanceQueryTest {
 
   private final FakeTransactionRepository transactionRepository = new FakeTransactionRepository();
-  private final AccountBalanceQuery query = new AccountBalanceQuery(transactionRepository);
+  private final FakeTransferRepository transferRepository = new FakeTransferRepository();
+  private final AccountBalanceQuery query =
+      new AccountBalanceQuery(transactionRepository, transferRepository);
 
   private static Transaction transactionOn(
       LocalDate date, BigDecimal amount, CategoryType type, UUID accountId) {
@@ -36,6 +43,12 @@ class AccountBalanceQueryTest {
         null,
         "Test transaction",
         null);
+  }
+
+  private static Transfer transferOn(
+      LocalDate date, BigDecimal amount, UUID fromAccountId, UUID toAccountId) {
+    return Transfer.create(
+        UUID.randomUUID(), date, fromAccountId, toAccountId, amount, "Test transfer", null);
   }
 
   @Test
@@ -174,6 +187,103 @@ class AccountBalanceQueryTest {
             UUID.randomUUID()));
 
     BigDecimal balance = query.balanceAsOf(account, LocalDate.of(2026, 1, 31));
+
+    assertThat(balance).isEqualByComparingTo("100.00");
+  }
+
+  @Test
+  void balanceAsOfOnAssetToAssetTransferDecreasesSourceAndIncreasesDestination() {
+    Account checking =
+        Account.create(
+            UUID.randomUUID(),
+            "Checking",
+            null,
+            AccountType.CHECKING,
+            new BigDecimal("100.00"),
+            LocalDate.of(2026, 1, 1));
+    Account savings =
+        Account.create(
+            UUID.randomUUID(),
+            "Savings",
+            null,
+            AccountType.SAVINGS,
+            new BigDecimal("50.00"),
+            LocalDate.of(2026, 1, 1));
+    transferRepository.save(
+        transferOn(
+            LocalDate.of(2026, 1, 10), new BigDecimal("30.00"), checking.getId(), savings.getId()));
+
+    BigDecimal checkingBalance = query.balanceAsOf(checking, LocalDate.of(2026, 1, 31));
+    BigDecimal savingsBalance = query.balanceAsOf(savings, LocalDate.of(2026, 1, 31));
+
+    // Source decreases: 100 - 30 = 70. Destination (asset) increases: 50 + 30 = 80.
+    assertThat(checkingBalance).isEqualByComparingTo("70.00");
+    assertThat(savingsBalance).isEqualByComparingTo("80.00");
+  }
+
+  @Test
+  void balanceAsOfOnAssetToCreditCardTransferDecreasesSourceAndDecreasesDestinationOwedAmount() {
+    Account checking =
+        Account.create(
+            UUID.randomUUID(),
+            "Checking",
+            null,
+            AccountType.CHECKING,
+            new BigDecimal("200.00"),
+            LocalDate.of(2026, 1, 1));
+    Account creditCard =
+        Account.create(
+            UUID.randomUUID(),
+            "Nubank",
+            "Nubank",
+            AccountType.CREDIT_CARD,
+            new BigDecimal("150.00"),
+            LocalDate.of(2026, 1, 1));
+    transferRepository.save(
+        transferOn(
+            LocalDate.of(2026, 1, 10),
+            new BigDecimal("100.00"),
+            checking.getId(),
+            creditCard.getId()));
+
+    BigDecimal checkingBalance = query.balanceAsOf(checking, LocalDate.of(2026, 1, 31));
+    BigDecimal creditCardBalance = query.balanceAsOf(creditCard, LocalDate.of(2026, 1, 31));
+
+    // Source decreases: 200 - 100 = 100. Destination (credit card) owed amount decreases:
+    // 150 - 100 = 50. No net-worth impact: -100 (asset) + 100 (liability reduction) = 0.
+    assertThat(checkingBalance).isEqualByComparingTo("100.00");
+    assertThat(creditCardBalance).isEqualByComparingTo("50.00");
+  }
+
+  @Test
+  void balanceAsOfExcludesTransfersAfterAsOfDateAndOnOtherAccounts() {
+    Account checking =
+        Account.create(
+            UUID.randomUUID(),
+            "Checking",
+            null,
+            AccountType.CHECKING,
+            new BigDecimal("100.00"),
+            LocalDate.of(2026, 1, 1));
+    Account savings =
+        Account.create(
+            UUID.randomUUID(),
+            "Savings",
+            null,
+            AccountType.SAVINGS,
+            BigDecimal.ZERO,
+            LocalDate.of(2026, 1, 1));
+    transferRepository.save(
+        transferOn(
+            LocalDate.of(2026, 2, 1), new BigDecimal("999.00"), checking.getId(), savings.getId()));
+    transferRepository.save(
+        transferOn(
+            LocalDate.of(2026, 1, 5),
+            new BigDecimal("40.00"),
+            UUID.randomUUID(),
+            UUID.randomUUID()));
+
+    BigDecimal balance = query.balanceAsOf(checking, LocalDate.of(2026, 1, 31));
 
     assertThat(balance).isEqualByComparingTo("100.00");
   }
