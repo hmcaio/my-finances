@@ -110,6 +110,39 @@ class TransactionServiceTest {
   }
 
   @Test
+  void createWithARecurringTemplateVersionIdLinksTheResultingTransactionToIt() {
+    UUID recurringTemplateVersionId = UUID.randomUUID();
+
+    Transaction created =
+        service.create(
+            LocalDate.now(),
+            BigDecimal.TEN,
+            expenseCategory.getId(),
+            openAccount.getId(),
+            paymentMethod.getId(),
+            recurringTemplateVersionId,
+            "Rent",
+            null);
+
+    assertThat(created.getRecurringTemplateVersionId()).isEqualTo(recurringTemplateVersionId);
+  }
+
+  @Test
+  void createWithoutARecurringTemplateVersionIdLeavesItNull() {
+    Transaction created =
+        service.create(
+            LocalDate.now(),
+            BigDecimal.TEN,
+            expenseCategory.getId(),
+            openAccount.getId(),
+            paymentMethod.getId(),
+            "Groceries",
+            null);
+
+    assertThat(created.getRecurringTemplateVersionId()).isNull();
+  }
+
+  @Test
   void createDerivesIncomeTypeFromAnIncomeCategory() {
     Transaction created =
         service.create(

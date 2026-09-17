@@ -61,6 +61,26 @@ public class TransactionService {
       UUID paymentMethodId,
       String description,
       String additionalNotes) {
+    return create(
+        date, amount, categoryId, accountId, paymentMethodId, null, description, additionalNotes);
+  }
+
+  /**
+   * Same as {@link #create(LocalDate, BigDecimal, UUID, UUID, UUID, String, String)}, but for a
+   * transaction originating from a confirmed F007 {@code PendingRecurringOccurrence} - {@code
+   * recurringTemplateVersionId} links it back to the specific {@code RecurringTemplateVersion} that
+   * generated it (F007 spec's confirm flow, PRD S5.7). {@code RecurringTemplateService} calls this
+   * overload instead of duplicating category/account/payment-method validation.
+   */
+  public Transaction create(
+      LocalDate date,
+      BigDecimal amount,
+      UUID categoryId,
+      UUID accountId,
+      UUID paymentMethodId,
+      UUID recurringTemplateVersionId,
+      String description,
+      String additionalNotes) {
     Category category = requireCategory(categoryId);
     Account account = requireOpenAccount(accountId);
     requirePaymentMethod(paymentMethodId);
@@ -74,7 +94,7 @@ public class TransactionService {
             category.getType(),
             account.getId(),
             paymentMethodId,
-            null,
+            recurringTemplateVersionId,
             description,
             additionalNotes);
     return transactionRepository.save(transaction);
