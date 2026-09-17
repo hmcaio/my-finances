@@ -36,7 +36,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/payment-methods": {
+    "/api/recurring-templates": {
         parameters: {
             query?: never;
             header?: never;
@@ -52,7 +52,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/categories": {
+    "/api/recurring-templates/{id}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["stop"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recurring-templates/{id}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reactivate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recurring-templates/pending/{id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/payment-methods": {
         parameters: {
             query?: never;
             header?: never;
@@ -68,7 +116,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/budgets": {
+    "/api/categories": {
         parameters: {
             query?: never;
             header?: never;
@@ -84,7 +132,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/accounts": {
+    "/api/budgets": {
         parameters: {
             query?: never;
             header?: never;
@@ -94,6 +142,22 @@ export interface paths {
         get: operations["list_5"];
         put?: never;
         post: operations["create_5"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_6"];
+        put?: never;
+        post: operations["create_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -148,6 +212,22 @@ export interface paths {
         patch: operations["edit_1"];
         trace?: never;
     };
+    "/api/recurring-templates/{id}/cap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["setCap"];
+        trace?: never;
+    };
     "/api/payment-methods/{id}": {
         parameters: {
             query?: never;
@@ -193,7 +273,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch: operations["setCap"];
+        patch: operations["setCap_1"];
         trace?: never;
     };
     "/api/accounts/{id}": {
@@ -210,6 +290,22 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["edit_2"];
+        trace?: never;
+    };
+    "/api/recurring-templates/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["pending"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/health": {
@@ -239,6 +335,22 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recurring-templates/pending/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["dismiss"];
         options?: never;
         head?: never;
         patch?: never;
@@ -301,6 +413,42 @@ export interface components {
             paymentMethodId?: string;
             /** Format: uuid */
             recurringTemplateVersionId?: string;
+            description?: string;
+            additionalNotes?: string;
+        };
+        CreateRecurringTemplateRequest: {
+            /** Format: uuid */
+            categoryId: string;
+            /** Format: uuid */
+            accountId: string;
+            description: string;
+            amount: number;
+            /** Format: int32 */
+            dayOfMonth?: number;
+            effectiveFrom: string;
+        };
+        RecurringTemplateResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            categoryId?: string;
+            /** Format: uuid */
+            accountId?: string;
+            description?: string;
+            active?: boolean;
+            currentAmount?: number;
+            /** Format: int32 */
+            currentDayOfMonth?: number;
+            currentEffectiveFrom?: string;
+        };
+        ConfirmPendingOccurrenceRequest: {
+            amount?: number;
+            /** Format: date */
+            date?: string;
+            /** Format: uuid */
+            accountId?: string;
+            /** Format: uuid */
+            paymentMethodId: string;
             description?: string;
             additionalNotes?: string;
         };
@@ -386,6 +534,12 @@ export interface components {
             description: string;
             additionalNotes?: string;
         };
+        UpdateRecurringTemplateCapRequest: {
+            amount: number;
+            /** Format: int32 */
+            dayOfMonth?: number;
+            effectiveFrom: string;
+        };
         UpdatePaymentMethodRequest: {
             name: string;
         };
@@ -424,6 +578,17 @@ export interface components {
         PagedModelTransactionResponse: {
             content?: components["schemas"]["TransactionResponse"][];
             page?: components["schemas"]["PageMetadata"];
+        };
+        PendingRecurringOccurrenceResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            templateId?: string;
+            /** Format: uuid */
+            templateVersionId?: string;
+            /** Format: date */
+            dueDate?: string;
+            amount?: number;
         };
         BudgetReportLineResponse: {
             /** Format: uuid */
@@ -555,12 +720,126 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PaymentMethodResponse"][];
+                    "*/*": components["schemas"]["RecurringTemplateResponse"][];
                 };
             };
         };
     };
     create_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateRecurringTemplateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RecurringTemplateResponse"];
+                };
+            };
+        };
+    };
+    stop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RecurringTemplateResponse"];
+                };
+            };
+        };
+    };
+    reactivate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RecurringTemplateResponse"];
+                };
+            };
+        };
+    };
+    confirm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmPendingOccurrenceRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TransactionResponse"];
+                };
+            };
+        };
+    };
+    list_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PaymentMethodResponse"][];
+                };
+            };
+        };
+    };
+    create_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -584,7 +863,7 @@ export interface operations {
             };
         };
     };
-    list_3: {
+    list_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -604,7 +883,7 @@ export interface operations {
             };
         };
     };
-    create_3: {
+    create_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -628,7 +907,7 @@ export interface operations {
             };
         };
     };
-    list_4: {
+    list_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -648,7 +927,7 @@ export interface operations {
             };
         };
     };
-    create_4: {
+    create_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -672,7 +951,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_6: {
         parameters: {
             query?: {
                 includeClosed?: boolean;
@@ -694,7 +973,7 @@ export interface operations {
             };
         };
     };
-    create_5: {
+    create_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -876,6 +1155,32 @@ export interface operations {
             };
         };
     };
+    setCap: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateRecurringTemplateCapRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RecurringTemplateResponse"];
+                };
+            };
+        };
+    };
     delete_2: {
         parameters: {
             query?: never;
@@ -968,7 +1273,7 @@ export interface operations {
             };
         };
     };
-    setCap: {
+    setCap_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -1044,6 +1349,26 @@ export interface operations {
             };
         };
     };
+    pending: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PendingRecurringOccurrenceResponse"][];
+                };
+            };
+        };
+    };
     health: {
         parameters: {
             query?: never;
@@ -1085,6 +1410,26 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["BudgetReportLineResponse"][];
                 };
+            };
+        };
+    };
+    dismiss: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
