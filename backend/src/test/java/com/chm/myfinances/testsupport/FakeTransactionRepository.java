@@ -61,6 +61,13 @@ public final class FakeTransactionRepository implements TransactionRepository {
             .sorted(Comparator.comparing(Transaction::getDate).reversed())
             .toList();
 
+    // Pageable.unpaged() (used by F006's BudgetReportQuery, which wants every matching
+    // transaction rather than one page of them) has no offset/page size to apply - same
+    // "return everything" behavior Spring Data JPA gives it for real.
+    if (pageable.isUnpaged()) {
+      return new PageImpl<>(filtered);
+    }
+
     int start = (int) pageable.getOffset();
     int end = Math.min(start + pageable.getPageSize(), filtered.size());
     List<Transaction> pageContent =
