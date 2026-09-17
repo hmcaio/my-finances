@@ -105,6 +105,17 @@ public class RecurringTemplateService {
   }
 
   /**
+   * Looks up a specific {@link RecurringTemplateVersion} by id - used by the web layer to render a
+   * {@link PendingRecurringOccurrence}'s amount ({@code RecurringTemplateController}) without
+   * exposing the repository port directly to that layer.
+   */
+  public RecurringTemplateVersion findVersionById(UUID versionId) {
+    return versionRepository
+        .findById(versionId)
+        .orElseThrow(() -> new RecurringTemplateNotFoundException(versionId));
+  }
+
+  /**
    * Sets the amount/day-of-month effective from {@code effectiveFrom} (F007 spec's {@code PATCH
    * .../cap}): replaces the existing version for that exact month if one already exists, otherwise
    * creates a brand-new forward-only version - identical rule to F006's {@code

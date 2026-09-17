@@ -11,7 +11,7 @@
 - [x] Wire catch-up generation to run on startup and/or lazily before serving recurring-related requests.
 - [x] Write tests for the confirm flow (an override at confirmation time doesn't create a new template version), then implement application services: create, edit (new version), stop, reactivate, list pending, confirm (creates a `Transaction` via F004's service, with override support), dismiss pending.
 - [x] Subscribe to F003's account-closed event/port to auto-deactivate matching templates.
-- [ ] REST controllers + DTOs.
+- [x] REST controllers + DTOs.
 
 ## Frontend
 - [ ] `src/api/recurringTemplates.ts`.

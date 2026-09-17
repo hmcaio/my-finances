@@ -1,0 +1,292 @@
+package com.chm.myfinances.infrastructure.web.recurringtemplate;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.chm.myfinances.TestcontainersConfiguration;
+import com.chm.myfinances.domain.account.Account;
+import com.chm.myfinances.domain.account.AccountRepository;
+import com.chm.myfinances.domain.account.AccountType;
+import com.chm.myfinances.domain.category.Category;
+import com.chm.myfinances.domain.category.CategoryRepository;
+import com.chm.myfinances.domain.category.CategoryType;
+import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
+import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.WebApplicationContext;
+
+/**
+ * REST-layer integration test for {@link RecurringTemplateController}, against a real
+ * Testcontainers Postgres (ADR 0010). Hand-built {@link MockMvc} - same pattern as F006's {@code
+ * BudgetControllerTest}.
+ */
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
+@Import(TestcontainersConfiguration.class)
+@Transactional
+class RecurringTemplateControllerTest {
+
+  @Autowired private WebApplicationContext webApplicationContext;
+  @Autowired private CategoryRepository categoryRepository;
+  @Autowired private AccountRepository accountRepository;
+  @Autowired private PaymentMethodRepository paymentMethodRepository;
+
+  private final ObjectMapper objectMapper = new ObjectMapper();
+
+  private MockMvc mockMvc;
+
+  private UUID categoryId;
+  private UUID accountId;
+  private UUID paymentMethodId;
+
+  @BeforeEach
+  void setUp() {
+    mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+
+    categoryId =
+        categoryRepository
+            .save(Category.create(UUID.randomUUID(), "Rent", CategoryType.EXPENSE))
+            .getId();
+    accountId =
+        accountRepository
+            .save(
+                Account.create(
+                    UUID.randomUUID(),
+                    "Checking",
+                    null,
+                    AccountType.CHECKING,
+                    BigDecimal.ZERO,
+                    LocalDate.now()))
+            .getId();
+    paymentMethodId =
+        paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), "Debit Card")).getId();
+  }
+
+  private String createRequestBody(String effectiveFrom) throws Exception {
+    Map<String, Object> body = new HashMap<>();
+    body.put("categoryId", categoryId.toString());
+    body.put("accountId", accountId.toString());
+    body.put("description", "Rent");
+    body.put("amount", "1500.00");
+    body.put("dayOfMonth", 5);
+    body.put("effectiveFrom", effectiveFrom);
+    return objectMapper.writeValueAsString(body);
+  }
+
+  private String createTemplate(String effectiveFrom) throws Exception {
+    MvcResult result =
+        mockMvc
+            .perform(
+                post("/api/recurring-templates")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(createRequestBody(effectiveFrom)))
+            .andExpect(status().isCreated())
+            .andReturn();
+    return objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asText();
+  }
+
+  @Test
+  void createReturnsTheCreatedTemplateWithItsCurrentVersion() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/recurring-templates")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(createRequestBody(YearMonth.now().toString())))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.categoryId").value(categoryId.toString()))
+        .andExpect(jsonPath("$.accountId").value(accountId.toString()))
+        .andExpect(jsonPath("$.active").value(true))
+        .andExpect(jsonPath("$.currentAmount").value(1500.00))
+        .andExpect(jsonPath("$.currentDayOfMonth").value(5));
+  }
+
+  @Test
+  void createRejectsAnUnknownCategoryWith404() throws Exception {
+    Map<String, Object> body = new HashMap<>();
+    body.put("categoryId", UUID.randomUUID().toString());
+    body.put("accountId", accountId.toString());
+    body.put("description", "Rent");
+    body.put("amount", "1500.00");
+    body.put("dayOfMonth", 5);
+    body.put("effectiveFrom", YearMonth.now().toString());
+
+    mockMvc
+        .perform(
+            post("/api/recurring-templates")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void listReturnsEveryTemplate() throws Exception {
+    createTemplate(YearMonth.now().toString());
+
+    mockMvc
+        .perform(get("/api/recurring-templates"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].categoryId").value(categoryId.toString()));
+  }
+
+  @Test
+  void setCapForANewMonthCreatesAnAdditionalVersion() throws Exception {
+    String id = createTemplate("2020-01");
+    String patchBody =
+        objectMapper.writeValueAsString(
+            Map.of(
+                "amount",
+                "1600.00",
+                "dayOfMonth",
+                10,
+                "effectiveFrom",
+                YearMonth.now().toString()));
+
+    mockMvc
+        .perform(
+            patch("/api/recurring-templates/" + id + "/cap")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(patchBody))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.currentAmount").value(1600.00))
+        .andExpect(jsonPath("$.currentDayOfMonth").value(10));
+  }
+
+  @Test
+  void stopDeactivatesTheTemplate() throws Exception {
+    String id = createTemplate(YearMonth.now().toString());
+
+    mockMvc
+        .perform(post("/api/recurring-templates/" + id + "/stop"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.active").value(false));
+  }
+
+  @Test
+  void reactivateReactivatesAStoppedTemplate() throws Exception {
+    String id = createTemplate(YearMonth.now().toString());
+    mockMvc.perform(post("/api/recurring-templates/" + id + "/stop")).andExpect(status().isOk());
+
+    mockMvc
+        .perform(post("/api/recurring-templates/" + id + "/reactivate"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.active").value(true));
+  }
+
+  @Test
+  void pendingReturnsAGeneratedOccurrenceAfterCatchUp() throws Exception {
+    // effectiveFrom this month with day 5 (today is at least the 6th whenever CI runs this) -
+    // generates exactly one pending occurrence for the current cycle only.
+    createTemplate(YearMonth.now().toString());
+
+    mockMvc
+        .perform(get("/api/recurring-templates/pending"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].amount").value(1500.00));
+  }
+
+  @Test
+  void confirmCreatesATransactionAndRemovesThePendingOccurrence() throws Exception {
+    createTemplate(YearMonth.now().toString());
+    MvcResult pendingResult = mockMvc.perform(get("/api/recurring-templates/pending")).andReturn();
+    String pendingId =
+        objectMapper
+            .readTree(pendingResult.getResponse().getContentAsString())
+            .get(0)
+            .get("id")
+            .asText();
+
+    String confirmBody =
+        objectMapper.writeValueAsString(Map.of("paymentMethodId", paymentMethodId.toString()));
+
+    mockMvc
+        .perform(
+            post("/api/recurring-templates/pending/" + pendingId + "/confirm")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(confirmBody))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.amount").value(1500.00))
+        .andExpect(jsonPath("$.accountId").value(accountId.toString()));
+
+    mockMvc
+        .perform(get("/api/recurring-templates/pending"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$").isEmpty());
+  }
+
+  @Test
+  void confirmWithAnOverriddenAmountUsesTheOverrideNotTheTemplatesAmount() throws Exception {
+    createTemplate(YearMonth.now().toString());
+    MvcResult pendingResult = mockMvc.perform(get("/api/recurring-templates/pending")).andReturn();
+    String pendingId =
+        objectMapper
+            .readTree(pendingResult.getResponse().getContentAsString())
+            .get(0)
+            .get("id")
+            .asText();
+
+    String confirmBody =
+        objectMapper.writeValueAsString(
+            Map.of("paymentMethodId", paymentMethodId.toString(), "amount", "1650.00"));
+
+    mockMvc
+        .perform(
+            post("/api/recurring-templates/pending/" + pendingId + "/confirm")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(confirmBody))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.amount").value(1650.00));
+  }
+
+  @Test
+  void confirmOfUnknownPendingIdReturns404() throws Exception {
+    String confirmBody =
+        objectMapper.writeValueAsString(Map.of("paymentMethodId", paymentMethodId.toString()));
+
+    mockMvc
+        .perform(
+            post("/api/recurring-templates/pending/" + UUID.randomUUID() + "/confirm")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(confirmBody))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void dismissDeletesThePendingOccurrenceWithoutCreatingATransaction() throws Exception {
+    createTemplate(YearMonth.now().toString());
+    MvcResult pendingResult = mockMvc.perform(get("/api/recurring-templates/pending")).andReturn();
+    String pendingId =
+        objectMapper
+            .readTree(pendingResult.getResponse().getContentAsString())
+            .get(0)
+            .get("id")
+            .asText();
+
+    mockMvc
+        .perform(delete("/api/recurring-templates/pending/" + pendingId))
+        .andExpect(status().isNoContent());
+
+    mockMvc
+        .perform(get("/api/recurring-templates/pending"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$").isEmpty());
+  }
+}
