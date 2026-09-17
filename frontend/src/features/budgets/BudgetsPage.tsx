@@ -68,6 +68,12 @@ export function BudgetsPage() {
       .catch((err: unknown) => setError(errorMessage(err)))
   }
 
+  function loadReport(month: string) {
+    getBudgetReport(month)
+      .then(setReport)
+      .catch((err: unknown) => setError(errorMessage(err)))
+  }
+
   useEffect(() => {
     getCategories()
       .then(setCategories)
@@ -76,9 +82,7 @@ export function BudgetsPage() {
   }, [])
 
   useEffect(() => {
-    getBudgetReport(reportMonth)
-      .then(setReport)
-      .catch((err: unknown) => setError(errorMessage(err)))
+    loadReport(reportMonth)
   }, [reportMonth])
 
   const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
@@ -101,6 +105,7 @@ export function BudgetsPage() {
       setBudgets((prev) => [...(prev ?? []), created])
       setNewCategoryId('')
       setNewCap('')
+      if (reportMonth >= currentMonth()) loadReport(reportMonth)
     } catch (err) {
       setError(errorMessage(err))
     } finally {
@@ -129,6 +134,7 @@ export function BudgetsPage() {
       })
       setBudgets((prev) => prev?.map((b) => (b.id === id ? updated : b)) ?? null)
       cancelEditCap()
+      if (reportMonth >= currentMonth()) loadReport(reportMonth)
     } catch (err) {
       setError(errorMessage(err))
     } finally {
