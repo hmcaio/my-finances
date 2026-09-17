@@ -68,7 +68,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/accounts": {
+    "/api/budgets": {
         parameters: {
             query?: never;
             header?: never;
@@ -78,6 +78,22 @@ export interface paths {
         get: operations["list_4"];
         put?: never;
         post: operations["create_4"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_5"];
+        put?: never;
+        post: operations["create_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -164,6 +180,22 @@ export interface paths {
         patch: operations["rename_1"];
         trace?: never;
     };
+    "/api/budgets/{id}/cap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["setCap"];
+        trace?: never;
+    };
     "/api/accounts/{id}": {
         parameters: {
             query?: never;
@@ -188,6 +220,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["health"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/budgets/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["report"];
         put?: never;
         post?: never;
         delete?: never;
@@ -276,6 +324,20 @@ export interface components {
             /** @enum {string} */
             type?: "INCOME" | "EXPENSE";
         };
+        CreateBudgetRequest: {
+            /** Format: uuid */
+            categoryId: string;
+            monthlyCap: number;
+            effectiveFrom: string;
+        };
+        BudgetResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            categoryId?: string;
+            currentCap?: number;
+            currentCapEffectiveFrom?: string;
+        };
         CreateAccountRequest: {
             name: string;
             institution?: string;
@@ -330,6 +392,10 @@ export interface components {
         UpdateCategoryRequest: {
             name: string;
         };
+        UpdateBudgetCapRequest: {
+            monthlyCap: number;
+            effectiveFrom: string;
+        };
         UpdateAccountRequest: {
             name: string;
             institution?: string;
@@ -358,6 +424,12 @@ export interface components {
         PagedModelTransactionResponse: {
             content?: components["schemas"]["TransactionResponse"][];
             page?: components["schemas"]["PageMetadata"];
+        };
+        BudgetReportLineResponse: {
+            /** Format: uuid */
+            categoryId?: string;
+            cap?: number;
+            actual?: number;
         };
     };
     responses: never;
@@ -558,6 +630,50 @@ export interface operations {
     };
     list_4: {
         parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BudgetResponse"][];
+                };
+            };
+        };
+    };
+    create_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateBudgetRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BudgetResponse"];
+                };
+            };
+        };
+    };
+    list_5: {
+        parameters: {
             query?: {
                 includeClosed?: boolean;
             };
@@ -578,7 +694,7 @@ export interface operations {
             };
         };
     };
-    create_4: {
+    create_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -852,6 +968,32 @@ export interface operations {
             };
         };
     };
+    setCap: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateBudgetCapRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BudgetResponse"];
+                };
+            };
+        };
+    };
     get_2: {
         parameters: {
             query?: {
@@ -920,6 +1062,28 @@ export interface operations {
                     "*/*": {
                         [key: string]: Record<string, never>;
                     };
+                };
+            };
+        };
+    };
+    report: {
+        parameters: {
+            query: {
+                month: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BudgetReportLineResponse"][];
                 };
             };
         };

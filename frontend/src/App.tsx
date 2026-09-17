@@ -13,6 +13,7 @@ import { CategoriesPage } from './features/categories/CategoriesPage'
 import { PaymentMethodsPage } from './features/paymentMethods/PaymentMethodsPage'
 import { TransactionsPage } from './features/transactions/TransactionsPage'
 import { TransfersPage } from './features/transfers/TransfersPage'
+import { BudgetsPage } from './features/budgets/BudgetsPage'
 
 function ThemedApp() {
   const { mode } = useColorMode()
@@ -33,7 +34,7 @@ function ThemedApp() {
               <Route path="/accounts" element={<AccountsPage />} />
               <Route path="/accounts/:id" element={<AccountDetailPage />} />
               <Route path="/transfers" element={<TransfersPage />} />
-              <Route path="/budgets" element={<ComingSoon title="Budgets" />} />
+              <Route path="/budgets" element={<BudgetsPage />} />
               <Route path="/recurring" element={<ComingSoon title="Recurring Templates" />} />
               <Route path="/investments" element={<ComingSoon title="Investments" />} />
               <Route path="/settings/categories" element={<CategoriesPage />} />

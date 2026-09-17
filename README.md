@@ -67,10 +67,11 @@ Built:
 - **F003** — account management (`Account` CRUD, types, opening balance, running balance, closing)
 - **F004** — transactions (CRUD, filtered/paginated list, running balance now driven by real activity)
 - **F005** — transfers (`Transfer` between two accounts, e.g. paying a credit card statement from checking, folded into the running balance alongside transactions)
+- **F006** — budgets (`Budget`+`BudgetVersion`, versioned monthly caps per expense category, budget-vs-actual reporting using each month's historically correct cap)
 - **F014** — CI/CD and production packaging
 - **F015** — frontend test tooling (Vitest + React Testing Library + MSW, with real coverage backfilled for F002/F003)
 
-Documented and next up: **F006–F013** (budgets, recurring templates, investments, net worth, onboarding, dashboard, data export) — see [docs/features/](docs/features/) for the full breakdown, in build order, with each feature's spec and its dependencies on the others.
+Documented and next up: **F007–F013** (recurring templates, investments, net worth, onboarding, dashboard, data export) — see [docs/features/](docs/features/) for the full breakdown, in build order, with each feature's spec and its dependencies on the others.
 
 ## Workflow
 
