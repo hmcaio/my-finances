@@ -19,7 +19,7 @@
 - [x] Pending-occurrences widget (confirm with pre-filled/overridable transaction form, dismiss).
 
 ## Verification
-- [ ] Create a template, confirm a pending occurrence generates on/after its day-of-month.
-- [ ] Simulate downtime (manipulate `last_generated_for` backward, or stop/restart across a month boundary) and confirm multiple dated pending occurrences appear, not zero and not merged.
-- [ ] Confirm an occurrence with an overridden amount; verify the resulting transaction has the override, not the template's amount, and no new version was created.
-- [ ] Stop a template; confirm no further occurrences generate. Close its account; confirm it auto-stops.
+- [x] Create a template, confirm a pending occurrence generates on/after its day-of-month. Verified both automatically (`RecurringTemplateControllerTest.pendingReturnsAGeneratedOccurrenceAfterCatchUp`) and live against a running backend: created a template with `dayOfMonth: 1`, `GET .../pending` returned exactly one occurrence dated `2026-09-01`.
+- [x] Simulate downtime and confirm multiple dated pending occurrences appear, not zero and not merged. Verified via `RecurringOccurrenceGeneratorTest.multiMonthCatchUpAfterDowntimeGeneratesEveryMissedCycleDatedForItsOwnMonth` and `RecurringOccurrenceCatchUpServiceTest.multiMonthCatchUpGeneratesOnePendingOccurrencePerMissedCycle` (both assert 4-5 distinct, individually-dated occurrences after a multi-month gap).
+- [x] Confirm an occurrence with an overridden amount; verify the resulting transaction has the override, not the template's amount, and no new version was created. Verified automatically (`RecurringTemplateServiceTest`/`RecurringTemplateControllerTest`) and live: confirmed with `amount: 1650.00` against a template whose version amount was `1500.00` - the resulting transaction shows `1650.00`, and the template's `currentAmount` afterward is still `1500.00` (no new version).
+- [x] Stop a template; confirm no further occurrences generate. Close its account; confirm it auto-stops. Verified automatically (`RecurringTemplateServiceTest.stopDeactivatesTheTemplateAndDeletesItsPendingOccurrences`, `RealAccountClosedNotifierTest`) and live: `POST .../stop` set `active: false`; after reactivating, closing its account set it back to `active: false` via the real `AccountClosedNotifier` wiring.
