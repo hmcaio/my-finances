@@ -3,9 +3,9 @@
 **Depends on**: F001, F002, F003, F004, F015.
 
 ## Backend
-- [ ] Write tests first for `RecurringTemplate`/`RecurringTemplateVersion`'s domain rules: editing amount/day creates a new version rather than mutating one, `close()`/`active` toggling.
-- [ ] Add `domain/recurringtemplate/RecurringTemplate.java`, `RecurringTemplateVersion.java`, `PendingRecurringOccurrence.java`, implementing the above to make those tests pass.
-- [ ] Write tests first for the catch-up generation algorithm as a pure, unit-testable domain/application service (PRD §7.2 TDD emphasis — the highest-value place to apply it): given a template, its versions, `last_generated_for`, and "today", produce the list of cycles to generate. Cover normal monthly tick, multi-month catch-up after downtime, day-of-month clamping (29–31 on short months), version changes mid-catch-up (different past months use different versions), stopped template generates nothing, reactivated template resumes from current version — then implement the algorithm against those tests, before wiring persistence.
+- [x] Write tests first for `RecurringTemplate`/`RecurringTemplateVersion`'s domain rules: editing amount/day creates a new version rather than mutating one, `close()`/`active` toggling.
+- [x] Add `domain/recurringtemplate/RecurringTemplate.java`, `RecurringTemplateVersion.java`, `PendingRecurringOccurrence.java`, implementing the above to make those tests pass.
+- [x] Write tests first for the catch-up generation algorithm as a pure, unit-testable domain/application service (PRD §7.2 TDD emphasis — the highest-value place to apply it): given a template, its versions, `last_generated_for`, and "today", produce the list of cycles to generate. Cover normal monthly tick, multi-month catch-up after downtime, day-of-month clamping (29–31 on short months), version changes mid-catch-up (different past months use different versions), stopped template generates nothing, reactivated template resumes from current version — then implement the algorithm against those tests, before wiring persistence.
 - [ ] Add JPA entities (extend `AuditableEntity`), repositories, adapters for all three tables.
 - [ ] Flyway migration `V7__recurring_templates.sql`, plus the deferred FK on `transactions.recurring_template_version_id`.
 - [ ] Wire catch-up generation to run on startup and/or lazily before serving recurring-related requests.
