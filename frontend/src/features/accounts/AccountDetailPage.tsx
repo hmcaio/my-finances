@@ -10,7 +10,7 @@ import {
   Typography,
 } from '@mui/material'
 import { getAccount, type Account, type AccountType } from '../../api/accounts'
-import { ApiError } from '../../api/apiError'
+import { defaultErrorMessage } from '../../api/apiError'
 import { AccountTransactionList } from '../transactions/AccountTransactionList'
 import { AccountTransferList } from '../transfers/AccountTransferList'
 
@@ -37,7 +37,7 @@ export function AccountDetailPage() {
     if (!id) return
     getAccount(id)
       .then(setAccount)
-      .catch((err: unknown) => setError(errorMessage(err)))
+      .catch((err: unknown) => setError(defaultErrorMessage(err, { 404: 'Account not found.' })))
   }, [id])
 
   return (
@@ -100,10 +100,4 @@ export function AccountDetailPage() {
       )}
     </Box>
   )
-}
-
-function errorMessage(err: unknown): string {
-  if (err instanceof ApiError && err.status === 404) return 'Account not found.'
-  if (err instanceof Error) return err.message
-  return 'Something went wrong.'
 }

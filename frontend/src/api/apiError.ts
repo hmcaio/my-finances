@@ -34,6 +34,26 @@ export async function unwrap<T>(
   }
 }
 
+/**
+ * Shared "turn a caught error into UI-displayable text" fallback, previously copy-pasted (almost
+ * always identically) into nearly every feature page's own local `errorMessage` function. `status`
+ * overrides a specific `ApiError.status` with a friendlier message (e.g. a 404 that means "this
+ * record was deleted elsewhere") - the caller's own message otherwise wins for `ApiError`, and a
+ * generic fallback covers anything that isn't even an `Error`.
+ */
+export function defaultErrorMessage(
+  err: unknown,
+  statusOverrides?: Record<number, string>,
+): string {
+  if (err instanceof ApiError) {
+    const override = statusOverrides?.[err.status]
+    if (override) return override
+    return err.message
+  }
+  if (err instanceof Error) return err.message
+  return 'Something went wrong.'
+}
+
 function toApiError(error: unknown, conflictMessage?: string): ApiError {
   if (isAxiosError(error)) {
     const status = error.response?.status

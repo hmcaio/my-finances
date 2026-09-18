@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  Alert,
   Box,
   Button,
   Dialog,
   DialogActions,
   DialogContent,
-  DialogContentText,
   DialogTitle,
   IconButton,
   MenuItem,
@@ -34,8 +32,11 @@ import {
   type PendingRecurringOccurrence,
   type RecurringTemplate,
 } from '../../api/recurringTemplates'
-import { ApiError } from '../../api/apiError'
-import { nameLookup } from '../transactions/nameLookup'
+import { defaultErrorMessage } from '../../api/apiError'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { ErrorAlert } from '../../components/ErrorAlert'
+import { LoadingTableRow } from '../../components/LoadingTableRow'
+import { nameLookup } from '../../utils/nameLookup'
 
 /**
  * "Upcoming recurring bills" widget (F007 spec, embedded on F012's future dashboard - not built
@@ -69,19 +70,19 @@ export function PendingOccurrencesWidget() {
   useEffect(() => {
     getRecurringTemplates()
       .then(setTemplates)
-      .catch((err: unknown) => setError(errorMessage(err)))
+      .catch((err: unknown) => setError(defaultErrorMessage(err)))
     getCategories()
       .then(setCategories)
-      .catch((err: unknown) => setError(errorMessage(err)))
+      .catch((err: unknown) => setError(defaultErrorMessage(err)))
     getAccounts(false)
       .then(setAccounts)
-      .catch((err: unknown) => setError(errorMessage(err)))
+      .catch((err: unknown) => setError(defaultErrorMessage(err)))
     getPaymentMethods()
       .then(setPaymentMethods)
-      .catch((err: unknown) => setError(errorMessage(err)))
+      .catch((err: unknown) => setError(defaultErrorMessage(err)))
     getPendingRecurringOccurrences()
       .then(setPending)
-      .catch((err: unknown) => setError(errorMessage(err)))
+      .catch((err: unknown) => setError(defaultErrorMessage(err)))
   }, [])
 
   const templateById = useMemo(() => {
@@ -127,7 +128,7 @@ export function PendingOccurrencesWidget() {
       setPending((prev) => prev?.filter((o) => o.id !== confirmTarget.id) ?? null)
       closeConfirm()
     } catch (err) {
-      setError(errorMessage(err))
+      setError(defaultErrorMessage(err))
     } finally {
       setConfirming(false)
     }
@@ -142,7 +143,7 @@ export function PendingOccurrencesWidget() {
       setPending((prev) => prev?.filter((o) => o.id !== dismissTarget.id) ?? null)
       setDismissTarget(null)
     } catch (err) {
-      setError(errorMessage(err))
+      setError(defaultErrorMessage(err))
     } finally {
       setDismissing(false)
     }
@@ -154,11 +155,7 @@ export function PendingOccurrencesWidget() {
         Upcoming recurring bills
       </Typography>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+      <ErrorAlert message={error} onDismiss={() => setError(null)} />
 
       <Paper variant="outlined">
         <TableContainer>
@@ -174,13 +171,7 @@ export function PendingOccurrencesWidget() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {pending === null && (
-                <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    Loading…
-                  </TableCell>
-                </TableRow>
-              )}
+              {pending === null && <LoadingTableRow colSpan={6} variant="text" />}
               {pending?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} align="center">
@@ -289,34 +280,15 @@ export function PendingOccurrencesWidget() {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={dismissTarget !== null} onClose={() => setDismissTarget(null)}>
-        <DialogTitle>Dismiss this occurrence?</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            No transaction will be created for it. This can't be undone, but the next catch-up run
-            won't regenerate it either.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDismissTarget(null)} disabled={dismissing}>
-            Cancel
-          </Button>
-          <Button
-            onClick={() => void handleDismiss()}
-            color="error"
-            disabled={dismissing}
-            autoFocus
-          >
-            Dismiss
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <ConfirmDialog
+        open={dismissTarget !== null}
+        title="Dismiss this occurrence?"
+        body="No transaction will be created for it. This can't be undone, but the next catch-up run won't regenerate it either."
+        confirmLabel="Dismiss"
+        loading={dismissing}
+        onConfirm={() => void handleDismiss()}
+        onCancel={() => setDismissTarget(null)}
+      />
     </Box>
   )
-}
-
-function errorMessage(err: unknown): string {
-  if (err instanceof ApiError) return err.message
-  if (err instanceof Error) return err.message
-  return 'Something went wrong.'
 }

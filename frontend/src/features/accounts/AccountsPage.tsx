@@ -1,15 +1,8 @@
 import { useEffect, useState } from 'react'
 import {
-  Alert,
   Box,
   Button,
   Chip,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
   FormControlLabel,
   IconButton,
   Link as MuiLink,
@@ -27,9 +20,6 @@ import {
   Typography,
 } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
-import CheckIcon from '@mui/icons-material/Check'
-import CloseIcon from '@mui/icons-material/Close'
-import EditIcon from '@mui/icons-material/Edit'
 import LockIcon from '@mui/icons-material/Lock'
 import {
   closeAccount,
@@ -39,7 +29,11 @@ import {
   type Account,
   type AccountType,
 } from '../../api/accounts'
-import { ApiError } from '../../api/apiError'
+import { defaultErrorMessage } from '../../api/apiError'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { ErrorAlert } from '../../components/ErrorAlert'
+import { InlineEditActions } from '../../components/InlineEditActions'
+import { LoadingTableRow } from '../../components/LoadingTableRow'
 
 const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
   CHECKING: 'Checking',
@@ -79,7 +73,7 @@ export function AccountsPage() {
   function load(includeClosedAccounts: boolean) {
     getAccounts(includeClosedAccounts)
       .then(setAccounts)
-      .catch((err: unknown) => setError(errorMessage(err)))
+      .catch((err: unknown) => setError(defaultErrorMessage(err)))
   }
 
   useEffect(() => {
@@ -104,7 +98,7 @@ export function AccountsPage() {
       setNewType('CHECKING')
       setNewOpeningBalance('0')
     } catch (err) {
-      setError(errorMessage(err))
+      setError(defaultErrorMessage(err))
     } finally {
       setAdding(false)
     }
@@ -133,7 +127,7 @@ export function AccountsPage() {
       setAccounts((prev) => prev?.map((a) => (a.id === id ? updated : a)) ?? null)
       cancelEdit()
     } catch (err) {
-      setError(errorMessage(err))
+      setError(defaultErrorMessage(err))
     }
   }
 
@@ -150,7 +144,7 @@ export function AccountsPage() {
       )
       setCloseTarget(null)
     } catch (err) {
-      setError(errorMessage(err))
+      setError(defaultErrorMessage(err))
     } finally {
       setClosing(false)
     }
@@ -166,11 +160,7 @@ export function AccountsPage() {
         once an account is created - name and institution can still be corrected any time.
       </Typography>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+      <ErrorAlert message={error} onDismiss={() => setError(null)} />
 
       <FormControlLabel
         control={
@@ -194,13 +184,7 @@ export function AccountsPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {accounts === null && (
-                <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    <CircularProgress size={20} />
-                  </TableCell>
-                </TableRow>
-              )}
+              {accounts === null && <LoadingTableRow colSpan={6} />}
               {accounts?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} align="center">
@@ -259,37 +243,22 @@ export function AccountsPage() {
                     )}
                   </TableCell>
                   <TableCell align="right">
-                    {editingId === account.id ? (
-                      <>
-                        <IconButton
-                          size="small"
-                          aria-label="Save"
-                          onClick={() => void saveEdit(account.id)}
-                        >
-                          <CheckIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton size="small" aria-label="Cancel" onClick={cancelEdit}>
-                          <CloseIcon fontSize="small" />
-                        </IconButton>
-                      </>
-                    ) : (
-                      <>
-                        <IconButton
-                          size="small"
-                          aria-label="Edit"
-                          onClick={() => startEdit(account)}
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          aria-label="Close"
-                          disabled={account.closed}
-                          onClick={() => setCloseTarget(account)}
-                        >
-                          <LockIcon fontSize="small" />
-                        </IconButton>
-                      </>
+                    <InlineEditActions
+                      editing={editingId === account.id}
+                      onEdit={() => startEdit(account)}
+                      onSave={() => void saveEdit(account.id)}
+                      onCancel={cancelEdit}
+                      editLabel="Edit"
+                    />
+                    {editingId !== account.id && (
+                      <IconButton
+                        size="small"
+                        aria-label="Close"
+                        disabled={account.closed}
+                        onClick={() => setCloseTarget(account)}
+                      >
+                        <LockIcon fontSize="small" />
+                      </IconButton>
                     )}
                   </TableCell>
                 </TableRow>
@@ -353,31 +322,22 @@ export function AccountsPage() {
         </Box>
       </Paper>
 
-      <Dialog open={closeTarget !== null} onClose={() => setCloseTarget(null)}>
-        <DialogTitle>Close {closeTarget?.name}?</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
+      <ConfirmDialog
+        open={closeTarget !== null}
+        title={`Close ${closeTarget?.name}?`}
+        body={
+          <>
             Closing an account is not reversible through this app - there is no "reopen" action. The
             account will drop out of "create new" pickers and the live balances view, but its
             history stays visible. Any recurring bills posting to this account will stop generating
             new occurrences.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setCloseTarget(null)} disabled={closing}>
-            Cancel
-          </Button>
-          <Button onClick={() => void confirmClose()} color="error" disabled={closing} autoFocus>
-            Close account
-          </Button>
-        </DialogActions>
-      </Dialog>
+          </>
+        }
+        confirmLabel="Close account"
+        loading={closing}
+        onConfirm={() => void confirmClose()}
+        onCancel={() => setCloseTarget(null)}
+      />
     </Box>
   )
-}
-
-function errorMessage(err: unknown): string {
-  if (err instanceof ApiError) return err.message
-  if (err instanceof Error) return err.message
-  return 'Something went wrong.'
 }

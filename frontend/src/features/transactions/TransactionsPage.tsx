@@ -1,13 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  Alert,
   Box,
   Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
   IconButton,
   MenuItem,
   Paper,
@@ -34,8 +28,12 @@ import {
   type Transaction,
   type TransactionFilter,
 } from '../../api/transactions'
-import { ApiError } from '../../api/apiError'
-import { nameLookup } from './nameLookup'
+import { defaultErrorMessage } from '../../api/apiError'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { ErrorAlert } from '../../components/ErrorAlert'
+import { LoadingTableRow } from '../../components/LoadingTableRow'
+import { PaginationControls } from '../../components/PaginationControls'
+import { nameLookup } from '../../utils/nameLookup'
 
 const EMPTY_FORM = {
   date: new Date().toISOString().slice(0, 10),
@@ -78,13 +76,13 @@ export function TransactionsPage() {
   useEffect(() => {
     getCategories()
       .then(setCategories)
-      .catch((err: unknown) => setError(errorMessage(err)))
+      .catch((err: unknown) => setError(defaultErrorMessage(err)))
     getAccounts(true)
       .then(setAccounts)
-      .catch((err: unknown) => setError(errorMessage(err)))
+      .catch((err: unknown) => setError(defaultErrorMessage(err)))
     getPaymentMethods()
       .then(setPaymentMethods)
-      .catch((err: unknown) => setError(errorMessage(err)))
+      .catch((err: unknown) => setError(defaultErrorMessage(err)))
   }, [])
 
   function load(activeFilters: TransactionFilter, activePage: number) {
@@ -93,7 +91,7 @@ export function TransactionsPage() {
         setTransactions(result.content)
         setPageInfo({ number: result.page.number, totalPages: result.page.totalPages })
       })
-      .catch((err: unknown) => setError(errorMessage(err)))
+      .catch((err: unknown) => setError(defaultErrorMessage(err)))
   }
 
   useEffect(() => {
@@ -165,7 +163,7 @@ export function TransactionsPage() {
       }
       cancelEdit()
     } catch (err) {
-      setError(errorMessage(err))
+      setError(defaultErrorMessage(err))
     } finally {
       setSaving(false)
     }
@@ -180,7 +178,7 @@ export function TransactionsPage() {
       setTransactions((prev) => prev?.filter((t) => t.id !== deleteTarget.id) ?? null)
       setDeleteTarget(null)
     } catch (err) {
-      setError(errorMessage(err))
+      setError(defaultErrorMessage(err))
     } finally {
       setDeleting(false)
     }
@@ -196,11 +194,7 @@ export function TransactionsPage() {
         method.
       </Typography>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+      <ErrorAlert message={error} onDismiss={() => setError(null)} />
 
       <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
         <Typography variant="subtitle2" gutterBottom>
@@ -295,13 +289,7 @@ export function TransactionsPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {transactions === null && (
-                <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    Loading…
-                  </TableCell>
-                </TableRow>
-              )}
+              {transactions === null && <LoadingTableRow colSpan={7} variant="text" />}
               {transactions?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} align="center">
@@ -343,27 +331,7 @@ export function TransactionsPage() {
         </TableContainer>
       </Paper>
 
-      {pageInfo && pageInfo.totalPages > 1 && (
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 3 }}>
-          <Button
-            size="small"
-            disabled={pageInfo.number <= 0}
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
-          >
-            Previous
-          </Button>
-          <Typography variant="body2">
-            Page {pageInfo.number + 1} of {pageInfo.totalPages}
-          </Typography>
-          <Button
-            size="small"
-            disabled={pageInfo.number + 1 >= pageInfo.totalPages}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            Next
-          </Button>
-        </Box>
-      )}
+      <PaginationControls pageInfo={pageInfo} onPageChange={setPage} sx={{ mt: 0, mb: 3 }} />
 
       <Paper variant="outlined" sx={{ p: 2, maxWidth: 720 }}>
         <Typography variant="subtitle1" gutterBottom>
@@ -467,28 +435,15 @@ export function TransactionsPage() {
         </Box>
       </Paper>
 
-      <Dialog open={deleteTarget !== null} onClose={() => setDeleteTarget(null)}>
-        <DialogTitle>Delete this transaction?</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            This permanently removes the transaction and cannot be undone.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteTarget(null)} disabled={deleting}>
-            Cancel
-          </Button>
-          <Button onClick={() => void confirmDelete()} color="error" disabled={deleting} autoFocus>
-            Delete transaction
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete this transaction?"
+        body="This permanently removes the transaction and cannot be undone."
+        confirmLabel="Delete transaction"
+        loading={deleting}
+        onConfirm={() => void confirmDelete()}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </Box>
   )
-}
-
-function errorMessage(err: unknown): string {
-  if (err instanceof ApiError) return err.message
-  if (err instanceof Error) return err.message
-  return 'Something went wrong.'
 }

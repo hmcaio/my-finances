@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react'
 import {
-  Alert,
   Box,
   Button,
   Chip,
-  CircularProgress,
   IconButton,
   MenuItem,
   Paper,
@@ -19,9 +17,6 @@ import {
   Typography,
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
-import EditIcon from '@mui/icons-material/Edit'
-import CheckIcon from '@mui/icons-material/Check'
-import CloseIcon from '@mui/icons-material/Close'
 import {
   createCategory,
   deleteCategory,
@@ -30,7 +25,10 @@ import {
   type Category,
   type CategoryType,
 } from '../../api/categories'
-import { ApiError } from '../../api/apiError'
+import { defaultErrorMessage } from '../../api/apiError'
+import { ErrorAlert } from '../../components/ErrorAlert'
+import { InlineEditActions } from '../../components/InlineEditActions'
+import { LoadingTableRow } from '../../components/LoadingTableRow'
 
 /**
  * Settings-style CRUD screen for categories (F002 spec): table with name + type, inline rename,
@@ -53,7 +51,7 @@ export function CategoriesPage() {
   function load() {
     getCategories()
       .then(setCategories)
-      .catch((err: unknown) => setError(errorMessage(err)))
+      .catch((err: unknown) => setError(defaultErrorMessage(err)))
   }
 
   useEffect(() => {
@@ -69,7 +67,7 @@ export function CategoriesPage() {
       setCategories((prev) => [...(prev ?? []), created])
       setNewName('')
     } catch (err) {
-      setError(errorMessage(err))
+      setError(defaultErrorMessage(err))
     } finally {
       setAdding(false)
     }
@@ -93,7 +91,7 @@ export function CategoriesPage() {
       setCategories((prev) => prev?.map((c) => (c.id === id ? updated : c)) ?? null)
       cancelEdit()
     } catch (err) {
-      setError(errorMessage(err))
+      setError(defaultErrorMessage(err))
     }
   }
 
@@ -104,7 +102,7 @@ export function CategoriesPage() {
       await deleteCategory(id)
       setCategories((prev) => prev?.filter((c) => c.id !== id) ?? null)
     } catch (err) {
-      setError(errorMessage(err))
+      setError(defaultErrorMessage(err))
     } finally {
       setPendingDeleteId(null)
     }
@@ -120,11 +118,7 @@ export function CategoriesPage() {
         type is fixed once a category is created.
       </Typography>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+      <ErrorAlert message={error} onDismiss={() => setError(null)} />
 
       <Paper variant="outlined" sx={{ mb: 3 }}>
         <TableContainer>
@@ -137,13 +131,7 @@ export function CategoriesPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {categories === null && (
-                <TableRow>
-                  <TableCell colSpan={3} align="center">
-                    <CircularProgress size={20} />
-                  </TableCell>
-                </TableRow>
-              )}
+              {categories === null && <LoadingTableRow colSpan={3} />}
               {categories?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={3} align="center">
@@ -177,37 +165,22 @@ export function CategoriesPage() {
                     />
                   </TableCell>
                   <TableCell align="right">
-                    {editingId === category.id ? (
-                      <>
-                        <IconButton
-                          size="small"
-                          aria-label="Save"
-                          onClick={() => void saveEdit(category.id)}
-                        >
-                          <CheckIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton size="small" aria-label="Cancel" onClick={cancelEdit}>
-                          <CloseIcon fontSize="small" />
-                        </IconButton>
-                      </>
-                    ) : (
-                      <>
-                        <IconButton
-                          size="small"
-                          aria-label="Rename"
-                          onClick={() => startEdit(category)}
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          aria-label="Delete"
-                          disabled={pendingDeleteId === category.id}
-                          onClick={() => void handleDelete(category.id)}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </>
+                    <InlineEditActions
+                      editing={editingId === category.id}
+                      onEdit={() => startEdit(category)}
+                      onSave={() => void saveEdit(category.id)}
+                      onCancel={cancelEdit}
+                      editLabel="Rename"
+                    />
+                    {editingId !== category.id && (
+                      <IconButton
+                        size="small"
+                        aria-label="Delete"
+                        disabled={pendingDeleteId === category.id}
+                        onClick={() => void handleDelete(category.id)}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
                     )}
                   </TableCell>
                 </TableRow>
@@ -250,10 +223,4 @@ export function CategoriesPage() {
       </Paper>
     </Box>
   )
-}
-
-function errorMessage(err: unknown): string {
-  if (err instanceof ApiError && err.status === 409) return err.message
-  if (err instanceof Error) return err.message
-  return 'Something went wrong.'
 }

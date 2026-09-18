@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  Alert,
   Box,
   Button,
   Chip,
@@ -17,9 +16,6 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import EditIcon from '@mui/icons-material/Edit'
-import CheckIcon from '@mui/icons-material/Check'
-import CloseIcon from '@mui/icons-material/Close'
 import PauseIcon from '@mui/icons-material/Pause'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import { getAccounts, type Account } from '../../api/accounts'
@@ -32,8 +28,11 @@ import {
   stopRecurringTemplate,
   type RecurringTemplate,
 } from '../../api/recurringTemplates'
-import { ApiError } from '../../api/apiError'
-import { nameLookup } from '../transactions/nameLookup'
+import { defaultErrorMessage } from '../../api/apiError'
+import { ErrorAlert } from '../../components/ErrorAlert'
+import { InlineEditActions } from '../../components/InlineEditActions'
+import { LoadingTableRow } from '../../components/LoadingTableRow'
+import { nameLookup } from '../../utils/nameLookup'
 import { PendingOccurrencesWidget } from './PendingOccurrencesWidget'
 
 /** `YYYY-MM` for the current real-world month - the implicit "now" every cap edit/new template
@@ -84,16 +83,16 @@ export function RecurringTemplatesPage() {
   function loadTemplates() {
     getRecurringTemplates()
       .then(setTemplates)
-      .catch((err: unknown) => setError(errorMessage(err)))
+      .catch((err: unknown) => setError(defaultErrorMessage(err)))
   }
 
   useEffect(() => {
     getCategories()
       .then(setCategories)
-      .catch((err: unknown) => setError(errorMessage(err)))
+      .catch((err: unknown) => setError(defaultErrorMessage(err)))
     getAccounts(false)
       .then(setAccounts)
-      .catch((err: unknown) => setError(errorMessage(err)))
+      .catch((err: unknown) => setError(defaultErrorMessage(err)))
     loadTemplates()
   }, [])
 
@@ -128,7 +127,7 @@ export function RecurringTemplatesPage() {
       setCreateForm(EMPTY_CREATE_FORM)
       setPendingRefreshKey((key) => key + 1)
     } catch (err) {
-      setError(errorMessage(err))
+      setError(defaultErrorMessage(err))
     } finally {
       setCreating(false)
     }
@@ -164,7 +163,7 @@ export function RecurringTemplatesPage() {
       setPendingRefreshKey((key) => key + 1)
       cancelEditCap()
     } catch (err) {
-      setError(errorMessage(err))
+      setError(defaultErrorMessage(err))
     } finally {
       setSavingCap(false)
     }
@@ -179,7 +178,7 @@ export function RecurringTemplatesPage() {
         : await reactivateRecurringTemplate(template.id)
       setTemplates((prev) => prev?.map((t) => (t.id === template.id ? updated : t)) ?? null)
     } catch (err) {
-      setError(errorMessage(err))
+      setError(defaultErrorMessage(err))
     } finally {
       setTogglingId(null)
     }
@@ -195,11 +194,7 @@ export function RecurringTemplatesPage() {
         from the current month forward - it never rewrites past pending or confirmed occurrences.
       </Typography>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+      <ErrorAlert message={error} onDismiss={() => setError(null)} />
 
       <Paper variant="outlined" sx={{ mb: 3 }}>
         <TableContainer>
@@ -216,13 +211,7 @@ export function RecurringTemplatesPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {templates === null && (
-                <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    Loading…
-                  </TableCell>
-                </TableRow>
-              )}
+              {templates === null && <LoadingTableRow colSpan={7} variant="text" />}
               {templates?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} align="center">
@@ -278,47 +267,28 @@ export function RecurringTemplatesPage() {
                     />
                   </TableCell>
                   <TableCell align="right">
-                    {editingId === template.id ? (
-                      <>
-                        <IconButton
-                          size="small"
-                          aria-label="Save cap"
-                          disabled={savingCap}
-                          onClick={() => void saveEditCap(template.id)}
-                        >
-                          <CheckIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          aria-label="Cancel"
-                          disabled={savingCap}
-                          onClick={cancelEditCap}
-                        >
-                          <CloseIcon fontSize="small" />
-                        </IconButton>
-                      </>
-                    ) : (
-                      <>
-                        <IconButton
-                          size="small"
-                          aria-label="Edit amount and day"
-                          onClick={() => startEditCap(template)}
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          aria-label={template.active ? 'Stop' : 'Reactivate'}
-                          disabled={togglingId === template.id}
-                          onClick={() => void toggleActive(template)}
-                        >
-                          {template.active ? (
-                            <PauseIcon fontSize="small" />
-                          ) : (
-                            <PlayArrowIcon fontSize="small" />
-                          )}
-                        </IconButton>
-                      </>
+                    <InlineEditActions
+                      editing={editingId === template.id}
+                      onEdit={() => startEditCap(template)}
+                      onSave={() => void saveEditCap(template.id)}
+                      onCancel={cancelEditCap}
+                      editLabel="Edit amount and day"
+                      saveLabel="Save cap"
+                      saving={savingCap}
+                    />
+                    {editingId !== template.id && (
+                      <IconButton
+                        size="small"
+                        aria-label={template.active ? 'Stop' : 'Reactivate'}
+                        disabled={togglingId === template.id}
+                        onClick={() => void toggleActive(template)}
+                      >
+                        {template.active ? (
+                          <PauseIcon fontSize="small" />
+                        ) : (
+                          <PlayArrowIcon fontSize="small" />
+                        )}
+                      </IconButton>
                     )}
                   </TableCell>
                 </TableRow>
@@ -404,10 +374,4 @@ export function RecurringTemplatesPage() {
       <PendingOccurrencesWidget key={pendingRefreshKey} />
     </Box>
   )
-}
-
-function errorMessage(err: unknown): string {
-  if (err instanceof ApiError) return err.message
-  if (err instanceof Error) return err.message
-  return 'Something went wrong.'
 }

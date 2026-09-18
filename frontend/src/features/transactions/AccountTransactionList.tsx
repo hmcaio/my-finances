@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  Alert,
   Box,
-  Button,
   Table,
   TableBody,
   TableCell,
@@ -14,8 +12,11 @@ import {
 import { getCategories, type Category } from '../../api/categories'
 import { getPaymentMethods, type PaymentMethod } from '../../api/paymentMethods'
 import { getTransactions, type Transaction } from '../../api/transactions'
-import { ApiError } from '../../api/apiError'
-import { nameLookup } from './nameLookup'
+import { defaultErrorMessage } from '../../api/apiError'
+import { ErrorAlert } from '../../components/ErrorAlert'
+import { LoadingTableRow } from '../../components/LoadingTableRow'
+import { PaginationControls } from '../../components/PaginationControls'
+import { nameLookup } from '../../utils/nameLookup'
 
 const PAGE_SIZE = 10
 
@@ -41,10 +42,10 @@ export function AccountTransactionList({ accountId }: AccountTransactionListProp
   useEffect(() => {
     getCategories()
       .then(setCategories)
-      .catch((err: unknown) => setError(errorMessage(err)))
+      .catch((err: unknown) => setError(defaultErrorMessage(err)))
     getPaymentMethods()
       .then(setPaymentMethods)
-      .catch((err: unknown) => setError(errorMessage(err)))
+      .catch((err: unknown) => setError(defaultErrorMessage(err)))
   }, [])
 
   useEffect(() => {
@@ -53,7 +54,7 @@ export function AccountTransactionList({ accountId }: AccountTransactionListProp
         setTransactions(result.content)
         setPageInfo({ number: result.page.number, totalPages: result.page.totalPages })
       })
-      .catch((err: unknown) => setError(errorMessage(err)))
+      .catch((err: unknown) => setError(defaultErrorMessage(err)))
   }, [accountId, page])
 
   const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
@@ -64,11 +65,7 @@ export function AccountTransactionList({ accountId }: AccountTransactionListProp
 
   return (
     <Box>
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+      <ErrorAlert message={error} onDismiss={() => setError(null)} />
 
       <TableContainer>
         <Table size="small">
@@ -82,13 +79,7 @@ export function AccountTransactionList({ accountId }: AccountTransactionListProp
             </TableRow>
           </TableHead>
           <TableBody>
-            {transactions === null && (
-              <TableRow>
-                <TableCell colSpan={5} align="center">
-                  Loading…
-                </TableCell>
-              </TableRow>
-            )}
+            {transactions === null && <LoadingTableRow colSpan={5} variant="text" />}
             {transactions?.length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} align="center">
@@ -112,33 +103,7 @@ export function AccountTransactionList({ accountId }: AccountTransactionListProp
         </Table>
       </TableContainer>
 
-      {pageInfo && pageInfo.totalPages > 1 && (
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 2 }}>
-          <Button
-            size="small"
-            disabled={pageInfo.number <= 0}
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
-          >
-            Previous
-          </Button>
-          <Typography variant="body2">
-            Page {pageInfo.number + 1} of {pageInfo.totalPages}
-          </Typography>
-          <Button
-            size="small"
-            disabled={pageInfo.number + 1 >= pageInfo.totalPages}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            Next
-          </Button>
-        </Box>
-      )}
+      <PaginationControls pageInfo={pageInfo} onPageChange={setPage} />
     </Box>
   )
-}
-
-function errorMessage(err: unknown): string {
-  if (err instanceof ApiError) return err.message
-  if (err instanceof Error) return err.message
-  return 'Something went wrong.'
 }
