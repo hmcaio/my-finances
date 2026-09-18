@@ -133,3 +133,15 @@ export const accountsHandlers = [
 export const accountAlreadyClosedConflictHandler = http.post(`${ACCOUNTS_URL}/:id/close`, () =>
   HttpResponse.json({ message: 'Account is already closed' }, { status: 409 }),
 )
+
+/**
+ * `409` variant for the duplicate-name case on create/edit (post-F007 schema audit's
+ * `AccountNameAlreadyExistsException`) - see `categoryCreateConflictHandler` in `categories.ts`.
+ */
+export const accountCreateConflictHandler = http.post(ACCOUNTS_URL, () =>
+  HttpResponse.json({ message: 'Account name already exists' }, { status: 409 }),
+)
+
+export const accountEditConflictHandler = http.patch(`${ACCOUNTS_URL}/:id`, () =>
+  HttpResponse.json({ message: 'Account name already exists' }, { status: 409 }),
+)

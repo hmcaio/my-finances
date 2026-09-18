@@ -43,6 +43,14 @@ class PaymentMethodServiceTest {
   }
 
   @Test
+  void createRejectsADuplicateName() {
+    service.create("Debit Card");
+
+    assertThatThrownBy(() -> service.create("Debit Card"))
+        .isInstanceOf(PaymentMethodNameAlreadyExistsException.class);
+  }
+
+  @Test
   void findAllReturnsEveryPersistedPaymentMethod() {
     service.create("Debit Card");
     service.create("Cash");
@@ -61,6 +69,24 @@ class PaymentMethodServiceTest {
     PaymentMethod renamed = service.rename(created.getId(), "Debit Card (Itau)");
 
     assertThat(renamed.getName()).isEqualTo("Debit Card (Itau)");
+  }
+
+  @Test
+  void renameToItsOwnCurrentNameIsAllowed() {
+    PaymentMethod created = service.create("Debit Card");
+
+    PaymentMethod renamed = service.rename(created.getId(), "Debit Card");
+
+    assertThat(renamed.getName()).isEqualTo("Debit Card");
+  }
+
+  @Test
+  void renameRejectsADuplicateName() {
+    service.create("Debit Card");
+    PaymentMethod cash = service.create("Cash");
+
+    assertThatThrownBy(() -> service.rename(cash.getId(), "Debit Card"))
+        .isInstanceOf(PaymentMethodNameAlreadyExistsException.class);
   }
 
   @Test

@@ -20,4 +20,14 @@ public interface AccountRepository {
   List<Account> findAll();
 
   boolean existsById(UUID id);
+
+  /** Whether an Account already has this exact name - backs the create-time duplicate guard. */
+  boolean existsByName(String name);
+
+  /**
+   * Whether an Account other than {@code excludedId} already has this exact name - backs the
+   * edit-time duplicate guard without rejecting a no-op edit that keeps the account's own current
+   * name.
+   */
+  boolean existsByNameAndIdNot(String name, UUID excludedId);
 }

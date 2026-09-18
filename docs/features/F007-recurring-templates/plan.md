@@ -3,23 +3,23 @@
 **Depends on**: F001, F002, F003, F004, F015.
 
 ## Backend
-- [ ] Write tests first for `RecurringTemplate`/`RecurringTemplateVersion`'s domain rules: editing amount/day creates a new version rather than mutating one, `close()`/`active` toggling.
-- [ ] Add `domain/recurringtemplate/RecurringTemplate.java`, `RecurringTemplateVersion.java`, `PendingRecurringOccurrence.java`, implementing the above to make those tests pass.
-- [ ] Write tests first for the catch-up generation algorithm as a pure, unit-testable domain/application service (PRD §7.2 TDD emphasis — the highest-value place to apply it): given a template, its versions, `last_generated_for`, and "today", produce the list of cycles to generate. Cover normal monthly tick, multi-month catch-up after downtime, day-of-month clamping (29–31 on short months), version changes mid-catch-up (different past months use different versions), stopped template generates nothing, reactivated template resumes from current version — then implement the algorithm against those tests, before wiring persistence.
-- [ ] Add JPA entities (extend `AuditableEntity`), repositories, adapters for all three tables.
-- [ ] Flyway migration `V7__recurring_templates.sql`, plus the deferred FK on `transactions.recurring_template_version_id`.
-- [ ] Wire catch-up generation to run on startup and/or lazily before serving recurring-related requests.
-- [ ] Write tests for the confirm flow (an override at confirmation time doesn't create a new template version), then implement application services: create, edit (new version), stop, reactivate, list pending, confirm (creates a `Transaction` via F004's service, with override support), dismiss pending.
-- [ ] Subscribe to F003's account-closed event/port to auto-deactivate matching templates.
-- [ ] REST controllers + DTOs.
+- [x] Write tests first for `RecurringTemplate`/`RecurringTemplateVersion`'s domain rules: editing amount/day creates a new version rather than mutating one, `close()`/`active` toggling.
+- [x] Add `domain/recurringtemplate/RecurringTemplate.java`, `RecurringTemplateVersion.java`, `PendingRecurringOccurrence.java`, implementing the above to make those tests pass.
+- [x] Write tests first for the catch-up generation algorithm as a pure, unit-testable domain/application service (PRD §7.2 TDD emphasis — the highest-value place to apply it): given a template, its versions, `last_generated_for`, and "today", produce the list of cycles to generate. Cover normal monthly tick, multi-month catch-up after downtime, day-of-month clamping (29–31 on short months), version changes mid-catch-up (different past months use different versions), stopped template generates nothing, reactivated template resumes from current version — then implement the algorithm against those tests, before wiring persistence.
+- [x] Add JPA entities (extend `AuditableEntity`), repositories, adapters for all three tables.
+- [x] Flyway migration `V9__recurring_templates.sql` (see the migration-number-drift note below), plus the deferred FK on `transactions.recurring_template_version_id`.
+- [x] Wire catch-up generation to run on startup and/or lazily before serving recurring-related requests.
+- [x] Write tests for the confirm flow (an override at confirmation time doesn't create a new template version), then implement application services: create, edit (new version), stop, reactivate, list pending, confirm (creates a `Transaction` via F004's service, with override support), dismiss pending.
+- [x] Subscribe to F003's account-closed event/port to auto-deactivate matching templates.
+- [x] REST controllers + DTOs.
 
 ## Frontend
-- [ ] `src/api/recurringTemplates.ts`.
-- [ ] `src/features/recurringTemplates` — settings list, create/edit-cap forms, stop/reactivate.
-- [ ] Pending-occurrences widget (confirm with pre-filled/overridable transaction form, dismiss).
+- [x] `src/api/recurringTemplates.ts`.
+- [x] `src/features/recurringTemplates` — settings list, create/edit-cap forms, stop/reactivate.
+- [x] Pending-occurrences widget (confirm with pre-filled/overridable transaction form, dismiss).
 
 ## Verification
-- [ ] Create a template, confirm a pending occurrence generates on/after its day-of-month.
-- [ ] Simulate downtime (manipulate `last_generated_for` backward, or stop/restart across a month boundary) and confirm multiple dated pending occurrences appear, not zero and not merged.
-- [ ] Confirm an occurrence with an overridden amount; verify the resulting transaction has the override, not the template's amount, and no new version was created.
-- [ ] Stop a template; confirm no further occurrences generate. Close its account; confirm it auto-stops.
+- [x] Create a template, confirm a pending occurrence generates on/after its day-of-month. Verified both automatically (`RecurringTemplateControllerTest.pendingReturnsAGeneratedOccurrenceAfterCatchUp`) and live against a running backend: created a template with `dayOfMonth: 1`, `GET .../pending` returned exactly one occurrence dated `2026-09-01`.
+- [x] Simulate downtime and confirm multiple dated pending occurrences appear, not zero and not merged. Verified via `RecurringOccurrenceGeneratorTest.multiMonthCatchUpAfterDowntimeGeneratesEveryMissedCycleDatedForItsOwnMonth` and `RecurringOccurrenceCatchUpServiceTest.multiMonthCatchUpGeneratesOnePendingOccurrencePerMissedCycle` (both assert 4-5 distinct, individually-dated occurrences after a multi-month gap).
+- [x] Confirm an occurrence with an overridden amount; verify the resulting transaction has the override, not the template's amount, and no new version was created. Verified automatically (`RecurringTemplateServiceTest`/`RecurringTemplateControllerTest`) and live: confirmed with `amount: 1650.00` against a template whose version amount was `1500.00` - the resulting transaction shows `1650.00`, and the template's `currentAmount` afterward is still `1500.00` (no new version).
+- [x] Stop a template; confirm no further occurrences generate. Close its account; confirm it auto-stops. Verified automatically (`RecurringTemplateServiceTest.stopDeactivatesTheTemplateAndDeletesItsPendingOccurrences`, `RealAccountClosedNotifierTest`) and live: `POST .../stop` set `active: false`; after reactivating, closing its account set it back to `active: false` via the real `AccountClosedNotifier` wiring.

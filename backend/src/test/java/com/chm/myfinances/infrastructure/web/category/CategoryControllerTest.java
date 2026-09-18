@@ -11,6 +11,8 @@ import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
+import com.chm.myfinances.domain.budget.Budget;
+import com.chm.myfinances.domain.budget.BudgetRepository;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
@@ -55,6 +57,7 @@ class CategoryControllerTest {
   @Autowired private TransactionRepository transactionRepository;
   @Autowired private AccountRepository accountRepository;
   @Autowired private PaymentMethodRepository paymentMethodRepository;
+  @Autowired private BudgetRepository budgetRepository;
 
   // Plain (non-Spring-managed) ObjectMapper used only to build/parse test JSON fixtures - no
   // need for the application's own configured bean here.
@@ -163,7 +166,7 @@ class CategoryControllerTest {
                 BigDecimal.ZERO,
                 LocalDate.now()));
     PaymentMethod paymentMethod =
-        paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), "Debit Card"));
+        paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), "Debit Card Test"));
     transactionRepository.save(
         Transaction.create(
             UUID.randomUUID(),
@@ -178,6 +181,68 @@ class CategoryControllerTest {
             null));
 
     mockMvc.perform(delete("/api/categories/" + id)).andExpect(status().isConflict());
+  }
+
+  @Test
+  void deleteRejectsACategoryReferencedByABudgetWith409() throws Exception {
+    // Post-F007 schema audit: a category with a Budget but no transactions yet must still be
+    // undeletable, since deleting it would orphan budgets.category_id's FK.
+    String createBody =
+        objectMapper.writeValueAsString(Map.of("name", "Budgeted Category", "type", "EXPENSE"));
+    MvcResult createResult =
+        mockMvc
+            .perform(
+                post("/api/categories").contentType(MediaType.APPLICATION_JSON).content(createBody))
+            .andExpect(status().isCreated())
+            .andReturn();
+    String id =
+        objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asText();
+    budgetRepository.save(Budget.create(UUID.randomUUID(), UUID.fromString(id)));
+
+    mockMvc.perform(delete("/api/categories/" + id)).andExpect(status().isConflict());
+  }
+
+  @Test
+  void createRejectsADuplicateNameWith409() throws Exception {
+    String createBody =
+        objectMapper.writeValueAsString(Map.of("name", "Duplicate Category", "type", "EXPENSE"));
+    mockMvc
+        .perform(
+            post("/api/categories").contentType(MediaType.APPLICATION_JSON).content(createBody))
+        .andExpect(status().isCreated());
+
+    mockMvc
+        .perform(
+            post("/api/categories").contentType(MediaType.APPLICATION_JSON).content(createBody))
+        .andExpect(status().isConflict());
+  }
+
+  @Test
+  void renameRejectsADuplicateNameWith409() throws Exception {
+    String firstBody =
+        objectMapper.writeValueAsString(Map.of("name", "Original Category", "type", "EXPENSE"));
+    mockMvc
+        .perform(post("/api/categories").contentType(MediaType.APPLICATION_JSON).content(firstBody))
+        .andExpect(status().isCreated());
+
+    String secondBody =
+        objectMapper.writeValueAsString(Map.of("name", "Category To Rename", "type", "EXPENSE"));
+    MvcResult createResult =
+        mockMvc
+            .perform(
+                post("/api/categories").contentType(MediaType.APPLICATION_JSON).content(secondBody))
+            .andExpect(status().isCreated())
+            .andReturn();
+    String id =
+        objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asText();
+
+    String renameBody = objectMapper.writeValueAsString(Map.of("name", "Original Category"));
+    mockMvc
+        .perform(
+            patch("/api/categories/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(renameBody))
+        .andExpect(status().isConflict());
   }
 
   @Test

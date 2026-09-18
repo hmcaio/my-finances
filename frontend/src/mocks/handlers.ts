@@ -2,6 +2,7 @@ import { accountsHandlers } from './handlers/accounts'
 import { budgetsHandlers } from './handlers/budgets'
 import { categoriesHandlers } from './handlers/categories'
 import { paymentMethodsHandlers } from './handlers/paymentMethods'
+import { recurringTemplatesHandlers } from './handlers/recurringTemplates'
 import { transactionsHandlers } from './handlers/transactions'
 import { transfersHandlers } from './handlers/transfers'
 
@@ -18,6 +19,7 @@ export const handlers = [
   ...budgetsHandlers,
   ...categoriesHandlers,
   ...paymentMethodsHandlers,
+  ...recurringTemplatesHandlers,
   ...transactionsHandlers,
   ...transfersHandlers,
 ]

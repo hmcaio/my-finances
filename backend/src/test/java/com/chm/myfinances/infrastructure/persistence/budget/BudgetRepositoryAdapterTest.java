@@ -38,7 +38,7 @@ class BudgetRepositoryAdapterTest {
   void setUp() {
     groceriesCategoryId =
         categoryRepository
-            .save(Category.create(UUID.randomUUID(), "Groceries", CategoryType.EXPENSE))
+            .save(Category.create(UUID.randomUUID(), "Groceries Test", CategoryType.EXPENSE))
             .getId();
   }
 

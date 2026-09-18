@@ -2,6 +2,7 @@ package com.chm.myfinances.infrastructure.persistence.budget;
 
 import com.chm.myfinances.domain.budget.BudgetVersion;
 import com.chm.myfinances.domain.budget.BudgetVersionRepository;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
@@ -57,7 +58,7 @@ public class BudgetVersionRepositoryAdapter implements BudgetVersionRepository {
         .map(BudgetVersionRepositoryAdapter::toDomain);
   }
 
-  private static java.time.LocalDate toFirstOfMonth(YearMonth yearMonth) {
+  private static LocalDate toFirstOfMonth(YearMonth yearMonth) {
     return yearMonth.atDay(1);
   }
 

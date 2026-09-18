@@ -196,6 +196,35 @@ class AccountControllerTest {
   }
 
   @Test
+  void createRejectsADuplicateNameWith409() throws Exception {
+    createAccount("Duplicate Account", "CHECKING", "10.00", "2026-01-01");
+    String body =
+        objectMapper.writeValueAsString(
+            Map.of(
+                "name", "Duplicate Account",
+                "institution", "Some Bank",
+                "type", "SAVINGS",
+                "openingBalance", "20.00",
+                "openingBalanceDate", "2026-01-01"));
+
+    mockMvc
+        .perform(post("/api/accounts").contentType(MediaType.APPLICATION_JSON).content(body))
+        .andExpect(status().isConflict());
+  }
+
+  @Test
+  void editRejectsADuplicateNameWith409() throws Exception {
+    createAccount("Original Account", "CHECKING", "10.00", "2026-01-01");
+    String id = createAccount("Account To Rename", "SAVINGS", "10.00", "2026-01-01");
+
+    String patchBody = objectMapper.writeValueAsString(Map.of("name", "Original Account"));
+    mockMvc
+        .perform(
+            patch("/api/accounts/" + id).contentType(MediaType.APPLICATION_JSON).content(patchBody))
+        .andExpect(status().isConflict());
+  }
+
+  @Test
   void createRejectsNameOverMaxLength() throws Exception {
     String tooLongName = "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1);
     String body =

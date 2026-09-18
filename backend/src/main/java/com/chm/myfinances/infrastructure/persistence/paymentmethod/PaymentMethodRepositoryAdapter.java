@@ -55,6 +55,16 @@ public class PaymentMethodRepositoryAdapter implements PaymentMethodRepository {
     return jpaRepository.existsById(id);
   }
 
+  @Override
+  public boolean existsByName(String name) {
+    return jpaRepository.existsByName(name);
+  }
+
+  @Override
+  public boolean existsByNameAndIdNot(String name, UUID excludedId) {
+    return jpaRepository.existsByNameAndIdNot(name, excludedId);
+  }
+
   private static PaymentMethod toDomain(PaymentMethodJpaEntity entity) {
     return PaymentMethod.reconstitute(entity.getId(), entity.getName());
   }

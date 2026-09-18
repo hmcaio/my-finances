@@ -70,6 +70,28 @@ class CategoryRepositoryAdapterTest {
   }
 
   @Test
+  void existsByNameIsTrueOnlyForAnExactMatch() {
+    categoryRepository.save(
+        Category.create(UUID.randomUUID(), "Unique Name Test", CategoryType.EXPENSE));
+
+    assertThat(categoryRepository.existsByName("Unique Name Test")).isTrue();
+    assertThat(categoryRepository.existsByName("unique name test")).isFalse();
+    assertThat(categoryRepository.existsByName("Something Else")).isFalse();
+  }
+
+  @Test
+  void existsByNameAndIdNotExcludesTheGivenId() {
+    Category category =
+        categoryRepository.save(
+            Category.create(UUID.randomUUID(), "Exclude Self Test", CategoryType.EXPENSE));
+
+    assertThat(categoryRepository.existsByNameAndIdNot("Exclude Self Test", category.getId()))
+        .isFalse();
+    assertThat(categoryRepository.existsByNameAndIdNot("Exclude Self Test", UUID.randomUUID()))
+        .isTrue();
+  }
+
+  @Test
   void starterCategoriesFromTheMigrationAreSeeded() {
     List<Category> all = categoryRepository.findAll();
 

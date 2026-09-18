@@ -56,11 +56,11 @@ class TransactionRepositoryAdapterTest {
 
   @BeforeEach
   void setUp() {
-    categoryId = persistCategory("Groceries", CategoryType.EXPENSE).getId();
-    otherCategoryId = persistCategory("Salary", CategoryType.INCOME).getId();
+    categoryId = persistCategory("Groceries Test", CategoryType.EXPENSE).getId();
+    otherCategoryId = persistCategory("Salary Test", CategoryType.INCOME).getId();
     accountId = persistAccount("Checking").getId();
     otherAccountId = persistAccount("Savings").getId();
-    paymentMethodId = persistPaymentMethod("Debit Card").getId();
+    paymentMethodId = persistPaymentMethod("Debit Card Test").getId();
   }
 
   private Category persistCategory(String name, CategoryType type) {

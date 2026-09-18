@@ -55,3 +55,18 @@ export const categoriesHandlers = [
 export const categoryDeleteConflictHandler = http.delete(`${CATEGORIES_URL}/:id`, () =>
   HttpResponse.json({ message: 'Category is in use' }, { status: 409 }),
 )
+
+/**
+ * `409` variant for the duplicate-name case on create/rename (post-F007 schema audit's
+ * `CategoryNameAlreadyExistsException`) - applied via `server.use(...)` in tests that exercise that
+ * path, same pattern as {@link categoryDeleteConflictHandler}. The backend never sends the real
+ * exception message on the wire (`include-message: never`), so the body here is a placeholder -
+ * what the frontend actually shows comes from `categories.ts`'s own hardcoded `conflictMessage`.
+ */
+export const categoryCreateConflictHandler = http.post(CATEGORIES_URL, () =>
+  HttpResponse.json({ message: 'Category name already exists' }, { status: 409 }),
+)
+
+export const categoryRenameConflictHandler = http.patch(`${CATEGORIES_URL}/:id`, () =>
+  HttpResponse.json({ message: 'Category name already exists' }, { status: 409 }),
+)

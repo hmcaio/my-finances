@@ -13,16 +13,18 @@
 ## Backend
 
 ### Domain
-- `domain/investmentaccount/InvestmentAccount.java`: id, `name`, `closedDate` (nullable).
-- `domain/investmentcategory/InvestmentCategory.java`: id, `name` — same shape as F002's `Category` but a separate entity/table (different taxonomy, not shared rows).
-- `domain/investmentproduct/InvestmentProduct.java`: id, `investmentAccountId`, `investmentCategoryId`, `name`, `closedDate` (nullable).
+- `domain/investmentaccount/InvestmentAccount.java`: id, `name` (non-blank, capped at `TextFieldConstraints.MAX_NAME_LENGTH`, same convention as F002/F003), `closedDate` (nullable).
+- `domain/investmentcategory/InvestmentCategory.java`: id, `name` (same non-blank/length-capped invariant) — same shape as F002's `Category` but a separate entity/table (different taxonomy, not shared rows).
+- `domain/investmentproduct/InvestmentProduct.java`: id, `investmentAccountId`, `investmentCategoryId`, `name` (same non-blank/length-capped invariant), `closedDate` (nullable).
+- Uniqueness of `name` is an application-layer concern on all three (`existsByName`/`existsByNameAndIdNot` on create/rename, 409 — same pattern as F002/F003's post-F007 hardening, see CLAUDE.md), not a domain-constructor check.
 - Delete-safety invariant (PRD §5.8): an `InvestmentAccount` or `InvestmentProduct` can only be hard-deleted while it has zero associated history; once F009's `InvestmentSnapshot`/`InvestmentBuySellLog` rows exist for it, only `close()` is permitted. This feature implements the `close()` behavior and the zero-history check as a port F009 fulfills (`HasInvestmentHistoryChecker` or similar), to avoid this feature depending on F009's tables directly.
 
 ### Persistence
-- `InvestmentAccountJpaEntity extends AuditableEntity`: table `investment_accounts` (`id uuid pk`, `name text not null`, `closed_date date`).
-- `InvestmentCategoryJpaEntity extends AuditableEntity`: table `investment_categories` (`id uuid pk`, `name text not null`).
-- `InvestmentProductJpaEntity extends AuditableEntity`: table `investment_products` (`id uuid pk`, `investment_account_id uuid not null references investment_accounts`, `investment_category_id uuid not null references investment_categories`, `name text not null`, `closed_date date`).
-- Migration `V8__investment_accounts_and_products.sql`.
+- `InvestmentAccountJpaEntity extends AuditableEntity`: table `investment_accounts` (`id uuid pk`, `name varchar(100) not null unique`, `closed_date date`).
+- `InvestmentCategoryJpaEntity extends AuditableEntity`: table `investment_categories` (`id uuid pk`, `name varchar(100) not null unique`).
+- `InvestmentProductJpaEntity extends AuditableEntity`: table `investment_products` (`id uuid pk`, `investment_account_id uuid not null references investment_accounts`, `investment_category_id uuid not null references investment_categories`, `name varchar(100) not null unique`, `closed_date date`).
+- All three `name` columns bounded `varchar(100)` (`TextFieldConstraints.MAX_NAME_LENGTH`) and `UNIQUE` from the start — F002's `categories`/`payment_methods` originally shipped as unbounded, unconstrained `text` and needed two follow-up migrations (`V3__bound_name_column_lengths.sql`, `V10__db_constraint_hardening.sql`) to fix; this feature should land with both already in place.
+- Migration number TBD at implementation time (not necessarily `V8` — every feature since F004 has had to renumber its planned migration because an earlier-landing feature claimed the number first; check the highest existing `V*` migration before naming this one, per every prior feature's spec.md "not `VN` as originally planned" note).
 
 ### API
 - `POST/GET/PATCH /api/investment-categories`, `DELETE /api/investment-categories/{id}` (blocked with `409` if referenced by a product, same pattern as F002).

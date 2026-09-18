@@ -66,11 +66,11 @@ class TransactionControllerTest {
 
     expenseCategoryId =
         categoryRepository
-            .save(Category.create(UUID.randomUUID(), "Groceries", CategoryType.EXPENSE))
+            .save(Category.create(UUID.randomUUID(), "Groceries Test", CategoryType.EXPENSE))
             .getId();
     incomeCategoryId =
         categoryRepository
-            .save(Category.create(UUID.randomUUID(), "Salary", CategoryType.INCOME))
+            .save(Category.create(UUID.randomUUID(), "Salary Test", CategoryType.INCOME))
             .getId();
     accountId =
         accountRepository
@@ -100,9 +100,11 @@ class TransactionControllerTest {
     closed.close();
     closedAccountId = accountRepository.save(closed).getId();
     paymentMethodId =
-        paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), "Debit Card")).getId();
+        paymentMethodRepository
+            .save(PaymentMethod.create(UUID.randomUUID(), "Debit Card Test"))
+            .getId();
     otherPaymentMethodId =
-        paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), "Cash")).getId();
+        paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), "Cash Test")).getId();
   }
 
   private String createTransactionBody(

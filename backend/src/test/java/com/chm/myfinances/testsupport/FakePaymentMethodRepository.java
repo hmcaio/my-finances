@@ -41,4 +41,15 @@ public final class FakePaymentMethodRepository implements PaymentMethodRepositor
   public boolean existsById(UUID id) {
     return store.containsKey(id);
   }
+
+  @Override
+  public boolean existsByName(String name) {
+    return store.values().stream().anyMatch(p -> p.getName().equals(name));
+  }
+
+  @Override
+  public boolean existsByNameAndIdNot(String name, UUID excludedId) {
+    return store.values().stream()
+        .anyMatch(p -> p.getName().equals(name) && !p.getId().equals(excludedId));
+  }
 }

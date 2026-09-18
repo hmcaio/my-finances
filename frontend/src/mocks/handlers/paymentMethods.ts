@@ -46,3 +46,16 @@ export const paymentMethodsHandlers = [
 export const paymentMethodDeleteConflictHandler = http.delete(`${PAYMENT_METHODS_URL}/:id`, () =>
   HttpResponse.json({ message: 'Payment method is in use' }, { status: 409 }),
 )
+
+/**
+ * `409` variant for the duplicate-name case on create/rename (post-F007 schema audit's
+ * `PaymentMethodNameAlreadyExistsException`) - see `categoryCreateConflictHandler` in
+ * `categories.ts`.
+ */
+export const paymentMethodCreateConflictHandler = http.post(PAYMENT_METHODS_URL, () =>
+  HttpResponse.json({ message: 'Payment method name already exists' }, { status: 409 }),
+)
+
+export const paymentMethodRenameConflictHandler = http.patch(`${PAYMENT_METHODS_URL}/:id`, () =>
+  HttpResponse.json({ message: 'Payment method name already exists' }, { status: 409 }),
+)

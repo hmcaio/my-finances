@@ -47,6 +47,17 @@ class AccountServiceTest {
   }
 
   @Test
+  void createRejectsADuplicateName() {
+    service.create("Checking", null, AccountType.CHECKING, BigDecimal.ZERO, LocalDate.now());
+
+    assertThatThrownBy(
+            () ->
+                service.create(
+                    "Checking", null, AccountType.SAVINGS, BigDecimal.ZERO, LocalDate.now()))
+        .isInstanceOf(AccountNameAlreadyExistsException.class);
+  }
+
+  @Test
   void findByIdOfUnknownIdThrowsNotFound() {
     assertThatThrownBy(() -> service.findById(UUID.randomUUID()))
         .isInstanceOf(AccountNotFoundException.class);
@@ -91,6 +102,27 @@ class AccountServiceTest {
     assertThat(edited.getName()).isEqualTo("Nubank Credit Card");
     assertThat(edited.getInstitution()).isEqualTo("Nu Pagamentos");
     assertThat(edited.getOpeningBalance()).isEqualByComparingTo("500.00");
+  }
+
+  @Test
+  void editToItsOwnCurrentNameIsAllowed() {
+    Account created =
+        service.create(
+            "Nubank", "Nubank", AccountType.CREDIT_CARD, new BigDecimal("500.00"), LocalDate.now());
+
+    Account edited = service.edit(created.getId(), "Nubank", "Nu Pagamentos");
+
+    assertThat(edited.getName()).isEqualTo("Nubank");
+  }
+
+  @Test
+  void editRejectsADuplicateName() {
+    service.create("Checking", null, AccountType.CHECKING, BigDecimal.ZERO, LocalDate.now());
+    Account savings =
+        service.create("Savings", null, AccountType.SAVINGS, BigDecimal.ZERO, LocalDate.now());
+
+    assertThatThrownBy(() -> service.edit(savings.getId(), "Checking", null))
+        .isInstanceOf(AccountNameAlreadyExistsException.class);
   }
 
   @Test

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { server } from '../mocks/server'
-import { accountAlreadyClosedConflictHandler, seedAccounts } from '../mocks/handlers/accounts'
+import {
+  accountAlreadyClosedConflictHandler,
+  accountCreateConflictHandler,
+  accountEditConflictHandler,
+  seedAccounts,
+} from '../mocks/handlers/accounts'
 import { ApiError } from './apiError'
 import { closeAccount, createAccount, editAccount, getAccount, getAccounts } from './accounts'
 
@@ -56,5 +61,32 @@ describe('accounts API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
+  })
+
+  it('createAccount maps a 409 to the duplicate-name message', async () => {
+    server.use(accountCreateConflictHandler)
+
+    const error: unknown = await createAccount({
+      name: 'Itau Checking',
+      type: 'CHECKING',
+      openingBalance: 0,
+      openingBalanceDate: '2026-01-01',
+    }).catch((err: unknown) => err)
+
+    expect(error).toBeInstanceOf(ApiError)
+    expect((error as ApiError).status).toBe(409)
+    expect((error as ApiError).message).toContain('already exists')
+  })
+
+  it('editAccount maps a 409 to the duplicate-name message', async () => {
+    server.use(accountEditConflictHandler)
+
+    const error: unknown = await editAccount('acct-2', { name: 'Itau Checking' }).catch(
+      (err: unknown) => err,
+    )
+
+    expect(error).toBeInstanceOf(ApiError)
+    expect((error as ApiError).status).toBe(409)
+    expect((error as ApiError).message).toContain('already exists')
   })
 })
