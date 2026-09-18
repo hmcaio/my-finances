@@ -31,7 +31,7 @@ Local Postgres (required before running the backend):
 docker compose up -d      # start (data persists in a named volume)
 docker compose down       # stop
 ```
-Includes a `pgadmin` service for local database inspection: `http://localhost:5050` (login `dev@myfinances.com` / `myfinances`; register a server with host `postgres`, port `5432`, and Postgres's own dev credentials below).
+Includes a `pgadmin` service for local database inspection: `http://localhost:5050` (login `dev@myfinances.com` / `myfinances`). The `postgres` server connection is pre-registered via `docker-compose.yml`'s `configs: servers.json` (host `postgres`, port `5432`, user `myfinances`) - pgAdmin still prompts for the password on first connect (Postgres's own dev credentials below), and only seeds this on a fresh `pgadmin` volume, so editing `servers.json` later needs `docker compose down -v` to pick up.
 
 Backend (`/backend`, run from that directory):
 ```
