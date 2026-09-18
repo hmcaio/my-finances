@@ -76,7 +76,9 @@ export function RecurringTemplatesPage() {
 
   // PendingOccurrencesWidget fetches its own data once on mount and takes no props (deliberately,
   // so F012's dashboard can embed it as-is) - remounting it via this key is how this page tells it
-  // to refetch after a cap edit changes what an already-generated pending occurrence should show.
+  // to refetch after a cap edit changes what an already-generated pending occurrence should show,
+  // or after creating a new template that catch-up may immediately generate a pending occurrence
+  // for (effectiveFrom defaults to the current month, whose day-of-month may already have passed).
   const [pendingRefreshKey, setPendingRefreshKey] = useState(0)
 
   function loadTemplates() {
@@ -124,6 +126,7 @@ export function RecurringTemplatesPage() {
       })
       setTemplates((prev) => (prev ? [...prev, created] : [created]))
       setCreateForm(EMPTY_CREATE_FORM)
+      setPendingRefreshKey((key) => key + 1)
     } catch (err) {
       setError(errorMessage(err))
     } finally {

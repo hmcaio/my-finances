@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
@@ -68,6 +68,37 @@ describe('RecurringTemplatesPage', () => {
     await user.click(row.getByRole('button', { name: 'Save cap' }))
 
     expect(await templatesTable().findByText('1750.00')).toBeInTheDocument()
+  })
+
+  it('refreshes the pending-occurrences widget after creating a new template', async () => {
+    // A brand-new template's effectiveFrom defaults to the current month, so catch-up may
+    // immediately generate a pending occurrence for it - the widget must refetch to pick that up
+    // rather than only showing what was there before the template existed.
+    let pendingCallCount = 0
+    server.use(
+      http.get('/api/recurring-templates/pending', () => {
+        pendingCallCount += 1
+        return HttpResponse.json(seedPendingRecurringOccurrences)
+      }),
+    )
+    const user = userEvent.setup()
+    render(<RecurringTemplatesPage />)
+    await findRow(seedRecurringTemplates[0].description)
+    await waitFor(() => expect(pendingCallCount).toBe(1))
+
+    await user.click(screen.getByLabelText('Category'))
+    await user.click(await screen.findByRole('option', { name: seedCategories[0].name }))
+    await user.click(screen.getByLabelText('Account'))
+    await user.click(await screen.findByRole('option', { name: seedAccounts[0].name }))
+    await user.type(screen.getByLabelText('Description'), 'Internet')
+    await user.type(screen.getByLabelText('Amount'), '120')
+    const dayInput = screen.getByLabelText('Day of month')
+    await user.clear(dayInput)
+    await user.type(dayInput, '15')
+    await user.click(screen.getByRole('button', { name: 'Add' }))
+    await templatesTable().findByText('Internet')
+
+    await waitFor(() => expect(pendingCallCount).toBe(2))
   })
 
   it('refreshes the pending-occurrences widget after an inline cap edit', async () => {
