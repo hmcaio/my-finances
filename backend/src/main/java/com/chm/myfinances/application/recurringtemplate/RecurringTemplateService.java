@@ -39,8 +39,8 @@ import org.springframework.transaction.annotation.Transactional;
  * building a {@code Transaction} directly, so category/account/payment-method validation isn't
  * duplicated. {@code confirmPending}/{@code stop} are {@code @Transactional} since each performs
  * two writes (create-transaction + delete-pending, deactivate + bulk-delete-pending respectively)
- * that must commit or roll back together - this app has no other transaction-boundary handling,
- * so each such multi-write use case must opt in explicitly.
+ * that must commit or roll back together - this app has no other transaction-boundary handling, so
+ * each such multi-write use case must opt in explicitly.
  */
 @Service
 public class RecurringTemplateService {
