@@ -41,4 +41,9 @@ public final class FakeRecurringTemplateRepository implements RecurringTemplateR
   public List<RecurringTemplate> findByAccountId(UUID accountId) {
     return store.values().stream().filter(t -> t.getAccountId().equals(accountId)).toList();
   }
+
+  @Override
+  public boolean existsByCategoryId(UUID categoryId) {
+    return store.values().stream().anyMatch(t -> t.getCategoryId().equals(categoryId));
+  }
 }

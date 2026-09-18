@@ -12,8 +12,14 @@ import org.springframework.stereotype.Service;
  * Use cases for {@link PaymentMethod}: create/rename/delete (F002 spec). New ids come from the
  * {@link IdGenerator} port (ADR 0005).
  *
- * <p>Delete now enforces F002 plan.md's referenced-by-transaction guard, same as {@code
- * CategoryService} - deferred until F004 (Transactions) existed to check against.
+ * <p>Delete enforces F002 plan.md's referenced-by-transaction guard, same as {@code
+ * CategoryService} - deferred until F004 (Transactions) existed to check against. Unlike {@code
+ * CategoryService}'s equivalent guard, this one wasn't broadened in the post-F007 schema audit -
+ * {@code payment_methods} has no other FK referencing it besides {@code transactions}.
+ *
+ * <p>Create/rename reject a duplicate name (409, {@link PaymentMethodNameAlreadyExistsException}) -
+ * exact match, case-sensitive, backed by {@code payment_methods.name UNIQUE} ({@code
+ * V10__db_constraint_hardening.sql}), added in the same audit.
  */
 @Service
 public class PaymentMethodService {
@@ -32,6 +38,9 @@ public class PaymentMethodService {
   }
 
   public PaymentMethod create(String name) {
+    if (paymentMethodRepository.existsByName(name)) {
+      throw new PaymentMethodNameAlreadyExistsException(name);
+    }
     PaymentMethod paymentMethod = PaymentMethod.create(idGenerator.newId(), name);
     return paymentMethodRepository.save(paymentMethod);
   }
@@ -45,6 +54,9 @@ public class PaymentMethodService {
         paymentMethodRepository
             .findById(id)
             .orElseThrow(() -> new PaymentMethodNotFoundException(id));
+    if (paymentMethodRepository.existsByNameAndIdNot(newName, id)) {
+      throw new PaymentMethodNameAlreadyExistsException(newName);
+    }
     paymentMethod.rename(newName);
     return paymentMethodRepository.save(paymentMethod);
   }

@@ -41,7 +41,7 @@ class RealAccountClosedNotifierTest {
   void closingAnAccountDeactivatesEveryRecurringTemplatePointingAtIt() {
     UUID categoryId =
         categoryRepository
-            .save(Category.create(UUID.randomUUID(), "Rent", CategoryType.EXPENSE))
+            .save(Category.create(UUID.randomUUID(), "Rent Test", CategoryType.EXPENSE))
             .getId();
     Account account =
         accountService.create(

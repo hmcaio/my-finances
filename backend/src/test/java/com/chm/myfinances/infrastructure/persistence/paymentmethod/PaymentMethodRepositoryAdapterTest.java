@@ -62,6 +62,28 @@ class PaymentMethodRepositoryAdapterTest {
   }
 
   @Test
+  void existsByNameIsTrueOnlyForAnExactMatch() {
+    paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), "Unique Name Test"));
+
+    assertThat(paymentMethodRepository.existsByName("Unique Name Test")).isTrue();
+    assertThat(paymentMethodRepository.existsByName("unique name test")).isFalse();
+    assertThat(paymentMethodRepository.existsByName("Something Else")).isFalse();
+  }
+
+  @Test
+  void existsByNameAndIdNotExcludesTheGivenId() {
+    PaymentMethod paymentMethod =
+        paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), "Exclude Self Test"));
+
+    assertThat(
+            paymentMethodRepository.existsByNameAndIdNot(
+                "Exclude Self Test", paymentMethod.getId()))
+        .isFalse();
+    assertThat(paymentMethodRepository.existsByNameAndIdNot("Exclude Self Test", UUID.randomUUID()))
+        .isTrue();
+  }
+
+  @Test
   void starterPaymentMethodsFromTheMigrationAreSeeded() {
     List<PaymentMethod> all = paymentMethodRepository.findAll();
 

@@ -36,4 +36,15 @@ public final class FakeAccountRepository implements AccountRepository {
   public boolean existsById(UUID id) {
     return store.containsKey(id);
   }
+
+  @Override
+  public boolean existsByName(String name) {
+    return store.values().stream().anyMatch(a -> a.getName().equals(name));
+  }
+
+  @Override
+  public boolean existsByNameAndIdNot(String name, UUID excludedId) {
+    return store.values().stream()
+        .anyMatch(a -> a.getName().equals(name) && !a.getId().equals(excludedId));
+  }
 }

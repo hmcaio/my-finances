@@ -58,6 +58,16 @@ public class CategoryRepositoryAdapter implements CategoryRepository {
     return jpaRepository.existsById(id);
   }
 
+  @Override
+  public boolean existsByName(String name) {
+    return jpaRepository.existsByName(name);
+  }
+
+  @Override
+  public boolean existsByNameAndIdNot(String name, UUID excludedId) {
+    return jpaRepository.existsByNameAndIdNot(name, excludedId);
+  }
+
   private static Category toDomain(CategoryJpaEntity entity) {
     return Category.reconstitute(entity.getId(), entity.getName(), entity.getType());
   }

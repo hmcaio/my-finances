@@ -12,4 +12,6 @@ interface RecurringTemplateJpaRepository extends JpaRepository<RecurringTemplate
   List<RecurringTemplateJpaEntity> findByActiveTrue();
 
   List<RecurringTemplateJpaEntity> findByAccountId(UUID accountId);
+
+  boolean existsByCategoryId(UUID categoryId);
 }

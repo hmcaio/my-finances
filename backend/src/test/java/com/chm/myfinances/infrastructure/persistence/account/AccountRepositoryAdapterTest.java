@@ -156,4 +156,38 @@ class AccountRepositoryAdapterTest {
 
     assertThat(accountRepository.existsById(account.getId())).isTrue();
   }
+
+  @Test
+  void existsByNameIsTrueOnlyForAnExactMatch() {
+    accountRepository.save(
+        Account.create(
+            UUID.randomUUID(),
+            "Unique Name Test",
+            null,
+            AccountType.CHECKING,
+            BigDecimal.ZERO,
+            LocalDate.now()));
+
+    assertThat(accountRepository.existsByName("Unique Name Test")).isTrue();
+    assertThat(accountRepository.existsByName("unique name test")).isFalse();
+    assertThat(accountRepository.existsByName("Something Else")).isFalse();
+  }
+
+  @Test
+  void existsByNameAndIdNotExcludesTheGivenId() {
+    Account account =
+        accountRepository.save(
+            Account.create(
+                UUID.randomUUID(),
+                "Exclude Self Test",
+                null,
+                AccountType.CHECKING,
+                BigDecimal.ZERO,
+                LocalDate.now()));
+
+    assertThat(accountRepository.existsByNameAndIdNot("Exclude Self Test", account.getId()))
+        .isFalse();
+    assertThat(accountRepository.existsByNameAndIdNot("Exclude Self Test", UUID.randomUUID()))
+        .isTrue();
+  }
 }

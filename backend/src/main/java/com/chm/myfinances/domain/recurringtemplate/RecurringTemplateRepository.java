@@ -29,4 +29,12 @@ public interface RecurringTemplateRepository {
    * which deactivates each one (PRD S5.4).
    */
   List<RecurringTemplate> findByAccountId(UUID accountId);
+
+  /**
+   * Whether any template references {@code categoryId} - backs {@code CategoryService}'s
+   * referenced-by-transaction delete guard, broadened to also cover recurring templates (a category
+   * with a template but no transactions yet must still be undeletable, since deleting it would
+   * orphan {@code recurring_templates.category_id}'s FK).
+   */
+  boolean existsByCategoryId(UUID categoryId);
 }

@@ -61,6 +61,16 @@ public class AccountRepositoryAdapter implements AccountRepository {
     return jpaRepository.existsById(id);
   }
 
+  @Override
+  public boolean existsByName(String name) {
+    return jpaRepository.existsByName(name);
+  }
+
+  @Override
+  public boolean existsByNameAndIdNot(String name, UUID excludedId) {
+    return jpaRepository.existsByNameAndIdNot(name, excludedId);
+  }
+
   private static Account toDomain(AccountJpaEntity entity) {
     return Account.reconstitute(
         entity.getId(),

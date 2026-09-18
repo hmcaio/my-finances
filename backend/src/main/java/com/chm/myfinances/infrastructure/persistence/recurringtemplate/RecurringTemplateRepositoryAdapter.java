@@ -64,6 +64,11 @@ public class RecurringTemplateRepositoryAdapter implements RecurringTemplateRepo
         .toList();
   }
 
+  @Override
+  public boolean existsByCategoryId(UUID categoryId) {
+    return jpaRepository.existsByCategoryId(categoryId);
+  }
+
   private static LocalDate toFirstOfMonth(YearMonth yearMonth) {
     return yearMonth == null ? null : yearMonth.atDay(1);
   }

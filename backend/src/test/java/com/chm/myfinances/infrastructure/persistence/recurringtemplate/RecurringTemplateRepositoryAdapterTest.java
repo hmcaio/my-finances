@@ -44,7 +44,7 @@ class RecurringTemplateRepositoryAdapterTest {
   void setUp() {
     categoryId =
         categoryRepository
-            .save(Category.create(UUID.randomUUID(), "Rent", CategoryType.EXPENSE))
+            .save(Category.create(UUID.randomUUID(), "Rent Test", CategoryType.EXPENSE))
             .getId();
     accountId =
         accountRepository
@@ -132,5 +132,17 @@ class RecurringTemplateRepositoryAdapterTest {
         RecurringTemplate.create(UUID.randomUUID(), categoryId, accountId, "B"));
 
     assertThat(templateRepository.findAll()).hasSize(2);
+  }
+
+  @Test
+  void existsByCategoryIdReflectsWhetherAnyTemplateReferencesIt() {
+    // Backs CategoryService's delete guard (post-F007 schema audit): a category with a template
+    // but no transactions must still be undeletable.
+    assertThat(templateRepository.existsByCategoryId(categoryId)).isFalse();
+
+    templateRepository.save(
+        RecurringTemplate.create(UUID.randomUUID(), categoryId, accountId, "Rent"));
+
+    assertThat(templateRepository.existsByCategoryId(categoryId)).isTrue();
   }
 }

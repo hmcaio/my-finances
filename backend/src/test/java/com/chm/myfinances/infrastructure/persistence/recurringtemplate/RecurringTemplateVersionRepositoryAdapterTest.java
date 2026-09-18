@@ -47,7 +47,7 @@ class RecurringTemplateVersionRepositoryAdapterTest {
   void setUp() {
     UUID categoryId =
         categoryRepository
-            .save(Category.create(UUID.randomUUID(), "Rent", CategoryType.EXPENSE))
+            .save(Category.create(UUID.randomUUID(), "Rent Test", CategoryType.EXPENSE))
             .getId();
     UUID accountId =
         accountRepository

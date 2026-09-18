@@ -20,6 +20,8 @@ export interface Account {
 export type CreateAccountRequest = components['schemas']['CreateAccountRequest']
 export type UpdateAccountRequest = components['schemas']['UpdateAccountRequest']
 
+const DUPLICATE_NAME_MESSAGE = 'An account with this name already exists.'
+
 /**
  * Fetches accounts. Closed accounts are excluded by default (`includeClosed` mirrors the
  * backend's default-exclude query param, F003 spec) - they drop out of "create new" pickers and
@@ -35,12 +37,12 @@ export async function getAccount(id: string, asOf?: string): Promise<Account> {
 }
 
 export async function createAccount(request: CreateAccountRequest): Promise<Account> {
-  return unwrap(apiClient.post<Account>('/accounts', request))
+  return unwrap(apiClient.post<Account>('/accounts', request), DUPLICATE_NAME_MESSAGE)
 }
 
 /** Edits name/institution only. Type and opening balance/date are immutable (F003 spec). */
 export async function editAccount(id: string, request: UpdateAccountRequest): Promise<Account> {
-  return unwrap(apiClient.patch<Account>(`/accounts/${id}`, request))
+  return unwrap(apiClient.patch<Account>(`/accounts/${id}`, request), DUPLICATE_NAME_MESSAGE)
 }
 
 /** Closes an account. Not reversible through the UI - no "reopen" flow (F003 spec). */

@@ -19,4 +19,16 @@ public interface PaymentMethodRepository {
   void deleteById(UUID id);
 
   boolean existsById(UUID id);
+
+  /**
+   * Whether a PaymentMethod already has this exact name - backs the create-time duplicate guard.
+   */
+  boolean existsByName(String name);
+
+  /**
+   * Whether a PaymentMethod other than {@code excludedId} already has this exact name - backs the
+   * rename-time duplicate guard without rejecting a no-op rename to the payment method's own
+   * current name.
+   */
+  boolean existsByNameAndIdNot(String name, UUID excludedId);
 }

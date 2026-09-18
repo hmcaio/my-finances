@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { server } from '../mocks/server'
-import { categoryDeleteConflictHandler, seedCategories } from '../mocks/handlers/categories'
+import {
+  categoryCreateConflictHandler,
+  categoryDeleteConflictHandler,
+  categoryRenameConflictHandler,
+  seedCategories,
+} from '../mocks/handlers/categories'
 import { ApiError } from './apiError'
 import { createCategory, deleteCategory, getCategories, renameCategory } from './categories'
 
@@ -32,5 +37,29 @@ describe('categories API client', () => {
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
     expect((error as ApiError).message).toContain('reassign them')
+  })
+
+  it('createCategory maps a 409 to the duplicate-name message', async () => {
+    server.use(categoryCreateConflictHandler)
+
+    const error: unknown = await createCategory({ name: 'Groceries', type: 'EXPENSE' }).catch(
+      (err: unknown) => err,
+    )
+
+    expect(error).toBeInstanceOf(ApiError)
+    expect((error as ApiError).status).toBe(409)
+    expect((error as ApiError).message).toContain('already exists')
+  })
+
+  it('renameCategory maps a 409 to the duplicate-name message', async () => {
+    server.use(categoryRenameConflictHandler)
+
+    const error: unknown = await renameCategory('cat-2', { name: 'Groceries' }).catch(
+      (err: unknown) => err,
+    )
+
+    expect(error).toBeInstanceOf(ApiError)
+    expect((error as ApiError).status).toBe(409)
+    expect((error as ApiError).message).toContain('already exists')
   })
 })

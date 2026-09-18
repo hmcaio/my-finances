@@ -119,7 +119,7 @@ class PaymentMethodControllerTest {
                 LocalDate.now()));
     Category category =
         categoryRepository.save(
-            Category.create(UUID.randomUUID(), "Groceries", CategoryType.EXPENSE));
+            Category.create(UUID.randomUUID(), "Groceries Test", CategoryType.EXPENSE));
     transactionRepository.save(
         Transaction.create(
             UUID.randomUUID(),
@@ -134,6 +134,53 @@ class PaymentMethodControllerTest {
             null));
 
     mockMvc.perform(delete("/api/payment-methods/" + id)).andExpect(status().isConflict());
+  }
+
+  @Test
+  void createRejectsADuplicateNameWith409() throws Exception {
+    String createBody = objectMapper.writeValueAsString(Map.of("name", "Duplicate PM"));
+    mockMvc
+        .perform(
+            post("/api/payment-methods")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(createBody))
+        .andExpect(status().isCreated());
+
+    mockMvc
+        .perform(
+            post("/api/payment-methods")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(createBody))
+        .andExpect(status().isConflict());
+  }
+
+  @Test
+  void renameRejectsADuplicateNameWith409() throws Exception {
+    String firstBody = objectMapper.writeValueAsString(Map.of("name", "Original PM"));
+    mockMvc
+        .perform(
+            post("/api/payment-methods").contentType(MediaType.APPLICATION_JSON).content(firstBody))
+        .andExpect(status().isCreated());
+
+    String secondBody = objectMapper.writeValueAsString(Map.of("name", "PM To Rename"));
+    MvcResult createResult =
+        mockMvc
+            .perform(
+                post("/api/payment-methods")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(secondBody))
+            .andExpect(status().isCreated())
+            .andReturn();
+    String id =
+        objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asText();
+
+    String renameBody = objectMapper.writeValueAsString(Map.of("name", "Original PM"));
+    mockMvc
+        .perform(
+            patch("/api/payment-methods/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(renameBody))
+        .andExpect(status().isConflict());
   }
 
   @Test

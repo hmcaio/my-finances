@@ -72,13 +72,13 @@ class RecurringTemplateServiceTransactionalTest {
   void confirmPendingRollsBackTheCreatedTransactionWhenDeletingThePendingRowFails() {
     UUID categoryId =
         categoryRepository
-            .save(Category.create(UUID.randomUUID(), "Rent", CategoryType.EXPENSE))
+            .save(Category.create(UUID.randomUUID(), "Rent Confirm Test", CategoryType.EXPENSE))
             .getId();
     Account account =
         accountRepository.save(
             Account.create(
                 UUID.randomUUID(),
-                "Checking",
+                "Checking Confirm Test",
                 null,
                 AccountType.CHECKING,
                 BigDecimal.ZERO,
@@ -131,13 +131,13 @@ class RecurringTemplateServiceTransactionalTest {
   void stopRollsBackDeactivationWhenDeletingPendingOccurrencesFails() {
     UUID categoryId =
         categoryRepository
-            .save(Category.create(UUID.randomUUID(), "Rent", CategoryType.EXPENSE))
+            .save(Category.create(UUID.randomUUID(), "Rent Stop Test", CategoryType.EXPENSE))
             .getId();
     Account account =
         accountRepository.save(
             Account.create(
                 UUID.randomUUID(),
-                "Checking",
+                "Checking Stop Test",
                 null,
                 AccountType.CHECKING,
                 BigDecimal.ZERO,

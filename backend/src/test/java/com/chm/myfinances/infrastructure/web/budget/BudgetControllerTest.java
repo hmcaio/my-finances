@@ -65,11 +65,11 @@ class BudgetControllerTest {
 
     groceriesCategoryId =
         categoryRepository
-            .save(Category.create(UUID.randomUUID(), "Groceries", CategoryType.EXPENSE))
+            .save(Category.create(UUID.randomUUID(), "Groceries Test", CategoryType.EXPENSE))
             .getId();
     salaryCategoryId =
         categoryRepository
-            .save(Category.create(UUID.randomUUID(), "Salary", CategoryType.INCOME))
+            .save(Category.create(UUID.randomUUID(), "Salary Test", CategoryType.INCOME))
             .getId();
     accountId =
         accountRepository
@@ -83,7 +83,9 @@ class BudgetControllerTest {
                     LocalDate.now()))
             .getId();
     paymentMethodId =
-        paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), "Debit Card")).getId();
+        paymentMethodRepository
+            .save(PaymentMethod.create(UUID.randomUUID(), "Debit Card Test"))
+            .getId();
   }
 
   private String createBudgetBody(UUID categoryId, String monthlyCap, String effectiveFrom)

@@ -41,4 +41,15 @@ public final class FakeCategoryRepository implements CategoryRepository {
   public boolean existsById(UUID id) {
     return store.containsKey(id);
   }
+
+  @Override
+  public boolean existsByName(String name) {
+    return store.values().stream().anyMatch(c -> c.getName().equals(name));
+  }
+
+  @Override
+  public boolean existsByNameAndIdNot(String name, UUID excludedId) {
+    return store.values().stream()
+        .anyMatch(c -> c.getName().equals(name) && !c.getId().equals(excludedId));
+  }
 }

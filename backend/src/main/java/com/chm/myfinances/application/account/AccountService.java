@@ -16,6 +16,11 @@ import org.springframework.stereotype.Service;
  * the {@link IdGenerator} port (ADR 0005) - never generated ad hoc here or left to the database.
  *
  * <p>No delete use case - accounts are never hard-deleted (PRD S5.4/S8), only closed.
+ *
+ * <p>Create/edit reject a duplicate name (409, {@link AccountNameAlreadyExistsException}) - exact
+ * match, case-sensitive, backed by {@code accounts.name UNIQUE} ({@code
+ * V10__db_constraint_hardening.sql}), added in the post-F007 schema audit alongside the same guard
+ * on F002's {@code Category}/{@code PaymentMethod}.
  */
 @Service
 public class AccountService {
@@ -39,6 +44,9 @@ public class AccountService {
       AccountType type,
       BigDecimal openingBalance,
       LocalDate openingBalanceDate) {
+    if (accountRepository.existsByName(name)) {
+      throw new AccountNameAlreadyExistsException(name);
+    }
     Account account =
         Account.create(
             idGenerator.newId(), name, institution, type, openingBalance, openingBalanceDate);
@@ -64,6 +72,9 @@ public class AccountService {
   /** Edits name/institution only - type and opening balance/date are immutable (F003 spec). */
   public Account edit(UUID id, String name, String institution) {
     Account account = findById(id);
+    if (accountRepository.existsByNameAndIdNot(name, id)) {
+      throw new AccountNameAlreadyExistsException(name);
+    }
     account.edit(name, institution);
     return accountRepository.save(account);
   }

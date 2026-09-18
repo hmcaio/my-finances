@@ -64,7 +64,7 @@ class RecurringTemplateControllerTest {
 
     categoryId =
         categoryRepository
-            .save(Category.create(UUID.randomUUID(), "Rent", CategoryType.EXPENSE))
+            .save(Category.create(UUID.randomUUID(), "Rent Test", CategoryType.EXPENSE))
             .getId();
     accountId =
         accountRepository
@@ -78,7 +78,9 @@ class RecurringTemplateControllerTest {
                     LocalDate.now()))
             .getId();
     paymentMethodId =
-        paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), "Debit Card")).getId();
+        paymentMethodRepository
+            .save(PaymentMethod.create(UUID.randomUUID(), "Debit Card Test"))
+            .getId();
   }
 
   private String createRequestBody(String effectiveFrom) throws Exception {
