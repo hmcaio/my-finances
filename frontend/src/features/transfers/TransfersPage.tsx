@@ -1,13 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  Alert,
   Box,
   Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
   IconButton,
   MenuItem,
   Paper,
@@ -32,8 +26,12 @@ import {
   type Transfer,
   type TransferFilter,
 } from '../../api/transfers'
-import { ApiError } from '../../api/apiError'
-import { nameLookup } from '../transactions/nameLookup'
+import { defaultErrorMessage } from '../../api/apiError'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { ErrorAlert } from '../../components/ErrorAlert'
+import { LoadingTableRow } from '../../components/LoadingTableRow'
+import { PaginationControls } from '../../components/PaginationControls'
+import { nameLookup } from '../../utils/nameLookup'
 
 const EMPTY_FORM = {
   date: new Date().toISOString().slice(0, 10),
@@ -74,7 +72,7 @@ export function TransfersPage() {
   useEffect(() => {
     getAccounts(true)
       .then(setAccounts)
-      .catch((err: unknown) => setError(errorMessage(err)))
+      .catch((err: unknown) => setError(defaultErrorMessage(err)))
   }, [])
 
   function load(activeFilters: TransferFilter, activePage: number) {
@@ -83,7 +81,7 @@ export function TransfersPage() {
         setTransfers(result.content)
         setPageInfo({ number: result.page.number, totalPages: result.page.totalPages })
       })
-      .catch((err: unknown) => setError(errorMessage(err)))
+      .catch((err: unknown) => setError(defaultErrorMessage(err)))
   }
 
   useEffect(() => {
@@ -162,7 +160,7 @@ export function TransfersPage() {
       }
       cancelEdit()
     } catch (err) {
-      setError(errorMessage(err))
+      setError(defaultErrorMessage(err))
     } finally {
       setSaving(false)
     }
@@ -177,7 +175,7 @@ export function TransfersPage() {
       setTransfers((prev) => prev?.filter((t) => t.id !== deleteTarget.id) ?? null)
       setDeleteTarget(null)
     } catch (err) {
-      setError(errorMessage(err))
+      setError(defaultErrorMessage(err))
     } finally {
       setDeleting(false)
     }
@@ -193,11 +191,7 @@ export function TransfersPage() {
         checking. Transfers are never categorized and don't count toward budgets.
       </Typography>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+      <ErrorAlert message={error} onDismiss={() => setError(null)} />
 
       <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
         <Typography variant="subtitle2" gutterBottom>
@@ -261,13 +255,7 @@ export function TransfersPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {transfers === null && (
-                <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    Loading…
-                  </TableCell>
-                </TableRow>
-              )}
+              {transfers === null && <LoadingTableRow colSpan={6} variant="text" />}
               {transfers?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} align="center">
@@ -301,27 +289,7 @@ export function TransfersPage() {
         </TableContainer>
       </Paper>
 
-      {pageInfo && pageInfo.totalPages > 1 && (
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 3 }}>
-          <Button
-            size="small"
-            disabled={pageInfo.number <= 0}
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
-          >
-            Previous
-          </Button>
-          <Typography variant="body2">
-            Page {pageInfo.number + 1} of {pageInfo.totalPages}
-          </Typography>
-          <Button
-            size="small"
-            disabled={pageInfo.number + 1 >= pageInfo.totalPages}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            Next
-          </Button>
-        </Box>
-      )}
+      <PaginationControls pageInfo={pageInfo} onPageChange={setPage} sx={{ mt: 0, mb: 3 }} />
 
       <Paper variant="outlined" sx={{ p: 2, maxWidth: 720 }}>
         <Typography variant="subtitle1" gutterBottom>
@@ -408,28 +376,15 @@ export function TransfersPage() {
         </Box>
       </Paper>
 
-      <Dialog open={deleteTarget !== null} onClose={() => setDeleteTarget(null)}>
-        <DialogTitle>Delete this transfer?</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            This permanently removes the transfer and cannot be undone.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteTarget(null)} disabled={deleting}>
-            Cancel
-          </Button>
-          <Button onClick={() => void confirmDelete()} color="error" disabled={deleting} autoFocus>
-            Delete transfer
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete this transfer?"
+        body="This permanently removes the transfer and cannot be undone."
+        confirmLabel="Delete transfer"
+        loading={deleting}
+        onConfirm={() => void confirmDelete()}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </Box>
   )
-}
-
-function errorMessage(err: unknown): string {
-  if (err instanceof ApiError) return err.message
-  if (err instanceof Error) return err.message
-  return 'Something went wrong.'
 }

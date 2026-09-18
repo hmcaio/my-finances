@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
-  Alert,
   Box,
   Button,
-  CircularProgress,
   IconButton,
   Paper,
   Table,
@@ -16,9 +14,6 @@ import {
   Typography,
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
-import EditIcon from '@mui/icons-material/Edit'
-import CheckIcon from '@mui/icons-material/Check'
-import CloseIcon from '@mui/icons-material/Close'
 import {
   createPaymentMethod,
   deletePaymentMethod,
@@ -26,7 +21,10 @@ import {
   renamePaymentMethod,
   type PaymentMethod,
 } from '../../api/paymentMethods'
-import { ApiError } from '../../api/apiError'
+import { defaultErrorMessage } from '../../api/apiError'
+import { ErrorAlert } from '../../components/ErrorAlert'
+import { InlineEditActions } from '../../components/InlineEditActions'
+import { LoadingTableRow } from '../../components/LoadingTableRow'
 
 /**
  * Settings-style CRUD screen for payment methods (F002 spec): table with name, inline rename,
@@ -48,7 +46,7 @@ export function PaymentMethodsPage() {
   function load() {
     getPaymentMethods()
       .then(setPaymentMethods)
-      .catch((err: unknown) => setError(errorMessage(err)))
+      .catch((err: unknown) => setError(defaultErrorMessage(err)))
   }
 
   useEffect(() => {
@@ -64,7 +62,7 @@ export function PaymentMethodsPage() {
       setPaymentMethods((prev) => [...(prev ?? []), created])
       setNewName('')
     } catch (err) {
-      setError(errorMessage(err))
+      setError(defaultErrorMessage(err))
     } finally {
       setAdding(false)
     }
@@ -88,7 +86,7 @@ export function PaymentMethodsPage() {
       setPaymentMethods((prev) => prev?.map((pm) => (pm.id === id ? updated : pm)) ?? null)
       cancelEdit()
     } catch (err) {
-      setError(errorMessage(err))
+      setError(defaultErrorMessage(err))
     }
   }
 
@@ -99,7 +97,7 @@ export function PaymentMethodsPage() {
       await deletePaymentMethod(id)
       setPaymentMethods((prev) => prev?.filter((pm) => pm.id !== id) ?? null)
     } catch (err) {
-      setError(errorMessage(err))
+      setError(defaultErrorMessage(err))
     } finally {
       setPendingDeleteId(null)
     }
@@ -115,11 +113,7 @@ export function PaymentMethodsPage() {
         doesn't affect account balances.
       </Typography>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+      <ErrorAlert message={error} onDismiss={() => setError(null)} />
 
       <Paper variant="outlined" sx={{ mb: 3 }}>
         <TableContainer>
@@ -131,13 +125,7 @@ export function PaymentMethodsPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {paymentMethods === null && (
-                <TableRow>
-                  <TableCell colSpan={2} align="center">
-                    <CircularProgress size={20} />
-                  </TableCell>
-                </TableRow>
-              )}
+              {paymentMethods === null && <LoadingTableRow colSpan={2} />}
               {paymentMethods?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={2} align="center">
@@ -164,37 +152,22 @@ export function PaymentMethodsPage() {
                     )}
                   </TableCell>
                   <TableCell align="right">
-                    {editingId === paymentMethod.id ? (
-                      <>
-                        <IconButton
-                          size="small"
-                          aria-label="Save"
-                          onClick={() => void saveEdit(paymentMethod.id)}
-                        >
-                          <CheckIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton size="small" aria-label="Cancel" onClick={cancelEdit}>
-                          <CloseIcon fontSize="small" />
-                        </IconButton>
-                      </>
-                    ) : (
-                      <>
-                        <IconButton
-                          size="small"
-                          aria-label="Rename"
-                          onClick={() => startEdit(paymentMethod)}
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          aria-label="Delete"
-                          disabled={pendingDeleteId === paymentMethod.id}
-                          onClick={() => void handleDelete(paymentMethod.id)}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </>
+                    <InlineEditActions
+                      editing={editingId === paymentMethod.id}
+                      onEdit={() => startEdit(paymentMethod)}
+                      onSave={() => void saveEdit(paymentMethod.id)}
+                      onCancel={cancelEdit}
+                      editLabel="Rename"
+                    />
+                    {editingId !== paymentMethod.id && (
+                      <IconButton
+                        size="small"
+                        aria-label="Delete"
+                        disabled={pendingDeleteId === paymentMethod.id}
+                        onClick={() => void handleDelete(paymentMethod.id)}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
                     )}
                   </TableCell>
                 </TableRow>
@@ -229,10 +202,4 @@ export function PaymentMethodsPage() {
       </Paper>
     </Box>
   )
-}
-
-function errorMessage(err: unknown): string {
-  if (err instanceof ApiError && err.status === 409) return err.message
-  if (err instanceof Error) return err.message
-  return 'Something went wrong.'
 }

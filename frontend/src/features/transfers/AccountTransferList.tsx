@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  Alert,
   Box,
-  Button,
   Table,
   TableBody,
   TableCell,
@@ -13,8 +11,11 @@ import {
 } from '@mui/material'
 import { getAccounts, type Account } from '../../api/accounts'
 import { getTransfers, type Transfer } from '../../api/transfers'
-import { ApiError } from '../../api/apiError'
-import { nameLookup } from '../transactions/nameLookup'
+import { defaultErrorMessage } from '../../api/apiError'
+import { ErrorAlert } from '../../components/ErrorAlert'
+import { LoadingTableRow } from '../../components/LoadingTableRow'
+import { PaginationControls } from '../../components/PaginationControls'
+import { nameLookup } from '../../utils/nameLookup'
 
 const PAGE_SIZE = 10
 
@@ -40,7 +41,7 @@ export function AccountTransferList({ accountId }: AccountTransferListProps) {
   useEffect(() => {
     getAccounts(true)
       .then(setAccounts)
-      .catch((err: unknown) => setError(errorMessage(err)))
+      .catch((err: unknown) => setError(defaultErrorMessage(err)))
   }, [])
 
   useEffect(() => {
@@ -49,18 +50,14 @@ export function AccountTransferList({ accountId }: AccountTransferListProps) {
         setTransfers(result.content)
         setPageInfo({ number: result.page.number, totalPages: result.page.totalPages })
       })
-      .catch((err: unknown) => setError(errorMessage(err)))
+      .catch((err: unknown) => setError(defaultErrorMessage(err)))
   }, [accountId, page])
 
   const accountName = useMemo(() => nameLookup(accounts ?? [], (a) => a.name), [accounts])
 
   return (
     <Box>
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+      <ErrorAlert message={error} onDismiss={() => setError(null)} />
 
       <TableContainer>
         <Table size="small">
@@ -74,13 +71,7 @@ export function AccountTransferList({ accountId }: AccountTransferListProps) {
             </TableRow>
           </TableHead>
           <TableBody>
-            {transfers === null && (
-              <TableRow>
-                <TableCell colSpan={5} align="center">
-                  Loading…
-                </TableCell>
-              </TableRow>
-            )}
+            {transfers === null && <LoadingTableRow colSpan={5} variant="text" />}
             {transfers?.length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} align="center">
@@ -101,33 +92,7 @@ export function AccountTransferList({ accountId }: AccountTransferListProps) {
         </Table>
       </TableContainer>
 
-      {pageInfo && pageInfo.totalPages > 1 && (
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 2 }}>
-          <Button
-            size="small"
-            disabled={pageInfo.number <= 0}
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
-          >
-            Previous
-          </Button>
-          <Typography variant="body2">
-            Page {pageInfo.number + 1} of {pageInfo.totalPages}
-          </Typography>
-          <Button
-            size="small"
-            disabled={pageInfo.number + 1 >= pageInfo.totalPages}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            Next
-          </Button>
-        </Box>
-      )}
+      <PaginationControls pageInfo={pageInfo} onPageChange={setPage} />
     </Box>
   )
-}
-
-function errorMessage(err: unknown): string {
-  if (err instanceof ApiError) return err.message
-  if (err instanceof Error) return err.message
-  return 'Something went wrong.'
 }

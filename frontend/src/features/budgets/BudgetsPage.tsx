@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  Alert,
   Box,
   Button,
-  IconButton,
   LinearProgress,
   MenuItem,
   Paper,
@@ -17,9 +15,6 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import EditIcon from '@mui/icons-material/Edit'
-import CheckIcon from '@mui/icons-material/Check'
-import CloseIcon from '@mui/icons-material/Close'
 import { getCategories, type Category } from '../../api/categories'
 import {
   createBudget,
@@ -29,8 +24,11 @@ import {
   type Budget,
   type BudgetReportLine,
 } from '../../api/budgets'
-import { ApiError } from '../../api/apiError'
-import { nameLookup } from '../transactions/nameLookup'
+import { defaultErrorMessage } from '../../api/apiError'
+import { ErrorAlert } from '../../components/ErrorAlert'
+import { InlineEditActions } from '../../components/InlineEditActions'
+import { LoadingTableRow } from '../../components/LoadingTableRow'
+import { nameLookup } from '../../utils/nameLookup'
 
 /** `YYYY-MM` for the current real-world month - the implicit "now" every cap edit/new budget
  * takes effect from (PRD S5.6: "effective going forward only"). */
@@ -65,19 +63,19 @@ export function BudgetsPage() {
   function loadBudgets() {
     getBudgets()
       .then(setBudgets)
-      .catch((err: unknown) => setError(errorMessage(err)))
+      .catch((err: unknown) => setError(defaultErrorMessage(err)))
   }
 
   function loadReport(month: string) {
     getBudgetReport(month)
       .then(setReport)
-      .catch((err: unknown) => setError(errorMessage(err)))
+      .catch((err: unknown) => setError(defaultErrorMessage(err)))
   }
 
   useEffect(() => {
     getCategories()
       .then(setCategories)
-      .catch((err: unknown) => setError(errorMessage(err)))
+      .catch((err: unknown) => setError(defaultErrorMessage(err)))
     loadBudgets()
   }, [])
 
@@ -107,7 +105,7 @@ export function BudgetsPage() {
       setNewCap('')
       if (reportMonth >= currentMonth()) loadReport(reportMonth)
     } catch (err) {
-      setError(errorMessage(err))
+      setError(defaultErrorMessage(err))
     } finally {
       setAdding(false)
     }
@@ -136,7 +134,7 @@ export function BudgetsPage() {
       cancelEditCap()
       if (reportMonth >= currentMonth()) loadReport(reportMonth)
     } catch (err) {
-      setError(errorMessage(err))
+      setError(defaultErrorMessage(err))
     } finally {
       setSavingCap(false)
     }
@@ -153,11 +151,7 @@ export function BudgetsPage() {
         actually in effect then.
       </Typography>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+      <ErrorAlert message={error} onDismiss={() => setError(null)} />
 
       <Paper variant="outlined" sx={{ mb: 3 }}>
         <TableContainer>
@@ -171,13 +165,7 @@ export function BudgetsPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {budgets === null && (
-                <TableRow>
-                  <TableCell colSpan={4} align="center">
-                    Loading…
-                  </TableCell>
-                </TableRow>
-              )}
+              {budgets === null && <LoadingTableRow colSpan={4} variant="text" />}
               {budgets?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} align="center">
@@ -209,34 +197,15 @@ export function BudgetsPage() {
                   </TableCell>
                   <TableCell>{budget.currentCapEffectiveFrom ?? '—'}</TableCell>
                   <TableCell align="right">
-                    {editingId === budget.id ? (
-                      <>
-                        <IconButton
-                          size="small"
-                          aria-label="Save cap"
-                          disabled={savingCap}
-                          onClick={() => void saveEditCap(budget.id)}
-                        >
-                          <CheckIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          aria-label="Cancel"
-                          disabled={savingCap}
-                          onClick={cancelEditCap}
-                        >
-                          <CloseIcon fontSize="small" />
-                        </IconButton>
-                      </>
-                    ) : (
-                      <IconButton
-                        size="small"
-                        aria-label="Edit cap"
-                        onClick={() => startEditCap(budget)}
-                      >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                    )}
+                    <InlineEditActions
+                      editing={editingId === budget.id}
+                      onEdit={() => startEditCap(budget)}
+                      onSave={() => void saveEditCap(budget.id)}
+                      onCancel={cancelEditCap}
+                      editLabel="Edit cap"
+                      saveLabel="Save cap"
+                      saving={savingCap}
+                    />
                   </TableCell>
                 </TableRow>
               ))}
@@ -338,10 +307,4 @@ export function BudgetsPage() {
       </Paper>
     </Box>
   )
-}
-
-function errorMessage(err: unknown): string {
-  if (err instanceof ApiError) return err.message
-  if (err instanceof Error) return err.message
-  return 'Something went wrong.'
 }
