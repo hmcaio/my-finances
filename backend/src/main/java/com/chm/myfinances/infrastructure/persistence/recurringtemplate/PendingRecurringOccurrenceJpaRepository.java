@@ -1,6 +1,7 @@
 package com.chm.myfinances.infrastructure.persistence.recurringtemplate;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -14,4 +15,6 @@ interface PendingRecurringOccurrenceJpaRepository
   void deleteByTemplateId(UUID templateId);
 
   boolean existsByTemplateIdAndDueDate(UUID templateId, LocalDate dueDate);
+
+  List<PendingRecurringOccurrenceJpaEntity> findByTemplateId(UUID templateId);
 }

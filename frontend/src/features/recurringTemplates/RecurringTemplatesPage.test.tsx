@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { http, HttpResponse } from 'msw'
+import { server } from '../../mocks/server'
 import { seedCategories } from '../../mocks/handlers/categories'
 import { seedAccounts } from '../../mocks/handlers/accounts'
-import { seedRecurringTemplates } from '../../mocks/handlers/recurringTemplates'
+import {
+  seedPendingRecurringOccurrences,
+  seedRecurringTemplates,
+} from '../../mocks/handlers/recurringTemplates'
 import { RecurringTemplatesPage } from './RecurringTemplatesPage'
 
 /** Scopes queries to the templates settings table - the pending-occurrences widget below it
@@ -11,6 +16,10 @@ import { RecurringTemplatesPage } from './RecurringTemplatesPage'
  * ambiguous, same reasoning as F006's `BudgetsPage.test.tsx`. */
 function templatesTable() {
   return within(screen.getAllByRole('table')[0])
+}
+
+function pendingWidgetTable() {
+  return within(screen.getAllByRole('table')[1])
 }
 
 async function findRow(name: string) {
@@ -24,9 +33,7 @@ describe('RecurringTemplatesPage', () => {
 
     const row = await findRow(seedRecurringTemplates[0].description)
     expect(row.getByText(seedRecurringTemplates[0].currentAmount!.toFixed(2))).toBeInTheDocument()
-    expect(
-      row.getByText(String(seedRecurringTemplates[0].currentDayOfMonth)),
-    ).toBeInTheDocument()
+    expect(row.getByText(String(seedRecurringTemplates[0].currentDayOfMonth))).toBeInTheDocument()
     expect(row.getByText('Active')).toBeInTheDocument()
   })
 
@@ -61,6 +68,32 @@ describe('RecurringTemplatesPage', () => {
     await user.click(row.getByRole('button', { name: 'Save cap' }))
 
     expect(await templatesTable().findByText('1750.00')).toBeInTheDocument()
+  })
+
+  it('refreshes the pending-occurrences widget after an inline cap edit', async () => {
+    // The widget fetches its own data once on mount and takes no props - this proves the page
+    // actually triggers a refetch (via remounting it) after a cap edit, rather than leaving it
+    // showing the pre-edit amount until a full page reload.
+    let pendingCallCount = 0
+    server.use(
+      http.get('/api/recurring-templates/pending', () => {
+        pendingCallCount += 1
+        const amount = pendingCallCount === 1 ? 1500 : 1750
+        return HttpResponse.json([{ ...seedPendingRecurringOccurrences[0], amount }])
+      }),
+    )
+    const user = userEvent.setup()
+    render(<RecurringTemplatesPage />)
+    const row = await findRow(seedRecurringTemplates[0].description)
+    expect(await pendingWidgetTable().findByText('1500.00')).toBeInTheDocument()
+
+    await user.click(row.getByRole('button', { name: 'Edit amount and day' }))
+    const amountInput = row.getByLabelText('Amount')
+    await user.clear(amountInput)
+    await user.type(amountInput, '1750')
+    await user.click(row.getByRole('button', { name: 'Save cap' }))
+
+    expect(await pendingWidgetTable().findByText('1750.00')).toBeInTheDocument()
   })
 
   it('stops an active template', async () => {

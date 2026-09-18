@@ -74,6 +74,11 @@ export function RecurringTemplatesPage() {
 
   const [togglingId, setTogglingId] = useState<string | null>(null)
 
+  // PendingOccurrencesWidget fetches its own data once on mount and takes no props (deliberately,
+  // so F012's dashboard can embed it as-is) - remounting it via this key is how this page tells it
+  // to refetch after a cap edit changes what an already-generated pending occurrence should show.
+  const [pendingRefreshKey, setPendingRefreshKey] = useState(0)
+
   function loadTemplates() {
     getRecurringTemplates()
       .then(setTemplates)
@@ -153,6 +158,7 @@ export function RecurringTemplatesPage() {
         effectiveFrom: currentMonth(),
       })
       setTemplates((prev) => prev?.map((t) => (t.id === id ? updated : t)) ?? null)
+      setPendingRefreshKey((key) => key + 1)
       cancelEditCap()
     } catch (err) {
       setError(errorMessage(err))
@@ -392,7 +398,7 @@ export function RecurringTemplatesPage() {
         </Box>
       </Paper>
 
-      <PendingOccurrencesWidget />
+      <PendingOccurrencesWidget key={pendingRefreshKey} />
     </Box>
   )
 }

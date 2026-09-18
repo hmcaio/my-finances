@@ -124,7 +124,21 @@ public class RecurringTemplateService {
    * .../cap}): replaces the existing version for that exact month if one already exists, otherwise
    * creates a brand-new forward-only version - identical rule to F006's {@code
    * BudgetService.setCap}.
+   *
+   * <p>A same-month correction needs no further work: existing {@code PendingRecurringOccurrence}
+   * rows already reference that version's id, and {@code RecurringTemplateController} resolves an
+   * occurrence's displayed amount/day live via {@link #findVersionById}, so the mutated version's
+   * new values show up automatically. A brand-new forward version is different - any occurrence
+   * already generated for a cycle this new version now covers still points at the version that used
+   * to be effective for that cycle, so it would keep showing the pre-edit amount/day until
+   * confirmed. {@link #realignPendingOccurrences} fixes that by re-resolving, for every
+   * still-pending occurrence of this template, which version {@link
+   * RecurringTemplateVersion#resolveEffective} says should apply now and repointing it if that
+   * changed - an occurrence whose cycle is still correctly covered by an older version (this edit's
+   * {@code effectiveFrom} is later than that cycle) is left untouched, preserving what past months
+   * showed (F007 spec).
    */
+  @Transactional
   public RecurringTemplateVersion setCap(
       UUID templateId, BigDecimal amount, int dayOfMonth, YearMonth effectiveFrom) {
     RecurringTemplate template = findById(templateId);
@@ -138,7 +152,36 @@ public class RecurringTemplateService {
     RecurringTemplateVersion version =
         RecurringTemplateVersion.create(
             idGenerator.newId(), template.getId(), amount, dayOfMonth, effectiveFrom);
-    return versionRepository.save(version);
+    RecurringTemplateVersion saved = versionRepository.save(version);
+    realignPendingOccurrences(template.getId());
+    return saved;
+  }
+
+  /**
+   * Re-resolves which {@link RecurringTemplateVersion} each of {@code templateId}'s still-pending
+   * occurrences should point to, repointing any whose correct version changed - see {@link
+   * #setCap}.
+   */
+  private void realignPendingOccurrences(UUID templateId) {
+    List<RecurringTemplateVersion> versions = versionRepository.findByTemplateId(templateId);
+    for (PendingRecurringOccurrence occurrence : pendingRepository.findByTemplateId(templateId)) {
+      RecurringTemplateVersion correctVersion =
+          RecurringTemplateVersion.resolveEffective(
+                  versions, YearMonth.from(occurrence.getDueDate()))
+              .orElseThrow(
+                  () ->
+                      new IllegalStateException(
+                          "No RecurringTemplateVersion covers pending occurrence "
+                              + occurrence.getId()));
+      if (!correctVersion.getId().equals(occurrence.getTemplateVersionId())) {
+        pendingRepository.save(
+            PendingRecurringOccurrence.reconstitute(
+                occurrence.getId(),
+                occurrence.getTemplateId(),
+                correctVersion.getId(),
+                occurrence.getDueDate()));
+      }
+    }
   }
 
   /**

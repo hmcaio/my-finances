@@ -173,6 +173,56 @@ class RecurringTemplateServiceTest {
   }
 
   @Test
+  void setCapForANewMonthRepointsAffectedPendingOccurrencesToTheNewVersion() {
+    RecurringTemplate template =
+        service.create(
+            categoryId, accountId, "Rent", new BigDecimal("1500.00"), 5, YearMonth.of(2026, 1));
+    RecurringTemplateVersion januaryVersion =
+        versionRepository.findByTemplateId(template.getId()).get(0);
+    // Generated before the edit, for a March cycle that (at generation time) still resolved to
+    // the January version - nothing existed yet for March specifically.
+    PendingRecurringOccurrence marchOccurrence =
+        pendingRepository.save(
+            PendingRecurringOccurrence.create(
+                UUID.randomUUID(),
+                template.getId(),
+                januaryVersion.getId(),
+                LocalDate.of(2026, 3, 5)));
+
+    RecurringTemplateVersion marchVersion =
+        service.setCap(template.getId(), new BigDecimal("1600.00"), 10, YearMonth.of(2026, 3));
+
+    PendingRecurringOccurrence reloaded =
+        pendingRepository.findById(marchOccurrence.getId()).orElseThrow();
+    assertThat(reloaded.getTemplateVersionId()).isEqualTo(marchVersion.getId());
+  }
+
+  @Test
+  void setCapForANewMonthLeavesEarlierCyclesPendingOccurrencesUntouched() {
+    RecurringTemplate template =
+        service.create(
+            categoryId, accountId, "Rent", new BigDecimal("1500.00"), 5, YearMonth.of(2026, 1));
+    RecurringTemplateVersion januaryVersion =
+        versionRepository.findByTemplateId(template.getId()).get(0);
+    // A still-pending January occurrence - correctly resolves to the January version both before
+    // and after a later, forward-only March version is added; must not be rewritten (F007 spec:
+    // a cap change never rewrites what a past month showed).
+    PendingRecurringOccurrence januaryOccurrence =
+        pendingRepository.save(
+            PendingRecurringOccurrence.create(
+                UUID.randomUUID(),
+                template.getId(),
+                januaryVersion.getId(),
+                LocalDate.of(2026, 1, 5)));
+
+    service.setCap(template.getId(), new BigDecimal("1600.00"), 10, YearMonth.of(2026, 3));
+
+    PendingRecurringOccurrence reloaded =
+        pendingRepository.findById(januaryOccurrence.getId()).orElseThrow();
+    assertThat(reloaded.getTemplateVersionId()).isEqualTo(januaryVersion.getId());
+  }
+
+  @Test
   void setCapForAnAlreadyVersionedMonthReplacesRatherThanDuplicates() {
     RecurringTemplate template =
         service.create(

@@ -69,6 +69,13 @@ public class PendingRecurringOccurrenceRepositoryAdapter
     return jpaRepository.existsByTemplateIdAndDueDate(templateId, dueDate);
   }
 
+  @Override
+  public List<PendingRecurringOccurrence> findByTemplateId(UUID templateId) {
+    return jpaRepository.findByTemplateId(templateId).stream()
+        .map(PendingRecurringOccurrenceRepositoryAdapter::toDomain)
+        .toList();
+  }
+
   private static PendingRecurringOccurrence toDomain(PendingRecurringOccurrenceJpaEntity entity) {
     return PendingRecurringOccurrence.reconstitute(
         entity.getId(), entity.getTemplateId(), entity.getTemplateVersionId(), entity.getDueDate());

@@ -49,4 +49,9 @@ public final class FakePendingRecurringOccurrenceRepository
     return store.values().stream()
         .anyMatch(o -> o.getTemplateId().equals(templateId) && o.getDueDate().equals(dueDate));
   }
+
+  @Override
+  public List<PendingRecurringOccurrence> findByTemplateId(UUID templateId) {
+    return store.values().stream().filter(o -> o.getTemplateId().equals(templateId)).toList();
+  }
 }

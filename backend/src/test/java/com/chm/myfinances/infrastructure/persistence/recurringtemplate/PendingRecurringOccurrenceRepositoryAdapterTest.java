@@ -133,4 +133,28 @@ class PendingRecurringOccurrenceRepositoryAdapterTest {
     assertThat(pendingRepository.existsByTemplateIdAndDueDate(templateId, LocalDate.of(2026, 4, 5)))
         .isFalse();
   }
+
+  @Test
+  void findByTemplateIdReturnsOnlyOccurrencesForThatTemplate() {
+    UUID otherTemplateId =
+        templateRepository
+            .save(
+                RecurringTemplate.create(
+                    UUID.randomUUID(),
+                    categoryRepository.findAll().get(0).getId(),
+                    accountRepository.findAll().get(0).getId(),
+                    "Other"))
+            .getId();
+    PendingRecurringOccurrence onTarget =
+        pendingRepository.save(
+            PendingRecurringOccurrence.create(
+                UUID.randomUUID(), templateId, versionId, LocalDate.of(2026, 3, 5)));
+    pendingRepository.save(
+        PendingRecurringOccurrence.create(
+            UUID.randomUUID(), otherTemplateId, versionId, LocalDate.of(2026, 3, 5)));
+
+    assertThat(pendingRepository.findByTemplateId(templateId))
+        .extracting(PendingRecurringOccurrence::getId)
+        .containsExactly(onTarget.getId());
+  }
 }

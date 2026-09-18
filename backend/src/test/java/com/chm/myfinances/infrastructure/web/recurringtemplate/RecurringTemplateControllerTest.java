@@ -1,5 +1,6 @@
 package com.chm.myfinances.infrastructure.web.recurringtemplate;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -170,6 +171,51 @@ class RecurringTemplateControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.currentAmount").value(1600.00))
         .andExpect(jsonPath("$.currentDayOfMonth").value(10));
+  }
+
+  @Test
+  void setCapForANewMonthUpdatesTheAmountShownOnAnAlreadyGeneratedPendingOccurrenceButNotOlderOnes()
+      throws Exception {
+    // effectiveFrom last month, day 5 (today is at least the 6th whenever CI runs this) - the
+    // catch-up job (triggered below by GET pending) generates one pending occurrence for last
+    // month's cycle and one for this month's, both initially resolving to the same (only) version.
+    String id = createTemplate(YearMonth.now().minusMonths(1).toString());
+    mockMvc.perform(get("/api/recurring-templates/pending")).andExpect(status().isOk());
+
+    String patchBody =
+        objectMapper.writeValueAsString(
+            Map.of(
+                "amount",
+                "1600.00",
+                "dayOfMonth",
+                10,
+                "effectiveFrom",
+                YearMonth.now().toString()));
+    mockMvc
+        .perform(
+            patch("/api/recurring-templates/" + id + "/cap")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(patchBody))
+        .andExpect(status().isOk());
+
+    MvcResult pendingResult = mockMvc.perform(get("/api/recurring-templates/pending")).andReturn();
+    var pending = objectMapper.readTree(pendingResult.getResponse().getContentAsString());
+    String thisMonthPrefix = YearMonth.now().toString();
+    String lastMonthPrefix = YearMonth.now().minusMonths(1).toString();
+    for (var occurrence : pending) {
+      String dueDate = occurrence.get("dueDate").asText();
+      double amount = occurrence.get("amount").asDouble();
+      if (dueDate.startsWith(thisMonthPrefix)) {
+        // Generated before the edit under the old version, but this cycle is now covered by the
+        // new one - must reflect the new amount, not the stale one it was generated with.
+        assertThat(amount).isEqualTo(1600.00);
+      } else if (dueDate.startsWith(lastMonthPrefix)) {
+        // Still correctly covered by the old version (the new one is only effective from this
+        // month onward) - must NOT be rewritten (F007 spec: a cap change never rewrites what a
+        // past month showed).
+        assertThat(amount).isEqualTo(1500.00);
+      }
+    }
   }
 
   @Test

@@ -18,6 +18,15 @@ public interface PendingRecurringOccurrenceRepository {
   /** Every pending occurrence, dashboard-ready (F007 spec's {@code GET .../pending}). */
   List<PendingRecurringOccurrence> findAll();
 
+  /**
+   * Every pending occurrence for {@code templateId} - used by {@code RecurringTemplateService}'s
+   * cap-edit path to re-resolve which {@code RecurringTemplateVersion} each still-pending
+   * occurrence should point to after a new version is created (a same-month correction updates the
+   * existing version in place, so it doesn't need this - only a forward-only new-version edit can
+   * leave an already-generated occurrence pointing at a now-superseded version).
+   */
+  List<PendingRecurringOccurrence> findByTemplateId(UUID templateId);
+
   void deleteById(UUID id);
 
   /**
