@@ -30,6 +30,9 @@ services:
       - "5050:80"
     volumes:
       - my-finances-pgadmin-data:/var/lib/pgadmin
+    configs:
+      - source: servers.json
+        target: /pgadmin4/servers.json
     depends_on:
       postgres:
         condition: service_healthy
@@ -37,3 +40,20 @@ services:
 volumes:
   my-finances-postgres-data:
   my-finances-pgadmin-data:
+
+configs:
+  servers.json:
+    content: |
+      {
+        "Servers": {
+          "1": {
+            "Name": "postgres",
+            "Group": "Servers",
+            "Port": 5432,
+            "Username": "myfinances",
+            "Host": "postgres",
+            "SSLMode": "prefer",
+            "MaintenanceDB": "myfinances"
+          }
+        }
+      }
