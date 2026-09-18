@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use cases for {@link RecurringTemplate}/{@link RecurringTemplateVersion}/{@link
@@ -36,7 +37,10 @@ import org.springframework.stereotype.Service;
  * TransactionService}/{@code TransferService}. Confirming a pending occurrence delegates to F004's
  * {@link TransactionService} (its {@code recurringTemplateVersionId}-aware overload) rather than
  * building a {@code Transaction} directly, so category/account/payment-method validation isn't
- * duplicated.
+ * duplicated. {@code confirmPending}/{@code stop} are {@code @Transactional} since each performs
+ * two writes (create-transaction + delete-pending, deactivate + bulk-delete-pending respectively)
+ * that must commit or roll back together - this app has no other transaction-boundary handling,
+ * so each such multi-write use case must opt in explicitly.
  */
 @Service
 public class RecurringTemplateService {
@@ -143,6 +147,7 @@ public class RecurringTemplateService {
    * deactivated"). Also the path {@link #deactivateForAccount} calls for F003's account-closed port
    * - the same operation regardless of trigger.
    */
+  @Transactional
   public RecurringTemplate stop(UUID id) {
     RecurringTemplate template = findById(id);
     template.close();
@@ -190,6 +195,7 @@ public class RecurringTemplateService {
    * overrides} on top - the override never touches the template's own version history, only the
    * resulting transaction. Deletes the pending row once confirmed.
    */
+  @Transactional
   public Transaction confirmPending(UUID pendingId, ConfirmOccurrenceOverrides overrides) {
     PendingRecurringOccurrence pending =
         pendingRepository
