@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use cases for {@link Budget}/{@link BudgetVersion}: create (with its first version),
@@ -49,7 +50,12 @@ public class BudgetService {
    * Creates a Budget for {@code categoryId} plus its first {@link BudgetVersion} (F006 spec).
    * Rejects an unknown category (404), a non-{@code EXPENSE} category (409, PRD S5.6), and a
    * category that's already budgeted (409, PRD S5.6's "one per category").
+   *
+   * <p>{@code @Transactional} since it's two writes (budget + its first version) that must commit
+   * or roll back together - a failure between them would otherwise leave a budget with zero
+   * versions, same multi-write reasoning as F007's {@code RecurringTemplateService.create}.
    */
+  @Transactional
   public Budget create(UUID categoryId, BigDecimal monthlyCap, YearMonth effectiveFrom) {
     Category category =
         categoryRepository

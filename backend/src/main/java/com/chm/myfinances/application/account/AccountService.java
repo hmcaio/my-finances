@@ -10,6 +10,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use cases for {@link Account}: create/edit/close/findById/findAll (F003 spec). New ids come from
@@ -82,7 +83,19 @@ public class AccountService {
   /**
    * Closes an account and notifies {@link AccountClosedNotifier} so F007 can deactivate any
    * dependent {@code RecurringTemplate} without F003 depending on F007's package.
+   *
+   * <p>{@code @Transactional}: the account save commits immediately on its own (a single write is
+   * self-transactional), but {@code accountClosedNotifier.accountClosed(...)} cascades into F007's
+   * {@code RecurringTemplateService.deactivateForAccount} - a loop of {@code stop()} calls, each
+   * already {@code @Transactional} itself. Without this annotation, a failure partway through that
+   * cascade would leave the account committed closed while some dependent templates stay active,
+   * and the caller would see a 500 implying the whole close failed when it actually partially
+   * succeeded (retrying then only hits {@link AccountAlreadyClosedException}, never fixing the
+   * templates). Wrapping this method makes the whole cascade commit or roll back together -
+   * Spring's default {@code REQUIRED} propagation means {@code stop()}'s own {@code @Transactional}
+   * just joins this one.
    */
+  @Transactional
   public Account close(UUID id) {
     Account account = findById(id);
     if (account.isClosed()) {

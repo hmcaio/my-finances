@@ -37,10 +37,12 @@ import org.springframework.transaction.annotation.Transactional;
  * TransactionService}/{@code TransferService}. Confirming a pending occurrence delegates to F004's
  * {@link TransactionService} (its {@code recurringTemplateVersionId}-aware overload) rather than
  * building a {@code Transaction} directly, so category/account/payment-method validation isn't
- * duplicated. {@code confirmPending}/{@code stop} are {@code @Transactional} since each performs
- * two writes (create-transaction + delete-pending, deactivate + bulk-delete-pending respectively)
- * that must commit or roll back together - this app has no other transaction-boundary handling, so
- * each such multi-write use case must opt in explicitly.
+ * duplicated. {@code create}/{@code confirmPending}/{@code stop}/{@code setCap} are all
+ * {@code @Transactional} since each performs multiple writes (template + first version,
+ * create-transaction + delete-pending, deactivate + bulk-delete-pending, new-version +
+ * pending-occurrence realignment respectively) that must commit or roll back together - this app
+ * has no other transaction-boundary handling, so each such multi-write use case must opt in
+ * explicitly.
  */
 @Service
 public class RecurringTemplateService {
@@ -78,7 +80,12 @@ public class RecurringTemplateService {
    * RecurringTemplateVersion} (F007 spec). Rejects an unknown category/account (404) and a closed
    * account (409) - a template can't be created to post against an account that can't accept new
    * activity, same reasoning F004/F005 apply at transaction/transfer creation.
+   *
+   * <p>{@code @Transactional} since it's two writes (template + its first version) that must commit
+   * or roll back together - a failure between them would otherwise leave a template with zero
+   * versions, same multi-write reasoning as {@code confirmPending}/{@code stop}/{@code setCap}.
    */
+  @Transactional
   public RecurringTemplate create(
       UUID categoryId,
       UUID accountId,
@@ -213,7 +220,14 @@ public class RecurringTemplateService {
    * Deactivates every active template pointed at {@code accountId} - called by {@code
    * RealAccountClosedNotifier} when F003's {@code AccountClosedNotifier} port fires (PRD S5.4:
    * "Closing an account auto-deactivates ... any RecurringTemplate still pointing at it").
+   *
+   * <p>{@code @Transactional} defensively: in normal use this joins the caller's own transaction
+   * (F003's {@code AccountService.close()} is itself {@code @Transactional}, so the whole cascade
+   * already commits or rolls back together), but annotating it here too means a partial failure
+   * across this loop of independently-{@code @Transactional} {@link #stop} calls is never left
+   * half-done even if this method is ever called from a context that isn't already transactional.
    */
+  @Transactional
   public void deactivateForAccount(UUID accountId) {
     for (RecurringTemplate template : templateRepository.findByAccountId(accountId)) {
       if (template.isActive()) {

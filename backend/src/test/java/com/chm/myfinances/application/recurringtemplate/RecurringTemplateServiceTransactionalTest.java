@@ -2,6 +2,7 @@ package com.chm.myfinances.application.recurringtemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.reset;
 
@@ -17,6 +18,7 @@ import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrence;
 import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrenceRepository;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
+import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateRepository;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersion;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersionRepository;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
@@ -32,12 +34,13 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 /**
  * End-to-end proof (real Spring context + Testcontainers Postgres, ADR 0010) that {@link
- * RecurringTemplateService#confirmPending}/{@link RecurringTemplateService#stop}'s
- * {@code @Transactional} boundary actually rolls back every write in the pair together, not just
- * the last one - the gap flagged during F007 follow-up review: a failure between creating the
- * {@code Transaction}/deactivating the template and deleting the pending row(s) could otherwise
- * leave a pending occurrence confirmable a second time (duplicating the transaction), or a template
- * deactivated while a stale pending occurrence stays attached to it.
+ * RecurringTemplateService#create}/{@link RecurringTemplateService#confirmPending}/{@link
+ * RecurringTemplateService#stop}'s {@code @Transactional} boundary actually rolls back every write
+ * together, not just the last one - the gap flagged during F007 follow-up review: a failure between
+ * creating the {@code Transaction}/deactivating the template and deleting the pending row(s) could
+ * otherwise leave a pending occurrence confirmable a second time (duplicating the transaction), a
+ * template deactivated while a stale pending occurrence stays attached to it, or (for {@code
+ * create}) a template left with zero versions.
  *
  * <p>Deliberately carries no class/method-level {@code @Transactional} (unlike every other
  * {@code @SpringBootTest} in this codebase) - that would make the test method itself the outermost
@@ -63,10 +66,46 @@ class RecurringTemplateServiceTransactionalTest {
   @Autowired private CategoryRepository categoryRepository;
   @Autowired private AccountRepository accountRepository;
   @Autowired private PaymentMethodRepository paymentMethodRepository;
-  @Autowired private RecurringTemplateVersionRepository versionRepository;
+  @Autowired private RecurringTemplateRepository templateRepository;
   @Autowired private TransactionRepository transactionRepository;
 
   @MockitoSpyBean private PendingRecurringOccurrenceRepository pendingRepository;
+  @MockitoSpyBean private RecurringTemplateVersionRepository versionRepository;
+
+  @Test
+  void createRollsBackTheTemplateWhenSavingItsFirstVersionFails() {
+    UUID categoryId =
+        categoryRepository
+            .save(Category.create(UUID.randomUUID(), "Rent Create Test", CategoryType.EXPENSE))
+            .getId();
+    Account account =
+        accountRepository.save(
+            Account.create(
+                UUID.randomUUID(),
+                "Checking Create Test",
+                null,
+                AccountType.CHECKING,
+                BigDecimal.ZERO,
+                LocalDate.now()));
+
+    willThrow(new RuntimeException("simulated failure saving the first version"))
+        .given(versionRepository)
+        .save(any());
+
+    assertThatThrownBy(
+            () ->
+                service.create(
+                    categoryId,
+                    account.getId(),
+                    "Rent",
+                    new BigDecimal("1500.00"),
+                    5,
+                    YearMonth.of(2026, 1)))
+        .isInstanceOf(RuntimeException.class);
+
+    // Both writes must have rolled back together: no orphaned template with zero versions.
+    assertThat(templateRepository.findByAccountId(account.getId())).isEmpty();
+  }
 
   @Test
   void confirmPendingRollsBackTheCreatedTransactionWhenDeletingThePendingRowFails() {
