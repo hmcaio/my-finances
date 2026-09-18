@@ -2,6 +2,7 @@ package com.chm.myfinances.infrastructure.persistence.recurringtemplate;
 
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateRepository;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
@@ -63,7 +64,7 @@ public class RecurringTemplateRepositoryAdapter implements RecurringTemplateRepo
         .toList();
   }
 
-  private static java.time.LocalDate toFirstOfMonth(YearMonth yearMonth) {
+  private static LocalDate toFirstOfMonth(YearMonth yearMonth) {
     return yearMonth == null ? null : yearMonth.atDay(1);
   }
 

@@ -3,6 +3,7 @@ package com.chm.myfinances.domain.recurringtemplate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import java.time.YearMonth;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -60,7 +61,7 @@ class RecurringTemplateTest {
 
   @Test
   void createRejectsDescriptionOverTheMaxLength() {
-    String tooLong = "x".repeat(151);
+    String tooLong = "x".repeat(TextFieldConstraints.MAX_DESCRIPTION_LENGTH + 1);
     assertThatThrownBy(
             () -> RecurringTemplate.create(UUID.randomUUID(), CATEGORY_ID, ACCOUNT_ID, tooLong))
         .isInstanceOf(IllegalArgumentException.class);
@@ -68,7 +69,7 @@ class RecurringTemplateTest {
 
   @Test
   void createAcceptsDescriptionAtExactlyTheMaxLength() {
-    String maxLength = "x".repeat(150);
+    String maxLength = "x".repeat(TextFieldConstraints.MAX_DESCRIPTION_LENGTH);
 
     RecurringTemplate template =
         RecurringTemplate.create(UUID.randomUUID(), CATEGORY_ID, ACCOUNT_ID, maxLength);
