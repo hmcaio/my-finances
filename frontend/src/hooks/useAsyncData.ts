@@ -88,3 +88,14 @@ export function useAsyncData<T>(
     reload,
   }
 }
+
+/**
+ * Retries every source whose first load failed. A page's table and the lookup lists behind its
+ * name columns (categories, accounts, ...) fail together when the backend is down, so one Retry
+ * has to reload all of them or the names stay as raw ids.
+ */
+export function reloadFailed(...sources: Pick<AsyncData<unknown>, 'loadError' | 'reload'>[]) {
+  for (const source of sources) {
+    if (source.loadError) source.reload()
+  }
+}

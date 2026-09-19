@@ -28,7 +28,7 @@ import { defaultErrorMessage } from '../../api/apiError'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
 import { DataTableBody } from '../../components/DataTableBody'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { reloadFailed, useAsyncData } from '../../hooks/useAsyncData'
 
 /**
  * Settings-style CRUD screen for categories (F002 spec): table with name + type, inline rename,
@@ -102,6 +102,13 @@ export function CategoriesPage() {
     }
   }
 
+  // Clears the stale banner and retries whichever fetches failed - the table's own and the
+  // lookup lists behind its name columns - so names don't stay as raw ids after a retry.
+  function retry() {
+    setError(null)
+    reloadFailed(categoriesState)
+  }
+
   return (
     <Box sx={{ py: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
@@ -124,7 +131,7 @@ export function CategoriesPage() {
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <DataTableBody state={categoriesState} columns={3} actionsColumn>
+            <DataTableBody state={categoriesState} onRetry={retry} columns={3} actionsColumn>
               {categories?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={3} align="center">

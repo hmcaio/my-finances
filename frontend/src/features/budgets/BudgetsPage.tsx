@@ -29,7 +29,7 @@ import { InlineEditActions } from '../../components/InlineEditActions'
 import { DataTableBody } from '../../components/DataTableBody'
 import { fadeInSx } from '../../components/fadeIn'
 import { LoadFailedNotice } from '../../components/LoadFailedNotice'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { reloadFailed, useAsyncData } from '../../hooks/useAsyncData'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { nameLookup } from '../../utils/nameLookup'
 
@@ -49,7 +49,9 @@ function currentMonth(): string {
  */
 export function BudgetsPage() {
   const [error, setError] = useState<string | null>(null)
-  const { data: categories } = useAsyncData(getCategories, [], { onError: setError })
+  const { data: categories, ...categoriesState } = useAsyncData(getCategories, [], {
+    onError: setError,
+  })
   const {
     data: budgets,
     setData: setBudgets,
@@ -65,14 +67,13 @@ export function BudgetsPage() {
   const [savingCap, setSavingCap] = useState(false)
 
   const [reportMonth, setReportMonth] = useState(currentMonth())
-  const {
-    data: report,
-    loading: reportLoading,
-    loadError: reportLoadError,
-    reload: reloadReport,
-  } = useAsyncData(() => getBudgetReport(reportMonth), [reportMonth], { onError: setError })
+  const { data: report, ...reportState } = useAsyncData(
+    () => getBudgetReport(reportMonth),
+    [reportMonth],
+    { onError: setError },
+  )
 
-  const showReportSkeleton = useDelayedFlag(reportLoading)
+  const showReportSkeleton = useDelayedFlag(reportState.loading)
 
   const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
 
@@ -94,7 +95,7 @@ export function BudgetsPage() {
       setBudgets((prev) => [...(prev ?? []), created])
       setNewCategoryId('')
       setNewCap('')
-      if (reportMonth >= currentMonth()) reloadReport()
+      if (reportMonth >= currentMonth()) reportState.reload()
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {
@@ -123,12 +124,19 @@ export function BudgetsPage() {
       })
       setBudgets((prev) => prev?.map((b) => (b.id === id ? updated : b)) ?? null)
       cancelEditCap()
-      if (reportMonth >= currentMonth()) reloadReport()
+      if (reportMonth >= currentMonth()) reportState.reload()
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {
       setSavingCap(false)
     }
+  }
+
+  // Clears the stale banner and retries whichever fetches failed - the table's own and the
+  // lookup lists behind its name columns - so names don't stay as raw ids after a retry.
+  function retry() {
+    setError(null)
+    reloadFailed(categoriesState, budgetsState, reportState)
   }
 
   return (
@@ -155,7 +163,7 @@ export function BudgetsPage() {
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <DataTableBody state={budgetsState} columns={4} actionsColumn>
+            <DataTableBody state={budgetsState} onRetry={retry} columns={4} actionsColumn>
               {budgets?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} align="center">
@@ -263,9 +271,11 @@ export function BudgetsPage() {
         />
       </Box>
 
-      <Paper variant="outlined" sx={{ p: 2 }} aria-busy={reportLoading}>
+      <Paper variant="outlined" sx={{ p: 2 }} aria-busy={reportState.loading}>
         {showReportSkeleton && <BudgetReportSkeleton />}
-        {reportLoadError && <LoadFailedNotice message={reportLoadError} onRetry={reloadReport} />}
+        {reportState.loadError && (
+          <LoadFailedNotice message={reportState.loadError} onRetry={retry} />
+        )}
         {report !== null && (
           <Box sx={fadeInSx}>
             {report.length === 0 && (

@@ -31,7 +31,7 @@ import { defaultErrorMessage } from '../../api/apiError'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { DataTableBody } from '../../components/DataTableBody'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { reloadFailed, useAsyncData } from '../../hooks/useAsyncData'
 import { usePagedData } from '../../hooks/usePagedData'
 import { PaginationControls } from '../../components/PaginationControls'
 import { nameLookup } from '../../utils/nameLookup'
@@ -60,9 +60,15 @@ export function TransactionsPage() {
   const [filters, setFilters] = useState<TransactionFilter>({})
   const [error, setError] = useState<string | null>(null)
 
-  const { data: categories } = useAsyncData(getCategories, [], { onError: setError })
-  const { data: accounts } = useAsyncData(() => getAccounts(true), [], { onError: setError })
-  const { data: paymentMethods } = useAsyncData(getPaymentMethods, [], { onError: setError })
+  const { data: categories, ...categoriesState } = useAsyncData(getCategories, [], {
+    onError: setError,
+  })
+  const { data: accounts, ...accountsState } = useAsyncData(() => getAccounts(true), [], {
+    onError: setError,
+  })
+  const { data: paymentMethods, ...paymentMethodsState } = useAsyncData(getPaymentMethods, [], {
+    onError: setError,
+  })
   const {
     items: transactions,
     setItems: setTransactions,
@@ -163,6 +169,13 @@ export function TransactionsPage() {
     } finally {
       setDeleting(false)
     }
+  }
+
+  // Clears the stale banner and retries whichever fetches failed - the table's own and the
+  // lookup lists behind its name columns - so names don't stay as raw ids after a retry.
+  function retry() {
+    setError(null)
+    reloadFailed(categoriesState, accountsState, paymentMethodsState, transactionsState)
   }
 
   return (
@@ -269,7 +282,7 @@ export function TransactionsPage() {
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <DataTableBody state={transactionsState} columns={7} actionsColumn>
+            <DataTableBody state={transactionsState} onRetry={retry} columns={7} actionsColumn>
               {transactions?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} align="center">

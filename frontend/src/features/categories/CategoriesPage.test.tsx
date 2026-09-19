@@ -114,5 +114,7 @@ describe('CategoriesPage', () => {
 
     expect(await screen.findByText(seedCategories[0].name)).toBeInTheDocument()
     expect(screen.queryByText(/Could not load data/)).not.toBeInTheDocument()
+    // The banner from the failed attempt is cleared, not left showing after a successful retry.
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 })

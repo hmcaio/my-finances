@@ -13,7 +13,7 @@ import { getPaymentMethods } from '../../api/paymentMethods'
 import { getTransactions } from '../../api/transactions'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { DataTableBody } from '../../components/DataTableBody'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { reloadFailed, useAsyncData } from '../../hooks/useAsyncData'
 import { usePagedData } from '../../hooks/usePagedData'
 import { PaginationControls } from '../../components/PaginationControls'
 import { nameLookup } from '../../utils/nameLookup'
@@ -34,8 +34,12 @@ interface AccountTransactionListProps {
 export function AccountTransactionList({ accountId }: AccountTransactionListProps) {
   const [page, setPage] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  const { data: categories } = useAsyncData(getCategories, [], { onError: setError })
-  const { data: paymentMethods } = useAsyncData(getPaymentMethods, [], { onError: setError })
+  const { data: categories, ...categoriesState } = useAsyncData(getCategories, [], {
+    onError: setError,
+  })
+  const { data: paymentMethods, ...paymentMethodsState } = useAsyncData(getPaymentMethods, [], {
+    onError: setError,
+  })
   const {
     items: transactions,
     pageInfo,
@@ -49,6 +53,13 @@ export function AccountTransactionList({ accountId }: AccountTransactionListProp
     () => nameLookup(paymentMethods ?? [], (p) => p.name),
     [paymentMethods],
   )
+
+  // Clears the stale banner and retries whichever fetches failed - the table's own and the
+  // lookup lists behind its name columns - so names don't stay as raw ids after a retry.
+  function retry() {
+    setError(null)
+    reloadFailed(categoriesState, paymentMethodsState, transactionsState)
+  }
 
   return (
     <Box>
@@ -65,7 +76,7 @@ export function AccountTransactionList({ accountId }: AccountTransactionListProp
               <TableCell>Description</TableCell>
             </TableRow>
           </TableHead>
-          <DataTableBody state={transactionsState} columns={5}>
+          <DataTableBody state={transactionsState} onRetry={retry} columns={5}>
             {transactions?.length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} align="center">

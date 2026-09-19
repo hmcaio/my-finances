@@ -34,7 +34,7 @@ import { defaultErrorMessage } from '../../api/apiError'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { DataTableBody } from '../../components/DataTableBody'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { reloadFailed, useAsyncData } from '../../hooks/useAsyncData'
 import { nameLookup } from '../../utils/nameLookup'
 
 /**
@@ -50,10 +50,18 @@ import { nameLookup } from '../../utils/nameLookup'
  */
 export function PendingOccurrencesWidget() {
   const [error, setError] = useState<string | null>(null)
-  const { data: templates } = useAsyncData(getRecurringTemplates, [], { onError: setError })
-  const { data: categories } = useAsyncData(getCategories, [], { onError: setError })
-  const { data: accounts } = useAsyncData(() => getAccounts(false), [], { onError: setError })
-  const { data: paymentMethods } = useAsyncData(getPaymentMethods, [], { onError: setError })
+  const { data: templates, ...templatesState } = useAsyncData(getRecurringTemplates, [], {
+    onError: setError,
+  })
+  const { data: categories, ...categoriesState } = useAsyncData(getCategories, [], {
+    onError: setError,
+  })
+  const { data: accounts, ...accountsState } = useAsyncData(() => getAccounts(false), [], {
+    onError: setError,
+  })
+  const { data: paymentMethods, ...paymentMethodsState } = useAsyncData(getPaymentMethods, [], {
+    onError: setError,
+  })
   const {
     data: pending,
     setData: setPending,
@@ -134,6 +142,13 @@ export function PendingOccurrencesWidget() {
     }
   }
 
+  // Clears the stale banner and retries whichever fetches failed - the table's own and the
+  // lookup lists behind its name columns - so names don't stay as raw ids after a retry.
+  function retry() {
+    setError(null)
+    reloadFailed(templatesState, categoriesState, accountsState, paymentMethodsState, pendingState)
+  }
+
   return (
     <Box>
       <Typography variant="h5" component="h2" gutterBottom>
@@ -155,7 +170,7 @@ export function PendingOccurrencesWidget() {
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <DataTableBody state={pendingState} columns={6} actionsColumn>
+            <DataTableBody state={pendingState} onRetry={retry} columns={6} actionsColumn>
               {pending?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} align="center">

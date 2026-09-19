@@ -29,7 +29,7 @@ import { defaultErrorMessage } from '../../api/apiError'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { DataTableBody } from '../../components/DataTableBody'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { reloadFailed, useAsyncData } from '../../hooks/useAsyncData'
 import { usePagedData } from '../../hooks/usePagedData'
 import { PaginationControls } from '../../components/PaginationControls'
 import { nameLookup } from '../../utils/nameLookup'
@@ -58,7 +58,9 @@ export function TransfersPage() {
   const [filters, setFilters] = useState<TransferFilter>({})
   const [error, setError] = useState<string | null>(null)
 
-  const { data: accounts } = useAsyncData(() => getAccounts(true), [], { onError: setError })
+  const { data: accounts, ...accountsState } = useAsyncData(() => getAccounts(true), [], {
+    onError: setError,
+  })
   const {
     items: transfers,
     setItems: setTransfers,
@@ -168,6 +170,13 @@ export function TransfersPage() {
     }
   }
 
+  // Clears the stale banner and retries whichever fetches failed - the table's own and the
+  // lookup lists behind its name columns - so names don't stay as raw ids after a retry.
+  function retry() {
+    setError(null)
+    reloadFailed(accountsState, transfersState)
+  }
+
   return (
     <Box sx={{ py: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
@@ -241,7 +250,7 @@ export function TransfersPage() {
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <DataTableBody state={transfersState} columns={6} actionsColumn>
+            <DataTableBody state={transfersState} onRetry={retry} columns={6} actionsColumn>
               {transfers?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} align="center">

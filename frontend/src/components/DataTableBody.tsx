@@ -25,6 +25,9 @@ interface DataTableBodyProps {
   /** The table's data source (`useAsyncData`): skeleton while `loading`, a failure row with Retry
    * when `loadError` is set (nothing pulses once a fetch has failed), otherwise the children. */
   state: Pick<AsyncData<unknown>, 'loading' | 'loadError' | 'reload'>
+  /** Overrides `state.reload` for the failure row's Retry button, e.g. to also clear the page's
+   * error banner and retry the lookup lists behind the name columns. */
+  onRetry?: () => void
   /** Column count, so the placeholder rows line up with the header above. */
   columns: number
   /** Number of placeholder rows. */
@@ -43,6 +46,7 @@ interface DataTableBodyProps {
  */
 export function DataTableBody({
   state,
+  onRetry,
   columns,
   rows = 5,
   actionsColumn = false,
@@ -88,7 +92,7 @@ export function DataTableBody({
       {loadError && (
         <TableRow>
           <TableCell colSpan={columns}>
-            <LoadFailedNotice message={loadError} onRetry={reload} />
+            <LoadFailedNotice message={loadError} onRetry={onRetry ?? reload} />
           </TableCell>
         </TableRow>
       )}

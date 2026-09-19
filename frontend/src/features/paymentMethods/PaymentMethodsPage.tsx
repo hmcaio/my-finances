@@ -24,7 +24,7 @@ import { defaultErrorMessage } from '../../api/apiError'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
 import { DataTableBody } from '../../components/DataTableBody'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { reloadFailed, useAsyncData } from '../../hooks/useAsyncData'
 
 /**
  * Settings-style CRUD screen for payment methods (F002 spec): table with name, inline rename,
@@ -97,6 +97,13 @@ export function PaymentMethodsPage() {
     }
   }
 
+  // Clears the stale banner and retries whichever fetches failed - the table's own and the
+  // lookup lists behind its name columns - so names don't stay as raw ids after a retry.
+  function retry() {
+    setError(null)
+    reloadFailed(paymentMethodsState)
+  }
+
   return (
     <Box sx={{ py: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
@@ -118,7 +125,7 @@ export function PaymentMethodsPage() {
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <DataTableBody state={paymentMethodsState} columns={2} actionsColumn>
+            <DataTableBody state={paymentMethodsState} onRetry={retry} columns={2} actionsColumn>
               {paymentMethods?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={2} align="center">

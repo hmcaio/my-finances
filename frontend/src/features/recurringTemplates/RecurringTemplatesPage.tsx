@@ -31,7 +31,7 @@ import { defaultErrorMessage } from '../../api/apiError'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
 import { DataTableBody } from '../../components/DataTableBody'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { reloadFailed, useAsyncData } from '../../hooks/useAsyncData'
 import { nameLookup } from '../../utils/nameLookup'
 import { PendingOccurrencesWidget } from './PendingOccurrencesWidget'
 
@@ -59,8 +59,12 @@ const EMPTY_CREATE_FORM = {
  */
 export function RecurringTemplatesPage() {
   const [error, setError] = useState<string | null>(null)
-  const { data: categories } = useAsyncData(getCategories, [], { onError: setError })
-  const { data: accounts } = useAsyncData(() => getAccounts(false), [], { onError: setError })
+  const { data: categories, ...categoriesState } = useAsyncData(getCategories, [], {
+    onError: setError,
+  })
+  const { data: accounts, ...accountsState } = useAsyncData(() => getAccounts(false), [], {
+    onError: setError,
+  })
   const {
     data: templates,
     setData: setTemplates,
@@ -172,6 +176,13 @@ export function RecurringTemplatesPage() {
     }
   }
 
+  // Clears the stale banner and retries whichever fetches failed - the table's own and the
+  // lookup lists behind its name columns - so names don't stay as raw ids after a retry.
+  function retry() {
+    setError(null)
+    reloadFailed(categoriesState, accountsState, templatesState)
+  }
+
   return (
     <Box sx={{ py: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
@@ -198,7 +209,7 @@ export function RecurringTemplatesPage() {
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <DataTableBody state={templatesState} columns={7} actionsColumn>
+            <DataTableBody state={templatesState} onRetry={retry} columns={7} actionsColumn>
               {templates?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} align="center">

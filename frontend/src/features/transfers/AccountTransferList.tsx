@@ -12,7 +12,7 @@ import { getAccounts } from '../../api/accounts'
 import { getTransfers } from '../../api/transfers'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { DataTableBody } from '../../components/DataTableBody'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { reloadFailed, useAsyncData } from '../../hooks/useAsyncData'
 import { usePagedData } from '../../hooks/usePagedData'
 import { PaginationControls } from '../../components/PaginationControls'
 import { nameLookup } from '../../utils/nameLookup'
@@ -34,7 +34,9 @@ interface AccountTransferListProps {
 export function AccountTransferList({ accountId }: AccountTransferListProps) {
   const [page, setPage] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  const { data: accounts } = useAsyncData(() => getAccounts(true), [], { onError: setError })
+  const { data: accounts, ...accountsState } = useAsyncData(() => getAccounts(true), [], {
+    onError: setError,
+  })
   const {
     items: transfers,
     pageInfo,
@@ -44,6 +46,13 @@ export function AccountTransferList({ accountId }: AccountTransferListProps) {
   })
 
   const accountName = useMemo(() => nameLookup(accounts ?? [], (a) => a.name), [accounts])
+
+  // Clears the stale banner and retries whichever fetches failed - the table's own and the
+  // lookup lists behind its name columns - so names don't stay as raw ids after a retry.
+  function retry() {
+    setError(null)
+    reloadFailed(accountsState, transfersState)
+  }
 
   return (
     <Box>
@@ -60,7 +69,7 @@ export function AccountTransferList({ accountId }: AccountTransferListProps) {
               <TableCell>Description</TableCell>
             </TableRow>
           </TableHead>
-          <DataTableBody state={transfersState} columns={5}>
+          <DataTableBody state={transfersState} onRetry={retry} columns={5}>
             {transfers?.length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} align="center">
