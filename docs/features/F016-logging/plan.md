@@ -30,9 +30,9 @@ Each: write the `LogCapture` assertion in the existing service unit test first (
 - [x] Grep the diff for `amount`, `description`, `notes`, `name` inside log calls — none may appear. Confirm nothing was added under `domain/`.
 
 ## Phase 3 — Frontend
-- [ ] Test first: `src/utils/logger.test.ts` (method→console mapping, level filtering incl. `silent`, invalid env value → `warn`, `localStorage` override, throwing `localStorage` tolerated).
-- [ ] Implement `src/utils/logger.ts` (+ `setLogLevel`); add `VITE_LOG_LEVEL` to `.env.development` (`debug`), `.env.production` (`warn`), `.env.test` (`silent`) and to `src/vite-env.d.ts`.
-- [ ] ESLint: `no-console: 'error'` with an override for `src/utils/logger.ts` only. Run `npm run lint` and fix any existing `console.*` it finds (there are none today).
+- [x] Test first: `src/utils/logger.test.ts` (method→console mapping, level filtering incl. `silent`, invalid env value → `warn`, `localStorage` override, throwing `localStorage` tolerated).
+- [x] Implement `src/utils/logger.ts` (+ `setLogLevel`); add `VITE_LOG_LEVEL` to `.env.development` (`debug`), `.env.production` (`warn`), `.env.test` (`silent`) and to `src/vite-env.d.ts`.
+- [x] ESLint: `no-console: 'error'` with an override for `src/utils/logger.ts` only. Run `npm run lint` and fix any existing `console.*` it finds (there are none today).
 - [ ] Test first: `src/api/client.test.ts` (MSW) — `X-Request-Id` present on the request; 409 → `warn` + still an `ApiError` with the `conflictMessage`; 500 and `HttpResponse.error()` → `error`; a distinctive response-body string never appears in the logged arguments.
 - [ ] Add request/response interceptors to `src/api/client.ts` (request id + timing via a `WeakMap`; re-reject the original error unchanged). Confirm every existing `src/api/*.test.ts` and page test still passes with zero edits.
 - [ ] Test first: `src/utils/globalErrorLogging.test.ts` (`error` + `unhandledrejection` reach `logger.error`; uninstall removes them).
