@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import ch.qos.logback.classic.Level;
@@ -18,11 +19,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver;
 
 /**
  * REST-layer test for {@link GlobalExceptionHandler}, the cross-cutting
@@ -143,6 +146,27 @@ class GlobalExceptionHandlerTest {
   void springErrorResponseExceptionIsNotLoggedByTheHandler() throws Exception {
     try (LogCapture logs = LogCapture.of(GlobalExceptionHandler.class)) {
       mockMvc.perform(get("/api/this-route-does-not-exist")).andExpect(status().isNotFound());
+
+      assertThat(logs.events()).isEmpty();
+    }
+  }
+
+  @Test
+  void aValidationFailureNeverLogsTheRejectedValues() throws Exception {
+    // DefaultHandlerExceptionResolver always warn-logs "Resolved [MethodArgumentNotValidException:
+    // ...]" itself (spring.mvc.log-resolved-exception doesn't cover it), and that message includes
+    // "rejected value [-12.34]" - an amount - so application.yml silences its logger.
+    String body =
+        """
+        {"date":"2026-01-01","amount":-12.34,"description":"leaky description",
+         "accountId":"%1$s","categoryId":"%1$s"}
+        """
+            .formatted(UUID.randomUUID());
+
+    try (LogCapture logs = LogCapture.ofConfiguredLevel(DefaultHandlerExceptionResolver.class)) {
+      mockMvc
+          .perform(post("/api/transactions").contentType(MediaType.APPLICATION_JSON).content(body))
+          .andExpect(status().isBadRequest());
 
       assertThat(logs.events()).isEmpty();
     }

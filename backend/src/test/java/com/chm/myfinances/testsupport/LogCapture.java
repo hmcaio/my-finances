@@ -29,17 +29,28 @@ public final class LogCapture implements AutoCloseable {
   private final Level originalLevel;
   private final ListAppender<ILoggingEvent> appender = new ListAppender<>();
 
-  private LogCapture(Logger logger) {
+  private LogCapture(Logger logger, boolean forceAllLevels) {
     this.logger = logger;
     this.originalLevel = logger.getLevel();
-    logger.setLevel(Level.TRACE);
+    if (forceAllLevels) {
+      logger.setLevel(Level.TRACE);
+    }
     appender.setContext(logger.getLoggerContext());
     appender.start();
     logger.addAppender(appender);
   }
 
   public static LogCapture of(Class<?> loggerClass) {
-    return new LogCapture((Logger) LoggerFactory.getLogger(loggerClass));
+    return new LogCapture((Logger) LoggerFactory.getLogger(loggerClass), true);
+  }
+
+  /**
+   * Like {@link #of(Class)} but leaves the logger's level as the application configured it, so a
+   * {@code @SpringBootTest} can prove a {@code logging.level.*} / {@code spring.mvc.*} setting
+   * actually silences a third-party logger (a forced-TRACE capture would defeat that).
+   */
+  public static LogCapture ofConfiguredLevel(Class<?> loggerClass) {
+    return new LogCapture((Logger) LoggerFactory.getLogger(loggerClass), false);
   }
 
   /** Every captured event, in order. */
