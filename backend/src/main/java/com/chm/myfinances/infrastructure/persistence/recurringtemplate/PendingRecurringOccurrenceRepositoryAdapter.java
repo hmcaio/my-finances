@@ -70,6 +70,16 @@ public class PendingRecurringOccurrenceRepositoryAdapter
   }
 
   @Override
+  public boolean insertIfAbsent(PendingRecurringOccurrence occurrence) {
+    return jpaRepository.insertIfAbsent(
+            occurrence.getId(),
+            occurrence.getTemplateId(),
+            occurrence.getTemplateVersionId(),
+            occurrence.getDueDate())
+        > 0;
+  }
+
+  @Override
   public List<PendingRecurringOccurrence> findByTemplateId(UUID templateId) {
     return jpaRepository.findByTemplateId(templateId).stream()
         .map(PendingRecurringOccurrenceRepositoryAdapter::toDomain)

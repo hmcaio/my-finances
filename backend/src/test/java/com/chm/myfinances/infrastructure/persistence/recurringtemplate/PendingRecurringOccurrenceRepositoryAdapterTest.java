@@ -1,6 +1,7 @@
 package com.chm.myfinances.infrastructure.persistence.recurringtemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.domain.account.Account;
@@ -15,6 +16,7 @@ import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateRepository;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersion;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersionRepository;
+import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -40,6 +42,8 @@ class PendingRecurringOccurrenceRepositoryAdapterTest {
   @Autowired private RecurringTemplateVersionRepository versionRepository;
   @Autowired private CategoryRepository categoryRepository;
   @Autowired private AccountRepository accountRepository;
+  @Autowired private PendingRecurringOccurrenceJpaRepository jpaRepository;
+  @Autowired private EntityManager entityManager;
 
   private UUID templateId;
   private UUID versionId;
@@ -132,6 +136,97 @@ class PendingRecurringOccurrenceRepositoryAdapterTest {
         .isTrue();
     assertThat(pendingRepository.existsByTemplateIdAndDueDate(templateId, LocalDate.of(2026, 4, 5)))
         .isFalse();
+  }
+
+  @Test
+  void insertIfAbsentInsertsANewCycleAndReportsIt() {
+    UUID id = UUID.randomUUID();
+
+    boolean inserted =
+        pendingRepository.insertIfAbsent(
+            PendingRecurringOccurrence.create(id, templateId, versionId, LocalDate.of(2026, 5, 5)));
+
+    assertThat(inserted).isTrue();
+    PendingRecurringOccurrence reloaded = pendingRepository.findById(id).orElseThrow();
+    assertThat(reloaded.getTemplateId()).isEqualTo(templateId);
+    assertThat(reloaded.getTemplateVersionId()).isEqualTo(versionId);
+    assertThat(reloaded.getDueDate()).isEqualTo(LocalDate.of(2026, 5, 5));
+  }
+
+  @Test
+  void insertIfAbsentFillsTheAuditTimestampsItsNativeInsertBypassesJpaAuditingFor() {
+    UUID id = UUID.randomUUID();
+    pendingRepository.insertIfAbsent(
+        PendingRecurringOccurrence.create(id, templateId, versionId, LocalDate.of(2026, 5, 5)));
+
+    PendingRecurringOccurrenceJpaEntity entity = jpaRepository.findById(id).orElseThrow();
+
+    assertThat(entity.getCreatedAt()).isNotNull();
+    assertThat(entity.getLastModifiedAt()).isNotNull();
+  }
+
+  @Test
+  void insertIfAbsentSkipsACycleThatAlreadyHasARowAndKeepsTheFirstOne() {
+    UUID firstId = UUID.randomUUID();
+    UUID secondId = UUID.randomUUID();
+    LocalDate dueDate = LocalDate.of(2026, 5, 5);
+
+    boolean first =
+        pendingRepository.insertIfAbsent(
+            PendingRecurringOccurrence.create(firstId, templateId, versionId, dueDate));
+    boolean second =
+        pendingRepository.insertIfAbsent(
+            PendingRecurringOccurrence.create(secondId, templateId, versionId, dueDate));
+
+    assertThat(first).isTrue();
+    assertThat(second).isFalse();
+    assertThat(pendingRepository.findByTemplateId(templateId))
+        .extracting(PendingRecurringOccurrence::getId)
+        .containsExactly(firstId);
+  }
+
+  @Test
+  void insertIfAbsentTreatsTheSameDueDateOnAnotherTemplateAsADifferentCycle() {
+    UUID otherTemplateId =
+        templateRepository
+            .save(
+                RecurringTemplate.create(
+                    UUID.randomUUID(),
+                    categoryRepository.findAll().get(0).getId(),
+                    accountRepository.findAll().get(0).getId(),
+                    "Other recurring"))
+            .getId();
+    UUID otherVersionId =
+        versionRepository
+            .save(
+                RecurringTemplateVersion.create(
+                    UUID.randomUUID(), otherTemplateId, BigDecimal.TEN, 5, YearMonth.of(2026, 1)))
+            .getId();
+    LocalDate dueDate = LocalDate.of(2026, 5, 5);
+
+    boolean first =
+        pendingRepository.insertIfAbsent(
+            PendingRecurringOccurrence.create(UUID.randomUUID(), templateId, versionId, dueDate));
+    boolean second =
+        pendingRepository.insertIfAbsent(
+            PendingRecurringOccurrence.create(
+                UUID.randomUUID(), otherTemplateId, otherVersionId, dueDate));
+
+    assertThat(first).isTrue();
+    assertThat(second).isTrue();
+  }
+
+  @Test
+  void theDatabaseRejectsTwoPendingRowsForTheSameCycleEvenViaAPlainSave() {
+    LocalDate dueDate = LocalDate.of(2026, 5, 5);
+    pendingRepository.save(
+        PendingRecurringOccurrence.create(UUID.randomUUID(), templateId, versionId, dueDate));
+    entityManager.flush();
+    pendingRepository.save(
+        PendingRecurringOccurrence.create(UUID.randomUUID(), templateId, versionId, dueDate));
+
+    assertThatThrownBy(entityManager::flush)
+        .hasMessageContaining("uq_pending_recurring_occurrences_template_id_due_date");
   }
 
   @Test

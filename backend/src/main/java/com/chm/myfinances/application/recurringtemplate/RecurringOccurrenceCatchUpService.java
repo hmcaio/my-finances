@@ -20,9 +20,9 @@ import org.springframework.stereotype.Service;
  * The only place F007's lazy/catch-up generation touches persistence (PRD S5.7, F007 spec): for
  * every {@code active} {@code RecurringTemplate}, delegates to the pure {@link
  * RecurringOccurrenceGenerator} to compute which cycles are now due, persists a {@link
- * PendingRecurringOccurrence} for each (guarded by {@code existsByTemplateIdAndDueDate} as defense
- * in depth against double-generating a cycle), and advances the template's {@code
- * lastGeneratedFor}.
+ * PendingRecurringOccurrence} for each (via the atomic {@code insertIfAbsent}, backed by a {@code
+ * UNIQUE (template_id, due_date)} constraint, so overlapping runs can't double-generate a cycle),
+ * and advances the template's {@code lastGeneratedFor}.
  *
  * <p>Run at backend startup ({@code RecurringOccurrenceCatchUpRunner}) and again lazily before
  * {@code RecurringTemplateService.findAllPending()} serves the dashboard's pending-occurrences list
@@ -68,10 +68,16 @@ public class RecurringOccurrenceCatchUpService {
               template.isActive(), versions, template.getLastGeneratedFor(), today);
 
       for (PendingCycle cycle : result.cyclesToGenerate()) {
-        if (!pendingRepository.existsByTemplateIdAndDueDate(template.getId(), cycle.dueDate())) {
-          pendingRepository.save(
-              PendingRecurringOccurrence.create(
-                  idGenerator.newId(), template.getId(), cycle.version().getId(), cycle.dueDate()));
+        // Atomic, so a concurrent run generating the same cycle can't produce a duplicate; only
+        // the run that actually inserted the row counts it (issue #20).
+        boolean inserted =
+            pendingRepository.insertIfAbsent(
+                PendingRecurringOccurrence.create(
+                    idGenerator.newId(),
+                    template.getId(),
+                    cycle.version().getId(),
+                    cycle.dueDate()));
+        if (inserted) {
           generatedForTemplate++;
         }
       }

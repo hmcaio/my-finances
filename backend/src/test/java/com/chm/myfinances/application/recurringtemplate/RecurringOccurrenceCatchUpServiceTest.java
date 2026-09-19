@@ -160,6 +160,26 @@ class RecurringOccurrenceCatchUpServiceTest {
   }
 
   @Test
+  void aCycleAnotherRunAlreadyInsertedIsNeitherDuplicatedNorCounted() {
+    seedTemplate("Rent", YearMonth.of(2026, 2));
+    RecurringTemplate template = templateRepository.findAllActive().get(0);
+    UUID versionId = versionRepository.findByTemplateId(template.getId()).get(0).getId();
+    // A concurrent run got there first, after this one had already decided the cycle was due.
+    pendingRepository.save(
+        PendingRecurringOccurrence.create(
+            UUID.randomUUID(), template.getId(), versionId, LocalDate.of(2026, 3, 10)));
+
+    try (LogCapture logs = LogCapture.of(RecurringOccurrenceCatchUpService.class)) {
+      service.runCatchUp(LocalDate.of(2026, 3, 15));
+
+      assertThat(pendingRepository.findAll()).hasSize(1);
+      assertThat(logs.eventsAt(Level.INFO)).isEmpty();
+    }
+    assertThat(templateRepository.findById(template.getId()).orElseThrow().getLastGeneratedFor())
+        .isEqualTo(YearMonth.of(2026, 3));
+  }
+
+  @Test
   void logsNoInfoLineWhenNothingWasGenerated() {
     try (LogCapture logs = LogCapture.of(RecurringOccurrenceCatchUpService.class)) {
       service.runCatchUp(LocalDate.of(2026, 3, 15));
