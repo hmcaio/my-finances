@@ -37,9 +37,9 @@ Each: write the `LogCapture` assertion in the existing service unit test first (
 - [x] Add request/response interceptors to `src/api/client.ts` (request id + timing via a `WeakMap`; re-reject the original error unchanged). Confirm every existing `src/api/*.test.ts` and page test still passes with zero edits.
 - [x] Test first: `src/utils/globalErrorLogging.test.ts` (`error` + `unhandledrejection` reach `logger.error`; uninstall removes them).
 - [x] Implement `src/utils/globalErrorLogging.ts`; call `installGlobalErrorLogging()` and pass `onUncaughtError` / `onCaughtError` / `onRecoverableError` to `createRoot` in `src/main.tsx`.
-- [ ] Test first: `src/components/ErrorBoundary.test.tsx` (fallback renders, sibling nav survives, Reload button, `key` change resets).
-- [ ] Implement `ErrorBoundary` and wrap `<Routes>` in `App.tsx` (inside `Layout`, keyed on `location.pathname`).
-- [ ] `npm run lint`, `npm test`, `npm run build`, `npm run format:check` (Prettier only on touched files).
+- [x] Test first: `src/components/ErrorBoundary.test.tsx` (fallback renders, sibling nav survives, Reload button, `key` change resets).
+- [x] Implement `ErrorBoundary` and wrap `<Routes>` in `App.tsx` (inside `Layout`, keyed on `location.pathname`).
+- [x] `npm run lint`, `npm test`, `npm run build`, `npm run format:check` (Prettier only on touched files). (`format:check` over the whole tree already flagged `frontend/CLAUDE.md` before this feature; every file touched here is clean.)
 
 ## Phase 4 — Infra
 - [ ] `frontend/nginx.conf`: `map` for the request id, `proxy_set_header X-Request-Id`, a `log_format` including it, `access_log /dev/stdout <format>`.
