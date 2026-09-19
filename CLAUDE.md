@@ -7,7 +7,7 @@ Guidance for Claude Code in this repository. This file holds what applies to bot
 **Read [docs/PRD.md](docs/PRD.md) before making any architectural or scope decision.** It is the authoritative spec — data model (entities, versioning rules, net worth formula), functional requirements, tech stack, explicit non-goals. Do not re-derive product decisions from first principles; the PRD already resolved many non-obvious tradeoffs (why credit card spend is a liability-increasing expense and payments are transfers, why budgets/recurring templates are versioned instead of mutated in place, why recurring-occurrence generation is lazy/catch-up rather than a scheduler).
 
 - `docs/adr/` — architectural decisions (index: `docs/adr/README.md`).
-- `docs/features/FXXX-*/{spec,plan}.md` — one folder per feature. F001–F007, F014 and F015 are built; F008–F013 are specified but not built. `plan.md` checklists and the README's "Project status" are the done-list.
+- `docs/features/FXXX-*/{spec,plan}.md` — one folder per feature. Which are built vs. only specified is tracked by each `plan.md` checklist and the README's "Project status" — not here, so it can't go stale.
 - Why something changed (fixes, audits, migration renumbering) lives in `git log`, PR descriptions and the relevant `spec.md` — not in this file.
 
 ## Project shape
