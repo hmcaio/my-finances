@@ -42,11 +42,11 @@ Each: write the `LogCapture` assertion in the existing service unit test first (
 - [x] `npm run lint`, `npm test`, `npm run build`, `npm run format:check` (Prettier only on touched files). (`format:check` over the whole tree already flagged `frontend/CLAUDE.md` before this feature; every file touched here is clean.)
 
 ## Phase 4 — Infra
-- [ ] `frontend/nginx.conf`: `map` for the request id, `proxy_set_header X-Request-Id`, a `log_format` including it, `access_log /dev/stdout <format>`.
-- [ ] `backend/Dockerfile` runtime stage: `mkdir -p /var/log/my-finances && chown spring:spring /var/log/my-finances` before `USER spring`.
-- [ ] `docker-compose.prod.yml`: `x-logging` anchor (`json-file`, `10m` × 3) on all services (rotates stdout); new named volume `my-finances-logs-prod` mounted at `/var/log/my-finances` on `backend`; backend `LOGGING_LEVEL_COM_CHM_MYFINANCES: ${LOG_LEVEL:-INFO}`.
-- [ ] `.env.example`: document optional `LOG_LEVEL`.
-- [ ] Dev `docker-compose.yml` left untouched (ADR 0006) — confirm with `git diff --stat`.
+- [x] `frontend/nginx.conf`: `map` for the request id, `proxy_set_header X-Request-Id`, a `log_format` including it, `access_log /dev/stdout <format>`.
+- [x] `backend/Dockerfile` runtime stage: `mkdir -p /var/log/my-finances && chown spring:spring /var/log/my-finances` before `USER spring`.
+- [x] `docker-compose.prod.yml`: `x-logging` anchor (`json-file`, `10m` × 3) on all services (rotates stdout); new named volume `my-finances-logs-prod` (with an explicit `name:` so compose doesn't prefix it with the project name) mounted at `/var/log/my-finances` on `backend`; backend `LOGGING_LEVEL_COM_CHM_MYFINANCES: ${LOG_LEVEL:-INFO}`.
+- [x] `.env.example`: document optional `LOG_LEVEL`.
+- [x] Dev `docker-compose.yml` left untouched (ADR 0006) — confirm with `git diff --stat`.
 
 ## Phase 5 — Docs
 - [ ] Backend `CLAUDE.md`: "Logging" section (levels per profile, file location per profile + the two prod read commands from the spec, retention caps and what deletes the volume, test-run file suppression, `requestId` MDC, what never to log, never in `domain/`, never bind-parameter logging, `LogCapture`, Postgres-row-in-stack-trace caveat).

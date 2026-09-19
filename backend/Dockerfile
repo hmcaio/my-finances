@@ -27,6 +27,10 @@ WORKDIR /app
 RUN addgroup -S spring && adduser -S spring -G spring
 COPY --from=build /workspace/build/libs/*.jar app.jar
 RUN chown spring:spring app.jar
+# Log directory for the prod profile's logging.file.name (F016, ADR 0011). Created and chowned
+# *before* USER spring so the non-root app can write to it, and so the named volume that
+# docker-compose.prod.yml mounts here inherits this ownership on first use.
+RUN mkdir -p /var/log/my-finances && chown spring:spring /var/log/my-finances
 USER spring
 
 ENV SPRING_PROFILES_ACTIVE=prod
