@@ -37,14 +37,9 @@ Per ADR 0008, work branches off `develop`, and PRs target `develop` (never commi
 
 Write tests alongside each fix, following the existing layers: unit tests against the `testsupport/Fake*Repository` fakes for application logic, `@SpringBootTest` adapter/controller tests for persistence and REST, and MSW + React Testing Library on the frontend. Keep extractions behavior-preserving — when de-duplicating, check each call site for small variations (margins, disabled states, labels, dismissibility) and parameterize or leave the outlier alone rather than silently unifying it.
 
-Gotchas that have cost real time in this repo:
+Before writing tests, re-read the "Structural conventions" bullets in `CLAUDE.md` — the repo-specific traps live there (so they apply to every task, not only audits). The ones these audits hit most: transaction-boundary tests must *not* be `@Transactional` themselves (the general rule says the opposite), V2 seed rows collide with new `UNIQUE` constraints in real-DB fixtures, a new 409 needs a frontend `conflictMessage` because the backend never sends exception text, and frontend tests have no Node types (run `npm run build`, not just `npm test`).
 
-- **Transaction-boundary tests.** To prove `@Transactional` rolls back a multi-write use case, use `@SpringBootTest` + `@Import(TestcontainersConfiguration.class)` with **no** class- or method-level `@Transactional` on the test (otherwise the service just joins the test's transaction and the rollback is invisible). Spy the downstream repository with `@MockitoSpyBean` on a field (not a method parameter), stub the *second* write to throw, then re-read with fresh repository calls. Clean up leftover rows with a method you did *not* stub, after `reset(spy)`; custom derived `deleteBy...` queries need a caller-provided transaction, plain `deleteById` does not.
-- **Seed data collides with new UNIQUE constraints.** V2 seeds categories/payment methods ("Groceries", "Rent", "Debit Card", ...) into the shared Testcontainers DB. Real-DB test fixtures must not reuse those names or any name another non-transactional test leaves behind.
-- **The backend never sends exception text.** `spring.web.error.include-message: never`, so a new 409 only reads well in the UI if the frontend API client passes an explicit `conflictMessage` to `unwrap()`.
-- **New `@ResponseStatus` exceptions, not new advice.** One `GlobalExceptionHandler` exists; expected errors get their own annotated exception.
-- **Free-text fields** reuse `TextFieldConstraints` constants; money columns are `numeric(19,2)`.
-- **Frontend tests have no Node types.** `process.env` in a `*.test.ts(x)` passes under Vitest but fails `npm run build` (TS2591), so run the build, not just the tests. To pin a timezone or env var use `vi.stubEnv('TZ', ...)` / `vi.unstubAllEnvs()`. Date/time fixes only show up when the test pins a non-UTC zone, since CI runs in UTC — also confirm new tests fail against the old code (temporarily restore it) so they actually guard the bug.
+One habit worth keeping on top of those: for a bug fix, temporarily restore the old code and confirm the new tests fail against it. A test that passes both before and after guards nothing — date/time fixes are the classic case, since CI runs in UTC and hides a UTC-vs-local bug unless the test pins another zone.
 
 ## 6. Verify
 
