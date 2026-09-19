@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   Box,
   Button,
@@ -8,7 +8,6 @@ import {
   Paper,
   Select,
   Table,
-  TableBody,
   TableCell,
   TableContainer,
   TableHead,
@@ -28,7 +27,8 @@ import {
 import { defaultErrorMessage } from '../../api/apiError'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
-import { LoadingTableRow } from '../../components/LoadingTableRow'
+import { DataTableBody } from '../../components/DataTableBody'
+import { useAsyncData } from '../../hooks/useAsyncData'
 
 /**
  * Settings-style CRUD screen for categories (F002 spec): table with name + type, inline rename,
@@ -36,8 +36,12 @@ import { LoadingTableRow } from '../../components/LoadingTableRow'
  * existing rows - only on the add-new form.
  */
 export function CategoriesPage() {
-  const [categories, setCategories] = useState<Category[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const {
+    data: categories,
+    setData: setCategories,
+    ...categoriesState
+  } = useAsyncData(getCategories, [], { onError: setError })
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
@@ -47,16 +51,6 @@ export function CategoriesPage() {
   const [adding, setAdding] = useState(false)
 
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
-
-  function load() {
-    getCategories()
-      .then(setCategories)
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-  }
-
-  useEffect(() => {
-    load()
-  }, [])
 
   async function handleAdd() {
     if (!newName.trim()) return
@@ -108,6 +102,12 @@ export function CategoriesPage() {
     }
   }
 
+  // Clears the stale banner before retrying, so it doesn't outlive a successful retry.
+  function retry() {
+    setError(null)
+    categoriesState.reload()
+  }
+
   return (
     <Box sx={{ py: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
@@ -130,8 +130,7 @@ export function CategoriesPage() {
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <TableBody>
-              {categories === null && <LoadingTableRow colSpan={3} />}
+            <DataTableBody state={categoriesState} onRetry={retry} columns={3} actionsColumn>
               {categories?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={3} align="center">
@@ -185,7 +184,7 @@ export function CategoriesPage() {
                   </TableCell>
                 </TableRow>
               ))}
-            </TableBody>
+            </DataTableBody>
           </Table>
         </TableContainer>
       </Paper>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Box,
   Button,
@@ -7,7 +7,6 @@ import {
   Paper,
   Select,
   Table,
-  TableBody,
   TableCell,
   TableContainer,
   TableHead,
@@ -17,7 +16,7 @@ import {
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
-import { getAccounts, type Account } from '../../api/accounts'
+import { getAccounts } from '../../api/accounts'
 import {
   createTransfer,
   deleteTransfer,
@@ -29,7 +28,9 @@ import {
 import { defaultErrorMessage } from '../../api/apiError'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { ErrorAlert } from '../../components/ErrorAlert'
-import { LoadingTableRow } from '../../components/LoadingTableRow'
+import { DataTableBody } from '../../components/DataTableBody'
+import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
+import { usePagedData } from '../../hooks/usePagedData'
 import { PaginationControls } from '../../components/PaginationControls'
 import { nameLookup } from '../../utils/nameLookup'
 
@@ -53,14 +54,21 @@ const PAGE_SIZE = 20
  * rather than relying on the backend's 400 (`SameAccountTransferException`).
  */
 export function TransfersPage() {
-  const [accounts, setAccounts] = useState<Account[] | null>(null)
-
-  const [transfers, setTransfers] = useState<Transfer[] | null>(null)
-  const [pageInfo, setPageInfo] = useState<{ number: number; totalPages: number } | null>(null)
   const [page, setPage] = useState(0)
-
   const [filters, setFilters] = useState<TransferFilter>({})
   const [error, setError] = useState<string | null>(null)
+
+  const { data: accounts, ...accountsState } = useAsyncData(() => getAccounts(true), [], {
+    onError: setError,
+  })
+  const {
+    items: transfers,
+    setItems: setTransfers,
+    pageInfo,
+    ...transfersState
+  } = usePagedData(() => getTransfers(filters, page, PAGE_SIZE), [filters, page], {
+    onError: setError,
+  })
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState(EMPTY_FORM)
@@ -68,25 +76,6 @@ export function TransfersPage() {
 
   const [deleteTarget, setDeleteTarget] = useState<Transfer | null>(null)
   const [deleting, setDeleting] = useState(false)
-
-  useEffect(() => {
-    getAccounts(true)
-      .then(setAccounts)
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-  }, [])
-
-  function load(activeFilters: TransferFilter, activePage: number) {
-    getTransfers(activeFilters, activePage, PAGE_SIZE)
-      .then((result) => {
-        setTransfers(result.content)
-        setPageInfo({ number: result.page.number, totalPages: result.page.totalPages })
-      })
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-  }
-
-  useEffect(() => {
-    load(filters, page)
-  }, [filters, page])
 
   function updateFilter(patch: Partial<TransferFilter>) {
     setFilters((prev) => ({ ...prev, ...patch }))
@@ -153,10 +142,10 @@ export function TransfersPage() {
     try {
       if (editingId) {
         const updated = await editTransfer(editingId, request)
-        setTransfers((prev) => prev?.map((t) => (t.id === updated.id ? updated : t)) ?? null)
+        setTransfers((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
       } else {
         const created = await createTransfer(request)
-        setTransfers((prev) => (prev ? [created, ...prev] : [created]))
+        setTransfers((prev) => [created, ...prev])
       }
       cancelEdit()
     } catch (err) {
@@ -172,13 +161,21 @@ export function TransfersPage() {
     setDeleting(true)
     try {
       await deleteTransfer(deleteTarget.id)
-      setTransfers((prev) => prev?.filter((t) => t.id !== deleteTarget.id) ?? null)
+      setTransfers((prev) => prev.filter((t) => t.id !== deleteTarget.id))
       setDeleteTarget(null)
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {
       setDeleting(false)
     }
+  }
+
+  // One load state for the table plus the lookup lists behind its name columns: rows show only
+  // once every name can be resolved. Retry clears the stale banner and reloads what failed.
+  const tableState = combineLoadState(accountsState, transfersState)
+  function retry() {
+    setError(null)
+    tableState.reload()
   }
 
   return (
@@ -254,8 +251,7 @@ export function TransfersPage() {
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <TableBody>
-              {transfers === null && <LoadingTableRow colSpan={6} variant="text" />}
+            <DataTableBody state={tableState} onRetry={retry} columns={6} actionsColumn>
               {transfers?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} align="center">
@@ -284,7 +280,7 @@ export function TransfersPage() {
                   </TableCell>
                 </TableRow>
               ))}
-            </TableBody>
+            </DataTableBody>
           </Table>
         </TableContainer>
       </Paper>

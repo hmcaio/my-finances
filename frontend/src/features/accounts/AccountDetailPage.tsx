@@ -1,16 +1,10 @@
-import { useEffect, useState } from 'react'
 import { Link as RouterLink, useParams } from 'react-router-dom'
-import {
-  Alert,
-  Box,
-  Chip,
-  CircularProgress,
-  Link as MuiLink,
-  Paper,
-  Typography,
-} from '@mui/material'
-import { getAccount, type Account, type AccountType } from '../../api/accounts'
+import { Alert, Box, Chip, Link as MuiLink, Paper, Skeleton, Typography } from '@mui/material'
+import { getAccount, type AccountType } from '../../api/accounts'
 import { defaultErrorMessage } from '../../api/apiError'
+import { fadeInSx } from '../../components/fadeIn'
+import { useAsyncData } from '../../hooks/useAsyncData'
+import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { AccountTransactionList } from '../transactions/AccountTransactionList'
 import { AccountTransferList } from '../transfers/AccountTransferList'
 
@@ -30,15 +24,16 @@ const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
  */
 export function AccountDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const [account, setAccount] = useState<Account | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!id) return
-    getAccount(id)
-      .then(setAccount)
-      .catch((err: unknown) => setError(defaultErrorMessage(err, { 404: 'Account not found.' })))
-  }, [id])
+  const {
+    data: account,
+    loading,
+    loadError: error,
+  } = useAsyncData(
+    () => (id ? getAccount(id) : Promise.reject(new Error('Missing account id.'))),
+    [id],
+    { errorMessage: (err) => defaultErrorMessage(err, { 404: 'Account not found.' }) },
+  )
+  const showSkeleton = useDelayedFlag(loading)
 
   return (
     <Box sx={{ py: 4 }}>
@@ -52,14 +47,10 @@ export function AccountDetailPage() {
         </Alert>
       )}
 
-      {!error && account === null && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-          <CircularProgress size={24} />
-        </Box>
-      )}
+      {showSkeleton && <AccountDetailSkeleton />}
 
       {account && (
-        <>
+        <Box sx={fadeInSx}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2, mb: 1 }}>
             <Typography variant="h4" component="h1">
               {account.name}
@@ -96,8 +87,34 @@ export function AccountDetailPage() {
             </Typography>
             <AccountTransferList accountId={account.id} />
           </Paper>
-        </>
+        </Box>
       )}
+    </Box>
+  )
+}
+
+/** Placeholder laid out like the loaded page: header, subtitle, balance card, two list sections. */
+function AccountDetailSkeleton() {
+  return (
+    <Box role="status" aria-label="Loading account">
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2, mb: 1 }}>
+        <Skeleton variant="text" width={240} sx={{ typography: 'h4' }} />
+        <Skeleton variant="rounded" width={60} height={32} />
+      </Box>
+      <Skeleton variant="text" width={200} sx={{ mb: 3 }} />
+
+      <Paper variant="outlined" sx={{ p: 3, mb: 3, maxWidth: 480 }}>
+        <Skeleton variant="text" width={110} sx={{ typography: 'overline' }} />
+        <Skeleton variant="text" width={180} sx={{ typography: 'h3', mb: 2 }} />
+        <Skeleton variant="text" width="80%" sx={{ typography: 'body2' }} />
+      </Paper>
+
+      {[0, 1].map((section) => (
+        <Paper key={section} variant="outlined" sx={{ p: 3, mb: section === 0 ? 3 : 0 }}>
+          <Skeleton variant="text" width={120} sx={{ typography: 'h6', mb: 1 }} />
+          <Skeleton variant="rounded" height={160} />
+        </Paper>
+      ))}
     </Box>
   )
 }

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import { delay, http, HttpResponse } from 'msw'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { server } from '../../mocks/server'
 import { seedAccounts } from '../../mocks/handlers/accounts'
 import { seedTransactions } from '../../mocks/handlers/transactions'
 import { seedTransfers } from '../../mocks/handlers/transfers'
@@ -56,5 +58,20 @@ describe('AccountDetailPage', () => {
     renderDetail('acct-does-not-exist')
 
     expect(await screen.findByText('Account not found.')).toBeInTheDocument()
+  })
+
+  it('shows a loading skeleton only when the account fetch is slow', async () => {
+    const account = seedAccounts[0]
+    server.use(
+      http.get(`/api/accounts/${account.id}`, async () => {
+        await delay(400)
+        return HttpResponse.json(account)
+      }),
+    )
+    renderDetail(account.id)
+
+    expect(await screen.findByRole('status', { name: 'Loading account' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: account.name })).toBeInTheDocument()
+    expect(screen.queryByRole('status', { name: 'Loading account' })).not.toBeInTheDocument()
   })
 })

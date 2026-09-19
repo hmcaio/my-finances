@@ -1,20 +1,20 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Box,
   Table,
-  TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
   Typography,
 } from '@mui/material'
-import { getCategories, type Category } from '../../api/categories'
-import { getPaymentMethods, type PaymentMethod } from '../../api/paymentMethods'
-import { getTransactions, type Transaction } from '../../api/transactions'
-import { defaultErrorMessage } from '../../api/apiError'
+import { getCategories } from '../../api/categories'
+import { getPaymentMethods } from '../../api/paymentMethods'
+import { getTransactions } from '../../api/transactions'
 import { ErrorAlert } from '../../components/ErrorAlert'
-import { LoadingTableRow } from '../../components/LoadingTableRow'
+import { DataTableBody } from '../../components/DataTableBody'
+import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
+import { usePagedData } from '../../hooks/usePagedData'
 import { PaginationControls } from '../../components/PaginationControls'
 import { nameLookup } from '../../utils/nameLookup'
 
@@ -32,36 +32,35 @@ interface AccountTransactionListProps {
  * query param.
  */
 export function AccountTransactionList({ accountId }: AccountTransactionListProps) {
-  const [transactions, setTransactions] = useState<Transaction[] | null>(null)
-  const [pageInfo, setPageInfo] = useState<{ number: number; totalPages: number } | null>(null)
   const [page, setPage] = useState(0)
-  const [categories, setCategories] = useState<Category[] | null>(null)
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[] | null>(null)
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    getCategories()
-      .then(setCategories)
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-    getPaymentMethods()
-      .then(setPaymentMethods)
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-  }, [])
-
-  useEffect(() => {
-    getTransactions({ accountId }, page, PAGE_SIZE)
-      .then((result) => {
-        setTransactions(result.content)
-        setPageInfo({ number: result.page.number, totalPages: result.page.totalPages })
-      })
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-  }, [accountId, page])
+  const { data: categories, ...categoriesState } = useAsyncData(getCategories, [], {
+    onError: setError,
+  })
+  const { data: paymentMethods, ...paymentMethodsState } = useAsyncData(getPaymentMethods, [], {
+    onError: setError,
+  })
+  const {
+    items: transactions,
+    pageInfo,
+    ...transactionsState
+  } = usePagedData(() => getTransactions({ accountId }, page, PAGE_SIZE), [accountId, page], {
+    onError: setError,
+  })
 
   const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
   const paymentMethodName = useMemo(
     () => nameLookup(paymentMethods ?? [], (p) => p.name),
     [paymentMethods],
   )
+
+  // One load state for the table plus the lookup lists behind its name columns: rows show only
+  // once every name can be resolved. Retry clears the stale banner and reloads what failed.
+  const tableState = combineLoadState(categoriesState, paymentMethodsState, transactionsState)
+  function retry() {
+    setError(null)
+    tableState.reload()
+  }
 
   return (
     <Box>
@@ -78,8 +77,7 @@ export function AccountTransactionList({ accountId }: AccountTransactionListProp
               <TableCell>Description</TableCell>
             </TableRow>
           </TableHead>
-          <TableBody>
-            {transactions === null && <LoadingTableRow colSpan={5} variant="text" />}
+          <DataTableBody state={tableState} onRetry={retry} columns={5}>
             {transactions?.length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} align="center">
@@ -99,7 +97,7 @@ export function AccountTransactionList({ accountId }: AccountTransactionListProp
                 <TableCell>{transaction.description}</TableCell>
               </TableRow>
             ))}
-          </TableBody>
+          </DataTableBody>
         </Table>
       </TableContainer>
 

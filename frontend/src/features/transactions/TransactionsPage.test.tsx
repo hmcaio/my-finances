@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { delay, http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import { seedAccounts } from '../../mocks/handlers/accounts'
 import { seedCategories } from '../../mocks/handlers/categories'
@@ -117,5 +118,56 @@ describe('TransactionsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Add' }))
 
     expect(await screen.findByText(/cannot accept new transactions/)).toBeInTheDocument()
+  })
+
+  it('retries the table and its name lookups together, clearing the error banner', async () => {
+    const failOnce = (url: string) =>
+      http.get(url, () => new HttpResponse(null, { status: 500 }), { once: true })
+    server.use(
+      failOnce('/api/transactions'),
+      failOnce('/api/categories'),
+      failOnce('/api/accounts'),
+      failOnce('/api/payment-methods'),
+    )
+    const user = userEvent.setup()
+    render(<TransactionsPage />)
+    await screen.findAllByRole('alert')
+
+    await user.click(await screen.findByRole('button', { name: 'Retry' }))
+
+    const transaction = seedTransactions[0]
+    const row = within((await screen.findByText(transaction.description)).closest('tr')!)
+    // Names, not the raw ids the row falls back to while a lookup list is missing.
+    await waitFor(() => {
+      expect(
+        row.getByText(seedCategories.find((c) => c.id === transaction.categoryId)!.name),
+      ).toBeInTheDocument()
+    })
+    expect(
+      row.getByText(seedAccounts.find((a) => a.id === transaction.accountId)!.name),
+    ).toBeInTheDocument()
+    expect(
+      row.getByText(seedPaymentMethods.find((p) => p.id === transaction.paymentMethodId)!.name),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('holds the rows back until the name lookups arrive, so ids are never shown as names', async () => {
+    server.use(
+      http.get('/api/categories', async () => {
+        await delay(400)
+        return HttpResponse.json(seedCategories)
+      }),
+    )
+    render(<TransactionsPage />)
+    const transaction = seedTransactions[0]
+
+    // The transactions themselves arrive right away; the skeleton stays up for the slow lookup.
+    expect(await screen.findByText('Loading…')).toBeInTheDocument()
+    expect(screen.queryByText(transaction.description)).not.toBeInTheDocument()
+    expect(screen.queryByText(transaction.categoryId)).not.toBeInTheDocument()
+
+    expect(await screen.findByText(transaction.description)).toBeInTheDocument()
+    expect(screen.queryByText(transaction.categoryId)).not.toBeInTheDocument()
   })
 })

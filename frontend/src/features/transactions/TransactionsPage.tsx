@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Box,
   Button,
@@ -7,7 +7,6 @@ import {
   Paper,
   Select,
   Table,
-  TableBody,
   TableCell,
   TableContainer,
   TableHead,
@@ -17,9 +16,9 @@ import {
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
-import { getAccounts, type Account } from '../../api/accounts'
-import { getCategories, type Category } from '../../api/categories'
-import { getPaymentMethods, type PaymentMethod } from '../../api/paymentMethods'
+import { getAccounts } from '../../api/accounts'
+import { getCategories } from '../../api/categories'
+import { getPaymentMethods } from '../../api/paymentMethods'
 import {
   createTransaction,
   deleteTransaction,
@@ -31,7 +30,9 @@ import {
 import { defaultErrorMessage } from '../../api/apiError'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { ErrorAlert } from '../../components/ErrorAlert'
-import { LoadingTableRow } from '../../components/LoadingTableRow'
+import { DataTableBody } from '../../components/DataTableBody'
+import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
+import { usePagedData } from '../../hooks/usePagedData'
 import { PaginationControls } from '../../components/PaginationControls'
 import { nameLookup } from '../../utils/nameLookup'
 
@@ -55,16 +56,27 @@ const PAGE_SIZE = 20
  * plain-in-place-edit semantics (no versioning).
  */
 export function TransactionsPage() {
-  const [categories, setCategories] = useState<Category[] | null>(null)
-  const [accounts, setAccounts] = useState<Account[] | null>(null)
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[] | null>(null)
-
-  const [transactions, setTransactions] = useState<Transaction[] | null>(null)
-  const [pageInfo, setPageInfo] = useState<{ number: number; totalPages: number } | null>(null)
   const [page, setPage] = useState(0)
-
   const [filters, setFilters] = useState<TransactionFilter>({})
   const [error, setError] = useState<string | null>(null)
+
+  const { data: categories, ...categoriesState } = useAsyncData(getCategories, [], {
+    onError: setError,
+  })
+  const { data: accounts, ...accountsState } = useAsyncData(() => getAccounts(true), [], {
+    onError: setError,
+  })
+  const { data: paymentMethods, ...paymentMethodsState } = useAsyncData(getPaymentMethods, [], {
+    onError: setError,
+  })
+  const {
+    items: transactions,
+    setItems: setTransactions,
+    pageInfo,
+    ...transactionsState
+  } = usePagedData(() => getTransactions(filters, page, PAGE_SIZE), [filters, page], {
+    onError: setError,
+  })
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState(EMPTY_FORM)
@@ -72,31 +84,6 @@ export function TransactionsPage() {
 
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null)
   const [deleting, setDeleting] = useState(false)
-
-  useEffect(() => {
-    getCategories()
-      .then(setCategories)
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-    getAccounts(true)
-      .then(setAccounts)
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-    getPaymentMethods()
-      .then(setPaymentMethods)
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-  }, [])
-
-  function load(activeFilters: TransactionFilter, activePage: number) {
-    getTransactions(activeFilters, activePage, PAGE_SIZE)
-      .then((result) => {
-        setTransactions(result.content)
-        setPageInfo({ number: result.page.number, totalPages: result.page.totalPages })
-      })
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-  }
-
-  useEffect(() => {
-    load(filters, page)
-  }, [filters, page])
 
   function updateFilter(patch: Partial<TransactionFilter>) {
     setFilters((prev) => ({ ...prev, ...patch }))
@@ -156,10 +143,10 @@ export function TransactionsPage() {
     try {
       if (editingId) {
         const updated = await editTransaction(editingId, request)
-        setTransactions((prev) => prev?.map((t) => (t.id === updated.id ? updated : t)) ?? null)
+        setTransactions((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
       } else {
         const created = await createTransaction(request)
-        setTransactions((prev) => (prev ? [created, ...prev] : [created]))
+        setTransactions((prev) => [created, ...prev])
       }
       cancelEdit()
     } catch (err) {
@@ -175,13 +162,26 @@ export function TransactionsPage() {
     setDeleting(true)
     try {
       await deleteTransaction(deleteTarget.id)
-      setTransactions((prev) => prev?.filter((t) => t.id !== deleteTarget.id) ?? null)
+      setTransactions((prev) => prev.filter((t) => t.id !== deleteTarget.id))
       setDeleteTarget(null)
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {
       setDeleting(false)
     }
+  }
+
+  // One load state for the table plus the lookup lists behind its name columns: rows show only
+  // once every name can be resolved. Retry clears the stale banner and reloads what failed.
+  const tableState = combineLoadState(
+    categoriesState,
+    accountsState,
+    paymentMethodsState,
+    transactionsState,
+  )
+  function retry() {
+    setError(null)
+    tableState.reload()
   }
 
   return (
@@ -288,8 +288,7 @@ export function TransactionsPage() {
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <TableBody>
-              {transactions === null && <LoadingTableRow colSpan={7} variant="text" />}
+            <DataTableBody state={tableState} onRetry={retry} columns={7} actionsColumn>
               {transactions?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} align="center">
@@ -326,7 +325,7 @@ export function TransactionsPage() {
                   </TableCell>
                 </TableRow>
               ))}
-            </TableBody>
+            </DataTableBody>
           </Table>
         </TableContainer>
       </Paper>

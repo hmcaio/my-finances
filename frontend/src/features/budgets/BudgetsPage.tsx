@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Box,
   Button,
@@ -6,8 +6,8 @@ import {
   MenuItem,
   Paper,
   Select,
+  Skeleton,
   Table,
-  TableBody,
   TableCell,
   TableContainer,
   TableHead,
@@ -15,19 +15,22 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import { getCategories, type Category } from '../../api/categories'
+import { getCategories } from '../../api/categories'
 import {
   createBudget,
   getBudgetReport,
   getBudgets,
   setBudgetCap,
   type Budget,
-  type BudgetReportLine,
 } from '../../api/budgets'
 import { defaultErrorMessage } from '../../api/apiError'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
-import { LoadingTableRow } from '../../components/LoadingTableRow'
+import { DataTableBody } from '../../components/DataTableBody'
+import { fadeInSx } from '../../components/fadeIn'
+import { LoadFailedNotice } from '../../components/LoadFailedNotice'
+import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
+import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { nameLookup } from '../../utils/nameLookup'
 
 /** `YYYY-MM` for the current real-world month - the implicit "now" every cap edit/new budget
@@ -45,9 +48,15 @@ function currentMonth(): string {
  * implicit - now/current month forward".
  */
 export function BudgetsPage() {
-  const [categories, setCategories] = useState<Category[] | null>(null)
-  const [budgets, setBudgets] = useState<Budget[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const { data: categories, ...categoriesState } = useAsyncData(getCategories, [], {
+    onError: setError,
+  })
+  const {
+    data: budgets,
+    setData: setBudgets,
+    ...budgetsState
+  } = useAsyncData(getBudgets, [], { onError: setError })
 
   const [newCategoryId, setNewCategoryId] = useState('')
   const [newCap, setNewCap] = useState('')
@@ -58,30 +67,15 @@ export function BudgetsPage() {
   const [savingCap, setSavingCap] = useState(false)
 
   const [reportMonth, setReportMonth] = useState(currentMonth())
-  const [report, setReport] = useState<BudgetReportLine[] | null>(null)
+  const { data: report, ...reportState } = useAsyncData(
+    () => getBudgetReport(reportMonth),
+    [reportMonth],
+    { onError: setError },
+  )
 
-  function loadBudgets() {
-    getBudgets()
-      .then(setBudgets)
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-  }
-
-  function loadReport(month: string) {
-    getBudgetReport(month)
-      .then(setReport)
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-  }
-
-  useEffect(() => {
-    getCategories()
-      .then(setCategories)
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-    loadBudgets()
-  }, [])
-
-  useEffect(() => {
-    loadReport(reportMonth)
-  }, [reportMonth])
+  // The report also names categories, so it waits for that list too (no raw ids in the lines).
+  const reportView = combineLoadState(categoriesState, reportState)
+  const showReportSkeleton = useDelayedFlag(reportView.loading)
 
   const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
 
@@ -103,7 +97,7 @@ export function BudgetsPage() {
       setBudgets((prev) => [...(prev ?? []), created])
       setNewCategoryId('')
       setNewCap('')
-      if (reportMonth >= currentMonth()) loadReport(reportMonth)
+      if (reportMonth >= currentMonth()) reportState.reload()
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {
@@ -132,12 +126,20 @@ export function BudgetsPage() {
       })
       setBudgets((prev) => prev?.map((b) => (b.id === id ? updated : b)) ?? null)
       cancelEditCap()
-      if (reportMonth >= currentMonth()) loadReport(reportMonth)
+      if (reportMonth >= currentMonth()) reportState.reload()
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {
       setSavingCap(false)
     }
+  }
+
+  // One load state for the table plus the lookup list behind its name column: rows show only once
+  // every name can be resolved. Retry clears the stale banner and reloads whatever failed.
+  const tableState = combineLoadState(categoriesState, budgetsState)
+  function retry() {
+    setError(null)
+    combineLoadState(categoriesState, budgetsState, reportState).reload()
   }
 
   return (
@@ -164,8 +166,7 @@ export function BudgetsPage() {
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <TableBody>
-              {budgets === null && <LoadingTableRow colSpan={4} variant="text" />}
+            <DataTableBody state={tableState} onRetry={retry} columns={4} actionsColumn>
               {budgets?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} align="center">
@@ -209,7 +210,7 @@ export function BudgetsPage() {
                   </TableCell>
                 </TableRow>
               ))}
-            </TableBody>
+            </DataTableBody>
           </Table>
         </TableContainer>
       </Paper>
@@ -273,38 +274,65 @@ export function BudgetsPage() {
         />
       </Box>
 
-      <Paper variant="outlined" sx={{ p: 2 }}>
-        {report === null && <Typography color="text.secondary">Loading…</Typography>}
-        {report?.length === 0 && (
-          <Typography color="text.secondary">No budgeted categories yet.</Typography>
+      <Paper variant="outlined" sx={{ p: 2 }} aria-busy={reportView.loading}>
+        {showReportSkeleton && <BudgetReportSkeleton />}
+        {reportView.loadError && (
+          <LoadFailedNotice message={reportView.loadError} onRetry={retry} />
         )}
-        {report?.map((line) => {
-          const overCap = line.cap !== null && line.actual > line.cap
-          const progress =
-            line.cap !== null && line.cap > 0 ? Math.min(100, (line.actual / line.cap) * 100) : 0
-          return (
-            <Box key={line.categoryId} sx={{ mb: 2 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                <Typography variant="body2">{categoryName(line.categoryId)}</Typography>
-                <Typography
-                  variant="body2"
-                  color={overCap ? 'error' : 'text.secondary'}
-                  sx={{ fontWeight: overCap ? 'bold' : undefined }}
-                >
-                  {line.actual.toFixed(2)} / {line.cap !== null ? line.cap.toFixed(2) : 'no cap'}
-                  {overCap && ' — over budget'}
-                </Typography>
-              </Box>
-              <LinearProgress
-                variant="determinate"
-                value={progress}
-                color={overCap ? 'error' : 'primary'}
-                aria-label={`${categoryName(line.categoryId)} budget usage`}
-              />
-            </Box>
-          )
-        })}
+        {report !== null && categories !== null && (
+          <Box sx={fadeInSx}>
+            {report.length === 0 && (
+              <Typography color="text.secondary">No budgeted categories yet.</Typography>
+            )}
+            {report.map((line) => {
+              const overCap = line.cap !== null && line.actual > line.cap
+              const progress =
+                line.cap !== null && line.cap > 0
+                  ? Math.min(100, (line.actual / line.cap) * 100)
+                  : 0
+              return (
+                <Box key={line.categoryId} sx={{ mb: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Typography variant="body2">{categoryName(line.categoryId)}</Typography>
+                    <Typography
+                      variant="body2"
+                      color={overCap ? 'error' : 'text.secondary'}
+                      sx={{ fontWeight: overCap ? 'bold' : undefined }}
+                    >
+                      {line.actual.toFixed(2)} /{' '}
+                      {line.cap !== null ? line.cap.toFixed(2) : 'no cap'}
+                      {overCap && ' — over budget'}
+                    </Typography>
+                  </Box>
+                  <LinearProgress
+                    variant="determinate"
+                    value={progress}
+                    color={overCap ? 'error' : 'primary'}
+                    aria-label={`${categoryName(line.categoryId)} budget usage`}
+                  />
+                </Box>
+              )
+            })}
+          </Box>
+        )}
       </Paper>
+    </Box>
+  )
+}
+
+/** Placeholder for the budget-vs-actual report, sized like three report lines. */
+function BudgetReportSkeleton() {
+  return (
+    <Box role="status" aria-label="Loading budget report">
+      {[0, 1, 2].map((line) => (
+        <Box key={line} sx={{ mb: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+            <Skeleton variant="text" width="25%" sx={{ typography: 'body2' }} />
+            <Skeleton variant="text" width="15%" sx={{ typography: 'body2' }} />
+          </Box>
+          <Skeleton variant="rounded" height={4} />
+        </Box>
+      ))}
     </Box>
   )
 }

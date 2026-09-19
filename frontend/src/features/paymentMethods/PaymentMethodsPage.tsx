@@ -1,11 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   Box,
   Button,
   IconButton,
   Paper,
   Table,
-  TableBody,
   TableCell,
   TableContainer,
   TableHead,
@@ -24,7 +23,8 @@ import {
 import { defaultErrorMessage } from '../../api/apiError'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
-import { LoadingTableRow } from '../../components/LoadingTableRow'
+import { DataTableBody } from '../../components/DataTableBody'
+import { useAsyncData } from '../../hooks/useAsyncData'
 
 /**
  * Settings-style CRUD screen for payment methods (F002 spec): table with name, inline rename,
@@ -32,8 +32,12 @@ import { LoadingTableRow } from '../../components/LoadingTableRow'
  * methods have no type, PRD S5.2).
  */
 export function PaymentMethodsPage() {
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const {
+    data: paymentMethods,
+    setData: setPaymentMethods,
+    ...paymentMethodsState
+  } = useAsyncData(getPaymentMethods, [], { onError: setError })
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
@@ -42,16 +46,6 @@ export function PaymentMethodsPage() {
   const [adding, setAdding] = useState(false)
 
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
-
-  function load() {
-    getPaymentMethods()
-      .then(setPaymentMethods)
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-  }
-
-  useEffect(() => {
-    load()
-  }, [])
 
   async function handleAdd() {
     if (!newName.trim()) return
@@ -103,6 +97,12 @@ export function PaymentMethodsPage() {
     }
   }
 
+  // Clears the stale banner before retrying, so it doesn't outlive a successful retry.
+  function retry() {
+    setError(null)
+    paymentMethodsState.reload()
+  }
+
   return (
     <Box sx={{ py: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
@@ -124,8 +124,7 @@ export function PaymentMethodsPage() {
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <TableBody>
-              {paymentMethods === null && <LoadingTableRow colSpan={2} />}
+            <DataTableBody state={paymentMethodsState} onRetry={retry} columns={2} actionsColumn>
               {paymentMethods?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={2} align="center">
@@ -172,7 +171,7 @@ export function PaymentMethodsPage() {
                   </TableCell>
                 </TableRow>
               ))}
-            </TableBody>
+            </DataTableBody>
           </Table>
         </TableContainer>
       </Paper>
