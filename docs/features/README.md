@@ -19,6 +19,7 @@ Each feature below has its own folder with a `spec.md` (technical specification)
 | [F013 — Data Export](F013-data-export/spec.md) | All-entity ZIP/CSV export with filters (PRD §6.9). |
 | [F014 — CI/CD & Production Packaging](F014-cicd-production-packaging/spec.md) | Docker production images (backend/frontend), `docker-compose.prod.yml`, GitHub Actions CI/CD publishing to GHCR — separate from and non-disruptive to F001's dev workflow. |
 | [F015 — Frontend Test Tooling](F015-frontend-test-tooling/spec.md) | Vitest, React Testing Library, and MSW — unblocks F014's CI frontend test step; backfills real test coverage for F002. |
+| [F016 — Logging](F016-logging/spec.md) | SLF4J/Logback config per profile, request-id (`X-Request-Id`/MDC) access logging, logged unexpected/expected errors, a frontend `logger` + Axios/global/React error capture, nginx and compose log plumbing, and a capped rolling backend log file (`backend/logs/` in dev, a named volume in prod) that survives `down`. No aggregator, no JSON, no browser→backend shipping. |
 
 ## Cross-cutting conventions (defined in F001, applied everywhere)
 
