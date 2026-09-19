@@ -49,10 +49,10 @@ Each: write the `LogCapture` assertion in the existing service unit test first (
 - [x] Dev `docker-compose.yml` left untouched (ADR 0006) — confirm with `git diff --stat`.
 
 ## Phase 5 — Docs
-- [ ] Backend `CLAUDE.md`: "Logging" section (levels per profile, file location per profile + the two prod read commands from the spec, retention caps and what deletes the volume, test-run file suppression, `requestId` MDC, what never to log, never in `domain/`, never bind-parameter logging, `LogCapture`, Postgres-row-in-stack-trace caveat).
-- [ ] Frontend `CLAUDE.md`: "Logging" section (`logger` not `console`, level env + `localStorage` override, the interceptor owns HTTP logging, never log bodies, the `ErrorBoundary`).
-- [ ] Root `CLAUDE.md`: cross-stack bullet for the `X-Request-Id` contract and the "no amounts/descriptions in logs" rule.
-- [ ] `docs/features/README.md` row for F016; `CHANGELOG.md` `[Unreleased]` entry.
+- [x] Backend `CLAUDE.md`: "Logging" section (levels per profile, file location per profile + the two prod read commands from the spec, retention caps and what deletes the volume, test-run file suppression, `requestId` MDC, what never to log, never in `domain/`, never bind-parameter logging, `LogCapture`, Postgres-row-in-stack-trace caveat).
+- [x] Frontend `CLAUDE.md`: "Logging" section (`logger` not `console`, level env + `localStorage` override, the interceptor owns HTTP logging, never log bodies, the `ErrorBoundary`).
+- [x] Root `CLAUDE.md`: cross-stack bullet for the `X-Request-Id` contract and the "no amounts/descriptions in logs" rule.
+- [x] `docs/features/README.md` row for F016 (already present; verified accurate). The `CHANGELOG.md` `[Unreleased]` entry is deferred to release time (ADR 0007: changelog and version bump happen on develop -> main, not on a feature branch), so it is intentionally not done here.
 
 ## Verification
 - [ ] `./gradlew spotlessCheck test` (Docker running) and `npm run lint && npm test && npm run build` all green.

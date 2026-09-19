@@ -22,7 +22,7 @@ docker compose down
 ```
 pgAdmin login, the pre-registered server, and the "editing `servers.json` needs `docker compose down -v`" caveat are commented in `docker-compose.yml`. Backend and frontend commands are in their own `CLAUDE.md` files.
 
-Production packaging (F014) is a wholly separate `docker-compose.prod.yml` (ADR 0006), not part of the dev loop. Local smoke test: build `ghcr.io/hmcaio/my-finances-{backend,frontend}:local` from `backend`/`frontend`, `cp .env.example .env` with `IMAGE_TAG=local`, then `docker compose -f docker-compose.prod.yml up -d` / `down -v`.
+Production packaging (F014) is a wholly separate `docker-compose.prod.yml` (ADR 0006), not part of the dev loop. Local smoke test: build `ghcr.io/hmcaio/my-finances-{backend,frontend}:local` from `backend`/`frontend`, `cp .env.example .env` with `IMAGE_TAG=local`, then `docker compose -f docker-compose.prod.yml up -d` / `down -v`. Both compose files default to the same project name and both have a `postgres` service, so prod `up`/`down` replaces/removes the *dev* Postgres container (its data volume survives; `docker compose up -d` brings dev back).
 
 CI (`.github/workflows/ci.yml`) runs backend `spotlessCheck test` and frontend `npm ci && npm run lint && npm test` on every push/PR, and builds+pushes both images to GHCR on `main` and `vX.Y.Z` tags.
 
@@ -37,6 +37,8 @@ CI (`.github/workflows/ci.yml`) runs backend `spotlessCheck test` and frontend `
 - **Money columns are `numeric(19,2)`** (`transactions.amount`, `accounts.opening_balance`, `budget_versions.monthly_cap`, ...). Reuse that precision for any new amount, and back every amount/cap positivity rule at all three layers: DTO `@Positive`, domain constructor check, DB `CHECK`.
 - **The backend never sends exception text** (`spring.web.error.include-message: never`), so every expected `@ResponseStatus(CONFLICT)` case needs an explicit `conflictMessage` at the frontend API-client call site or the user just sees "Request failed with status 409".
 - **API types are generated**: `npm run generate-api-types` (backend running) regenerates `frontend/src/api/generated/schema.ts` from `/v3/api-docs`. When an aggregate introduces a new `java.time` type, check its generated schema shape — springdoc mis-maps `YearMonth` as an object without `OpenApiConfig`'s `replaceWithClass(YearMonth.class, String.class)`.
+
+- **Request id and logging**: the frontend sends `X-Request-Id` (`crypto.randomUUID()`) on every Axios request, nginx fills one in if it's missing and forwards it, and the backend accepts it only if it matches `^[A-Za-z0-9-]{1,64}$` (else generates its own), puts it in the MDC and echoes it back — so one failing click can be followed browser console → nginx → backend log. Logs everywhere carry ids and counts only: **never amounts, descriptions/notes or entity names**, in either stack (ADR 0011; details in each stack's `CLAUDE.md`).
 
 ## Keeping these files useful
 

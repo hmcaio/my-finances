@@ -10,7 +10,7 @@ The app is local, single-user and run on demand (PRD §7.3), so this is sized ac
 - Frontend: a single `logger` (the only place allowed to call `console.*`), Axios interceptors that log failed requests and send a request id, global + React error capture, an error boundary so a render crash doesn't blank the shell.
 - Persistence: backend logs are also written to a size- and age-capped rolling file — `backend/logs/` in dev, a named Docker volume in prod — so they survive a terminal closing, `docker compose down` and image updates.
 - Infra: nginx forwards/generates the request id and logs it; production compose gets stdout log rotation, the logs volume and a `LOG_LEVEL` knob.
-- Docs: ADR 0011, `CLAUDE.md` rules per stack, CHANGELOG.
+- Docs: ADR 0011, `CLAUDE.md` rules per stack. (The CHANGELOG entry is written at release time, ADR 0007.)
 - Out of scope: see [Non-goals](#non-goals).
 
 ## Decisions
@@ -34,18 +34,19 @@ The app is local, single-user and run on demand (PRD §7.3), so this is sized ac
 ## Backend
 
 ### Configuration
-- `application.yml` (identical in every environment, per backend `CLAUDE.md`): `logging.pattern.correlation: "[%X{requestId:-}] "` so every line carries the request id (blank outside a request, e.g. startup). Verify this Boot 4.1 property name against the running app — the fallback is `logging.pattern.console`.
+- `application.yml` (identical in every environment, per backend `CLAUDE.md`): `logging.pattern.correlation: "[%X{requestId:-}] "` so every line carries the request id (blank outside a request, e.g. startup). Verified against the running app on Boot 4.1.1 (renders as `[<thread>] [<requestId>]`); the fallback, if a later Boot ignores it, is `logging.pattern.console`.
 - `application.yml` also holds the rolling policy, which is identical everywhere: `logging.logback.rollingpolicy.max-file-size: 50MB`, `max-history: 90` (days), `total-size-cap: 300MB`, and the default gzip archive naming. It only takes effect where a file name is set.
 - `application-dev.yml`: `logging.level.com.chm.myfinances: DEBUG`, `logging.file.name: logs/backend.log` (relative to the working directory, i.e. `backend/logs/` under `./gradlew bootRun`).
 - `application-prod.yml`: `logging.level.com.chm.myfinances: INFO`, `logging.file.name: /var/log/my-finances/backend.log`. The level is overridable without a rebuild through Boot's relaxed binding env var `LOGGING_LEVEL_COM_CHM_MYFINANCES` (wired to `LOG_LEVEL` in compose, see [Infra](#infra)).
 - Each env-specific value stays out of the base file (backend `CLAUDE.md` config rule), so a profile can't silently inherit the other's path.
-- **Tests must not write log files.** `spring.profiles.default: dev` means an un-profiled test run would pick up dev's `logging.file.name`. `build.gradle`'s `tasks.named('test')` sets the system property `logging.file.name` to an empty string (system properties outrank config files, and Boot treats an empty name as "no file"). Verify a fresh `./gradlew test` creates no `backend/logs/`.
+- **Tests must not write log files.** `spring.profiles.default: dev` means an un-profiled test run would pick up dev's `logging.file.name`. `build.gradle`'s `tasks.named('test')` sets the system property `logging.file.name` to an empty string (system properties outrank config files, and Boot treats an empty name as "no file"). Verified: a fresh `./gradlew test` creates no `backend/logs/`, and with the property removed it does.
 - `.gitignore`: add `backend/logs/`. The existing `*.log` rule does **not** cover rolled archives (`backend.log.2026-09-19.0.gz`).
 
 #### Reading the logs
 - Dev: `backend/logs/backend.log` (and stdout as before).
 - Prod: the file lives in the `my-finances-logs-prod` volume. Read it without the app running: `docker run --rm -v my-finances-logs-prod:/logs alpine sh -c 'ls /logs; tail -n 200 /logs/backend.log'`; with it running: `docker compose -f docker-compose.prod.yml exec backend tail -n 200 /var/log/my-finances/backend.log`. Both go in backend `CLAUDE.md`.
 - Persistence boundaries, stated so nobody is surprised: logs survive `stop`/`down`/image updates; they are removed by `docker compose down -v` (which also wipes the database) or `docker volume rm`; older than 90 days or beyond 300MB total are deleted by design (whichever limit is hit first — the size cap can evict logs younger than 90 days).
+- **Spring's own resolved-exception lines are silenced** (found while verifying against a real run): `application.yml` sets `logging.level.org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver: ERROR` because that resolver always warn-logs `Resolved [MethodArgumentNotValidException: ... rejected value [-12.34] ...]` (an amount or description) for every validation 400, and pins `spring.mvc.log-resolved-exception: false` because DevTools (on the `bootRun` classpath) turns it on, which warn-logs every `@ResponseStatus` exception with its message (entity names). Without both, the "ids and counts only" rule and the class-name-only INFO line below would be defeated by Spring itself.
 - SQL: `spring.jpa.show-sql` stays off. To debug queries, set `LOGGING_LEVEL_ORG_HIBERNATE_SQL=DEBUG` ad hoc. **Never** enable `org.hibernate.orm.jdbc.bind` (TRACE) — it prints bound parameters, i.e. amounts and descriptions. State this in backend `CLAUDE.md`.
 - No `application-test.yml` is added (backend `CLAUDE.md`: tests get config from Testcontainers); test log noise stays at Boot's default.
 
@@ -53,7 +54,7 @@ The app is local, single-user and run on demand (PRD §7.3), so this is sized ac
 `infrastructure/web/RequestLoggingFilter` — a `OncePerRequestFilter` `@Component` at `Ordered.HIGHEST_PRECEDENCE` so the MDC is set before anything else logs.
 - Take `X-Request-Id` if present and valid; else `IdGenerator.newId().toString()`.
 - `MDC.put("requestId", id)`, set the `X-Request-Id` response header, `MDC.remove` in `finally`.
-- After the chain: one line, **method + path (no query string) + status + duration ms**, e.g. `GET /api/transactions -> 200 (12 ms)`. INFO normally; **DEBUG for `/actuator/**`** (the prod compose healthcheck hits it every 5s).
+- After the chain (also when it throws, reported as `500`): one line, **method + path (no query string) + status + duration ms**, e.g. `GET /api/transactions -> 200 (12 ms)`. INFO normally; **DEBUG for `/actuator/**`** (the prod compose healthcheck hits it every 5s).
 - No request/response bodies, ever. No query string (filters may carry ids/dates; the path is enough to correlate).
 - CORS: the frontend's `X-Request-Id` request header triggers a preflight in dev (5173 → 8080); `WebConfig` already has `allowedHeaders("*")`, so no change. The frontend never *reads* the response header, so `exposedHeaders` is not needed.
 
@@ -80,9 +81,9 @@ Never log: amounts, `description`/`additionalNotes`, account/category/payment-me
 **Caveat, documented rather than solved:** the full stack trace at ERROR includes the exception message, and Postgres constraint-violation messages can echo the failing row (`Failing row contains (...)`). That is accepted — the logs live on the same machine as the database and the trace is what makes the bug fixable — but the file now keeps those traces for up to 90 days, so redact before pasting a log into a public issue. This is a note in backend `CLAUDE.md`, not code.
 
 ### Testing
-- New test helper `testsupport/LogCapture`: attaches a Logback `ListAppender` to a given logger for the test's duration (Logback is already present via `spring-boot-starter-logging`), so unit tests assert on level + formatted message without a Spring context and independent of the configured level. (Boot's `OutputCaptureExtension` is only for the `@SpringBootTest` case and can't see DEBUG under default config.)
+- New test helper `testsupport/LogCapture`: attaches a Logback `ListAppender` to a given logger for the test's duration (Logback is already present via `spring-boot-starter-logging`), so unit tests assert on level + formatted message without a Spring context and independent of the configured level (`of` forces TRACE; `ofConfiguredLevel` keeps the configured level, for proving a `logging.level.*` setting in a `@SpringBootTest`). (Boot's `OutputCaptureExtension` is only for the `@SpringBootTest` case and can't see DEBUG under default config.)
 - `RequestLoggingFilterTest` (plain unit test, `MockHttpServletRequest/Response`, `FakeIdGenerator`): generates an id when absent; keeps a valid inbound id; **replaces** a malformed one (CR/LF, over-long, illegal characters); sets the response header; MDC is cleared afterwards even when the chain throws; access line has method/path/status but **not** the query string; `/actuator/health` logs at DEBUG.
-- Extend `GlobalExceptionHandlerTest`: unexpected exception → one ERROR event carrying the throwable **and** the response body is still exactly the generic message (the no-leak invariant must not regress); `@ResponseStatus` exception → INFO with the class name and **without** the exception message; `ErrorResponse` exception → nothing logged by the handler.
+- Extend `GlobalExceptionHandlerTest`: unexpected exception → one ERROR event carrying the throwable **and** the response body is still exactly the generic message (the no-leak invariant must not regress); `@ResponseStatus` exception → INFO with the class name and **without** the exception message; `ErrorResponse` exception → nothing logged by the handler; a validation failure logs no `rejected value` through `DefaultHandlerExceptionResolver` (configured level).
 - One assertion per business event above using `LogCapture` in the existing service unit tests (fakes, no Spring). For the catch-up service: INFO when it generated something, no INFO when it generated nothing.
 
 ## Frontend
@@ -91,19 +92,19 @@ Never log: amounts, `description`/`additionalNotes`, account/category/payment-me
 Framework-free, so it lives in `src/utils` per the layout in frontend `CLAUDE.md`.
 - API: `logger.debug|info|warn|error(message: string, ...context: unknown[])`. Prefix `[my-finances]`; delegates to the matching `console` method so devtools keep their stack traces and object inspection. Passing an `Error` as context is the normal way to log one.
 - Level: `VITE_LOG_LEVEL` (`debug | info | warn | error | silent`) — `.env.development` `debug`, `.env.production` `warn`, `.env.test` `silent`. Typed in `src/vite-env.d.ts`. Unknown value → `warn`.
-- Runtime override for the prod build (where the level is baked in): `localStorage['logLevel']` wins if set and valid — read inside `try/catch` (storage can throw/be empty), same defensiveness as the colour-mode hook. Also exports `setLogLevel(level)` for tests.
+- Runtime override for the prod build (where the level is baked in): `localStorage['logLevel']` wins if set and valid — read inside `try/catch` (storage can throw/be empty), same defensiveness as the colour-mode hook. Also exports `setLogLevel(level | null)` (a programmatic override that wins over both; `null` clears it) for tests.
 - ESLint: `no-console: 'error'`, with a file override turning it off for `src/utils/logger.ts` only.
 
 ### HTTP logging (`src/api/client.ts`)
 Axios interceptors on the shared `apiClient` — the single place, so **no page/hook call site changes**:
-- Request: set `X-Request-Id` to `crypto.randomUUID()` (stash it + start time on the request config, e.g. a `WeakMap`, not a mutated public field).
+- Request: set `X-Request-Id` to `crypto.randomUUID()` — falling back to 16 random bytes as hex where `randomUUID` doesn't exist (it is secure-context-only, so `http://<lan-ip>` would otherwise break every request) — and stash it + start time in a `WeakMap` keyed by the request config, not a mutated public field.
 - Response success: `logger.debug('GET /categories 200 (12 ms)', { requestId })`.
-- Response error: `logger.warn` for 4xx (expected conflicts/validation land here), `logger.error` for 5xx and for no-response failures (network down/CORS — status `0`, matching `ApiError`). Include method, relative URL (no base URL, no query string, no params), status, duration, request id.
+- Response error: `logger.warn` for 4xx (expected conflicts/validation land here), `logger.error` for 5xx and for no-response failures (network down/CORS — status `0`, matching `ApiError`). Include method, relative URL (no base URL, no query string, no params), status, duration, request id: `GET /categories 200 (12 ms)` with `{ requestId }` as context (a no-response failure reads `GET /categories failed with no response (12 ms)`). The Axios error itself is never passed as context (its `config`/`response` hold the bodies), and cancelled requests aren't logged.
 - **Never log request or response bodies** — they are amounts and descriptions.
 - The error interceptor **re-rejects the original error untouched**, so `unwrap()`/`ApiError`/`conflictMessage` behave exactly as today.
 
 ### Uncaught errors
-- `src/main.tsx`: pass React 19's `createRoot` options `onUncaughtError`, `onCaughtError`, `onRecoverableError` → `logger.error` (with the component stack).
+- `src/main.tsx`: pass React 19's `createRoot` options `onUncaughtError`, `onCaughtError`, `onRecoverableError` → `logger.error` (with the component stack). The three handlers are exported as `reactRootErrorHandlers` from `src/utils/globalErrorLogging.ts` (so they are unit-tested) and only the component stack is logged, not React's whole `errorInfo`.
 - `src/utils/globalErrorLogging.ts` (`installGlobalErrorLogging()`, called once from `main.tsx`): `window` `error` and `unhandledrejection` listeners → `logger.error`. Returns an uninstall function (for tests).
 - `src/components/ErrorBoundary.tsx` (class component — React still requires one) wrapping the `<Routes>` **inside** `Layout` in `App.tsx`, so the nav/theme survive a page crash. Fallback: MUI alert "Something went wrong on this page" + a "Reload" button. It gets `key={location.pathname}` (via a tiny wrapper using `useLocation`) so navigating away resets it. It doesn't log itself: `createRoot`'s `onCaughtError` receives every error a boundary catches. This boundary is the one non-logging addition — without it there is nothing recoverable to log *around*, and the current behaviour is a blank page.
 
@@ -119,11 +120,11 @@ Axios interceptors on the shared `apiClient` — the single place, so **no page/
 ### nginx (`frontend/nginx.conf`)
 - At the top of the file (it's included in nginx's `http` context via `conf.d`): `map $http_x_request_id $req_id { default $http_x_request_id; "" $request_id; }` — keep the browser's id when present, else use nginx's own.
 - In `location /api/`: `proxy_set_header X-Request-Id $req_id;`.
-- A `log_format` that includes `$req_id`, applied with `access_log /dev/stdout <format>;` in the server block.
+- A `log_format` that includes `$req_id` and logs the path (`$uri`), not `$request`, so the query string stays out of nginx's log too; applied with `access_log /dev/stdout <format>;` in the server block.
 
 ### `docker-compose.prod.yml` / `.env.example`
 - A shared `x-logging` anchor (`driver: json-file`, `max-size: "10m"`, `max-file: "3"`) applied to all three services — this rotates *stdout* (what `docker compose logs` shows); the persisted copy is the backend's file below.
-- New named volume `my-finances-logs-prod`, mounted at `/var/log/my-finances` on the `backend` service (declared under `volumes:` next to `my-finances-postgres-prod-data`).
+- New named volume `my-finances-logs-prod`, mounted at `/var/log/my-finances` on the `backend` service (declared under `volumes:` next to `my-finances-postgres-prod-data`). It carries an explicit `name:`: without it compose prefixes the volume with the project name (`my-finances_my-finances-logs-prod`) and the documented `docker run -v my-finances-logs-prod:/logs ...` read command would silently mount a new empty volume.
 - `backend/Dockerfile` runtime stage: `RUN mkdir -p /var/log/my-finances && chown spring:spring /var/log/my-finances` **before** `USER spring`, so the app can write there and a fresh named volume inherits that ownership.
 - Backend `environment`: `LOGGING_LEVEL_COM_CHM_MYFINANCES: ${LOG_LEVEL:-INFO}`.
 - `.env.example`: document optional `LOG_LEVEL` (`INFO` default; `DEBUG` when chasing something).
@@ -134,7 +135,7 @@ Axios interceptors on the shared `apiClient` — the single place, so **no page/
 - Backend `CLAUDE.md`: a "Logging" section — levels per profile, where the file lives per profile and the two commands for reading the prod volume, the retention caps, the test-run file suppression, MDC `requestId`, never log amounts/descriptions/names, never in `domain/`, never enable bind-parameter logging, `LogCapture` for tests, the Postgres-row caveat.
 - Frontend `CLAUDE.md`: "Logging" section — use `logger`, never `console.*`, the level env var + `localStorage` override, the interceptor owns HTTP logging (don't log at call sites), never log bodies.
 - Root `CLAUDE.md`: one cross-stack bullet — the `X-Request-Id` contract (frontend sends per request, nginx fills if missing, backend validates and echoes) and the shared "no amounts/descriptions in logs" rule.
-- `docs/features/README.md`: F016 row. `CHANGELOG.md`: `[Unreleased]` entry (`feat`).
+- `docs/features/README.md`: F016 row. `CHANGELOG.md`: `[Unreleased]` entry (`feat`) — written at release time (ADR 0007), not on the feature branch.
 
 ## Non-goals
 - Log aggregation, dashboards, alerting, tracing/OpenTelemetry, metrics.
