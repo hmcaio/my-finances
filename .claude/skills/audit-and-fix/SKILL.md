@@ -52,7 +52,7 @@ If many tests fail after one change, look for one shared root cause (a seed-name
 
 ## 7. Docs
 
-- `CLAUDE.md`: add a paragraph to the relevant feature's status entry (or a new one for cross-cutting work) saying what changed, *why*, and any deliberate non-fix. Update "Structural conventions" if a new convention emerged.
+- `CLAUDE.md`: add a bullet only if the work produced a *rule or gotcha* that can't be derived from the code and would cost time to rediscover — and phrase it as the rule, not the story. What changed, why, and any deliberate non-fix belong in the commit body and PR description (and the feature's `spec.md` if behavior changed). Narrative paragraphs in CLAUDE.md are what bloated it to 33 KB of mostly-history, and it loads into every session.
 - `docs/features/FXXX/spec.md`: update when observable behavior or schema for that feature changed. Not needed for pure defense-in-depth constraints that only the migration header documents.
 - `docs/PRD.md`: only when a product decision changed or was newly made. `README.md`: rarely.
 
