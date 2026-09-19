@@ -12,6 +12,8 @@ import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersionRepos
 import com.chm.myfinances.domain.shared.IdGenerator;
 import java.time.LocalDate;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
@@ -28,6 +30,9 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class RecurringOccurrenceCatchUpService {
+
+  private static final Logger log =
+      LoggerFactory.getLogger(RecurringOccurrenceCatchUpService.class);
 
   private final RecurringTemplateRepository templateRepository;
   private final RecurringTemplateVersionRepository versionRepository;
@@ -52,7 +57,10 @@ public class RecurringOccurrenceCatchUpService {
 
   /** Same as {@link #runCatchUp()}, but with an explicit "today" - exposed for testability. */
   public void runCatchUp(LocalDate today) {
+    int generatedOccurrences = 0;
+    int templatesWithNewOccurrences = 0;
     for (RecurringTemplate template : templateRepository.findAllActive()) {
+      int generatedForTemplate = 0;
       List<RecurringTemplateVersion> versions =
           versionRepository.findByTemplateId(template.getId());
       CatchUpResult result =
@@ -64,7 +72,12 @@ public class RecurringOccurrenceCatchUpService {
           pendingRepository.save(
               PendingRecurringOccurrence.create(
                   idGenerator.newId(), template.getId(), cycle.version().getId(), cycle.dueDate()));
+          generatedForTemplate++;
         }
+      }
+      generatedOccurrences += generatedForTemplate;
+      if (generatedForTemplate > 0) {
+        templatesWithNewOccurrences++;
       }
 
       if (result.advancedLastGeneratedFor() != null
@@ -72,6 +85,17 @@ public class RecurringOccurrenceCatchUpService {
         template.advanceLastGeneratedFor(result.advancedLastGeneratedFor());
         templateRepository.save(template);
       }
+    }
+
+    // Runs before every pending-list request, so a "nothing new" run must not be an INFO line.
+    // Counts only - never template descriptions or amounts (F016).
+    if (generatedOccurrences > 0) {
+      log.info(
+          "Recurring catch-up generated {} pending occurrence(s) across {} template(s)",
+          generatedOccurrences,
+          templatesWithNewOccurrences);
+    } else {
+      log.debug("Recurring catch-up generated 0 pending occurrence(s)");
     }
   }
 }

@@ -71,9 +71,9 @@ INFO business events in application services — ids and counts only:
 |---|---|
 | `RecurringOccurrenceCatchUpService.runCatchUp` | INFO `Recurring catch-up generated {n} pending occurrence(s) across {m} template(s)` **only when n > 0**; otherwise DEBUG (it runs before every pending-list request, so an INFO line each time is noise). |
 | `AccountService.close` | INFO `Account {id} closed` (the cascade into template deactivation is the interesting part; also logged below). |
-| `RecurringTemplateService.deactivateForAccount` | INFO `Deactivated {n} template(s) for closed account {id}`. |
+| `RecurringTemplateService.deactivateForAccount` | INFO `Deactivated {n} template(s) for closed account {id}`, **only when n > 0** (an account with no templates isn't a state change worth a line). |
 | `RecurringTemplateService.confirmPending` / `dismissPending` | INFO `Pending occurrence {id} confirmed as transaction {txId}` / `dismissed`. |
-| `RecurringTemplateService.setCap`, `BudgetService.setCap` | INFO `Template/Budget {id}: new version effective {yearMonth}` (or `replaced`, matching the existing in-place-replace rule) — no amount. |
+| `RecurringTemplateService.setCap`, `BudgetService.setCap` | INFO `Recurring template {id}: new version effective {yearMonth}` / `Budget {id}: new version effective {yearMonth}`, or `... version effective {yearMonth} replaced` for the existing in-place-replace rule — no amount. |
 
 Never log: amounts, `description`/`additionalNotes`, account/category/payment-method **names**, opening balances. Never log inside `domain/`. Never log in a loop over a whole table.
 

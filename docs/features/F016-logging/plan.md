@@ -22,12 +22,12 @@ Suggested order: backend first (its request id must exist before the frontend's 
 
 ## Phase 2 — Backend business events
 Each: write the `LogCapture` assertion in the existing service unit test first (fakes, no Spring), then add the line. Plain `LoggerFactory.getLogger`, no Lombok `@Slf4j`, ids/counts only.
-- [ ] `RecurringOccurrenceCatchUpService.runCatchUp`: count generated occurrences and templates; INFO summary only when generated > 0, DEBUG otherwise. Confirm behaviour (which rows are saved, `lastGeneratedFor` advancing) is unchanged — the existing catch-up tests must pass untouched.
-- [ ] `AccountService.close`: INFO `Account {id} closed`.
-- [ ] `RecurringTemplateService.deactivateForAccount`: INFO with the number of templates deactivated (derive the count from what the method already iterates; don't add a query).
-- [ ] `RecurringTemplateService.confirmPending` / `dismissPending`: INFO with pending id (+ created transaction id on confirm).
-- [ ] `RecurringTemplateService.setCap` and `BudgetService.setCap`: INFO `new version` vs `replaced`, id and `effectiveFrom`, **no amount**.
-- [ ] Grep the diff for `amount`, `description`, `notes`, `name` inside log calls — none may appear. Confirm nothing was added under `domain/`.
+- [x] `RecurringOccurrenceCatchUpService.runCatchUp`: count generated occurrences and templates; INFO summary only when generated > 0, DEBUG otherwise. Confirm behaviour (which rows are saved, `lastGeneratedFor` advancing) is unchanged — the existing catch-up tests must pass untouched.
+- [x] `AccountService.close`: INFO `Account {id} closed`.
+- [x] `RecurringTemplateService.deactivateForAccount`: INFO with the number of templates deactivated (derive the count from what the method already iterates; don't add a query).
+- [x] `RecurringTemplateService.confirmPending` / `dismissPending`: INFO with pending id (+ created transaction id on confirm).
+- [x] `RecurringTemplateService.setCap` and `BudgetService.setCap`: INFO `new version` vs `replaced`, id and `effectiveFrom`, **no amount**.
+- [x] Grep the diff for `amount`, `description`, `notes`, `name` inside log calls — none may appear. Confirm nothing was added under `domain/`.
 
 ## Phase 3 — Frontend
 - [ ] Test first: `src/utils/logger.test.ts` (method→console mapping, level filtering incl. `silent`, invalid env value → `warn`, `localStorage` override, throwing `localStorage` tolerated).

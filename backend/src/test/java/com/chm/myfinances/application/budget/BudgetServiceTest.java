@@ -3,6 +3,7 @@ package com.chm.myfinances.application.budget;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import ch.qos.logback.classic.Level;
 import com.chm.myfinances.application.category.CategoryNotFoundException;
 import com.chm.myfinances.domain.budget.Budget;
 import com.chm.myfinances.domain.budget.BudgetVersion;
@@ -12,6 +13,7 @@ import com.chm.myfinances.testsupport.FakeBudgetRepository;
 import com.chm.myfinances.testsupport.FakeBudgetVersionRepository;
 import com.chm.myfinances.testsupport.FakeCategoryRepository;
 import com.chm.myfinances.testsupport.FakeIdGenerator;
+import com.chm.myfinances.testsupport.LogCapture;
 import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.util.List;
@@ -145,5 +147,31 @@ class BudgetServiceTest {
                 .orElseThrow()
                 .getMonthlyCap())
         .isEqualByComparingTo("500.00");
+  }
+
+  @Test
+  void setCapForANewMonthLogsANewVersionLineWithoutTheAmount() {
+    Budget budget = service.create(groceriesId, new BigDecimal("500.00"), YearMonth.of(2026, 1));
+
+    try (LogCapture logs = LogCapture.of(BudgetService.class)) {
+      service.setCap(budget.getId(), new BigDecimal("612.34"), YearMonth.of(2026, 3));
+
+      assertThat(logs.messagesAt(Level.INFO))
+          .containsExactly("Budget " + budget.getId() + ": new version effective 2026-03");
+      assertThat(logs.events()).hasSize(1);
+    }
+  }
+
+  @Test
+  void setCapForAnAlreadyVersionedMonthLogsAReplacedLineWithoutTheAmount() {
+    Budget budget = service.create(groceriesId, new BigDecimal("500.00"), YearMonth.of(2026, 1));
+
+    try (LogCapture logs = LogCapture.of(BudgetService.class)) {
+      service.setCap(budget.getId(), new BigDecimal("612.34"), YearMonth.of(2026, 1));
+
+      assertThat(logs.messagesAt(Level.INFO))
+          .containsExactly("Budget " + budget.getId() + ": version effective 2026-01 replaced");
+      assertThat(logs.events()).hasSize(1);
+    }
   }
 }

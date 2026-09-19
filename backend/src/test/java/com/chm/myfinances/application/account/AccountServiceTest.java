@@ -3,12 +3,14 @@ package com.chm.myfinances.application.account;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import ch.qos.logback.classic.Level;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountClosedNotifier;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.testsupport.FakeAccountRepository;
 import com.chm.myfinances.testsupport.FakeIdGenerator;
+import com.chm.myfinances.testsupport.LogCapture;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -166,6 +168,39 @@ class AccountServiceTest {
     @Override
     public void accountClosed(UUID accountId) {
       notifiedAccountIds.add(accountId);
+    }
+  }
+
+  @Test
+  void closeLogsOneInfoLineWithTheIdAndNothingElse() {
+    Account created =
+        service.create(
+            "Distinctive Bank Account",
+            null,
+            AccountType.CHECKING,
+            new BigDecimal("1234.56"),
+            LocalDate.now());
+
+    try (LogCapture logs = LogCapture.of(AccountService.class)) {
+      service.close(created.getId());
+
+      assertThat(logs.messagesAt(Level.INFO))
+          .containsExactly("Account " + created.getId() + " closed");
+      assertThat(logs.events()).hasSize(1);
+    }
+  }
+
+  @Test
+  void aRejectedCloseOfAnAlreadyClosedAccountLogsNothing() {
+    Account created =
+        service.create("Checking", null, AccountType.CHECKING, BigDecimal.ZERO, LocalDate.now());
+    service.close(created.getId());
+
+    try (LogCapture logs = LogCapture.of(AccountService.class)) {
+      assertThatThrownBy(() -> service.close(created.getId()))
+          .isInstanceOf(AccountAlreadyClosedException.class);
+
+      assertThat(logs.events()).isEmpty();
     }
   }
 }

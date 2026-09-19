@@ -9,6 +9,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class AccountService {
+
+  private static final Logger log = LoggerFactory.getLogger(AccountService.class);
 
   private final AccountRepository accountRepository;
   private final IdGenerator idGenerator;
@@ -103,6 +107,7 @@ public class AccountService {
     }
     account.close();
     Account saved = accountRepository.save(account);
+    log.info("Account {} closed", saved.getId());
     accountClosedNotifier.accountClosed(saved.getId());
     return saved;
   }
