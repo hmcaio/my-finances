@@ -5,7 +5,7 @@
 Suggested order: backend first (its request id must exist before the frontend's is worth sending), then frontend, then infra, then docs. One feature branch (`feature/f016-logging`), one commit per phase.
 
 ## Phase 0 — Decision record
-- [ ] Write `docs/adr/0011-logging-slf4j-request-id.md` (Context / Decision / Consequences per the ADR template) and add its row to `docs/adr/README.md`. Cover: text over JSON, stdout + capped rolling file on a named volume (and why not a log stack / DB appender / host drivers), no browser→backend shipping, no logging in `domain/`, request id contract.
+- [x] Write `docs/adr/0011-logging-slf4j-request-id.md` (Context / Decision / Consequences per the ADR template) and add its row to `docs/adr/README.md`. Cover: text over JSON, stdout + capped rolling file on a named volume (and why not a log stack / DB appender / host drivers), no browser→backend shipping, no logging in `domain/`, request id contract.
 
 ## Phase 1 — Backend foundation
 - [ ] `application.yml`: add `logging.pattern.correlation: "[%X{requestId:-}] "`. Start the app and confirm the pattern renders (blank id at startup); if Boot 4.1 ignores the property, use `logging.pattern.console` with the default pattern plus `[%X{requestId:-}]` instead.
