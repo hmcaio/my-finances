@@ -33,6 +33,19 @@ spring:
 server:
   port: 8080
 
+logging:
+  pattern:
+    # Prefix every line with the request id the RequestLoggingFilter puts in the MDC (blank
+    # outside a request, e.g. at startup). See ADR 0011.
+    correlation: "[%X{requestId:-}] "
+  logback:
+    # Only takes effect where a profile sets logging.file.name (dev/prod); the file name itself
+    # is environment-specific, so it lives in the profile files, not here.
+    rollingpolicy:
+      max-file-size: 50MB
+      max-history: 90
+      total-size-cap: 300MB
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

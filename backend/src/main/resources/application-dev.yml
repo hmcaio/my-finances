@@ -9,3 +9,10 @@ spring:
     username: myfinances
     password: myfinances
     driver-class-name: org.postgresql.Driver
+
+logging:
+  level:
+    com.chm.myfinances: DEBUG
+  file:
+    # Relative to the working directory: backend/logs/ under `./gradlew bootRun`.
+    name: logs/backend.log

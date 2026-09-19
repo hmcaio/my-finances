@@ -17,3 +17,11 @@ spring:
     username: ${DB_USER}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
+
+logging:
+  level:
+    # Overridable without a rebuild via LOGGING_LEVEL_COM_CHM_MYFINANCES (LOG_LEVEL in compose).
+    com.chm.myfinances: INFO
+  file:
+    # A named Docker volume is mounted here (docker-compose.prod.yml) so the log outlives the container.
+    name: /var/log/my-finances/backend.log

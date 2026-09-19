@@ -62,6 +62,10 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+    // Tests run under the default `dev` profile, whose logging.file.name would write
+    // backend/logs/. System properties outrank config files, and Spring Boot treats an empty
+    // name as "no log file" (F016).
+    systemProperty 'logging.file.name', ''
 }
 
 spotless {
