@@ -95,6 +95,8 @@ describe('DataTableBody', () => {
     act(() => vi.advanceTimersByTime(500))
 
     expect(screen.getByText('Could not load data (Network Error).')).toBeInTheDocument()
+    // The rows are held back: they would render with raw ids for the names that failed to load.
+    expect(screen.queryByText('Real row')).not.toBeInTheDocument()
     expect(skeletons(container)).toHaveLength(0)
 
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }))

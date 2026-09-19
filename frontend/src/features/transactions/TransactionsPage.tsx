@@ -31,7 +31,7 @@ import { defaultErrorMessage } from '../../api/apiError'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { DataTableBody } from '../../components/DataTableBody'
-import { reloadFailed, useAsyncData } from '../../hooks/useAsyncData'
+import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
 import { usePagedData } from '../../hooks/usePagedData'
 import { PaginationControls } from '../../components/PaginationControls'
 import { nameLookup } from '../../utils/nameLookup'
@@ -171,11 +171,17 @@ export function TransactionsPage() {
     }
   }
 
-  // Clears the stale banner and retries whichever fetches failed - the table's own and the
-  // lookup lists behind its name columns - so names don't stay as raw ids after a retry.
+  // One load state for the table plus the lookup lists behind its name columns: rows show only
+  // once every name can be resolved. Retry clears the stale banner and reloads what failed.
+  const tableState = combineLoadState(
+    categoriesState,
+    accountsState,
+    paymentMethodsState,
+    transactionsState,
+  )
   function retry() {
     setError(null)
-    reloadFailed(categoriesState, accountsState, paymentMethodsState, transactionsState)
+    tableState.reload()
   }
 
   return (
@@ -282,7 +288,7 @@ export function TransactionsPage() {
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <DataTableBody state={transactionsState} onRetry={retry} columns={7} actionsColumn>
+            <DataTableBody state={tableState} onRetry={retry} columns={7} actionsColumn>
               {transactions?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} align="center">

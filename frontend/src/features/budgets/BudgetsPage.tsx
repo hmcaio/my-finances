@@ -29,7 +29,7 @@ import { InlineEditActions } from '../../components/InlineEditActions'
 import { DataTableBody } from '../../components/DataTableBody'
 import { fadeInSx } from '../../components/fadeIn'
 import { LoadFailedNotice } from '../../components/LoadFailedNotice'
-import { reloadFailed, useAsyncData } from '../../hooks/useAsyncData'
+import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { nameLookup } from '../../utils/nameLookup'
 
@@ -73,7 +73,9 @@ export function BudgetsPage() {
     { onError: setError },
   )
 
-  const showReportSkeleton = useDelayedFlag(reportState.loading)
+  // The report also names categories, so it waits for that list too (no raw ids in the lines).
+  const reportView = combineLoadState(categoriesState, reportState)
+  const showReportSkeleton = useDelayedFlag(reportView.loading)
 
   const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
 
@@ -132,11 +134,12 @@ export function BudgetsPage() {
     }
   }
 
-  // Clears the stale banner and retries whichever fetches failed - the table's own and the
-  // lookup lists behind its name columns - so names don't stay as raw ids after a retry.
+  // One load state for the table plus the lookup list behind its name column: rows show only once
+  // every name can be resolved. Retry clears the stale banner and reloads whatever failed.
+  const tableState = combineLoadState(categoriesState, budgetsState)
   function retry() {
     setError(null)
-    reloadFailed(categoriesState, budgetsState, reportState)
+    combineLoadState(categoriesState, budgetsState, reportState).reload()
   }
 
   return (
@@ -163,7 +166,7 @@ export function BudgetsPage() {
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <DataTableBody state={budgetsState} onRetry={retry} columns={4} actionsColumn>
+            <DataTableBody state={tableState} onRetry={retry} columns={4} actionsColumn>
               {budgets?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} align="center">
@@ -271,12 +274,12 @@ export function BudgetsPage() {
         />
       </Box>
 
-      <Paper variant="outlined" sx={{ p: 2 }} aria-busy={reportState.loading}>
+      <Paper variant="outlined" sx={{ p: 2 }} aria-busy={reportView.loading}>
         {showReportSkeleton && <BudgetReportSkeleton />}
-        {reportState.loadError && (
-          <LoadFailedNotice message={reportState.loadError} onRetry={retry} />
+        {reportView.loadError && (
+          <LoadFailedNotice message={reportView.loadError} onRetry={retry} />
         )}
-        {report !== null && (
+        {report !== null && categories !== null && (
           <Box sx={fadeInSx}>
             {report.length === 0 && (
               <Typography color="text.secondary">No budgeted categories yet.</Typography>

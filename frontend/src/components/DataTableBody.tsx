@@ -89,14 +89,15 @@ export function DataTableBody({
 
   return (
     <TableBody sx={fadeInSx}>
-      {loadError && (
+      {loadError ? (
         <TableRow>
           <TableCell colSpan={columns}>
             <LoadFailedNotice message={loadError} onRetry={onRetry ?? reload} />
           </TableCell>
         </TableRow>
+      ) : (
+        children
       )}
-      {children}
     </TableBody>
   )
 }

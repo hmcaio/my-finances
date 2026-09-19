@@ -31,7 +31,7 @@ import { defaultErrorMessage } from '../../api/apiError'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
 import { DataTableBody } from '../../components/DataTableBody'
-import { reloadFailed, useAsyncData } from '../../hooks/useAsyncData'
+import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
 import { nameLookup } from '../../utils/nameLookup'
 import { PendingOccurrencesWidget } from './PendingOccurrencesWidget'
 
@@ -176,11 +176,12 @@ export function RecurringTemplatesPage() {
     }
   }
 
-  // Clears the stale banner and retries whichever fetches failed - the table's own and the
-  // lookup lists behind its name columns - so names don't stay as raw ids after a retry.
+  // One load state for the table plus the lookup lists behind its name columns: rows show only
+  // once every name can be resolved. Retry clears the stale banner and reloads what failed.
+  const tableState = combineLoadState(categoriesState, accountsState, templatesState)
   function retry() {
     setError(null)
-    reloadFailed(categoriesState, accountsState, templatesState)
+    tableState.reload()
   }
 
   return (
@@ -209,7 +210,7 @@ export function RecurringTemplatesPage() {
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <DataTableBody state={templatesState} onRetry={retry} columns={7} actionsColumn>
+            <DataTableBody state={tableState} onRetry={retry} columns={7} actionsColumn>
               {templates?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} align="center">

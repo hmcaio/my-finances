@@ -89,13 +89,23 @@ export function useAsyncData<T>(
   }
 }
 
+type LoadState = Pick<AsyncData<unknown>, 'loading' | 'loadError' | 'reload'>
+
 /**
- * Retries every source whose first load failed. A page's table and the lookup lists behind its
- * name columns (categories, accounts, ...) fail together when the backend is down, so one Retry
- * has to reload all of them or the names stay as raw ids.
+ * One load state for a table and the lookup lists behind its name columns (categories, accounts,
+ * ...). It is loading until every source has loaded, so rows never render with raw ids standing in
+ * for names that haven't arrived yet; it reports the first failure, and `reload` retries only the
+ * sources that failed (the lists fail together when the backend is down).
  */
-export function reloadFailed(...sources: Pick<AsyncData<unknown>, 'loadError' | 'reload'>[]) {
-  for (const source of sources) {
-    if (source.loadError) source.reload()
+export function combineLoadState(...sources: LoadState[]): LoadState {
+  const loadError = sources.find((source) => source.loadError)?.loadError ?? null
+  return {
+    loading: loadError === null && sources.some((source) => source.loading),
+    loadError,
+    reload: () => {
+      for (const source of sources) {
+        if (source.loadError) source.reload()
+      }
+    },
   }
 }

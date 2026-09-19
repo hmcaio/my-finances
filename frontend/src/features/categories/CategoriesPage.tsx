@@ -28,7 +28,7 @@ import { defaultErrorMessage } from '../../api/apiError'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
 import { DataTableBody } from '../../components/DataTableBody'
-import { reloadFailed, useAsyncData } from '../../hooks/useAsyncData'
+import { useAsyncData } from '../../hooks/useAsyncData'
 
 /**
  * Settings-style CRUD screen for categories (F002 spec): table with name + type, inline rename,
@@ -102,11 +102,10 @@ export function CategoriesPage() {
     }
   }
 
-  // Clears the stale banner and retries whichever fetches failed - the table's own and the
-  // lookup lists behind its name columns - so names don't stay as raw ids after a retry.
+  // Clears the stale banner before retrying, so it doesn't outlive a successful retry.
   function retry() {
     setError(null)
-    reloadFailed(categoriesState)
+    categoriesState.reload()
   }
 
   return (
