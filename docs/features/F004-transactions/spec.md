@@ -7,7 +7,7 @@
 - `Transaction` entity: date, amount, category, account, type (income/expense), payment method, mandatory description (max 150 chars), optional additional notes (max 500 chars), optional recurring-template-version link.
 - List/filter by date range, category, account, payment method.
 - Wiring into `AccountBalanceQuery` (F003) so running balance reflects real activity.
-- F002's referenced-by-transaction delete guard (409 when a category/payment method is in use), deferred there until this feature's `transactions` table existed to check against (see CLAUDE.md's F002 status entry) — `CategoryService`/`PaymentMethodService.delete()` now reject via `CategoryInUseException`/`PaymentMethodInUseException`.
+- F002's referenced-by-transaction delete guard (409 when a category/payment method is in use), deferred there until this feature's `transactions` table existed to check against (see F002's spec.md) — `CategoryService`/`PaymentMethodService.delete()` now reject via `CategoryInUseException`/`PaymentMethodInUseException`.
 - Out of scope: the recurring-template-generated flow itself (F007 creates transactions via this feature's application service, not a separate path).
 
 ## Backend

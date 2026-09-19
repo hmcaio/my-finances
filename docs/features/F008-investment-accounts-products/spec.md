@@ -16,7 +16,7 @@
 - `domain/investmentaccount/InvestmentAccount.java`: id, `name` (non-blank, capped at `TextFieldConstraints.MAX_NAME_LENGTH`, same convention as F002/F003), `closedDate` (nullable).
 - `domain/investmentcategory/InvestmentCategory.java`: id, `name` (same non-blank/length-capped invariant) — same shape as F002's `Category` but a separate entity/table (different taxonomy, not shared rows).
 - `domain/investmentproduct/InvestmentProduct.java`: id, `investmentAccountId`, `investmentCategoryId`, `name` (same non-blank/length-capped invariant), `closedDate` (nullable).
-- Uniqueness of `name` is an application-layer concern on all three (`existsByName`/`existsByNameAndIdNot` on create/rename, 409 — same pattern as F002/F003's post-F007 hardening, see CLAUDE.md), not a domain-constructor check.
+- Uniqueness of `name` is an application-layer concern on all three (`existsByName`/`existsByNameAndIdNot` on create/rename, 409 — same pattern as F002/F003's post-F007 hardening, see the header of `V10__db_constraint_hardening.sql`), not a domain-constructor check.
 - Delete-safety invariant (PRD §5.8): an `InvestmentAccount` or `InvestmentProduct` can only be hard-deleted while it has zero associated history; once F009's `InvestmentSnapshot`/`InvestmentBuySellLog` rows exist for it, only `close()` is permitted. This feature implements the `close()` behavior and the zero-history check as a port F009 fulfills (`HasInvestmentHistoryChecker` or similar), to avoid this feature depending on F009's tables directly.
 
 ### Persistence
