@@ -37,9 +37,20 @@ public interface PendingRecurringOccurrenceRepository {
   void deleteByTemplateId(UUID templateId);
 
   /**
-   * Whether a pending occurrence already exists for this exact {@code (templateId, dueDate)} pair -
-   * defense in depth against the catch-up job ever double-generating the same cycle (F007 spec: "if
-   * one doesn't already exist for that cycle").
+   * Whether a pending occurrence already exists for this exact {@code (templateId, dueDate)} pair.
+   * A read only: it can't be the guard against double-generating a cycle, because two callers can
+   * both see "absent" before either inserts - {@link #insertIfAbsent} is the atomic version.
    */
   boolean existsByTemplateIdAndDueDate(UUID templateId, LocalDate dueDate);
+
+  /**
+   * Inserts {@code occurrence} unless a pending occurrence for the same {@code (templateId,
+   * dueDate)} already exists, atomically - the only safe way for the catch-up job to generate a
+   * cycle when two runs can overlap (the startup runner and a page load, two tabs, ...). Backed by
+   * a {@code UNIQUE (template_id, due_date)} constraint, so a lost race is a no-op rather than a
+   * duplicate row.
+   *
+   * @return {@code true} if this call inserted the row, {@code false} if the cycle already had one
+   */
+  boolean insertIfAbsent(PendingRecurringOccurrence occurrence);
 }

@@ -51,6 +51,15 @@ public final class FakePendingRecurringOccurrenceRepository
   }
 
   @Override
+  public boolean insertIfAbsent(PendingRecurringOccurrence occurrence) {
+    if (existsByTemplateIdAndDueDate(occurrence.getTemplateId(), occurrence.getDueDate())) {
+      return false;
+    }
+    store.put(occurrence.getId(), occurrence);
+    return true;
+  }
+
+  @Override
   public List<PendingRecurringOccurrence> findByTemplateId(UUID templateId) {
     return store.values().stream().filter(o -> o.getTemplateId().equals(templateId)).toList();
   }
