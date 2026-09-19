@@ -16,9 +16,9 @@ Suggested order: backend first (its request id must exist before the frontend's 
 - [x] Add `testsupport/LogCapture` (Logback `ListAppender` attach/detach helper, `AutoCloseable`).
 - [x] Test first: `RequestLoggingFilterTest` — id generated when absent (via `FakeIdGenerator`); valid inbound id kept; malformed inbound id (CR/LF, >64 chars, illegal chars) replaced; response header set; MDC cleared after, including when the chain throws; access line has method/path/status/duration and no query string; `/actuator/health` logs at DEBUG not INFO.
 - [x] Implement `infrastructure/web/RequestLoggingFilter` (`OncePerRequestFilter`, `@Order(HIGHEST_PRECEDENCE)`, `IdGenerator` injected, id regex `^[A-Za-z0-9-]{1,64}$`).
-- [ ] Test first: extend `GlobalExceptionHandlerTest` — unexpected exception logs one ERROR with the throwable and the response body is unchanged (still exactly `{"message": "An unexpected error occurred"}`); `@ResponseStatus` exception logs INFO with the class simple name and **not** its message; `ErrorResponse` exception logs nothing from the handler.
-- [ ] Implement the logging in `GlobalExceptionHandler` (add `HttpServletRequest` parameter; keep the single-advice rule and the rethrow behaviour).
-- [ ] `./gradlew spotlessApply` then `./gradlew spotlessCheck test`.
+- [x] Test first: extend `GlobalExceptionHandlerTest` — unexpected exception logs one ERROR with the throwable and the response body is unchanged (still exactly `{"message": "An unexpected error occurred"}`); `@ResponseStatus` exception logs INFO with the class simple name and **not** its message; `ErrorResponse` exception logs nothing from the handler.
+- [x] Implement the logging in `GlobalExceptionHandler` (add `HttpServletRequest` parameter; keep the single-advice rule and the rethrow behaviour).
+- [x] `./gradlew spotlessApply` then `./gradlew spotlessCheck test`.
 
 ## Phase 2 — Backend business events
 Each: write the `LogCapture` assertion in the existing service unit test first (fakes, no Spring), then add the line. Plain `LoggerFactory.getLogger`, no Lombok `@Slf4j`, ids/counts only.
