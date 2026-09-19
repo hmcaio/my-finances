@@ -11,6 +11,18 @@
 # Every push to main is tagged with the short git SHA and `latest`; every `vX.Y.Z` tag push is
 # additionally tagged with that version string, so IMAGE_TAG can pin a reproducible release
 # instead of always tracking `latest` (see .github/workflows/ci.yml).
+#
+# Logging (F016, ADR 0011): the x-logging anchor rotates each container's stdout (what
+# `docker compose logs` shows) so it can't grow without bound. The persisted copy is the
+# backend's own rolling file on the my-finances-logs-prod volume - it outlives `down`, image
+# updates and container recreation (only `down -v` / `docker volume rm` remove it). Read it with:
+#   docker run --rm -v my-finances-logs-prod:/logs alpine sh -c 'ls /logs; tail -n 200 /logs/backend.log'
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   postgres:
     image: postgres:17-alpine
@@ -22,6 +34,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - my-finances-postgres-prod-data:/var/lib/postgresql/data
+    logging: *default-logging
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -38,6 +51,12 @@ services:
       DB_NAME: ${POSTGRES_DB}
       DB_USER: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
+      # Backend log level (INFO by default; DEBUG when chasing something) - Spring's relaxed
+      # binding maps this onto logging.level.com.chm.myfinances without a rebuild.
+      LOGGING_LEVEL_COM_CHM_MYFINANCES: ${LOG_LEVEL:-INFO}
+    volumes:
+      - my-finances-logs-prod:/var/log/my-finances
+    logging: *default-logging
     depends_on:
       postgres:
         condition: service_healthy
@@ -57,9 +76,15 @@ services:
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-8081}:80"
+    logging: *default-logging
     depends_on:
       backend:
         condition: service_healthy
 
 volumes:
   my-finances-postgres-prod-data:
+  my-finances-logs-prod:
+    # Explicit name (compose would otherwise prefix it with the project name, e.g.
+    # my-finances_my-finances-logs-prod) so the documented `docker run -v my-finances-logs-prod:...`
+    # read command works from any checkout directory.
+    name: my-finances-logs-prod

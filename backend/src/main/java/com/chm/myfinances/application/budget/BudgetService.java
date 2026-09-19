@@ -14,6 +14,8 @@ import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +31,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class BudgetService {
+
+  private static final Logger log = LoggerFactory.getLogger(BudgetService.class);
 
   private final BudgetRepository budgetRepository;
   private final BudgetVersionRepository budgetVersionRepository;
@@ -95,10 +99,14 @@ public class BudgetService {
     if (existing.isPresent()) {
       BudgetVersion version = existing.get();
       version.updateCap(monthlyCap);
-      return budgetVersionRepository.save(version);
+      BudgetVersion replaced = budgetVersionRepository.save(version);
+      log.info("Budget {}: version effective {} replaced", budget.getId(), effectiveFrom);
+      return replaced;
     }
     BudgetVersion version =
         BudgetVersion.create(idGenerator.newId(), budget.getId(), monthlyCap, effectiveFrom);
-    return budgetVersionRepository.save(version);
+    BudgetVersion saved = budgetVersionRepository.save(version);
+    log.info("Budget {}: new version effective {}", budget.getId(), effectiveFrom);
+    return saved;
   }
 }

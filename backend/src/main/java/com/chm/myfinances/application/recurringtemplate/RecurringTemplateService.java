@@ -20,6 +20,8 @@ import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,6 +48,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class RecurringTemplateService {
+
+  private static final Logger log = LoggerFactory.getLogger(RecurringTemplateService.class);
 
   private final RecurringTemplateRepository templateRepository;
   private final RecurringTemplateVersionRepository versionRepository;
@@ -154,13 +158,17 @@ public class RecurringTemplateService {
     if (existing.isPresent()) {
       RecurringTemplateVersion version = existing.get();
       version.update(amount, dayOfMonth);
-      return versionRepository.save(version);
+      RecurringTemplateVersion replaced = versionRepository.save(version);
+      log.info(
+          "Recurring template {}: version effective {} replaced", template.getId(), effectiveFrom);
+      return replaced;
     }
     RecurringTemplateVersion version =
         RecurringTemplateVersion.create(
             idGenerator.newId(), template.getId(), amount, dayOfMonth, effectiveFrom);
     RecurringTemplateVersion saved = versionRepository.save(version);
     realignPendingOccurrences(template.getId());
+    log.info("Recurring template {}: new version effective {}", template.getId(), effectiveFrom);
     return saved;
   }
 
@@ -229,10 +237,15 @@ public class RecurringTemplateService {
    */
   @Transactional
   public void deactivateForAccount(UUID accountId) {
+    int deactivated = 0;
     for (RecurringTemplate template : templateRepository.findByAccountId(accountId)) {
       if (template.isActive()) {
         stop(template.getId());
+        deactivated++;
       }
+    }
+    if (deactivated > 0) {
+      log.info("Deactivated {} template(s) for closed account {}", deactivated, accountId);
     }
   }
 
@@ -284,6 +297,7 @@ public class RecurringTemplateService {
             overrides.additionalNotes());
 
     pendingRepository.deleteById(pendingId);
+    log.info("Pending occurrence {} confirmed as transaction {}", pendingId, transaction.getId());
     return transaction;
   }
 
@@ -296,6 +310,7 @@ public class RecurringTemplateService {
       throw new PendingRecurringOccurrenceNotFoundException(pendingId);
     }
     pendingRepository.deleteById(pendingId);
+    log.info("Pending occurrence {} dismissed", pendingId);
   }
 
   private void requireCategory(UUID categoryId) {

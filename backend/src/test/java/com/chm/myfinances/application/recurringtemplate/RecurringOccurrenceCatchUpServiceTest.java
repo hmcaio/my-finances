@@ -2,6 +2,7 @@ package com.chm.myfinances.application.recurringtemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ch.qos.logback.classic.Level;
 import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrence;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersion;
@@ -9,6 +10,7 @@ import com.chm.myfinances.testsupport.FakeIdGenerator;
 import com.chm.myfinances.testsupport.FakePendingRecurringOccurrenceRepository;
 import com.chm.myfinances.testsupport.FakeRecurringTemplateRepository;
 import com.chm.myfinances.testsupport.FakeRecurringTemplateVersionRepository;
+import com.chm.myfinances.testsupport.LogCapture;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -138,5 +140,74 @@ class RecurringOccurrenceCatchUpServiceTest {
     service.runCatchUp(LocalDate.of(2026, 6, 20));
 
     assertThat(pendingRepository.findAll()).isEmpty();
+  }
+
+  @Test
+  void logsAnInfoSummaryOfWhatItGeneratedWhenSomethingWasGenerated() {
+    seedTemplate("Rent", YearMonth.of(2026, 2));
+    seedTemplate("Internet", YearMonth.of(2026, 2));
+    seedTemplate("Insurance", YearMonth.of(2026, 1));
+
+    try (LogCapture logs = LogCapture.of(RecurringOccurrenceCatchUpService.class)) {
+      service.runCatchUp(LocalDate.of(2026, 3, 15));
+
+      assertThat(logs.messagesAt(Level.INFO))
+          .containsExactly(
+              "Recurring catch-up generated 4 pending occurrence(s) across 3 template(s)");
+      assertThat(logs.eventsAt(Level.ERROR)).isEmpty();
+    }
+    assertThat(pendingRepository.findAll()).hasSize(4);
+  }
+
+  @Test
+  void logsNoInfoLineWhenNothingWasGenerated() {
+    try (LogCapture logs = LogCapture.of(RecurringOccurrenceCatchUpService.class)) {
+      service.runCatchUp(LocalDate.of(2026, 3, 15));
+
+      assertThat(logs.eventsAt(Level.INFO)).isEmpty();
+      assertThat(logs.messagesAt(Level.DEBUG))
+          .containsExactly("Recurring catch-up generated 0 pending occurrence(s)");
+    }
+  }
+
+  @Test
+  void logsNoInfoLineOnASecondRunThatFindsNothingNew() {
+    seedTemplate("Rent", YearMonth.of(2026, 2));
+    service.runCatchUp(LocalDate.of(2026, 3, 15));
+
+    try (LogCapture logs = LogCapture.of(RecurringOccurrenceCatchUpService.class)) {
+      service.runCatchUp(LocalDate.of(2026, 3, 16));
+
+      assertThat(logs.eventsAt(Level.INFO)).isEmpty();
+    }
+  }
+
+  @Test
+  void neverLogsTheTemplateDescription() {
+    seedTemplate("Distinctive Landlord Name", YearMonth.of(2026, 2));
+
+    try (LogCapture logs = LogCapture.of(RecurringOccurrenceCatchUpService.class)) {
+      service.runCatchUp(LocalDate.of(2026, 3, 15));
+
+      assertThat(logs.events())
+          .isNotEmpty()
+          .allSatisfy(
+              event ->
+                  assertThat(event.getFormattedMessage()).doesNotContain("Distinctive Landlord"));
+    }
+  }
+
+  /**
+   * A template (day 10, effective from January) already generated up to {@code lastGeneratedFor}.
+   */
+  private void seedTemplate(String description, YearMonth lastGeneratedFor) {
+    RecurringTemplate template =
+        templateRepository.save(
+            RecurringTemplate.create(UUID.randomUUID(), categoryId, accountId, description));
+    template.advanceLastGeneratedFor(lastGeneratedFor);
+    templateRepository.save(template);
+    versionRepository.save(
+        RecurringTemplateVersion.create(
+            UUID.randomUUID(), template.getId(), BigDecimal.TEN, 10, YearMonth.of(2026, 1)));
   }
 }

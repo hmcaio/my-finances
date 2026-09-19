@@ -17,6 +17,13 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+  mvc:
+    # Spring's own "Resolved [<exception>: <message>]" WARN lines carry exception messages, i.e.
+    # entity names (@ResponseStatus 404/409s). Off by default in Spring Boot, but DevTools (on the
+    # bootRun classpath) turns it on - so pin it off. GlobalExceptionHandler logs the exception
+    # class name instead (F016, ADR 0011).
+    log-resolved-exception: false
+
   web:
     error:
       # Defense in depth alongside GlobalExceptionHandler (infrastructure/web): keep this off in
@@ -32,6 +39,24 @@ spring:
 
 server:
   port: 8080
+
+logging:
+  level:
+    # DefaultHandlerExceptionResolver always warn-logs "Resolved [<exception>: <message>]" for
+    # Spring's own 4xx exceptions, and a validation failure's message includes "rejected value
+    # [...]" - i.e. amounts and descriptions. The access line's status already says a 400 happened.
+    org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver: ERROR
+  pattern:
+    # Prefix every line with the request id the RequestLoggingFilter puts in the MDC (blank
+    # outside a request, e.g. at startup). See ADR 0011.
+    correlation: "[%X{requestId:-}] "
+  logback:
+    # Only takes effect where a profile sets logging.file.name (dev/prod); the file name itself
+    # is environment-specific, so it lives in the profile files, not here.
+    rollingpolicy:
+      max-file-size: 50MB
+      max-history: 90
+      total-size-cap: 300MB
 
 springdoc:
   swagger-ui:

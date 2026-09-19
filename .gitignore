@@ -29,3 +29,5 @@ Thumbs.db
 
 # Logs
 *.log
+# Rolled/gzipped backend log archives (backend.log.2026-09-19.0.gz) are not matched by *.log (F016)
+backend/logs/

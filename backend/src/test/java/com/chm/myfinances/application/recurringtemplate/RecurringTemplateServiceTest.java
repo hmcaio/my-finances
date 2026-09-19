@@ -3,6 +3,7 @@ package com.chm.myfinances.application.recurringtemplate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import ch.qos.logback.classic.Level;
 import com.chm.myfinances.application.account.AccountNotFoundException;
 import com.chm.myfinances.application.category.CategoryNotFoundException;
 import com.chm.myfinances.application.transaction.TransactionService;
@@ -23,6 +24,7 @@ import com.chm.myfinances.testsupport.FakePendingRecurringOccurrenceRepository;
 import com.chm.myfinances.testsupport.FakeRecurringTemplateRepository;
 import com.chm.myfinances.testsupport.FakeRecurringTemplateVersionRepository;
 import com.chm.myfinances.testsupport.FakeTransactionRepository;
+import com.chm.myfinances.testsupport.LogCapture;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -431,5 +433,124 @@ class RecurringTemplateServiceTest {
   void dismissPendingOfUnknownIdThrowsNotFound() {
     assertThatThrownBy(() -> service.dismissPending(UUID.randomUUID()))
         .isInstanceOf(PendingRecurringOccurrenceNotFoundException.class);
+  }
+
+  @Test
+  void setCapForANewMonthLogsANewVersionLineWithoutTheAmount() {
+    RecurringTemplate template =
+        service.create(
+            categoryId, accountId, "Rent", new BigDecimal("1500.00"), 5, YearMonth.of(2026, 1));
+
+    try (LogCapture logs = LogCapture.of(RecurringTemplateService.class)) {
+      service.setCap(template.getId(), new BigDecimal("1612.34"), 10, YearMonth.of(2026, 3));
+
+      assertThat(logs.messagesAt(Level.INFO))
+          .containsExactly(
+              "Recurring template " + template.getId() + ": new version effective 2026-03");
+      assertThat(logs.events()).hasSize(1);
+    }
+  }
+
+  @Test
+  void setCapForAnAlreadyVersionedMonthLogsAReplacedLineWithoutTheAmount() {
+    RecurringTemplate template =
+        service.create(
+            categoryId, accountId, "Rent", new BigDecimal("1500.00"), 5, YearMonth.of(2026, 1));
+
+    try (LogCapture logs = LogCapture.of(RecurringTemplateService.class)) {
+      service.setCap(template.getId(), new BigDecimal("1612.34"), 12, YearMonth.of(2026, 1));
+
+      assertThat(logs.messagesAt(Level.INFO))
+          .containsExactly(
+              "Recurring template " + template.getId() + ": version effective 2026-01 replaced");
+      assertThat(logs.events()).hasSize(1);
+    }
+  }
+
+  @Test
+  void deactivateForAccountLogsHowManyTemplatesItDeactivated() {
+    service.create(
+        categoryId, accountId, "Rent", new BigDecimal("1500.00"), 5, YearMonth.of(2026, 1));
+    service.create(
+        categoryId, accountId, "Internet", new BigDecimal("80.00"), 7, YearMonth.of(2026, 1));
+    RecurringTemplate alreadyStopped =
+        service.create(
+            categoryId, accountId, "Gym", new BigDecimal("50.00"), 9, YearMonth.of(2026, 1));
+    service.stop(alreadyStopped.getId());
+
+    try (LogCapture logs = LogCapture.of(RecurringTemplateService.class)) {
+      service.deactivateForAccount(accountId);
+
+      // Only the two still-active templates count; the already-stopped one is not re-deactivated.
+      assertThat(logs.messagesAt(Level.INFO))
+          .containsExactly("Deactivated 2 template(s) for closed account " + accountId);
+      assertThat(logs.events()).hasSize(1);
+    }
+  }
+
+  @Test
+  void deactivateForAccountWithNothingToDeactivateLogsNoInfoLine() {
+    try (LogCapture logs = LogCapture.of(RecurringTemplateService.class)) {
+      service.deactivateForAccount(accountId);
+
+      assertThat(logs.eventsAt(Level.INFO)).isEmpty();
+    }
+  }
+
+  @Test
+  void confirmPendingLogsThePendingIdAndTheCreatedTransactionId() {
+    RecurringTemplate template =
+        service.create(
+            categoryId, accountId, "Rent", new BigDecimal("1500.00"), 5, YearMonth.of(2026, 1));
+    RecurringTemplateVersion version = versionRepository.findByTemplateId(template.getId()).get(0);
+    PendingRecurringOccurrence pending =
+        pendingRepository.save(
+            PendingRecurringOccurrence.create(
+                UUID.randomUUID(), template.getId(), version.getId(), LocalDate.of(2026, 2, 5)));
+
+    try (LogCapture logs = LogCapture.of(RecurringTemplateService.class)) {
+      Transaction confirmed =
+          service.confirmPending(
+              pending.getId(),
+              new ConfirmOccurrenceOverrides(null, null, null, paymentMethodId, null, null));
+
+      assertThat(logs.messagesAt(Level.INFO))
+          .containsExactly(
+              "Pending occurrence "
+                  + pending.getId()
+                  + " confirmed as transaction "
+                  + confirmed.getId());
+      assertThat(logs.events()).hasSize(1);
+    }
+  }
+
+  @Test
+  void dismissPendingLogsThePendingId() {
+    RecurringTemplate template =
+        service.create(
+            categoryId, accountId, "Rent", new BigDecimal("1500.00"), 5, YearMonth.of(2026, 1));
+    RecurringTemplateVersion version = versionRepository.findByTemplateId(template.getId()).get(0);
+    PendingRecurringOccurrence pending =
+        pendingRepository.save(
+            PendingRecurringOccurrence.create(
+                UUID.randomUUID(), template.getId(), version.getId(), LocalDate.of(2026, 2, 5)));
+
+    try (LogCapture logs = LogCapture.of(RecurringTemplateService.class)) {
+      service.dismissPending(pending.getId());
+
+      assertThat(logs.messagesAt(Level.INFO))
+          .containsExactly("Pending occurrence " + pending.getId() + " dismissed");
+      assertThat(logs.events()).hasSize(1);
+    }
+  }
+
+  @Test
+  void aRejectedDismissOfAnUnknownPendingIdLogsNothing() {
+    try (LogCapture logs = LogCapture.of(RecurringTemplateService.class)) {
+      assertThatThrownBy(() -> service.dismissPending(UUID.randomUUID()))
+          .isInstanceOf(PendingRecurringOccurrenceNotFoundException.class);
+
+      assertThat(logs.events()).isEmpty();
+    }
   }
 }
