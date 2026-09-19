@@ -11,7 +11,6 @@ import {
   Paper,
   Select,
   Table,
-  TableBody,
   TableCell,
   TableContainer,
   TableHead,
@@ -35,7 +34,7 @@ import {
 import { defaultErrorMessage } from '../../api/apiError'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { ErrorAlert } from '../../components/ErrorAlert'
-import { LoadingTableRow } from '../../components/LoadingTableRow'
+import { DataTableBody } from '../../components/DataTableBody'
 import { nameLookup } from '../../utils/nameLookup'
 
 /**
@@ -170,8 +169,7 @@ export function PendingOccurrencesWidget() {
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <TableBody>
-              {pending === null && <LoadingTableRow colSpan={6} variant="text" />}
+            <DataTableBody loading={pending === null && !error} columns={6} actionsColumn>
               {pending?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} align="center">
@@ -207,7 +205,7 @@ export function PendingOccurrencesWidget() {
                   </TableRow>
                 )
               })}
-            </TableBody>
+            </DataTableBody>
           </Table>
         </TableContainer>
       </Paper>

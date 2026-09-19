@@ -5,7 +5,6 @@ import {
   IconButton,
   Paper,
   Table,
-  TableBody,
   TableCell,
   TableContainer,
   TableHead,
@@ -24,7 +23,7 @@ import {
 import { defaultErrorMessage } from '../../api/apiError'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
-import { LoadingTableRow } from '../../components/LoadingTableRow'
+import { DataTableBody } from '../../components/DataTableBody'
 
 /**
  * Settings-style CRUD screen for payment methods (F002 spec): table with name, inline rename,
@@ -124,8 +123,7 @@ export function PaymentMethodsPage() {
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <TableBody>
-              {paymentMethods === null && <LoadingTableRow colSpan={2} />}
+            <DataTableBody loading={paymentMethods === null && !error} columns={2} actionsColumn>
               {paymentMethods?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={2} align="center">
@@ -172,7 +170,7 @@ export function PaymentMethodsPage() {
                   </TableCell>
                 </TableRow>
               ))}
-            </TableBody>
+            </DataTableBody>
           </Table>
         </TableContainer>
       </Paper>

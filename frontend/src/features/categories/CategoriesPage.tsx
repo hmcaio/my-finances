@@ -8,7 +8,6 @@ import {
   Paper,
   Select,
   Table,
-  TableBody,
   TableCell,
   TableContainer,
   TableHead,
@@ -28,7 +27,7 @@ import {
 import { defaultErrorMessage } from '../../api/apiError'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
-import { LoadingTableRow } from '../../components/LoadingTableRow'
+import { DataTableBody } from '../../components/DataTableBody'
 
 /**
  * Settings-style CRUD screen for categories (F002 spec): table with name + type, inline rename,
@@ -130,8 +129,7 @@ export function CategoriesPage() {
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <TableBody>
-              {categories === null && <LoadingTableRow colSpan={3} />}
+            <DataTableBody loading={categories === null && !error} columns={3} actionsColumn>
               {categories?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={3} align="center">
@@ -185,7 +183,7 @@ export function CategoriesPage() {
                   </TableCell>
                 </TableRow>
               ))}
-            </TableBody>
+            </DataTableBody>
           </Table>
         </TableContainer>
       </Paper>

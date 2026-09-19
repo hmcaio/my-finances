@@ -15,5 +15,18 @@ export function getTheme(mode: PaletteMode): Theme {
         main: '#8f6e3b',
       },
     },
+    components: {
+      // MUI's pulse/wave animations ignore prefers-reduced-motion on their own.
+      MuiSkeleton: {
+        styleOverrides: {
+          root: {
+            '@media (prefers-reduced-motion: reduce)': {
+              animation: 'none',
+              '&::after': { animation: 'none' },
+            },
+          },
+        },
+      },
+    },
   })
 }

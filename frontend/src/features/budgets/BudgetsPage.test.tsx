@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { http, HttpResponse } from 'msw'
+import { delay, http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import { seedCategories } from '../../mocks/handlers/categories'
 import {
@@ -103,5 +103,19 @@ describe('BudgetsPage', () => {
     await user.click(row.getByRole('button', { name: 'Save cap' }))
 
     expect(await settingsTable().findByText('750.00')).toBeInTheDocument()
+  })
+
+  it('shows a report skeleton only when the report fetch is slow', async () => {
+    server.use(
+      http.get('/api/budgets/report', async () => {
+        await delay(400)
+        return HttpResponse.json([])
+      }),
+    )
+    render(<BudgetsPage />)
+
+    expect(await screen.findByRole('status', { name: 'Loading budget report' })).toBeInTheDocument()
+    expect(await screen.findByText('No budgeted categories yet.')).toBeInTheDocument()
+    expect(screen.queryByRole('status', { name: 'Loading budget report' })).not.toBeInTheDocument()
   })
 })

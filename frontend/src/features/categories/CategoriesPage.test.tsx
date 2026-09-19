@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { delay, http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import { categoryDeleteConflictHandler, seedCategories } from '../../mocks/handlers/categories'
 import { CategoriesPage } from './CategoriesPage'
@@ -71,5 +72,29 @@ describe('CategoriesPage', () => {
     expect(await screen.findByText(/reassign them/)).toBeInTheDocument()
     // The row is still there - a 409 must not optimistically remove it.
     expect(screen.getByText(name)).toBeInTheDocument()
+  })
+
+  it('shows a loading skeleton only when the first fetch is slow, then the rows', async () => {
+    server.use(
+      http.get('/api/categories', async () => {
+        await delay(400)
+        return HttpResponse.json(seedCategories)
+      }),
+    )
+    render(<CategoriesPage />)
+
+    expect(await screen.findByText('Loading…')).toBeInTheDocument()
+    expect(await screen.findByText(seedCategories[0].name)).toBeInTheDocument()
+    expect(screen.queryByText('Loading…')).not.toBeInTheDocument()
+  })
+
+  it('does not keep showing a skeleton after the first fetch fails', async () => {
+    server.use(http.get('/api/categories', () => new HttpResponse(null, { status: 500 })))
+    render(<CategoriesPage />)
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    // Wait past the 150ms skeleton delay: it must never appear for a failed fetch.
+    await new Promise((resolve) => setTimeout(resolve, 250))
+    expect(screen.queryByText('Loading…')).not.toBeInTheDocument()
   })
 })

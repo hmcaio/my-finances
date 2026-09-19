@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   Box,
   Table,
-  TableBody,
   TableCell,
   TableContainer,
   TableHead,
@@ -13,7 +12,7 @@ import { getAccounts, type Account } from '../../api/accounts'
 import { getTransfers, type Transfer } from '../../api/transfers'
 import { defaultErrorMessage } from '../../api/apiError'
 import { ErrorAlert } from '../../components/ErrorAlert'
-import { LoadingTableRow } from '../../components/LoadingTableRow'
+import { DataTableBody } from '../../components/DataTableBody'
 import { PaginationControls } from '../../components/PaginationControls'
 import { nameLookup } from '../../utils/nameLookup'
 
@@ -70,8 +69,7 @@ export function AccountTransferList({ accountId }: AccountTransferListProps) {
               <TableCell>Description</TableCell>
             </TableRow>
           </TableHead>
-          <TableBody>
-            {transfers === null && <LoadingTableRow colSpan={5} variant="text" />}
+          <DataTableBody loading={transfers === null && !error} columns={5}>
             {transfers?.length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} align="center">
@@ -88,7 +86,7 @@ export function AccountTransferList({ accountId }: AccountTransferListProps) {
                 <TableCell>{transfer.description}</TableCell>
               </TableRow>
             ))}
-          </TableBody>
+          </DataTableBody>
         </Table>
       </TableContainer>
 

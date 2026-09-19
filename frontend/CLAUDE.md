@@ -30,7 +30,11 @@ Use these instead of re-inlining the markup; each replaced copy-pasted code from
 - `InlineEditActions` — the pencil → check/✕ trio for an inline-edit table row; `editLabel` is required (labels differ per page), `saveLabel` defaults to "Save", `saving` disables save/cancel.
 - `ConfirmDialog` — destructive-action confirmation (delete/close/dismiss). A dialog containing a form is not a fit; keep those custom.
 - `PaginationControls` — Previous/"Page X of Y"/Next for a `PagedModel`. `onPageChange` takes a functional updater (pass `setPage` directly) so rapid clicks stay correct against React's latest state; its `sx` overrides the default embedded-list spacing for standalone pages.
-- `LoadingTableRow` — placeholder row before a table's first fetch; `variant` is `'spinner'` or `'text'` (both treatments exist on purpose).
+- `DataTableBody` — the `<TableBody>` for every list table: skeleton rows while `loading`, real rows (fade-in) after. Pass `loading={rows === null && !error}` so a failed first fetch (data stays `null`) doesn't pulse forever. `columns` must match the header; set `actionsColumn` when the last column holds icon buttons, so placeholder rows match the real row height. Non-table loading blocks (`AccountDetailPage`, `BudgetsPage` report) follow the same pattern with `useDelayedFlag` + `fadeInSx`.
+
+## Loading states
+
+Use MUI `Skeleton`, not spinners or "Loading…" text. Gate every skeleton behind `useDelayedFlag` (150ms) — the local backend answers in a few ms, so an ungated skeleton just flashes — and wrap the content that replaces it in `fadeInSx` (`components/fadeIn.ts`). Both the fade and MUI's pulse animation honour `prefers-reduced-motion` (`theme.ts` overrides `MuiSkeleton`; MUI doesn't do this itself).
 
 ## Pages that embed other pages' widgets
 

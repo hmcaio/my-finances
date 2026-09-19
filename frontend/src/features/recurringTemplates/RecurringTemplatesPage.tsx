@@ -8,7 +8,6 @@ import {
   Paper,
   Select,
   Table,
-  TableBody,
   TableCell,
   TableContainer,
   TableHead,
@@ -31,7 +30,7 @@ import {
 import { defaultErrorMessage } from '../../api/apiError'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
-import { LoadingTableRow } from '../../components/LoadingTableRow'
+import { DataTableBody } from '../../components/DataTableBody'
 import { nameLookup } from '../../utils/nameLookup'
 import { PendingOccurrencesWidget } from './PendingOccurrencesWidget'
 
@@ -210,8 +209,7 @@ export function RecurringTemplatesPage() {
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <TableBody>
-              {templates === null && <LoadingTableRow colSpan={7} variant="text" />}
+            <DataTableBody loading={templates === null && !error} columns={7} actionsColumn>
               {templates?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} align="center">
@@ -293,7 +291,7 @@ export function RecurringTemplatesPage() {
                   </TableCell>
                 </TableRow>
               ))}
-            </TableBody>
+            </DataTableBody>
           </Table>
         </TableContainer>
       </Paper>

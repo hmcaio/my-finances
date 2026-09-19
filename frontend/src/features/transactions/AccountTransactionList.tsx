@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   Box,
   Table,
-  TableBody,
   TableCell,
   TableContainer,
   TableHead,
@@ -14,7 +13,7 @@ import { getPaymentMethods, type PaymentMethod } from '../../api/paymentMethods'
 import { getTransactions, type Transaction } from '../../api/transactions'
 import { defaultErrorMessage } from '../../api/apiError'
 import { ErrorAlert } from '../../components/ErrorAlert'
-import { LoadingTableRow } from '../../components/LoadingTableRow'
+import { DataTableBody } from '../../components/DataTableBody'
 import { PaginationControls } from '../../components/PaginationControls'
 import { nameLookup } from '../../utils/nameLookup'
 
@@ -78,8 +77,7 @@ export function AccountTransactionList({ accountId }: AccountTransactionListProp
               <TableCell>Description</TableCell>
             </TableRow>
           </TableHead>
-          <TableBody>
-            {transactions === null && <LoadingTableRow colSpan={5} variant="text" />}
+          <DataTableBody loading={transactions === null && !error} columns={5}>
             {transactions?.length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} align="center">
@@ -99,7 +97,7 @@ export function AccountTransactionList({ accountId }: AccountTransactionListProp
                 <TableCell>{transaction.description}</TableCell>
               </TableRow>
             ))}
-          </TableBody>
+          </DataTableBody>
         </Table>
       </TableContainer>
 

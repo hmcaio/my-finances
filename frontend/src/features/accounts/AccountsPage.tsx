@@ -11,7 +11,6 @@ import {
   Select,
   Switch,
   Table,
-  TableBody,
   TableCell,
   TableContainer,
   TableHead,
@@ -33,7 +32,7 @@ import { defaultErrorMessage } from '../../api/apiError'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
-import { LoadingTableRow } from '../../components/LoadingTableRow'
+import { DataTableBody } from '../../components/DataTableBody'
 
 const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
   CHECKING: 'Checking',
@@ -183,8 +182,7 @@ export function AccountsPage() {
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <TableBody>
-              {accounts === null && <LoadingTableRow colSpan={6} />}
+            <DataTableBody loading={accounts === null && !error} columns={6} actionsColumn>
               {accounts?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} align="center">
@@ -263,7 +261,7 @@ export function AccountsPage() {
                   </TableCell>
                 </TableRow>
               ))}
-            </TableBody>
+            </DataTableBody>
           </Table>
         </TableContainer>
       </Paper>

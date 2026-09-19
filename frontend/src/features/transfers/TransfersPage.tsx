@@ -7,7 +7,6 @@ import {
   Paper,
   Select,
   Table,
-  TableBody,
   TableCell,
   TableContainer,
   TableHead,
@@ -29,7 +28,7 @@ import {
 import { defaultErrorMessage } from '../../api/apiError'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { ErrorAlert } from '../../components/ErrorAlert'
-import { LoadingTableRow } from '../../components/LoadingTableRow'
+import { DataTableBody } from '../../components/DataTableBody'
 import { PaginationControls } from '../../components/PaginationControls'
 import { nameLookup } from '../../utils/nameLookup'
 
@@ -254,8 +253,7 @@ export function TransfersPage() {
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <TableBody>
-              {transfers === null && <LoadingTableRow colSpan={6} variant="text" />}
+            <DataTableBody loading={transfers === null && !error} columns={6} actionsColumn>
               {transfers?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} align="center">
@@ -284,7 +282,7 @@ export function TransfersPage() {
                   </TableCell>
                 </TableRow>
               ))}
-            </TableBody>
+            </DataTableBody>
           </Table>
         </TableContainer>
       </Paper>
