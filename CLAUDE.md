@@ -29,6 +29,7 @@ CI (`.github/workflows/ci.yml`) runs backend `spotlessCheck test` and frontend `
 ## Workflow
 
 - Conventional Commits (ADR 0009). Branch off `develop` and PR into `develop` (ADR 0008) — never commit to `develop` or `main` directly; don't push or open a PR unless asked.
+- **CHANGELOG entries ship with the PR.** A PR with a user-visible change (`feat`, `fix`, breaking, or a `refactor`/`perf` users would notice) adds its bullet under `## [Unreleased]` in `CHANGELOG.md`, in the same commit as the code. One bullet per feature id (`**F004 — Transactions** — <summary>`), an unscoped fix/change as a plain bullet citing its issue (`closes [#N](…)`), sorted under Keep a Changelog sections. No entry for `docs`/`chore`/`test`/`ci`/`build`/`style` or internal refactors. Add an `Upgrade:` sub-line for anything that changes how someone runs or upgrades the stack (compose, volumes, env vars, config keys, migrations). The PR's own number doesn't exist yet when the entry is written: add `([#N](…))` in a follow-up commit once the PR is open (squash-merge hides the extra commit); a release-time check fills any that are missing. Bumping `version`, renaming `[Unreleased]` and tagging stay release-time (ADR 0007), and the SemVer bump is read off commit types (ADR 0009), not off the section an entry sits in.
 - `/implement-feature` builds a planned feature from `docs/features/FXXX`; `/audit-and-fix` handles cross-cutting audits and fixes (issue → branch → fix with tests → verify → docs).
 
 ## Cross-stack conventions
