@@ -44,12 +44,12 @@ docs/
 docker-compose.yml        Local dev: Postgres + pgAdmin
 docker-compose.prod.yml   Production-shaped stack: Postgres + backend + frontend
 .github/workflows/        CI (test on every push/PR) and CD (image publish on main/tags)
-CLAUDE.md                 Working guidance for AI coding agents in this repo
+CLAUDE.md                 Working guidance for AI coding agents (cross-stack; backend/ and frontend/ each have their own)
 ```
 
 ## Getting started
 
-Local dev needs Docker (for Postgres) plus a JDK and Node toolchain for running the backend/frontend natively — see [CLAUDE.md](CLAUDE.md) for the exact, currently-accurate commands (build, lint, test, run) for both. The short version:
+Local dev needs Docker (for Postgres) plus a JDK and Node toolchain for running the backend/frontend natively — see [backend/CLAUDE.md](backend/CLAUDE.md) and [frontend/CLAUDE.md](frontend/CLAUDE.md) for the exact, currently-accurate commands (build, lint, test, run). The short version:
 
 ```bash
 docker compose up -d      # start local Postgres (+ pgAdmin at localhost:5050)

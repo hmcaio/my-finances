@@ -42,7 +42,7 @@ Don't implement the feature in the main session yourself — delegating the real
 The subagent starts cold — it has no memory of this conversation. Its prompt must be fully self-contained:
 
 1. **Paste in the full text** of this feature's `spec.md` and `plan.md` — don't just point at the paths, the subagent needs the content in front of it.
-2. **Tell it to read first**: `docs/PRD.md` and `CLAUDE.md` for product/repo context, and `docs/adr/README.md` for the full ADR index — then specifically:
+2. **Tell it to read first**: `docs/PRD.md` and `CLAUDE.md` for product/repo context (plus `backend/CLAUDE.md` and/or `frontend/CLAUDE.md` for the stack being built), and `docs/adr/README.md` for the full ADR index — then specifically:
    - `docs/adr/0004-hexagonal-ddd-tdd.md` (Hexagonal/DDD/TDD) — write tests before the implementation that satisfies them, for every checklist item `plan.md` already phrases as test-first.
    - `docs/adr/0005-single-point-uuid-generation.md` — every new entity's id comes from the single `IdGenerator` port; never `@GeneratedValue`, never an ad hoc `UUID.randomUUID()` elsewhere.
    - `docs/adr/0009-conventional-commits.md` — every commit uses Conventional Commits format (`type(scope): description`).

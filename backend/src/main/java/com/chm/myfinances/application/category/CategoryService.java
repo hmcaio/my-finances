@@ -16,12 +16,12 @@ import org.springframework.stereotype.Service;
  * IdGenerator} port (ADR 0005) — never generated ad hoc here or left to the database.
  *
  * <p>Delete enforces F002 plan.md's referenced-by-transaction guard (409 when a category is in
- * use), deferred until F004 (Transactions) existed to check against — see CLAUDE.md's F002 status
- * entry. Broadened in the post-F007 schema audit to also check F006's {@link BudgetRepository} and
- * F007's {@link RecurringTemplateRepository}: a category with a {@code Budget} or {@code
- * RecurringTemplate} but zero transactions yet was previously still hard-deletable, which would
- * have orphaned that row's own FK to {@code categories} (a raw DB constraint violation surfacing as
- * a generic 500, not this clean 409) — same {@link CategoryInUseException}, just a wider check.
+ * use), deferred until F004 (Transactions) existed to check against — see F004's spec.md. Broadened
+ * in the post-F007 schema audit to also check F006's {@link BudgetRepository} and F007's {@link
+ * RecurringTemplateRepository}: a category with a {@code Budget} or {@code RecurringTemplate} but
+ * zero transactions yet was previously still hard-deletable, which would have orphaned that row's
+ * own FK to {@code categories} (a raw DB constraint violation surfacing as a generic 500, not this
+ * clean 409) — same {@link CategoryInUseException}, just a wider check.
  *
  * <p>Create/rename reject a duplicate name (409, {@link CategoryNameAlreadyExistsException}) —
  * exact match, case-sensitive, backed by {@code categories.name UNIQUE} ({@code

@@ -37,7 +37,7 @@ Per ADR 0008, work branches off `develop`, and PRs target `develop` (never commi
 
 Write tests alongside each fix, following the existing layers: unit tests against the `testsupport/Fake*Repository` fakes for application logic, `@SpringBootTest` adapter/controller tests for persistence and REST, and MSW + React Testing Library on the frontend. Keep extractions behavior-preserving — when de-duplicating, check each call site for small variations (margins, disabled states, labels, dismissibility) and parameterize or leave the outlier alone rather than silently unifying it.
 
-Before writing tests, re-read the "Structural conventions" bullets in `CLAUDE.md` — the repo-specific traps live there (so they apply to every task, not only audits). The ones these audits hit most: transaction-boundary tests must *not* be `@Transactional` themselves (the general rule says the opposite), V2 seed rows collide with new `UNIQUE` constraints in real-DB fixtures, a new 409 needs a frontend `conflictMessage` because the backend never sends exception text, and frontend tests have no Node types (run `npm run build`, not just `npm test`).
+Before writing tests, re-read the "Testing" sections of `backend/CLAUDE.md` and `frontend/CLAUDE.md` (for whichever stack you're touching) and the cross-stack conventions in the root `CLAUDE.md` — the repo-specific traps live there, so they apply to every task, not only audits. The ones these audits hit most: transaction-boundary tests must *not* be `@Transactional` themselves (the general rule says the opposite), V2 seed rows collide with new `UNIQUE` constraints in real-DB fixtures, a new 409 needs a frontend `conflictMessage` because the backend never sends exception text, and frontend tests have no Node types (run `npm run build`, not just `npm test`).
 
 One habit worth keeping on top of those: for a bug fix, temporarily restore the old code and confirm the new tests fail against it. A test that passes both before and after guards nothing — date/time fixes are the classic case, since CI runs in UTC and hides a UTC-vs-local bug unless the test pins another zone.
 
@@ -52,7 +52,7 @@ If many tests fail after one change, look for one shared root cause (a seed-name
 
 ## 7. Docs
 
-- `CLAUDE.md`: add a bullet only if the work produced a *rule or gotcha* that can't be derived from the code and would cost time to rediscover — and phrase it as the rule, not the story. What changed, why, and any deliberate non-fix belong in the commit body and PR description (and the feature's `spec.md` if behavior changed). Narrative paragraphs in CLAUDE.md are what bloated it to 33 KB of mostly-history, and it loads into every session.
+- `CLAUDE.md` files (root for rules that span both stacks, `backend/CLAUDE.md` or `frontend/CLAUDE.md` for one): add a bullet only if the work produced a *rule or gotcha* that can't be derived from the code and would cost time to rediscover — and phrase it as the rule, not the story. What changed, why, and any deliberate non-fix belong in the commit body and PR description (and the feature's `spec.md` if behavior changed). Narrative paragraphs in CLAUDE.md are what bloated it to 33 KB of mostly-history, and it loads into every session.
 - `docs/features/FXXX/spec.md`: update when observable behavior or schema for that feature changed. Not needed for pure defense-in-depth constraints that only the migration header documents.
 - `docs/PRD.md`: only when a product decision changed or was newly made. `README.md`: rarely.
 
