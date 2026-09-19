@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Box,
   Button,
@@ -17,8 +17,8 @@ import {
 } from '@mui/material'
 import PauseIcon from '@mui/icons-material/Pause'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
-import { getAccounts, type Account } from '../../api/accounts'
-import { getCategories, type Category } from '../../api/categories'
+import { getAccounts } from '../../api/accounts'
+import { getCategories } from '../../api/categories'
 import {
   createRecurringTemplate,
   getRecurringTemplates,
@@ -31,6 +31,7 @@ import { defaultErrorMessage } from '../../api/apiError'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
 import { DataTableBody } from '../../components/DataTableBody'
+import { useAsyncData } from '../../hooks/useAsyncData'
 import { nameLookup } from '../../utils/nameLookup'
 import { PendingOccurrencesWidget } from './PendingOccurrencesWidget'
 
@@ -57,10 +58,14 @@ const EMPTY_CREATE_FORM = {
  * duplicating it.
  */
 export function RecurringTemplatesPage() {
-  const [categories, setCategories] = useState<Category[] | null>(null)
-  const [accounts, setAccounts] = useState<Account[] | null>(null)
-  const [templates, setTemplates] = useState<RecurringTemplate[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const { data: categories } = useAsyncData(getCategories, [], { onError: setError })
+  const { data: accounts } = useAsyncData(() => getAccounts(false), [], { onError: setError })
+  const {
+    data: templates,
+    setData: setTemplates,
+    ...templatesState
+  } = useAsyncData(getRecurringTemplates, [], { onError: setError })
 
   const [createForm, setCreateForm] = useState(EMPTY_CREATE_FORM)
   const [creating, setCreating] = useState(false)
@@ -78,22 +83,6 @@ export function RecurringTemplatesPage() {
   // or after creating a new template that catch-up may immediately generate a pending occurrence
   // for (effectiveFrom defaults to the current month, whose day-of-month may already have passed).
   const [pendingRefreshKey, setPendingRefreshKey] = useState(0)
-
-  function loadTemplates() {
-    getRecurringTemplates()
-      .then(setTemplates)
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-  }
-
-  useEffect(() => {
-    getCategories()
-      .then(setCategories)
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-    getAccounts(false)
-      .then(setAccounts)
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-    loadTemplates()
-  }, [])
 
   const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
   const accountName = useMemo(() => nameLookup(accounts ?? [], (a) => a.name), [accounts])
@@ -209,7 +198,7 @@ export function RecurringTemplatesPage() {
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <DataTableBody loading={templates === null && !error} columns={7} actionsColumn>
+            <DataTableBody state={templatesState} columns={7} actionsColumn>
               {templates?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} align="center">

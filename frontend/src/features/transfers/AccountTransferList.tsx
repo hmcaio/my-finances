@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Box,
   Table,
@@ -8,11 +8,12 @@ import {
   TableRow,
   Typography,
 } from '@mui/material'
-import { getAccounts, type Account } from '../../api/accounts'
-import { getTransfers, type Transfer } from '../../api/transfers'
-import { defaultErrorMessage } from '../../api/apiError'
+import { getAccounts } from '../../api/accounts'
+import { getTransfers } from '../../api/transfers'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { DataTableBody } from '../../components/DataTableBody'
+import { useAsyncData } from '../../hooks/useAsyncData'
+import { usePagedData } from '../../hooks/usePagedData'
 import { PaginationControls } from '../../components/PaginationControls'
 import { nameLookup } from '../../utils/nameLookup'
 
@@ -31,26 +32,16 @@ interface AccountTransferListProps {
  * F004's `AccountTransactionList` shape.
  */
 export function AccountTransferList({ accountId }: AccountTransferListProps) {
-  const [transfers, setTransfers] = useState<Transfer[] | null>(null)
-  const [pageInfo, setPageInfo] = useState<{ number: number; totalPages: number } | null>(null)
   const [page, setPage] = useState(0)
-  const [accounts, setAccounts] = useState<Account[] | null>(null)
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    getAccounts(true)
-      .then(setAccounts)
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-  }, [])
-
-  useEffect(() => {
-    getTransfers({ accountId }, page, PAGE_SIZE)
-      .then((result) => {
-        setTransfers(result.content)
-        setPageInfo({ number: result.page.number, totalPages: result.page.totalPages })
-      })
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-  }, [accountId, page])
+  const { data: accounts } = useAsyncData(() => getAccounts(true), [], { onError: setError })
+  const {
+    items: transfers,
+    pageInfo,
+    ...transfersState
+  } = usePagedData(() => getTransfers({ accountId }, page, PAGE_SIZE), [accountId, page], {
+    onError: setError,
+  })
 
   const accountName = useMemo(() => nameLookup(accounts ?? [], (a) => a.name), [accounts])
 
@@ -69,7 +60,7 @@ export function AccountTransferList({ accountId }: AccountTransferListProps) {
               <TableCell>Description</TableCell>
             </TableRow>
           </TableHead>
-          <DataTableBody loading={transfers === null && !error} columns={5}>
+          <DataTableBody state={transfersState} columns={5}>
             {transfers?.length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} align="center">

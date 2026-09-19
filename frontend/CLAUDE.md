@@ -30,7 +30,12 @@ Use these instead of re-inlining the markup; each replaced copy-pasted code from
 - `InlineEditActions` — the pencil → check/✕ trio for an inline-edit table row; `editLabel` is required (labels differ per page), `saveLabel` defaults to "Save", `saving` disables save/cancel.
 - `ConfirmDialog` — destructive-action confirmation (delete/close/dismiss). A dialog containing a form is not a fit; keep those custom.
 - `PaginationControls` — Previous/"Page X of Y"/Next for a `PagedModel`. `onPageChange` takes a functional updater (pass `setPage` directly) so rapid clicks stay correct against React's latest state; its `sx` overrides the default embedded-list spacing for standalone pages.
-- `DataTableBody` — the `<TableBody>` for every list table: skeleton rows while `loading`, real rows (fade-in) after. Pass `loading={rows === null && !error}` so a failed first fetch (data stays `null`) doesn't pulse forever. `columns` must match the header; set `actionsColumn` when the last column holds icon buttons, so placeholder rows match the real row height. Non-table loading blocks (`AccountDetailPage`, `BudgetsPage` report) follow the same pattern with `useDelayedFlag` + `fadeInSx`.
+- `DataTableBody` — the `<TableBody>` for every list table: skeleton rows while loading, a "Could not load data (…)" row with Retry if the first fetch failed, real rows (fade-in) otherwise. Takes `state` (the non-data part of a `useAsyncData`/`usePagedData` result, i.e. the rest-spread). `columns` must match the header; set `actionsColumn` when the last column holds icon buttons, so placeholder rows match the real row height.
+- `LoadFailedNotice` — inline "could not load" text + Retry; for non-table blocks (the `BudgetsPage` report).
+
+## Data loading
+
+Fetch with `useAsyncData(fetcher, deps, { onError: setError })` (or `usePagedData` for a `PagedModel` endpoint), not a hand-rolled `useState` + `useEffect` + `.then().catch()`. Destructure `data`/`setData` for the page's optimistic edits and spread the rest (`...categoriesState`) into `DataTableBody`. `loading`/`loadError` describe the fetch itself — never derive "is it still loading" from the page's dismissible `error` banner state, or dismissing the banner after a failed load brings the skeleton back. A failed refetch over existing data keeps the stale rows and only reports through `onError`.
 
 ## Loading states
 

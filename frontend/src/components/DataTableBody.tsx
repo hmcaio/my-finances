@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react'
 import { Box, Skeleton, TableBody, TableCell, TableRow } from '@mui/material'
+import type { AsyncData } from '../hooks/useAsyncData'
 import { useDelayedFlag } from '../hooks/useDelayedFlag'
 import { fadeInSx } from './fadeIn'
+import { LoadFailedNotice } from './LoadFailedNotice'
 
 /** Cell widths cycled per row/column so the placeholder doesn't read as a grid of identical bars. */
 const SKELETON_WIDTHS = ['70%', '55%', '80%', '45%', '65%']
@@ -20,9 +22,9 @@ const VISUALLY_HIDDEN = {
 } as const
 
 interface DataTableBodyProps {
-  /** True until the first fetch resolves, e.g. `rows === null && !error`. Show nothing pulsing once
-   * a fetch has failed: the data stays null and the error banner already explains why. */
-  loading: boolean
+  /** The table's data source (`useAsyncData`): skeleton while `loading`, a failure row with Retry
+   * when `loadError` is set (nothing pulses once a fetch has failed), otherwise the children. */
+  state: Pick<AsyncData<unknown>, 'loading' | 'loadError' | 'reload'>
   /** Column count, so the placeholder rows line up with the header above. */
   columns: number
   /** Number of placeholder rows. */
@@ -30,7 +32,7 @@ interface DataTableBodyProps {
   /** The last column holds icon buttons; render round placeholders of the same size so the row
    * doesn't shrink and then jump taller when the real rows arrive. */
   actionsColumn?: boolean
-  /** The real rows (and any empty-state row). Rendered once `loading` is false. */
+  /** The real rows (and any empty-state row). Rendered once loading has ended. */
   children: ReactNode
 }
 
@@ -40,12 +42,13 @@ interface DataTableBodyProps {
  * response goes straight to the fade instead of flashing the placeholder.
  */
 export function DataTableBody({
-  loading,
+  state,
   columns,
   rows = 5,
   actionsColumn = false,
   children,
 }: DataTableBodyProps) {
+  const { loading, loadError, reload } = state
   const showSkeleton = useDelayedFlag(loading)
 
   if (loading) {
@@ -80,7 +83,18 @@ export function DataTableBody({
     )
   }
 
-  return <TableBody sx={fadeInSx}>{children}</TableBody>
+  return (
+    <TableBody sx={fadeInSx}>
+      {loadError && (
+        <TableRow>
+          <TableCell colSpan={columns}>
+            <LoadFailedNotice message={loadError} onRetry={reload} />
+          </TableCell>
+        </TableRow>
+      )}
+      {children}
+    </TableBody>
+  )
 }
 
 function ActionSkeletons() {

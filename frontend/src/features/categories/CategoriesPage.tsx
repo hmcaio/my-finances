@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   Box,
   Button,
@@ -28,6 +28,7 @@ import { defaultErrorMessage } from '../../api/apiError'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
 import { DataTableBody } from '../../components/DataTableBody'
+import { useAsyncData } from '../../hooks/useAsyncData'
 
 /**
  * Settings-style CRUD screen for categories (F002 spec): table with name + type, inline rename,
@@ -35,8 +36,12 @@ import { DataTableBody } from '../../components/DataTableBody'
  * existing rows - only on the add-new form.
  */
 export function CategoriesPage() {
-  const [categories, setCategories] = useState<Category[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const {
+    data: categories,
+    setData: setCategories,
+    ...categoriesState
+  } = useAsyncData(getCategories, [], { onError: setError })
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
@@ -46,16 +51,6 @@ export function CategoriesPage() {
   const [adding, setAdding] = useState(false)
 
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
-
-  function load() {
-    getCategories()
-      .then(setCategories)
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-  }
-
-  useEffect(() => {
-    load()
-  }, [])
 
   async function handleAdd() {
     if (!newName.trim()) return
@@ -129,7 +124,7 @@ export function CategoriesPage() {
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <DataTableBody loading={categories === null && !error} columns={3} actionsColumn>
+            <DataTableBody state={categoriesState} columns={3} actionsColumn>
               {categories?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={3} align="center">

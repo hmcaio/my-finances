@@ -88,13 +88,31 @@ describe('CategoriesPage', () => {
     expect(screen.queryByText('Loading…')).not.toBeInTheDocument()
   })
 
-  it('does not keep showing a skeleton after the first fetch fails', async () => {
+  it('shows a failure row, never a skeleton, after the first fetch fails - even once the banner is dismissed', async () => {
     server.use(http.get('/api/categories', () => new HttpResponse(null, { status: 500 })))
+    const user = userEvent.setup()
     render(<CategoriesPage />)
 
-    expect(await screen.findByRole('alert')).toBeInTheDocument()
-    // Wait past the 150ms skeleton delay: it must never appear for a failed fetch.
+    const alert = await screen.findByRole('alert')
+    expect(await screen.findByText(/Could not load data/)).toBeInTheDocument()
+    await user.click(within(alert).getByRole('button', { name: 'Close' }))
+    // Wait past the 150ms skeleton delay: the dismissed banner must not bring the skeleton back.
     await new Promise((resolve) => setTimeout(resolve, 250))
+
     expect(screen.queryByText('Loading…')).not.toBeInTheDocument()
+    expect(screen.getByText(/Could not load data/)).toBeInTheDocument()
+  })
+
+  it('retries a failed first fetch from the failure row', async () => {
+    server.use(
+      http.get('/api/categories', () => new HttpResponse(null, { status: 500 }), { once: true }),
+    )
+    const user = userEvent.setup()
+    render(<CategoriesPage />)
+
+    await user.click(await screen.findByRole('button', { name: 'Retry' }))
+
+    expect(await screen.findByText(seedCategories[0].name)).toBeInTheDocument()
+    expect(screen.queryByText(/Could not load data/)).not.toBeInTheDocument()
   })
 })

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   Box,
   Button,
@@ -33,6 +33,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
 import { DataTableBody } from '../../components/DataTableBody'
+import { useAsyncData } from '../../hooks/useAsyncData'
 
 const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
   CHECKING: 'Checking',
@@ -49,9 +50,13 @@ const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
  * form; and a close action gated behind a non-reversible confirmation dialog.
  */
 export function AccountsPage() {
-  const [accounts, setAccounts] = useState<Account[] | null>(null)
   const [includeClosed, setIncludeClosed] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const {
+    data: accounts,
+    setData: setAccounts,
+    ...accountsState
+  } = useAsyncData(() => getAccounts(includeClosed), [includeClosed], { onError: setError })
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
@@ -68,16 +73,6 @@ export function AccountsPage() {
 
   const [closeTarget, setCloseTarget] = useState<Account | null>(null)
   const [closing, setClosing] = useState(false)
-
-  function load(includeClosedAccounts: boolean) {
-    getAccounts(includeClosedAccounts)
-      .then(setAccounts)
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-  }
-
-  useEffect(() => {
-    load(includeClosed)
-  }, [includeClosed])
 
   async function handleAdd() {
     if (!newName.trim()) return
@@ -182,7 +177,7 @@ export function AccountsPage() {
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <DataTableBody loading={accounts === null && !error} columns={6} actionsColumn>
+            <DataTableBody state={accountsState} columns={6} actionsColumn>
               {accounts?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} align="center">

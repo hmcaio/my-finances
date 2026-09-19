@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Box,
   Button,
@@ -15,20 +15,21 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import { getCategories, type Category } from '../../api/categories'
+import { getCategories } from '../../api/categories'
 import {
   createBudget,
   getBudgetReport,
   getBudgets,
   setBudgetCap,
   type Budget,
-  type BudgetReportLine,
 } from '../../api/budgets'
 import { defaultErrorMessage } from '../../api/apiError'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
 import { DataTableBody } from '../../components/DataTableBody'
 import { fadeInSx } from '../../components/fadeIn'
+import { LoadFailedNotice } from '../../components/LoadFailedNotice'
+import { useAsyncData } from '../../hooks/useAsyncData'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { nameLookup } from '../../utils/nameLookup'
 
@@ -47,9 +48,13 @@ function currentMonth(): string {
  * implicit - now/current month forward".
  */
 export function BudgetsPage() {
-  const [categories, setCategories] = useState<Category[] | null>(null)
-  const [budgets, setBudgets] = useState<Budget[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const { data: categories } = useAsyncData(getCategories, [], { onError: setError })
+  const {
+    data: budgets,
+    setData: setBudgets,
+    ...budgetsState
+  } = useAsyncData(getBudgets, [], { onError: setError })
 
   const [newCategoryId, setNewCategoryId] = useState('')
   const [newCap, setNewCap] = useState('')
@@ -60,32 +65,14 @@ export function BudgetsPage() {
   const [savingCap, setSavingCap] = useState(false)
 
   const [reportMonth, setReportMonth] = useState(currentMonth())
-  const [report, setReport] = useState<BudgetReportLine[] | null>(null)
+  const {
+    data: report,
+    loading: reportLoading,
+    loadError: reportLoadError,
+    reload: reloadReport,
+  } = useAsyncData(() => getBudgetReport(reportMonth), [reportMonth], { onError: setError })
 
-  const showReportSkeleton = useDelayedFlag(report === null && !error)
-
-  function loadBudgets() {
-    getBudgets()
-      .then(setBudgets)
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-  }
-
-  function loadReport(month: string) {
-    getBudgetReport(month)
-      .then(setReport)
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-  }
-
-  useEffect(() => {
-    getCategories()
-      .then(setCategories)
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-    loadBudgets()
-  }, [])
-
-  useEffect(() => {
-    loadReport(reportMonth)
-  }, [reportMonth])
+  const showReportSkeleton = useDelayedFlag(reportLoading)
 
   const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
 
@@ -107,7 +94,7 @@ export function BudgetsPage() {
       setBudgets((prev) => [...(prev ?? []), created])
       setNewCategoryId('')
       setNewCap('')
-      if (reportMonth >= currentMonth()) loadReport(reportMonth)
+      if (reportMonth >= currentMonth()) reloadReport()
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {
@@ -136,7 +123,7 @@ export function BudgetsPage() {
       })
       setBudgets((prev) => prev?.map((b) => (b.id === id ? updated : b)) ?? null)
       cancelEditCap()
-      if (reportMonth >= currentMonth()) loadReport(reportMonth)
+      if (reportMonth >= currentMonth()) reloadReport()
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {
@@ -168,7 +155,7 @@ export function BudgetsPage() {
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <DataTableBody loading={budgets === null && !error} columns={4} actionsColumn>
+            <DataTableBody state={budgetsState} columns={4} actionsColumn>
               {budgets?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} align="center">
@@ -276,8 +263,9 @@ export function BudgetsPage() {
         />
       </Box>
 
-      <Paper variant="outlined" sx={{ p: 2 }} aria-busy={report === null && !error}>
+      <Paper variant="outlined" sx={{ p: 2 }} aria-busy={reportLoading}>
         {showReportSkeleton && <BudgetReportSkeleton />}
+        {reportLoadError && <LoadFailedNotice message={reportLoadError} onRetry={reloadReport} />}
         {report !== null && (
           <Box sx={fadeInSx}>
             {report.length === 0 && (

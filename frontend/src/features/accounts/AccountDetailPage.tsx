@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
 import { Link as RouterLink, useParams } from 'react-router-dom'
 import { Alert, Box, Chip, Link as MuiLink, Paper, Skeleton, Typography } from '@mui/material'
-import { getAccount, type Account, type AccountType } from '../../api/accounts'
+import { getAccount, type AccountType } from '../../api/accounts'
 import { defaultErrorMessage } from '../../api/apiError'
 import { fadeInSx } from '../../components/fadeIn'
+import { useAsyncData } from '../../hooks/useAsyncData'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { AccountTransactionList } from '../transactions/AccountTransactionList'
 import { AccountTransferList } from '../transfers/AccountTransferList'
@@ -24,16 +24,16 @@ const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
  */
 export function AccountDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const [account, setAccount] = useState<Account | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const showSkeleton = useDelayedFlag(account === null && !error)
-
-  useEffect(() => {
-    if (!id) return
-    getAccount(id)
-      .then(setAccount)
-      .catch((err: unknown) => setError(defaultErrorMessage(err, { 404: 'Account not found.' })))
-  }, [id])
+  const {
+    data: account,
+    loading,
+    loadError: error,
+  } = useAsyncData(
+    () => (id ? getAccount(id) : Promise.reject(new Error('Missing account id.'))),
+    [id],
+    { errorMessage: (err) => defaultErrorMessage(err, { 404: 'Account not found.' }) },
+  )
+  const showSkeleton = useDelayedFlag(loading)
 
   return (
     <Box sx={{ py: 4 }}>

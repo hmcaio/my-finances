@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Box,
   Button,
@@ -20,21 +20,21 @@ import {
 } from '@mui/material'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import CloseIcon from '@mui/icons-material/Close'
-import { getAccounts, type Account } from '../../api/accounts'
-import { getCategories, type Category } from '../../api/categories'
-import { getPaymentMethods, type PaymentMethod } from '../../api/paymentMethods'
+import { getAccounts } from '../../api/accounts'
+import { getCategories } from '../../api/categories'
+import { getPaymentMethods } from '../../api/paymentMethods'
 import {
   confirmPendingRecurringOccurrence,
   dismissPendingRecurringOccurrence,
   getPendingRecurringOccurrences,
   getRecurringTemplates,
   type PendingRecurringOccurrence,
-  type RecurringTemplate,
 } from '../../api/recurringTemplates'
 import { defaultErrorMessage } from '../../api/apiError'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { DataTableBody } from '../../components/DataTableBody'
+import { useAsyncData } from '../../hooks/useAsyncData'
 import { nameLookup } from '../../utils/nameLookup'
 
 /**
@@ -49,12 +49,16 @@ import { nameLookup } from '../../utils/nameLookup'
  * for - is always required.
  */
 export function PendingOccurrencesWidget() {
-  const [templates, setTemplates] = useState<RecurringTemplate[] | null>(null)
-  const [categories, setCategories] = useState<Category[] | null>(null)
-  const [accounts, setAccounts] = useState<Account[] | null>(null)
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[] | null>(null)
-  const [pending, setPending] = useState<PendingRecurringOccurrence[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const { data: templates } = useAsyncData(getRecurringTemplates, [], { onError: setError })
+  const { data: categories } = useAsyncData(getCategories, [], { onError: setError })
+  const { data: accounts } = useAsyncData(() => getAccounts(false), [], { onError: setError })
+  const { data: paymentMethods } = useAsyncData(getPaymentMethods, [], { onError: setError })
+  const {
+    data: pending,
+    setData: setPending,
+    ...pendingState
+  } = useAsyncData(getPendingRecurringOccurrences, [], { onError: setError })
 
   const [confirmTarget, setConfirmTarget] = useState<PendingRecurringOccurrence | null>(null)
   const [confirmAmount, setConfirmAmount] = useState('')
@@ -65,24 +69,6 @@ export function PendingOccurrencesWidget() {
 
   const [dismissTarget, setDismissTarget] = useState<PendingRecurringOccurrence | null>(null)
   const [dismissing, setDismissing] = useState(false)
-
-  useEffect(() => {
-    getRecurringTemplates()
-      .then(setTemplates)
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-    getCategories()
-      .then(setCategories)
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-    getAccounts(false)
-      .then(setAccounts)
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-    getPaymentMethods()
-      .then(setPaymentMethods)
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-    getPendingRecurringOccurrences()
-      .then(setPending)
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-  }, [])
 
   const templateById = useMemo(() => {
     const map = new Map((templates ?? []).map((t) => [t.id, t]))
@@ -169,7 +155,7 @@ export function PendingOccurrencesWidget() {
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <DataTableBody loading={pending === null && !error} columns={6} actionsColumn>
+            <DataTableBody state={pendingState} columns={6} actionsColumn>
               {pending?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} align="center">

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   Box,
   Button,
@@ -24,6 +24,7 @@ import { defaultErrorMessage } from '../../api/apiError'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
 import { DataTableBody } from '../../components/DataTableBody'
+import { useAsyncData } from '../../hooks/useAsyncData'
 
 /**
  * Settings-style CRUD screen for payment methods (F002 spec): table with name, inline rename,
@@ -31,8 +32,12 @@ import { DataTableBody } from '../../components/DataTableBody'
  * methods have no type, PRD S5.2).
  */
 export function PaymentMethodsPage() {
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const {
+    data: paymentMethods,
+    setData: setPaymentMethods,
+    ...paymentMethodsState
+  } = useAsyncData(getPaymentMethods, [], { onError: setError })
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
@@ -41,16 +46,6 @@ export function PaymentMethodsPage() {
   const [adding, setAdding] = useState(false)
 
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
-
-  function load() {
-    getPaymentMethods()
-      .then(setPaymentMethods)
-      .catch((err: unknown) => setError(defaultErrorMessage(err)))
-  }
-
-  useEffect(() => {
-    load()
-  }, [])
 
   async function handleAdd() {
     if (!newName.trim()) return
@@ -123,7 +118,7 @@ export function PaymentMethodsPage() {
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <DataTableBody loading={paymentMethods === null && !error} columns={2} actionsColumn>
+            <DataTableBody state={paymentMethodsState} columns={2} actionsColumn>
               {paymentMethods?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={2} align="center">
