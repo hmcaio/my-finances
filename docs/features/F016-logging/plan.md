@@ -35,8 +35,8 @@ Each: write the `LogCapture` assertion in the existing service unit test first (
 - [x] ESLint: `no-console: 'error'` with an override for `src/utils/logger.ts` only. Run `npm run lint` and fix any existing `console.*` it finds (there are none today).
 - [x] Test first: `src/api/client.test.ts` (MSW) — `X-Request-Id` present on the request; 409 → `warn` + still an `ApiError` with the `conflictMessage`; 500 and `HttpResponse.error()` → `error`; a distinctive response-body string never appears in the logged arguments.
 - [x] Add request/response interceptors to `src/api/client.ts` (request id + timing via a `WeakMap`; re-reject the original error unchanged). Confirm every existing `src/api/*.test.ts` and page test still passes with zero edits.
-- [ ] Test first: `src/utils/globalErrorLogging.test.ts` (`error` + `unhandledrejection` reach `logger.error`; uninstall removes them).
-- [ ] Implement `src/utils/globalErrorLogging.ts`; call `installGlobalErrorLogging()` and pass `onUncaughtError` / `onCaughtError` / `onRecoverableError` to `createRoot` in `src/main.tsx`.
+- [x] Test first: `src/utils/globalErrorLogging.test.ts` (`error` + `unhandledrejection` reach `logger.error`; uninstall removes them).
+- [x] Implement `src/utils/globalErrorLogging.ts`; call `installGlobalErrorLogging()` and pass `onUncaughtError` / `onCaughtError` / `onRecoverableError` to `createRoot` in `src/main.tsx`.
 - [ ] Test first: `src/components/ErrorBoundary.test.tsx` (fallback renders, sibling nav survives, Reload button, `key` change resets).
 - [ ] Implement `ErrorBoundary` and wrap `<Routes>` in `App.tsx` (inside `Layout`, keyed on `location.pathname`).
 - [ ] `npm run lint`, `npm test`, `npm run build`, `npm run format:check` (Prettier only on touched files).
