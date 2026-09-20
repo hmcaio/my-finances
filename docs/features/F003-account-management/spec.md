@@ -3,7 +3,7 @@
 ## Summary
 `Account` CRUD, types, opening balance, running balance calculation, and closing (PRD §5.4, §6.2 minus the transfer parts, which are F005). This is the central entity almost every other feature references.
 
-> **Superseded in part by [F017](../F017-institutions/spec.md):** `institution` below describes the shipped free-text column. F017 replaces it with a nullable `institution_id` referencing a shared `institutions` table (migration `V12`, `institution` on requests/responses becomes `institutionId`). Read this spec as history for that field.
+> **Superseded in part by [F017](../F017-institutions/spec.md):** `institution` below describes the shipped free-text column. F017 replaces it with a required `institution_id` referencing a shared `institutions` table with a seeded "No institution" row (migration `V12`; `institution` on requests/responses becomes a required `institutionId`). Read this spec as history for that field.
 
 ## Scope
 - `Account` entity: name, institution, type, opening balance/date, closed date.

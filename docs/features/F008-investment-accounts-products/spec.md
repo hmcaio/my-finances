@@ -4,7 +4,7 @@
 `InvestmentAccount`, `InvestmentCategory`, `InvestmentProduct` CRUD, with close-instead-of-delete once history exists (PRD §5.8 entities, §6.6 minus buy/sell logs and snapshots, which are F009). Distinct from the transactional `Account` (F003) — a separate container for investment holdings.
 
 ## Scope
-- `InvestmentAccount`: name, optional institution (a reference to F017's `Institution`), closed date.
+- `InvestmentAccount`: name, institution (a required reference to F017's `Institution`; "No institution" when none applies), closed date.
 - `InvestmentCategory`: flat, user-editable taxonomy (same pattern as F002's `Category`).
 - `InvestmentProduct`: name, parent investment account, category, closed date.
 - Delete-safety rule: hard delete only allowed with zero snapshot/buy-sell history; otherwise close.
@@ -13,14 +13,14 @@
 ## Backend
 
 ### Domain
-- `domain/investmentaccount/InvestmentAccount.java`: id, `name` (non-blank, capped at `TextFieldConstraints.MAX_NAME_LENGTH`, same convention as F002/F003), `institutionId` (nullable `UUID`; no import of `domain/institution` — existence is checked in the application service via `InstitutionRepository.existsById`, unknown id is `InstitutionNotFoundException` 404, same as `AccountService` after F017), `closedDate` (nullable).
+- `domain/investmentaccount/InvestmentAccount.java`: id, `name` (non-blank, capped at `TextFieldConstraints.MAX_NAME_LENGTH`, same convention as F002/F003), `institutionId` (required `UUID`, null-checked in the constructor; no import of `domain/institution` — existence is checked in the application service via `InstitutionRepository.existsById`, unknown id is `InstitutionNotFoundException` 404, same as `AccountService` after F017), `closedDate` (nullable).
 - `domain/investmentcategory/InvestmentCategory.java`: id, `name` (same non-blank/length-capped invariant) — same shape as F002's `Category` but a separate entity/table (different taxonomy, not shared rows).
 - `domain/investmentproduct/InvestmentProduct.java`: id, `investmentAccountId`, `investmentCategoryId`, `name` (same non-blank/length-capped invariant), `closedDate` (nullable).
 - Uniqueness of `name` is an application-layer concern on all three (`existsByName`/`existsByNameAndIdNot` on create/rename, 409 — same pattern as F002/F003's post-F007 hardening, see the header of `V10__db_constraint_hardening.sql`), not a domain-constructor check.
 - Delete-safety invariant (PRD §5.8): an `InvestmentAccount` or `InvestmentProduct` can only be hard-deleted while it has zero associated history; once F009's `InvestmentSnapshot`/`InvestmentBuySellLog` rows exist for it, only `close()` is permitted. This feature implements the `close()` behavior and the zero-history check as a port F009 fulfills (`HasInvestmentHistoryChecker` or similar), to avoid this feature depending on F009's tables directly.
 
 ### Persistence
-- `InvestmentAccountJpaEntity extends AuditableEntity`: table `investment_accounts` (`id uuid pk`, `name varchar(100) not null unique`, `institution_id uuid references institutions` (nullable, indexed), `closed_date date`). F017's `institutions` table must already exist (F017 lands first), so this migration references it directly with no later `ALTER`.
+- `InvestmentAccountJpaEntity extends AuditableEntity`: table `investment_accounts` (`id uuid pk`, `name varchar(100) not null unique`, `institution_id uuid not null references institutions` (indexed), `closed_date date`). F017's `institutions` table (with its seeded "No institution" row) must already exist (F017 lands first), so this migration references it directly with no backfill and no later `ALTER`.
 - `InvestmentCategoryJpaEntity extends AuditableEntity`: table `investment_categories` (`id uuid pk`, `name varchar(100) not null unique`).
 - `InvestmentProductJpaEntity extends AuditableEntity`: table `investment_products` (`id uuid pk`, `investment_account_id uuid not null references investment_accounts`, `investment_category_id uuid not null references investment_categories`, `name varchar(100) not null unique`, `closed_date date`).
 - All three `name` columns bounded `varchar(100)` (`TextFieldConstraints.MAX_NAME_LENGTH`) and `UNIQUE` from the start — F002's `categories`/`payment_methods` originally shipped as unbounded, unconstrained `text` and needed two follow-up migrations (`V3__bound_name_column_lengths.sql`, `V10__db_constraint_hardening.sql`) to fix; this feature should land with both already in place.
@@ -28,12 +28,12 @@
 
 ### API
 - `POST/GET/PATCH /api/investment-categories`, `DELETE /api/investment-categories/{id}` (blocked with `409` if referenced by a product, same pattern as F002).
-- `POST/GET/PATCH /api/investment-accounts` (create/update bodies and the response carry a nullable `institutionId`; PATCH is full-replace, so `null` clears it), `POST /api/investment-accounts/{id}/close`, `DELETE /api/investment-accounts/{id}` (only succeeds with zero history — `409` otherwise, directing the user to close instead).
+- `POST/GET/PATCH /api/investment-accounts` (create/update bodies and the response carry a required `institutionId`, `@NotNull` on the DTOs; PATCH is full-replace, so moving an account "to no institution" means sending the built-in row's id), `POST /api/investment-accounts/{id}/close`, `DELETE /api/investment-accounts/{id}` (only succeeds with zero history — `409` otherwise, directing the user to close instead).
 - `POST/GET/PATCH /api/investment-products`, `POST /api/investment-products/{id}/close`, `DELETE /api/investment-products/{id}` (same zero-history rule).
 
 ## Frontend
 - Investment categories settings list (add/rename/delete) — same UI pattern as F002's categories.
-- Investment accounts list (with closed toggle, institution column joined client-side from `GET /api/institutions`), create/edit form using F017's `InstitutionSelect` (optional, create inline), close action.
+- Investment accounts list (with closed toggle, institution column joined client-side from `GET /api/institutions`), create/edit form using F017's `InstitutionSelect` (mandatory, defaults to "No institution", create inline), close action.
 - Investment products list per account (name, category), create/edit form, close action; delete offered only while the product has no history (frontend checks via the product's detail response, which includes a `hasHistory` flag).
 
 - F017 follow-up: `InstitutionService.delete` gains the `InvestmentAccountRepository.existsByInstitutionId` check, so an institution referenced only by an investment account is also "in use" (409). Add the port method here and extend F017's delete tests.

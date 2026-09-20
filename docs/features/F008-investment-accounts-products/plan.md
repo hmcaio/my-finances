@@ -6,15 +6,15 @@
 - [ ] Write tests first for the delete-safety rule: delete is blocked once the (mockable) history checker returns `true`, allowed at zero history.
 - [ ] Add `domain/investmentaccount/InvestmentAccount.java`, `domain/investmentcategory/InvestmentCategory.java`, `domain/investmentproduct/InvestmentProduct.java`, and the `HasInvestmentHistoryChecker` port, implementing the above to make those tests pass (fulfilled by F009 once it exists; return `false` unconditionally until then).
 - [ ] Add JPA entities (extend `AuditableEntity`), repositories, adapters for all three.
-- [ ] Flyway migration `V8__investment_accounts_and_products.sql` (number TBD — highest is `V11` today, F017 takes `V12`); `investment_accounts.institution_id` references F017's `institutions`.
-- [ ] Write tests first for `InvestmentAccount.institutionId` (nullable) and for `InvestmentAccountService` rejecting an unknown institution id (404); add `InvestmentAccountRepository.existsByInstitutionId` and extend F017's `InstitutionService.delete` (and its tests) to treat an investment-account reference as in use (409).
+- [ ] Flyway migration `V8__investment_accounts_and_products.sql` (number TBD — highest is `V11` today, F017 takes `V12`); `investment_accounts.institution_id` is `NOT NULL` and references F017's `institutions`.
+- [ ] Write tests first for `InvestmentAccount.institutionId` (required, `null` rejected) and for `InvestmentAccountService` rejecting an unknown institution id (404); add `InvestmentAccountRepository.existsByInstitutionId` and extend F017's `InstitutionService.delete` (and its tests) to treat an investment-account reference as in use (409).
 - [ ] Write tests for category delete being blocked when referenced by a product, then implement application services: CRUD for categories; create/edit/close/delete (guarded by the history checker) for accounts and products.
 - [ ] REST controllers + DTOs.
 
 ## Frontend
 - [ ] `src/api/investmentCategories.ts`, `src/api/investmentAccounts.ts`, `src/api/investmentProducts.ts`.
 - [ ] `src/features/investmentCategories` — same list/add/rename/delete pattern as F002.
-- [ ] `src/features/investmentAccounts` — list (institution column), create/edit with F017's `InstitutionSelect`, close.
+- [ ] `src/features/investmentAccounts` — list (institution column), create/edit with F017's `InstitutionSelect` (mandatory, defaults to "No institution"), close.
 - [ ] `src/features/investmentProducts` — list per account, create/edit, close, delete gated on `hasHistory`.
 
 ## Verification

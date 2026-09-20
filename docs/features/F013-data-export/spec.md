@@ -4,7 +4,7 @@
 All-entity export as a ZIP of CSVs, with FK names denormalized inline, optionally filtered by date range/account/category (PRD §6.9). The last feature since it reads from every other entity in the system.
 
 ## Scope
-- One CSV per entity: `categories.csv`, `payment_methods.csv`, `institutions.csv`, `accounts.csv`, `transactions.csv`, `transfers.csv`, `budgets.csv` (one row per `BudgetVersion`), `recurring_templates.csv` (one row per `RecurringTemplateVersion`), `investment_accounts.csv`, `investment_categories.csv`, `investment_products.csv`, `investment_buy_sell_log.csv`, `investment_snapshots.csv`. `accounts.csv` and `investment_accounts.csv` carry `institution_id` and `institution_name` (empty when the account has no institution), per the FK-name convention.
+- One CSV per entity: `categories.csv`, `payment_methods.csv`, `institutions.csv`, `accounts.csv`, `transactions.csv`, `transfers.csv`, `budgets.csv` (one row per `BudgetVersion`), `recurring_templates.csv` (one row per `RecurringTemplateVersion`), `investment_accounts.csv`, `investment_categories.csv`, `investment_products.csv`, `investment_buy_sell_log.csv`, `investment_snapshots.csv`. `accounts.csv` and `investment_accounts.csv` carry `institution_id` and `institution_name` (never empty — accounts without a real institution point at the built-in "No institution" row, which `institutions.csv` includes), per the FK-name convention.
 - Delivered as a single ZIP download.
 - Optional filters: date range, account, category — applied only to files with that dimension (PRD §6.9 spells out exactly which files each filter touches); reference-only files are always exported in full.
 

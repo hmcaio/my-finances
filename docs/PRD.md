@@ -64,7 +64,7 @@ An expense transaction on an asset account (checking/savings/cash) reduces that 
 ### 5.4 Account
 - `id`
 - `name` (e.g. "Itaú Checking", "Nubank Credit Card")
-- `institution_id` (optional) — references an `Institution` (§5.10)
+- `institution_id` (required) — references an `Institution` (§5.10); "No institution" when the account isn't held at one
 - `type`: `CHECKING` | `SAVINGS` | `CASH_WALLET` | `CREDIT_CARD`
 - `opening_balance`: value as of `opening_balance_date`, set once when the account is created.
   - For `CHECKING` / `SAVINGS` / `CASH_WALLET`: an asset balance (money available).
@@ -123,7 +123,7 @@ Represents money moving between two accounts you own — most commonly paying a 
 
 Distinct from the transactional `Account` in §5.4 — this is a separate container for investment holdings, still valued by manual snapshot rather than transactions.
 
-- `InvestmentAccount`: `id`, `name` (e.g. "XP Renda Fixa", "Previdência Privada"), `institution_id` (optional, references an `Institution`, §5.10), `closed_date` (nullable) — a container grouping investment products.
+- `InvestmentAccount`: `id`, `name` (e.g. "XP Renda Fixa", "Previdência Privada"), `institution_id` (required, references an `Institution`, §5.10), `closed_date` (nullable) — a container grouping investment products.
 - `InvestmentCategory`: `id`, `name` (e.g. "Stocks", "Fixed Income", "ETF", "REITs (FIIs)", "Crypto") — flat, user-editable taxonomy, same pattern as transaction categories.
 - `InvestmentProduct`: `id`, `account_id`, `category_id`, `name` (e.g. "PETR4", "BOVA11", "Tesouro Selic"), `closed_date` (nullable) — a specific holding within an investment account.
 - `InvestmentBuySellLog`: `id`, `product_id`, `date`, `type` (`BUY` | `SELL`), `amount`, `note` (optional free text) — a record-keeping entry of when you bought/sold and how much; **not** used to compute current value (no quantity/price/cost-basis math).
@@ -140,8 +140,9 @@ A time series for the net worth trend chart is computed by evaluating this formu
 ### 5.10 Institution
 - `id`
 - `name` (e.g. "Nubank", "Itaú", "XP") — unique, flat and user-editable, same pattern as categories (§5.1). No type, no `closed_date`: it is a label, not something with a lifecycle.
+- `built_in` — true for exactly one seeded row, "No institution", which stands in for money that isn't at any institution (cash wallet, a private pension). It can be renamed but never deleted, and it is the default when picking an institution. Set by the schema migration only; users can't create built-in rows.
 
-An `Account` (§5.4) and an `InvestmentAccount` (§5.8) each point at zero or one institution, so the same institution can group a checking account, a credit card and a brokerage account. An institution that any account or investment account (open or closed) references can't be deleted — only renamed; re-pointing those accounts to another institution frees it. This is what makes "how much do I have at Nubank" answerable as a grouping over §5.4/§5.8 (see §9).
+An `Account` (§5.4) and an `InvestmentAccount` (§5.8) each point at exactly one institution, so the same institution can group a checking account, a credit card and a brokerage account, and every account always has a value to group by. An institution that any account or investment account (open or closed) references can't be deleted — only renamed; re-pointing those accounts to another institution frees it. This is what makes "how much do I have at Nubank" answerable as a grouping over §5.4/§5.8 (see §9).
 
 ## 6. Functional Requirements
 
@@ -151,7 +152,7 @@ An `Account` (§5.4) and an `InvestmentAccount` (§5.8) each point at zero or on
 - View running balance per account.
 
 ### 6.2 Accounts & Transfers
-- CRUD on accounts (name, optional institution picked from §6.10, type, opening balance, opening balance date).
+- CRUD on accounts (name, institution picked from §6.10 — defaults to "No institution", type, opening balance, opening balance date).
 - View an account's running balance and its transaction/transfer history.
 - Create a transfer between two accounts (date, from, to, amount, optional note); view transfer history.
 - Close an account (sets `closed_date`; auto-deactivates any recurring templates pointing at it). Closed accounts are excluded from "create new" pickers and the live balances widget, but remain browsable/exportable with their full history.
@@ -175,14 +176,14 @@ An `Account` (§5.4) and an `InvestmentAccount` (§5.8) each point at zero or on
 
 ### 6.6 Investments
 - CRUD on investment categories (name).
-- Create/edit investment accounts (name, optional institution from §6.10) and investment products (name, account, category); close one instead of deleting it once it has any snapshot or buy/sell history (same rule as closing an `Account`, §6.2) — delete is only offered while it still has zero history.
+- Create/edit investment accounts (name, institution from §6.10 — defaults to "No institution") and investment products (name, account, category); close one instead of deleting it once it has any snapshot or buy/sell history (same rule as closing an `Account`, §6.2) — delete is only offered while it still has zero history.
 - Log a buy/sell entry for a product (date, type, amount, optional note) — record-keeping only, does not affect computed value.
 - Add a balance snapshot (date + balance) to any investment product.
 - View snapshot/buy-sell history per product.
 - View investment allocation by category: latest snapshot per product, grouped and summed by category (pie/bar chart).
 
 ### 6.7 Onboarding
-- First-run flow: create at least one account, setting its opening balance and opening balance date (and optionally its institution, created inline if none exists yet).
+- First-run flow: create at least one account, setting its opening balance and opening balance date (and its institution, which defaults to "No institution"; a new one can be created inline).
 
 ### 6.8 Dashboard
 - Monthly spend by category (current month, chart or table).
@@ -204,8 +205,8 @@ An `Account` (§5.4) and an `InvestmentAccount` (§5.8) each point at zero or on
 
 ### 6.10 Institutions
 - CRUD on institutions (name), from a settings screen next to categories and payment methods.
-- An account or investment account picks its institution (optional) from that list and can clear it; typing a new name in the picker creates the institution inline.
-- Deleting an institution referenced by any account or investment account (open or closed) is blocked; renaming is always allowed.
+- An account or investment account always has an institution: it picks one from that list (defaulting to the seeded "No institution" row) and can change it; typing a new name in the picker creates the institution inline.
+- "No institution" can be renamed but not deleted. Deleting any other institution referenced by an account or investment account (open or closed) is blocked; renaming is always allowed.
 
 ## 7. Technical Design
 
@@ -242,7 +243,7 @@ These are low-level choices left to implementation rather than product decisions
 - Multi-currency support.
 - Quantity/price-based investment tracking (shares, cost basis, computed value, gain/loss) — a stricter version of the current buy/sell log + manual snapshot approach.
 - Manual physical assets (real estate, vehicles) in net worth.
-- Allocation by institution: how much is held at each institution (account balances plus latest investment snapshots, grouped by `institution_id`, with a "No institution" slice), as a dashboard pie chart. The data model (§5.10) already supports it; the query and widget are a later feature.
+- Allocation by institution: how much is held at each institution (account balances plus latest investment snapshots, grouped by `institution_id`; the built-in "No institution" row is just another slice), as a dashboard pie chart. The data model (§5.10) already supports it; the query and widget are a later feature.
 - Loan account type with amortization schedules (beyond the current checking/savings/cash/credit-card types).
 - Interest/fee accrual modeling on credit card liabilities.
 - Manual bank statement reconciliation (mark an account balance as matched against a real statement as of a date).
