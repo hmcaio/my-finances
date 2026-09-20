@@ -1,37 +1,69 @@
-# F009 — Investment Buy/Sell & Snapshots
+# F009 — Investment Trades, Snapshots & Reports
 
 ## Summary
-`InvestmentBuySellLog` (record-keeping only) and `InvestmentSnapshot` (the actual manually-entered value used everywhere else), plus the allocation-by-category view (PRD §5.8 logs/snapshots, §6.6 remaining). Fulfills F008's `HasInvestmentHistoryChecker` port.
+`InvestmentSnapshot` (the manually entered value used everywhere else), buys/sells as `Transfer`s tagged with a product (with quantity, unit price and taxes recorded as data), the snapshot-freshness rules that keep those two in step, the allocation view and a monthly per-product value series (PRD §5.5 trades, §5.8 snapshots, §6.6 remaining). Fulfills F008's `HasInvestmentHistoryChecker` port and gives `INVESTMENT` accounts their balance. Reworked by [ADR 0012](../../adr/0012-investments-as-accounts-and-transfers.md): there is no separate buy/sell log.
 
 ## Scope
-- `InvestmentBuySellLog`: date, type (BUY/SELL), amount, optional note — informational, never used in value calculations.
-- `InvestmentSnapshot`: date, balance — the sole source of a product's current value.
-- Allocation-by-category: latest snapshot per product, grouped by `InvestmentCategory`.
-- Fulfilling F008's history-check port so delete-safety on investment accounts/products actually works once this feature exists.
-- Out of scope: net worth itself (F010 consumes this feature's "latest snapshot per product" query).
+- `InvestmentSnapshot`: date, balance — the sole source of a product's current value; one per product per date.
+- Buy/sell = an F005 `Transfer` between a cash account and an `INVESTMENT` account, tagged with `investmentProductId`, optionally carrying `quantity`, `unitPrice` and `taxes` (record-only).
+- Snapshot freshness: an optional resulting balance on the trade, a `needsSnapshot` flag, and a close guard on products.
+- `INVESTMENT` account balance = sum of its products' latest snapshots.
+- Allocation by category or sub-category (latest snapshot per product, grouped).
+- Monthly value series per product (value, contributions, units).
+- Fulfilling F008's history-check port so delete-safety on products actually works once this feature exists.
+- Out of scope: net worth itself (F010 consumes this feature's "latest snapshot per product" query); cost basis, gain/loss or any value derived from quantity/price (PRD non-goal); allocation by institution (later feature); grouping the value series by category.
+
+## Decisions
+- **A buy/sell is a transfer, not a transaction.** It swaps cash for an investment, so it must not count as expense/income, hit a budget or need a category and payment method (same reasoning as paying a credit card statement, ADR 0001). A transfer already has two endpoints and no category.
+- **Snapshots stay the sole source of value; trades never feed balances of the investment side.** After a buy, cash drops at once but net worth dips by the amount until the next snapshot; after a sell, the old snapshot keeps counting until replaced. The freshness rules below exist to close that gap without computing values from quantity × price.
+- **`amount` stays "cash that actually moved".** Buy: `quantity × unitPrice + taxes`; sell: `quantity × unitPrice − taxes`. The form prefills it and the user can override; the backend does not enforce the equality (brokers round per lot), so quantity/price/taxes never feed a balance.
+- **Trade details are all optional and record-only.** Some products (fixed income, pension plans) have no units.
+- **One snapshot per product per day.** Without it "latest snapshot" is ambiguous when a trade-time snapshot and a manual one share a date, and the monthly series would be nondeterministic.
 
 ## Backend
 
 ### Domain
-- `domain/investmentbuysell/InvestmentBuySellLog.java`: id, `productId`, `date`, `type` (`BUY`/`SELL`), `amount` (positive - domain-constructor-checked, same `requireValidAmount` pattern as `Transaction`/`Transfer`/`BudgetVersion`/`RecurringTemplateVersion`), `note` (nullable). No behavior beyond storage — explicitly not used to compute value (PRD §5.8).
-- `domain/investmentsnapshot/InvestmentSnapshot.java`: id, `productId`, `date`, `balance` (non-negative, domain-constructor-checked - `0` is a legitimate value for a liquidated-but-not-yet-closed position, so this is `>= 0`, not `> 0` like every other amount field in this codebase). No cadence/scheduling requirement — created whenever the user chooses.
-- "Latest snapshot per product as of a date" is an application-layer query (`LatestInvestmentSnapshotQuery`), reused by this feature's allocation view and by F010's net worth calculation.
+- `domain/investmentsnapshot/InvestmentSnapshot.java`: id, `productId`, `date`, `balance` (non-negative, domain-constructor-checked — `0` is a legitimate value for a liquidated position, so this is `>= 0`, not `> 0` like every other amount field in this codebase). `replaceBalance(newBalance)` re-validates; no cadence/scheduling requirement.
+- `domain/transfer/Transfer.java` (F005): gains nullable `investmentProductId` and an `InvestmentTradeDetails` value object (`quantity`, `unitPrice`, `taxes`, each nullable). Invariants: details require a product; `quantity` and `unitPrice` are both present or both absent, each `> 0`; `taxes`, when present, `>= 0`. The domain never imports the account or product packages.
+- "Latest snapshot per product as of a date" is an application-layer query (`LatestInvestmentSnapshotQuery`), reused by the allocation view, `AccountBalanceQuery` and F010. A product with no snapshot on or before the date contributes nothing. Products need no closed-date filter: the close guard below means a closed product's latest snapshot is `0`.
+
+### Application
+- `TransferService` (F005) gains the investment rules; every case depends on persisted account/product state, so all are `409` with their own exception. Applied on create and edit:
+  - an endpoint that is an `INVESTMENT` account requires `investmentProductId`, and the product must belong to that account;
+  - `investmentProductId` requires exactly one `INVESTMENT` endpoint (a transfer between two `INVESTMENT` accounts isn't modeled);
+  - the product must be open (`InvestmentProductClosedException`);
+  - structural failures use `InvestmentTransferInvalidException`.
+  Direction is derived: destination `INVESTMENT` = buy, source `INVESTMENT` = sell; it isn't stored. Quantity/price/taxes without a product, or a `resultingBalance` without one, are `400` (DTO).
+- **Resulting balance.** `create` accepts an optional `resultingBalance` (`>= 0`). When present, the use case is `@Transactional` (multi-write, backend CLAUDE.md) and writes the transfer plus an `InvestmentSnapshot` dated the transfer date (a same-day snapshot is replaced). "Sold entire position" in the UI simply sends `0`. Editing a transfer never touches snapshots.
+- **`InvestmentSnapshotService`**: `record(productId, date, balance)` upserts on `(productId, date)`; the product must exist. `findByProduct` (date descending).
+- **Freshness flag.** A product `needsSnapshot` as of a date when it has a tagged transfer dated after its latest snapshot on or before that date, or a trade and no snapshot. Computed on read, never stored; returned on the product responses and on each allocation row.
+- **Close guard.** `InvestmentProductService.close` (F008) returns `409` unless the latest snapshot is `0` or absent (`InvestmentProductNotEmptyException`), so a closed product never keeps counting a stale value.
+- **`HasInvestmentHistoryChecker`** implementation: `true` if a snapshot row exists for the product or any transfer has `investment_product_id` = the product.
+- **`AccountBalanceQuery`** (F003): the `INVESTMENT` branch F008 stubbed at `0` now sums the account's products' latest snapshots as of the date. Transactions and transfers on it don't contribute.
+- **Allocation.** `groupBy=CATEGORY` groups the latest snapshots of all products by their category; `groupBy=SUBCATEGORY` by category then sub-category, with a null sub-category for products that have none. Products with a `0` or missing snapshot add nothing. An `INVESTMENT` account counts at a date only if it existed then (its products' snapshots imply that).
+- **Value series.** Per product and month-end (the current month at today): `value` (latest snapshot on or before the point, `null` before the first), `contributed` (that month's buys minus sells — cash moved, taxes included), `units` (running buys minus sells of `quantity`, `null` when the product has no recorded quantities). Raw data only.
+- Logging (backend CLAUDE.md): ids and counts only, never amounts, quantities, prices or names; INFO for the snapshot written as part of a trade.
 
 ### Persistence
-- `InvestmentBuySellLogJpaEntity extends AuditableEntity`: table `investment_buy_sell_logs` (`id uuid pk`, `product_id uuid not null references investment_products`, `date date not null`, `type text not null check (type in ('BUY', 'SELL'))`, `amount numeric(19,2) not null check (amount > 0)`, `note text`).
-- `InvestmentSnapshotJpaEntity extends AuditableEntity`: table `investment_snapshots` (`id uuid pk`, `product_id uuid not null references investment_products`, `date date not null`, `balance numeric(19,2) not null check (balance >= 0)`).
-- `amount`/`balance` are `numeric(19,2)`, matching the currency-minor-unit precision convention every other money column in this codebase uses (`transactions.amount`, `accounts.opening_balance`, etc.) - not plain unscaled `numeric`. Both `CHECK` constraints are defense in depth alongside the domain-constructor checks above and matching `@Positive`/`@DecimalMin(value = "0.0")` on the request DTOs - this codebase backs every cross-cutting amount invariant at all three layers (DTO, domain, DB) since the post-F007 schema audit found `amount > 0` was missing at the DB layer for F004-F007's own amount columns (see `V10__db_constraint_hardening.sql`); land F009 with all three from the start rather than needing a follow-up migration. The `type` `CHECK` follows the same convention `categories.type`/`accounts.type`/`transactions.type` already use for every enum-backed `text` column.
-- Migration number TBD at implementation time (not necessarily `V9` - see F008's spec.md note on the same issue; check the highest existing `V*` migration before naming this one).
-- Implement `HasInvestmentHistoryChecker` (F008's port) here: `true` if any row exists in either table for the given product/account.
+- `InvestmentSnapshotJpaEntity extends AuditableEntity`: table `investment_snapshots` (`id uuid pk`, `product_id uuid not null references investment_products`, `date date not null`, `balance numeric(19,2) not null check (balance >= 0)`, `UNIQUE (product_id, date)`).
+- `transfers` (V7) gains: `investment_product_id uuid references investment_products` (indexed), `quantity numeric(19,8)`, `unit_price numeric(19,8)`, `taxes numeric(19,2)`. `CHECK (quantity IS NULL OR quantity > 0)`, `CHECK (unit_price IS NULL OR unit_price > 0)`, `CHECK (taxes IS NULL OR taxes >= 0)`, `CHECK ((quantity IS NULL) = (unit_price IS NULL))`, and `CHECK (investment_product_id IS NOT NULL OR (quantity IS NULL AND unit_price IS NULL AND taxes IS NULL))`. Existing rows satisfy all of these (new columns are null).
+- Scale 8 on `quantity`/`unit_price` is a deliberate exception to the root CLAUDE.md "money is `numeric(19,2)`" rule (fractional units, crypto, sub-cent prices); `taxes` and `balance` follow the rule.
+- `balance`, `quantity`, `unit_price` and `taxes` are backed at all three layers (DTO `@PositiveOrZero`/`@Positive`, domain constructor, DB `CHECK`) from the start — the post-F007 audit found `amount > 0` missing at the DB layer for F004–F007 (see `V10__db_constraint_hardening.sql`).
+- Migration number TBD at implementation time (check the highest existing `V*`, per every prior feature's note).
 
 ### API
-- `POST /api/investment-products/{id}/buy-sell-logs`, `GET /api/investment-products/{id}/buy-sell-logs`.
-- `POST /api/investment-products/{id}/snapshots`, `GET /api/investment-products/{id}/snapshots`.
-- `GET /api/investments/allocation?asOf=` — `{ categoryId, categoryName, totalValue }[]`, computed from latest snapshot per product as of the given date (default today), grouped by category.
+- `POST /api/investment-products/{id}/snapshots` (`{date, balance}`; `201` when created, `200` when it replaced the same-day snapshot), `GET /api/investment-products/{id}/snapshots`.
+- Transfers (F005's endpoints): create/update bodies gain optional `investmentProductId`, `quantity`, `unitPrice`, `taxes`; create also takes optional `resultingBalance`. Responses gain the four fields. `GET /api/transfers` gains an `investmentProductId` filter (the product's trade history).
+- Investment products (F008): list/detail responses gain `needsSnapshot` and `latestSnapshot` (`{date, balance}` or null).
+- `GET /api/investments/allocation?asOf=&groupBy=CATEGORY|SUBCATEGORY` (default `CATEGORY`, `asOf` defaults to today). `CATEGORY` rows: `{categoryId, categoryName, totalValue, needsSnapshot}`. `SUBCATEGORY` rows: `{categoryId, categoryName, subcategoryId, subcategoryName, totalValue, needsSnapshot}` with the sub-category fields null for products without one. Category totals equal the sum of their sub-category rows; `needsSnapshot` is true if any product in the group is stale.
+- `GET /api/investments/value-series?from=&to=&productId=` (`from`/`to` as `YearMonth`; `productId` omitted = one series per product) → `{productId, points: [{month, value, contributed, units}]}[]`. Check the generated schema for the `YearMonth` fields (root CLAUDE.md).
 
 ## Frontend
-- Per-product detail view (under F008's investment product screens): buy/sell log entry form + history list, snapshot entry form + history list.
-- Allocation-by-category chart (pie/bar) — reusable component also embedded in F012's dashboard.
+- Per-product detail view (under F008's product screens): snapshot entry form + history, the product's trade history (transfers filtered by product), Buy/Sell buttons, and a chart with the value line and contribution bars from the value series.
+- **Transfer form** (F005) extended: when an `INVESTMENT` account is picked, show a product select (that account's open products), then quantity, unit price and taxes with a live total that prefills `amount` (buy: quantity × price + taxes; sell: quantity × price − taxes; the user can override), and an optional resulting balance. The resulting balance is prefilled with the prior latest snapshot plus the gross traded value (`amount − taxes` for a buy, `amount + taxes` for a sell, or quantity × price when given) as a suggestion the user edits. A "Sold entire position" checkbox sets it to `0`. The Buy/Sell buttons open this form with the direction and product preset.
+- `needsSnapshot` shows as a badge on the product list/detail and as a footnote on the allocation chart. Closing a product that still has value shows the `409` with an explicit `conflictMessage` pointing to "record a zero snapshot / sell entire position" (backend sends no text).
+- Allocation chart component (pie/bar) with click-to-drill from a category into its sub-categories, reusable and embedded in F012's dashboard.
+- `src/api/investmentSnapshots.ts`, `src/api/investmentAllocation.ts`, `src/api/investmentValueSeries.ts`; extend `src/api/transfers.ts` and its MSW handlers.
 
 ## Dependencies
-F001, F008 (investment accounts/products/categories).
+F001, F003 (`AccountBalanceQuery`), F005 (transfers), F008 (accounts/products/taxonomy), F015.

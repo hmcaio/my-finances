@@ -3,6 +3,8 @@
 ## Summary
 `Transfer` between two accounts — most commonly paying a credit card statement from checking (PRD §5.5, §6.2 transfer part). Keeps spend and debt correctly separated instead of double-counting (PRD §1).
 
+> **Extended by [F009](../F009-investment-buysell-snapshots/spec.md) ([ADR 0012](../../adr/0012-investments-as-accounts-and-transfers.md)):** a transfer between a cash account and an `INVESTMENT` account is how a buy or sell is recorded. `transfers` gains a nullable `investment_product_id` and record-only `quantity`, `unit_price` and `taxes`, the service gains investment-specific rules, and the transfer form and list gain the matching fields and a product filter. Ordinary transfers are unaffected.
+
 ## Scope
 - `Transfer` entity: date, from-account, to-account, amount, mandatory description (max 150 chars), optional additional notes (max 500 chars).
 - Two-sided balance effect, folded into `AccountBalanceQuery` (F003) alongside transactions.

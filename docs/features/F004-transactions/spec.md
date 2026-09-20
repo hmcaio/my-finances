@@ -24,6 +24,7 @@
 - Migration `V5__transactions.sql` — not `V4`, as this spec originally said before F003 landed: F003 already claimed `V4__accounts.sql` (after F002's own out-of-band `V3__bound_name_column_lengths.sql` claimed `V3`), same renumbering story F003's own spec.md documented for its `V3`→`V4` move. Indexes on `account_id`, `category_id`, `date` (all are filter/aggregation dimensions used here and by F006/F010/F013).
 - Migration `V6__transaction_description_and_notes.sql` (post-ship follow-up): adds the mandatory `description` column (backfilled `''` for any pre-existing row, then the default is dropped) and renames/narrows the original `note text` column into `additional_notes varchar(500)`.
 - Reject inserting a transaction against a closed `Account` (enforced in the application service, calling into F003's `Account.isClosed()`).
+- Extended by [F008](../F008-investment-accounts-products/spec.md) ([ADR 0012](../../adr/0012-investments-as-accounts-and-transfers.md)): also reject a transaction against an `INVESTMENT` account (409, `AccountTypeNotAllowedException`), on create and edit — money moves in and out of those accounts through transfers, and their value comes from snapshots. The transaction form's account dropdown excludes them.
 
 ### API
 - `POST /api/transactions`, `GET /api/transactions/{id}`, `PATCH /api/transactions/{id}`, `DELETE /api/transactions/{id}`. `PATCH` is a full-replace body (every editable field required), matching F002/F003's existing update-endpoint convention rather than a partial patch.

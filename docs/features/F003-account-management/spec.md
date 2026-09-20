@@ -5,6 +5,8 @@
 
 > **Superseded in part by [F017](../F017-institutions/spec.md):** `institution` below describes the shipped free-text column. F017 replaces it with a required `institution_id` referencing a shared `institutions` table with a seeded "No institution" row (migration `V12`; `institution` on requests/responses becomes a required `institutionId`). Read this spec as history for that field.
 
+> **Extended by [F008](../F008-investment-accounts-products/spec.md) ([ADR 0012](../../adr/0012-investments-as-accounts-and-transfers.md)):** `AccountType` gains `INVESTMENT`. For that type `openingBalance`/`openingBalanceDate` are null (they stay required for every other type, so the `NOT NULL` columns above become nullable behind a type-dependent `CHECK`), transactions and recurring templates are rejected, closing needs all its products closed, and the balance is the sum of its products' latest snapshots (F009; `0` until then). Everything above still holds for the other four types.
+
 ## Scope
 - `Account` entity: name, institution, type, opening balance/date, closed date.
 - Running balance calculation (depends on `Transaction` from F004 and `Transfer` from F005 — the formula is specified here, but full correctness lands once those features exist; this feature can compute balance from opening balance alone until then).
