@@ -35,8 +35,8 @@ Suggested order: domain and services first, then the migration, then the API swi
 ## Verification
 - [x] On a dev database that already has accounts with free-text institutions (incl. two spelled differently only by case, and some with none), start the backend: `institutions` holds "No institution" plus one row per distinct name, every account has an institution, and the accounts that had none point at "No institution".
 - [x] On a fresh database, `GET /api/institutions` returns exactly the built-in row.
-- [ ] Create an institution inline from the account form, assign it, rename it, and confirm both account screens show the new name.
-- [ ] The add-account form preselects "No institution"; the field can't be cleared.
-- [ ] Delete "No institution": no button in the UI, `409` from the API. Delete an institution that an account (including a closed one) uses: rejected with the "still used" message; re-point the account, then delete succeeds.
-- [ ] Rename "No institution" to another label: everything keeps working and the row still can't be deleted.
+- [x] Create an institution inline from the account form, assign it, rename it, and confirm both account screens show the new name.
+- [x] The add-account form preselects "No institution"; the field can't be cleared.
+- [x] Delete "No institution": no button in the UI, `409` from the API. Delete an institution that an account (including a closed one) uses: rejected with the "still used" message; re-point the account, then delete succeeds.
+- [x] Rename "No institution" to another label: everything keeps working and the row still can't be deleted.
 - [x] Missing/`null` `institutionId` on account create/edit is `400`; a malformed uuid is `400`; an unknown uuid is `404`.
