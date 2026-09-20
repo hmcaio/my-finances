@@ -1,0 +1,78 @@
+# F017 — Institutions
+
+## Summary
+`Institution` as its own entity (PRD §5.10): a flat, user-editable list of the banks/brokers/issuers money sits at ("Nubank", "Itaú", "XP"). `Account` (F003) and `InvestmentAccount` (F008) each **must** reference exactly one, by foreign key, instead of carrying a free-text `institution` string. A single seeded, built-in **"No institution"** row is the answer for money that isn't at any institution (cash wallet, "Previdência Privada"), so the field is mandatory without forcing a made-up value. This turns a display label into a dimension that always has a value, which is what a future "how much do I have at Nubank" / allocation-by-institution dashboard chart needs (see "Enabled later" below).
+
+This feature **changes shipped F003 code and data**: `accounts.institution` (optional free text, V4) is replaced by a `NOT NULL` `accounts.institution_id`, with a backfill. F008 is not built yet, so it is written against this feature instead of being migrated later — F017 must land **before** F008.
+
+## Scope
+- `Institution` CRUD: create, list, rename, delete (blocked while referenced, and always for the built-in row).
+- The seeded built-in "No institution" row.
+- Migrate `accounts.institution` → `accounts.institution_id NOT NULL` (schema, data backfill, API, UI).
+- `InvestmentAccount` gets the same mandatory `institution_id` — specified here, implemented by F008 (see its spec), because that table doesn't exist yet.
+- A shared frontend `InstitutionSelect` (pick or create inline; defaults to the built-in row), reused by the account form now, by F011's onboarding form, and by F008's investment-account form.
+- `institutions.csv` in F013's export, plus institution id/name columns on `accounts.csv` and `investment_accounts.csv` (spec'd in F013).
+- Out of scope: the allocation-by-institution query and chart (needs F009's snapshots and F010's balances — a later feature), closing an institution, merging two institutions, institution metadata (logo, country, type), any seed rows beyond "No institution".
+
+## Decisions
+- **One shared table, not one per account kind.** The same institution shows up on both sides (Nubank has a credit card and an investment account); two tables would split "how much at Nubank" back into two names.
+- **Mandatory, with a seeded fallback instead of `NULL`.** `institution_id` is `NOT NULL` on both account kinds, and "No institution" is a real row. This keeps every institution query an inner join with no null bucket to special-case, and a chart slice is just a row. Trade-off: every account needs an explicit choice, softened by the picker defaulting to the built-in row so it costs the user nothing.
+- **The built-in row is identified by a flag, not by its name or a hard-coded id.** `institutions.built_in boolean NOT NULL DEFAULT false`, exactly one row `true` (partial unique index). It **can be renamed** (e.g. to "Sem instituição") **but never deleted**. Because identity is the flag, renaming can't break anything that depends on it, and no code hard-codes a uuid. The flag is set only by the migration; the application can't create a built-in row.
+- **Flat taxonomy, no `closed_date`.** Same shape as F002's `Category`. An institution is a label, not a thing with a lifecycle; closing an account doesn't close its institution.
+- **Ids in responses, names joined client-side.** Matches the rest of the API (no `categoryName`/`accountName` in backend responses; pages join against the list with `nameLookup`). Only the F013 export denormalizes names server-side.
+- **Breaking API change, one PR.** `institution: string` becomes a required `institutionId: uuid` on account requests/responses, and the frontend and regenerated types ship in the same PR. No compatibility shim — single-user local app, no external API consumers.
+
+## Backend
+
+### Domain
+- `domain/institution/Institution.java`: `id`, `name` (non-blank, capped at `TextFieldConstraints.MAX_NAME_LENGTH`), `builtIn` (read-only, `isBuiltIn()`). `create(id, name)` always yields `builtIn == false`; `reconstitute(id, name, builtIn)` rebuilds persisted state; `rename(newName)` re-validates and is allowed on the built-in row. No other invariants.
+- `domain/institution/InstitutionRepository` port: `save`, `findById`, `findAll`, `deleteById`, `existsById`, `existsByName`, `existsByNameAndIdNot` (as `CategoryRepository`).
+- `Account`: `String institution` becomes `UUID institutionId`, **required** (`Objects.requireNonNull(institutionId, "institutionId must not be null")` in the constructor and `edit`, the domain layer of the three-layer rule). The `requireValidInstitution` length check goes away (nothing free-text left); `create`/`reconstitute`/`edit(name, institutionId)` take the id. **No import of `domain/institution`** — the domain only holds the id; existence is checked in the application service (backend CLAUDE.md: domain packages never import another aggregate).
+- `AccountRepository` gains `existsByInstitutionId(UUID)` (backs the delete guard).
+- Uniqueness of `name`: application layer, `existsByName`/`existsByNameAndIdNot`, `InstitutionNameAlreadyExistsException` (409, exact match, case-sensitive) — same rule and same DB backstop (`UNIQUE`) as every other named entity. It also means nobody can create a second "No institution" by name.
+
+### Application
+- `application/institution/InstitutionService`: `create`, `findAll`, `rename`, `delete`; ids from `IdGenerator` (ADR 0005). Exceptions in the same package, each `@ResponseStatus`: `InstitutionNotFoundException` (404), `InstitutionNameAlreadyExistsException` (409), `InstitutionInUseException` (409), `BuiltInInstitutionException` (409 — validity depends on the persisted row, not on the request's shape).
+- `delete`, in order: unknown → `InstitutionNotFoundException`; `institution.isBuiltIn()` → `BuiltInInstitutionException`; referenced → `InstitutionInUseException`. "Referenced" is `AccountRepository.existsByInstitutionId(id)` — and, once F008 lands, `InvestmentAccountRepository.existsByInstitutionId(id)` (F008 adds that check, exactly as F002's category delete only got its transaction/budget/template checks when those features existed). Closed accounts still count: accounts are never deleted, so a referenced institution can't be removed. That's fine because `Account.edit` works on closed accounts too — the user re-points every account and then deletes the empty institution. This is also the merge path (no merge feature).
+- `AccountService.create`/`edit` take a non-null `UUID institutionId`, which must exist: `InstitutionRepository.existsById`, else `InstitutionNotFoundException` (404), same as an unknown `categoryId` on a transaction. `edit` is full-replace (backend CLAUDE.md), so moving an account "to no institution" means sending the built-in row's id.
+- No new `@Transactional`: each use case still performs a single write.
+- No logging beyond the access line: create/rename/delete are plain CRUD (backend CLAUDE.md logging rule), and names are never logged.
+
+### Persistence
+- `InstitutionJpaEntity extends AuditableEntity` (with `builtIn`, read-only from the app's point of view: mapped, never set to `true` by any application path), package-private `InstitutionJpaRepository`, `InstitutionRepositoryAdapter` (`reconstitute(...)`), in `infrastructure/persistence/institution`.
+- `AccountJpaEntity`: `String institution` becomes `UUID institutionId` (`nullable = false`); `AccountRepositoryAdapter` maps it both ways; `AccountJpaRepository` gains `existsByInstitutionId`.
+- Migration `V12__institutions.sql` (highest existing is `V11`; **re-check at implementation time** — every feature so far has had to renumber). One migration, in this order:
+  1. `CREATE TABLE institutions (id uuid PRIMARY KEY, name varchar(100) NOT NULL, built_in boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL, last_modified_at timestamptz NOT NULL, CONSTRAINT uq_institutions_name UNIQUE (name))` — bounded and unique from the start (F008's lesson, V3/V10 retrofits) — plus `CREATE UNIQUE INDEX uq_institutions_single_built_in ON institutions ((true)) WHERE built_in` so there can never be two built-in rows.
+  2. **Seed** the built-in row: `INSERT INTO institutions (id, name, built_in, created_at, last_modified_at) VALUES (gen_random_uuid(), 'No institution', true, now(), now())`. `gen_random_uuid()` as V2 does for its seed (a one-time migration id, not an application id — ADR 0005 stays intact for anything created through the app).
+  3. **Backfill** one institution per distinct existing `accounts.institution` value. Normalization, applied once here (the ongoing rule stays exact/case-sensitive like everywhere else): trim whitespace; skip blank/`NULL`; skip any value that equals "No institution" ignoring case (it maps to the seeded row instead, so the unique name can't collide); treat values that differ only by case as one institution, keeping a deterministic spelling (`min()` of the trimmed variants). Accent variants ("Itaú" vs "Itau") are **not** merged — no safe rule, and the user can fix it in the UI.
+  4. `ALTER TABLE accounts ADD COLUMN institution_id uuid REFERENCES institutions (id)` (nullable for now), then `UPDATE accounts` to point each row at the institution whose normalized name matches its old value, and every remaining row (`NULL`, blank, or "No institution") at the built-in row.
+  5. `ALTER TABLE accounts ALTER COLUMN institution_id SET NOT NULL`, then `CREATE INDEX idx_accounts_institution_id ON accounts (institution_id)` (FK lookups for the delete guard now, group-by later).
+  6. `ALTER TABLE accounts DROP COLUMN institution`. Data-preserving after step 4, but **not reversible** by Flyway — note it in the migration header and the CHANGELOG `Upgrade:` line.
+- Test the migration against pre-existing data (backend CLAUDE.md pattern; `PendingOccurrenceCycleUniquenessMigrationTest` is the model): Flyway by hand into a throwaway schema, `target("11")`, insert accounts with `NULL`, `''`, `'  '`, `'No institution'`, `'no INSTITUTION'`, `'Nubank'`, `' Nubank '`, `'nubank'`, `'Itaú'`, migrate to 12, assert the institution set (built-in + Nubank + Itaú only), each account's `institution_id` (the first four → the built-in row, the three Nubank spellings → one row), that the column is `NOT NULL`, and that the old column is gone. Use a non-pooled `DriverManagerDataSource`.
+- **Seed rows in real-DB tests** (same caveat as V2's seeds, backend CLAUDE.md): the built-in row exists in the shared Testcontainers Postgres before any test runs and rollback never removes it. Fixtures must not reuse the name "No institution" (the `" Test"` suffix convention), tests must not assume `findAll()` is empty or a fixed size, and any real-DB test that creates an `Account` needs a valid `institution_id` — look up the built-in row (`findAll()` filtered by `isBuiltIn()`) or create a fixture institution.
+- **Interaction with F008:** its `investment_accounts` migration is written after this one and declares `institution_id uuid NOT NULL REFERENCES institutions (id)` from day one (empty table, no backfill). If F008 somehow lands first, this migration must instead also add and backfill the column on `investment_accounts`; F008's spec assumes the F017-first order.
+
+### API
+- `GET /api/institutions` — plain list (row count is inherently small; not paged). Each item is `{ id, name, builtIn }`. The list is sorted by `name`; the frontend surfaces the built-in row where it wants it.
+- `POST /api/institutions` — `{ name }` → `201` (`@NotBlank @Size(max = MAX_NAME_LENGTH)`); the created row is never built-in.
+- `PATCH /api/institutions/{id}` — full-replace `{ name }`; works on the built-in row.
+- `DELETE /api/institutions/{id}` — `204`; `409` for the built-in row (`BuiltInInstitutionException`) or while referenced (`InstitutionInUseException`); `404` if unknown.
+- `POST /api/accounts` / `PATCH /api/accounts/{id}`: `institution` (string) is replaced by `institutionId` (**required** uuid, `@NotNull`, the DTO layer of the three-layer rule) in `CreateAccountRequest`/`UpdateAccountRequest`; `AccountResponse.institution` is replaced by a non-null `institutionId`. Missing/`null` → `400` (validation), malformed uuid → `400`, unknown id → `404`. The `@Size` on the old string goes away.
+- Regenerate `frontend/src/api/generated/schema.ts` (`npm run generate-api-types`, backend running).
+- Errors: nothing new in `GlobalExceptionHandler` — each new expected case has its own `@ResponseStatus` exception (backend CLAUDE.md).
+
+## Frontend
+- `src/api/institutions.ts`: `getInstitutions`, `createInstitution`, `renameInstitution`, `deleteInstitution`; the `Institution` type has `builtIn: boolean`. The delete call passes an explicit `conflictMessage` ("This institution is still used by an account") — the backend sends no message text, so without it the user only sees "Request failed with status 409". The built-in row's delete button is never shown, so that path only covers the referenced case.
+- `src/features/institutions/InstitutionsPage.tsx`, route `/settings/institutions`, nav entry next to categories/payment methods: list, add, inline rename, delete — the same pattern and components as `CategoriesPage`/`PaymentMethodsPage` (`name` input with `maxLength`). The built-in row is listed first, renamable, with no delete action.
+- `src/features/institutions/InstitutionSelect.tsx`: a MUI `Autocomplete` over `getInstitutions()` with `disableClearable` (the field is mandatory), value is `institutionId: string`. The built-in row is listed first and is the **default** when the caller passes no value, so creating an account costs no extra step. Typing a name that doesn't exist offers "Add “X”", which `POST`s and selects the result. Reused unchanged by F008's investment-account form and by F011's onboarding.
+- `src/features/accounts`:
+  - Add-account form and the inline row edit swap the institution text field for `InstitutionSelect` (create defaults to the built-in row; edit starts from the account's current value). The request always sends `institutionId`.
+  - List column and detail-page header show the institution name via `nameLookup(institutions, i => i.name)` (as `TransactionsPage` does for accounts) — no "—" / "No institution" special case, since every account has a real row.
+  - `src/api/accounts.ts`: `Account.institution: string | null` becomes `institutionId: string`; update `src/mocks/handlers/accounts.ts` and add `src/mocks/handlers/institutions.ts` (which includes the built-in row).
+- Loading/error states: use the same skeleton + "Could not load data" retry row as the other pages.
+
+## Enabled later (not built here)
+"Allocation by institution" = per institution, the sum of (a) balances of its non-closed asset `Account`s grouped by `accounts.institution_id`, and (b) the latest snapshot of each `InvestmentProduct` grouped by its `InvestmentAccount`'s `institution_id`. Because the column is mandatory, that is a plain inner join, and the "No institution" slice is just the built-in row's group. That needs F009 (snapshots) and F010 (balances), so it is its own feature after them, feeding a widget in F012's dashboard. Decisions deferred to that feature: whether credit cards (liabilities) are excluded or netted against their issuer's slice, and whether the chart uses closed accounts as of a date. This feature's job is only to make `institution_id` exist, be indexed, always be set, and be trustworthy.
+
+## Dependencies
+F001, F002 (the `Category` pattern it mirrors), F003 (changes its schema and API). F008, F011, F013 depend on this feature (their specs are updated accordingly).
