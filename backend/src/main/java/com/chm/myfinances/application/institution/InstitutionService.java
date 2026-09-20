@@ -4,6 +4,7 @@ import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.institution.Institution;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.shared.IdGenerator;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -44,8 +45,11 @@ public class InstitutionService {
     return institutionRepository.save(institution);
   }
 
+  /** Every institution, sorted by name (case-insensitive) - the list is small, so not paged. */
   public List<Institution> findAll() {
-    return institutionRepository.findAll();
+    return institutionRepository.findAll().stream()
+        .sorted(Comparator.comparing(Institution::getName, String.CASE_INSENSITIVE_ORDER))
+        .toList();
   }
 
   public Institution rename(UUID id, String newName) {

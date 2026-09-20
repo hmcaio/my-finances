@@ -94,6 +94,18 @@ class InstitutionServiceTest {
   }
 
   @Test
+  void findAllIsSortedByNameIgnoringCase() {
+    service.create("nubank");
+    service.create("Zed");
+    service.create("Itau");
+    seedBuiltIn();
+
+    assertThat(service.findAll())
+        .extracting(Institution::getName)
+        .containsExactly("Itau", "No institution", "nubank", "Zed");
+  }
+
+  @Test
   void renameUpdatesTheName() {
     Institution created = service.create("Nubank");
 
