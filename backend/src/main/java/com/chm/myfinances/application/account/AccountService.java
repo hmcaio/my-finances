@@ -1,9 +1,11 @@
 package com.chm.myfinances.application.account;
 
+import com.chm.myfinances.application.institution.InstitutionNotFoundException;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountClosedNotifier;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
+import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.shared.IdGenerator;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -31,30 +33,34 @@ public class AccountService {
   private static final Logger log = LoggerFactory.getLogger(AccountService.class);
 
   private final AccountRepository accountRepository;
+  private final InstitutionRepository institutionRepository;
   private final IdGenerator idGenerator;
   private final AccountClosedNotifier accountClosedNotifier;
 
   public AccountService(
       AccountRepository accountRepository,
+      InstitutionRepository institutionRepository,
       IdGenerator idGenerator,
       AccountClosedNotifier accountClosedNotifier) {
     this.accountRepository = accountRepository;
+    this.institutionRepository = institutionRepository;
     this.idGenerator = idGenerator;
     this.accountClosedNotifier = accountClosedNotifier;
   }
 
   public Account create(
       String name,
-      String institution,
+      UUID institutionId,
       AccountType type,
       BigDecimal openingBalance,
       LocalDate openingBalanceDate) {
     if (accountRepository.existsByName(name)) {
       throw new AccountNameAlreadyExistsException(name);
     }
+    requireInstitutionExists(institutionId);
     Account account =
         Account.create(
-            idGenerator.newId(), name, institution, type, openingBalance, openingBalanceDate);
+            idGenerator.newId(), name, institutionId, type, openingBalance, openingBalanceDate);
     return accountRepository.save(account);
   }
 
@@ -75,13 +81,21 @@ public class AccountService {
   }
 
   /** Edits name/institution only - type and opening balance/date are immutable (F003 spec). */
-  public Account edit(UUID id, String name, String institution) {
+  public Account edit(UUID id, String name, UUID institutionId) {
     Account account = findById(id);
     if (accountRepository.existsByNameAndIdNot(name, id)) {
       throw new AccountNameAlreadyExistsException(name);
     }
-    account.edit(name, institution);
+    requireInstitutionExists(institutionId);
+    account.edit(name, institutionId);
     return accountRepository.save(account);
+  }
+
+  /** The domain only holds the institution id; that it resolves is checked here (F017 spec). */
+  private void requireInstitutionExists(UUID institutionId) {
+    if (!institutionRepository.existsById(institutionId)) {
+      throw new InstitutionNotFoundException(institutionId);
+    }
   }
 
   /**

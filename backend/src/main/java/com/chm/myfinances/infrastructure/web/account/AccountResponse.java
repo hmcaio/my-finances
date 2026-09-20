@@ -14,7 +14,7 @@ import java.util.UUID;
 public record AccountResponse(
     UUID id,
     String name,
-    String institution,
+    UUID institutionId,
     AccountType type,
     BigDecimal openingBalance,
     LocalDate openingBalanceDate,
@@ -26,7 +26,7 @@ public record AccountResponse(
     return new AccountResponse(
         account.getId(),
         account.getName(),
-        account.getInstitution(),
+        account.getInstitutionId(),
         account.getType(),
         account.getOpeningBalance(),
         account.getOpeningBalanceDate(),

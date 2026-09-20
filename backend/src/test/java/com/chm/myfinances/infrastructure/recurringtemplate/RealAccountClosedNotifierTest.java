@@ -10,7 +10,9 @@ import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
+import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
+import com.chm.myfinances.testsupport.TestInstitutions;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -33,6 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 class RealAccountClosedNotifierTest {
 
+  @Autowired private InstitutionRepository institutionRepository;
   @Autowired private AccountService accountService;
   @Autowired private RecurringTemplateService recurringTemplateService;
   @Autowired private CategoryRepository categoryRepository;
@@ -45,7 +48,11 @@ class RealAccountClosedNotifierTest {
             .getId();
     Account account =
         accountService.create(
-            "Checking", null, AccountType.CHECKING, BigDecimal.ZERO, LocalDate.now());
+            "Checking",
+            TestInstitutions.builtInId(institutionRepository),
+            AccountType.CHECKING,
+            BigDecimal.ZERO,
+            LocalDate.now());
     RecurringTemplate template =
         recurringTemplateService.create(
             categoryId, account.getId(), "Rent", new BigDecimal("1500.00"), 5, YearMonth.now());

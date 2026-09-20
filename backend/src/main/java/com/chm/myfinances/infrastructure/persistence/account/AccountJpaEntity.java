@@ -29,8 +29,8 @@ public class AccountJpaEntity extends AuditableEntity {
   @Column(nullable = false, length = TextFieldConstraints.MAX_NAME_LENGTH)
   private String name;
 
-  @Column(length = TextFieldConstraints.MAX_NAME_LENGTH)
-  private String institution;
+  @Column(name = "institution_id", nullable = false)
+  private UUID institutionId;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
@@ -48,14 +48,14 @@ public class AccountJpaEntity extends AuditableEntity {
   public AccountJpaEntity(
       UUID id,
       String name,
-      String institution,
+      UUID institutionId,
       AccountType type,
       BigDecimal openingBalance,
       LocalDate openingBalanceDate,
       LocalDate closedDate) {
     this.id = id;
     this.name = name;
-    this.institution = institution;
+    this.institutionId = institutionId;
     this.type = type;
     this.openingBalance = openingBalance;
     this.openingBalanceDate = openingBalanceDate;

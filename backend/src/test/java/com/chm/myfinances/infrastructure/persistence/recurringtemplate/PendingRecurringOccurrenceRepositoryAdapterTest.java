@@ -10,12 +10,14 @@ import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
+import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrence;
 import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrenceRepository;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateRepository;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersion;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersionRepository;
+import com.chm.myfinances.testsupport.TestInstitutions;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -37,6 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 class PendingRecurringOccurrenceRepositoryAdapterTest {
 
+  @Autowired private InstitutionRepository institutionRepository;
   @Autowired private PendingRecurringOccurrenceRepository pendingRepository;
   @Autowired private RecurringTemplateRepository templateRepository;
   @Autowired private RecurringTemplateVersionRepository versionRepository;
@@ -60,7 +63,7 @@ class PendingRecurringOccurrenceRepositoryAdapterTest {
                 Account.create(
                     UUID.randomUUID(),
                     "Checking",
-                    null,
+                    TestInstitutions.builtInId(institutionRepository),
                     AccountType.CHECKING,
                     BigDecimal.ZERO,
                     LocalDate.now()))

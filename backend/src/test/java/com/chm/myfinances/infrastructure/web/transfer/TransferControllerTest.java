@@ -11,6 +11,8 @@ import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
+import com.chm.myfinances.domain.institution.InstitutionRepository;
+import com.chm.myfinances.testsupport.TestInstitutions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -39,6 +41,7 @@ import org.springframework.web.context.WebApplicationContext;
 @Transactional
 class TransferControllerTest {
 
+  @Autowired private InstitutionRepository institutionRepository;
   @Autowired private WebApplicationContext webApplicationContext;
   @Autowired private AccountRepository accountRepository;
 
@@ -60,14 +63,25 @@ class TransferControllerTest {
     creditCardId = persistAccount("Credit Card", AccountType.CREDIT_CARD).getId();
     Account closed =
         Account.create(
-            UUID.randomUUID(), "Old", null, AccountType.CHECKING, BigDecimal.ZERO, LocalDate.now());
+            UUID.randomUUID(),
+            "Old",
+            TestInstitutions.builtInId(institutionRepository),
+            AccountType.CHECKING,
+            BigDecimal.ZERO,
+            LocalDate.now());
     closed.close();
     closedAccountId = accountRepository.save(closed).getId();
   }
 
   private Account persistAccount(String name, AccountType type) {
     return accountRepository.save(
-        Account.create(UUID.randomUUID(), name, null, type, BigDecimal.ZERO, LocalDate.now()));
+        Account.create(
+            UUID.randomUUID(),
+            name,
+            TestInstitutions.builtInId(institutionRepository),
+            type,
+            BigDecimal.ZERO,
+            LocalDate.now()));
   }
 
   private String createTransferBody(

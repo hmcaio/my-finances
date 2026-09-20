@@ -13,6 +13,7 @@ import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
+import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrence;
@@ -22,6 +23,7 @@ import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateRepository;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersion;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersionRepository;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
+import com.chm.myfinances.testsupport.TestInstitutions;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -62,6 +64,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 @Import(TestcontainersConfiguration.class)
 class RecurringTemplateServiceTransactionalTest {
 
+  @Autowired private InstitutionRepository institutionRepository;
   @Autowired private RecurringTemplateService service;
   @Autowired private CategoryRepository categoryRepository;
   @Autowired private AccountRepository accountRepository;
@@ -83,7 +86,7 @@ class RecurringTemplateServiceTransactionalTest {
             Account.create(
                 UUID.randomUUID(),
                 "Checking Create Test",
-                null,
+                TestInstitutions.builtInId(institutionRepository),
                 AccountType.CHECKING,
                 BigDecimal.ZERO,
                 LocalDate.now()));
@@ -118,7 +121,7 @@ class RecurringTemplateServiceTransactionalTest {
             Account.create(
                 UUID.randomUUID(),
                 "Checking Confirm Test",
-                null,
+                TestInstitutions.builtInId(institutionRepository),
                 AccountType.CHECKING,
                 BigDecimal.ZERO,
                 LocalDate.now()));
@@ -177,7 +180,7 @@ class RecurringTemplateServiceTransactionalTest {
             Account.create(
                 UUID.randomUUID(),
                 "Checking Stop Test",
-                null,
+                TestInstitutions.builtInId(institutionRepository),
                 AccountType.CHECKING,
                 BigDecimal.ZERO,
                 LocalDate.now()));

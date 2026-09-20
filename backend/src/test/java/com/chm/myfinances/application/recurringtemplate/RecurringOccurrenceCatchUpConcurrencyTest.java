@@ -9,8 +9,10 @@ import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
+import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrence;
 import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrenceRepository;
+import com.chm.myfinances.testsupport.TestInstitutions;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -50,6 +52,7 @@ class RecurringOccurrenceCatchUpConcurrencyTest {
 
   private static final int TRIALS = 5;
 
+  @Autowired private InstitutionRepository institutionRepository;
   @Autowired private RecurringOccurrenceCatchUpService catchUpService;
   @Autowired private RecurringTemplateService templateService;
   @Autowired private CategoryRepository categoryRepository;
@@ -128,7 +131,7 @@ class RecurringOccurrenceCatchUpConcurrencyTest {
             Account.create(
                 UUID.randomUUID(),
                 "Checking Concurrency " + tag,
-                null,
+                TestInstitutions.builtInId(institutionRepository),
                 AccountType.CHECKING,
                 BigDecimal.ZERO,
                 LocalDate.now()));

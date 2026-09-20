@@ -29,7 +29,7 @@ public class AccountRepositoryAdapter implements AccountRepository {
             .map(
                 existing -> {
                   existing.setName(account.getName());
-                  existing.setInstitution(account.getInstitution());
+                  existing.setInstitutionId(account.getInstitutionId());
                   existing.setClosedDate(account.getClosedDate());
                   return existing;
                 })
@@ -38,7 +38,7 @@ public class AccountRepositoryAdapter implements AccountRepository {
                     new AccountJpaEntity(
                         account.getId(),
                         account.getName(),
-                        account.getInstitution(),
+                        account.getInstitutionId(),
                         account.getType(),
                         account.getOpeningBalance(),
                         account.getOpeningBalanceDate(),
@@ -71,11 +71,16 @@ public class AccountRepositoryAdapter implements AccountRepository {
     return jpaRepository.existsByNameAndIdNot(name, excludedId);
   }
 
+  @Override
+  public boolean existsByInstitutionId(UUID institutionId) {
+    return jpaRepository.existsByInstitutionId(institutionId);
+  }
+
   private static Account toDomain(AccountJpaEntity entity) {
     return Account.reconstitute(
         entity.getId(),
         entity.getName(),
-        entity.getInstitution(),
+        entity.getInstitutionId(),
         entity.getType(),
         entity.getOpeningBalance(),
         entity.getOpeningBalanceDate(),

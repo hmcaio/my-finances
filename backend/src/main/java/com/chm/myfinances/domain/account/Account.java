@@ -15,15 +15,19 @@ import java.util.UUID;
  * deliberately have no mutator anywhere on this class - retroactively changing them would silently
  * rewrite every past balance/net-worth calculation. If the user made a data-entry mistake, the fix
  * is deleting and recreating the account before any activity exists, not editing it after the fact
- * (F003 spec). {@code name}/{@code institution} may be edited at any time via {@link #edit(String,
- * String)}, including after the account is closed (closing only blocks new *activity* -
+ * (F003 spec). {@code name}/{@code institutionId} may be edited at any time via {@link
+ * #edit(String, UUID)}, including after the account is closed (closing only blocks new *activity* -
  * transactions/transfers - not a metadata correction).
+ *
+ * <p>The institution is held by id only and is required (F017): this class deliberately doesn't
+ * import {@code domain/institution}. That the institution exists is checked in {@code
+ * AccountService}, the same way other cross-aggregate references are.
  */
 public final class Account {
 
   private final UUID id;
   private String name;
-  private String institution;
+  private UUID institutionId;
   private final AccountType type;
   private final BigDecimal openingBalance;
   private final LocalDate openingBalanceDate;
@@ -32,14 +36,14 @@ public final class Account {
   private Account(
       UUID id,
       String name,
-      String institution,
+      UUID institutionId,
       AccountType type,
       BigDecimal openingBalance,
       LocalDate openingBalanceDate,
       LocalDate closedDate) {
     this.id = Objects.requireNonNull(id, "id must not be null");
     this.name = requireValidName(name);
-    this.institution = requireValidInstitution(institution);
+    this.institutionId = Objects.requireNonNull(institutionId, "institutionId must not be null");
     this.type = Objects.requireNonNull(type, "type must not be null");
     this.openingBalance = Objects.requireNonNull(openingBalance, "openingBalance must not be null");
     this.openingBalanceDate =
@@ -51,29 +55,36 @@ public final class Account {
   public static Account create(
       UUID id,
       String name,
-      String institution,
+      UUID institutionId,
       AccountType type,
       BigDecimal openingBalance,
       LocalDate openingBalanceDate) {
-    return new Account(id, name, institution, type, openingBalance, openingBalanceDate, null);
+    return new Account(id, name, institutionId, type, openingBalance, openingBalanceDate, null);
   }
 
   /** Rebuilds an Account from already-validated persisted state. */
   public static Account reconstitute(
       UUID id,
       String name,
-      String institution,
+      UUID institutionId,
       AccountType type,
       BigDecimal openingBalance,
       LocalDate openingBalanceDate,
       LocalDate closedDate) {
-    return new Account(id, name, institution, type, openingBalance, openingBalanceDate, closedDate);
+    return new Account(
+        id, name, institutionId, type, openingBalance, openingBalanceDate, closedDate);
   }
 
-  /** Edits name/institution only - the only mutation this aggregate exposes (F003 spec). */
-  public void edit(String newName, String newInstitution) {
-    this.name = requireValidName(newName);
-    this.institution = requireValidInstitution(newInstitution);
+  /**
+   * Edits name/institution only - the only mutation this aggregate exposes (F003 spec). Both values
+   * are validated before either is assigned, so a rejected edit leaves the account untouched.
+   */
+  public void edit(String newName, UUID newInstitutionId) {
+    String validName = requireValidName(newName);
+    UUID validInstitutionId =
+        Objects.requireNonNull(newInstitutionId, "institutionId must not be null");
+    this.name = validName;
+    this.institutionId = validInstitutionId;
   }
 
   /**
@@ -113,17 +124,6 @@ public final class Account {
     return value;
   }
 
-  private static String requireValidInstitution(String value) {
-    if (value == null) {
-      return null;
-    }
-    if (value.length() > TextFieldConstraints.MAX_NAME_LENGTH) {
-      throw new IllegalArgumentException(
-          "institution must not exceed " + TextFieldConstraints.MAX_NAME_LENGTH + " characters");
-    }
-    return value;
-  }
-
   public UUID getId() {
     return id;
   }
@@ -132,8 +132,8 @@ public final class Account {
     return name;
   }
 
-  public String getInstitution() {
-    return institution;
+  public UUID getInstitutionId() {
+    return institutionId;
   }
 
   public AccountType getType() {

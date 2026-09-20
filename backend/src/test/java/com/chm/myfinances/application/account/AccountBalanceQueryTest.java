@@ -57,7 +57,7 @@ class AccountBalanceQueryTest {
         Account.create(
             UUID.randomUUID(),
             "Checking",
-            null,
+            UUID.randomUUID(),
             AccountType.CHECKING,
             new BigDecimal("321.45"),
             LocalDate.of(2026, 1, 1));
@@ -73,7 +73,7 @@ class AccountBalanceQueryTest {
         Account.create(
             UUID.randomUUID(),
             "Checking",
-            null,
+            UUID.randomUUID(),
             AccountType.CHECKING,
             new BigDecimal("100.00"),
             LocalDate.of(2026, 1, 1));
@@ -102,7 +102,7 @@ class AccountBalanceQueryTest {
         Account.create(
             UUID.randomUUID(),
             "Nubank",
-            "Nubank",
+            UUID.randomUUID(),
             AccountType.CREDIT_CARD,
             new BigDecimal("200.00"),
             LocalDate.of(2026, 1, 1));
@@ -131,7 +131,7 @@ class AccountBalanceQueryTest {
         Account.create(
             UUID.randomUUID(),
             "Checking",
-            null,
+            UUID.randomUUID(),
             AccountType.CHECKING,
             new BigDecimal("100.00"),
             LocalDate.of(2026, 1, 1));
@@ -153,7 +153,7 @@ class AccountBalanceQueryTest {
         Account.create(
             UUID.randomUUID(),
             "Checking",
-            null,
+            UUID.randomUUID(),
             AccountType.CHECKING,
             new BigDecimal("100.00"),
             LocalDate.of(2026, 1, 1));
@@ -175,7 +175,7 @@ class AccountBalanceQueryTest {
         Account.create(
             UUID.randomUUID(),
             "Checking",
-            null,
+            UUID.randomUUID(),
             AccountType.CHECKING,
             new BigDecimal("100.00"),
             LocalDate.of(2026, 1, 1));
@@ -197,7 +197,7 @@ class AccountBalanceQueryTest {
         Account.create(
             UUID.randomUUID(),
             "Checking",
-            null,
+            UUID.randomUUID(),
             AccountType.CHECKING,
             new BigDecimal("100.00"),
             LocalDate.of(2026, 1, 1));
@@ -205,7 +205,7 @@ class AccountBalanceQueryTest {
         Account.create(
             UUID.randomUUID(),
             "Savings",
-            null,
+            UUID.randomUUID(),
             AccountType.SAVINGS,
             new BigDecimal("50.00"),
             LocalDate.of(2026, 1, 1));
@@ -227,7 +227,7 @@ class AccountBalanceQueryTest {
         Account.create(
             UUID.randomUUID(),
             "Checking",
-            null,
+            UUID.randomUUID(),
             AccountType.CHECKING,
             new BigDecimal("200.00"),
             LocalDate.of(2026, 1, 1));
@@ -235,7 +235,7 @@ class AccountBalanceQueryTest {
         Account.create(
             UUID.randomUUID(),
             "Nubank",
-            "Nubank",
+            UUID.randomUUID(),
             AccountType.CREDIT_CARD,
             new BigDecimal("150.00"),
             LocalDate.of(2026, 1, 1));
@@ -261,7 +261,7 @@ class AccountBalanceQueryTest {
         Account.create(
             UUID.randomUUID(),
             "Checking",
-            null,
+            UUID.randomUUID(),
             AccountType.CHECKING,
             new BigDecimal("100.00"),
             LocalDate.of(2026, 1, 1));
@@ -269,7 +269,7 @@ class AccountBalanceQueryTest {
         Account.create(
             UUID.randomUUID(),
             "Savings",
-            null,
+            UUID.randomUUID(),
             AccountType.SAVINGS,
             BigDecimal.ZERO,
             LocalDate.of(2026, 1, 1));

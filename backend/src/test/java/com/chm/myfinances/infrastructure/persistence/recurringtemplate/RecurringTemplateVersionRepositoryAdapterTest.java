@@ -9,10 +9,12 @@ import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
+import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateRepository;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersion;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersionRepository;
+import com.chm.myfinances.testsupport.TestInstitutions;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -36,6 +38,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 class RecurringTemplateVersionRepositoryAdapterTest {
 
+  @Autowired private InstitutionRepository institutionRepository;
   @Autowired private RecurringTemplateVersionRepository versionRepository;
   @Autowired private RecurringTemplateRepository templateRepository;
   @Autowired private CategoryRepository categoryRepository;
@@ -55,7 +58,7 @@ class RecurringTemplateVersionRepositoryAdapterTest {
                 Account.create(
                     UUID.randomUUID(),
                     "Checking",
-                    null,
+                    TestInstitutions.builtInId(institutionRepository),
                     AccountType.CHECKING,
                     BigDecimal.ZERO,
                     LocalDate.now()))
