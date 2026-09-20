@@ -28,7 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- A malformed JSON body, an invalid enum value, or an unparseable id/date in the path or query string now returns 400 instead of 500, and is no longer logged as an ERROR. (closes [#19](https://github.com/hmcaio/my-finances/issues/19))
+- A malformed JSON body, an invalid enum value, or an unparseable id/date in the path or query string now returns 400 instead of 500, and is no longer logged as an ERROR. (closes [#19](https://github.com/hmcaio/my-finances/issues/19), [#24](https://github.com/hmcaio/my-finances/pull/24))
 - Pending recurring occurrences are no longer duplicated when two requests trigger catch-up at the same time (e.g. the startup run overlapping a page load, or two tabs). (closes [#20](https://github.com/hmcaio/my-finances/issues/20), [#23](https://github.com/hmcaio/my-finances/pull/23))
   - Upgrade: migration `V11` removes existing duplicate pending occurrences (keeping the earliest of each template and due date) and adds a UNIQUE constraint on `(template_id, due_date)`; it runs automatically on startup.
 - Creating a budget or recurring template, and closing an account, are now atomic, so a failure between steps no longer leaves a budget or template with no versions. (closes [#11](https://github.com/hmcaio/my-finances/issues/11), [#12](https://github.com/hmcaio/my-finances/pull/12))
