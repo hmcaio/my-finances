@@ -5,8 +5,8 @@
 Suggested order: domain and services first, then the migration, then the API switch, then the frontend in the same branch (the account API change is breaking, so backend and frontend ship together). Branch `feature/f017-institutions`.
 
 ## Backend
-- [ ] Write tests first for `Institution`: blank name rejected, name over `MAX_NAME_LENGTH` rejected, `rename` re-validates (also on a built-in instance), `create` always yields `isBuiltIn() == false`, `reconstitute` preserves the flag.
-- [ ] Add `domain/institution/Institution.java` and the `InstitutionRepository` port to make them pass.
+- [x] Write tests first for `Institution`: blank name rejected, name over `MAX_NAME_LENGTH` rejected, `rename` re-validates (also on a built-in instance), `create` always yields `isBuiltIn() == false`, `reconstitute` preserves the flag.
+- [x] Add `domain/institution/Institution.java` and the `InstitutionRepository` port to make them pass.
 - [ ] Write tests first for `InstitutionService` against `FakeInstitutionRepository` (+ `FakeAccountRepository.existsByInstitutionId`): create; duplicate name rejected on create and on rename (a no-op rename to its own name is allowed); rename of the built-in row allowed; delete of the built-in row is `BuiltInInstitutionException` even with zero references; delete blocked while an account references it (open **and** closed); delete succeeds once unreferenced; unknown id is 404 on rename/delete. Then implement `InstitutionService` and the four exceptions.
 - [ ] Change `Account` to hold a required `UUID institutionId` (no length check): update `AccountTest` first (create/reconstitute/edit with an id; `null` rejected in the constructor and in `edit`), then `Account`, `AccountRepository.existsByInstitutionId`.
 - [ ] Update `AccountServiceTest` first: a non-null unknown `institutionId` on create/edit is `InstitutionNotFoundException`; `edit` moves an account to another institution; edit works on a closed account. Then update `AccountService` (inject `InstitutionRepository`).
