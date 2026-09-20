@@ -1,10 +1,13 @@
+import { useMemo } from 'react'
 import { Link as RouterLink, useParams } from 'react-router-dom'
 import { Alert, Box, Chip, Link as MuiLink, Paper, Skeleton, Typography } from '@mui/material'
 import { getAccount, type AccountType } from '../../api/accounts'
 import { defaultErrorMessage } from '../../api/apiError'
+import { getInstitutions } from '../../api/institutions'
 import { fadeInSx } from '../../components/fadeIn'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
+import { nameLookup } from '../../utils/nameLookup'
 import { AccountTransactionList } from '../transactions/AccountTransactionList'
 import { AccountTransferList } from '../transfers/AccountTransferList'
 
@@ -24,15 +27,18 @@ const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
  */
 export function AccountDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const {
-    data: account,
-    loading,
-    loadError: error,
-  } = useAsyncData(
+  const { data: account, ...accountState } = useAsyncData(
     () => (id ? getAccount(id) : Promise.reject(new Error('Missing account id.'))),
     [id],
     { errorMessage: (err) => defaultErrorMessage(err, { 404: 'Account not found.' }) },
   )
+  const { data: institutions, ...institutionsState } = useAsyncData(getInstitutions, [])
+  const institutionName = useMemo(
+    () => nameLookup(institutions ?? [], (i) => i.name),
+    [institutions],
+  )
+  // The header names the institution, so the page stays in its skeleton until both have loaded.
+  const { loading, loadError: error } = combineLoadState(accountState, institutionsState)
   const showSkeleton = useDelayedFlag(loading)
 
   return (
@@ -49,7 +55,7 @@ export function AccountDetailPage() {
 
       {showSkeleton && <AccountDetailSkeleton />}
 
-      {account && (
+      {account && institutions && (
         <Box sx={fadeInSx}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2, mb: 1 }}>
             <Typography variant="h4" component="h1">
@@ -58,7 +64,7 @@ export function AccountDetailPage() {
             {account.closed ? <Chip label="Closed" /> : <Chip label="Open" color="success" />}
           </Box>
           <Typography color="text.secondary" sx={{ mb: 3 }}>
-            {account.institution ?? 'No institution'} &middot; {ACCOUNT_TYPE_LABELS[account.type]}
+            {institutionName(account.institutionId)} &middot; {ACCOUNT_TYPE_LABELS[account.type]}
           </Typography>
 
           <Paper variant="outlined" sx={{ p: 3, mb: 3, maxWidth: 480 }}>

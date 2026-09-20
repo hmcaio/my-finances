@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Box,
   Button,
@@ -29,11 +29,14 @@ import {
   type AccountType,
 } from '../../api/accounts'
 import { defaultErrorMessage } from '../../api/apiError'
+import { getInstitutions, type Institution } from '../../api/institutions'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
 import { DataTableBody } from '../../components/DataTableBody'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
+import { nameLookup } from '../../utils/nameLookup'
+import { InstitutionSelect } from '../institutions/InstitutionSelect'
 
 const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
   CHECKING: 'Checking',
@@ -57,13 +60,28 @@ export function AccountsPage() {
     setData: setAccounts,
     ...accountsState
   } = useAsyncData(() => getAccounts(includeClosed), [includeClosed], { onError: setError })
+  const {
+    data: institutions,
+    setData: setInstitutions,
+    ...institutionsState
+  } = useAsyncData(getInstitutions, [], { onError: setError })
+  const institutionName = useMemo(
+    () => nameLookup(institutions ?? [], (i) => i.name),
+    [institutions],
+  )
+
+  // Adds an institution created inline (InstitutionSelect) to the list the Institution column reads.
+  function addInstitution(created: Institution) {
+    setInstitutions((prev) => [...(prev ?? []), created])
+  }
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
-  const [editingInstitution, setEditingInstitution] = useState('')
+  const [editingInstitutionId, setEditingInstitutionId] = useState<string | undefined>()
 
   const [newName, setNewName] = useState('')
-  const [newInstitution, setNewInstitution] = useState('')
+  // `undefined` until InstitutionSelect reports its default (the built-in "No institution" row).
+  const [newInstitutionId, setNewInstitutionId] = useState<string | undefined>()
   const [newType, setNewType] = useState<AccountType>('CHECKING')
   const [newOpeningBalance, setNewOpeningBalance] = useState('0')
   const [newOpeningBalanceDate, setNewOpeningBalanceDate] = useState(() =>
@@ -75,20 +93,20 @@ export function AccountsPage() {
   const [closing, setClosing] = useState(false)
 
   async function handleAdd() {
-    if (!newName.trim()) return
+    if (!newName.trim() || !newInstitutionId) return
     setError(null)
     setAdding(true)
     try {
       const created = await createAccount({
         name: newName.trim(),
-        institution: newInstitution.trim() || undefined,
+        institutionId: newInstitutionId,
         type: newType,
         openingBalance: Number(newOpeningBalance),
         openingBalanceDate: newOpeningBalanceDate,
       })
       setAccounts((prev) => [...(prev ?? []), created])
       setNewName('')
-      setNewInstitution('')
+      setNewInstitutionId(undefined)
       setNewType('CHECKING')
       setNewOpeningBalance('0')
     } catch (err) {
@@ -101,22 +119,22 @@ export function AccountsPage() {
   function startEdit(account: Account) {
     setEditingId(account.id)
     setEditingName(account.name)
-    setEditingInstitution(account.institution ?? '')
+    setEditingInstitutionId(account.institutionId)
   }
 
   function cancelEdit() {
     setEditingId(null)
     setEditingName('')
-    setEditingInstitution('')
+    setEditingInstitutionId(undefined)
   }
 
   async function saveEdit(id: string) {
-    if (!editingName.trim()) return
+    if (!editingName.trim() || !editingInstitutionId) return
     setError(null)
     try {
       const updated = await editAccount(id, {
         name: editingName.trim(),
-        institution: editingInstitution.trim() || undefined,
+        institutionId: editingInstitutionId,
       })
       setAccounts((prev) => prev?.map((a) => (a.id === id ? updated : a)) ?? null)
       cancelEdit()
@@ -144,10 +162,12 @@ export function AccountsPage() {
     }
   }
 
-  // Clears the stale banner before retrying, so it doesn't outlive a successful retry.
+  // One load state for the table plus the institutions behind its Institution column: rows show
+  // only once every name can be resolved. Retry clears the stale banner and reloads what failed.
+  const tableState = combineLoadState(institutionsState, accountsState)
   function retry() {
     setError(null)
-    accountsState.reload()
+    tableState.reload()
   }
 
   return (
@@ -183,7 +203,7 @@ export function AccountsPage() {
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <DataTableBody state={accountsState} onRetry={retry} columns={6} actionsColumn>
+            <DataTableBody state={tableState} onRetry={retry} columns={6} actionsColumn>
               {accounts?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} align="center">
@@ -218,18 +238,13 @@ export function AccountsPage() {
                   </TableCell>
                   <TableCell>
                     {editingId === account.id ? (
-                      <TextField
-                        size="small"
-                        label="Institution"
-                        value={editingInstitution}
-                        onChange={(e) => setEditingInstitution(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') void saveEdit(account.id)
-                          if (e.key === 'Escape') cancelEdit()
-                        }}
+                      <InstitutionSelect
+                        value={editingInstitutionId}
+                        onChange={setEditingInstitutionId}
+                        onCreated={addInstitution}
                       />
                     ) : (
-                      (account.institution ?? '—')
+                      institutionName(account.institutionId)
                     )}
                   </TableCell>
                   <TableCell>{ACCOUNT_TYPE_LABELS[account.type]}</TableCell>
@@ -278,11 +293,10 @@ export function AccountsPage() {
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
           />
-          <TextField
-            label="Institution"
-            size="small"
-            value={newInstitution}
-            onChange={(e) => setNewInstitution(e.target.value)}
+          <InstitutionSelect
+            value={newInstitutionId}
+            onChange={setNewInstitutionId}
+            onCreated={addInstitution}
           />
           <Select
             size="small"
@@ -313,7 +327,7 @@ export function AccountsPage() {
           />
           <Button
             variant="contained"
-            disabled={adding || !newName.trim()}
+            disabled={adding || !newName.trim() || !newInstitutionId}
             onClick={() => void handleAdd()}
           >
             Add

@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw'
 import type { Account, AccountType } from '../../api/accounts'
+import { BUILT_IN_INSTITUTION_ID } from './institutions'
 
 /**
  * Seed data returned by the default `GET /api/accounts` handler below. Exported so tests can
@@ -10,7 +11,7 @@ export const seedAccounts: Account[] = [
   {
     id: 'acct-1',
     name: 'Itau Checking',
-    institution: 'Itau',
+    institutionId: 'inst-1',
     type: 'CHECKING',
     openingBalance: 1000,
     openingBalanceDate: '2026-01-01',
@@ -21,7 +22,7 @@ export const seedAccounts: Account[] = [
   {
     id: 'acct-2',
     name: 'Old Savings',
-    institution: 'Nubank',
+    institutionId: 'inst-2',
     type: 'SAVINGS',
     openingBalance: 500,
     openingBalanceDate: '2025-01-01',
@@ -32,7 +33,7 @@ export const seedAccounts: Account[] = [
   {
     id: 'acct-3',
     name: 'Nubank Credit Card',
-    institution: 'Nubank',
+    institutionId: 'inst-2',
     type: 'CREDIT_CARD',
     openingBalance: 200,
     openingBalanceDate: '2026-01-01',
@@ -46,7 +47,7 @@ const ACCOUNTS_URL = '/api/accounts'
 
 interface CreateAccountRequestBody {
   name: string
-  institution?: string
+  institutionId: string
   type?: AccountType
   openingBalance?: number
   openingBalanceDate?: string
@@ -54,7 +55,7 @@ interface CreateAccountRequestBody {
 
 interface UpdateAccountRequestBody {
   name: string
-  institution?: string
+  institutionId: string
 }
 
 /**
@@ -81,7 +82,7 @@ export const accountsHandlers = [
     const created: Account = {
       id: 'acct-new',
       name: body.name,
-      institution: body.institution ?? null,
+      institutionId: body.institutionId,
       type: body.type ?? 'CHECKING',
       openingBalance: body.openingBalance ?? 0,
       openingBalanceDate: body.openingBalanceDate ?? '2026-01-01',
@@ -98,7 +99,7 @@ export const accountsHandlers = [
     const updated: Account = {
       id: params.id as string,
       name: body.name,
-      institution: body.institution ?? null,
+      institutionId: body.institutionId,
       type: existing?.type ?? 'CHECKING',
       openingBalance: existing?.openingBalance ?? 0,
       openingBalanceDate: existing?.openingBalanceDate ?? '2026-01-01',
@@ -114,7 +115,7 @@ export const accountsHandlers = [
     const closed: Account = {
       id: params.id as string,
       name: existing?.name ?? 'Account',
-      institution: existing?.institution ?? null,
+      institutionId: existing?.institutionId ?? BUILT_IN_INSTITUTION_ID,
       type: existing?.type ?? 'CHECKING',
       openingBalance: existing?.openingBalance ?? 0,
       openingBalanceDate: existing?.openingBalanceDate ?? '2026-01-01',
