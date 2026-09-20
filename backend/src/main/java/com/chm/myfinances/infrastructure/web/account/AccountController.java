@@ -47,7 +47,7 @@ public class AccountController {
     Account account =
         accountService.create(
             request.name(),
-            request.institution(),
+            request.institutionId(),
             request.type(),
             request.openingBalance(),
             request.openingBalanceDate());
@@ -66,7 +66,7 @@ public class AccountController {
   @PatchMapping("/{id}")
   public AccountResponse edit(
       @PathVariable UUID id, @Valid @RequestBody UpdateAccountRequest request) {
-    Account account = accountService.edit(id, request.name(), request.institution());
+    Account account = accountService.edit(id, request.name(), request.institutionId());
     return toResponse(account, LocalDate.now());
   }
 

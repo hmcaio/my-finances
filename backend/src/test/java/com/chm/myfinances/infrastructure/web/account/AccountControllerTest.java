@@ -7,9 +7,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.chm.myfinances.TestcontainersConfiguration;
+import com.chm.myfinances.domain.institution.Institution;
+import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
+import com.chm.myfinances.testsupport.TestInstitutions;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,14 +39,24 @@ import org.springframework.web.context.WebApplicationContext;
 class AccountControllerTest {
 
   @Autowired private WebApplicationContext webApplicationContext;
+  @Autowired private InstitutionRepository institutionRepository;
+
+  /** Sentinel: leave the institutionId field out of the request body entirely. */
+  private static final Object OMIT = new Object();
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   private MockMvc mockMvc;
+  private UUID institutionId;
+  private UUID otherInstitutionId;
 
   @BeforeEach
   void setUp() {
     mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+    institutionId =
+        institutionRepository.save(Institution.create(UUID.randomUUID(), "Itau Test")).getId();
+    otherInstitutionId =
+        institutionRepository.save(Institution.create(UUID.randomUUID(), "New Bank Test")).getId();
   }
 
   private String createAccount(
@@ -50,7 +65,7 @@ class AccountControllerTest {
         objectMapper.writeValueAsString(
             Map.of(
                 "name", name,
-                "institution", "Some Bank",
+                "institutionId", institutionId.toString(),
                 "type", type,
                 "openingBalance", openingBalance,
                 "openingBalanceDate", openingBalanceDate));
@@ -68,7 +83,7 @@ class AccountControllerTest {
         objectMapper.writeValueAsString(
             Map.of(
                 "name", "Itau Checking",
-                "institution", "Itau",
+                "institutionId", institutionId.toString(),
                 "type", "CHECKING",
                 "openingBalance", "150.75",
                 "openingBalanceDate", "2026-01-01"));
@@ -77,7 +92,7 @@ class AccountControllerTest {
         .perform(post("/api/accounts").contentType(MediaType.APPLICATION_JSON).content(body))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.name").value("Itau Checking"))
-        .andExpect(jsonPath("$.institution").value("Itau"))
+        .andExpect(jsonPath("$.institutionId").value(institutionId.toString()))
         .andExpect(jsonPath("$.type").value("CHECKING"))
         .andExpect(jsonPath("$.openingBalance").value(150.75))
         .andExpect(jsonPath("$.balance").value(150.75))
@@ -117,9 +132,7 @@ class AccountControllerTest {
 
   @Test
   void getOfUnknownIdReturns404() throws Exception {
-    mockMvc
-        .perform(get("/api/accounts/" + java.util.UUID.randomUUID()))
-        .andExpect(status().isNotFound());
+    mockMvc.perform(get("/api/accounts/" + UUID.randomUUID())).andExpect(status().isNotFound());
   }
 
   @Test
@@ -127,13 +140,14 @@ class AccountControllerTest {
     String id = createAccount("Original", "CHECKING", "10.00", "2026-01-01");
 
     String patchBody =
-        objectMapper.writeValueAsString(Map.of("name", "Renamed", "institution", "New Bank"));
+        objectMapper.writeValueAsString(
+            Map.of("name", "Renamed", "institutionId", otherInstitutionId.toString()));
     mockMvc
         .perform(
             patch("/api/accounts/" + id).contentType(MediaType.APPLICATION_JSON).content(patchBody))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.name").value("Renamed"))
-        .andExpect(jsonPath("$.institution").value("New Bank"))
+        .andExpect(jsonPath("$.institutionId").value(otherInstitutionId.toString()))
         .andExpect(jsonPath("$.openingBalance").value(10.00));
   }
 
@@ -148,8 +162,8 @@ class AccountControllerTest {
             Map.of(
                 "name",
                 "Renamed",
-                "institution",
-                "Bank",
+                "institutionId",
+                institutionId.toString(),
                 "type",
                 "SAVINGS",
                 "openingBalance",
@@ -202,7 +216,7 @@ class AccountControllerTest {
         objectMapper.writeValueAsString(
             Map.of(
                 "name", "Duplicate Account",
-                "institution", "Some Bank",
+                "institutionId", institutionId.toString(),
                 "type", "SAVINGS",
                 "openingBalance", "20.00",
                 "openingBalanceDate", "2026-01-01"));
@@ -217,7 +231,9 @@ class AccountControllerTest {
     createAccount("Original Account", "CHECKING", "10.00", "2026-01-01");
     String id = createAccount("Account To Rename", "SAVINGS", "10.00", "2026-01-01");
 
-    String patchBody = objectMapper.writeValueAsString(Map.of("name", "Original Account"));
+    String patchBody =
+        objectMapper.writeValueAsString(
+            Map.of("name", "Original Account", "institutionId", institutionId.toString()));
     mockMvc
         .perform(
             patch("/api/accounts/" + id).contentType(MediaType.APPLICATION_JSON).content(patchBody))
@@ -231,6 +247,7 @@ class AccountControllerTest {
         objectMapper.writeValueAsString(
             Map.of(
                 "name", tooLongName,
+                "institutionId", institutionId.toString(),
                 "type", "CHECKING",
                 "openingBalance", "10.00",
                 "openingBalanceDate", "2026-01-01"));
@@ -247,5 +264,135 @@ class AccountControllerTest {
     mockMvc
         .perform(post("/api/accounts").contentType(MediaType.APPLICATION_JSON).content(body))
         .andExpect(status().isBadRequest());
+  }
+
+  private String createAccountBody(Object institutionId) throws Exception {
+    Map<String, Object> body = new HashMap<>();
+    body.put("name", "Institution Check Account");
+    body.put("type", "CHECKING");
+    body.put("openingBalance", "10.00");
+    body.put("openingBalanceDate", "2026-01-01");
+    if (institutionId != OMIT) {
+      body.put("institutionId", institutionId);
+    }
+    return objectMapper.writeValueAsString(body);
+  }
+
+  @Test
+  void createAcceptsTheBuiltInInstitution() throws Exception {
+    UUID builtInId = TestInstitutions.builtInId(institutionRepository);
+
+    mockMvc
+        .perform(
+            post("/api/accounts")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(createAccountBody(builtInId.toString())))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.institutionId").value(builtInId.toString()));
+  }
+
+  @Test
+  void createRejectsAMissingInstitutionIdWith400() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/accounts")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(createAccountBody(OMIT)))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void createRejectsANullInstitutionIdWith400() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/accounts")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(createAccountBody(null)))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void createRejectsAMalformedInstitutionIdWith400() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/accounts")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(createAccountBody("not-a-uuid")))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void createRejectsAnUnknownInstitutionIdWith404() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/accounts")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(createAccountBody(UUID.randomUUID().toString())))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void editRejectsAMissingOrNullInstitutionIdWith400() throws Exception {
+    String id = createAccount("Edit Institution Check", "CHECKING", "10.00", "2026-01-01");
+
+    mockMvc
+        .perform(
+            patch("/api/accounts/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of("name", "Renamed"))))
+        .andExpect(status().isBadRequest());
+
+    Map<String, Object> withNull = new HashMap<>();
+    withNull.put("name", "Renamed");
+    withNull.put("institutionId", null);
+    mockMvc
+        .perform(
+            patch("/api/accounts/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(withNull)))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void editRejectsAMalformedInstitutionIdWith400() throws Exception {
+    String id = createAccount("Edit Malformed Check", "CHECKING", "10.00", "2026-01-01");
+
+    mockMvc
+        .perform(
+            patch("/api/accounts/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    objectMapper.writeValueAsString(
+                        Map.of("name", "Renamed", "institutionId", "not-a-uuid"))))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void editRejectsAnUnknownInstitutionIdWith404() throws Exception {
+    String id = createAccount("Edit Unknown Check", "CHECKING", "10.00", "2026-01-01");
+
+    mockMvc
+        .perform(
+            patch("/api/accounts/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    objectMapper.writeValueAsString(
+                        Map.of("name", "Renamed", "institutionId", UUID.randomUUID().toString()))))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void responsesCarryTheInstitutionIdOnListAndGet() throws Exception {
+    String id = createAccount("Institution On Get", "CHECKING", "10.00", "2026-01-01");
+
+    mockMvc
+        .perform(get("/api/accounts/" + id))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.institutionId").value(institutionId.toString()));
+    mockMvc
+        .perform(get("/api/accounts"))
+        .andExpect(status().isOk())
+        .andExpect(
+            jsonPath("$[?(@.id=='" + id + "')].institutionId").value(institutionId.toString()));
   }
 }

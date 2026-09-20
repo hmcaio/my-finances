@@ -6,9 +6,11 @@ import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
+import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.domain.transfer.TransferFilter;
 import com.chm.myfinances.domain.transfer.TransferRepository;
+import com.chm.myfinances.testsupport.TestInstitutions;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -37,6 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 class TransferRepositoryAdapterTest {
 
+  @Autowired private InstitutionRepository institutionRepository;
   @Autowired private TransferRepository transferRepository;
   @Autowired private AccountRepository accountRepository;
 
@@ -53,7 +56,13 @@ class TransferRepositoryAdapterTest {
 
   private Account persistAccount(String name, AccountType type) {
     return accountRepository.save(
-        Account.create(UUID.randomUUID(), name, null, type, BigDecimal.ZERO, LocalDate.now()));
+        Account.create(
+            UUID.randomUUID(),
+            name,
+            TestInstitutions.builtInId(institutionRepository),
+            type,
+            BigDecimal.ZERO,
+            LocalDate.now()));
   }
 
   private Transfer newTransfer(LocalDate date, UUID fromAccountId, UUID toAccountId) {

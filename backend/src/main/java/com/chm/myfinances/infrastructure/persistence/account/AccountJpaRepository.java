@@ -9,4 +9,6 @@ interface AccountJpaRepository extends JpaRepository<AccountJpaEntity, UUID> {
   boolean existsByName(String name);
 
   boolean existsByNameAndIdNot(String name, UUID id);
+
+  boolean existsByInstitutionId(UUID institutionId);
 }

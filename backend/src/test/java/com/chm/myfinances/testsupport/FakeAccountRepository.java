@@ -47,4 +47,9 @@ public final class FakeAccountRepository implements AccountRepository {
     return store.values().stream()
         .anyMatch(a -> a.getName().equals(name) && !a.getId().equals(excludedId));
   }
+
+  @Override
+  public boolean existsByInstitutionId(UUID institutionId) {
+    return store.values().stream().anyMatch(a -> a.getInstitutionId().equals(institutionId));
+  }
 }

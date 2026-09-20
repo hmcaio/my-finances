@@ -64,7 +64,7 @@ class TransactionServiceTest {
             Account.create(
                 UUID.randomUUID(),
                 "Checking",
-                null,
+                UUID.randomUUID(),
                 AccountType.CHECKING,
                 BigDecimal.ZERO,
                 LocalDate.now()));
@@ -73,7 +73,7 @@ class TransactionServiceTest {
             Account.create(
                 UUID.randomUUID(),
                 "Old",
-                null,
+                UUID.randomUUID(),
                 AccountType.CHECKING,
                 BigDecimal.ZERO,
                 LocalDate.now()));

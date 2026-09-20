@@ -30,4 +30,10 @@ public interface AccountRepository {
    * name.
    */
   boolean existsByNameAndIdNot(String name, UUID excludedId);
+
+  /**
+   * Whether any Account, open or closed, references this institution - backs {@code
+   * InstitutionService}'s delete guard. Closed accounts count: accounts are never deleted.
+   */
+  boolean existsByInstitutionId(UUID institutionId);
 }

@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
+import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import { accountAlreadyClosedConflictHandler, seedAccounts } from '../../mocks/handlers/accounts'
+import { BUILT_IN_INSTITUTION_ID, seedInstitutions } from '../../mocks/handlers/institutions'
 import { AccountsPage } from './AccountsPage'
 
 function renderPage() {
@@ -17,6 +19,30 @@ function renderPage() {
 function findRow(name: string) {
   const cell = screen.getByText(name)
   return within(cell.closest('tr') as HTMLElement)
+}
+
+function institutionName(id: string) {
+  return seedInstitutions.find((i) => i.id === id)!.name
+}
+
+/** Records the body of the next `POST /api/accounts` and answers like the default handler. */
+function captureCreateBody() {
+  const sent: { body?: Record<string, unknown> } = {}
+  server.use(
+    http.post('/api/accounts', async ({ request }) => {
+      sent.body = (await request.json()) as Record<string, unknown>
+      return HttpResponse.json(
+        {
+          ...seedAccounts[0],
+          id: 'acct-new',
+          name: sent.body.name,
+          institutionId: sent.body.institutionId,
+        },
+        { status: 201 },
+      )
+    }),
+  )
+  return sent
 }
 
 describe('AccountsPage', () => {
@@ -46,11 +72,86 @@ describe('AccountsPage', () => {
     const user = userEvent.setup()
     renderPage()
     await screen.findByText(seedAccounts.find((a) => !a.closed)!.name)
+    await screen.findByDisplayValue('No institution')
 
     await user.type(screen.getByRole('textbox', { name: 'Name' }), 'New Wallet')
     await user.click(screen.getByRole('button', { name: 'Add' }))
 
     expect(await screen.findByText('New Wallet')).toBeInTheDocument()
+  })
+
+  it('shows the institution of each account by name', async () => {
+    renderPage()
+    const openAccount = seedAccounts.find((a) => !a.closed)!
+    await screen.findByText(openAccount.name)
+
+    expect(
+      findRow(openAccount.name).getByText(institutionName(openAccount.institutionId)),
+    ).toBeInTheDocument()
+  })
+
+  it('shows a retryable notice instead of raw ids when the institutions cannot be loaded', async () => {
+    server.use(http.get('/api/institutions', () => new HttpResponse(null, { status: 500 })))
+    renderPage()
+
+    expect((await screen.findAllByText(/Could not load data/)).length).toBeGreaterThan(0)
+    expect(screen.queryByText(seedAccounts[0].name)).not.toBeInTheDocument()
+  })
+
+  it('preselects "No institution" in the add form and sends its id', async () => {
+    const user = userEvent.setup()
+    const sent = captureCreateBody()
+    renderPage()
+    await screen.findByText(seedAccounts.find((a) => !a.closed)!.name)
+
+    expect(await screen.findByDisplayValue('No institution')).toBeInTheDocument()
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), 'New Wallet')
+    await user.click(screen.getByRole('button', { name: 'Add' }))
+
+    await waitFor(() =>
+      expect(sent.body).toMatchObject({
+        name: 'New Wallet',
+        institutionId: BUILT_IN_INSTITUTION_ID,
+      }),
+    )
+    expect(await screen.findByText('New Wallet')).toBeInTheDocument()
+    // The form goes back to the default for the next account.
+    expect(screen.getByDisplayValue('No institution')).toBeInTheDocument()
+  })
+
+  it('adds an account at the institution picked in the add form', async () => {
+    const user = userEvent.setup()
+    const sent = captureCreateBody()
+    renderPage()
+    await screen.findByDisplayValue('No institution')
+
+    await user.click(screen.getByRole('combobox', { name: 'Institution' }))
+    await user.click(await screen.findByRole('option', { name: 'Nubank' }))
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), 'Nu Wallet')
+    await user.click(screen.getByRole('button', { name: 'Add' }))
+
+    await waitFor(() => expect(sent.body).toMatchObject({ institutionId: 'inst-2' }))
+    expect(findRow('Nu Wallet').getByText('Nubank')).toBeInTheDocument()
+  })
+
+  it('creates an institution inline from the add form and assigns it to the new account', async () => {
+    const user = userEvent.setup()
+    const sent = captureCreateBody()
+    renderPage()
+    await screen.findByDisplayValue('No institution')
+
+    const picker = screen.getByRole('combobox', { name: 'Institution' })
+    await user.click(picker)
+    await user.clear(picker)
+    await user.type(picker, 'Inter')
+    await user.click(await screen.findByRole('option', { name: 'Add “Inter”' }))
+    await screen.findByDisplayValue('Inter')
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), 'Inter Account')
+    await user.click(screen.getByRole('button', { name: 'Add' }))
+
+    await waitFor(() => expect(sent.body).toMatchObject({ institutionId: 'inst-new' }))
+    // The list column resolves the brand-new institution, not a raw id.
+    expect(findRow('Inter Account').getByText('Inter')).toBeInTheDocument()
   })
 
   it('edits an account name and institution inline', async () => {
@@ -64,9 +165,15 @@ describe('AccountsPage', () => {
     const nameInput = row.getByRole('textbox', { name: 'Name' })
     await user.clear(nameInput)
     await user.type(nameInput, 'Renamed Account')
+    // The institution picker starts from the account's current institution.
+    const picker = row.getByRole('combobox', { name: 'Institution' })
+    expect(picker).toHaveValue(institutionName(openAccount.institutionId))
+    await user.click(picker)
+    await user.click(await screen.findByRole('option', { name: 'Nubank' }))
     await user.click(row.getByRole('button', { name: 'Save' }))
 
     expect(await screen.findByText('Renamed Account')).toBeInTheDocument()
+    expect(findRow('Renamed Account').getByText('Nubank')).toBeInTheDocument()
   })
 
   it('does not offer a type/opening-balance input when editing - only name/institution', async () => {
@@ -78,8 +185,9 @@ describe('AccountsPage', () => {
     const row = findRow(openAccount.name)
     await user.click(row.getByRole('button', { name: 'Edit' }))
 
-    // Only the two editable fields render as inputs in the row.
-    expect(row.getAllByRole('textbox')).toHaveLength(2)
+    // Only the two editable fields render as inputs in the row: the name and the institution picker.
+    expect(row.getAllByRole('textbox')).toHaveLength(1)
+    expect(row.getAllByRole('combobox')).toHaveLength(1)
     await user.click(row.getByRole('button', { name: 'Cancel' }))
   })
 

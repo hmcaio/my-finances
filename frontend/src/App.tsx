@@ -11,6 +11,7 @@ import { DashboardPage } from './features/dashboard/DashboardPage'
 import { AccountsPage } from './features/accounts/AccountsPage'
 import { AccountDetailPage } from './features/accounts/AccountDetailPage'
 import { CategoriesPage } from './features/categories/CategoriesPage'
+import { InstitutionsPage } from './features/institutions/InstitutionsPage'
 import { PaymentMethodsPage } from './features/paymentMethods/PaymentMethodsPage'
 import { TransactionsPage } from './features/transactions/TransactionsPage'
 import { TransfersPage } from './features/transfers/TransfersPage'
@@ -50,6 +51,7 @@ function ThemedApp() {
                 <Route path="/recurring" element={<RecurringTemplatesPage />} />
                 <Route path="/investments" element={<ComingSoon title="Investments" />} />
                 <Route path="/settings/categories" element={<CategoriesPage />} />
+                <Route path="/settings/institutions" element={<InstitutionsPage />} />
                 <Route path="/settings/payment-methods" element={<PaymentMethodsPage />} />
                 <Route path="/export" element={<ComingSoon title="Data Export" />} />
               </Routes>

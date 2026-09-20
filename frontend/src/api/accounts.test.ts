@@ -28,23 +28,28 @@ describe('accounts API client', () => {
     expect(account).toEqual(seedAccounts[0])
   })
 
-  it('createAccount posts the new account and returns the created one', async () => {
+  it('createAccount posts the new account, institution included, and returns the created one', async () => {
     const created = await createAccount({
       name: 'New Account',
-      institution: 'Some Bank',
+      institutionId: 'inst-1',
       type: 'CHECKING',
       openingBalance: 100,
       openingBalanceDate: '2026-01-01',
     })
 
-    expect(created).toMatchObject({ name: 'New Account', type: 'CHECKING', balance: 100 })
+    expect(created).toMatchObject({
+      name: 'New Account',
+      institutionId: 'inst-1',
+      type: 'CHECKING',
+      balance: 100,
+    })
     expect(created.id).toBeTruthy()
   })
 
-  it('editAccount patches name/institution and returns the updated account', async () => {
-    const updated = await editAccount('acct-1', { name: 'Renamed', institution: 'New Bank' })
+  it('editAccount patches name and institution and returns the updated account', async () => {
+    const updated = await editAccount('acct-1', { name: 'Renamed', institutionId: 'inst-2' })
 
-    expect(updated).toMatchObject({ id: 'acct-1', name: 'Renamed', institution: 'New Bank' })
+    expect(updated).toMatchObject({ id: 'acct-1', name: 'Renamed', institutionId: 'inst-2' })
   })
 
   it('closeAccount posts to the close endpoint and returns the closed account', async () => {
@@ -68,6 +73,7 @@ describe('accounts API client', () => {
 
     const error: unknown = await createAccount({
       name: 'Itau Checking',
+      institutionId: 'inst-1',
       type: 'CHECKING',
       openingBalance: 0,
       openingBalanceDate: '2026-01-01',
@@ -81,9 +87,10 @@ describe('accounts API client', () => {
   it('editAccount maps a 409 to the duplicate-name message', async () => {
     server.use(accountEditConflictHandler)
 
-    const error: unknown = await editAccount('acct-2', { name: 'Itau Checking' }).catch(
-      (err: unknown) => err,
-    )
+    const error: unknown = await editAccount('acct-2', {
+      name: 'Itau Checking',
+      institutionId: 'inst-1',
+    }).catch((err: unknown) => err)
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)

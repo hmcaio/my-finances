@@ -44,7 +44,7 @@ class TransferServiceTest {
             Account.create(
                 UUID.randomUUID(),
                 "Checking",
-                null,
+                UUID.randomUUID(),
                 AccountType.CHECKING,
                 BigDecimal.ZERO,
                 LocalDate.now()));
@@ -53,7 +53,7 @@ class TransferServiceTest {
             Account.create(
                 UUID.randomUUID(),
                 "Savings",
-                null,
+                UUID.randomUUID(),
                 AccountType.SAVINGS,
                 BigDecimal.ZERO,
                 LocalDate.now()));
@@ -62,7 +62,7 @@ class TransferServiceTest {
             Account.create(
                 UUID.randomUUID(),
                 "Old",
-                null,
+                UUID.randomUUID(),
                 AccountType.CHECKING,
                 BigDecimal.ZERO,
                 LocalDate.now()));

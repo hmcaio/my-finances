@@ -8,7 +8,7 @@ export type AccountType = 'CHECKING' | 'SAVINGS' | 'CASH_WALLET' | 'CREDIT_CARD'
 export interface Account {
   id: string
   name: string
-  institution: string | null
+  institutionId: string
   type: AccountType
   openingBalance: number
   openingBalanceDate: string
@@ -40,7 +40,7 @@ export async function createAccount(request: CreateAccountRequest): Promise<Acco
   return unwrap(apiClient.post<Account>('/accounts', request), DUPLICATE_NAME_MESSAGE)
 }
 
-/** Edits name/institution only. Type and opening balance/date are immutable (F003 spec). */
+/** Edits name/institution only (`institutionId` is required, F017). Type and opening balance/date are immutable (F003 spec). */
 export async function editAccount(id: string, request: UpdateAccountRequest): Promise<Account> {
   return unwrap(apiClient.patch<Account>(`/accounts/${id}`, request), DUPLICATE_NAME_MESSAGE)
 }

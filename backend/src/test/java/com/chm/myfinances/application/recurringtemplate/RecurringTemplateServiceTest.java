@@ -93,7 +93,7 @@ class RecurringTemplateServiceTest {
                 Account.create(
                     UUID.randomUUID(),
                     "Checking",
-                    null,
+                    UUID.randomUUID(),
                     AccountType.CHECKING,
                     BigDecimal.ZERO,
                     LocalDate.now()))
@@ -291,7 +291,7 @@ class RecurringTemplateServiceTest {
                 Account.create(
                     UUID.randomUUID(),
                     "Savings",
-                    null,
+                    UUID.randomUUID(),
                     AccountType.SAVINGS,
                     BigDecimal.ZERO,
                     LocalDate.now()))
@@ -367,7 +367,7 @@ class RecurringTemplateServiceTest {
                 Account.create(
                     UUID.randomUUID(),
                     "Savings",
-                    null,
+                    UUID.randomUUID(),
                     AccountType.SAVINGS,
                     BigDecimal.ZERO,
                     LocalDate.now()))

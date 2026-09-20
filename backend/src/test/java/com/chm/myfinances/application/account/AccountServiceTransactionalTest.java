@@ -12,11 +12,13 @@ import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
+import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrence;
 import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrenceRepository;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersion;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersionRepository;
+import com.chm.myfinances.testsupport.TestInstitutions;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -47,6 +49,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 @Import(TestcontainersConfiguration.class)
 class AccountServiceTransactionalTest {
 
+  @Autowired private InstitutionRepository institutionRepository;
   @Autowired private AccountService accountService;
   @Autowired private RecurringTemplateService recurringTemplateService;
   @Autowired private CategoryRepository categoryRepository;
@@ -64,7 +67,7 @@ class AccountServiceTransactionalTest {
     Account account =
         accountService.create(
             "Checking Account Close Test",
-            null,
+            TestInstitutions.builtInId(institutionRepository),
             AccountType.CHECKING,
             BigDecimal.ZERO,
             LocalDate.now());

@@ -19,6 +19,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **F014 — CI/CD & Production Packaging** — production Docker images (backend; frontend served by nginx), `docker-compose.prod.yml`, and CI that publishes to GHCR on `main` and `vX.Y.Z` tags. ([#2](https://github.com/hmcaio/my-finances/pull/2))
 - **F016 — Logging** — request-id access logging, logged unexpected errors, a capped rolling backend log file, a frontend logger with error capture and an error boundary. ([#21](https://github.com/hmcaio/my-finances/pull/21))
   - Upgrade: `docker-compose.prod.yml` adds the named volume `my-finances-logs-prod` (backend logs; `docker compose down -v` deletes it along with the database) and an optional `LOG_LEVEL` in `.env` (default `INFO`).
+- **F017 — Institutions** — a shared, editable list of the banks and brokers your accounts sit at, with a built-in "No institution" row that can be renamed but not deleted. Every account now has an institution, chosen (or created on the spot) on the account form and shown on the account screens. ([#26](https://github.com/hmcaio/my-finances/pull/26))
+  - Upgrade: migration `V12` creates the institution list with a built-in "No institution" row, converts each account's institution text into it (surrounding whitespace trimmed, names that differ only by case merged into one), assigns accounts that had none to "No institution" and drops the old column. It runs automatically on startup and is not reversible. The account API's `institution` field is replaced by a required `institutionId`.
 
 ### Changed
 

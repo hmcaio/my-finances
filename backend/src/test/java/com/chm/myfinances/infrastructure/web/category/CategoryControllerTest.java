@@ -14,11 +14,13 @@ import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.budget.Budget;
 import com.chm.myfinances.domain.budget.BudgetRepository;
 import com.chm.myfinances.domain.category.CategoryType;
+import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
+import com.chm.myfinances.testsupport.TestInstitutions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -53,6 +55,7 @@ import org.springframework.web.context.WebApplicationContext;
 @Transactional
 class CategoryControllerTest {
 
+  @Autowired private InstitutionRepository institutionRepository;
   @Autowired private WebApplicationContext webApplicationContext;
   @Autowired private TransactionRepository transactionRepository;
   @Autowired private AccountRepository accountRepository;
@@ -161,7 +164,7 @@ class CategoryControllerTest {
             Account.create(
                 UUID.randomUUID(),
                 "Checking",
-                null,
+                TestInstitutions.builtInId(institutionRepository),
                 AccountType.CHECKING,
                 BigDecimal.ZERO,
                 LocalDate.now()));

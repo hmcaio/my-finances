@@ -10,10 +10,13 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 /**
- * Domain-level unit tests for {@link Account} (PRD S5.4, F003 spec). Pure JUnit - no Spring
- * context, no database (ADR 0004) - written before {@link Account} itself, per F003's plan.md.
+ * Domain-level unit tests for {@link Account} (PRD S5.4, F003 spec; F017 replaced the free-text
+ * institution with a required {@code institutionId}). Pure JUnit - no Spring context, no database
+ * (ADR 0004) - written before {@link Account} itself, per F003's/F017's plan.md.
  */
 class AccountTest {
+
+  private static final UUID INSTITUTION_ID = UUID.randomUUID();
 
   @Test
   void createsWithGivenFields() {
@@ -24,14 +27,14 @@ class AccountTest {
         Account.create(
             id,
             "Itau Checking",
-            "Itau",
+            INSTITUTION_ID,
             AccountType.CHECKING,
             new BigDecimal("100.00"),
             openingDate);
 
     assertThat(account.getId()).isEqualTo(id);
     assertThat(account.getName()).isEqualTo("Itau Checking");
-    assertThat(account.getInstitution()).isEqualTo("Itau");
+    assertThat(account.getInstitutionId()).isEqualTo(INSTITUTION_ID);
     assertThat(account.getType()).isEqualTo(AccountType.CHECKING);
     assertThat(account.getOpeningBalance()).isEqualByComparingTo("100.00");
     assertThat(account.getOpeningBalanceDate()).isEqualTo(openingDate);
@@ -40,17 +43,48 @@ class AccountTest {
   }
 
   @Test
-  void createAllowsNullInstitution() {
+  void reconstitutePreservesTheInstitutionId() {
     Account account =
-        Account.create(
+        Account.reconstitute(
             UUID.randomUUID(),
-            "Cash Wallet",
-            null,
-            AccountType.CASH_WALLET,
-            BigDecimal.ZERO,
-            LocalDate.now());
+            "Itau Checking",
+            INSTITUTION_ID,
+            AccountType.CHECKING,
+            new BigDecimal("100.00"),
+            LocalDate.of(2026, 1, 1),
+            LocalDate.of(2026, 6, 1));
 
-    assertThat(account.getInstitution()).isNull();
+    assertThat(account.getInstitutionId()).isEqualTo(INSTITUTION_ID);
+    assertThat(account.isClosed()).isTrue();
+  }
+
+  @Test
+  void createRejectsNullInstitutionId() {
+    assertThatThrownBy(
+            () ->
+                Account.create(
+                    UUID.randomUUID(),
+                    "Cash Wallet",
+                    null,
+                    AccountType.CASH_WALLET,
+                    BigDecimal.ZERO,
+                    LocalDate.now()))
+        .isInstanceOf(NullPointerException.class);
+  }
+
+  @Test
+  void reconstituteRejectsNullInstitutionId() {
+    assertThatThrownBy(
+            () ->
+                Account.reconstitute(
+                    UUID.randomUUID(),
+                    "Cash Wallet",
+                    null,
+                    AccountType.CASH_WALLET,
+                    BigDecimal.ZERO,
+                    LocalDate.now(),
+                    null))
+        .isInstanceOf(NullPointerException.class);
   }
 
   @Test
@@ -60,15 +94,16 @@ class AccountTest {
         Account.create(
             UUID.randomUUID(),
             "Nubank",
-            "Nubank",
+            INSTITUTION_ID,
             AccountType.CREDIT_CARD,
             new BigDecimal("500.00"),
             openingDate);
+    UUID otherInstitutionId = UUID.randomUUID();
 
-    account.edit("Nubank Credit Card", "Nu Pagamentos");
+    account.edit("Nubank Credit Card", otherInstitutionId);
 
     assertThat(account.getName()).isEqualTo("Nubank Credit Card");
-    assertThat(account.getInstitution()).isEqualTo("Nu Pagamentos");
+    assertThat(account.getInstitutionId()).isEqualTo(otherInstitutionId);
     // Opening balance/date and type must never change via edit().
     assertThat(account.getOpeningBalance()).isEqualByComparingTo("500.00");
     assertThat(account.getOpeningBalanceDate()).isEqualTo(openingDate);
@@ -86,7 +121,7 @@ class AccountTest {
         Account.create(
             UUID.randomUUID(),
             "Savings",
-            null,
+            INSTITUTION_ID,
             AccountType.SAVINGS,
             new BigDecimal("1000.00"),
             LocalDate.of(2026, 3, 1));
@@ -101,7 +136,7 @@ class AccountTest {
         Account.create(
             UUID.randomUUID(),
             "Old Account",
-            null,
+            INSTITUTION_ID,
             AccountType.CHECKING,
             BigDecimal.ZERO,
             LocalDate.now());
@@ -119,7 +154,7 @@ class AccountTest {
         Account.create(
             UUID.randomUUID(),
             "Old Account",
-            null,
+            INSTITUTION_ID,
             AccountType.CHECKING,
             BigDecimal.ZERO,
             LocalDate.now());
@@ -134,7 +169,7 @@ class AccountTest {
         Account.create(
             UUID.randomUUID(),
             "Checking",
-            null,
+            INSTITUTION_ID,
             AccountType.CHECKING,
             BigDecimal.ZERO,
             LocalDate.now());
@@ -151,7 +186,7 @@ class AccountTest {
         Account.create(
             UUID.randomUUID(),
             "Checking",
-            null,
+            INSTITUTION_ID,
             AccountType.CHECKING,
             BigDecimal.ZERO,
             LocalDate.now());
@@ -167,7 +202,7 @@ class AccountTest {
                 Account.create(
                     UUID.randomUUID(),
                     " ",
-                    null,
+                    INSTITUTION_ID,
                     AccountType.CHECKING,
                     BigDecimal.ZERO,
                     LocalDate.now()))
@@ -179,7 +214,12 @@ class AccountTest {
     assertThatThrownBy(
             () ->
                 Account.create(
-                    UUID.randomUUID(), "Checking", null, null, BigDecimal.ZERO, LocalDate.now()))
+                    UUID.randomUUID(),
+                    "Checking",
+                    INSTITUTION_ID,
+                    null,
+                    BigDecimal.ZERO,
+                    LocalDate.now()))
         .isInstanceOf(NullPointerException.class);
   }
 
@@ -190,7 +230,7 @@ class AccountTest {
                 Account.create(
                     UUID.randomUUID(),
                     "Checking",
-                    null,
+                    INSTITUTION_ID,
                     AccountType.CHECKING,
                     null,
                     LocalDate.now()))
@@ -204,7 +244,7 @@ class AccountTest {
                 Account.create(
                     UUID.randomUUID(),
                     "Checking",
-                    null,
+                    INSTITUTION_ID,
                     AccountType.CHECKING,
                     BigDecimal.ZERO,
                     null))
@@ -219,7 +259,7 @@ class AccountTest {
         Account.create(
             UUID.randomUUID(),
             maxLengthName,
-            null,
+            INSTITUTION_ID,
             AccountType.CHECKING,
             BigDecimal.ZERO,
             LocalDate.now());
@@ -236,23 +276,7 @@ class AccountTest {
                 Account.create(
                     UUID.randomUUID(),
                     tooLongName,
-                    null,
-                    AccountType.CHECKING,
-                    BigDecimal.ZERO,
-                    LocalDate.now()))
-        .isInstanceOf(IllegalArgumentException.class);
-  }
-
-  @Test
-  void createRejectsInstitutionOverMaxLength() {
-    String tooLongInstitution = "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1);
-
-    assertThatThrownBy(
-            () ->
-                Account.create(
-                    UUID.randomUUID(),
-                    "Checking",
-                    tooLongInstitution,
+                    INSTITUTION_ID,
                     AccountType.CHECKING,
                     BigDecimal.ZERO,
                     LocalDate.now()))
@@ -261,31 +285,37 @@ class AccountTest {
 
   @Test
   void editRejectsBlankName() {
-    Account account =
-        Account.create(
-            UUID.randomUUID(),
-            "Checking",
-            null,
-            AccountType.CHECKING,
-            BigDecimal.ZERO,
-            LocalDate.now());
+    Account account = newChecking();
 
-    assertThatThrownBy(() -> account.edit(" ", null)).isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> account.edit(" ", INSTITUTION_ID))
+        .isInstanceOf(IllegalArgumentException.class);
   }
 
   @Test
   void editRejectsNameOverMaxLength() {
-    Account account =
-        Account.create(
-            UUID.randomUUID(),
-            "Checking",
-            null,
-            AccountType.CHECKING,
-            BigDecimal.ZERO,
-            LocalDate.now());
+    Account account = newChecking();
     String tooLongName = "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1);
 
-    assertThatThrownBy(() -> account.edit(tooLongName, null))
+    assertThatThrownBy(() -> account.edit(tooLongName, INSTITUTION_ID))
         .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void editRejectsNullInstitutionIdAndKeepsTheOldOne() {
+    Account account = newChecking();
+
+    assertThatThrownBy(() -> account.edit("Renamed", null))
+        .isInstanceOf(NullPointerException.class);
+    assertThat(account.getInstitutionId()).isEqualTo(INSTITUTION_ID);
+  }
+
+  private static Account newChecking() {
+    return Account.create(
+        UUID.randomUUID(),
+        "Checking",
+        INSTITUTION_ID,
+        AccountType.CHECKING,
+        BigDecimal.ZERO,
+        LocalDate.now());
   }
 }

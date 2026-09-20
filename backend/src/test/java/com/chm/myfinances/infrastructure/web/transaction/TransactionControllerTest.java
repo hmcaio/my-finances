@@ -14,8 +14,10 @@ import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
+import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
+import com.chm.myfinances.testsupport.TestInstitutions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -43,6 +45,7 @@ import org.springframework.web.context.WebApplicationContext;
 @Transactional
 class TransactionControllerTest {
 
+  @Autowired private InstitutionRepository institutionRepository;
   @Autowired private WebApplicationContext webApplicationContext;
   @Autowired private CategoryRepository categoryRepository;
   @Autowired private AccountRepository accountRepository;
@@ -78,7 +81,7 @@ class TransactionControllerTest {
                 Account.create(
                     UUID.randomUUID(),
                     "Checking",
-                    null,
+                    TestInstitutions.builtInId(institutionRepository),
                     AccountType.CHECKING,
                     BigDecimal.ZERO,
                     LocalDate.now()))
@@ -89,14 +92,19 @@ class TransactionControllerTest {
                 Account.create(
                     UUID.randomUUID(),
                     "Savings",
-                    null,
+                    TestInstitutions.builtInId(institutionRepository),
                     AccountType.SAVINGS,
                     BigDecimal.ZERO,
                     LocalDate.now()))
             .getId();
     Account closed =
         Account.create(
-            UUID.randomUUID(), "Old", null, AccountType.CHECKING, BigDecimal.ZERO, LocalDate.now());
+            UUID.randomUUID(),
+            "Old",
+            TestInstitutions.builtInId(institutionRepository),
+            AccountType.CHECKING,
+            BigDecimal.ZERO,
+            LocalDate.now());
     closed.close();
     closedAccountId = accountRepository.save(closed).getId();
     paymentMethodId =
