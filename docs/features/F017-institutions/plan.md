@@ -16,8 +16,8 @@ Suggested order: domain and services first, then the migration, then the API swi
 - [x] Migration test against pre-existing data (`InstitutionBackfillMigrationTest`, throwaway schema, `target("11")` → 12) covering `NULL`, blank, whitespace-padded, case-variant, accented and literal "No institution" (any case) values; assert the resulting institutions, every account's `institution_id`, the `NOT NULL`, and the dropped column.
 - [x] `InstitutionController` + DTOs (`CreateInstitutionRequest`, `UpdateInstitutionRequest`, `InstitutionResponse { id, name, builtIn }`; `@NotBlank @Size(max = MAX_NAME_LENGTH)`); REST tests (hand-built `MockMvc`): 201/list (includes the built-in row)/PATCH/204, 409 duplicate, 409 in use, 409 delete built-in, 404 unknown, 400 blank/too long.
 - [x] Switch `CreateAccountRequest`/`UpdateAccountRequest`/`AccountResponse`/`AccountController` to a required `institutionId` (`@NotNull`); update `AccountControllerTest` (400 when missing or null, 400 for a malformed uuid, 404 for an unknown id).
-- [ ] `./gradlew spotlessApply`, then `spotlessCheck test`.
-- [ ] With the backend running: `npm run generate-api-types` and commit the regenerated `schema.ts`.
+- [x] `./gradlew spotlessApply`, then `spotlessCheck test`.
+- [x] With the backend running: `npm run generate-api-types` and commit the regenerated `schema.ts`.
 
 ## Frontend
 - [ ] `src/api/institutions.ts` (+ `institutions.test.ts` with MSW; delete has a `conflictMessage`), `src/mocks/handlers/institutions.ts` (includes the built-in row).

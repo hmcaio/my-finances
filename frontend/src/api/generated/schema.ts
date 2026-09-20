@@ -116,7 +116,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/categories": {
+    "/api/institutions": {
         parameters: {
             query?: never;
             header?: never;
@@ -132,7 +132,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/budgets": {
+    "/api/categories": {
         parameters: {
             query?: never;
             header?: never;
@@ -148,7 +148,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/accounts": {
+    "/api/budgets": {
         parameters: {
             query?: never;
             header?: never;
@@ -158,6 +158,22 @@ export interface paths {
         get: operations["list_6"];
         put?: never;
         post: operations["create_6"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_7"];
+        put?: never;
+        post: operations["create_7"];
         delete?: never;
         options?: never;
         head?: never;
@@ -244,7 +260,7 @@ export interface paths {
         patch: operations["rename"];
         trace?: never;
     };
-    "/api/categories/{id}": {
+    "/api/institutions/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -258,6 +274,22 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["rename_1"];
+        trace?: never;
+    };
+    "/api/categories/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_4"];
+        options?: never;
+        head?: never;
+        patch: operations["rename_2"];
         trace?: never;
     };
     "/api/budgets/{id}/cap": {
@@ -460,6 +492,15 @@ export interface components {
             id?: string;
             name?: string;
         };
+        CreateInstitutionRequest: {
+            name: string;
+        };
+        InstitutionResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            builtIn?: boolean;
+        };
         CreateCategoryRequest: {
             name: string;
             /** @enum {string} */
@@ -488,7 +529,8 @@ export interface components {
         };
         CreateAccountRequest: {
             name: string;
-            institution?: string;
+            /** Format: uuid */
+            institutionId: string;
             /** @enum {string} */
             type: "CHECKING" | "SAVINGS" | "CASH_WALLET" | "CREDIT_CARD";
             openingBalance: number;
@@ -499,7 +541,8 @@ export interface components {
             /** Format: uuid */
             id?: string;
             name?: string;
-            institution?: string;
+            /** Format: uuid */
+            institutionId?: string;
             /** @enum {string} */
             type?: "CHECKING" | "SAVINGS" | "CASH_WALLET" | "CREDIT_CARD";
             openingBalance?: number;
@@ -543,6 +586,9 @@ export interface components {
         UpdatePaymentMethodRequest: {
             name: string;
         };
+        UpdateInstitutionRequest: {
+            name: string;
+        };
         UpdateCategoryRequest: {
             name: string;
         };
@@ -552,7 +598,8 @@ export interface components {
         };
         UpdateAccountRequest: {
             name: string;
-            institution?: string;
+            /** Format: uuid */
+            institutionId: string;
         };
         Pageable: {
             /** Format: int32 */
@@ -878,12 +925,56 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["CategoryResponse"][];
+                    "*/*": components["schemas"]["InstitutionResponse"][];
                 };
             };
         };
     };
     create_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateInstitutionRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InstitutionResponse"];
+                };
+            };
+        };
+    };
+    list_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CategoryResponse"][];
+                };
+            };
+        };
+    };
+    create_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -907,7 +998,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -927,7 +1018,7 @@ export interface operations {
             };
         };
     };
-    create_5: {
+    create_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -951,7 +1042,7 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    list_7: {
         parameters: {
             query?: {
                 includeClosed?: boolean;
@@ -973,7 +1064,7 @@ export interface operations {
             };
         };
     };
-    create_6: {
+    create_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -1248,6 +1339,52 @@ export interface operations {
         };
     };
     rename_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateInstitutionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InstitutionResponse"];
+                };
+            };
+        };
+    };
+    delete_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    rename_2: {
         parameters: {
             query?: never;
             header?: never;
