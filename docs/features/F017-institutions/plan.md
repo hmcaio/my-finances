@@ -21,7 +21,7 @@ Suggested order: domain and services first, then the migration, then the API swi
 
 ## Frontend
 - [x] `src/api/institutions.ts` (+ `institutions.test.ts` with MSW; delete has a `conflictMessage`), `src/mocks/handlers/institutions.ts` (includes the built-in row).
-- [ ] `src/features/institutions/InstitutionsPage.tsx` + test (list with the built-in row first and no delete action, add, inline rename incl. the built-in row, delete, 409 message), route `/settings/institutions` in `App.tsx`, nav entry beside categories/payment methods.
+- [x] `src/features/institutions/InstitutionsPage.tsx` + test (list with the built-in row first and no delete action, add, inline rename incl. the built-in row, delete, 409 message), route `/settings/institutions` in `App.tsx`, nav entry beside categories/payment methods.
 - [ ] `src/features/institutions/InstitutionSelect.tsx` + test (options load with the built-in row first, defaults to it when no value is passed, select, not clearable, "Add “X”" creates then selects, create failure shows an error).
 - [ ] `src/api/accounts.ts` and `src/mocks/handlers/accounts.ts`: `institution` → required `institutionId`; update `accounts.test.ts`.
 - [ ] `AccountsPage` (add form, inline edit, list column) and `AccountDetailPage` (header): use `InstitutionSelect` and `nameLookup` over the institutions list; update both page tests.

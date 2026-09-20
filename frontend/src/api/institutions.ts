@@ -12,6 +12,9 @@ export interface Institution {
   builtIn: boolean
 }
 
+/** Matches the backend's `TextFieldConstraints.MAX_NAME_LENGTH`, so inputs can cap what is typed. */
+export const INSTITUTION_NAME_MAX_LENGTH = 100
+
 export type CreateInstitutionRequest = components['schemas']['CreateInstitutionRequest']
 export type UpdateInstitutionRequest = components['schemas']['UpdateInstitutionRequest']
 

@@ -28,6 +28,7 @@ const NAV_ITEMS = [
   { label: 'Recurring', path: '/recurring' },
   { label: 'Investments', path: '/investments' },
   { label: 'Categories', path: '/settings/categories' },
+  { label: 'Institutions', path: '/settings/institutions' },
   { label: 'Payment Methods', path: '/settings/payment-methods' },
   { label: 'Export', path: '/export' },
 ]
