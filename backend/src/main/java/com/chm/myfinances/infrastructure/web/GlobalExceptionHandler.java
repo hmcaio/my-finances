@@ -4,9 +4,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.TypeMismatchException;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -20,7 +22,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  *
  * <p>Deliberately does <b>not</b> touch any error mapping Spring/this app already handles
  * explicitly for that exception type - only genuinely unforeseen bugs/errors get the generic 500
- * below. Two kinds of exception are rethrown instead, so a later resolver in Spring's exception
+ * below. Three kinds of exception are rethrown instead, so a later resolver in Spring's exception
  * resolver chain handles them exactly as it does today:
  *
  * <ul>
@@ -33,6 +35,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  *       exceptions (e.g. {@code NoResourceFoundException} for an unmapped route, {@code
  *       HttpRequestMethodNotSupportedException}) that report their own status programmatically
  *       rather than via {@code @ResponseStatus}.
+ *   <li>The two client-error exceptions that <i>don't</i> implement {@link ErrorResponse} but that
+ *       Spring's {@code DefaultHandlerExceptionResolver} still maps to 400: {@link
+ *       HttpMessageNotReadableException} (malformed/empty JSON body, bad enum value, wrong JSON
+ *       type) and {@link TypeMismatchException} (unparseable UUID/date in the path or query string,
+ *       e.g. {@code MethodArgumentTypeMismatchException}). Without this they'd be reported as a 500
+ *       and logged at ERROR for what is a client mistake.
  * </ul>
  *
  * <p>Logging (F016, ADR 0011): an unexpected exception is logged at ERROR with its full stack trace
@@ -61,7 +69,10 @@ public class GlobalExceptionHandler {
           request.getMethod(),
           request.getRequestURI());
     }
-    if (hasResponseStatus || exception instanceof ErrorResponse) {
+    if (hasResponseStatus
+        || exception instanceof ErrorResponse
+        || exception instanceof HttpMessageNotReadableException
+        || exception instanceof TypeMismatchException) {
       // Not "unexpected" - either one of this app's own deliberate @ResponseStatus mappings, or
       // one of Spring's own well-known MVC exceptions with a built-in mapping. Rethrowing the
       // same instance makes Spring's exception-handling machinery fall through to the next

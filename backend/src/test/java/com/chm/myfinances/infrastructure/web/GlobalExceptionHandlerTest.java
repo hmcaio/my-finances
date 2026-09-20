@@ -1,6 +1,7 @@
 package com.chm.myfinances.infrastructure.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -16,15 +17,22 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.beans.TypeMismatchException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.mock.http.MockHttpInputMessage;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver;
 
 /**
@@ -149,6 +157,92 @@ class GlobalExceptionHandlerTest {
 
       assertThat(logs.events()).isEmpty();
     }
+  }
+
+  @Test
+  void unreadableMessageIsRethrownNotConvertedToTheGeneric500AndNotLoggedAtError() {
+    HttpMessageNotReadableException exception =
+        new HttpMessageNotReadableException("bad body", new MockHttpInputMessage(new byte[0]));
+
+    assertRethrownWithoutErrorLog(exception);
+  }
+
+  @Test
+  void typeMismatchIsRethrownNotConvertedToTheGeneric500AndNotLoggedAtError() {
+    TypeMismatchException exception = new TypeMismatchException("not-a-uuid", UUID.class);
+
+    assertRethrownWithoutErrorLog(exception);
+  }
+
+  @Test
+  void methodArgumentTypeMismatchIsRethrownNotConvertedToTheGeneric500AndNotLoggedAtError() {
+    MethodArgumentTypeMismatchException exception =
+        new MethodArgumentTypeMismatchException("not-a-uuid", UUID.class, "id", null, null);
+
+    assertRethrownWithoutErrorLog(exception);
+  }
+
+  private static void assertRethrownWithoutErrorLog(Exception exception) {
+    GlobalExceptionHandler handler = new GlobalExceptionHandler();
+    MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/anything");
+
+    try (LogCapture logs = LogCapture.of(GlobalExceptionHandler.class)) {
+      assertThatThrownBy(() -> handler.handleUnexpected(exception, request)).isSameAs(exception);
+
+      assertThat(logs.eventsAt(Level.ERROR)).isEmpty();
+      assertThat(logs.events()).isEmpty();
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "{not json",
+        "",
+        "{\"name\":\"x\",\"type\":\"BOGUS\"}",
+        "{\"name\":[\"x\"],\"type\":\"EXPENSE\"}"
+      })
+  void aMalformedJsonBodyReturns400WithNoLeakedDetails(String body) throws Exception {
+    try (LogCapture logs = LogCapture.of(GlobalExceptionHandler.class)) {
+      MvcResult result =
+          mockMvc
+              .perform(
+                  post("/api/categories").contentType(MediaType.APPLICATION_JSON).content(body))
+              .andExpect(status().isBadRequest())
+              .andReturn();
+
+      assertNoLeakedDetails(result);
+      assertThat(logs.eventsAt(Level.ERROR)).isEmpty();
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "/api/transactions/not-a-uuid",
+        "/api/accounts/not-a-uuid",
+        "/api/transactions?accountId=garbage",
+        "/api/transactions?dateFrom=garbage"
+      })
+  void anUnparseableIdOrDateInThePathOrQueryReturns400WithNoLeakedDetails(String uri)
+      throws Exception {
+    try (LogCapture logs = LogCapture.of(GlobalExceptionHandler.class)) {
+      MvcResult result = mockMvc.perform(get(uri)).andExpect(status().isBadRequest()).andReturn();
+
+      assertNoLeakedDetails(result);
+      assertThat(logs.eventsAt(Level.ERROR)).isEmpty();
+    }
+  }
+
+  private static void assertNoLeakedDetails(MvcResult result) throws Exception {
+    assertThat(result.getResponse().getContentAsString())
+        .doesNotContain("An unexpected error occurred")
+        .doesNotContain("garbage")
+        .doesNotContain("not-a-uuid")
+        .doesNotContain("BOGUS")
+        .doesNotContain("Exception")
+        .doesNotContain("com.chm.myfinances")
+        .doesNotContain("\tat ");
   }
 
   @Test
