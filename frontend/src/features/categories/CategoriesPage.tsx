@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Box,
   Button,
@@ -29,11 +29,14 @@ import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
 import { DataTableBody } from '../../components/DataTableBody'
 import { useAsyncData } from '../../hooks/useAsyncData'
+import { sortCategories } from './sortCategories'
 
 /**
  * Settings-style CRUD screen for categories (F002 spec): table with name + type, inline rename,
  * add-new form, delete. Type is immutable after creation (PRD S5.1), so there's no type picker on
- * existing rows - only on the add-new form.
+ * existing rows - only on the add-new form. The built-in fallback row of each type is listed first
+ * within its type, can be renamed like any other, and has no delete action (the backend would
+ * answer 409 anyway).
  */
 export function CategoriesPage() {
   const [error, setError] = useState<string | null>(null)
@@ -42,6 +45,7 @@ export function CategoriesPage() {
     setData: setCategories,
     ...categoriesState
   } = useAsyncData(getCategories, [], { onError: setError })
+  const sorted = useMemo(() => sortCategories(categories ?? []), [categories])
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
@@ -115,7 +119,8 @@ export function CategoriesPage() {
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         Income and expense categories used to classify transactions. Renaming is always allowed;
-        type is fixed once a category is created.
+        type is fixed once a category is created. The built-in category of each type can be renamed
+        but not deleted.
       </Typography>
 
       <ErrorAlert message={error} onDismiss={() => setError(null)} />
@@ -138,7 +143,7 @@ export function CategoriesPage() {
                   </TableCell>
                 </TableRow>
               )}
-              {categories?.map((category) => (
+              {sorted.map((category) => (
                 <TableRow key={category.id}>
                   <TableCell>
                     {editingId === category.id ? (
@@ -171,7 +176,7 @@ export function CategoriesPage() {
                       onCancel={cancelEdit}
                       editLabel="Rename"
                     />
-                    {editingId !== category.id && (
+                    {editingId !== category.id && !category.builtIn && (
                       <IconButton
                         size="small"
                         aria-label="Delete"

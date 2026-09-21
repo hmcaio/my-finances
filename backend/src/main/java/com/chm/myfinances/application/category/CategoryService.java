@@ -26,6 +26,10 @@ import org.springframework.stereotype.Service;
  * <p>Create/rename reject a duplicate name (409, {@link CategoryNameAlreadyExistsException}) —
  * exact match, case-sensitive, backed by {@code categories.name UNIQUE} ({@code
  * V10__db_constraint_hardening.sql}), added in the same audit.
+ *
+ * <p>Delete, in order: unknown id (404), a built-in category (409, {@link
+ * BuiltInCategoryException}), a category something still references (409, {@link
+ * CategoryInUseException}).
  */
 @Service
 public class CategoryService {
@@ -72,8 +76,10 @@ public class CategoryService {
   }
 
   public void delete(UUID id) {
-    if (!categoryRepository.existsById(id)) {
-      throw new CategoryNotFoundException(id);
+    Category category =
+        categoryRepository.findById(id).orElseThrow(() -> new CategoryNotFoundException(id));
+    if (category.isBuiltIn()) {
+      throw new BuiltInCategoryException(id);
     }
     if (transactionRepository.existsByCategoryId(id)
         || budgetRepository.existsByCategoryId(id)

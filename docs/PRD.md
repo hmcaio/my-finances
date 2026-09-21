@@ -38,8 +38,9 @@ Single user (the app's owner). Household/multi-user support is a possible future
 - `id`
 - `name`
 - `type`: `INCOME` | `EXPENSE`
+- `built_in` — true for exactly one row per type, "Other Expense" (`EXPENSE`) and "Other Income" (`INCOME`), the fallback for anything that fits nowhere else. Like the built-in institution (§5.10), it can be renamed but never deleted; identity is the flag, not the name. Set by the schema migration only; users can't create built-in rows.
 - Flat list — no subcategories.
-- Predefined starter set, fully editable (rename/add/remove) by the user.
+- Predefined starter set, fully editable (rename/add/remove) by the user, except that the two built-in rows can't be removed.
 
 ### 5.2 Payment Method
 - `id`

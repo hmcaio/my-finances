@@ -6,6 +6,9 @@ import { server } from '../../mocks/server'
 import { categoryDeleteConflictHandler, seedCategories } from '../../mocks/handlers/categories'
 import { CategoriesPage } from './CategoriesPage'
 
+const builtInExpense = seedCategories.find((c) => c.builtIn && c.type === 'EXPENSE')!
+const builtInIncome = seedCategories.find((c) => c.builtIn && c.type === 'INCOME')!
+
 function findRow(name: string) {
   const cell = screen.getByText(name)
   return within(cell.closest('tr') as HTMLElement)
@@ -72,6 +75,51 @@ describe('CategoriesPage', () => {
     expect(await screen.findByText(/reassign them/)).toBeInTheDocument()
     // The row is still there - a 409 must not optimistically remove it.
     expect(screen.getByText(name)).toBeInTheDocument()
+  })
+
+  it('lists each type with its built-in row first', async () => {
+    render(<CategoriesPage />)
+    await screen.findByText(builtInExpense.name)
+
+    // Row 0 is the header. Expenses lead, the built-in one first within them, then income.
+    const names = screen
+      .getAllByRole('row')
+      .slice(1)
+      .map((row) => within(row).getAllByRole('cell')[0].textContent)
+    expect(names).toEqual([builtInExpense.name, 'Groceries', builtInIncome.name, 'Salary'])
+  })
+
+  it('offers no delete action on a built-in row, only rename', async () => {
+    render(<CategoriesPage />)
+    await screen.findByText(builtInExpense.name)
+
+    const row = findRow(builtInExpense.name)
+    expect(row.getByRole('button', { name: 'Rename' })).toBeInTheDocument()
+    expect(row.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
+    // An ordinary row still has it.
+    expect(findRow('Groceries').getByRole('button', { name: 'Delete' })).toBeInTheDocument()
+  })
+
+  it('renames a built-in row, which stays first and still has no delete action', async () => {
+    const user = userEvent.setup()
+    render(<CategoriesPage />)
+    await screen.findByText(builtInIncome.name)
+
+    const row = findRow(builtInIncome.name)
+    await user.click(row.getByRole('button', { name: 'Rename' }))
+    const input = row.getByRole('textbox')
+    await user.clear(input)
+    await user.type(input, 'Outras receitas')
+    await user.click(row.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByText('Outras receitas')).toBeInTheDocument()
+    const renamed = findRow('Outras receitas')
+    expect(renamed.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
+    const names = screen
+      .getAllByRole('row')
+      .slice(1)
+      .map((r) => within(r).getAllByRole('cell')[0].textContent)
+    expect(names.indexOf('Outras receitas')).toBeLessThan(names.indexOf('Salary'))
   })
 
   it('shows a loading skeleton only when the first fetch is slow, then the rows', async () => {

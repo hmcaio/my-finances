@@ -129,6 +129,40 @@ class CategoryServiceTest {
   }
 
   @Test
+  void deleteRejectsABuiltInCategory() {
+    Category builtIn =
+        repository.save(
+            Category.reconstitute(UUID.randomUUID(), "Other Expense", CategoryType.EXPENSE, true));
+
+    assertThatThrownBy(() -> service.delete(builtIn.getId()))
+        .isInstanceOf(BuiltInCategoryException.class);
+    assertThat(repository.findById(builtIn.getId())).isPresent();
+  }
+
+  @Test
+  void deleteOfABuiltInCategoryReportsBuiltInBeforeInUse() {
+    Category builtIn =
+        repository.save(
+            Category.reconstitute(UUID.randomUUID(), "Other Income", CategoryType.INCOME, true));
+    budgetRepository.save(Budget.create(UUID.randomUUID(), builtIn.getId()));
+
+    assertThatThrownBy(() -> service.delete(builtIn.getId()))
+        .isInstanceOf(BuiltInCategoryException.class);
+  }
+
+  @Test
+  void renameIsAllowedOnABuiltInCategory() {
+    Category builtIn =
+        repository.save(
+            Category.reconstitute(UUID.randomUUID(), "Other Expense", CategoryType.EXPENSE, true));
+
+    Category renamed = service.rename(builtIn.getId(), "Diversos");
+
+    assertThat(renamed.getName()).isEqualTo("Diversos");
+    assertThat(renamed.isBuiltIn()).isTrue();
+  }
+
+  @Test
   void deleteOfUnknownIdThrowsNotFound() {
     assertThatThrownBy(() -> service.delete(UUID.randomUUID()))
         .isInstanceOf(CategoryNotFoundException.class);

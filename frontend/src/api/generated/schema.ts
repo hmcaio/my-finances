@@ -674,6 +674,7 @@ export interface components {
             name?: string;
             /** @enum {string} */
             type?: "INCOME" | "EXPENSE";
+            builtIn?: boolean;
         };
         CreateBudgetRequest: {
             /** Format: uuid */

@@ -101,4 +101,41 @@ class CategoryRepositoryAdapterTest {
         .extracting(Category::getType)
         .containsExactly(CategoryType.INCOME);
   }
+
+  @Test
+  void aNewlySavedCategoryIsNotBuiltIn() {
+    Category category =
+        categoryRepository.save(
+            Category.create(UUID.randomUUID(), "Not Built In Test", CategoryType.EXPENSE));
+
+    assertThat(categoryRepository.findById(category.getId()).orElseThrow().isBuiltIn()).isFalse();
+  }
+
+  @Test
+  void migrationSeedsExactlyOneBuiltInCategoryPerType() {
+    List<Category> builtIn =
+        categoryRepository.findAll().stream().filter(Category::isBuiltIn).toList();
+
+    assertThat(builtIn)
+        .extracting(Category::getName, Category::getType)
+        .containsExactlyInAnyOrder(
+            org.assertj.core.groups.Tuple.tuple("Other Expense", CategoryType.EXPENSE),
+            org.assertj.core.groups.Tuple.tuple("Other Income", CategoryType.INCOME));
+  }
+
+  @Test
+  void renamingABuiltInCategoryKeepsItBuiltIn() {
+    Category builtIn =
+        categoryRepository.findAll().stream()
+            .filter(c -> c.isBuiltIn() && c.getType() == CategoryType.EXPENSE)
+            .findFirst()
+            .orElseThrow();
+
+    builtIn.rename("Renamed Built In Test");
+    categoryRepository.save(builtIn);
+
+    Category reloaded = categoryRepository.findById(builtIn.getId()).orElseThrow();
+    assertThat(reloaded.getName()).isEqualTo("Renamed Built In Test");
+    assertThat(reloaded.isBuiltIn()).isTrue();
+  }
 }

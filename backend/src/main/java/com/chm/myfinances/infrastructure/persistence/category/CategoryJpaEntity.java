@@ -19,16 +19,20 @@ import lombok.Setter;
  * CategoryType} enum for the {@code type} column — a plain 2-value classification with no behavior
  * of its own, so a separate infrastructure-layer enum would just be duplicate mapping ceremony (ADR
  * 0004's framework-isolation intent targets domain *logic*, not simple value types).
+ *
+ * <p>{@code builtIn} is read-only from the application's point of view: the only constructor always
+ * writes {@code false}, there is no setter, and the column is {@code updatable = false}. The {@code
+ * true} rows are set by {@code V14__builtin_categories.sql}.
  */
 @Entity
 @Table(name = "categories")
 @Getter
-@Setter
 @NoArgsConstructor
 public class CategoryJpaEntity extends AuditableEntity {
 
   @Id private UUID id;
 
+  @Setter
   @Column(nullable = false, length = TextFieldConstraints.MAX_NAME_LENGTH)
   private String name;
 
@@ -36,9 +40,14 @@ public class CategoryJpaEntity extends AuditableEntity {
   @Column(nullable = false)
   private CategoryType type;
 
+  @Column(name = "built_in", nullable = false, updatable = false)
+  private boolean builtIn;
+
+  /** For a brand-new row; never built-in. */
   public CategoryJpaEntity(UUID id, String name, CategoryType type) {
     this.id = id;
     this.name = name;
     this.type = type;
+    this.builtIn = false;
   }
 }
