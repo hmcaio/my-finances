@@ -16,7 +16,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/** JPA mapping for the {@code accounts} table (F003 spec). */
+/**
+ * JPA mapping for the {@code accounts} table (F003 spec). The opening columns are nullable: they
+ * are null exactly for an {@code INVESTMENT} account (F008, backed by a DB CHECK).
+ */
 @Entity
 @Table(name = "accounts")
 @Getter
@@ -36,10 +39,10 @@ public class AccountJpaEntity extends AuditableEntity {
   @Column(nullable = false)
   private AccountType type;
 
-  @Column(name = "opening_balance", nullable = false)
+  @Column(name = "opening_balance")
   private BigDecimal openingBalance;
 
-  @Column(name = "opening_balance_date", nullable = false)
+  @Column(name = "opening_balance_date")
   private LocalDate openingBalanceDate;
 
   @Column(name = "closed_date")

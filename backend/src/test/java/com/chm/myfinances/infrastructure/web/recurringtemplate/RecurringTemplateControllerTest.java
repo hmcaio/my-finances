@@ -111,6 +111,35 @@ class RecurringTemplateControllerTest {
   }
 
   @Test
+  void createRejectsAnInvestmentAccountWith409() throws Exception {
+    UUID investmentAccountId =
+        accountRepository
+            .save(
+                Account.create(
+                    UUID.randomUUID(),
+                    "Broker Test",
+                    TestInstitutions.builtInId(institutionRepository),
+                    AccountType.INVESTMENT,
+                    null,
+                    null))
+            .getId();
+    Map<String, Object> body = new HashMap<>();
+    body.put("categoryId", categoryId.toString());
+    body.put("accountId", investmentAccountId.toString());
+    body.put("description", "Rent");
+    body.put("amount", "1500.00");
+    body.put("dayOfMonth", 5);
+    body.put("effectiveFrom", YearMonth.now().toString());
+
+    mockMvc
+        .perform(
+            post("/api/recurring-templates")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+        .andExpect(status().isConflict());
+  }
+
+  @Test
   void createReturnsTheCreatedTemplateWithItsCurrentVersion() throws Exception {
     mockMvc
         .perform(

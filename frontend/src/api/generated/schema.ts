@@ -116,7 +116,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/institutions": {
+    "/api/investment-subcategories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["create_4"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/investment-products": {
         parameters: {
             query?: never;
             header?: never;
@@ -125,7 +141,55 @@ export interface paths {
         };
         get: operations["list_4"];
         put?: never;
-        post: operations["create_4"];
+        post: operations["create_5"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/investment-products/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/investment-categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_5"];
+        put?: never;
+        post: operations["create_6"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/institutions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_6"];
+        put?: never;
+        post: operations["create_7"];
         delete?: never;
         options?: never;
         head?: never;
@@ -139,9 +203,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_5"];
+        get: operations["list_7"];
         put?: never;
-        post: operations["create_5"];
+        post: operations["create_8"];
         delete?: never;
         options?: never;
         head?: never;
@@ -155,9 +219,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_6"];
+        get: operations["list_8"];
         put?: never;
-        post: operations["create_6"];
+        post: operations["create_9"];
         delete?: never;
         options?: never;
         head?: never;
@@ -171,9 +235,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_7"];
+        get: operations["list_9"];
         put?: never;
-        post: operations["create_7"];
+        post: operations["create_10"];
         delete?: never;
         options?: never;
         head?: never;
@@ -189,7 +253,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["close"];
+        post: operations["close_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -260,7 +324,7 @@ export interface paths {
         patch: operations["rename"];
         trace?: never;
     };
-    "/api/institutions/{id}": {
+    "/api/investment-subcategories/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -276,6 +340,54 @@ export interface paths {
         patch: operations["rename_1"];
         trace?: never;
     };
+    "/api/investment-products/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_2"];
+        put?: never;
+        post?: never;
+        delete: operations["delete_4"];
+        options?: never;
+        head?: never;
+        patch: operations["edit_2"];
+        trace?: never;
+    };
+    "/api/investment-categories/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_5"];
+        options?: never;
+        head?: never;
+        patch: operations["rename_2"];
+        trace?: never;
+    };
+    "/api/institutions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_6"];
+        options?: never;
+        head?: never;
+        patch: operations["rename_3"];
+        trace?: never;
+    };
     "/api/categories/{id}": {
         parameters: {
             query?: never;
@@ -286,10 +398,10 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete: operations["delete_4"];
+        delete: operations["delete_7"];
         options?: never;
         head?: never;
-        patch: operations["rename_2"];
+        patch: operations["rename_4"];
         trace?: never;
     };
     "/api/budgets/{id}/cap": {
@@ -315,13 +427,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_2"];
+        get: operations["get_3"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        patch: operations["edit_2"];
+        patch: operations["edit_3"];
         trace?: never;
     };
     "/api/recurring-templates/pending": {
@@ -492,6 +604,56 @@ export interface components {
             id?: string;
             name?: string;
         };
+        CreateInvestmentSubcategoryRequest: {
+            /** Format: uuid */
+            investmentCategoryId: string;
+            name: string;
+        };
+        InvestmentSubcategoryResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            investmentCategoryId?: string;
+            name?: string;
+        };
+        CreateInvestmentProductRequest: {
+            /** Format: uuid */
+            accountId: string;
+            /** Format: uuid */
+            investmentCategoryId: string;
+            /** Format: uuid */
+            investmentSubcategoryId?: string;
+            name: string;
+        };
+        InvestmentProductResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            accountId?: string;
+            /** Format: uuid */
+            investmentCategoryId?: string;
+            /** Format: uuid */
+            investmentSubcategoryId?: string;
+            name?: string;
+            /** Format: date */
+            closedDate?: string;
+            closed?: boolean;
+            hasHistory?: boolean;
+        };
+        CreateInvestmentCategoryRequest: {
+            name: string;
+        };
+        InvestmentCategoryResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            subcategories?: components["schemas"]["InvestmentSubcategoryEntry"][];
+        };
+        InvestmentSubcategoryEntry: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+        };
         CreateInstitutionRequest: {
             name: string;
         };
@@ -532,10 +694,10 @@ export interface components {
             /** Format: uuid */
             institutionId: string;
             /** @enum {string} */
-            type: "CHECKING" | "SAVINGS" | "CASH_WALLET" | "CREDIT_CARD";
-            openingBalance: number;
+            type: "CHECKING" | "SAVINGS" | "CASH_WALLET" | "CREDIT_CARD" | "INVESTMENT";
+            openingBalance?: number;
             /** Format: date */
-            openingBalanceDate: string;
+            openingBalanceDate?: string;
         };
         AccountResponse: {
             /** Format: uuid */
@@ -544,7 +706,7 @@ export interface components {
             /** Format: uuid */
             institutionId?: string;
             /** @enum {string} */
-            type?: "CHECKING" | "SAVINGS" | "CASH_WALLET" | "CREDIT_CARD";
+            type?: "CHECKING" | "SAVINGS" | "CASH_WALLET" | "CREDIT_CARD" | "INVESTMENT";
             openingBalance?: number;
             /** Format: date */
             openingBalanceDate?: string;
@@ -584,6 +746,21 @@ export interface components {
             effectiveFrom: string;
         };
         UpdatePaymentMethodRequest: {
+            name: string;
+        };
+        UpdateInvestmentSubcategoryRequest: {
+            name: string;
+        };
+        UpdateInvestmentProductRequest: {
+            /** Format: uuid */
+            accountId: string;
+            /** Format: uuid */
+            investmentCategoryId: string;
+            /** Format: uuid */
+            investmentSubcategoryId?: string;
+            name: string;
+        };
+        UpdateInvestmentCategoryRequest: {
             name: string;
         };
         UpdateInstitutionRequest: {
@@ -910,7 +1087,143 @@ export interface operations {
             };
         };
     };
+    create_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateInvestmentSubcategoryRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvestmentSubcategoryResponse"];
+                };
+            };
+        };
+    };
     list_4: {
+        parameters: {
+            query?: {
+                accountId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvestmentProductResponse"][];
+                };
+            };
+        };
+    };
+    create_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateInvestmentProductRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvestmentProductResponse"];
+                };
+            };
+        };
+    };
+    close: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvestmentProductResponse"];
+                };
+            };
+        };
+    };
+    list_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvestmentCategoryResponse"][];
+                };
+            };
+        };
+    };
+    create_6: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateInvestmentCategoryRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvestmentCategoryResponse"];
+                };
+            };
+        };
+    };
+    list_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -930,7 +1243,7 @@ export interface operations {
             };
         };
     };
-    create_4: {
+    create_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -954,7 +1267,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -974,7 +1287,7 @@ export interface operations {
             };
         };
     };
-    create_5: {
+    create_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -998,7 +1311,7 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    list_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -1018,7 +1331,7 @@ export interface operations {
             };
         };
     };
-    create_6: {
+    create_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -1042,7 +1355,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    list_9: {
         parameters: {
             query?: {
                 includeClosed?: boolean;
@@ -1064,7 +1377,7 @@ export interface operations {
             };
         };
     };
-    create_7: {
+    create_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -1088,7 +1401,7 @@ export interface operations {
             };
         };
     };
-    close: {
+    close_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -1349,7 +1662,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UpdateInstitutionRequest"];
+                "application/json": components["schemas"]["UpdateInvestmentSubcategoryRequest"];
             };
         };
         responses: {
@@ -1359,7 +1672,29 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["InstitutionResponse"];
+                    "*/*": components["schemas"]["InvestmentSubcategoryResponse"];
+                };
+            };
+        };
+    };
+    get_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvestmentProductResponse"];
                 };
             };
         };
@@ -1384,7 +1719,145 @@ export interface operations {
             };
         };
     };
+    edit_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateInvestmentProductRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvestmentProductResponse"];
+                };
+            };
+        };
+    };
+    delete_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     rename_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateInvestmentCategoryRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvestmentCategoryResponse"];
+                };
+            };
+        };
+    };
+    delete_6: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    rename_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateInstitutionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InstitutionResponse"];
+                };
+            };
+        };
+    };
+    delete_7: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    rename_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -1436,7 +1909,7 @@ export interface operations {
             };
         };
     };
-    get_2: {
+    get_3: {
         parameters: {
             query?: {
                 asOf?: string;
@@ -1460,7 +1933,7 @@ export interface operations {
             };
         };
     };
-    edit_2: {
+    edit_3: {
         parameters: {
             query?: never;
             header?: never;

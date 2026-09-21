@@ -2,7 +2,7 @@ import { apiClient } from './client'
 import { unwrap } from './apiError'
 import type { components } from './generated/schema'
 
-export type AccountType = 'CHECKING' | 'SAVINGS' | 'CASH_WALLET' | 'CREDIT_CARD'
+export type AccountType = 'CHECKING' | 'SAVINGS' | 'CASH_WALLET' | 'CREDIT_CARD' | 'INVESTMENT'
 
 /** An Account as returned by the API (PRD S5.4), including its computed running `balance`. */
 export interface Account {
@@ -10,8 +10,9 @@ export interface Account {
   name: string
   institutionId: string
   type: AccountType
-  openingBalance: number
-  openingBalanceDate: string
+  /** `null` for an INVESTMENT account, whose value comes from snapshots (F008, ADR 0012). */
+  openingBalance: number | null
+  openingBalanceDate: string | null
   closedDate: string | null
   closed: boolean
   balance: number
@@ -45,7 +46,12 @@ export async function editAccount(id: string, request: UpdateAccountRequest): Pr
   return unwrap(apiClient.patch<Account>(`/accounts/${id}`, request), DUPLICATE_NAME_MESSAGE)
 }
 
+// The backend sends no message text, so every expected 409 needs its own wording here: the account
+// is already closed, or (F008) it is an investment account that still has an open product.
+const CLOSE_CONFLICT_MESSAGE =
+  'This account could not be closed: it is already closed, or it is an investment account that still has open products - close those first.'
+
 /** Closes an account. Not reversible through the UI - no "reopen" flow (F003 spec). */
 export async function closeAccount(id: string): Promise<Account> {
-  return unwrap(apiClient.post<Account>(`/accounts/${id}/close`))
+  return unwrap(apiClient.post<Account>(`/accounts/${id}/close`), CLOSE_CONFLICT_MESSAGE)
 }

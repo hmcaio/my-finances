@@ -96,7 +96,12 @@ export function TransactionsPage() {
     () => nameLookup(paymentMethods ?? [], (p) => p.name),
     [paymentMethods],
   )
-  const openAccounts = useMemo(() => (accounts ?? []).filter((a) => !a.closed), [accounts])
+  // An investment account takes no transactions (money moves through transfers, F008), so the
+  // form never offers one.
+  const openAccounts = useMemo(
+    () => (accounts ?? []).filter((a) => !a.closed && a.type !== 'INVESTMENT'),
+    [accounts],
+  )
 
   function startEdit(transaction: Transaction) {
     setEditingId(transaction.id)

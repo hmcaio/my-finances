@@ -6,6 +6,7 @@ import com.chm.myfinances.domain.account.AccountClosedNotifier;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
+import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.shared.IdGenerator;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -20,7 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
  * Use cases for {@link Account}: create/edit/close/findById/findAll (F003 spec). New ids come from
  * the {@link IdGenerator} port (ADR 0005) - never generated ad hoc here or left to the database.
  *
- * <p>No delete use case - accounts are never hard-deleted (PRD S5.4/S8), only closed.
+ * <p>No delete use case - accounts are never hard-deleted (PRD S5.4/S8), only closed. An {@code
+ * INVESTMENT} account (F008, ADR 0012) is created without opening balance/date and can only be
+ * closed once all its products are ({@link InvestmentAccountHasOpenProductsException}, 409).
  *
  * <p>Create/edit reject a duplicate name (409, {@link AccountNameAlreadyExistsException}) - exact
  * match, case-sensitive, backed by {@code accounts.name UNIQUE} ({@code
@@ -34,16 +37,19 @@ public class AccountService {
 
   private final AccountRepository accountRepository;
   private final InstitutionRepository institutionRepository;
+  private final InvestmentProductRepository investmentProductRepository;
   private final IdGenerator idGenerator;
   private final AccountClosedNotifier accountClosedNotifier;
 
   public AccountService(
       AccountRepository accountRepository,
       InstitutionRepository institutionRepository,
+      InvestmentProductRepository investmentProductRepository,
       IdGenerator idGenerator,
       AccountClosedNotifier accountClosedNotifier) {
     this.accountRepository = accountRepository;
     this.institutionRepository = institutionRepository;
+    this.investmentProductRepository = investmentProductRepository;
     this.idGenerator = idGenerator;
     this.accountClosedNotifier = accountClosedNotifier;
   }
@@ -118,6 +124,10 @@ public class AccountService {
     Account account = findById(id);
     if (account.isClosed()) {
       throw new AccountAlreadyClosedException(id);
+    }
+    if (account.getType() == AccountType.INVESTMENT
+        && investmentProductRepository.existsOpenByAccountId(id)) {
+      throw new InvestmentAccountHasOpenProductsException(id);
     }
     account.close();
     Account saved = accountRepository.save(account);

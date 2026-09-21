@@ -218,6 +218,69 @@ class TransactionServiceTest {
   }
 
   @Test
+  void createRejectsAnInvestmentAccount() {
+    Account investment =
+        accountRepository.save(
+            Account.create(
+                UUID.randomUUID(),
+                "Broker",
+                UUID.randomUUID(),
+                AccountType.INVESTMENT,
+                null,
+                null));
+
+    assertThatThrownBy(
+            () ->
+                service.create(
+                    LocalDate.now(),
+                    BigDecimal.TEN,
+                    expenseCategory.getId(),
+                    investment.getId(),
+                    paymentMethod.getId(),
+                    "Groceries",
+                    null))
+        .isInstanceOf(AccountTypeNotAllowedException.class);
+    assertThat(transactionRepository.findByAccountIdOnOrBefore(investment.getId(), LocalDate.now()))
+        .isEmpty();
+  }
+
+  @Test
+  void editRejectsMovingATransactionOntoAnInvestmentAccount() {
+    Account investment =
+        accountRepository.save(
+            Account.create(
+                UUID.randomUUID(),
+                "Broker",
+                UUID.randomUUID(),
+                AccountType.INVESTMENT,
+                null,
+                null));
+    Transaction created =
+        service.create(
+            LocalDate.now(),
+            BigDecimal.TEN,
+            expenseCategory.getId(),
+            openAccount.getId(),
+            paymentMethod.getId(),
+            "Groceries",
+            null);
+
+    assertThatThrownBy(
+            () ->
+                service.edit(
+                    created.getId(),
+                    LocalDate.now(),
+                    BigDecimal.TEN,
+                    expenseCategory.getId(),
+                    investment.getId(),
+                    paymentMethod.getId(),
+                    "Groceries",
+                    null))
+        .isInstanceOf(AccountTypeNotAllowedException.class);
+    assertThat(service.findById(created.getId()).getAccountId()).isEqualTo(openAccount.getId());
+  }
+
+  @Test
   void findByIdOfUnknownIdThrowsNotFound() {
     assertThatThrownBy(() -> service.findById(UUID.randomUUID()))
         .isInstanceOf(TransactionNotFoundException.class);

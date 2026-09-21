@@ -94,6 +94,27 @@ class AccountRepositoryAdapterTest {
   }
 
   @Test
+  void savesAndReloadsAnInvestmentAccountWithoutOpeningValues() {
+    Account account =
+        Account.create(
+            UUID.randomUUID(),
+            "XP Investimentos",
+            institutionId,
+            AccountType.INVESTMENT,
+            null,
+            null);
+
+    accountRepository.save(account);
+    entityManager.flush();
+    entityManager.clear();
+
+    Account reloaded = accountRepository.findById(account.getId()).orElseThrow();
+    assertThat(reloaded.getType()).isEqualTo(AccountType.INVESTMENT);
+    assertThat(reloaded.getOpeningBalance()).isNull();
+    assertThat(reloaded.getOpeningBalanceDate()).isNull();
+  }
+
+  @Test
   void editPersists() {
     Account account =
         Account.create(

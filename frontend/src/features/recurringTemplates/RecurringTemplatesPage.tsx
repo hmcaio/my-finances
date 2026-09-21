@@ -90,6 +90,12 @@ export function RecurringTemplatesPage() {
 
   const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
   const accountName = useMemo(() => nameLookup(accounts ?? [], (a) => a.name), [accounts])
+  // An investment account takes no recurring templates (money moves through transfers, F008), so
+  // the form never offers one.
+  const templateAccounts = useMemo(
+    () => (accounts ?? []).filter((a) => a.type !== 'INVESTMENT'),
+    [accounts],
+  )
 
   function isCreateFormValid() {
     return (
@@ -330,7 +336,7 @@ export function RecurringTemplatesPage() {
             <MenuItem value="" disabled>
               Account
             </MenuItem>
-            {accounts?.map((a) => (
+            {templateAccounts.map((a) => (
               <MenuItem key={a.id} value={a.id}>
                 {a.name}
               </MenuItem>

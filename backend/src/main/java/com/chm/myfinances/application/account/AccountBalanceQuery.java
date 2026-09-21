@@ -31,6 +31,11 @@ public class AccountBalanceQuery {
   }
 
   public BigDecimal balanceAsOf(Account account, LocalDate asOfDate) {
+    if (account.getType() == AccountType.INVESTMENT) {
+      // No opening balance and no snapshots yet (F008): F009 replaces this with the sum of the
+      // products' latest snapshots as of the date.
+      return BigDecimal.ZERO.setScale(2);
+    }
     BigDecimal balance = account.getOpeningBalance();
     for (Transaction transaction :
         transactionRepository.findByAccountIdOnOrBefore(account.getId(), asOfDate)) {

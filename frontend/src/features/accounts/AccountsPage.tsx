@@ -36,14 +36,8 @@ import { InlineEditActions } from '../../components/InlineEditActions'
 import { DataTableBody } from '../../components/DataTableBody'
 import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
 import { nameLookup } from '../../utils/nameLookup'
+import { ACCOUNT_TYPE_LABELS } from './accountTypes'
 import { InstitutionSelect } from '../institutions/InstitutionSelect'
-
-const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
-  CHECKING: 'Checking',
-  SAVINGS: 'Savings',
-  CASH_WALLET: 'Cash Wallet',
-  CREDIT_CARD: 'Credit Card',
-}
 
 /**
  * Account list/management screen (F003 spec): table with name, institution, type, running
@@ -101,8 +95,13 @@ export function AccountsPage() {
         name: newName.trim(),
         institutionId: newInstitutionId,
         type: newType,
-        openingBalance: Number(newOpeningBalance),
-        openingBalanceDate: newOpeningBalanceDate,
+        // An investment account has no opening balance or date (its value comes from snapshots).
+        ...(newType === 'INVESTMENT'
+          ? {}
+          : {
+              openingBalance: Number(newOpeningBalance),
+              openingBalanceDate: newOpeningBalanceDate,
+            }),
       })
       setAccounts((prev) => [...(prev ?? []), created])
       setNewName('')
@@ -176,8 +175,10 @@ export function AccountsPage() {
         Accounts
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Checking, savings, cash, and credit card accounts. Opening balance/date and type are fixed
-        once an account is created - name and institution can still be corrected any time.
+        Checking, savings, cash, credit card, and investment accounts. Opening balance/date and type
+        are fixed once an account is created - name and institution can still be corrected any time.
+        An investment account has no opening balance: its value comes from snapshots of its
+        products.
       </Typography>
 
       <ErrorAlert message={error} onDismiss={() => setError(null)} />
@@ -302,6 +303,7 @@ export function AccountsPage() {
             size="small"
             value={newType}
             onChange={(e) => setNewType(e.target.value as AccountType)}
+            aria-label="Account type"
           >
             {Object.entries(ACCOUNT_TYPE_LABELS).map(([value, label]) => (
               <MenuItem key={value} value={value}>
@@ -309,22 +311,26 @@ export function AccountsPage() {
               </MenuItem>
             ))}
           </Select>
-          <TextField
-            label="Opening Balance"
-            size="small"
-            type="number"
-            value={newOpeningBalance}
-            onChange={(e) => setNewOpeningBalance(e.target.value)}
-            slotProps={{ htmlInput: { step: '0.01' } }}
-          />
-          <TextField
-            label="Opening Balance Date"
-            size="small"
-            type="date"
-            value={newOpeningBalanceDate}
-            onChange={(e) => setNewOpeningBalanceDate(e.target.value)}
-            slotProps={{ inputLabel: { shrink: true } }}
-          />
+          {newType !== 'INVESTMENT' && (
+            <>
+              <TextField
+                label="Opening Balance"
+                size="small"
+                type="number"
+                value={newOpeningBalance}
+                onChange={(e) => setNewOpeningBalance(e.target.value)}
+                slotProps={{ htmlInput: { step: '0.01' } }}
+              />
+              <TextField
+                label="Opening Balance Date"
+                size="small"
+                type="date"
+                value={newOpeningBalanceDate}
+                onChange={(e) => setNewOpeningBalanceDate(e.target.value)}
+                slotProps={{ inputLabel: { shrink: true } }}
+              />
+            </>
+          )}
           <Button
             variant="contained"
             disabled={adding || !newName.trim() || !newInstitutionId}

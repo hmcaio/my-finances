@@ -287,4 +287,24 @@ class AccountBalanceQueryTest {
 
     assertThat(balance).isEqualByComparingTo("100.00");
   }
+
+  @Test
+  void balanceAsOfOnAnInvestmentAccountIsZeroUntilSnapshotsExist() {
+    // F008 stub: no snapshots exist yet, and the account has no opening balance to start from.
+    // Transactions/transfers pointing at it don't contribute (F009 replaces this branch with the
+    // sum of the products' latest snapshots).
+    Account investment =
+        Account.create(
+            UUID.randomUUID(), "Broker", UUID.randomUUID(), AccountType.INVESTMENT, null, null);
+    transferRepository.save(
+        transferOn(
+            LocalDate.of(2026, 2, 1),
+            new BigDecimal("500.00"),
+            UUID.randomUUID(),
+            investment.getId()));
+
+    BigDecimal balance = query.balanceAsOf(investment, LocalDate.of(2026, 3, 1));
+
+    assertThat(balance).isEqualByComparingTo("0");
+  }
 }

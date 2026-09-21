@@ -1,22 +1,17 @@
 import { useMemo } from 'react'
 import { Link as RouterLink, useParams } from 'react-router-dom'
 import { Alert, Box, Chip, Link as MuiLink, Paper, Skeleton, Typography } from '@mui/material'
-import { getAccount, type AccountType } from '../../api/accounts'
+import { getAccount } from '../../api/accounts'
 import { defaultErrorMessage } from '../../api/apiError'
 import { getInstitutions } from '../../api/institutions'
 import { fadeInSx } from '../../components/fadeIn'
 import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { nameLookup } from '../../utils/nameLookup'
+import { ACCOUNT_TYPE_LABELS } from './accountTypes'
+import { InvestmentProductsSection } from '../investmentProducts/InvestmentProductsSection'
 import { AccountTransactionList } from '../transactions/AccountTransactionList'
 import { AccountTransferList } from '../transfers/AccountTransferList'
-
-const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
-  CHECKING: 'Checking',
-  SAVINGS: 'Savings',
-  CASH_WALLET: 'Cash Wallet',
-  CREDIT_CARD: 'Credit Card',
-}
 
 /**
  * Account detail view (F003 spec): running balance plus account fields, plus F004's transaction
@@ -75,17 +70,30 @@ export function AccountDetailPage() {
               {account.balance.toFixed(2)}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Opening balance {account.openingBalance.toFixed(2)} as of {account.openingBalanceDate}
+              {account.openingBalance !== null && account.openingBalanceDate !== null
+                ? `Opening balance ${account.openingBalance.toFixed(2)} as of ${account.openingBalanceDate}`
+                : 'No opening balance: its value comes from snapshots of its products'}
               {account.closedDate ? ` · Closed ${account.closedDate}` : ''}
             </Typography>
           </Paper>
 
-          <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Transactions
-            </Typography>
-            <AccountTransactionList accountId={account.id} />
-          </Paper>
+          {account.type === 'INVESTMENT' ? (
+            // An investment account takes no transactions (money moves through transfers), so its
+            // products are listed instead (F008 spec).
+            <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Products
+              </Typography>
+              <InvestmentProductsSection accountId={account.id} accountClosed={account.closed} />
+            </Paper>
+          ) : (
+            <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Transactions
+              </Typography>
+              <AccountTransactionList accountId={account.id} />
+            </Paper>
+          )}
 
           <Paper variant="outlined" sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>

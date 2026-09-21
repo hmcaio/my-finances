@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
-import { seedAccounts } from '../../mocks/handlers/accounts'
+import { seedAccounts, seedInvestmentAccount } from '../../mocks/handlers/accounts'
 import { seedCategories } from '../../mocks/handlers/categories'
 import { seedPaymentMethods } from '../../mocks/handlers/paymentMethods'
 import {
@@ -69,6 +69,23 @@ describe('TransactionsPage', () => {
     await user.click(screen.getByRole('combobox', { name: 'Account' }))
 
     expect(screen.queryByRole('option', { name: closedAccount.name })).not.toBeInTheDocument()
+  })
+
+  it('never offers an investment account in the form account dropdown', async () => {
+    server.use(
+      http.get('/api/accounts', () => HttpResponse.json([...seedAccounts, seedInvestmentAccount])),
+    )
+    const user = userEvent.setup()
+    render(<TransactionsPage />)
+    await screen.findByText(seedTransactions[0].description)
+
+    await user.click(screen.getByRole('combobox', { name: 'Account' }))
+
+    const openAccount = seedAccounts.find((a) => !a.closed)!
+    expect(await screen.findByRole('option', { name: openAccount.name })).toBeInTheDocument()
+    expect(
+      screen.queryByRole('option', { name: seedInvestmentAccount.name }),
+    ).not.toBeInTheDocument()
   })
 
   it('edits a transaction', async () => {

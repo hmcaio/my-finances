@@ -4,7 +4,11 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
-import { accountAlreadyClosedConflictHandler, seedAccounts } from '../../mocks/handlers/accounts'
+import {
+  accountAlreadyClosedConflictHandler,
+  seedAccounts,
+  seedInvestmentAccount,
+} from '../../mocks/handlers/accounts'
 import { BUILT_IN_INSTITUTION_ID, seedInstitutions } from '../../mocks/handlers/institutions'
 import { AccountsPage } from './AccountsPage'
 
@@ -232,7 +236,80 @@ describe('AccountsPage', () => {
     await user.click(row.getByRole('button', { name: 'Close' }))
     await user.click(screen.getByRole('button', { name: 'Close account' }))
 
-    expect(await screen.findByText('Account is already closed')).toBeInTheDocument()
+    // The backend sends no message text, so the client supplies one covering the 409 cases.
+    expect(await screen.findByText(/could not be closed/)).toBeInTheDocument()
     expect(screen.getByText(openAccount.name)).toBeInTheDocument()
+  })
+
+  it('shows the opening balance fields for every type except Investment', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText(seedAccounts.find((a) => !a.closed)!.name)
+
+    expect(screen.getByLabelText('Opening Balance')).toBeInTheDocument()
+    expect(screen.getByLabelText('Opening Balance Date')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('combobox', { name: 'Account type' }))
+    await user.click(await screen.findByRole('option', { name: 'Investment' }))
+
+    expect(screen.queryByLabelText('Opening Balance')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Opening Balance Date')).not.toBeInTheDocument()
+
+    // Switching back brings them back.
+    await user.click(screen.getByRole('combobox', { name: 'Account type' }))
+    await user.click(await screen.findByRole('option', { name: 'Savings' }))
+    expect(screen.getByLabelText('Opening Balance')).toBeInTheDocument()
+  })
+
+  it('creates an investment account without opening balance or date', async () => {
+    const user = userEvent.setup()
+    const sent = captureCreateBody()
+    renderPage()
+    await screen.findByText(seedAccounts.find((a) => !a.closed)!.name)
+    await screen.findByDisplayValue('No institution')
+
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), 'XP Investimentos')
+    await user.click(screen.getByRole('combobox', { name: 'Account type' }))
+    await user.click(await screen.findByRole('option', { name: 'Investment' }))
+    await user.click(screen.getByRole('button', { name: 'Add' }))
+
+    await waitFor(() =>
+      expect(sent.body).toEqual({
+        name: 'XP Investimentos',
+        institutionId: BUILT_IN_INSTITUTION_ID,
+        type: 'INVESTMENT',
+      }),
+    )
+  })
+
+  it('still sends the opening balance and date for a non-investment account', async () => {
+    const user = userEvent.setup()
+    const sent = captureCreateBody()
+    renderPage()
+    await screen.findByText(seedAccounts.find((a) => !a.closed)!.name)
+    await screen.findByDisplayValue('No institution')
+
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), 'Cash')
+    await user.click(screen.getByRole('button', { name: 'Add' }))
+
+    await waitFor(() =>
+      expect(sent.body).toMatchObject({
+        type: 'CHECKING',
+        openingBalance: 0,
+        openingBalanceDate: expect.stringMatching(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) as string,
+      }),
+    )
+  })
+
+  it('lists an investment account with its type and a zero balance', async () => {
+    server.use(
+      http.get('/api/accounts', () => HttpResponse.json([...seedAccounts, seedInvestmentAccount])),
+    )
+    renderPage()
+
+    expect(await screen.findByText(seedInvestmentAccount.name)).toBeInTheDocument()
+    const row = findRow(seedInvestmentAccount.name)
+    expect(row.getByText('Investment')).toBeInTheDocument()
+    expect(row.getByText('0.00')).toBeInTheDocument()
   })
 })

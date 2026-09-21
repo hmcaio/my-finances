@@ -5,6 +5,7 @@ import com.chm.myfinances.application.category.CategoryNotFoundException;
 import com.chm.myfinances.application.transaction.TransactionService;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
+import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrence;
 import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrenceRepository;
@@ -326,6 +327,9 @@ public class RecurringTemplateService {
             .orElseThrow(() -> new AccountNotFoundException(accountId));
     if (account.isClosed()) {
       throw new AccountClosedException(accountId);
+    }
+    if (account.getType() == AccountType.INVESTMENT) {
+      throw new AccountTypeNotAllowedException(accountId);
     }
   }
 }

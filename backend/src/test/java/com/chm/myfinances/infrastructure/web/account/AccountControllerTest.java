@@ -9,10 +9,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.domain.institution.Institution;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
+import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
+import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
+import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
+import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import com.chm.myfinances.testsupport.TestInstitutions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,6 +45,8 @@ class AccountControllerTest {
 
   @Autowired private WebApplicationContext webApplicationContext;
   @Autowired private InstitutionRepository institutionRepository;
+  @Autowired private InvestmentCategoryRepository investmentCategoryRepository;
+  @Autowired private InvestmentProductRepository investmentProductRepository;
 
   /** Sentinel: leave the institutionId field out of the request body entirely. */
   private static final Object OMIT = new Object();
@@ -394,5 +401,124 @@ class AccountControllerTest {
         .andExpect(status().isOk())
         .andExpect(
             jsonPath("$[?(@.id=='" + id + "')].institutionId").value(institutionId.toString()));
+  }
+
+  // --- F008: INVESTMENT accounts ---
+
+  private String investmentAccountBody(String name, Map<String, Object> extra) throws Exception {
+    Map<String, Object> body = new HashMap<>();
+    body.put("name", name);
+    body.put("institutionId", institutionId.toString());
+    body.put("type", "INVESTMENT");
+    body.putAll(extra);
+    return objectMapper.writeValueAsString(body);
+  }
+
+  private String createInvestmentAccount(String name) throws Exception {
+    MvcResult result =
+        mockMvc
+            .perform(
+                post("/api/accounts")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(investmentAccountBody(name, Map.of())))
+            .andExpect(status().isCreated())
+            .andReturn();
+    return objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asText();
+  }
+
+  @Test
+  void createsAnInvestmentAccountWithoutOpeningFieldsAndABalanceOfZero() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/accounts")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(investmentAccountBody("XP Investimentos", Map.of())))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.type").value("INVESTMENT"))
+        .andExpect(jsonPath("$.openingBalance").doesNotExist())
+        .andExpect(jsonPath("$.openingBalanceDate").doesNotExist())
+        .andExpect(jsonPath("$.balance").value(0));
+  }
+
+  @Test
+  void createRejectsOpeningFieldsOnAnInvestmentAccountWith400() throws Exception {
+    for (Map<String, Object> extra :
+        List.<Map<String, Object>>of(
+            Map.of("openingBalance", "10.00", "openingBalanceDate", "2026-01-01"),
+            Map.of("openingBalance", "10.00"),
+            Map.of("openingBalanceDate", "2026-01-01"))) {
+      mockMvc
+          .perform(
+              post("/api/accounts")
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(investmentAccountBody("Broker With Values", extra)))
+          .andExpect(status().isBadRequest());
+    }
+  }
+
+  @Test
+  void createRejectsMissingOpeningFieldsOnANonInvestmentAccountWith400() throws Exception {
+    for (Map<String, Object> extra :
+        List.<Map<String, Object>>of(
+            Map.of(),
+            Map.of("openingBalance", "10.00"),
+            Map.of("openingBalanceDate", "2026-01-01"))) {
+      Map<String, Object> body = new HashMap<>();
+      body.put("name", "Checking Without Values");
+      body.put("institutionId", institutionId.toString());
+      body.put("type", "CHECKING");
+      body.putAll(extra);
+      mockMvc
+          .perform(
+              post("/api/accounts")
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(objectMapper.writeValueAsString(body)))
+          .andExpect(status().isBadRequest());
+    }
+  }
+
+  @Test
+  void anInvestmentAccountListsAndFetchesWithNullOpeningFields() throws Exception {
+    String id = createInvestmentAccount("XP List Test");
+
+    mockMvc
+        .perform(get("/api/accounts/" + id))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.openingBalance").doesNotExist())
+        .andExpect(jsonPath("$.balance").value(0));
+    mockMvc
+        .perform(get("/api/accounts"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[?(@.id=='" + id + "')].type").value("INVESTMENT"));
+  }
+
+  @Test
+  void closingAnInvestmentAccountWithAnOpenProductIsRejectedUntilTheProductIsClosed()
+      throws Exception {
+    String accountId = createInvestmentAccount("XP Close Test");
+    UUID categoryId =
+        investmentCategoryRepository
+            .save(InvestmentCategory.create(UUID.randomUUID(), "Crypto Close Test"))
+            .getId();
+    UUID productId =
+        investmentProductRepository
+            .save(
+                InvestmentProduct.create(
+                    UUID.randomUUID(),
+                    UUID.fromString(accountId),
+                    categoryId,
+                    null,
+                    "Bitcoin Test"))
+            .getId();
+
+    mockMvc.perform(post("/api/accounts/" + accountId + "/close")).andExpect(status().isConflict());
+
+    mockMvc
+        .perform(post("/api/investment-products/" + productId + "/close"))
+        .andExpect(status().isOk());
+    mockMvc
+        .perform(post("/api/accounts/" + accountId + "/close"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.closed").value(true));
   }
 }
