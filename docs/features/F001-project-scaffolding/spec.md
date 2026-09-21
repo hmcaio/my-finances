@@ -69,7 +69,7 @@ Set up the repository skeleton and shared conventions every later feature builds
   }
   ```
 - `infrastructure/config/JpaAuditingConfig.java`: `@Configuration @EnableJpaAuditing` class.
-- Every JPA entity introduced by later features (Account, Transaction, Transfer, Category, PaymentMethod, Budget, BudgetVersion, RecurringTemplate, RecurringTemplateVersion, InvestmentAccount, InvestmentCategory, InvestmentProduct, InvestmentBuySellLog, InvestmentSnapshot) extends `AuditableEntity`, and its Flyway migration includes `created_at timestamptz not null` and `last_modified_at timestamptz not null` columns. Value objects and embeddables (if any) are not audited — only entities with their own table/lifecycle.
+- Every JPA entity introduced by later features (Account, Transaction, Transfer, Category, PaymentMethod, Budget, BudgetVersion, RecurringTemplate, RecurringTemplateVersion, InvestmentCategory, InvestmentSubcategory, InvestmentProduct, InvestmentSnapshot) extends `AuditableEntity`, and its Flyway migration includes `created_at timestamptz not null` and `last_modified_at timestamptz not null` columns. Value objects and embeddables (if any) are not audited — only entities with their own table/lifecycle.
 
 ### Lombok policy
 - Allowed, on infrastructure-layer classes only: JPA entities (`@Getter`, `@Setter` where JPA requires mutability, `@NoArgsConstructor` for JPA, `@Builder`/`@AllArgsConstructor` for construction), and REST request/response DTOs (`@Value` or `@Getter` + `@Builder`).

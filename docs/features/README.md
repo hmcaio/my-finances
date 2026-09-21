@@ -11,16 +11,16 @@ Each feature below has its own folder with a `spec.md` (technical specification)
 | [F005 — Transfers](F005-transfers/spec.md) | Transfers between accounts, two-sided balance update (PRD §5.5, §6.2 transfer part). |
 | [F006 — Budgets](F006-budgets/spec.md) | Versioned monthly caps, budget-vs-actual (PRD §5.6, §6.4). |
 | [F007 — Recurring Templates](F007-recurring-templates/spec.md) | Versioned templates, lazy/catch-up generation, confirm flow (PRD §5.7, §6.5). |
-| [F008 — Investment Accounts & Products](F008-investment-accounts-products/spec.md) | Investment account/category/product CRUD, close-instead-of-delete (PRD §5.8 entities, §6.6 minus logs/snapshots). |
-| [F009 — Investment Buy/Sell & Snapshots](F009-investment-buysell-snapshots/spec.md) | Buy/sell log, manual value snapshots, allocation-by-category view (PRD §5.8 logs/snapshots, §6.6 remaining). |
-| [F010 — Net Worth](F010-net-worth/spec.md) | Net worth formula and trend series (PRD §5.9). |
+| [F008 — Investment Accounts, Products & Taxonomy](F008-investment-accounts-products/spec.md) | `INVESTMENT` account type (no opening balance, no transactions), two-level Brazilian investment category/sub-category taxonomy with seed, product CRUD, close-instead-of-delete (PRD §5.4, §5.8 minus snapshots, §6.6 minus trades/snapshots; [ADR 0012](../adr/0012-investments-as-accounts-and-transfers.md)). |
+| [F009 — Investment Trades, Snapshots & Reports](F009-investment-buysell-snapshots/spec.md) | Buys/sells as product-tagged transfers with quantity/unit price/taxes, manual value snapshots and their freshness rules, `INVESTMENT` account balance, allocation by category/sub-category, monthly per-product value series (PRD §5.5, §5.8, §6.6). |
+| [F010 — Net Worth](F010-net-worth/spec.md) | Net worth formula over accounts by type (as-of-aware closed filter) and trend series, change-date or monthly (PRD §5.9). |
 | [F011 — Onboarding](F011-onboarding/spec.md) | First-run flow to create the first account (PRD §6.7). |
 | [F012 — Dashboard](F012-dashboard/spec.md) | Aggregated dashboard widgets (PRD §6.8). |
 | [F013 — Data Export](F013-data-export/spec.md) | All-entity ZIP/CSV export with filters (PRD §6.9). |
 | [F014 — CI/CD & Production Packaging](F014-cicd-production-packaging/spec.md) | Docker production images (backend/frontend), `docker-compose.prod.yml`, GitHub Actions CI/CD publishing to GHCR — separate from and non-disruptive to F001's dev workflow. |
 | [F015 — Frontend Test Tooling](F015-frontend-test-tooling/spec.md) | Vitest, React Testing Library, and MSW — unblocks F014's CI frontend test step; backfills real test coverage for F002. |
 | [F016 — Logging](F016-logging/spec.md) | SLF4J/Logback config per profile, request-id (`X-Request-Id`/MDC) access logging, logged unexpected/expected errors, a frontend `logger` + Axios/global/React error capture, nginx and compose log plumbing, and a capped rolling backend log file (`backend/logs/` in dev, a named volume in prod) that survives `down`. No aggregator, no JSON, no browser→backend shipping. |
-| [F017 — Institutions](F017-institutions/spec.md) | `Institution` entity (PRD §5.10) replacing the free-text `institution` on accounts and investment accounts: CRUD, `accounts.institution_id` migration with backfill, shared `InstitutionSelect`. Must land before F008; enables a future allocation-by-institution view. |
+| [F017 — Institutions](F017-institutions/spec.md) | `Institution` entity (PRD §5.10) replacing the free-text `institution` on accounts (investment accounts are accounts, so they inherit it): CRUD, `accounts.institution_id` migration with backfill, shared `InstitutionSelect`. Must land before F008; enables a future allocation-by-institution view. |
 
 ## Cross-cutting conventions (defined in F001, applied everywhere)
 

@@ -9,6 +9,7 @@ Versioned recurring bill/income templates with lazy/catch-up occurrence generati
 - Confirm flow: turns a pending occurrence into a real `Transaction` (F004), with the option to adjust amount/date/account at confirmation time without creating a new template version.
 - Stop/reactivate (`active` toggle).
 - Consuming F003's "account closed" event/port to auto-deactivate templates pointing at a closed account.
+- Extended by [F008](../F008-investment-accounts-products/spec.md) ([ADR 0012](../../adr/0012-investments-as-accounts-and-transfers.md)): a template can't target an `INVESTMENT` account (409, `AccountTypeNotAllowedException`, on create and edit); the account picker excludes them. Confirming an occurrence with an adjusted account goes through F004's `TransactionService`, which applies the same rule.
 - Out of scope: any real-time/cron scheduling infrastructure — explicitly rejected by the PRD's on-demand runtime model.
 
 ## Backend

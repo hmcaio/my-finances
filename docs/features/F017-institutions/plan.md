@@ -1,6 +1,6 @@
 # F017 — Action Plan
 
-**Depends on**: F001, F002, F003, F015. **Must land before F008** (its `investment_accounts.institution_id` references this feature's table). F011 and F013 pick this up when they are built.
+**Depends on**: F001, F002, F003, F015. **Must land before F008** (investment accounts are `accounts` rows and inherit the mandatory `institution_id`). F011 and F013 pick this up when they are built.
 
 Suggested order: domain and services first, then the migration, then the API switch, then the frontend in the same branch (the account API change is breaking, so backend and frontend ship together). Branch `feature/f017-institutions`.
 

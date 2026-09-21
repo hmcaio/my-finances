@@ -1,6 +1,6 @@
 # 0001. Model accounts with explicit types and transfers instead of a flat category-only ledger
 
-Status: Accepted
+Status: Accepted (amended by [0012](0012-investments-as-accounts-and-transfers.md): investments became an `INVESTMENT` account type, which changes the net worth formula below and the last consequence)
 Date: 2026-09-12
 
 ## Context

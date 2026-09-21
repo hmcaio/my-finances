@@ -4,7 +4,7 @@ One file per decision, numbered sequentially, never renumbered or edited to chan
 
 | ADR | Title | Status |
 |---|---|---|
-| [0001](0001-account-model-and-transfers.md) | Model accounts with explicit types and transfers instead of a flat category-only ledger | Accepted |
+| [0001](0001-account-model-and-transfers.md) | Model accounts with explicit types and transfers instead of a flat category-only ledger | Accepted (amended by [0012](0012-investments-as-accounts-and-transfers.md)) |
 | [0002](0002-versioned-budget-and-recurring-template.md) | Version Budget and RecurringTemplate instead of mutating in place | Accepted |
 | [0003](0003-lazy-catchup-recurring-generation.md) | Generate recurring occurrences lazily/catch-up instead of real-time scheduling | Accepted |
 | [0004](0004-hexagonal-ddd-tdd.md) | Adopt Hexagonal Architecture, Domain-Driven Design, and Test-Driven Development for the backend | Accepted |
@@ -15,6 +15,7 @@ One file per decision, numbered sequentially, never renumbered or edited to chan
 | [0009](0009-conventional-commits.md) | Use Conventional Commits, mapped to CHANGELOG categories and SemVer bump type | Accepted |
 | [0010](0010-testcontainers-for-backend-tests.md) | Use Testcontainers for backend tests instead of a fixed CI Postgres service container | Accepted |
 | [0011](0011-logging-slf4j-request-id.md) | Logging: SLF4J/Logback + a request id; no aggregator | Accepted |
+| [0012](0012-investments-as-accounts-and-transfers.md) | Model investment accounts as accounts and buys/sells as transfers | Accepted |
 
 Template:
 ```

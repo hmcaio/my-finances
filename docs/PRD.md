@@ -4,7 +4,7 @@
 
 A local, single-user web application for tracking daily transactions across named financial accounts, enforcing category budgets, and computing net worth (assets − liabilities + investments). Manual data entry only — no bank sync/aggregation integration in this version.
 
-Each transaction belongs to a specific account (e.g. "Itaú Checking", "Nubank Credit Card"). Asset accounts (checking, savings, cash) hold money you have; credit card accounts track money you owe, which increases when you spend on them. Paying a credit card statement is a **transfer** between accounts, not a new expense — this is what keeps spend and debt correctly separated instead of double-counting.
+Each transaction belongs to a specific account (e.g. "Itaú Checking", "Nubank Credit Card"). Asset accounts (checking, savings, cash) hold money you have; credit card accounts track money you owe, which increases when you spend on them. Paying a credit card statement is a **transfer** between accounts, not a new expense — this is what keeps spend and debt correctly separated instead of double-counting. Investment accounts are accounts too: buying or selling an investment is a transfer between a cash account and an investment account, and the investment side is valued by manual snapshots.
 
 Designed for solo use today, with a data model that can extend to household/multi-user later without a rewrite (not built now — noted as a future direction).
 
@@ -21,12 +21,12 @@ Designed for solo use today, with a data model that can extend to household/mult
 
 - No bank/card auto-sync — manual entry / CSV import only, and CSV import is a stretch goal, not required for v1.
 - No multi-currency support — single currency only.
-- No ticker/share-count/cost-basis tracking, no live or computed prices, no automatic gain/loss calculation — investment values are always manually entered.
+- No *computed* investment math: a buy/sell records its quantity, unit price and taxes as plain data (§5.5), but nothing is derived from them — no cost-basis tracking, no live or computed prices, no automatic gain/loss calculation. Investment values are always manually entered as snapshots (§5.8).
 - No manual physical assets (real estate, vehicles) in net worth.
 - No authentication — app is single-user and bound to localhost only, not exposed to LAN or internet.
 - No automatic bank statement reconciliation/matching — account balances are whatever the logged transactions and transfers compute to; there is no import-and-match step.
 - No interest/fee accrual modeling on credit card liabilities — the balance owed only reflects logged expenses and payment transfers, not statement interest or fees.
-- No loan amortization schedules — only checking/savings/cash/credit-card account types are modeled (see §5.4); a general "loan" account type is a future direction.
+- No loan amortization schedules — only checking/savings/cash/credit-card/investment account types are modeled (see §5.4); a general "loan" account type is a future direction.
 
 ## 4. Users
 
@@ -65,26 +65,36 @@ An expense transaction on an asset account (checking/savings/cash) reduces that 
 - `id`
 - `name` (e.g. "Itaú Checking", "Nubank Credit Card")
 - `institution_id` (required) — references an `Institution` (§5.10); "No institution" when the account isn't held at one
-- `type`: `CHECKING` | `SAVINGS` | `CASH_WALLET` | `CREDIT_CARD`
+- `type`: `CHECKING` | `SAVINGS` | `CASH_WALLET` | `CREDIT_CARD` | `INVESTMENT`
 - `opening_balance`: value as of `opening_balance_date`, set once when the account is created.
   - For `CHECKING` / `SAVINGS` / `CASH_WALLET`: an asset balance (money available).
   - For `CREDIT_CARD`: amount owed at the start (a liability).
-- `opening_balance_date`
+  - For `INVESTMENT`: **must be empty** (null). An investment account's value comes only from its products' snapshots (§5.8), so an opening balance would be a field that never shows up in any balance — or, if it were added, would double-count the first snapshot.
+- `opening_balance_date` (empty for `INVESTMENT`, same reason)
 - `closed_date` (nullable) — set when the user closes the account.
 
-A closed account can no longer be selected for new transactions, transfers, or recurring templates — it drops out of the "create new" pickers and the live account balances widget (§6.8) — but all its historic rows are untouched, still counted correctly in past net worth (§5.9), and still included in data export (§6.9). Its balance is simply whatever it was as of `closed_date`; no further activity can touch it. Closing an account auto-deactivates (`active = false`) any `RecurringTemplate` (§5.7) still pointing at it, so no pending occurrence is ever generated into a closed account.
+An `INVESTMENT` account is a container for investment products (§5.8), e.g. "XP Investimentos" or "Previdência Privada". Transactions and recurring templates can't be posted to it — money enters and leaves it through transfers (§5.5), and its value is set by snapshots.
 
-Running balance for an account at any point in time = `opening_balance` + sum(income transactions on it) − sum(expense transactions on it) + sum(transfers in) − sum(transfers out), all up to that date. For a `CREDIT_CARD` account, this running value **is** the amount currently owed — expenses increase it, transfers in (payments) decrease it.
+A closed account can no longer be selected for new transactions, transfers, or recurring templates — it drops out of the "create new" pickers and the live account balances widget (§6.8) — but all its historic rows are untouched, still counted correctly in past net worth (§5.9), and still included in data export (§6.9). Its balance is simply whatever it was as of `closed_date`; no further activity can touch it. Closing an account auto-deactivates (`active = false`) any `RecurringTemplate` (§5.7) still pointing at it, so no pending occurrence is ever generated into a closed account. An `INVESTMENT` account can only be closed once all its products are closed (§5.8).
+
+Running balance for an account at any point in time = `opening_balance` + sum(income transactions on it) − sum(expense transactions on it) + sum(transfers in) − sum(transfers out), all up to that date. For a `CREDIT_CARD` account, this running value **is** the amount currently owed — expenses increase it, transfers in (payments) decrease it. For an `INVESTMENT` account the balance is different: it is the sum of its products' latest snapshots as of that date (§5.8). Transfers in or out of it (buys and sells) do not change it — only snapshots do.
 
 ### 5.5 Transfer
 - `id`
 - `date`
 - `from_account_id`
 - `to_account_id`
-- `amount`
+- `amount` — the cash that actually moved
 - `note` (optional)
+- `investment_product_id` (nullable) — set when the transfer is a buy or sell of an investment product (§5.8)
+- `quantity`, `unit_price`, `taxes` (all nullable) — trade details, only allowed together with `investment_product_id`
 
 Represents money moving between two accounts you own — most commonly paying a credit card statement from a checking account. A transfer decreases the source account's balance and decreases the destination account's amount-owed (if a credit card) or increases its balance (if an asset account). Transfers are not categorized, do not count toward budgets, and do not change net worth (an asset going down and a liability going down by the same amount nets to zero) — they only move value between accounts.
+
+**Buys and sells of investments are transfers**, not transactions: buying swaps cash for an investment and earns or spends nothing, so it must not count as an expense or income, hit a budget, or need a category or payment method (same reasoning as paying a card statement). A **buy** is a transfer whose destination is an `INVESTMENT` account, a **sell** one whose source is an `INVESTMENT` account; the direction is derived from the endpoints, not stored.
+- A transfer touching an `INVESTMENT` account must name the `investment_product_id`, the product must belong to that account and be open, and exactly one endpoint may be an `INVESTMENT` account (moving between two investment accounts isn't modeled). Every buy or sell is paired with a tracked cash account; purchases funded from outside the app are not supported.
+- The cash side changes immediately. The investment side changes only when a snapshot is recorded (§5.8), so net worth dips after a buy until the new snapshot is entered; the buy/sell form offers an optional resulting balance that records the snapshot in the same step.
+- `quantity` and `unit_price` (up to 8 decimals, both positive, both or neither — some products such as fixed income or pension plans have no units) and `taxes` (brokerage, IOF, income tax withheld, ...; zero or more) are **record-only**. `amount` stays the source of truth for balances; the form prefills it as `quantity × unit_price + taxes` for a buy and `quantity × unit_price − taxes` for a sell, and the user can override it because brokers round differently. The backend does not enforce that equality.
 
 ### 5.6 Budget (versioned)
 - `Budget`
@@ -119,30 +129,38 @@ Represents money moving between two accounts you own — most commonly paying a 
 - Past transactions keep pointing to whatever version was active when they were created — editing the template later never rewrites history.
 - A single past transaction can still be hand-edited directly (amount/date/account) without touching the version chain — this is a plain transaction edit, not a template edit.
 
-### 5.8 Investment Account, Product & Snapshot (manual, no price/quantity math)
+### 5.8 Investment Category, Sub-category, Product & Snapshot (manual valuation)
 
-Distinct from the transactional `Account` in §5.4 — this is a separate container for investment holdings, still valued by manual snapshot rather than transactions.
+Investments live in accounts of type `INVESTMENT` (§5.4) — there is no separate investment-account entity, so one account list, one institution link and one closing rule cover cash and investments alike. What is specific to investments is below; valuation stays manual (snapshots), and buys/sells are transfers (§5.5).
 
-- `InvestmentAccount`: `id`, `name` (e.g. "XP Renda Fixa", "Previdência Privada"), `institution_id` (required, references an `Institution`, §5.10), `closed_date` (nullable) — a container grouping investment products.
-- `InvestmentCategory`: `id`, `name` (e.g. "Stocks", "Fixed Income", "ETF", "REITs (FIIs)", "Crypto") — flat, user-editable taxonomy, same pattern as transaction categories.
-- `InvestmentProduct`: `id`, `account_id`, `category_id`, `name` (e.g. "PETR4", "BOVA11", "Tesouro Selic"), `closed_date` (nullable) — a specific holding within an investment account.
-- `InvestmentBuySellLog`: `id`, `product_id`, `date`, `type` (`BUY` | `SELL`), `amount`, `note` (optional free text) — a record-keeping entry of when you bought/sold and how much; **not** used to compute current value (no quantity/price/cost-basis math).
-- `InvestmentSnapshot`: `id`, `product_id`, `date`, `balance` — manual value entry per product, added whenever the user wants to update it, no scheduled cadence.
-- Latest snapshot per product = current value of that product, used in net worth and in the category distribution view.
-- An investment account's value = sum of its products' latest snapshots (display rollup only, not a separately stored value).
-- Same delete-safety rule as `Account` (§5.4): an `InvestmentAccount` or `InvestmentProduct` with any snapshot or buy/sell history can't be hard-deleted (it would orphan that history and break past net worth/allocation calculations) — it can only be closed (`closed_date` set), which drops it from "create new" pickers and live views while its history stays intact and exportable. Hard delete is only allowed for one with zero history (nothing to lose).
+- `InvestmentCategory`: `id`, `name` — the top level of a two-level, user-editable taxonomy. Seeded with Brazilian defaults: Fixed Income, Variable Income, Funds, Pension (Previdência), International, Crypto, Other.
+- `InvestmentSubcategory`: `id`, `investment_category_id` (required, fixed once created — re-parenting would silently reclassify every product below it), `name` — the instrument class within a category. Names are unique **per category**, not globally ("ETFs" and "Stocks" exist under both Variable Income and International). Seeded defaults:
+  - Fixed Income: Tesouro Selic, Tesouro IPCA+, Tesouro Prefixado, CDB, LCI, LCA, CRI, CRA, Debentures, Savings (Poupança)
+  - Variable Income: Stocks (Ações), REITs (FIIs), ETFs, BDRs
+  - Funds: Fixed Income Funds, Multimercado, Equity Funds
+  - Pension (Previdência): PGBL, VGBL
+  - International: Stocks, ETFs, Bonds
+  - Crypto and Other have no sub-categories.
+- `InvestmentProduct`: `id`, `account_id` (an `INVESTMENT` account, open), `investment_category_id` (required), `investment_subcategory_id` (optional, and must belong to the chosen category — some categories, like Crypto, have no natural sub-level), `name` (the specific instrument, e.g. "PETR4", "BOVA11", "Tesouro Selic 2029"; unique within its account, so the same instrument can be held at two brokers), `closed_date` (nullable) — a specific holding within an investment account.
+- `InvestmentSnapshot`: `id`, `product_id`, `date`, `balance` (zero or more — `0` is a legitimate value for a liquidated position) — manual value entry per product, added whenever the user wants to update it, no scheduled cadence. One snapshot per product per date: entering another for the same date replaces it, which keeps "latest snapshot" unambiguous.
+- Latest snapshot per product = current value of that product, used in net worth and in the allocation views. An `INVESTMENT` account's balance = sum of its products' latest snapshots (a rollup computed on read, not stored).
+- **Keeping snapshots fresh.** Because a buy or sell (§5.5) changes cash immediately but the product's value only when a snapshot is recorded, a product whose latest transfer is dated after its latest snapshot (or that has a trade but no snapshot) is flagged as needing a snapshot, in the product list and on the allocation view. A trade can carry an optional resulting balance, which records that snapshot in the same step ("Sold entire position" records `0`). A product can only be closed while its latest snapshot is `0` or absent, so a closed product never keeps counting a stale value.
+- Reclassifying a product changes how past dates group it in allocation views, since grouping uses its current category and sub-category.
+- **Delete safety** — `INVESTMENT` accounts follow the `Account` rule (§5.4): never hard-deleted, only closed. A product with any snapshot or buy/sell transfer can't be hard-deleted either (it would orphan that history and break past net worth/allocation calculations) — it can only be closed (`closed_date` set), which drops it from "create new" pickers and live views while its history stays intact and exportable. Hard delete is only allowed for a product with zero history. A category that still has sub-categories or products, or a sub-category that still has products, can't be deleted either.
 
 ### 5.9 Net Worth (computed, not stored)
-`net_worth(as_of_date)` = Σ asset account balances (`CHECKING`/`SAVINGS`/`CASH_WALLET`, as_of_date) − Σ credit card account balances (as_of_date) + Σ latest snapshot per investment product (as_of_date)
+`net_worth(as_of_date)` = Σ asset account balances (`CHECKING`/`SAVINGS`/`CASH_WALLET`, as_of_date) + Σ investment account balances (`INVESTMENT`, as_of_date; each the sum of its products' latest snapshots) − Σ credit card account balances (as_of_date)
 
-A time series for the net worth trend chart is computed by evaluating this formula at each date where any underlying value changed (transaction, transfer, or investment snapshot).
+An account counts at a given date only if it existed and wasn't yet closed then: opened on or before that date and either never closed or closed after it. This is what keeps past months unchanged when an account is closed later. An `INVESTMENT` account has no opening date; it simply contributes `0` until its first snapshot.
+
+A time series for the net worth trend chart is computed either by evaluating this formula at each date where any underlying value changed (transaction, transfer, or investment snapshot), or at each month-end (the current month at today), carrying values forward through months with no activity. Both variants report the asset, liability and investment parts separately, so gross and net totals can both be charted.
 
 ### 5.10 Institution
 - `id`
 - `name` (e.g. "Nubank", "Itaú", "XP") — unique, flat and user-editable, same pattern as categories (§5.1). No type, no `closed_date`: it is a label, not something with a lifecycle.
 - `built_in` — true for exactly one seeded row, "No institution", which stands in for money that isn't at any institution (cash wallet, a private pension). It can be renamed but never deleted, and it is the default when picking an institution. Set by the schema migration only; users can't create built-in rows.
 
-An `Account` (§5.4) and an `InvestmentAccount` (§5.8) each point at exactly one institution, so the same institution can group a checking account, a credit card and a brokerage account, and every account always has a value to group by. An institution that any account or investment account (open or closed) references can't be deleted — only renamed; re-pointing those accounts to another institution frees it. This is what makes "how much do I have at Nubank" answerable as a grouping over §5.4/§5.8 (see §9).
+An `Account` (§5.4, of any type including `INVESTMENT`) points at exactly one institution, so the same institution can group a checking account, a credit card and a brokerage account, and every account always has a value to group by. An institution that any account (open or closed) references can't be deleted — only renamed; re-pointing those accounts to another institution frees it. This is what makes "how much do I have at Nubank" answerable as a single grouping over §5.4 (see §9).
 
 ## 6. Functional Requirements
 
@@ -152,10 +170,10 @@ An `Account` (§5.4) and an `InvestmentAccount` (§5.8) each point at exactly on
 - View running balance per account.
 
 ### 6.2 Accounts & Transfers
-- CRUD on accounts (name, institution picked from §6.10 — defaults to "No institution", type, opening balance, opening balance date).
+- CRUD on accounts (name, institution picked from §6.10 — defaults to "No institution", type, opening balance, opening balance date). For an `INVESTMENT` account the opening balance and date are not asked for (§5.4).
 - View an account's running balance and its transaction/transfer history.
-- Create a transfer between two accounts (date, from, to, amount, optional note); view transfer history.
-- Close an account (sets `closed_date`; auto-deactivates any recurring templates pointing at it). Closed accounts are excluded from "create new" pickers and the live balances widget, but remain browsable/exportable with their full history.
+- Create a transfer between two accounts (date, from, to, amount, optional note); view transfer history. When one side is an `INVESTMENT` account the form also asks for the product and offers the trade details (quantity, unit price, taxes) and an optional resulting balance (§5.5, §6.6).
+- Close an account (sets `closed_date`; auto-deactivates any recurring templates pointing at it). Closed accounts are excluded from "create new" pickers and the live balances widget, but remain browsable/exportable with their full history. An `INVESTMENT` account can only be closed once all its products are closed.
 
 ### 6.3 Categories & Payment Methods
 - CRUD on categories (name, type). Deleting a category with existing transactions should be blocked or require reassignment (implementation detail, decide at build time — flagged here as an edge case to resolve, not a new open decision for this PRD stage).
@@ -175,12 +193,12 @@ An `Account` (§5.4) and an `InvestmentAccount` (§5.8) each point at exactly on
 - Confirming an occurrence creates a linked transaction; user may adjust the amount/date/account at confirmation time without creating a new template version (one-off variance on an otherwise-recurring bill).
 
 ### 6.6 Investments
-- CRUD on investment categories (name).
-- Create/edit investment accounts (name, institution from §6.10 — defaults to "No institution") and investment products (name, account, category); close one instead of deleting it once it has any snapshot or buy/sell history (same rule as closing an `Account`, §6.2) — delete is only offered while it still has zero history.
-- Log a buy/sell entry for a product (date, type, amount, optional note) — record-keeping only, does not affect computed value.
-- Add a balance snapshot (date + balance) to any investment product.
-- View snapshot/buy-sell history per product.
-- View investment allocation by category: latest snapshot per product, grouped and summed by category (pie/bar chart).
+- CRUD on investment categories and, under each, sub-categories (name), from a settings screen. A category with sub-categories or products, or a sub-category with products, can't be deleted; renaming is always allowed.
+- Investment accounts are ordinary accounts of type `INVESTMENT` (§6.2). Create/edit investment products (name, `INVESTMENT` account, category, optional sub-category chosen from that category); close one instead of deleting it once it has any snapshot or buy/sell history — delete is only offered while it still has zero history. A product can only be closed while its latest snapshot is `0` or absent.
+- Buy or sell a product: a shortcut that opens the transfer form (§6.2) with the product, quantity, unit price and taxes, a live total that prefills the amount, an optional resulting balance and a "Sold entire position" option that records a `0` snapshot. Record-keeping only — quantity, price and taxes never affect computed value.
+- Add a balance snapshot (date + balance) to any investment product; a second one for the same date replaces the first.
+- View snapshot and buy/sell history per product, plus a monthly value series (month-end value from the latest snapshot, net contributions from buys minus sells, units held when quantities were recorded).
+- View investment allocation: latest snapshot per product, grouped and summed by category or by sub-category (pie/bar chart, drilling from a category into its sub-categories; products without a sub-category form a "No sub-category" slice). Products flagged as needing a snapshot (§5.8) are marked.
 
 ### 6.7 Onboarding
 - First-run flow: create at least one account, setting its opening balance and opening balance date (and its institution, which defaults to "No institution"; a new one can be created inline).
@@ -189,24 +207,24 @@ An `Account` (§5.4) and an `InvestmentAccount` (§5.8) each point at exactly on
 - Monthly spend by category (current month, chart or table).
 - Budget-vs-actual bars, one per budgeted category.
 - Account balances overview (list of accounts with current running balance).
-- Net worth trend over time (line chart).
-- Investment allocation by category (pie/bar chart, from latest product snapshots).
+- Net worth trend over time (line chart), switchable between change-date points and monthly points.
+- Investment allocation by category, drilling into sub-categories (pie/bar chart, from latest product snapshots).
 - Upcoming recurring bills (pending occurrences awaiting confirmation).
 
 ### 6.9 Data Export
-- Exports **all** data, one CSV per entity, delivered as a single ZIP download: `categories.csv`, `payment_methods.csv`, `institutions.csv`, `accounts.csv`, `transactions.csv`, `transfers.csv`, `budgets.csv` (one row per `BudgetVersion`), `recurring_templates.csv` (one row per `RecurringTemplateVersion`), `investment_accounts.csv`, `investment_categories.csv`, `investment_products.csv`, `investment_buy_sell_log.csv`, `investment_snapshots.csv`.
+- Exports **all** data, one CSV per entity, delivered as a single ZIP download: `categories.csv`, `payment_methods.csv`, `institutions.csv`, `accounts.csv`, `transactions.csv`, `transfers.csv`, `budgets.csv` (one row per `BudgetVersion`), `recurring_templates.csv` (one row per `RecurringTemplateVersion`), `investment_categories.csv`, `investment_subcategories.csv`, `investment_products.csv`, `investment_snapshots.csv`. Investment accounts are rows of `accounts.csv` (empty opening balance and date for `INVESTMENT`), and buys/sells are rows of `transfers.csv`, which also carries `investment_product_id`/`investment_product_name`, `quantity`, `unit_price` and `taxes` (empty for ordinary transfers).
 - Every foreign key column is accompanied by the referenced name inline (e.g. a transaction row includes both `category_id` and `category_name`, both `account_id` and `account_name`) so each file is usable directly in a spreadsheet without joins, while still preserving ids for full-fidelity backup.
 - Optional filters before export: date range, account, category. A filter only affects files with that dimension:
-  - Date range: `transactions.csv`, `transfers.csv`, `investment_buy_sell_log.csv`, `investment_snapshots.csv`, `budgets.csv`/`recurring_templates.csv` (by each version's `effective_from`).
+  - Date range: `transactions.csv`, `transfers.csv`, `investment_snapshots.csv`, `budgets.csv`/`recurring_templates.csv` (by each version's `effective_from`).
   - Account: `transactions.csv`, `transfers.csv` (matches either side), `recurring_templates.csv`.
   - Category: `transactions.csv`, `budgets.csv`, `recurring_templates.csv`.
-  - Purely reference files with no date/account/category dimension of their own (`categories.csv`, `payment_methods.csv`, `institutions.csv`, `accounts.csv`, `investment_accounts.csv`, `investment_categories.csv`, `investment_products.csv`) are always exported in full, since rows in the filtered files reference them by id and would be meaningless without them.
+  - Purely reference files with no date/account/category dimension of their own (`categories.csv`, `payment_methods.csv`, `institutions.csv`, `accounts.csv`, `investment_categories.csv`, `investment_subcategories.csv`, `investment_products.csv`) are always exported in full, since rows in the filtered files reference them by id and would be meaningless without them.
 - No filter selected = full export of everything, unfiltered.
 
 ### 6.10 Institutions
 - CRUD on institutions (name), from a settings screen next to categories and payment methods.
-- An account or investment account always has an institution: it picks one from that list (defaulting to the seeded "No institution" row) and can change it; typing a new name in the picker creates the institution inline.
-- "No institution" can be renamed but not deleted. Deleting any other institution referenced by an account or investment account (open or closed) is blocked; renaming is always allowed.
+- An account (of any type, including `INVESTMENT`) always has an institution: it picks one from that list (defaulting to the seeded "No institution" row) and can change it; typing a new name in the picker creates the institution inline.
+- "No institution" can be renamed but not deleted. Deleting any other institution referenced by an account (open or closed) is blocked; renaming is always allowed.
 
 ## 7. Technical Design
 
@@ -241,10 +259,11 @@ These are low-level choices left to implementation rather than product decisions
 - Household/multi-user support with shared or split categories.
 - Bank/card auto-sync (Open Finance aggregator) or CSV statement import.
 - Multi-currency support.
-- Quantity/price-based investment tracking (shares, cost basis, computed value, gain/loss) — a stricter version of the current buy/sell log + manual snapshot approach.
+- Computed investment tracking (cost basis, value derived from quantity × price, gain/loss). Quantity, unit price and taxes are already recorded per buy/sell (§5.5) but nothing is calculated from them; this would build on that data and the manual snapshots.
+- Monthly value series grouped by investment category or sub-category (today the series is per product).
 - Manual physical assets (real estate, vehicles) in net worth.
-- Allocation by institution: how much is held at each institution (account balances plus latest investment snapshots, grouped by `institution_id`; the built-in "No institution" row is just another slice), as a dashboard pie chart. The data model (§5.10) already supports it; the query and widget are a later feature.
-- Loan account type with amortization schedules (beyond the current checking/savings/cash/credit-card types).
+- Allocation by institution: how much is held at each institution (account balances, `INVESTMENT` accounts included, grouped by `institution_id`; the built-in "No institution" row is just another slice; how credit card balances net against an institution is decided when it is built), as a dashboard pie chart. The data model (§5.10) already supports it as a single grouping over accounts; the query and widget are a later feature.
+- Loan account type with amortization schedules (beyond the current checking/savings/cash/credit-card/investment types).
 - Interest/fee accrual modeling on credit card liabilities.
 - Manual bank statement reconciliation (mark an account balance as matched against a real statement as of a date).
 - Remote/LAN access with authentication.
