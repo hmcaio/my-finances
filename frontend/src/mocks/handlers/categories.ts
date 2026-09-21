@@ -6,8 +6,10 @@ import type { Category, CategoryType } from '../../api/categories'
  * assert against it directly instead of duplicating the fixture (F015 spec's F002 backfill).
  */
 export const seedCategories: Category[] = [
-  { id: 'cat-1', name: 'Groceries', type: 'EXPENSE' },
-  { id: 'cat-2', name: 'Salary', type: 'INCOME' },
+  { id: 'cat-1', name: 'Groceries', type: 'EXPENSE', builtIn: false },
+  { id: 'cat-2', name: 'Salary', type: 'INCOME', builtIn: false },
+  { id: 'cat-3', name: 'Other Expense', type: 'EXPENSE', builtIn: true },
+  { id: 'cat-4', name: 'Other Income', type: 'INCOME', builtIn: true },
 ]
 
 const CATEGORIES_URL = '/api/categories'
@@ -29,7 +31,12 @@ export const categoriesHandlers = [
 
   http.post(CATEGORIES_URL, async ({ request }) => {
     const body = (await request.json()) as CategoryRequestBody
-    const created: Category = { id: 'cat-new', name: body.name, type: body.type ?? 'EXPENSE' }
+    const created: Category = {
+      id: 'cat-new',
+      name: body.name,
+      type: body.type ?? 'EXPENSE',
+      builtIn: false,
+    }
     return HttpResponse.json(created, { status: 201 })
   }),
 
@@ -40,6 +47,7 @@ export const categoriesHandlers = [
       id: params.id as string,
       name: body.name,
       type: existing?.type ?? 'EXPENSE',
+      builtIn: existing?.builtIn ?? false,
     }
     return HttpResponse.json(updated)
   }),

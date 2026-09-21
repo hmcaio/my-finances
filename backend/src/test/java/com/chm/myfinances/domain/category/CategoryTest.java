@@ -91,4 +91,34 @@ class CategoryTest {
     assertThatThrownBy(() -> category.rename(tooLongName))
         .isInstanceOf(IllegalArgumentException.class);
   }
+
+  @Test
+  void createAlwaysYieldsANonBuiltInCategory() {
+    Category category = Category.create(UUID.randomUUID(), "Groceries", CategoryType.EXPENSE);
+
+    assertThat(category.isBuiltIn()).isFalse();
+  }
+
+  @Test
+  void reconstitutePreservesTheBuiltInFlag() {
+    UUID id = UUID.randomUUID();
+
+    Category builtIn = Category.reconstitute(id, "Other Expense", CategoryType.EXPENSE, true);
+    Category ordinary = Category.reconstitute(id, "Groceries", CategoryType.EXPENSE, false);
+
+    assertThat(builtIn.isBuiltIn()).isTrue();
+    assertThat(ordinary.isBuiltIn()).isFalse();
+  }
+
+  @Test
+  void renameIsAllowedOnABuiltInCategoryAndKeepsTheFlagAndType() {
+    Category category =
+        Category.reconstitute(UUID.randomUUID(), "Other Income", CategoryType.INCOME, true);
+
+    category.rename("Sem categoria");
+
+    assertThat(category.getName()).isEqualTo("Sem categoria");
+    assertThat(category.isBuiltIn()).isTrue();
+    assertThat(category.getType()).isEqualTo(CategoryType.INCOME);
+  }
 }

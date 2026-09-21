@@ -110,6 +110,62 @@ class CategoryControllerTest {
   }
 
   @Test
+  void listExposesTheBuiltInFlagAndCreatedCategoriesAreNotBuiltIn() throws Exception {
+    mockMvc
+        .perform(get("/api/categories"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[?(@.name=='Other Expense')].builtIn").value(true))
+        .andExpect(jsonPath("$[?(@.name=='Other Income')].builtIn").value(true))
+        .andExpect(jsonPath("$[?(@.name=='Groceries')].builtIn").value(false));
+
+    mockMvc
+        .perform(
+            post("/api/categories")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    objectMapper.writeValueAsString(
+                        Map.of("name", "Not Built In Test", "type", "EXPENSE"))))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.builtIn").value(false));
+  }
+
+  @Test
+  void deleteRejectsABuiltInCategoryWith409AndKeepsIt() throws Exception {
+    String builtInId = builtInCategoryId("Other Expense");
+
+    mockMvc.perform(delete("/api/categories/" + builtInId)).andExpect(status().isConflict());
+
+    mockMvc
+        .perform(get("/api/categories"))
+        .andExpect(jsonPath("$[?(@.id=='" + builtInId + "')]").exists());
+  }
+
+  @Test
+  void aBuiltInCategoryCanBeRenamedAndStaysBuiltIn() throws Exception {
+    String builtInId = builtInCategoryId("Other Income");
+
+    mockMvc
+        .perform(
+            patch("/api/categories/" + builtInId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of("name", "Renamed Income Test"))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.name").value("Renamed Income Test"))
+        .andExpect(jsonPath("$.builtIn").value(true));
+  }
+
+  private String builtInCategoryId(String name) throws Exception {
+    MvcResult result =
+        mockMvc.perform(get("/api/categories")).andExpect(status().isOk()).andReturn();
+    for (var node : objectMapper.readTree(result.getResponse().getContentAsString())) {
+      if (node.get("name").asText().equals(name)) {
+        return node.get("id").asText();
+      }
+    }
+    throw new AssertionError("seeded category not found: " + name);
+  }
+
+  @Test
   void patchWithATypeFieldDoesNotChangeType() throws Exception {
     String createBody =
         objectMapper.writeValueAsString(Map.of("name", "Income Test", "type", "INCOME"));

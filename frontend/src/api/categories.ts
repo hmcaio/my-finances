@@ -4,11 +4,15 @@ import type { components } from './generated/schema'
 
 export type CategoryType = 'INCOME' | 'EXPENSE'
 
-/** A Category as returned by the API (PRD S5.1). */
+/**
+ * A Category as returned by the API (PRD S5.1). `builtIn` marks the one fallback row per type
+ * ("Other Expense" / "Other Income" by default) - it can be renamed but never deleted.
+ */
 export interface Category {
   id: string
   name: string
   type: CategoryType
+  builtIn: boolean
 }
 
 export type CreateCategoryRequest = components['schemas']['CreateCategoryRequest']
@@ -39,6 +43,7 @@ export async function renameCategory(
   return unwrap(apiClient.patch<Category>(`/categories/${id}`, request), DUPLICATE_NAME_MESSAGE)
 }
 
+/** Deletes an unreferenced, non-built-in category; a 409 means something still uses it. */
 export async function deleteCategory(id: string): Promise<void> {
   await unwrap(apiClient.delete<void>(`/categories/${id}`), CONFLICT_MESSAGE)
 }
