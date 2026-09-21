@@ -43,7 +43,29 @@ export const seedAccounts: Account[] = [
   },
 ]
 
+/**
+ * An INVESTMENT account (F008): no opening balance or date, balance 0 until snapshots exist (F009).
+ * Kept OUT of `seedAccounts` on purpose - that list feeds the pickers on the transaction, transfer
+ * and recurring pages, where an investment account must not appear - and served by id only, so the
+ * detail page and the products section can be tested against it.
+ */
+export const seedInvestmentAccount: Account = {
+  id: 'acct-inv',
+  name: 'XP Investimentos',
+  institutionId: 'inst-2',
+  type: 'INVESTMENT',
+  openingBalance: null,
+  openingBalanceDate: null,
+  closedDate: null,
+  closed: false,
+  balance: 0,
+}
+
 const ACCOUNTS_URL = '/api/accounts'
+
+function findAccount(id: string): Account | undefined {
+  return [...seedAccounts, seedInvestmentAccount].find((a) => a.id === id)
+}
 
 interface CreateAccountRequestBody {
   name: string
@@ -72,37 +94,40 @@ export const accountsHandlers = [
   }),
 
   http.get(`${ACCOUNTS_URL}/:id`, ({ params }) => {
-    const account = seedAccounts.find((a) => a.id === params.id)
+    const account = findAccount(params.id as string)
     if (!account) return new HttpResponse(null, { status: 404 })
     return HttpResponse.json(account)
   }),
 
   http.post(ACCOUNTS_URL, async ({ request }) => {
     const body = (await request.json()) as CreateAccountRequestBody
+    const type = body.type ?? 'CHECKING'
+    // An INVESTMENT account has no opening balance/date (F008); the backend answers 0 for its balance.
+    const isInvestment = type === 'INVESTMENT'
     const created: Account = {
       id: 'acct-new',
       name: body.name,
       institutionId: body.institutionId,
-      type: body.type ?? 'CHECKING',
-      openingBalance: body.openingBalance ?? 0,
-      openingBalanceDate: body.openingBalanceDate ?? '2026-01-01',
+      type,
+      openingBalance: isInvestment ? null : (body.openingBalance ?? 0),
+      openingBalanceDate: isInvestment ? null : (body.openingBalanceDate ?? '2026-01-01'),
       closedDate: null,
       closed: false,
-      balance: body.openingBalance ?? 0,
+      balance: isInvestment ? 0 : (body.openingBalance ?? 0),
     }
     return HttpResponse.json(created, { status: 201 })
   }),
 
   http.patch(`${ACCOUNTS_URL}/:id`, async ({ request, params }) => {
     const body = (await request.json()) as UpdateAccountRequestBody
-    const existing = seedAccounts.find((a) => a.id === params.id)
+    const existing = findAccount(params.id as string)
     const updated: Account = {
       id: params.id as string,
       name: body.name,
       institutionId: body.institutionId,
       type: existing?.type ?? 'CHECKING',
-      openingBalance: existing?.openingBalance ?? 0,
-      openingBalanceDate: existing?.openingBalanceDate ?? '2026-01-01',
+      openingBalance: existing ? existing.openingBalance : 0,
+      openingBalanceDate: existing ? existing.openingBalanceDate : '2026-01-01',
       closedDate: existing?.closedDate ?? null,
       closed: existing?.closed ?? false,
       balance: existing?.balance ?? 0,
@@ -111,14 +136,14 @@ export const accountsHandlers = [
   }),
 
   http.post(`${ACCOUNTS_URL}/:id/close`, ({ params }) => {
-    const existing = seedAccounts.find((a) => a.id === params.id)
+    const existing = findAccount(params.id as string)
     const closed: Account = {
       id: params.id as string,
       name: existing?.name ?? 'Account',
       institutionId: existing?.institutionId ?? BUILT_IN_INSTITUTION_ID,
       type: existing?.type ?? 'CHECKING',
-      openingBalance: existing?.openingBalance ?? 0,
-      openingBalanceDate: existing?.openingBalanceDate ?? '2026-01-01',
+      openingBalance: existing ? existing.openingBalance : 0,
+      openingBalanceDate: existing ? existing.openingBalanceDate : '2026-01-01',
       closedDate: '2026-09-15',
       closed: true,
       balance: existing?.balance ?? 0,

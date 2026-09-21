@@ -5,6 +5,7 @@ import {
   accountCreateConflictHandler,
   accountEditConflictHandler,
   seedAccounts,
+  seedInvestmentAccount,
 } from '../mocks/handlers/accounts'
 import { ApiError } from './apiError'
 import { closeAccount, createAccount, editAccount, getAccount, getAccounts } from './accounts'
@@ -44,6 +45,40 @@ describe('accounts API client', () => {
       balance: 100,
     })
     expect(created.id).toBeTruthy()
+  })
+
+  it('getAccount returns an INVESTMENT account with null opening fields', async () => {
+    const account = await getAccount(seedInvestmentAccount.id)
+
+    expect(account).toMatchObject({
+      type: 'INVESTMENT',
+      openingBalance: null,
+      openingBalanceDate: null,
+      balance: 0,
+    })
+  })
+
+  it('createAccount posts an INVESTMENT account without opening fields', async () => {
+    const created = await createAccount({
+      name: 'XP Investimentos',
+      institutionId: 'inst-1',
+      type: 'INVESTMENT',
+    })
+
+    expect(created).toMatchObject({
+      type: 'INVESTMENT',
+      openingBalance: null,
+      openingBalanceDate: null,
+      balance: 0,
+    })
+  })
+
+  it('closeAccount maps a 409 to a message that covers the open-products case', async () => {
+    server.use(accountAlreadyClosedConflictHandler)
+
+    const error: unknown = await closeAccount(seedInvestmentAccount.id).catch((err: unknown) => err)
+
+    expect((error as ApiError).message).toContain('open products')
   })
 
   it('editAccount patches name and institution and returns the updated account', async () => {

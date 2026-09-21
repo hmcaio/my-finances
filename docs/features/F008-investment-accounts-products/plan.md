@@ -15,8 +15,8 @@
 - [x] Update backend `CLAUDE.md`: the seeded investment categories/sub-categories join the "seed rows collide with `UNIQUE`" note; and root `CLAUDE.md`: `InvestmentSubcategory` joins the flat-taxonomy `MAX_NAME_LENGTH` list.
 
 ## Frontend
-- [ ] `src/api/investmentCategories.ts`, `src/api/investmentSubcategories.ts`, `src/api/investmentProducts.ts`, MSW handlers, and the `Account` type/handlers for nullable opening fields.
-- [ ] `src/features/investmentCategories` — two-level list: add/rename/delete for categories and sub-categories, with `conflictMessage`s.
+- [x] `src/api/investmentCategories.ts`, `src/api/investmentSubcategories.ts`, `src/api/investmentProducts.ts`, MSW handlers, and the `Account` type/handlers for nullable opening fields.
+- [x] `src/features/investmentCategories` — two-level list: add/rename/delete for categories and sub-categories, with `conflictMessage`s.
 - [ ] Account form/list/detail (F003): `INVESTMENT` type hides opening balance and date; handle null opening fields; detail lists products for `INVESTMENT`.
 - [ ] `src/features/investmentProducts` — list per account, create/edit with the dependent category/sub-category selects, close, delete gated on `hasHistory`.
 
