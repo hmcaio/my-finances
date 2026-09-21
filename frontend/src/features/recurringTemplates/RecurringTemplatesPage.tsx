@@ -32,14 +32,9 @@ import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
 import { DataTableBody } from '../../components/DataTableBody'
 import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
+import { currentMonth } from '../../utils/localDate'
 import { nameLookup } from '../../utils/nameLookup'
 import { PendingOccurrencesWidget } from './PendingOccurrencesWidget'
-
-/** `YYYY-MM` for the current real-world month - the implicit "now" every cap edit/new template
- * takes effect from, same convention as F006's `BudgetsPage`. */
-function currentMonth(): string {
-  return new Date().toISOString().slice(0, 7)
-}
 
 const EMPTY_CREATE_FORM = {
   categoryId: '',

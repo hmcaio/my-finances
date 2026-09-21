@@ -35,6 +35,7 @@ import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
 import { DataTableBody } from '../../components/DataTableBody'
 import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
+import { today } from '../../utils/localDate'
 import { nameLookup } from '../../utils/nameLookup'
 import { ACCOUNT_TYPE_LABELS } from './accountTypes'
 import { InstitutionSelect } from '../institutions/InstitutionSelect'
@@ -78,9 +79,7 @@ export function AccountsPage() {
   const [newInstitutionId, setNewInstitutionId] = useState<string | undefined>()
   const [newType, setNewType] = useState<AccountType>('CHECKING')
   const [newOpeningBalance, setNewOpeningBalance] = useState('0')
-  const [newOpeningBalanceDate, setNewOpeningBalanceDate] = useState(() =>
-    new Date().toISOString().slice(0, 10),
-  )
+  const [newOpeningBalanceDate, setNewOpeningBalanceDate] = useState(today)
   const [adding, setAdding] = useState(false)
 
   const [closeTarget, setCloseTarget] = useState<Account | null>(null)

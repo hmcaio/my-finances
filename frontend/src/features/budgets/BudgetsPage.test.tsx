@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse } from 'msw'
@@ -117,5 +117,25 @@ describe('BudgetsPage', () => {
     expect(await screen.findByRole('status', { name: 'Loading budget report' })).toBeInTheDocument()
     expect(await screen.findByText('No budgeted categories yet.')).toBeInTheDocument()
     expect(screen.queryByRole('status', { name: 'Loading budget report' })).not.toBeInTheDocument()
+  })
+})
+
+describe('BudgetsPage local-time defaults', () => {
+  beforeEach(() => {
+    // 23:30 on 31 March in UTC-3 is already 1 April in UTC.
+    vi.stubEnv('TZ', 'America/Sao_Paulo')
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 2, 31, 23, 30))
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllEnvs()
+  })
+
+  it('defaults the report month to the local month, not the UTC month', async () => {
+    render(<BudgetsPage />)
+
+    expect(await screen.findByLabelText('Month')).toHaveValue('2026-03')
   })
 })

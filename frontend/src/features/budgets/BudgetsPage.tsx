@@ -31,13 +31,8 @@ import { fadeInSx } from '../../components/fadeIn'
 import { LoadFailedNotice } from '../../components/LoadFailedNotice'
 import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
+import { currentMonth } from '../../utils/localDate'
 import { nameLookup } from '../../utils/nameLookup'
-
-/** `YYYY-MM` for the current real-world month - the implicit "now" every cap edit/new budget
- * takes effect from (PRD S5.6: "effective going forward only"). */
-function currentMonth(): string {
-  return new Date().toISOString().slice(0, 7)
-}
 
 /**
  * Budgets screen (F006 spec): a settings-style list of budgeted categories with their current cap
