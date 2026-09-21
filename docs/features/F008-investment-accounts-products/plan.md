@@ -5,7 +5,7 @@
 ## Backend
 - [x] Write tests first for `Account`: `INVESTMENT` requires null opening balance/date, every other type requires both; then add `AccountType.INVESTMENT` and the type-dependent invariant.
 - [x] Write tests for `AccountService` (`INVESTMENT` create with/without opening values, close blocked while a product is open) and `AccountBalanceQuery` (`INVESTMENT` returns `0` until F009), then implement; add `InvestmentProductRepository.existsOpenByAccountId`.
-- [ ] Write tests for `TransactionService` and `RecurringTemplateService` rejecting an `INVESTMENT` account (409, `AccountTypeNotAllowedException` per package), then implement.
+- [x] Write tests for `TransactionService` and `RecurringTemplateService` rejecting an `INVESTMENT` account (409, `AccountTypeNotAllowedException` per package), then implement.
 - [ ] Write tests first for the product delete-safety rule: delete is blocked once the (mockable) `HasInvestmentHistoryChecker` returns `true`, allowed at zero history; add the port, returning `false` unconditionally until F009 fulfills it.
 - [ ] Add `domain/investmentcategory/InvestmentCategory.java`, `domain/investmentsubcategory/InvestmentSubcategory.java`, `domain/investmentproduct/InvestmentProduct.java` (name invariants, immutable sub-category parent, `close()`), with domain tests.
 - [ ] Write service tests, then implement: category CRUD (delete blocked by sub-categories or products), sub-category CRUD (per-parent name uniqueness, unknown parent 404, delete blocked by products), product create/edit/close/delete (account must be an open `INVESTMENT` account, name unique per account but reusable across accounts, sub-category must belong to the category, delete guarded by the history checker).

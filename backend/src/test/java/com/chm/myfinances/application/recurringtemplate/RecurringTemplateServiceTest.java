@@ -158,6 +158,28 @@ class RecurringTemplateServiceTest {
   }
 
   @Test
+  void createRejectsAnInvestmentAccount() {
+    UUID investmentId =
+        accountRepository
+            .save(
+                Account.create(
+                    UUID.randomUUID(),
+                    "Broker",
+                    UUID.randomUUID(),
+                    AccountType.INVESTMENT,
+                    null,
+                    null))
+            .getId();
+
+    assertThatThrownBy(
+            () ->
+                service.create(
+                    categoryId, investmentId, "Rent", BigDecimal.TEN, 5, YearMonth.now()))
+        .isInstanceOf(AccountTypeNotAllowedException.class);
+    assertThat(service.findAll()).isEmpty();
+  }
+
+  @Test
   void findByIdOfUnknownIdThrowsNotFound() {
     assertThatThrownBy(() -> service.findById(UUID.randomUUID()))
         .isInstanceOf(RecurringTemplateNotFoundException.class);
