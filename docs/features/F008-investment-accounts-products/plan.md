@@ -3,7 +3,7 @@
 **Depends on**: F001, F003, F004, F007, F015, F017 (all built; F003/F004/F007 get touched). See [ADR 0012](../../adr/0012-investments-as-accounts-and-transfers.md).
 
 ## Backend
-- [ ] Write tests first for `Account`: `INVESTMENT` requires null opening balance/date, every other type requires both; then add `AccountType.INVESTMENT` and the type-dependent invariant.
+- [x] Write tests first for `Account`: `INVESTMENT` requires null opening balance/date, every other type requires both; then add `AccountType.INVESTMENT` and the type-dependent invariant.
 - [ ] Write tests for `AccountService` (`INVESTMENT` create with/without opening values, close blocked while a product is open) and `AccountBalanceQuery` (`INVESTMENT` returns `0` until F009), then implement; add `InvestmentProductRepository.existsOpenByAccountId`.
 - [ ] Write tests for `TransactionService` and `RecurringTemplateService` rejecting an `INVESTMENT` account (409, `AccountTypeNotAllowedException` per package), then implement.
 - [ ] Write tests first for the product delete-safety rule: delete is blocked once the (mockable) `HasInvestmentHistoryChecker` returns `true`, allowed at zero history; add the port, returning `false` unconditionally until F009 fulfills it.

@@ -19,6 +19,10 @@ import java.util.UUID;
  * #edit(String, UUID)}, including after the account is closed (closing only blocks new *activity* -
  * transactions/transfers - not a metadata correction).
  *
+ * <p>{@code openingBalance}/{@code openingBalanceDate} are {@code null} exactly when {@code type ==
+ * INVESTMENT} (F008, ADR 0012: its value comes only from snapshots) and required for every other
+ * type, so their getters can return {@code null} and callers must cope.
+ *
  * <p>The institution is held by id only and is required (F017): this class deliberately doesn't
  * import {@code domain/institution}. That the institution exists is checked in {@code
  * AccountService}, the same way other cross-aggregate references are.
@@ -45,9 +49,19 @@ public final class Account {
     this.name = requireValidName(name);
     this.institutionId = Objects.requireNonNull(institutionId, "institutionId must not be null");
     this.type = Objects.requireNonNull(type, "type must not be null");
-    this.openingBalance = Objects.requireNonNull(openingBalance, "openingBalance must not be null");
-    this.openingBalanceDate =
-        Objects.requireNonNull(openingBalanceDate, "openingBalanceDate must not be null");
+    if (type == AccountType.INVESTMENT) {
+      if (openingBalance != null || openingBalanceDate != null) {
+        throw new IllegalArgumentException(
+            "an INVESTMENT account must not have an opening balance or opening balance date");
+      }
+      this.openingBalance = null;
+      this.openingBalanceDate = null;
+    } else {
+      this.openingBalance =
+          Objects.requireNonNull(openingBalance, "openingBalance must not be null");
+      this.openingBalanceDate =
+          Objects.requireNonNull(openingBalanceDate, "openingBalanceDate must not be null");
+    }
     this.closedDate = closedDate;
   }
 

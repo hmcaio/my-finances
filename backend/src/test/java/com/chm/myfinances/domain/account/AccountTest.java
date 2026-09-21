@@ -8,6 +8,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 /**
  * Domain-level unit tests for {@link Account} (PRD S5.4, F003 spec; F017 replaced the free-text
@@ -307,6 +309,129 @@ class AccountTest {
     assertThatThrownBy(() -> account.edit("Renamed", null))
         .isInstanceOf(NullPointerException.class);
     assertThat(account.getInstitutionId()).isEqualTo(INSTITUTION_ID);
+  }
+
+  @Test
+  void investmentAccountCreatesWithoutOpeningBalanceOrDate() {
+    Account account =
+        Account.create(
+            UUID.randomUUID(),
+            "XP Investimentos",
+            INSTITUTION_ID,
+            AccountType.INVESTMENT,
+            null,
+            null);
+
+    assertThat(account.getType()).isEqualTo(AccountType.INVESTMENT);
+    assertThat(account.getOpeningBalance()).isNull();
+    assertThat(account.getOpeningBalanceDate()).isNull();
+    assertThat(account.isClosed()).isFalse();
+  }
+
+  @Test
+  void investmentAccountRejectsAnOpeningBalance() {
+    assertThatThrownBy(
+            () ->
+                Account.create(
+                    UUID.randomUUID(),
+                    "XP Investimentos",
+                    INSTITUTION_ID,
+                    AccountType.INVESTMENT,
+                    BigDecimal.TEN,
+                    null))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void investmentAccountRejectsAnOpeningBalanceDate() {
+    assertThatThrownBy(
+            () ->
+                Account.create(
+                    UUID.randomUUID(),
+                    "XP Investimentos",
+                    INSTITUTION_ID,
+                    AccountType.INVESTMENT,
+                    null,
+                    LocalDate.now()))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void reconstituteEnforcesTheInvestmentInvariantToo() {
+    Account investment =
+        Account.reconstitute(
+            UUID.randomUUID(),
+            "XP Investimentos",
+            INSTITUTION_ID,
+            AccountType.INVESTMENT,
+            null,
+            null,
+            null);
+    assertThat(investment.getOpeningBalance()).isNull();
+
+    assertThatThrownBy(
+            () ->
+                Account.reconstitute(
+                    UUID.randomUUID(),
+                    "XP Investimentos",
+                    INSTITUTION_ID,
+                    AccountType.INVESTMENT,
+                    BigDecimal.ZERO,
+                    LocalDate.now(),
+                    null))
+        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(
+            () ->
+                Account.reconstitute(
+                    UUID.randomUUID(),
+                    "Checking",
+                    INSTITUTION_ID,
+                    AccountType.CHECKING,
+                    null,
+                    null,
+                    null))
+        .isInstanceOf(NullPointerException.class);
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = AccountType.class,
+      names = {"CHECKING", "SAVINGS", "CASH_WALLET", "CREDIT_CARD"})
+  void everyNonInvestmentTypeRequiresBothOpeningFields(AccountType type) {
+    assertThatThrownBy(
+            () ->
+                Account.create(
+                    UUID.randomUUID(), "Any", INSTITUTION_ID, type, null, LocalDate.now()))
+        .isInstanceOf(NullPointerException.class);
+    assertThatThrownBy(
+            () ->
+                Account.create(
+                    UUID.randomUUID(), "Any", INSTITUTION_ID, type, BigDecimal.ZERO, null))
+        .isInstanceOf(NullPointerException.class);
+    assertThat(
+            Account.create(
+                    UUID.randomUUID(),
+                    "Any",
+                    INSTITUTION_ID,
+                    type,
+                    BigDecimal.ZERO,
+                    LocalDate.now())
+                .getOpeningBalance())
+        .isEqualByComparingTo("0");
+  }
+
+  @Test
+  void anInvestmentAccountStillEditsAndCloses() {
+    Account account =
+        Account.create(
+            UUID.randomUUID(), "Broker", INSTITUTION_ID, AccountType.INVESTMENT, null, null);
+
+    account.edit("Broker renamed", INSTITUTION_ID);
+    account.close();
+
+    assertThat(account.getName()).isEqualTo("Broker renamed");
+    assertThat(account.isClosed()).isTrue();
+    assertThat(account.getOpeningBalance()).isNull();
   }
 
   private static Account newChecking() {
