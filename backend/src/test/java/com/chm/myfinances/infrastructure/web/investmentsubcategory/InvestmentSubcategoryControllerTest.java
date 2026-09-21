@@ -1,0 +1,227 @@
+package com.chm.myfinances.infrastructure.web.investmentsubcategory;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.chm.myfinances.TestcontainersConfiguration;
+import com.chm.myfinances.domain.account.Account;
+import com.chm.myfinances.domain.account.AccountRepository;
+import com.chm.myfinances.domain.account.AccountType;
+import com.chm.myfinances.domain.institution.InstitutionRepository;
+import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
+import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
+import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
+import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
+import com.chm.myfinances.domain.shared.TextFieldConstraints;
+import com.chm.myfinances.testsupport.TestInstitutions;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.WebApplicationContext;
+
+/**
+ * REST-layer integration test for {@link InvestmentSubcategoryController}, against a real
+ * Testcontainers Postgres (ADR 0010), hand-built {@link MockMvc}.
+ */
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
+@Import(TestcontainersConfiguration.class)
+@Transactional
+class InvestmentSubcategoryControllerTest {
+
+  @Autowired private WebApplicationContext webApplicationContext;
+  @Autowired private InvestmentCategoryRepository categoryRepository;
+  @Autowired private InvestmentProductRepository productRepository;
+  @Autowired private AccountRepository accountRepository;
+  @Autowired private InstitutionRepository institutionRepository;
+
+  private final ObjectMapper objectMapper = new ObjectMapper();
+
+  private MockMvc mockMvc;
+  private UUID categoryId;
+  private UUID otherCategoryId;
+
+  @BeforeEach
+  void setUp() {
+    mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+    categoryId =
+        categoryRepository
+            .save(InvestmentCategory.create(UUID.randomUUID(), "Parent Test"))
+            .getId();
+    otherCategoryId =
+        categoryRepository
+            .save(InvestmentCategory.create(UUID.randomUUID(), "Other Parent Test"))
+            .getId();
+  }
+
+  private String body(UUID parentId, String name) throws Exception {
+    Map<String, Object> body = new HashMap<>();
+    body.put("investmentCategoryId", parentId == null ? null : parentId.toString());
+    body.put("name", name);
+    return objectMapper.writeValueAsString(body);
+  }
+
+  private String createSubcategory(UUID parentId, String name) throws Exception {
+    MvcResult result =
+        mockMvc
+            .perform(
+                post("/api/investment-subcategories")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(body(parentId, name)))
+            .andExpect(status().isCreated())
+            .andReturn();
+    return objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asText();
+  }
+
+  private String nameBody(String name) throws Exception {
+    return objectMapper.writeValueAsString(Map.of("name", name));
+  }
+
+  @Test
+  void createReturnsTheSubcategoryUnderItsParent() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/investment-subcategories")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body(categoryId, "CDB Test")))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.investmentCategoryId").value(categoryId.toString()))
+        .andExpect(jsonPath("$.name").value("CDB Test"));
+  }
+
+  @Test
+  void createUnderAnUnknownParentReturns404() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/investment-subcategories")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body(UUID.randomUUID(), "CDB Test")))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void createRejectsAMissingParentBlankAndTooLongNamesWith400() throws Exception {
+    for (String content :
+        new String[] {
+          body(null, "CDB Test"),
+          body(categoryId, " "),
+          body(categoryId, "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1)),
+          "{}"
+        }) {
+      mockMvc
+          .perform(
+              post("/api/investment-subcategories")
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(content))
+          .andExpect(status().isBadRequest());
+    }
+  }
+
+  @Test
+  void aDuplicateNameIsRejectedWithinAParentButAllowedUnderAnother() throws Exception {
+    createSubcategory(categoryId, "ETFs Test");
+
+    mockMvc
+        .perform(
+            post("/api/investment-subcategories")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body(categoryId, "ETFs Test")))
+        .andExpect(status().isConflict());
+    mockMvc
+        .perform(
+            post("/api/investment-subcategories")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body(otherCategoryId, "ETFs Test")))
+        .andExpect(status().isCreated());
+  }
+
+  @Test
+  void renameChangesTheNameOnly() throws Exception {
+    String id = createSubcategory(categoryId, "Original Test");
+
+    mockMvc
+        .perform(
+            patch("/api/investment-subcategories/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(nameBody("Renamed Test")))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.name").value("Renamed Test"))
+        .andExpect(jsonPath("$.investmentCategoryId").value(categoryId.toString()));
+  }
+
+  @Test
+  void renameCannotReparentEvenIfTheBodyCarriesAnotherCategory() throws Exception {
+    String id = createSubcategory(categoryId, "Stay Put Test");
+
+    mockMvc
+        .perform(
+            patch("/api/investment-subcategories/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body(otherCategoryId, "Stay Put Test")))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.investmentCategoryId").value(categoryId.toString()));
+  }
+
+  @Test
+  void renameRejectsASiblingsNameWith409AndUnknownIdWith404() throws Exception {
+    createSubcategory(categoryId, "Taken Test");
+    String id = createSubcategory(categoryId, "Free Test");
+
+    mockMvc
+        .perform(
+            patch("/api/investment-subcategories/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(nameBody("Taken Test")))
+        .andExpect(status().isConflict());
+    mockMvc
+        .perform(
+            patch("/api/investment-subcategories/" + UUID.randomUUID())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(nameBody("Anything Test")))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void deleteRemovesAnUnreferencedSubcategory() throws Exception {
+    String id = createSubcategory(categoryId, "Delete Me Test");
+
+    mockMvc
+        .perform(delete("/api/investment-subcategories/" + id))
+        .andExpect(status().isNoContent());
+    mockMvc.perform(delete("/api/investment-subcategories/" + id)).andExpect(status().isNotFound());
+  }
+
+  @Test
+  void deleteIsRejectedWith409WhileAProductUsesIt() throws Exception {
+    String id = createSubcategory(categoryId, "Used Test");
+    UUID accountId =
+        accountRepository
+            .save(
+                Account.create(
+                    UUID.randomUUID(),
+                    "Broker Subcategory Test",
+                    TestInstitutions.builtInId(institutionRepository),
+                    AccountType.INVESTMENT,
+                    null,
+                    null))
+            .getId();
+    productRepository.save(
+        InvestmentProduct.create(
+            UUID.randomUUID(), accountId, categoryId, UUID.fromString(id), "CDB Product Test"));
+
+    mockMvc.perform(delete("/api/investment-subcategories/" + id)).andExpect(status().isConflict());
+  }
+}

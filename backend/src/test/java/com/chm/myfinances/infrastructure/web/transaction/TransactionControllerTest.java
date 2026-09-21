@@ -203,6 +203,27 @@ class TransactionControllerTest {
   }
 
   @Test
+  void createRejectsAnInvestmentAccountWith409() throws Exception {
+    UUID investmentAccountId =
+        accountRepository
+            .save(
+                Account.create(
+                    UUID.randomUUID(),
+                    "Broker Test",
+                    TestInstitutions.builtInId(institutionRepository),
+                    AccountType.INVESTMENT,
+                    null,
+                    null))
+            .getId();
+    String body =
+        createTransactionBody("2026-03-15", "10.00", expenseCategoryId, investmentAccountId, null);
+
+    mockMvc
+        .perform(post("/api/transactions").contentType(MediaType.APPLICATION_JSON).content(body))
+        .andExpect(status().isConflict());
+  }
+
+  @Test
   void createRejectsAnUnknownCategoryWith404() throws Exception {
     String body = createTransactionBody("2026-03-15", "10.00", UUID.randomUUID(), accountId, null);
 

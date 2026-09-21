@@ -11,7 +11,7 @@
 - [x] Write service tests, then implement: category CRUD (delete blocked by sub-categories or products), sub-category CRUD (per-parent name uniqueness, unknown parent 404, delete blocked by products), product create/edit/close/delete (account must be an open `INVESTMENT` account, name unique per account but reusable across accounts, sub-category must belong to the category, delete guarded by the history checker).
 - [x] JPA entities (extend `AuditableEntity`), repositories, adapters for all three; make `AccountJpaEntity`'s opening columns nullable.
 - [x] Flyway migration (`V13`+ — check the highest existing number first): `accounts` type `CHECK` + nullable opening columns + type-dependent `CHECK`, the three new tables with the composite FK, and the Brazilian seed. Migration tests: existing accounts unchanged; the `CHECK` accepts/rejects as specified; composite FK rejects a mismatched category/sub-category pair and accepts a null sub-category; seed has the expected categories and sub-categories with no duplicates.
-- [ ] REST controllers + DTOs (`CreateAccountRequest` cross-field validation, nested `subcategories` in the categories response, `hasHistory` on the product detail); regenerate `frontend/src/api/generated/schema.ts`.
+- [x] REST controllers + DTOs (`CreateAccountRequest` cross-field validation, nested `subcategories` in the categories response, `hasHistory` on the product detail); regenerate `frontend/src/api/generated/schema.ts`.
 - [ ] Update backend `CLAUDE.md`: the seeded investment categories/sub-categories join the "seed rows collide with `UNIQUE`" note; and root `CLAUDE.md`: `InvestmentSubcategory` joins the flat-taxonomy `MAX_NAME_LENGTH` list.
 
 ## Frontend

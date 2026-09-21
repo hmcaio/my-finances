@@ -53,15 +53,27 @@ public class InvestmentCategoryService {
     List<InvestmentSubcategory> subcategories = subcategoryRepository.findAll();
     return categoryRepository.findAll().stream()
         .sorted(Comparator.comparing(InvestmentCategory::getName, BY_NAME))
-        .map(
-            category ->
-                new InvestmentCategoryWithSubcategories(
-                    category,
-                    subcategories.stream()
-                        .filter(s -> s.getInvestmentCategoryId().equals(category.getId()))
-                        .sorted(Comparator.comparing(InvestmentSubcategory::getName, BY_NAME))
-                        .toList()))
+        .map(category -> nest(category, subcategories))
         .toList();
+  }
+
+  /** One category with its sub-categories nested (404 when unknown). */
+  public InvestmentCategoryWithSubcategories findWithSubcategories(UUID id) {
+    InvestmentCategory category =
+        categoryRepository
+            .findById(id)
+            .orElseThrow(() -> new InvestmentCategoryNotFoundException(id));
+    return nest(category, subcategoryRepository.findAll());
+  }
+
+  private static InvestmentCategoryWithSubcategories nest(
+      InvestmentCategory category, List<InvestmentSubcategory> allSubcategories) {
+    return new InvestmentCategoryWithSubcategories(
+        category,
+        allSubcategories.stream()
+            .filter(s -> s.getInvestmentCategoryId().equals(category.getId()))
+            .sorted(Comparator.comparing(InvestmentSubcategory::getName, BY_NAME))
+            .toList());
   }
 
   public InvestmentCategory rename(UUID id, String newName) {

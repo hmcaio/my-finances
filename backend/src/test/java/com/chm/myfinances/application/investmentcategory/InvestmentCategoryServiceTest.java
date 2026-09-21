@@ -83,6 +83,31 @@ class InvestmentCategoryServiceTest {
   }
 
   @Test
+  void findWithSubcategoriesNestsOnlyThatCategorysChildrenSortedByName() {
+    InvestmentCategory fixed = service.create("Fixed Income");
+    InvestmentCategory variable = service.create("Variable Income");
+    subcategoryRepository.save(
+        InvestmentSubcategory.create(UUID.randomUUID(), fixed.getId(), "LCI"));
+    subcategoryRepository.save(
+        InvestmentSubcategory.create(UUID.randomUUID(), fixed.getId(), "CDB"));
+    subcategoryRepository.save(
+        InvestmentSubcategory.create(UUID.randomUUID(), variable.getId(), "ETFs"));
+
+    InvestmentCategoryWithSubcategories nested = service.findWithSubcategories(fixed.getId());
+
+    assertThat(nested.category().getId()).isEqualTo(fixed.getId());
+    assertThat(nested.subcategories())
+        .extracting(InvestmentSubcategory::getName)
+        .containsExactly("CDB", "LCI");
+  }
+
+  @Test
+  void findWithSubcategoriesOfUnknownIdThrowsNotFound() {
+    assertThatThrownBy(() -> service.findWithSubcategories(UUID.randomUUID()))
+        .isInstanceOf(InvestmentCategoryNotFoundException.class);
+  }
+
+  @Test
   void renameChangesTheName() {
     InvestmentCategory created = service.create("Funds");
 
