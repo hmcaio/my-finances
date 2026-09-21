@@ -10,6 +10,7 @@ import com.chm.myfinances.domain.account.AccountClosedNotifier;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.institution.Institution;
+import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.testsupport.FakeAccountRepository;
 import com.chm.myfinances.testsupport.FakeIdGenerator;
 import com.chm.myfinances.testsupport.FakeInstitutionRepository;
@@ -289,7 +290,7 @@ class AccountServiceTest {
   void closeOfAnInvestmentAccountIsRejectedWhileAProductIsOpen() {
     Account investment =
         service.create("XP Test", institutionId, AccountType.INVESTMENT, null, null);
-    investmentProductRepository.addOpenProductTo(investment.getId());
+    addProductTo(investment.getId());
 
     assertThatThrownBy(() -> service.close(investment.getId()))
         .isInstanceOf(InvestmentAccountHasOpenProductsException.class);
@@ -302,8 +303,8 @@ class AccountServiceTest {
   void closeOfAnInvestmentAccountSucceedsOnceItsProductsAreClosedOrThereAreNone() {
     Account withProducts =
         service.create("XP Test", institutionId, AccountType.INVESTMENT, null, null);
-    investmentProductRepository.addOpenProductTo(withProducts.getId());
-    investmentProductRepository.closeAllProductsOf(withProducts.getId());
+    InvestmentProduct product = addProductTo(withProducts.getId());
+    product.close();
     Account empty = service.create("Nu Test", institutionId, AccountType.INVESTMENT, null, null);
 
     assertThat(service.close(withProducts.getId()).isClosed()).isTrue();
@@ -315,9 +316,15 @@ class AccountServiceTest {
     Account checking =
         service.create(
             "Checking", institutionId, AccountType.CHECKING, BigDecimal.ZERO, LocalDate.now());
-    investmentProductRepository.addOpenProductTo(UUID.randomUUID());
+    addProductTo(UUID.randomUUID());
 
     assertThat(service.close(checking.getId()).isClosed()).isTrue();
+  }
+
+  private InvestmentProduct addProductTo(UUID accountId) {
+    return investmentProductRepository.save(
+        InvestmentProduct.create(
+            UUID.randomUUID(), accountId, UUID.randomUUID(), null, "Product Test"));
   }
 
   private static final class FakeAccountClosedNotifier implements AccountClosedNotifier {
