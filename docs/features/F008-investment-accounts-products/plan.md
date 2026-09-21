@@ -17,8 +17,8 @@
 ## Frontend
 - [x] `src/api/investmentCategories.ts`, `src/api/investmentSubcategories.ts`, `src/api/investmentProducts.ts`, MSW handlers, and the `Account` type/handlers for nullable opening fields.
 - [x] `src/features/investmentCategories` — two-level list: add/rename/delete for categories and sub-categories, with `conflictMessage`s.
-- [ ] Account form/list/detail (F003): `INVESTMENT` type hides opening balance and date; handle null opening fields; detail lists products for `INVESTMENT`.
-- [ ] `src/features/investmentProducts` — list per account, create/edit with the dependent category/sub-category selects, close, delete gated on `hasHistory`.
+- [x] Account form/list/detail (F003): `INVESTMENT` type hides opening balance and date; handle null opening fields; detail lists products for `INVESTMENT`.
+- [x] `src/features/investmentProducts` — list per account, create/edit with the dependent category/sub-category selects, close, delete gated on `hasHistory`.
 
 ## Verification
 - [ ] Browse the seeded taxonomy in settings; add a sub-category; confirm the product form's sub-category list follows the chosen category and a category-only product (Crypto) saves.

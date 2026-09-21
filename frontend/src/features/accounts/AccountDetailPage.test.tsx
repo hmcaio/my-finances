@@ -3,7 +3,8 @@ import { render, screen } from '@testing-library/react'
 import { delay, http, HttpResponse } from 'msw'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { server } from '../../mocks/server'
-import { seedAccounts } from '../../mocks/handlers/accounts'
+import { seedAccounts, seedInvestmentAccount } from '../../mocks/handlers/accounts'
+import { seedInvestmentProducts } from '../../mocks/handlers/investmentProducts'
 import { BUILT_IN_INSTITUTION_ID, seedInstitutions } from '../../mocks/handlers/institutions'
 import { seedTransactions } from '../../mocks/handlers/transactions'
 import { seedTransfers } from '../../mocks/handlers/transfers'
@@ -97,5 +98,39 @@ describe('AccountDetailPage', () => {
     expect(await screen.findByRole('status', { name: 'Loading account' })).toBeInTheDocument()
     expect(await screen.findByRole('heading', { name: account.name })).toBeInTheDocument()
     expect(screen.queryByRole('status', { name: 'Loading account' })).not.toBeInTheDocument()
+  })
+
+  it('lists the products of an INVESTMENT account instead of transactions', async () => {
+    renderDetail(seedInvestmentAccount.id)
+
+    expect(
+      await screen.findByRole('heading', { name: seedInvestmentAccount.name }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Products' })).toBeInTheDocument()
+    for (const product of seedInvestmentProducts) {
+      expect(await screen.findByText(product.name)).toBeInTheDocument()
+    }
+    // No transaction history, no transaction form: money moves through transfers only.
+    expect(screen.queryByRole('heading', { name: 'Transactions' })).not.toBeInTheDocument()
+    // Transfers (buys/sells, F009) stay on the page.
+    expect(screen.getByRole('heading', { name: 'Transfers' })).toBeInTheDocument()
+  })
+
+  it('handles the missing opening balance of an INVESTMENT account', async () => {
+    renderDetail(seedInvestmentAccount.id)
+
+    expect(await screen.findByText(/No opening balance/)).toBeInTheDocument()
+    expect(screen.getByText('0.00')).toBeInTheDocument()
+    expect(screen.queryByText(/Opening balance/)).not.toBeInTheDocument()
+    expect(
+      screen.getByText(`${institutionName(seedInvestmentAccount.institutionId)} · Investment`),
+    ).toBeInTheDocument()
+  })
+
+  it('keeps showing transactions, not products, for a non-investment account', async () => {
+    renderDetail(seedAccounts[0].id)
+
+    expect(await screen.findByRole('heading', { name: 'Transactions' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Products' })).not.toBeInTheDocument()
   })
 })

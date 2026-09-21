@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import { seedCategories } from '../../mocks/handlers/categories'
-import { seedAccounts } from '../../mocks/handlers/accounts'
+import { seedAccounts, seedInvestmentAccount } from '../../mocks/handlers/accounts'
 import {
   seedPendingRecurringOccurrences,
   seedRecurringTemplates,
@@ -35,6 +35,23 @@ describe('RecurringTemplatesPage', () => {
     expect(row.getByText(seedRecurringTemplates[0].currentAmount!.toFixed(2))).toBeInTheDocument()
     expect(row.getByText(String(seedRecurringTemplates[0].currentDayOfMonth))).toBeInTheDocument()
     expect(row.getByText('Active')).toBeInTheDocument()
+  })
+
+  it('never offers an investment account in the create form account dropdown', async () => {
+    server.use(
+      http.get('/api/accounts', () => HttpResponse.json([...seedAccounts, seedInvestmentAccount])),
+    )
+    const user = userEvent.setup()
+    render(<RecurringTemplatesPage />)
+    await findRow(seedRecurringTemplates[0].description)
+
+    await user.click(screen.getByRole('combobox', { name: 'Account' }))
+
+    const openAccount = seedAccounts.find((a) => !a.closed)!
+    expect(await screen.findByRole('option', { name: openAccount.name })).toBeInTheDocument()
+    expect(
+      screen.queryByRole('option', { name: seedInvestmentAccount.name }),
+    ).not.toBeInTheDocument()
   })
 
   it('adds a new recurring template', async () => {
