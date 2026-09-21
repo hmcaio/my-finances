@@ -23,5 +23,5 @@
 ## Verification
 - [ ] Browse the seeded taxonomy in settings; add a sub-category; confirm the product form's sub-category list follows the chosen category and a category-only product (Crypto) saves.
 - [ ] Create an `INVESTMENT` account (no opening fields asked) and a product; delete the product with zero history and confirm it succeeds; posting a transaction or creating a recurring template on the `INVESTMENT` account returns 409.
-- [ ] Close the `INVESTMENT` account while a product is open: rejected; close the product, then the account: accepted.
+- [x] Close the `INVESTMENT` account while a product is open: rejected; close the product, then the account: accepted.
 - [ ] Once F009 lands and a product has a snapshot, confirm delete is rejected and close is offered instead.
