@@ -12,7 +12,7 @@
 - [x] JPA entities (extend `AuditableEntity`), repositories, adapters for all three; make `AccountJpaEntity`'s opening columns nullable.
 - [x] Flyway migration (`V13`+ — check the highest existing number first): `accounts` type `CHECK` + nullable opening columns + type-dependent `CHECK`, the three new tables with the composite FK, and the Brazilian seed. Migration tests: existing accounts unchanged; the `CHECK` accepts/rejects as specified; composite FK rejects a mismatched category/sub-category pair and accepts a null sub-category; seed has the expected categories and sub-categories with no duplicates.
 - [x] REST controllers + DTOs (`CreateAccountRequest` cross-field validation, nested `subcategories` in the categories response, `hasHistory` on the product detail); regenerate `frontend/src/api/generated/schema.ts`.
-- [ ] Update backend `CLAUDE.md`: the seeded investment categories/sub-categories join the "seed rows collide with `UNIQUE`" note; and root `CLAUDE.md`: `InvestmentSubcategory` joins the flat-taxonomy `MAX_NAME_LENGTH` list.
+- [x] Update backend `CLAUDE.md`: the seeded investment categories/sub-categories join the "seed rows collide with `UNIQUE`" note; and root `CLAUDE.md`: `InvestmentSubcategory` joins the flat-taxonomy `MAX_NAME_LENGTH` list.
 
 ## Frontend
 - [ ] `src/api/investmentCategories.ts`, `src/api/investmentSubcategories.ts`, `src/api/investmentProducts.ts`, MSW handlers, and the `Account` type/handlers for nullable opening fields.

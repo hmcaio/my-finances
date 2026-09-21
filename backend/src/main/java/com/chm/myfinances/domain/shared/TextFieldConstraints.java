@@ -7,10 +7,10 @@ package com.chm.myfinances.domain.shared;
  * free-text input).
  *
  * <p>{@code MAX_NAME_LENGTH} is for flat taxonomy "name" fields (Category, PaymentMethod, Account,
- * and future ones such as F008's InvestmentCategory). {@code MAX_DESCRIPTION_LENGTH}/{@code
- * MAX_ADDITIONAL_NOTES_LENGTH} are for the narrative "description" (mandatory) + "additional notes"
- * (optional) pair on non-taxonomy entities (Transaction, and Transfer/RecurringTemplate once
- * built).
+ * Institution, InvestmentCategory, InvestmentSubcategory, InvestmentProduct). {@code
+ * MAX_DESCRIPTION_LENGTH}/{@code MAX_ADDITIONAL_NOTES_LENGTH} are for the narrative "description"
+ * (mandatory) + "additional notes" (optional) pair on non-taxonomy entities (Transaction, Transfer,
+ * RecurringTemplate).
  */
 public final class TextFieldConstraints {
 
