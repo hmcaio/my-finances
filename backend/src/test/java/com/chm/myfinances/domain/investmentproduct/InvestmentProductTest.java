@@ -63,18 +63,20 @@ class InvestmentProductTest {
   void closeSetsTodayOnce() {
     InvestmentProduct product = newProduct();
 
-    product.close();
+    LocalDate closedDate = LocalDate.now();
+    product.close(closedDate);
 
     assertThat(product.isClosed()).isTrue();
-    assertThat(product.getClosedDate()).isEqualTo(LocalDate.now());
+    assertThat(product.getClosedDate()).isEqualTo(closedDate);
   }
 
   @Test
   void closeThrowsWhenAlreadyClosed() {
     InvestmentProduct product = newProduct();
-    product.close();
+    product.close(LocalDate.now());
 
-    assertThatThrownBy(product::close).isInstanceOf(IllegalStateException.class);
+    assertThatThrownBy(() -> product.close(LocalDate.now()))
+        .isInstanceOf(IllegalStateException.class);
   }
 
   @Test
@@ -110,7 +112,7 @@ class InvestmentProductTest {
   @Test
   void editKeepsTheClosedDate() {
     InvestmentProduct product = newProduct();
-    product.close();
+    product.close(LocalDate.now());
 
     product.edit(ACCOUNT_ID, CATEGORY_ID, SUBCATEGORY_ID, "Renamed");
 

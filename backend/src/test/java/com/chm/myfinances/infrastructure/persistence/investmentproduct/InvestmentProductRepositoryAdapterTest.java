@@ -16,6 +16,7 @@ import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategoryRepository;
 import com.chm.myfinances.testsupport.TestInstitutions;
 import jakarta.persistence.EntityManager;
+import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -132,7 +133,7 @@ class InvestmentProductRepositoryAdapterTest {
         productRepository.save(newProduct(accountId, cdbId, fixedIncomeId, "Original Test"));
 
     product.edit(otherAccountId, cryptoId, null, "Renamed Test");
-    product.close();
+    product.close(LocalDate.now());
     productRepository.save(product);
     entityManager.flush();
     entityManager.clear();
@@ -203,7 +204,7 @@ class InvestmentProductRepositoryAdapterTest {
     assertThat(productRepository.existsOpenByAccountId(accountId)).isTrue();
     assertThat(productRepository.existsOpenByAccountId(otherAccountId)).isFalse();
 
-    product.close();
+    product.close(LocalDate.now());
     productRepository.save(product);
 
     assertThat(productRepository.existsOpenByAccountId(accountId)).isFalse();

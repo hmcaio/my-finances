@@ -13,6 +13,8 @@ import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategoryRepository;
 import com.chm.myfinances.domain.shared.IdGenerator;
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -39,6 +41,7 @@ public class InvestmentProductService {
   private final InvestmentSubcategoryRepository subcategoryRepository;
   private final HasInvestmentHistoryChecker historyChecker;
   private final IdGenerator idGenerator;
+  private final Clock clock;
 
   public InvestmentProductService(
       InvestmentProductRepository productRepository,
@@ -46,13 +49,15 @@ public class InvestmentProductService {
       InvestmentCategoryRepository categoryRepository,
       InvestmentSubcategoryRepository subcategoryRepository,
       HasInvestmentHistoryChecker historyChecker,
-      IdGenerator idGenerator) {
+      IdGenerator idGenerator,
+      Clock clock) {
     this.productRepository = productRepository;
     this.accountRepository = accountRepository;
     this.categoryRepository = categoryRepository;
     this.subcategoryRepository = subcategoryRepository;
     this.historyChecker = historyChecker;
     this.idGenerator = idGenerator;
+    this.clock = clock;
   }
 
   public InvestmentProduct create(
@@ -103,7 +108,7 @@ public class InvestmentProductService {
     if (product.isClosed()) {
       throw new InvestmentProductAlreadyClosedException(id);
     }
-    product.close();
+    product.close(LocalDate.now(clock));
     return productRepository.save(product);
   }
 

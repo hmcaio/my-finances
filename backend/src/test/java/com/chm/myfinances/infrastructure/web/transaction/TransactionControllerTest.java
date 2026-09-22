@@ -106,7 +106,7 @@ class TransactionControllerTest {
             AccountType.CHECKING,
             BigDecimal.ZERO,
             LocalDate.now());
-    closed.close();
+    closed.close(LocalDate.now());
     closedAccountId = accountRepository.save(closed).getId();
     paymentMethodId =
         paymentMethodRepository

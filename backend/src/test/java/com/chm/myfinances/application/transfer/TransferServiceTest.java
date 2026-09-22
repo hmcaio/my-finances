@@ -66,7 +66,7 @@ class TransferServiceTest {
                 AccountType.CHECKING,
                 BigDecimal.ZERO,
                 LocalDate.now()));
-    closedAccount.close();
+    closedAccount.close(LocalDate.now());
     accountRepository.save(closedAccount);
   }
 

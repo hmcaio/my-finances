@@ -102,14 +102,17 @@ public final class Account {
   }
 
   /**
-   * Sets {@code closedDate} to today, marking the account closed. Closing an already-closed account
-   * is rejected - {@code closedDate} is set once, same spirit as opening balance/date.
+   * Sets {@code closedDate}, marking the account closed. Closing an already-closed account is
+   * rejected - {@code closedDate} is set once, same spirit as opening balance/date. Takes the date
+   * as a parameter rather than reading {@code LocalDate.now()} itself - this class stays
+   * framework-free (ADR 0004/0005), so "today" comes from the caller (F003's {@code
+   * AccountService}, via its injected {@code Clock}).
    */
-  public void close() {
+  public void close(LocalDate closedDate) {
     if (isClosed()) {
       throw new IllegalStateException("Account is already closed: " + id);
     }
-    this.closedDate = LocalDate.now();
+    this.closedDate = Objects.requireNonNull(closedDate, "closedDate must not be null");
   }
 
   public boolean isClosed() {

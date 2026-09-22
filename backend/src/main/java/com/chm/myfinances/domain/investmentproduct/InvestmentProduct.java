@@ -84,14 +84,16 @@ public final class InvestmentProduct {
   }
 
   /**
-   * Sets {@code closedDate} to today. Closing an already-closed product is rejected - {@code
-   * closedDate} is set once, same as {@code Account.close()}.
+   * Sets {@code closedDate}. Closing an already-closed product is rejected - {@code closedDate} is
+   * set once, same as {@code Account.close()}. Takes the date as a parameter rather than reading
+   * {@code LocalDate.now()} itself, for the same framework-free reason as {@code Account.close()}
+   * (ADR 0004/0005) - "today" comes from {@code InvestmentProductService}'s injected {@code Clock}.
    */
-  public void close() {
+  public void close(LocalDate closedDate) {
     if (isClosed()) {
       throw new IllegalStateException("Investment product is already closed: " + id);
     }
-    this.closedDate = LocalDate.now();
+    this.closedDate = Objects.requireNonNull(closedDate, "closedDate must not be null");
   }
 
   public boolean isClosed() {

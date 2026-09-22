@@ -143,11 +143,12 @@ class AccountTest {
             BigDecimal.ZERO,
             LocalDate.now());
 
-    account.close();
+    LocalDate closedDate = LocalDate.now();
+    account.close(closedDate);
 
     assertThat(account.isClosed()).isTrue();
     assertThat(account.getClosedDate()).isNotNull();
-    assertThat(account.getClosedDate()).isEqualTo(LocalDate.now());
+    assertThat(account.getClosedDate()).isEqualTo(closedDate);
   }
 
   @Test
@@ -160,9 +161,10 @@ class AccountTest {
             AccountType.CHECKING,
             BigDecimal.ZERO,
             LocalDate.now());
-    account.close();
+    account.close(LocalDate.now());
 
-    assertThatThrownBy(account::close).isInstanceOf(IllegalStateException.class);
+    assertThatThrownBy(() -> account.close(LocalDate.now()))
+        .isInstanceOf(IllegalStateException.class);
   }
 
   @Test
@@ -192,7 +194,7 @@ class AccountTest {
             AccountType.CHECKING,
             BigDecimal.ZERO,
             LocalDate.now());
-    account.close();
+    account.close(LocalDate.now());
 
     assertThatThrownBy(account::requireOpen).isInstanceOf(IllegalStateException.class);
   }
@@ -427,7 +429,7 @@ class AccountTest {
             UUID.randomUUID(), "Broker", INSTITUTION_ID, AccountType.INVESTMENT, null, null);
 
     account.edit("Broker renamed", INSTITUTION_ID);
-    account.close();
+    account.close(LocalDate.now());
 
     assertThat(account.getName()).isEqualTo("Broker renamed");
     assertThat(account.isClosed()).isTrue();

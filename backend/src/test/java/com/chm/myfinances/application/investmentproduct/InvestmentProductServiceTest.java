@@ -18,6 +18,7 @@ import com.chm.myfinances.testsupport.FakeInvestmentCategoryRepository;
 import com.chm.myfinances.testsupport.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.FakeInvestmentSubcategoryRepository;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -46,7 +47,8 @@ class InvestmentProductServiceTest {
           categoryRepository,
           subcategoryRepository,
           historyChecker,
-          new FakeIdGenerator());
+          new FakeIdGenerator(),
+          Clock.systemDefaultZone());
 
   private final UUID institutionId = UUID.randomUUID();
   private final UUID xpAccountId = saveInvestmentAccount("XP Test").getId();
@@ -77,7 +79,8 @@ class InvestmentProductServiceTest {
             categoryRepository,
             subcategoryRepository,
             historyChecker,
-            new FakeIdGenerator(nextId));
+            new FakeIdGenerator(nextId),
+            Clock.systemDefaultZone());
 
     InvestmentProduct created =
         service.create(xpAccountId, fixedIncomeId, cdbId, "CDB Banco Test 110% CDI");
@@ -125,7 +128,7 @@ class InvestmentProductServiceTest {
   @Test
   void createRejectsAClosedInvestmentAccount() {
     Account closed = accountRepository.findById(xpAccountId).orElseThrow();
-    closed.close();
+    closed.close(LocalDate.now());
     accountRepository.save(closed);
 
     assertThatThrownBy(() -> service.create(xpAccountId, cryptoId, null, "Bitcoin Test"))

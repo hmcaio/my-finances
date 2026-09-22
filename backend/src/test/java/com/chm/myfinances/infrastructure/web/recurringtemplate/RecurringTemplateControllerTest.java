@@ -19,19 +19,25 @@ import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
+import com.chm.myfinances.testsupport.MutableClock;
 import com.chm.myfinances.testsupport.TestInstitutions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -45,15 +51,37 @@ import org.springframework.web.context.WebApplicationContext;
  * BudgetControllerTest}.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
-@Import(TestcontainersConfiguration.class)
+@Import({
+  TestcontainersConfiguration.class,
+  RecurringTemplateControllerTest.FixedClockTestConfig.class
+})
 @Transactional
 class RecurringTemplateControllerTest {
+
+  /**
+   * Overrides the app's {@code Clock} bean (issue #31, B1) with a {@link MutableClock},
+   * {@code @Primary} so every constructor-injected {@code Clock} in this context (including {@code
+   * RecurringOccurrenceCatchUpService}'s and {@code RecurringTemplateService}'s) resolves to it
+   * instead of the real one - only {@link
+   * #setCapForANewMonthUpdatesTheAmountShownOnAnAlreadyGeneratedPendingOccurrenceButNotOlderOnes}
+   * pins it; every other test in this class leaves it at its default (a plain system clock), so
+   * they behave exactly as before this change.
+   */
+  @TestConfiguration(proxyBeanMethods = false)
+  public static class FixedClockTestConfig {
+    @Bean
+    @Primary
+    public MutableClock testClock() {
+      return new MutableClock();
+    }
+  }
 
   @Autowired private InstitutionRepository institutionRepository;
   @Autowired private WebApplicationContext webApplicationContext;
   @Autowired private CategoryRepository categoryRepository;
   @Autowired private AccountRepository accountRepository;
   @Autowired private PaymentMethodRepository paymentMethodRepository;
+  @Autowired private MutableClock testClock;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -86,6 +114,12 @@ class RecurringTemplateControllerTest {
         paymentMethodRepository
             .save(PaymentMethod.create(UUID.randomUUID(), "Debit Card Test"))
             .getId();
+  }
+
+  /** Undoes any {@link MutableClock#set} so a fixed clock never leaks into another test. */
+  @AfterEach
+  void tearDown() {
+    testClock.reset();
   }
 
   private String createRequestBody(String effectiveFrom) throws Exception {
@@ -227,21 +261,25 @@ class RecurringTemplateControllerTest {
   @Test
   void setCapForANewMonthUpdatesTheAmountShownOnAnAlreadyGeneratedPendingOccurrenceButNotOlderOnes()
       throws Exception {
-    // effectiveFrom last month, day 5 (today is at least the 6th whenever CI runs this) - the
-    // catch-up job (triggered below by GET pending) generates one pending occurrence for last
-    // month's cycle and one for this month's, both initially resolving to the same (only) version.
-    String id = createTemplate(YearMonth.now().minusMonths(1).toString());
+    // A fixed clock (issue #31, B1) - decoupled from the real wall clock, so this no longer needs
+    // "today is at least the 6th whenever CI runs this": day 15 of a synthetic month, well past the
+    // template's day-5 cycle in both this month and last.
+    LocalDate today = LocalDate.of(2024, 6, 15);
+    testClock.set(today.atStartOfDay(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault());
+    YearMonth thisMonth = YearMonth.from(today);
+    YearMonth lastMonth = thisMonth.minusMonths(1);
+    String lastMonthDueDate = lastMonth.atDay(5).toString();
+    String thisMonthDueDate = thisMonth.atDay(5).toString();
+
+    // effectiveFrom last month, day 5 - the catch-up job (triggered below by GET pending)
+    // generates one pending occurrence for last month's cycle and one for this month's, both
+    // initially resolving to the same (only) version.
+    String id = createTemplate(lastMonth.toString());
     mockMvc.perform(get("/api/recurring-templates/pending")).andExpect(status().isOk());
 
     String patchBody =
         objectMapper.writeValueAsString(
-            Map.of(
-                "amount",
-                "1600.00",
-                "dayOfMonth",
-                10,
-                "effectiveFrom",
-                YearMonth.now().toString()));
+            Map.of("amount", "1600.00", "dayOfMonth", 10, "effectiveFrom", thisMonth.toString()));
     mockMvc
         .perform(
             patch("/api/recurring-templates/" + id + "/cap")
@@ -251,22 +289,24 @@ class RecurringTemplateControllerTest {
 
     MvcResult pendingResult = mockMvc.perform(get("/api/recurring-templates/pending")).andReturn();
     var pending = objectMapper.readTree(pendingResult.getResponse().getContentAsString());
-    String thisMonthPrefix = YearMonth.now().toString();
-    String lastMonthPrefix = YearMonth.now().minusMonths(1).toString();
+
+    assertThat(pending.size()).isEqualTo(2);
+    Map<String, Double> amountByDueDate = new HashMap<>();
     for (var occurrence : pending) {
-      String dueDate = occurrence.get("dueDate").asText();
-      double amount = occurrence.get("amount").asDouble();
-      if (dueDate.startsWith(thisMonthPrefix)) {
-        // Generated before the edit under the old version, but this cycle is now covered by the
-        // new one - must reflect the new amount, not the stale one it was generated with.
-        assertThat(amount).isEqualTo(1600.00);
-      } else if (dueDate.startsWith(lastMonthPrefix)) {
-        // Still correctly covered by the old version (the new one is only effective from this
-        // month onward) - must NOT be rewritten (F007 spec: a cap change never rewrites what a
-        // past month showed).
-        assertThat(amount).isEqualTo(1500.00);
-      }
+      amountByDueDate.put(occurrence.get("dueDate").asText(), occurrence.get("amount").asDouble());
     }
+    // Last month's cycle is still correctly covered by the old version (the new one is only
+    // effective from this month onward) - must NOT be rewritten (F007 spec: a cap change never
+    // rewrites what a past month showed). This month's cycle was generated before the edit under
+    // the old version, but is now covered by the new one - must reflect the new amount (1600.00),
+    // not the stale one it was generated with (1500.00). A bug that rewrote history, or one that
+    // failed to realign the still-pending occurrence to the new version, would each flip exactly
+    // one of these two entries and fail this assertion.
+    assertThat(amountByDueDate)
+        .containsExactlyInAnyOrderEntriesOf(
+            Map.of(
+                lastMonthDueDate, 1500.00,
+                thisMonthDueDate, 1600.00));
   }
 
   @Test

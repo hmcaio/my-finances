@@ -9,6 +9,7 @@ import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.shared.IdGenerator;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -40,18 +41,21 @@ public class AccountService {
   private final InvestmentProductRepository investmentProductRepository;
   private final IdGenerator idGenerator;
   private final AccountClosedNotifier accountClosedNotifier;
+  private final Clock clock;
 
   public AccountService(
       AccountRepository accountRepository,
       InstitutionRepository institutionRepository,
       InvestmentProductRepository investmentProductRepository,
       IdGenerator idGenerator,
-      AccountClosedNotifier accountClosedNotifier) {
+      AccountClosedNotifier accountClosedNotifier,
+      Clock clock) {
     this.accountRepository = accountRepository;
     this.institutionRepository = institutionRepository;
     this.investmentProductRepository = investmentProductRepository;
     this.idGenerator = idGenerator;
     this.accountClosedNotifier = accountClosedNotifier;
+    this.clock = clock;
   }
 
   public Account create(
@@ -129,7 +133,7 @@ public class AccountService {
         && investmentProductRepository.existsOpenByAccountId(id)) {
       throw new InvestmentAccountHasOpenProductsException(id);
     }
-    account.close();
+    account.close(LocalDate.now(clock));
     Account saved = accountRepository.save(account);
     log.info("Account {} closed", saved.getId());
     accountClosedNotifier.accountClosed(saved.getId());

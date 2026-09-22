@@ -16,6 +16,7 @@ import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersionRepos
 import com.chm.myfinances.domain.shared.IdGenerator;
 import com.chm.myfinances.domain.transaction.Transaction;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
@@ -60,6 +61,7 @@ public class RecurringTemplateService {
   private final TransactionService transactionService;
   private final RecurringOccurrenceCatchUpService catchUpService;
   private final IdGenerator idGenerator;
+  private final Clock clock;
 
   public RecurringTemplateService(
       RecurringTemplateRepository templateRepository,
@@ -69,7 +71,8 @@ public class RecurringTemplateService {
       AccountRepository accountRepository,
       TransactionService transactionService,
       RecurringOccurrenceCatchUpService catchUpService,
-      IdGenerator idGenerator) {
+      IdGenerator idGenerator,
+      Clock clock) {
     this.templateRepository = templateRepository;
     this.versionRepository = versionRepository;
     this.pendingRepository = pendingRepository;
@@ -78,6 +81,7 @@ public class RecurringTemplateService {
     this.transactionService = transactionService;
     this.catchUpService = catchUpService;
     this.idGenerator = idGenerator;
+    this.clock = clock;
   }
 
   /**
@@ -221,7 +225,7 @@ public class RecurringTemplateService {
    */
   public RecurringTemplate reactivate(UUID id) {
     RecurringTemplate template = findById(id);
-    template.reactivate(YearMonth.now());
+    template.reactivate(YearMonth.now(clock));
     return templateRepository.save(template);
   }
 
