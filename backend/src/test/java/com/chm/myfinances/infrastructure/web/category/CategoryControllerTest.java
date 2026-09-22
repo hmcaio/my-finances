@@ -178,28 +178,19 @@ class CategoryControllerTest {
     String id =
         objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asText();
 
-    // UpdateCategoryRequest has no `type` field - sending one alongside a rename cannot change
-    // the category's type through this endpoint, whatever Jackson's unknown-field handling does
-    // with the extra property (reject outright with 4xx, or silently ignore it and return 200).
+    // UpdateCategoryRequest has no `type` field, and Spring Boot's default Jackson config leaves
+    // FAIL_ON_UNKNOWN_PROPERTIES off, so the extra `type` in the body is silently ignored: the
+    // rename succeeds (200) and the category's type is untouched.
     String patchBody =
         objectMapper.writeValueAsString(Map.of("name", "Income Test Renamed", "type", "EXPENSE"));
-    MvcResult patchResult =
-        mockMvc
-            .perform(
-                patch("/api/categories/" + id)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(patchBody))
-            .andReturn();
-
-    int statusCode = patchResult.getResponse().getStatus();
-    if (statusCode == 200) {
-      // The rename endpoint itself must not report EXPENSE for a category created as INCOME.
-      org.assertj.core.api.Assertions.assertThat(patchResult.getResponse().getContentAsString())
-          .contains("INCOME")
-          .doesNotContain("EXPENSE");
-    } else {
-      org.assertj.core.api.Assertions.assertThat(statusCode).isEqualTo(400);
-    }
+    mockMvc
+        .perform(
+            patch("/api/categories/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(patchBody))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.name").value("Income Test Renamed"))
+        .andExpect(jsonPath("$.type").value("INCOME"));
   }
 
   @Test

@@ -12,6 +12,7 @@ import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
+import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import com.chm.myfinances.testsupport.TestInstitutions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
@@ -137,6 +138,44 @@ class TransferControllerTest {
   }
 
   @Test
+  void createRejectsDescriptionOverLimitWith400() throws Exception {
+    String body =
+        createTransferBody(
+            "2026-03-15",
+            "10.00",
+            checkingId,
+            savingsId,
+            "a".repeat(TextFieldConstraints.MAX_DESCRIPTION_LENGTH + 1));
+
+    mockMvc
+        .perform(post("/api/transfers").contentType(MediaType.APPLICATION_JSON).content(body))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void createRejectsAdditionalNotesOverLimitWith400() throws Exception {
+    String body =
+        objectMapper.writeValueAsString(
+            Map.of(
+                "date",
+                "2026-03-15",
+                "amount",
+                "10.00",
+                "fromAccountId",
+                checkingId.toString(),
+                "toAccountId",
+                savingsId.toString(),
+                "description",
+                "Test description",
+                "additionalNotes",
+                "a".repeat(TextFieldConstraints.MAX_ADDITIONAL_NOTES_LENGTH + 1)));
+
+    mockMvc
+        .perform(post("/api/transfers").contentType(MediaType.APPLICATION_JSON).content(body))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
   void createRejectsNonPositiveAmountWith400() throws Exception {
     String body = createTransferBody("2026-03-15", "0.00", checkingId, savingsId, null);
 
@@ -228,6 +267,60 @@ class TransferControllerTest {
         .andExpect(jsonPath("$.toAccountId").value(checkingId.toString()))
         .andExpect(jsonPath("$.description").value("Edited"))
         .andExpect(jsonPath("$.additionalNotes").value("Edited notes"));
+  }
+
+  @Test
+  void editRejectsDescriptionOverLimitWith400() throws Exception {
+    String id = createTransfer("2026-01-10", "20.00", checkingId, savingsId);
+
+    String patchBody =
+        objectMapper.writeValueAsString(
+            Map.of(
+                "date",
+                "2026-01-10",
+                "amount",
+                "20.00",
+                "fromAccountId",
+                checkingId.toString(),
+                "toAccountId",
+                savingsId.toString(),
+                "description",
+                "a".repeat(TextFieldConstraints.MAX_DESCRIPTION_LENGTH + 1)));
+
+    mockMvc
+        .perform(
+            patch("/api/transfers/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(patchBody))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void editRejectsAdditionalNotesOverLimitWith400() throws Exception {
+    String id = createTransfer("2026-01-10", "20.00", checkingId, savingsId);
+
+    String patchBody =
+        objectMapper.writeValueAsString(
+            Map.of(
+                "date",
+                "2026-01-10",
+                "amount",
+                "20.00",
+                "fromAccountId",
+                checkingId.toString(),
+                "toAccountId",
+                savingsId.toString(),
+                "description",
+                "Test description",
+                "additionalNotes",
+                "a".repeat(TextFieldConstraints.MAX_ADDITIONAL_NOTES_LENGTH + 1)));
+
+    mockMvc
+        .perform(
+            patch("/api/transfers/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(patchBody))
+        .andExpect(status().isBadRequest());
   }
 
   @Test

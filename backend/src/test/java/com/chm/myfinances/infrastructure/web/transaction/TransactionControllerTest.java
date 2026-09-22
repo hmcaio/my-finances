@@ -17,6 +17,7 @@ import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
+import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import com.chm.myfinances.testsupport.TestInstitutions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
@@ -193,6 +194,46 @@ class TransactionControllerTest {
   }
 
   @Test
+  void createRejectsDescriptionOverLimitWith400() throws Exception {
+    String body =
+        createTransactionBody(
+            "2026-03-15",
+            "10.00",
+            expenseCategoryId,
+            accountId,
+            "a".repeat(TextFieldConstraints.MAX_DESCRIPTION_LENGTH + 1));
+
+    mockMvc
+        .perform(post("/api/transactions").contentType(MediaType.APPLICATION_JSON).content(body))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void createRejectsAdditionalNotesOverLimitWith400() throws Exception {
+    String body =
+        objectMapper.writeValueAsString(
+            Map.of(
+                "date",
+                "2026-03-15",
+                "amount",
+                "10.00",
+                "categoryId",
+                expenseCategoryId.toString(),
+                "accountId",
+                accountId.toString(),
+                "paymentMethodId",
+                paymentMethodId.toString(),
+                "description",
+                "Test description",
+                "additionalNotes",
+                "a".repeat(TextFieldConstraints.MAX_ADDITIONAL_NOTES_LENGTH + 1)));
+
+    mockMvc
+        .perform(post("/api/transactions").contentType(MediaType.APPLICATION_JSON).content(body))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
   void createRejectsAClosedAccountWith409() throws Exception {
     String body =
         createTransactionBody("2026-03-15", "10.00", expenseCategoryId, closedAccountId, null);
@@ -299,6 +340,64 @@ class TransactionControllerTest {
         .andExpect(jsonPath("$.type").value("INCOME"))
         .andExpect(jsonPath("$.description").value("Edited"))
         .andExpect(jsonPath("$.additionalNotes").value("Edited notes"));
+  }
+
+  @Test
+  void editRejectsDescriptionOverLimitWith400() throws Exception {
+    String id = createTransaction("2026-01-10", "20.00", expenseCategoryId, accountId);
+
+    String patchBody =
+        objectMapper.writeValueAsString(
+            Map.of(
+                "date",
+                "2026-01-10",
+                "amount",
+                "20.00",
+                "categoryId",
+                expenseCategoryId.toString(),
+                "accountId",
+                accountId.toString(),
+                "paymentMethodId",
+                paymentMethodId.toString(),
+                "description",
+                "a".repeat(TextFieldConstraints.MAX_DESCRIPTION_LENGTH + 1)));
+
+    mockMvc
+        .perform(
+            patch("/api/transactions/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(patchBody))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void editRejectsAdditionalNotesOverLimitWith400() throws Exception {
+    String id = createTransaction("2026-01-10", "20.00", expenseCategoryId, accountId);
+
+    String patchBody =
+        objectMapper.writeValueAsString(
+            Map.of(
+                "date",
+                "2026-01-10",
+                "amount",
+                "20.00",
+                "categoryId",
+                expenseCategoryId.toString(),
+                "accountId",
+                accountId.toString(),
+                "paymentMethodId",
+                paymentMethodId.toString(),
+                "description",
+                "Test description",
+                "additionalNotes",
+                "a".repeat(TextFieldConstraints.MAX_ADDITIONAL_NOTES_LENGTH + 1)));
+
+    mockMvc
+        .perform(
+            patch("/api/transactions/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(patchBody))
+        .andExpect(status().isBadRequest());
   }
 
   @Test
