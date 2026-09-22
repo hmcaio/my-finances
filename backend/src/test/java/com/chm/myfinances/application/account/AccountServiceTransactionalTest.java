@@ -9,7 +9,6 @@ import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.application.recurringtemplate.RecurringTemplateService;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountType;
-import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
@@ -18,6 +17,7 @@ import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrenceRep
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersion;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersionRepository;
+import com.chm.myfinances.testsupport.TestFixtures;
 import com.chm.myfinances.testsupport.TestInstitutions;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -60,9 +60,7 @@ class AccountServiceTransactionalTest {
   @Test
   void closeRollsBackWhenDeactivatingADependentTemplateFails() {
     UUID categoryId =
-        categoryRepository
-            .save(
-                Category.create(UUID.randomUUID(), "Rent Account Close Test", CategoryType.EXPENSE))
+        TestFixtures.category(categoryRepository, "Rent Account Close Test", CategoryType.EXPENSE)
             .getId();
     Account account =
         accountService.create(

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersion;
 import com.chm.myfinances.testsupport.FakeRecurringTemplateVersionRepository;
+import com.chm.myfinances.testsupport.RecurringTemplateVersionMother;
 import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.util.Optional;
@@ -26,8 +27,11 @@ class RecurringTemplateCurrentVersionQueryTest {
   void resolvesTheVersionEffectiveAsOfNow() {
     UUID templateId = UUID.randomUUID();
     versionRepository.save(
-        RecurringTemplateVersion.create(
-            UUID.randomUUID(), templateId, BigDecimal.TEN, 5, YearMonth.now().minusMonths(1)));
+        RecurringTemplateVersionMother.version()
+            .withTemplateId(templateId)
+            .withAmount(BigDecimal.TEN)
+            .withEffectiveFrom(YearMonth.now().minusMonths(1))
+            .build());
 
     Optional<RecurringTemplateVersion> current = query.currentVersion(templateId);
 
@@ -38,8 +42,11 @@ class RecurringTemplateCurrentVersionQueryTest {
   void returnsEmptyWhenNoVersionIsEffectiveYet() {
     UUID templateId = UUID.randomUUID();
     versionRepository.save(
-        RecurringTemplateVersion.create(
-            UUID.randomUUID(), templateId, BigDecimal.TEN, 5, YearMonth.now().plusMonths(6)));
+        RecurringTemplateVersionMother.version()
+            .withTemplateId(templateId)
+            .withAmount(BigDecimal.TEN)
+            .withEffectiveFrom(YearMonth.now().plusMonths(6))
+            .build());
 
     assertThat(query.currentVersion(templateId)).isEmpty();
   }
@@ -48,12 +55,11 @@ class RecurringTemplateCurrentVersionQueryTest {
   void ignoresVersionsBelongingToOtherTemplates() {
     UUID templateId = UUID.randomUUID();
     versionRepository.save(
-        RecurringTemplateVersion.create(
-            UUID.randomUUID(),
-            UUID.randomUUID(),
-            BigDecimal.TEN,
-            5,
-            YearMonth.now().minusMonths(1)));
+        RecurringTemplateVersionMother.version()
+            .withTemplateId(UUID.randomUUID())
+            .withAmount(BigDecimal.TEN)
+            .withEffectiveFrom(YearMonth.now().minusMonths(1))
+            .build());
 
     assertThat(query.currentVersion(templateId)).isEmpty();
   }

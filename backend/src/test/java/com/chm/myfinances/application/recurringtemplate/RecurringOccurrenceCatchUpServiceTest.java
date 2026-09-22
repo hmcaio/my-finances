@@ -5,12 +5,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import ch.qos.logback.classic.Level;
 import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrence;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
-import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersion;
 import com.chm.myfinances.testsupport.FakeIdGenerator;
 import com.chm.myfinances.testsupport.FakePendingRecurringOccurrenceRepository;
 import com.chm.myfinances.testsupport.FakeRecurringTemplateRepository;
 import com.chm.myfinances.testsupport.FakeRecurringTemplateVersionRepository;
 import com.chm.myfinances.testsupport.LogCapture;
+import com.chm.myfinances.testsupport.RecurringTemplateMother;
+import com.chm.myfinances.testsupport.RecurringTemplateVersionMother;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -56,12 +57,19 @@ class RecurringOccurrenceCatchUpServiceTest {
   void generatesAPendingOccurrenceAndAdvancesLastGeneratedFor() {
     RecurringTemplate template =
         templateRepository.save(
-            RecurringTemplate.create(UUID.randomUUID(), categoryId, accountId, "Rent"));
+            RecurringTemplateMother.template()
+                .withCategoryId(categoryId)
+                .withAccountId(accountId)
+                .build());
     template.advanceLastGeneratedFor(YearMonth.of(2026, 1));
     templateRepository.save(template);
     versionRepository.save(
-        RecurringTemplateVersion.create(
-            UUID.randomUUID(), template.getId(), BigDecimal.TEN, 10, YearMonth.of(2026, 1)));
+        RecurringTemplateVersionMother.version()
+            .withTemplateId(template.getId())
+            .withAmount(BigDecimal.TEN)
+            .withDayOfMonth(10)
+            .withEffectiveFrom(YearMonth.of(2026, 1))
+            .build());
 
     service.runCatchUp(LocalDate.of(2026, 2, 15));
 
@@ -77,12 +85,19 @@ class RecurringOccurrenceCatchUpServiceTest {
   void doesNotGenerateWhenThisMonthsDayHasNotPassedYet() {
     RecurringTemplate template =
         templateRepository.save(
-            RecurringTemplate.create(UUID.randomUUID(), categoryId, accountId, "Rent"));
+            RecurringTemplateMother.template()
+                .withCategoryId(categoryId)
+                .withAccountId(accountId)
+                .build());
     template.advanceLastGeneratedFor(YearMonth.of(2026, 1));
     templateRepository.save(template);
     versionRepository.save(
-        RecurringTemplateVersion.create(
-            UUID.randomUUID(), template.getId(), BigDecimal.TEN, 20, YearMonth.of(2026, 1)));
+        RecurringTemplateVersionMother.version()
+            .withTemplateId(template.getId())
+            .withAmount(BigDecimal.TEN)
+            .withDayOfMonth(20)
+            .withEffectiveFrom(YearMonth.of(2026, 1))
+            .build());
 
     service.runCatchUp(LocalDate.of(2026, 2, 5));
 
@@ -92,12 +107,19 @@ class RecurringOccurrenceCatchUpServiceTest {
   @Test
   void skipsAnInactiveTemplateEntirely() {
     RecurringTemplate template =
-        RecurringTemplate.create(UUID.randomUUID(), categoryId, accountId, "Rent");
+        RecurringTemplateMother.template()
+            .withCategoryId(categoryId)
+            .withAccountId(accountId)
+            .build();
     template.close();
     templateRepository.save(template);
     versionRepository.save(
-        RecurringTemplateVersion.create(
-            UUID.randomUUID(), template.getId(), BigDecimal.TEN, 10, YearMonth.of(2026, 1)));
+        RecurringTemplateVersionMother.version()
+            .withTemplateId(template.getId())
+            .withAmount(BigDecimal.TEN)
+            .withDayOfMonth(10)
+            .withEffectiveFrom(YearMonth.of(2026, 1))
+            .build());
 
     service.runCatchUp(LocalDate.of(2026, 6, 20));
 
@@ -108,12 +130,19 @@ class RecurringOccurrenceCatchUpServiceTest {
   void multiMonthCatchUpGeneratesOnePendingOccurrencePerMissedCycle() {
     RecurringTemplate template =
         templateRepository.save(
-            RecurringTemplate.create(UUID.randomUUID(), categoryId, accountId, "Rent"));
+            RecurringTemplateMother.template()
+                .withCategoryId(categoryId)
+                .withAccountId(accountId)
+                .build());
     template.advanceLastGeneratedFor(YearMonth.of(2026, 1));
     templateRepository.save(template);
     versionRepository.save(
-        RecurringTemplateVersion.create(
-            UUID.randomUUID(), template.getId(), BigDecimal.TEN, 10, YearMonth.of(2026, 1)));
+        RecurringTemplateVersionMother.version()
+            .withTemplateId(template.getId())
+            .withAmount(BigDecimal.TEN)
+            .withDayOfMonth(10)
+            .withEffectiveFrom(YearMonth.of(2026, 1))
+            .build());
 
     service.runCatchUp(LocalDate.of(2026, 5, 20));
 
@@ -124,12 +153,19 @@ class RecurringOccurrenceCatchUpServiceTest {
   void runningCatchUpTwiceForTheSameCycleDoesNotDuplicateThePendingOccurrence() {
     RecurringTemplate template =
         templateRepository.save(
-            RecurringTemplate.create(UUID.randomUUID(), categoryId, accountId, "Rent"));
+            RecurringTemplateMother.template()
+                .withCategoryId(categoryId)
+                .withAccountId(accountId)
+                .build());
     template.advanceLastGeneratedFor(YearMonth.of(2026, 1));
     templateRepository.save(template);
     versionRepository.save(
-        RecurringTemplateVersion.create(
-            UUID.randomUUID(), template.getId(), BigDecimal.TEN, 10, YearMonth.of(2026, 1)));
+        RecurringTemplateVersionMother.version()
+            .withTemplateId(template.getId())
+            .withAmount(BigDecimal.TEN)
+            .withDayOfMonth(10)
+            .withEffectiveFrom(YearMonth.of(2026, 1))
+            .build());
 
     service.runCatchUp(LocalDate.of(2026, 2, 15));
     service.runCatchUp(LocalDate.of(2026, 2, 20));
@@ -140,7 +176,10 @@ class RecurringOccurrenceCatchUpServiceTest {
   @Test
   void aTemplateWithNoVersionsYetIsSkippedWithoutError() {
     templateRepository.save(
-        RecurringTemplate.create(UUID.randomUUID(), categoryId, accountId, "Rent"));
+        RecurringTemplateMother.template()
+            .withCategoryId(categoryId)
+            .withAccountId(accountId)
+            .build());
 
     service.runCatchUp(LocalDate.of(2026, 6, 20));
 
@@ -228,11 +267,19 @@ class RecurringOccurrenceCatchUpServiceTest {
   private void seedTemplate(String description, YearMonth lastGeneratedFor) {
     RecurringTemplate template =
         templateRepository.save(
-            RecurringTemplate.create(UUID.randomUUID(), categoryId, accountId, description));
+            RecurringTemplateMother.template()
+                .withCategoryId(categoryId)
+                .withAccountId(accountId)
+                .withDescription(description)
+                .build());
     template.advanceLastGeneratedFor(lastGeneratedFor);
     templateRepository.save(template);
     versionRepository.save(
-        RecurringTemplateVersion.create(
-            UUID.randomUUID(), template.getId(), BigDecimal.TEN, 10, YearMonth.of(2026, 1)));
+        RecurringTemplateVersionMother.version()
+            .withTemplateId(template.getId())
+            .withAmount(BigDecimal.TEN)
+            .withDayOfMonth(10)
+            .withEffectiveFrom(YearMonth.of(2026, 1))
+            .build());
   }
 }

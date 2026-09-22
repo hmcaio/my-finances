@@ -9,12 +9,9 @@ import static org.mockito.Mockito.reset;
 import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
-import com.chm.myfinances.domain.account.AccountType;
-import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
-import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrence;
 import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrenceRepository;
@@ -23,7 +20,7 @@ import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateRepository;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersion;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersionRepository;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
-import com.chm.myfinances.testsupport.TestInstitutions;
+import com.chm.myfinances.testsupport.TestFixtures;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -78,18 +75,10 @@ class RecurringTemplateServiceTransactionalTest {
   @Test
   void createRollsBackTheTemplateWhenSavingItsFirstVersionFails() {
     UUID categoryId =
-        categoryRepository
-            .save(Category.create(UUID.randomUUID(), "Rent Create Test", CategoryType.EXPENSE))
-            .getId();
+        TestFixtures.category(categoryRepository, "Rent Create Test", CategoryType.EXPENSE).getId();
     Account account =
-        accountRepository.save(
-            Account.create(
-                UUID.randomUUID(),
-                "Checking Create Test",
-                TestInstitutions.builtInId(institutionRepository),
-                AccountType.CHECKING,
-                BigDecimal.ZERO,
-                LocalDate.now()));
+        TestFixtures.checkingAccount(
+            accountRepository, institutionRepository, "Checking Create Test");
 
     willThrow(new RuntimeException("simulated failure saving the first version"))
         .given(versionRepository)
@@ -113,20 +102,12 @@ class RecurringTemplateServiceTransactionalTest {
   @Test
   void confirmPendingRollsBackTheCreatedTransactionWhenDeletingThePendingRowFails() {
     UUID categoryId =
-        categoryRepository
-            .save(Category.create(UUID.randomUUID(), "Rent Confirm Test", CategoryType.EXPENSE))
+        TestFixtures.category(categoryRepository, "Rent Confirm Test", CategoryType.EXPENSE)
             .getId();
     Account account =
-        accountRepository.save(
-            Account.create(
-                UUID.randomUUID(),
-                "Checking Confirm Test",
-                TestInstitutions.builtInId(institutionRepository),
-                AccountType.CHECKING,
-                BigDecimal.ZERO,
-                LocalDate.now()));
-    UUID paymentMethodId =
-        paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), "Debit")).getId();
+        TestFixtures.checkingAccount(
+            accountRepository, institutionRepository, "Checking Confirm Test");
+    UUID paymentMethodId = TestFixtures.paymentMethod(paymentMethodRepository, "Debit").getId();
     RecurringTemplate template =
         service.create(
             categoryId,
@@ -172,18 +153,10 @@ class RecurringTemplateServiceTransactionalTest {
   @Test
   void stopRollsBackDeactivationWhenDeletingPendingOccurrencesFails() {
     UUID categoryId =
-        categoryRepository
-            .save(Category.create(UUID.randomUUID(), "Rent Stop Test", CategoryType.EXPENSE))
-            .getId();
+        TestFixtures.category(categoryRepository, "Rent Stop Test", CategoryType.EXPENSE).getId();
     Account account =
-        accountRepository.save(
-            Account.create(
-                UUID.randomUUID(),
-                "Checking Stop Test",
-                TestInstitutions.builtInId(institutionRepository),
-                AccountType.CHECKING,
-                BigDecimal.ZERO,
-                LocalDate.now()));
+        TestFixtures.checkingAccount(
+            accountRepository, institutionRepository, "Checking Stop Test");
     RecurringTemplate template =
         service.create(
             categoryId,

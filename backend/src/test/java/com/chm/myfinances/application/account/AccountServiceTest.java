@@ -15,6 +15,7 @@ import com.chm.myfinances.testsupport.FakeAccountRepository;
 import com.chm.myfinances.testsupport.FakeIdGenerator;
 import com.chm.myfinances.testsupport.FakeInstitutionRepository;
 import com.chm.myfinances.testsupport.FakeInvestmentProductRepository;
+import com.chm.myfinances.testsupport.InvestmentProductMother;
 import com.chm.myfinances.testsupport.LogCapture;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -330,8 +331,11 @@ class AccountServiceTest {
 
   private InvestmentProduct addProductTo(UUID accountId) {
     return investmentProductRepository.save(
-        InvestmentProduct.create(
-            UUID.randomUUID(), accountId, UUID.randomUUID(), null, "Product Test"));
+        InvestmentProductMother.product()
+            .withAccountId(accountId)
+            .withInvestmentSubcategoryId(null)
+            .withName("Product Test")
+            .build());
   }
 
   private static final class FakeAccountClosedNotifier implements AccountClosedNotifier {

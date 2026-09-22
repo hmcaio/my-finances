@@ -3,6 +3,7 @@ package com.chm.myfinances.application.budget;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.chm.myfinances.domain.budget.BudgetVersion;
+import com.chm.myfinances.testsupport.BudgetVersionMother;
 import com.chm.myfinances.testsupport.FakeBudgetVersionRepository;
 import java.math.BigDecimal;
 import java.time.YearMonth;
@@ -27,11 +28,16 @@ class BudgetCapQueryTest {
   @Test
   void resolvesTheLatestVersionAtOrBeforeTheGivenMonth() {
     budgetVersionRepository.save(
-        BudgetVersion.create(
-            UUID.randomUUID(), budgetId, new BigDecimal("500.00"), YearMonth.of(2026, 1)));
+        BudgetVersionMother.version()
+            .withBudgetId(budgetId)
+            .withEffectiveFrom(YearMonth.of(2026, 1))
+            .build());
     budgetVersionRepository.save(
-        BudgetVersion.create(
-            UUID.randomUUID(), budgetId, new BigDecimal("600.00"), YearMonth.of(2026, 3)));
+        BudgetVersionMother.version()
+            .withBudgetId(budgetId)
+            .withMonthlyCap(new BigDecimal("600.00"))
+            .withEffectiveFrom(YearMonth.of(2026, 3))
+            .build());
 
     Optional<BudgetVersion> effective = query.effectiveCap(budgetId, YearMonth.of(2026, 6));
 
@@ -42,8 +48,10 @@ class BudgetCapQueryTest {
   @Test
   void returnsEmptyWhenNoVersionIsEffectiveYet() {
     budgetVersionRepository.save(
-        BudgetVersion.create(
-            UUID.randomUUID(), budgetId, new BigDecimal("500.00"), YearMonth.of(2026, 6)));
+        BudgetVersionMother.version()
+            .withBudgetId(budgetId)
+            .withEffectiveFrom(YearMonth.of(2026, 6))
+            .build());
 
     assertThat(query.effectiveCap(budgetId, YearMonth.of(2026, 1))).isEmpty();
   }
