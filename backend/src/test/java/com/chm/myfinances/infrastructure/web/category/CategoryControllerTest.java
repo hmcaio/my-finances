@@ -35,10 +35,9 @@ import org.springframework.web.context.WebApplicationContext;
 
 /**
  * REST-layer integration test for {@link CategoryController}, against a real Testcontainers
- * Postgres (ADR 0010). Boot 4.x removed {@code @AutoConfigureMockMvc}/{@code @WebMvcTest} (see
- * {@code CategoryRepositoryAdapterTest} for the same story on {@code @DataJpaTest}), so {@link
- * MockMvc} is built by hand from the {@link WebApplicationContext} — that builder itself is plain
- * {@code spring-test}, unaffected by Boot's test-slice removal.
+ * Postgres (ADR 0010). See backend/CLAUDE.md's Testing section for why {@link MockMvc} is built by
+ * hand from the {@link WebApplicationContext} here instead of via
+ * {@code @AutoConfigureMockMvc}/{@code @WebMvcTest} (removed in Boot 4.x).
  *
  * <p>Also exercises F002's verification requirement that attempting to change a category's type via
  * {@code PATCH} is rejected: {@link UpdateCategoryRequest} has no {@code type} field at all, so a
