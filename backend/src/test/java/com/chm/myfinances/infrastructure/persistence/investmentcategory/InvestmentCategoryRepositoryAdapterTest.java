@@ -3,17 +3,14 @@ package com.chm.myfinances.infrastructure.persistence.investmentcategory;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
+import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
 import jakarta.persistence.EntityManager;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Persistence-layer integration test for {@link InvestmentCategoryRepositoryAdapter} against a real
@@ -21,9 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
  * runs for real. The migration's seeded categories exist before any test, so fixtures use a {@code
  * " Test"} suffix and nothing asserts the table is empty.
  */
-@SpringBootTest
-@Import(TestcontainersConfiguration.class)
-@Transactional
+@DatabaseIntegrationTest
 class InvestmentCategoryRepositoryAdapterTest {
 
   @Autowired private InvestmentCategoryRepository categoryRepository;

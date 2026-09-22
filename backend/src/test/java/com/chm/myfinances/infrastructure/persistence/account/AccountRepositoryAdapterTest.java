@@ -3,12 +3,12 @@ package com.chm.myfinances.infrastructure.persistence.account;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.institution.Institution;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
+import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
 import com.chm.myfinances.testsupport.TestInstitutions;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
@@ -18,9 +18,6 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Persistence-layer integration test for {@link AccountRepositoryAdapter}: hits a real, ephemeral
@@ -29,9 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
  * {@code @Transactional} pattern as F002's {@code CategoryRepositoryAdapterTest} (Spring Boot 4.x
  * has no {@code @DataJpaTest} slice - see that class's javadoc).
  */
-@SpringBootTest
-@Import(TestcontainersConfiguration.class)
-@Transactional
+@DatabaseIntegrationTest
 class AccountRepositoryAdapterTest {
 
   @Autowired private AccountRepository accountRepository;

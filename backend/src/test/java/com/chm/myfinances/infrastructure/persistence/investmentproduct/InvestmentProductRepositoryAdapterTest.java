@@ -3,7 +3,6 @@ package com.chm.myfinances.infrastructure.persistence.investmentproduct;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
@@ -14,6 +13,7 @@ import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategoryRepository;
+import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
 import com.chm.myfinances.testsupport.TestInstitutions;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDate;
@@ -22,9 +22,6 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Persistence-layer integration test for {@link InvestmentProductRepositoryAdapter} against a real
@@ -32,9 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
  * foreign key that ties a sub-category to the product's own category (a null sub-category is
  * valid), and the queries behind the account-close and delete guards.
  */
-@SpringBootTest
-@Import(TestcontainersConfiguration.class)
-@Transactional
+@DatabaseIntegrationTest
 class InvestmentProductRepositoryAdapterTest {
 
   @Autowired private InvestmentProductRepository productRepository;

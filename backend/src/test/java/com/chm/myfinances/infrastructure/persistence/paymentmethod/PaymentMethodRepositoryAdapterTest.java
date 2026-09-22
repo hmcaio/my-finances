@@ -2,17 +2,14 @@ package com.chm.myfinances.infrastructure.persistence.paymentmethod;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
+import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Persistence-layer integration test for {@link PaymentMethodRepositoryAdapter}, against a real
@@ -20,9 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
  * why this uses full {@code @SpringBootTest} rather than {@code @DataJpaTest} (removed in Spring
  * Boot 4.x).
  */
-@SpringBootTest
-@Import(TestcontainersConfiguration.class)
-@Transactional
+@DatabaseIntegrationTest
 class PaymentMethodRepositoryAdapterTest {
 
   @Autowired private PaymentMethodRepository paymentMethodRepository;

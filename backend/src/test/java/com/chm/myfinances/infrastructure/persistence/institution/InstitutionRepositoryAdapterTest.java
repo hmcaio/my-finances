@@ -3,18 +3,15 @@ package com.chm.myfinances.infrastructure.persistence.institution;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.domain.institution.Institution;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
+import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
 import jakarta.persistence.EntityManager;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Persistence-layer integration test for {@link InstitutionRepositoryAdapter}: hits a real,
@@ -23,9 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
  * which rollback never removes. Fixture names therefore use the {@code " Test"} suffix, and nothing
  * here assumes {@code findAll()} is empty or of a fixed size.
  */
-@SpringBootTest
-@Import(TestcontainersConfiguration.class)
-@Transactional
+@DatabaseIntegrationTest
 class InstitutionRepositoryAdapterTest {
 
   @Autowired private InstitutionRepository institutionRepository;

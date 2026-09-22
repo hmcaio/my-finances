@@ -6,7 +6,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
@@ -16,7 +15,10 @@ import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
+import com.chm.myfinances.testsupport.JsonSupport;
+import com.chm.myfinances.testsupport.MockMvcSupport;
 import com.chm.myfinances.testsupport.TestInstitutions;
+import com.chm.myfinances.testsupport.WebIntegrationTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,22 +26,16 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
 /**
  * REST-layer integration test for {@link InvestmentSubcategoryController}, against a real
  * Testcontainers Postgres (ADR 0010), hand-built {@link MockMvc}.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
-@Import(TestcontainersConfiguration.class)
-@Transactional
+@WebIntegrationTest
 class InvestmentSubcategoryControllerTest {
 
   @Autowired private WebApplicationContext webApplicationContext;
@@ -48,7 +44,7 @@ class InvestmentSubcategoryControllerTest {
   @Autowired private AccountRepository accountRepository;
   @Autowired private InstitutionRepository institutionRepository;
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final ObjectMapper objectMapper = JsonSupport.MAPPER;
 
   private MockMvc mockMvc;
   private UUID categoryId;
@@ -56,7 +52,7 @@ class InvestmentSubcategoryControllerTest {
 
   @BeforeEach
   void setUp() {
-    mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+    mockMvc = MockMvcSupport.build(webApplicationContext);
     categoryId =
         categoryRepository
             .save(InvestmentCategory.create(UUID.randomUUID(), "Parent Test"))
@@ -83,7 +79,7 @@ class InvestmentSubcategoryControllerTest {
                     .content(body(parentId, name)))
             .andExpect(status().isCreated())
             .andReturn();
-    return objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asText();
+    return JsonSupport.idOf(result);
   }
 
   private String nameBody(String name) throws Exception {

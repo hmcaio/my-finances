@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.TestcontainersConfiguration;
-import com.zaxxer.hikari.HikariDataSource;
+import com.chm.myfinances.testsupport.AbstractMigrationTest;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -13,15 +13,9 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import javax.sql.DataSource;
-import org.flywaydb.core.Flyway;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 /**
  * Proves {@code V11__unique_pending_recurring_occurrence_per_cycle.sql} collapses duplicate pending
@@ -35,33 +29,13 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
  */
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
-class PendingOccurrenceCycleUniquenessMigrationTest {
+class PendingOccurrenceCycleUniquenessMigrationTest extends AbstractMigrationTest {
 
   private static final String SCHEMA = "migration_test_pending_cycle";
   private static final String UNIQUE_VIOLATION = "23505";
 
-  @Autowired private DataSource pooledDataSource;
-
-  /**
-   * Non-pooled, on purpose: {@code Connection.setSchema} changes the physical connection's {@code
-   * search_path}, and on a pooled connection that outlives this test - the next test to borrow it
-   * then fails with "relation does not exist" once the schema is dropped.
-   */
-  private DataSource dataSource;
-
-  @BeforeEach
-  void useAnIsolatedDataSource() throws SQLException {
-    HikariDataSource pool = pooledDataSource.unwrap(HikariDataSource.class);
-    dataSource =
-        new DriverManagerDataSource(pool.getJdbcUrl(), pool.getUsername(), pool.getPassword());
-  }
-
-  @AfterEach
-  void dropSchema() throws SQLException {
-    try (Connection connection = dataSource.getConnection();
-        Statement statement = connection.createStatement()) {
-      statement.execute("DROP SCHEMA IF EXISTS " + SCHEMA + " CASCADE");
-    }
+  PendingOccurrenceCycleUniquenessMigrationTest() {
+    super(SCHEMA);
   }
 
   @Test
@@ -135,23 +109,6 @@ class PendingOccurrenceCycleUniquenessMigrationTest {
           .isInstanceOfSatisfying(
               SQLException.class, e -> assertThat(e.getSQLState()).isEqualTo(UNIQUE_VIOLATION));
     }
-  }
-
-  private Flyway flyway(String targetVersion) {
-    return Flyway.configure()
-        .dataSource(dataSource)
-        .schemas(SCHEMA)
-        .createSchemas(true)
-        .locations("classpath:db/migration")
-        .target(targetVersion)
-        .load();
-  }
-
-  /** A connection whose default schema is the throwaway one Flyway just migrated. */
-  private Connection connection() throws SQLException {
-    Connection connection = dataSource.getConnection();
-    connection.setSchema(SCHEMA);
-    return connection;
   }
 
   private static void insertVersion(Connection connection, UUID versionId, UUID templateId)

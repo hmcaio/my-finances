@@ -2,7 +2,6 @@ package com.chm.myfinances.infrastructure.persistence.transaction;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
@@ -15,6 +14,7 @@ import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionFilter;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
+import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
 import com.chm.myfinances.testsupport.TestInstitutions;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -23,11 +23,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Persistence-layer integration test for {@link TransactionRepositoryAdapter}: hits a real,
@@ -40,9 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
  * every test here persists a real {@link Category}/{@link Account}/{@link PaymentMethod} first via
  * their own repositories rather than referencing random UUIDs.
  */
-@SpringBootTest
-@Import(TestcontainersConfiguration.class)
-@Transactional
+@DatabaseIntegrationTest
 class TransactionRepositoryAdapterTest {
 
   @Autowired private InstitutionRepository institutionRepository;

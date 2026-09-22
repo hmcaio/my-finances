@@ -8,7 +8,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
@@ -19,8 +18,11 @@ import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
+import com.chm.myfinances.testsupport.JsonSupport;
+import com.chm.myfinances.testsupport.MockMvcSupport;
 import com.chm.myfinances.testsupport.MutableClock;
 import com.chm.myfinances.testsupport.TestInstitutions;
+import com.chm.myfinances.testsupport.WebIntegrationTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -33,7 +35,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
@@ -41,8 +42,6 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
 /**
@@ -50,12 +49,8 @@ import org.springframework.web.context.WebApplicationContext;
  * Testcontainers Postgres (ADR 0010). Hand-built {@link MockMvc} - same pattern as F006's {@code
  * BudgetControllerTest}.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
-@Import({
-  TestcontainersConfiguration.class,
-  RecurringTemplateControllerTest.FixedClockTestConfig.class
-})
-@Transactional
+@WebIntegrationTest
+@Import(RecurringTemplateControllerTest.FixedClockTestConfig.class)
 class RecurringTemplateControllerTest {
 
   /**
@@ -83,7 +78,7 @@ class RecurringTemplateControllerTest {
   @Autowired private PaymentMethodRepository paymentMethodRepository;
   @Autowired private MutableClock testClock;
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final ObjectMapper objectMapper = JsonSupport.MAPPER;
 
   private MockMvc mockMvc;
 
@@ -93,7 +88,7 @@ class RecurringTemplateControllerTest {
 
   @BeforeEach
   void setUp() {
-    mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+    mockMvc = MockMvcSupport.build(webApplicationContext);
 
     categoryId =
         categoryRepository
@@ -142,7 +137,7 @@ class RecurringTemplateControllerTest {
                     .content(createRequestBody(effectiveFrom)))
             .andExpect(status().isCreated())
             .andReturn();
-    return objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asText();
+    return JsonSupport.idOf(result);
   }
 
   @Test
