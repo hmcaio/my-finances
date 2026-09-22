@@ -77,7 +77,7 @@ class TransactionServiceTest {
                 AccountType.CHECKING,
                 BigDecimal.ZERO,
                 LocalDate.now()));
-    closedAccount.close();
+    closedAccount.close(LocalDate.now());
     accountRepository.save(closedAccount);
     paymentMethod =
         paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), "Debit Card"));

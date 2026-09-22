@@ -47,7 +47,7 @@ class InstitutionServiceTest {
             BigDecimal.ZERO,
             LocalDate.now());
     if (closed) {
-      account.close();
+      account.close(LocalDate.now());
     }
     accountRepository.save(account);
   }

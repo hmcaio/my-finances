@@ -149,13 +149,14 @@ class AccountRepositoryAdapterTest {
             LocalDate.now());
     accountRepository.save(account);
 
-    account.close();
+    LocalDate closedDate = LocalDate.now();
+    account.close(closedDate);
     accountRepository.save(account);
 
     Optional<Account> reloaded = accountRepository.findById(account.getId());
     assertThat(reloaded).isPresent();
     assertThat(reloaded.get().isClosed()).isTrue();
-    assertThat(reloaded.get().getClosedDate()).isEqualTo(LocalDate.now());
+    assertThat(reloaded.get().getClosedDate()).isEqualTo(closedDate);
   }
 
   @Test
@@ -261,7 +262,7 @@ class AccountRepositoryAdapterTest {
             AccountType.CHECKING,
             BigDecimal.ZERO,
             LocalDate.now());
-    account.close();
+    account.close(LocalDate.now());
     accountRepository.save(account);
 
     assertThat(accountRepository.existsByInstitutionId(institutionId)).isTrue();

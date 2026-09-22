@@ -26,6 +26,7 @@ import com.chm.myfinances.testsupport.FakeRecurringTemplateVersionRepository;
 import com.chm.myfinances.testsupport.FakeTransactionRepository;
 import com.chm.myfinances.testsupport.LogCapture;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
@@ -65,7 +66,11 @@ class RecurringTemplateServiceTest {
           idGenerator);
   private final RecurringOccurrenceCatchUpService catchUpService =
       new RecurringOccurrenceCatchUpService(
-          templateRepository, versionRepository, pendingRepository, idGenerator);
+          templateRepository,
+          versionRepository,
+          pendingRepository,
+          idGenerator,
+          Clock.systemDefaultZone());
   private final RecurringTemplateService service =
       new RecurringTemplateService(
           templateRepository,
@@ -75,7 +80,8 @@ class RecurringTemplateServiceTest {
           accountRepository,
           transactionService,
           catchUpService,
-          idGenerator);
+          idGenerator,
+          Clock.systemDefaultZone());
 
   private UUID categoryId;
   private UUID accountId;
@@ -114,7 +120,8 @@ class RecurringTemplateServiceTest {
             accountRepository,
             transactionService,
             catchUpService,
-            new FakeIdGenerator(nextTemplateId));
+            new FakeIdGenerator(nextTemplateId),
+            Clock.systemDefaultZone());
 
     RecurringTemplate created =
         service.create(
@@ -149,7 +156,7 @@ class RecurringTemplateServiceTest {
   @Test
   void createRejectsAClosedAccount() {
     Account closed = accountRepository.findById(accountId).orElseThrow();
-    closed.close();
+    closed.close(LocalDate.now());
     accountRepository.save(closed);
 
     assertThatThrownBy(

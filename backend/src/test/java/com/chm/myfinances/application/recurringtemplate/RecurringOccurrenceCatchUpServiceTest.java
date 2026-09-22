@@ -12,6 +12,7 @@ import com.chm.myfinances.testsupport.FakeRecurringTemplateRepository;
 import com.chm.myfinances.testsupport.FakeRecurringTemplateVersionRepository;
 import com.chm.myfinances.testsupport.LogCapture;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.UUID;
@@ -36,7 +37,11 @@ class RecurringOccurrenceCatchUpServiceTest {
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
   private final RecurringOccurrenceCatchUpService service =
       new RecurringOccurrenceCatchUpService(
-          templateRepository, versionRepository, pendingRepository, idGenerator);
+          templateRepository,
+          versionRepository,
+          pendingRepository,
+          idGenerator,
+          Clock.systemDefaultZone());
 
   private UUID categoryId;
   private UUID accountId;

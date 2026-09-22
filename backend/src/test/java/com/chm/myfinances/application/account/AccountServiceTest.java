@@ -17,6 +17,7 @@ import com.chm.myfinances.testsupport.FakeInstitutionRepository;
 import com.chm.myfinances.testsupport.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.LogCapture;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,7 +43,12 @@ class AccountServiceTest {
       institutionRepository.save(Institution.create(UUID.randomUUID(), "Itau Test")).getId();
   private final AccountService service =
       new AccountService(
-          repository, institutionRepository, investmentProductRepository, idGenerator, notifier);
+          repository,
+          institutionRepository,
+          investmentProductRepository,
+          idGenerator,
+          notifier,
+          Clock.systemDefaultZone());
 
   @Test
   void createAssignsIdFromIdGeneratorAndPersists() {
@@ -53,7 +59,8 @@ class AccountServiceTest {
             institutionRepository,
             investmentProductRepository,
             new FakeIdGenerator(nextId),
-            notifier);
+            notifier,
+            Clock.systemDefaultZone());
 
     Account created =
         service.create(
@@ -304,7 +311,7 @@ class AccountServiceTest {
     Account withProducts =
         service.create("XP Test", institutionId, AccountType.INVESTMENT, null, null);
     InvestmentProduct product = addProductTo(withProducts.getId());
-    product.close();
+    product.close(LocalDate.now());
     Account empty = service.create("Nu Test", institutionId, AccountType.INVESTMENT, null, null);
 
     assertThat(service.close(withProducts.getId()).isClosed()).isTrue();

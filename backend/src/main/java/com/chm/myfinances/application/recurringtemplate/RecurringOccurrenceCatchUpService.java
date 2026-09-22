@@ -10,6 +10,7 @@ import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateRepository;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersion;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersionRepository;
 import com.chm.myfinances.domain.shared.IdGenerator;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 import org.slf4j.Logger;
@@ -38,21 +39,24 @@ public class RecurringOccurrenceCatchUpService {
   private final RecurringTemplateVersionRepository versionRepository;
   private final PendingRecurringOccurrenceRepository pendingRepository;
   private final IdGenerator idGenerator;
+  private final Clock clock;
 
   public RecurringOccurrenceCatchUpService(
       RecurringTemplateRepository templateRepository,
       RecurringTemplateVersionRepository versionRepository,
       PendingRecurringOccurrenceRepository pendingRepository,
-      IdGenerator idGenerator) {
+      IdGenerator idGenerator,
+      Clock clock) {
     this.templateRepository = templateRepository;
     this.versionRepository = versionRepository;
     this.pendingRepository = pendingRepository;
     this.idGenerator = idGenerator;
+    this.clock = clock;
   }
 
   /** Runs catch-up generation for every active template, as of today. */
   public void runCatchUp() {
-    runCatchUp(LocalDate.now());
+    runCatchUp(LocalDate.now(clock));
   }
 
   /** Same as {@link #runCatchUp()}, but with an explicit "today" - exposed for testability. */

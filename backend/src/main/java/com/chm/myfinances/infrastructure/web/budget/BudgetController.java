@@ -6,6 +6,7 @@ import com.chm.myfinances.application.budget.BudgetService;
 import com.chm.myfinances.domain.budget.Budget;
 import com.chm.myfinances.domain.budget.BudgetVersion;
 import jakarta.validation.Valid;
+import java.time.Clock;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
@@ -34,14 +35,17 @@ public class BudgetController {
   private final BudgetService budgetService;
   private final BudgetCapQuery budgetCapQuery;
   private final BudgetReportQuery budgetReportQuery;
+  private final Clock clock;
 
   public BudgetController(
       BudgetService budgetService,
       BudgetCapQuery budgetCapQuery,
-      BudgetReportQuery budgetReportQuery) {
+      BudgetReportQuery budgetReportQuery,
+      Clock clock) {
     this.budgetService = budgetService;
     this.budgetCapQuery = budgetCapQuery;
     this.budgetReportQuery = budgetReportQuery;
+    this.clock = clock;
   }
 
   @PostMapping
@@ -74,7 +78,7 @@ public class BudgetController {
 
   private BudgetResponse toResponse(Budget budget) {
     Optional<BudgetVersion> currentVersion =
-        budgetCapQuery.effectiveCap(budget.getId(), YearMonth.now());
+        budgetCapQuery.effectiveCap(budget.getId(), YearMonth.now(clock));
     return BudgetResponse.from(budget, currentVersion);
   }
 }
