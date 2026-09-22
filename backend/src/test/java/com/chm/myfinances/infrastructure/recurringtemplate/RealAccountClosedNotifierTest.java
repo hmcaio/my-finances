@@ -12,7 +12,7 @@ import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
-import com.chm.myfinances.testsupport.TestInstitutions;
+import com.chm.myfinances.testsupport.mothers.TestInstitutions;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;

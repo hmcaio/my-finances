@@ -10,7 +10,7 @@ import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateRepository;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
-import com.chm.myfinances.testsupport.TestFixtures;
+import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import java.time.YearMonth;
 import java.util.Optional;
 import java.util.UUID;

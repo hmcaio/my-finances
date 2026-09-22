@@ -9,7 +9,7 @@ import com.chm.myfinances.domain.budget.BudgetVersionRepository;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
-import com.chm.myfinances.testsupport.TestFixtures;
+import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.util.Optional;

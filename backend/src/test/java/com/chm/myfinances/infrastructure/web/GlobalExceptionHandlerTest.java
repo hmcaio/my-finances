@@ -13,7 +13,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.testsupport.LogCapture;
-import com.chm.myfinances.testsupport.MockMvcSupport;
+import com.chm.myfinances.testsupport.web.MockMvcSupport;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;

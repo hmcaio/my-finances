@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
-import com.chm.myfinances.testsupport.AccountMother;
+import com.chm.myfinances.testsupport.mothers.AccountMother;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;

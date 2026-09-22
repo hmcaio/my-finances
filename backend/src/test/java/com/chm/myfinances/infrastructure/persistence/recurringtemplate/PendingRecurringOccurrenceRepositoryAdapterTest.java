@@ -14,7 +14,7 @@ import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateRepository;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersion;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersionRepository;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
-import com.chm.myfinances.testsupport.TestFixtures;
+import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.LocalDate;

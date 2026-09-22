@@ -5,11 +5,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
-import com.chm.myfinances.testsupport.FakeIdGenerator;
-import com.chm.myfinances.testsupport.FakeInvestmentCategoryRepository;
-import com.chm.myfinances.testsupport.FakeInvestmentProductRepository;
-import com.chm.myfinances.testsupport.FakeInvestmentSubcategoryRepository;
-import com.chm.myfinances.testsupport.InvestmentProductMother;
+import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentCategoryRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentSubcategoryRepository;
+import com.chm.myfinances.testsupport.mothers.InvestmentProductMother;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;

@@ -17,8 +17,8 @@ import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrenceRep
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersion;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersionRepository;
-import com.chm.myfinances.testsupport.TestFixtures;
-import com.chm.myfinances.testsupport.TestInstitutions;
+import com.chm.myfinances.testsupport.mothers.TestFixtures;
+import com.chm.myfinances.testsupport.mothers.TestInstitutions;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;

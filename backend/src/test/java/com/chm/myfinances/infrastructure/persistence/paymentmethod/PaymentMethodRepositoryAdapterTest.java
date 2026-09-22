@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
-import com.chm.myfinances.testsupport.TestFixtures;
+import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

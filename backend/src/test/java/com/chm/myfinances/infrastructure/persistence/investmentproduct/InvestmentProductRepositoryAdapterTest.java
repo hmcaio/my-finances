@@ -13,7 +13,7 @@ import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategoryRepository;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
-import com.chm.myfinances.testsupport.TestFixtures;
+import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDate;
 import java.util.Optional;

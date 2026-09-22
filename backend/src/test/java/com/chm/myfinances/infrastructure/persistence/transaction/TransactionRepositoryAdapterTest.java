@@ -14,7 +14,7 @@ import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionFilter;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
-import com.chm.myfinances.testsupport.TestFixtures;
+import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;

@@ -3,7 +3,7 @@ package com.chm.myfinances.infrastructure.persistence.institution;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.chm.myfinances.TestcontainersConfiguration;
-import com.chm.myfinances.testsupport.AbstractMigrationTest;
+import com.chm.myfinances.testsupport.migration.AbstractMigrationTest;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
