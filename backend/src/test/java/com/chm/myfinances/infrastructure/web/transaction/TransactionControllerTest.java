@@ -7,7 +7,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
@@ -18,7 +17,10 @@ import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
+import com.chm.myfinances.testsupport.JsonSupport;
+import com.chm.myfinances.testsupport.MockMvcSupport;
 import com.chm.myfinances.testsupport.TestInstitutions;
+import com.chm.myfinances.testsupport.WebIntegrationTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -27,13 +29,9 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
 /**
@@ -41,9 +39,7 @@ import org.springframework.web.context.WebApplicationContext;
  * Postgres (ADR 0010). Hand-built {@link MockMvc} - Spring Boot 4.x removed
  * {@code @AutoConfigureMockMvc}/{@code @WebMvcTest} - same pattern as F002/F003's controller tests.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
-@Import(TestcontainersConfiguration.class)
-@Transactional
+@WebIntegrationTest
 class TransactionControllerTest {
 
   @Autowired private InstitutionRepository institutionRepository;
@@ -52,7 +48,7 @@ class TransactionControllerTest {
   @Autowired private AccountRepository accountRepository;
   @Autowired private PaymentMethodRepository paymentMethodRepository;
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final ObjectMapper objectMapper = JsonSupport.MAPPER;
 
   private MockMvc mockMvc;
 
@@ -66,7 +62,7 @@ class TransactionControllerTest {
 
   @BeforeEach
   void setUp() {
-    mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+    mockMvc = MockMvcSupport.build(webApplicationContext);
 
     expenseCategoryId =
         categoryRepository
@@ -163,7 +159,7 @@ class TransactionControllerTest {
                 post("/api/transactions").contentType(MediaType.APPLICATION_JSON).content(body))
             .andExpect(status().isCreated())
             .andReturn();
-    return objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asText();
+    return JsonSupport.idOf(result);
   }
 
   @Test

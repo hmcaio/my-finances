@@ -2,7 +2,6 @@ package com.chm.myfinances.infrastructure.persistence.budget;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.domain.budget.Budget;
 import com.chm.myfinances.domain.budget.BudgetRepository;
 import com.chm.myfinances.domain.budget.BudgetVersion;
@@ -10,6 +9,7 @@ import com.chm.myfinances.domain.budget.BudgetVersionRepository;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
+import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
 import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.util.Optional;
@@ -17,9 +17,6 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Persistence-layer integration test for {@link BudgetVersionRepositoryAdapter}, against a real
@@ -27,9 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
  * date} round trip and the {@code (budget_id, effective_from)} unique constraint from {@code
  * V8__budgets.sql}.
  */
-@SpringBootTest
-@Import(TestcontainersConfiguration.class)
-@Transactional
+@DatabaseIntegrationTest
 class BudgetVersionRepositoryAdapterTest {
 
   @Autowired private BudgetVersionRepository budgetVersionRepository;

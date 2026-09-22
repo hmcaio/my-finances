@@ -2,7 +2,6 @@ package com.chm.myfinances.infrastructure.persistence.recurringtemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
@@ -14,6 +13,7 @@ import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateRepository;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersion;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersionRepository;
+import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
 import com.chm.myfinances.testsupport.TestInstitutions;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -23,9 +23,6 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Persistence-layer integration test for {@link RecurringTemplateVersionRepositoryAdapter}, against
@@ -33,9 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
  * month-{@code date} round trip and the {@code (template_id, effective_from)} unique constraint
  * from {@code V9__recurring_templates.sql}.
  */
-@SpringBootTest
-@Import(TestcontainersConfiguration.class)
-@Transactional
+@DatabaseIntegrationTest
 class RecurringTemplateVersionRepositoryAdapterTest {
 
   @Autowired private InstitutionRepository institutionRepository;

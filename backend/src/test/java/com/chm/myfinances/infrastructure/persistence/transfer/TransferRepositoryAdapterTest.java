@@ -2,7 +2,6 @@ package com.chm.myfinances.infrastructure.persistence.transfer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
@@ -10,6 +9,7 @@ import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.domain.transfer.TransferFilter;
 import com.chm.myfinances.domain.transfer.TransferRepository;
+import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
 import com.chm.myfinances.testsupport.TestInstitutions;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -18,11 +18,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Persistence-layer integration test for {@link TransferRepositoryAdapter}: hits a real, ephemeral
@@ -34,9 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>{@code transfers.from_account_id}/{@code to_account_id} are real FKs, so every test here
  * persists real {@link Account}s first via {@link AccountRepository} rather than random UUIDs.
  */
-@SpringBootTest
-@Import(TestcontainersConfiguration.class)
-@Transactional
+@DatabaseIntegrationTest
 class TransferRepositoryAdapterTest {
 
   @Autowired private InstitutionRepository institutionRepository;

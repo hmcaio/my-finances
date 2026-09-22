@@ -7,7 +7,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
@@ -18,7 +17,10 @@ import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
+import com.chm.myfinances.testsupport.JsonSupport;
+import com.chm.myfinances.testsupport.MockMvcSupport;
 import com.chm.myfinances.testsupport.TestInstitutions;
+import com.chm.myfinances.testsupport.WebIntegrationTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -27,13 +29,9 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
 /**
@@ -41,9 +39,7 @@ import org.springframework.web.context.WebApplicationContext;
  * Postgres (ADR 0010). See {@code CategoryControllerTest} for why {@link MockMvc} is built by hand
  * here instead of via {@code @AutoConfigureMockMvc} (removed in Boot 4.x).
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
-@Import(TestcontainersConfiguration.class)
-@Transactional
+@WebIntegrationTest
 class PaymentMethodControllerTest {
 
   @Autowired private InstitutionRepository institutionRepository;
@@ -52,13 +48,13 @@ class PaymentMethodControllerTest {
   @Autowired private AccountRepository accountRepository;
   @Autowired private CategoryRepository categoryRepository;
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final ObjectMapper objectMapper = JsonSupport.MAPPER;
 
   private MockMvc mockMvc;
 
   @BeforeEach
   void setUp() {
-    mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+    mockMvc = MockMvcSupport.build(webApplicationContext);
   }
 
   @Test
@@ -72,8 +68,7 @@ class PaymentMethodControllerTest {
                     .content(createBody))
             .andExpect(status().isCreated())
             .andReturn();
-    String id =
-        objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asText();
+    String id = JsonSupport.idOf(createResult);
 
     mockMvc
         .perform(get("/api/payment-methods"))
@@ -108,8 +103,7 @@ class PaymentMethodControllerTest {
                     .content(createBody))
             .andExpect(status().isCreated())
             .andReturn();
-    String id =
-        objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asText();
+    String id = JsonSupport.idOf(createResult);
 
     Account account =
         accountRepository.save(
@@ -174,8 +168,7 @@ class PaymentMethodControllerTest {
                     .content(secondBody))
             .andExpect(status().isCreated())
             .andReturn();
-    String id =
-        objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asText();
+    String id = JsonSupport.idOf(createResult);
 
     String renameBody = objectMapper.writeValueAsString(Map.of("name", "Original PM"));
     mockMvc
@@ -210,8 +203,7 @@ class PaymentMethodControllerTest {
                     .content(createBody))
             .andExpect(status().isCreated())
             .andReturn();
-    String id =
-        objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asText();
+    String id = JsonSupport.idOf(createResult);
 
     String tooLongName = "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1);
     String renameBody = objectMapper.writeValueAsString(Map.of("name", tooLongName));

@@ -2,18 +2,15 @@ package com.chm.myfinances.infrastructure.persistence.category;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
+import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Persistence-layer integration test for {@link CategoryRepositoryAdapter}: hits a real, ephemeral
@@ -26,9 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
  * pattern as {@code MyFinancesApplicationTests} (F001). {@code @Transactional} rolls back each
  * test's writes so tests don't interfere with each other or with the migration's seed data.
  */
-@SpringBootTest
-@Import(TestcontainersConfiguration.class)
-@Transactional
+@DatabaseIntegrationTest
 class CategoryRepositoryAdapterTest {
 
   @Autowired private CategoryRepository categoryRepository;

@@ -4,13 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.TestcontainersConfiguration;
-import com.zaxxer.hikari.HikariDataSource;
+import com.chm.myfinances.testsupport.AbstractMigrationTest;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -18,15 +17,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import javax.sql.DataSource;
-import org.flywaydb.core.Flyway;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 /**
  * Proves {@code V13__investment_accounts_products_taxonomy.sql} (F008) against pre-existing data
@@ -41,28 +34,12 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
  */
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
-class InvestmentTaxonomyMigrationTest {
+class InvestmentTaxonomyMigrationTest extends AbstractMigrationTest {
 
   private static final String SCHEMA = "migration_test_investments";
 
-  @Autowired private DataSource pooledDataSource;
-
-  /** Non-pooled on purpose - see {@code InstitutionBackfillMigrationTest}. */
-  private DataSource dataSource;
-
-  @BeforeEach
-  void useAnIsolatedDataSource() throws SQLException {
-    HikariDataSource pool = pooledDataSource.unwrap(HikariDataSource.class);
-    dataSource =
-        new DriverManagerDataSource(pool.getJdbcUrl(), pool.getUsername(), pool.getPassword());
-  }
-
-  @AfterEach
-  void dropSchema() throws SQLException {
-    try (Connection connection = dataSource.getConnection();
-        Statement statement = connection.createStatement()) {
-      statement.execute("DROP SCHEMA IF EXISTS " + SCHEMA + " CASCADE");
-    }
+  InvestmentTaxonomyMigrationTest() {
+    super(SCHEMA);
   }
 
   @Test
@@ -263,23 +240,6 @@ class InvestmentTaxonomyMigrationTest {
     }
   }
 
-  private Flyway flyway(String targetVersion) {
-    return Flyway.configure()
-        .dataSource(dataSource)
-        .schemas(SCHEMA)
-        .createSchemas(true)
-        .locations("classpath:db/migration")
-        .target(targetVersion)
-        .load();
-  }
-
-  /** A connection whose default schema is the throwaway one Flyway just migrated. */
-  private Connection connection() throws SQLException {
-    Connection connection = dataSource.getConnection();
-    connection.setSchema(SCHEMA);
-    return connection;
-  }
-
   /** Runs the statement and asserts the database refused it with the named constraint. */
   private static void assertRejected(SqlAction action, String constraintName) {
     assertThatThrownBy(action::run)
@@ -370,21 +330,5 @@ class InvestmentTaxonomyMigrationTest {
       }
     }
     return names;
-  }
-
-  private static boolean isNullable(Connection connection, String table, String column)
-      throws SQLException {
-    try (PreparedStatement statement =
-        connection.prepareStatement(
-            "SELECT is_nullable FROM information_schema.columns"
-                + " WHERE table_schema = ? AND table_name = ? AND column_name = ?")) {
-      statement.setString(1, SCHEMA);
-      statement.setString(2, table);
-      statement.setString(3, column);
-      try (ResultSet rows = statement.executeQuery()) {
-        assertThat(rows.next()).as("column %s.%s exists", table, column).isTrue();
-        return "YES".equals(rows.getString(1));
-      }
-    }
   }
 }

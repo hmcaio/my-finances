@@ -8,7 +8,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
@@ -19,7 +18,10 @@ import com.chm.myfinances.domain.investmentproduct.HasInvestmentHistoryChecker;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategoryRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
+import com.chm.myfinances.testsupport.JsonSupport;
+import com.chm.myfinances.testsupport.MockMvcSupport;
 import com.chm.myfinances.testsupport.TestInstitutions;
+import com.chm.myfinances.testsupport.WebIntegrationTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -29,14 +31,10 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
 /**
@@ -45,9 +43,7 @@ import org.springframework.web.context.WebApplicationContext;
  * (default {@code false}, like F008's placeholder) so the history-dependent {@code 409} on delete
  * can be exercised before F009 supplies real history.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
-@Import(TestcontainersConfiguration.class)
-@Transactional
+@WebIntegrationTest
 class InvestmentProductControllerTest {
 
   @Autowired private WebApplicationContext webApplicationContext;
@@ -59,7 +55,7 @@ class InvestmentProductControllerTest {
   /** F009 supplies the real answer; a mock stands in for products with snapshots or trades. */
   @MockitoBean private HasInvestmentHistoryChecker historyChecker;
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final ObjectMapper objectMapper = JsonSupport.MAPPER;
 
   private MockMvc mockMvc;
   private UUID accountId;
@@ -71,7 +67,7 @@ class InvestmentProductControllerTest {
 
   @BeforeEach
   void setUp() {
-    mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+    mockMvc = MockMvcSupport.build(webApplicationContext);
     UUID institutionId = TestInstitutions.builtInId(institutionRepository);
     accountId = saveAccount("XP Product Test", institutionId, AccountType.INVESTMENT);
     otherAccountId = saveAccount("Nubank Product Test", institutionId, AccountType.INVESTMENT);
@@ -124,7 +120,7 @@ class InvestmentProductControllerTest {
                     .content(body(account, category, subcategory, name)))
             .andExpect(status().isCreated())
             .andReturn();
-    return objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asText();
+    return JsonSupport.idOf(result);
   }
 
   @Test

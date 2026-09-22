@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.TestcontainersConfiguration;
-import com.zaxxer.hikari.HikariDataSource;
+import com.chm.myfinances.testsupport.AbstractMigrationTest;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -13,15 +13,9 @@ import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import javax.sql.DataSource;
-import org.flywaydb.core.Flyway;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 /**
  * Proves {@code V14__builtin_categories.sql} adopts the seeded fallback categories that already
@@ -34,28 +28,12 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
  */
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
-class BuiltInCategoriesMigrationTest {
+class BuiltInCategoriesMigrationTest extends AbstractMigrationTest {
 
   private static final String SCHEMA = "migration_test_builtin_categories";
 
-  @Autowired private DataSource pooledDataSource;
-
-  /** Non-pooled, on purpose: see {@code InstitutionBackfillMigrationTest}. */
-  private DataSource dataSource;
-
-  @BeforeEach
-  void useAnIsolatedDataSource() throws SQLException {
-    HikariDataSource pool = pooledDataSource.unwrap(HikariDataSource.class);
-    dataSource =
-        new DriverManagerDataSource(pool.getJdbcUrl(), pool.getUsername(), pool.getPassword());
-  }
-
-  @AfterEach
-  void dropSchema() throws SQLException {
-    try (Connection connection = dataSource.getConnection();
-        Statement statement = connection.createStatement()) {
-      statement.execute("DROP SCHEMA IF EXISTS " + SCHEMA + " CASCADE");
-    }
+  BuiltInCategoriesMigrationTest() {
+    super(SCHEMA);
   }
 
   @Test
@@ -171,23 +149,6 @@ class BuiltInCategoriesMigrationTest {
     }
   }
 
-  private Flyway flyway(String targetVersion) {
-    return Flyway.configure()
-        .dataSource(dataSource)
-        .schemas(SCHEMA)
-        .createSchemas(true)
-        .locations("classpath:db/migration")
-        .target(targetVersion)
-        .load();
-  }
-
-  /** A connection whose default schema is the throwaway one Flyway just migrated. */
-  private Connection connection() throws SQLException {
-    Connection connection = dataSource.getConnection();
-    connection.setSchema(SCHEMA);
-    return connection;
-  }
-
   private static void execute(Connection connection, String sql) throws SQLException {
     try (Statement statement = connection.createStatement()) {
       statement.executeUpdate(sql);
@@ -229,13 +190,5 @@ class BuiltInCategoriesMigrationTest {
       }
     }
     return result;
-  }
-
-  private static long count(Connection connection, String sql) throws SQLException {
-    try (Statement statement = connection.createStatement();
-        ResultSet rows = statement.executeQuery(sql)) {
-      rows.next();
-      return rows.getLong(1);
-    }
   }
 }

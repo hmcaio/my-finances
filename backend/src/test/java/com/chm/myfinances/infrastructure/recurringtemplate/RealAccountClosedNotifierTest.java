@@ -2,7 +2,6 @@ package com.chm.myfinances.infrastructure.recurringtemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.application.account.AccountService;
 import com.chm.myfinances.application.recurringtemplate.RecurringTemplateService;
 import com.chm.myfinances.domain.account.Account;
@@ -12,6 +11,7 @@ import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
+import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
 import com.chm.myfinances.testsupport.TestInstitutions;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -19,9 +19,6 @@ import java.time.YearMonth;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * End-to-end integration test (real Spring context + Testcontainers Postgres, ADR 0010) proving
@@ -30,9 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
  * wired up as the {@code AccountClosedNotifier} port's implementation, not a leftover no-op (F007
  * spec, PRD S5.4).
  */
-@SpringBootTest
-@Import(TestcontainersConfiguration.class)
-@Transactional
+@DatabaseIntegrationTest
 class RealAccountClosedNotifierTest {
 
   @Autowired private InstitutionRepository institutionRepository;

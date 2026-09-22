@@ -2,20 +2,17 @@ package com.chm.myfinances.infrastructure.persistence.budget;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.domain.budget.Budget;
 import com.chm.myfinances.domain.budget.BudgetRepository;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
+import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Persistence-layer integration test for {@link BudgetRepositoryAdapter}: hits a real, ephemeral
@@ -24,9 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
  * {@code @Import(TestcontainersConfiguration.class)} + {@code @Transactional} pattern as F005's
  * {@code TransferRepositoryAdapterTest}.
  */
-@SpringBootTest
-@Import(TestcontainersConfiguration.class)
-@Transactional
+@DatabaseIntegrationTest
 class BudgetRepositoryAdapterTest {
 
   @Autowired private BudgetRepository budgetRepository;
