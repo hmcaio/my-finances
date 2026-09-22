@@ -6,10 +6,10 @@ import com.chm.myfinances.domain.budget.Budget;
 import com.chm.myfinances.domain.budget.BudgetRepository;
 import com.chm.myfinances.domain.budget.BudgetVersion;
 import com.chm.myfinances.domain.budget.BudgetVersionRepository;
-import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
+import com.chm.myfinances.testsupport.TestFixtures;
 import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.util.Optional;
@@ -36,9 +36,7 @@ class BudgetVersionRepositoryAdapterTest {
   @BeforeEach
   void setUp() {
     UUID categoryId =
-        categoryRepository
-            .save(Category.create(UUID.randomUUID(), "Groceries Test", CategoryType.EXPENSE))
-            .getId();
+        TestFixtures.category(categoryRepository, "Groceries Test", CategoryType.EXPENSE).getId();
     budgetId = budgetRepository.save(Budget.create(UUID.randomUUID(), categoryId)).getId();
   }
 

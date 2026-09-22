@@ -9,21 +9,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
-import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
-import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
 import com.chm.myfinances.testsupport.JsonSupport;
 import com.chm.myfinances.testsupport.MockMvcSupport;
-import com.chm.myfinances.testsupport.TestInstitutions;
+import com.chm.myfinances.testsupport.TestFixtures;
+import com.chm.myfinances.testsupport.TransactionMother;
 import com.chm.myfinances.testsupport.WebIntegrationTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -106,29 +104,17 @@ class PaymentMethodControllerTest {
     String id = JsonSupport.idOf(createResult);
 
     Account account =
-        accountRepository.save(
-            Account.create(
-                UUID.randomUUID(),
-                "Checking",
-                TestInstitutions.builtInId(institutionRepository),
-                AccountType.CHECKING,
-                BigDecimal.ZERO,
-                LocalDate.now()));
+        TestFixtures.checkingAccount(accountRepository, institutionRepository, "Checking");
     Category category =
-        categoryRepository.save(
-            Category.create(UUID.randomUUID(), "Groceries Test", CategoryType.EXPENSE));
+        TestFixtures.category(categoryRepository, "Groceries Test", CategoryType.EXPENSE);
     transactionRepository.save(
-        Transaction.create(
-            UUID.randomUUID(),
-            LocalDate.now(),
-            BigDecimal.TEN,
-            category.getId(),
-            CategoryType.EXPENSE,
-            account.getId(),
-            UUID.fromString(id),
-            null,
-            "In-use transaction",
-            null));
+        TransactionMother.expense()
+            .withAmount(BigDecimal.TEN)
+            .withCategoryId(category.getId())
+            .withAccountId(account.getId())
+            .withPaymentMethodId(UUID.fromString(id))
+            .withDescription("In-use transaction")
+            .build());
 
     mockMvc.perform(delete("/api/payment-methods/" + id)).andExpect(status().isConflict());
   }

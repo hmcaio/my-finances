@@ -9,6 +9,7 @@ import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.institution.Institution;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
+import com.chm.myfinances.testsupport.TestFixtures;
 import com.chm.myfinances.testsupport.TestInstitutions;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
@@ -73,15 +74,8 @@ class AccountRepositoryAdapterTest {
   void savesAnAccountAtTheBuiltInInstitution() {
     UUID builtInId = TestInstitutions.builtInId(institutionRepository);
     Account account =
-        Account.create(
-            UUID.randomUUID(),
-            "Cash Wallet",
-            builtInId,
-            AccountType.CASH_WALLET,
-            BigDecimal.ZERO,
-            LocalDate.now());
-
-    accountRepository.save(account);
+        TestFixtures.account(
+            accountRepository, institutionRepository, "Cash Wallet", AccountType.CASH_WALLET);
 
     Optional<Account> reloaded = accountRepository.findById(account.getId());
     assertThat(reloaded).isPresent();
@@ -91,15 +85,9 @@ class AccountRepositoryAdapterTest {
   @Test
   void savesAndReloadsAnInvestmentAccountWithoutOpeningValues() {
     Account account =
-        Account.create(
-            UUID.randomUUID(),
-            "XP Investimentos",
-            institutionId,
-            AccountType.INVESTMENT,
-            null,
-            null);
+        TestFixtures.account(
+            accountRepository, institutionRepository, "XP Investimentos", AccountType.INVESTMENT);
 
-    accountRepository.save(account);
     entityManager.flush();
     entityManager.clear();
 
@@ -135,14 +123,7 @@ class AccountRepositoryAdapterTest {
   @Test
   void closePersists() {
     Account account =
-        Account.create(
-            UUID.randomUUID(),
-            "Old Account",
-            institutionId,
-            AccountType.CHECKING,
-            BigDecimal.ZERO,
-            LocalDate.now());
-    accountRepository.save(account);
+        TestFixtures.checkingAccount(accountRepository, institutionRepository, "Old Account");
 
     LocalDate closedDate = LocalDate.now();
     account.close(closedDate);
@@ -156,22 +137,9 @@ class AccountRepositoryAdapterTest {
 
   @Test
   void findAllReturnsEveryAccount() {
-    accountRepository.save(
-        Account.create(
-            UUID.randomUUID(),
-            "Account A",
-            institutionId,
-            AccountType.CHECKING,
-            BigDecimal.ZERO,
-            LocalDate.now()));
-    accountRepository.save(
-        Account.create(
-            UUID.randomUUID(),
-            "Account B",
-            institutionId,
-            AccountType.SAVINGS,
-            BigDecimal.ZERO,
-            LocalDate.now()));
+    TestFixtures.checkingAccount(accountRepository, institutionRepository, "Account A");
+    TestFixtures.account(
+        accountRepository, institutionRepository, "Account B", AccountType.SAVINGS);
 
     assertThat(accountRepository.findAll())
         .extracting(Account::getName)
@@ -198,14 +166,7 @@ class AccountRepositoryAdapterTest {
 
   @Test
   void existsByNameIsTrueOnlyForAnExactMatch() {
-    accountRepository.save(
-        Account.create(
-            UUID.randomUUID(),
-            "Unique Name Test",
-            institutionId,
-            AccountType.CHECKING,
-            BigDecimal.ZERO,
-            LocalDate.now()));
+    TestFixtures.checkingAccount(accountRepository, institutionRepository, "Unique Name Test");
 
     assertThat(accountRepository.existsByName("Unique Name Test")).isTrue();
     assertThat(accountRepository.existsByName("unique name test")).isFalse();
@@ -215,14 +176,7 @@ class AccountRepositoryAdapterTest {
   @Test
   void existsByNameAndIdNotExcludesTheGivenId() {
     Account account =
-        accountRepository.save(
-            Account.create(
-                UUID.randomUUID(),
-                "Exclude Self Test",
-                institutionId,
-                AccountType.CHECKING,
-                BigDecimal.ZERO,
-                LocalDate.now()));
+        TestFixtures.checkingAccount(accountRepository, institutionRepository, "Exclude Self Test");
 
     assertThat(accountRepository.existsByNameAndIdNot("Exclude Self Test", account.getId()))
         .isFalse();

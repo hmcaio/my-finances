@@ -8,23 +8,19 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
-import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
-import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import com.chm.myfinances.testsupport.JsonSupport;
 import com.chm.myfinances.testsupport.MockMvcSupport;
 import com.chm.myfinances.testsupport.MutableClock;
-import com.chm.myfinances.testsupport.TestInstitutions;
+import com.chm.myfinances.testsupport.TestFixtures;
 import com.chm.myfinances.testsupport.WebIntegrationTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
@@ -91,24 +87,11 @@ class RecurringTemplateControllerTest {
     mockMvc = MockMvcSupport.build(webApplicationContext);
 
     categoryId =
-        categoryRepository
-            .save(Category.create(UUID.randomUUID(), "Rent Test", CategoryType.EXPENSE))
-            .getId();
+        TestFixtures.category(categoryRepository, "Rent Test", CategoryType.EXPENSE).getId();
     accountId =
-        accountRepository
-            .save(
-                Account.create(
-                    UUID.randomUUID(),
-                    "Checking",
-                    TestInstitutions.builtInId(institutionRepository),
-                    AccountType.CHECKING,
-                    BigDecimal.ZERO,
-                    LocalDate.now()))
-            .getId();
+        TestFixtures.checkingAccount(accountRepository, institutionRepository, "Checking").getId();
     paymentMethodId =
-        paymentMethodRepository
-            .save(PaymentMethod.create(UUID.randomUUID(), "Debit Card Test"))
-            .getId();
+        TestFixtures.paymentMethod(paymentMethodRepository, "Debit Card Test").getId();
   }
 
   /** Undoes any {@link MutableClock#set} so a fixed clock never leaks into another test. */
@@ -143,15 +126,8 @@ class RecurringTemplateControllerTest {
   @Test
   void createRejectsAnInvestmentAccountWith409() throws Exception {
     UUID investmentAccountId =
-        accountRepository
-            .save(
-                Account.create(
-                    UUID.randomUUID(),
-                    "Broker Test",
-                    TestInstitutions.builtInId(institutionRepository),
-                    AccountType.INVESTMENT,
-                    null,
-                    null))
+        TestFixtures.account(
+                accountRepository, institutionRepository, "Broker Test", AccountType.INVESTMENT)
             .getId();
     Map<String, Object> body = new HashMap<>();
     body.put("categoryId", categoryId.toString());

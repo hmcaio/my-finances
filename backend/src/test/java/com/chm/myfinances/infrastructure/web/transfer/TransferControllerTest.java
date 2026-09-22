@@ -14,6 +14,7 @@ import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import com.chm.myfinances.testsupport.JsonSupport;
 import com.chm.myfinances.testsupport.MockMvcSupport;
+import com.chm.myfinances.testsupport.TestFixtures;
 import com.chm.myfinances.testsupport.TestInstitutions;
 import com.chm.myfinances.testsupport.WebIntegrationTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -71,14 +72,7 @@ class TransferControllerTest {
   }
 
   private Account persistAccount(String name, AccountType type) {
-    return accountRepository.save(
-        Account.create(
-            UUID.randomUUID(),
-            name,
-            TestInstitutions.builtInId(institutionRepository),
-            type,
-            BigDecimal.ZERO,
-            LocalDate.now()));
+    return TestFixtures.account(accountRepository, institutionRepository, name, type);
   }
 
   private String createTransferBody(

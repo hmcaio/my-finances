@@ -7,20 +7,19 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
-import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategoryRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
+import com.chm.myfinances.testsupport.InvestmentProductMother;
 import com.chm.myfinances.testsupport.JsonSupport;
 import com.chm.myfinances.testsupport.MockMvcSupport;
-import com.chm.myfinances.testsupport.TestInstitutions;
+import com.chm.myfinances.testsupport.TestFixtures;
 import com.chm.myfinances.testsupport.WebIntegrationTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
@@ -199,18 +198,19 @@ class InvestmentCategoryControllerTest {
     UUID categoryId =
         categoryRepository.save(InvestmentCategory.create(UUID.randomUUID(), "Used Test")).getId();
     UUID accountId =
-        accountRepository
-            .save(
-                Account.create(
-                    UUID.randomUUID(),
-                    "Broker Category Test",
-                    TestInstitutions.builtInId(institutionRepository),
-                    AccountType.INVESTMENT,
-                    null,
-                    null))
+        TestFixtures.account(
+                accountRepository,
+                institutionRepository,
+                "Broker Category Test",
+                AccountType.INVESTMENT)
             .getId();
     productRepository.save(
-        InvestmentProduct.create(UUID.randomUUID(), accountId, categoryId, null, "Bitcoin Test"));
+        InvestmentProductMother.product()
+            .withAccountId(accountId)
+            .withInvestmentCategoryId(categoryId)
+            .withInvestmentSubcategoryId(null)
+            .withName("Bitcoin Test")
+            .build());
 
     mockMvc
         .perform(delete("/api/investment-categories/" + categoryId))

@@ -6,6 +6,7 @@ import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
+import com.chm.myfinances.testsupport.TestFixtures;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -30,9 +31,8 @@ class CategoryRepositoryAdapterTest {
 
   @Test
   void savesAndReloadsACategory() {
-    Category category = Category.create(UUID.randomUUID(), "Groceries Test", CategoryType.EXPENSE);
-
-    categoryRepository.save(category);
+    Category category =
+        TestFixtures.category(categoryRepository, "Groceries Test", CategoryType.EXPENSE);
 
     Optional<Category> reloaded = categoryRepository.findById(category.getId());
     assertThat(reloaded).isPresent();
@@ -42,8 +42,7 @@ class CategoryRepositoryAdapterTest {
 
   @Test
   void renamePersists() {
-    Category category = Category.create(UUID.randomUUID(), "Original", CategoryType.INCOME);
-    categoryRepository.save(category);
+    Category category = TestFixtures.category(categoryRepository, "Original", CategoryType.INCOME);
 
     category.rename("Renamed");
     categoryRepository.save(category);
@@ -56,8 +55,7 @@ class CategoryRepositoryAdapterTest {
 
   @Test
   void deleteRemovesTheCategory() {
-    Category category = Category.create(UUID.randomUUID(), "Temp", CategoryType.EXPENSE);
-    categoryRepository.save(category);
+    Category category = TestFixtures.category(categoryRepository, "Temp", CategoryType.EXPENSE);
 
     categoryRepository.deleteById(category.getId());
 
@@ -66,8 +64,7 @@ class CategoryRepositoryAdapterTest {
 
   @Test
   void existsByNameIsTrueOnlyForAnExactMatch() {
-    categoryRepository.save(
-        Category.create(UUID.randomUUID(), "Unique Name Test", CategoryType.EXPENSE));
+    TestFixtures.category(categoryRepository, "Unique Name Test", CategoryType.EXPENSE);
 
     assertThat(categoryRepository.existsByName("Unique Name Test")).isTrue();
     assertThat(categoryRepository.existsByName("unique name test")).isFalse();
@@ -77,8 +74,7 @@ class CategoryRepositoryAdapterTest {
   @Test
   void existsByNameAndIdNotExcludesTheGivenId() {
     Category category =
-        categoryRepository.save(
-            Category.create(UUID.randomUUID(), "Exclude Self Test", CategoryType.EXPENSE));
+        TestFixtures.category(categoryRepository, "Exclude Self Test", CategoryType.EXPENSE);
 
     assertThat(categoryRepository.existsByNameAndIdNot("Exclude Self Test", category.getId()))
         .isFalse();
@@ -100,8 +96,7 @@ class CategoryRepositoryAdapterTest {
   @Test
   void aNewlySavedCategoryIsNotBuiltIn() {
     Category category =
-        categoryRepository.save(
-            Category.create(UUID.randomUUID(), "Not Built In Test", CategoryType.EXPENSE));
+        TestFixtures.category(categoryRepository, "Not Built In Test", CategoryType.EXPENSE);
 
     assertThat(categoryRepository.findById(category.getId()).orElseThrow().isBuiltIn()).isFalse();
   }

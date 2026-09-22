@@ -4,10 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.chm.myfinances.domain.budget.Budget;
 import com.chm.myfinances.domain.budget.BudgetRepository;
-import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
+import com.chm.myfinances.testsupport.TestFixtures;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,9 +32,7 @@ class BudgetRepositoryAdapterTest {
   @BeforeEach
   void setUp() {
     groceriesCategoryId =
-        categoryRepository
-            .save(Category.create(UUID.randomUUID(), "Groceries Test", CategoryType.EXPENSE))
-            .getId();
+        TestFixtures.category(categoryRepository, "Groceries Test", CategoryType.EXPENSE).getId();
   }
 
   @Test

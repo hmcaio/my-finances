@@ -9,23 +9,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
-import com.chm.myfinances.domain.account.AccountType;
-import com.chm.myfinances.domain.budget.Budget;
 import com.chm.myfinances.domain.budget.BudgetRepository;
-import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
-import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
+import com.chm.myfinances.testsupport.BudgetMother;
 import com.chm.myfinances.testsupport.JsonSupport;
 import com.chm.myfinances.testsupport.MockMvcSupport;
-import com.chm.myfinances.testsupport.TestInstitutions;
+import com.chm.myfinances.testsupport.TestFixtures;
+import com.chm.myfinances.testsupport.TransactionMother;
 import com.chm.myfinances.testsupport.WebIntegrationTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -200,28 +197,17 @@ class CategoryControllerTest {
     String id = JsonSupport.idOf(createResult);
 
     Account account =
-        accountRepository.save(
-            Account.create(
-                UUID.randomUUID(),
-                "Checking",
-                TestInstitutions.builtInId(institutionRepository),
-                AccountType.CHECKING,
-                BigDecimal.ZERO,
-                LocalDate.now()));
+        TestFixtures.checkingAccount(accountRepository, institutionRepository, "Checking");
     PaymentMethod paymentMethod =
-        paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), "Debit Card Test"));
+        TestFixtures.paymentMethod(paymentMethodRepository, "Debit Card Test");
     transactionRepository.save(
-        Transaction.create(
-            UUID.randomUUID(),
-            LocalDate.now(),
-            BigDecimal.TEN,
-            UUID.fromString(id),
-            CategoryType.EXPENSE,
-            account.getId(),
-            paymentMethod.getId(),
-            null,
-            "In-use transaction",
-            null));
+        TransactionMother.expense()
+            .withAmount(BigDecimal.TEN)
+            .withCategoryId(UUID.fromString(id))
+            .withAccountId(account.getId())
+            .withPaymentMethodId(paymentMethod.getId())
+            .withDescription("In-use transaction")
+            .build());
 
     mockMvc.perform(delete("/api/categories/" + id)).andExpect(status().isConflict());
   }
@@ -239,7 +225,7 @@ class CategoryControllerTest {
             .andExpect(status().isCreated())
             .andReturn();
     String id = JsonSupport.idOf(createResult);
-    budgetRepository.save(Budget.create(UUID.randomUUID(), UUID.fromString(id)));
+    budgetRepository.save(BudgetMother.budget().withCategoryId(UUID.fromString(id)).build());
 
     mockMvc.perform(delete("/api/categories/" + id)).andExpect(status().isConflict());
   }

@@ -6,18 +6,17 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
-import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
+import com.chm.myfinances.testsupport.InvestmentProductMother;
 import com.chm.myfinances.testsupport.JsonSupport;
 import com.chm.myfinances.testsupport.MockMvcSupport;
-import com.chm.myfinances.testsupport.TestInstitutions;
+import com.chm.myfinances.testsupport.TestFixtures;
 import com.chm.myfinances.testsupport.WebIntegrationTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
@@ -204,19 +203,19 @@ class InvestmentSubcategoryControllerTest {
   void deleteIsRejectedWith409WhileAProductUsesIt() throws Exception {
     String id = createSubcategory(categoryId, "Used Test");
     UUID accountId =
-        accountRepository
-            .save(
-                Account.create(
-                    UUID.randomUUID(),
-                    "Broker Subcategory Test",
-                    TestInstitutions.builtInId(institutionRepository),
-                    AccountType.INVESTMENT,
-                    null,
-                    null))
+        TestFixtures.account(
+                accountRepository,
+                institutionRepository,
+                "Broker Subcategory Test",
+                AccountType.INVESTMENT)
             .getId();
     productRepository.save(
-        InvestmentProduct.create(
-            UUID.randomUUID(), accountId, categoryId, UUID.fromString(id), "CDB Product Test"));
+        InvestmentProductMother.product()
+            .withAccountId(accountId)
+            .withInvestmentCategoryId(categoryId)
+            .withInvestmentSubcategoryId(UUID.fromString(id))
+            .withName("CDB Product Test")
+            .build());
 
     mockMvc.perform(delete("/api/investment-subcategories/" + id)).andExpect(status().isConflict());
   }

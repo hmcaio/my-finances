@@ -10,7 +10,7 @@ import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.domain.transfer.TransferFilter;
 import com.chm.myfinances.domain.transfer.TransferRepository;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
-import com.chm.myfinances.testsupport.TestInstitutions;
+import com.chm.myfinances.testsupport.TestFixtures;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -50,14 +50,7 @@ class TransferRepositoryAdapterTest {
   }
 
   private Account persistAccount(String name, AccountType type) {
-    return accountRepository.save(
-        Account.create(
-            UUID.randomUUID(),
-            name,
-            TestInstitutions.builtInId(institutionRepository),
-            type,
-            BigDecimal.ZERO,
-            LocalDate.now()));
+    return TestFixtures.account(accountRepository, institutionRepository, name, type);
   }
 
   private Transfer newTransfer(LocalDate date, UUID fromAccountId, UUID toAccountId) {
