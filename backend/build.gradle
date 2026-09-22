@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'jacoco'
     alias(libs.plugins.spring.boot)
     alias(libs.plugins.spring.dependency.management)
     alias(libs.plugins.spotless)
@@ -66,6 +67,19 @@ tasks.named('test') {
     // backend/logs/. System properties outrank config files, and Spring Boot treats an empty
     // name as "no log file" (F016).
     systemProperty 'logging.file.name', ''
+}
+
+// Report-only (issue #31, B15): no coverage thresholds/enforcement, and not wired into the
+// plain `test` task's own dependency chain, so the everyday `./gradlew test` dev loop doesn't
+// pay for report generation. `jacocoTestReport` depends on `test` (the plugin's default), so
+// `./gradlew jacocoTestReport` alone runs the tests and produces
+// build/reports/jacoco/test/html/index.html. Not wired into CI in this PR.
+jacocoTestReport {
+    reports {
+        html.required = true
+        xml.required = false
+        csv.required = false
+    }
 }
 
 spotless {
