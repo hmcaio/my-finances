@@ -5,10 +5,7 @@ import com.chm.myfinances.domain.transaction.TransactionFilter;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
 import java.time.LocalDate;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -20,35 +17,17 @@ import org.springframework.data.domain.Pageable;
  * not a stub - so {@code TransactionServiceTest}/{@code AccountBalanceQueryTest} can assert on
  * actual filter/pagination behavior without a database.
  */
-public final class FakeTransactionRepository implements TransactionRepository {
+public final class FakeTransactionRepository extends InMemoryRepository<Transaction>
+    implements TransactionRepository {
 
-  private final Map<UUID, Transaction> store = new HashMap<>();
-
-  @Override
-  public Transaction save(Transaction transaction) {
-    store.put(transaction.getId(), transaction);
-    return transaction;
-  }
-
-  @Override
-  public Optional<Transaction> findById(UUID id) {
-    return Optional.ofNullable(store.get(id));
-  }
-
-  @Override
-  public void deleteById(UUID id) {
-    store.remove(id);
-  }
-
-  @Override
-  public boolean existsById(UUID id) {
-    return store.containsKey(id);
+  public FakeTransactionRepository() {
+    super(Transaction::getId);
   }
 
   @Override
   public Page<Transaction> findAll(TransactionFilter filter, Pageable pageable) {
     List<Transaction> filtered =
-        store.values().stream()
+        values().stream()
             .filter(t -> filter.dateFrom() == null || !t.getDate().isBefore(filter.dateFrom()))
             .filter(t -> filter.dateTo() == null || !t.getDate().isAfter(filter.dateTo()))
             .filter(
@@ -77,18 +56,18 @@ public final class FakeTransactionRepository implements TransactionRepository {
 
   @Override
   public List<Transaction> findByAccountIdOnOrBefore(UUID accountId, LocalDate asOfDate) {
-    return store.values().stream()
+    return values().stream()
         .filter(t -> t.getAccountId().equals(accountId) && !t.getDate().isAfter(asOfDate))
         .toList();
   }
 
   @Override
   public boolean existsByCategoryId(UUID categoryId) {
-    return store.values().stream().anyMatch(t -> t.getCategoryId().equals(categoryId));
+    return values().stream().anyMatch(t -> t.getCategoryId().equals(categoryId));
   }
 
   @Override
   public boolean existsByPaymentMethodId(UUID paymentMethodId) {
-    return store.values().stream().anyMatch(t -> t.getPaymentMethodId().equals(paymentMethodId));
+    return values().stream().anyMatch(t -> t.getPaymentMethodId().equals(paymentMethodId));
   }
 }

@@ -5,10 +5,7 @@ import com.chm.myfinances.domain.transfer.TransferFilter;
 import com.chm.myfinances.domain.transfer.TransferRepository;
 import java.time.LocalDate;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -20,35 +17,17 @@ import org.springframework.data.domain.Pageable;
  * semantics - not a stub - including {@code accountId} matching either side of the transfer (PRD
  * S6.9).
  */
-public final class FakeTransferRepository implements TransferRepository {
+public final class FakeTransferRepository extends InMemoryRepository<Transfer>
+    implements TransferRepository {
 
-  private final Map<UUID, Transfer> store = new HashMap<>();
-
-  @Override
-  public Transfer save(Transfer transfer) {
-    store.put(transfer.getId(), transfer);
-    return transfer;
-  }
-
-  @Override
-  public Optional<Transfer> findById(UUID id) {
-    return Optional.ofNullable(store.get(id));
-  }
-
-  @Override
-  public void deleteById(UUID id) {
-    store.remove(id);
-  }
-
-  @Override
-  public boolean existsById(UUID id) {
-    return store.containsKey(id);
+  public FakeTransferRepository() {
+    super(Transfer::getId);
   }
 
   @Override
   public Page<Transfer> findAll(TransferFilter filter, Pageable pageable) {
     List<Transfer> filtered =
-        store.values().stream()
+        values().stream()
             .filter(t -> filter.dateFrom() == null || !t.getDate().isBefore(filter.dateFrom()))
             .filter(t -> filter.dateTo() == null || !t.getDate().isAfter(filter.dateTo()))
             .filter(
@@ -68,7 +47,7 @@ public final class FakeTransferRepository implements TransferRepository {
 
   @Override
   public List<Transfer> findByAccountIdOnOrBefore(UUID accountId, LocalDate asOfDate) {
-    return store.values().stream()
+    return values().stream()
         .filter(
             t ->
                 (t.getFromAccountId().equals(accountId) || t.getToAccountId().equals(accountId))
