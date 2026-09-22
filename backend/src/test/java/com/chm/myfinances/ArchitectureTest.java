@@ -1,10 +1,17 @@
 package com.chm.myfinances;
 
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.containAnyMethodsThat;
+import static com.tngtech.archunit.core.domain.properties.CanBeAnnotated.Predicates.annotatedWith;
+import static com.tngtech.archunit.lang.conditions.ArchConditions.callMethod;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.transaction.Transaction;
+import com.chm.myfinances.infrastructure.config.RandomUuidGenerator;
+import com.chm.myfinances.infrastructure.persistence.AuditableEntity;
+import com.chm.myfinances.infrastructure.web.GlobalExceptionHandler;
+import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.Dependency;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ImportOption;
@@ -14,11 +21,18 @@ import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
+import jakarta.persistence.Entity;
+import java.util.UUID;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
- * Pins two rules that otherwise live only in prose in {@code backend/CLAUDE.md} (issue #31, B15):
- * nothing in {@code domain..} logs, and no aggregate's {@code domain} package imports another
- * aggregate's {@code domain} package. Scans only main sources ({@link
+ * Pins rules that otherwise live only in prose in {@code backend/CLAUDE.md} (issue #31, B15):
+ * domain never logs and never imports another aggregate's package (with one documented exception),
+ * a single {@code @RestControllerAdvice} handles exceptions, new error cases never add another
+ * {@code @ExceptionHandler}, ids only ever come from {@code IdGenerator}, every JPA entity extends
+ * {@code AuditableEntity}, {@code JpaRepository} interfaces stay package-private, and domain never
+ * depends on Spring/Jakarta/Lombok (with one documented exception). Scans only main sources ({@link
  * ImportOption.DoNotIncludeTests}) - these rules are about production code, not the test tree.
  */
 @AnalyzeClasses(
@@ -45,8 +59,8 @@ class ArchitectureTest {
           .resideInAPackage("org.slf4j..");
 
   /**
-   * "Domain packages never import another aggregate's package" (root {@code CLAUDE.md}, Layout and
-   * shapes), with the one documented exception that rule's own wording now carries: {@link
+   * "Domain packages never import another aggregate's package" (backend {@code CLAUDE.md}, Layout
+   * and shapes), with the one documented exception that rule's own wording now carries: {@link
    * Transaction} depends on {@link CategoryType}. See {@code Transaction}'s own javadoc for why -
    * {@code type} is captured at creation, denormalized from the category's own (already-immutable)
    * type, so a stable, redundant data-integrity check is available even though {@code
@@ -70,6 +84,95 @@ class ArchitectureTest {
           .that()
           .resideInAPackage(DOMAIN_PACKAGE + "..")
           .should(notDependOnAnotherAggregatesDomainPackage());
+
+  /**
+   * "One cross-cutting {@code @RestControllerAdvice} exists, {@code
+   * infrastructure/web/GlobalExceptionHandler}, and there should never be another" (backend {@code
+   * CLAUDE.md}, Errors).
+   */
+  @ArchTest
+  static final ArchRule onlyOneRestControllerAdviceExists =
+      classes()
+          .that()
+          .areAnnotatedWith(RestControllerAdvice.class)
+          .should()
+          .haveSimpleName(GlobalExceptionHandler.class.getSimpleName());
+
+  /**
+   * "A new expected error case gets its own {@code @ResponseStatus}-annotated exception - never a
+   * new {@code @ExceptionHandler}" (backend {@code CLAUDE.md}, Errors) - so no class other than
+   * {@link GlobalExceptionHandler} declares one.
+   */
+  @ArchTest
+  static final ArchRule onlyGlobalExceptionHandlerHandlesExceptions =
+      classes()
+          .that(containAnyMethodsThat(annotatedWith(ExceptionHandler.class)))
+          .should()
+          .haveSimpleName(GlobalExceptionHandler.class.getSimpleName());
+
+  /**
+   * "{@code domain/shared} holds the {@code IdGenerator} port (ADR 0005 - ids never come from
+   * {@code @GeneratedValue} or ad hoc {@code UUID.randomUUID()})" (backend {@code CLAUDE.md},
+   * Layout and shapes). {@link RandomUuidGenerator} is the one {@code IdGenerator} implementation
+   * allowed to call {@code UUID.randomUUID()} directly; everything else - domain, application and
+   * every other infrastructure class - must go through the port.
+   */
+  @ArchTest
+  static final ArchRule onlyRandomUuidGeneratorCallsUuidRandomUuid =
+      noClasses()
+          .that()
+          .doNotHaveFullyQualifiedName(RandomUuidGenerator.class.getName())
+          .should(callMethod(UUID.class, "randomUUID"));
+
+  /**
+   * "{@code infrastructure/persistence} holds the {@code AuditableEntity} base every table-backed
+   * entity extends" (backend {@code CLAUDE.md}, Layout and shapes). {@link AuditableEntity} itself
+   * is a {@code @MappedSuperclass}, not a {@code @Entity}, so it's never a target of its own rule
+   * and needs no self-exclusion.
+   */
+  @ArchTest
+  static final ArchRule everyEntityExtendsAuditableEntity =
+      classes()
+          .that()
+          .areAnnotatedWith(Entity.class)
+          .should()
+          .beAssignableTo(AuditableEntity.class);
+
+  /**
+   * "package-private Spring Data {@code JpaRepository}" (backend {@code CLAUDE.md}, Layout and
+   * shapes, Repository adapter).
+   */
+  @ArchTest
+  static final ArchRule jpaRepositoriesAreNotPublic =
+      classes()
+          .that()
+          .areInterfaces()
+          .and()
+          .haveSimpleNameEndingWith("JpaRepository")
+          .should()
+          .notBePublic();
+
+  /**
+   * The framework-isolation half of ADR 0004/Hexagonal Architecture and ADR 0005 (Lombok forbidden
+   * on domain classes): nothing in {@code domain..} depends on Spring, Jakarta or Lombok - with one
+   * documented exception. {@code TransactionRepository} and {@code TransferRepository} (both domain
+   * repository ports) depend on {@code org.springframework.data.domain.Page}/{@code Pageable}; see
+   * those ports' own javadoc - spring-data-commons' framework-agnostic paging types are used
+   * directly rather than inventing a parallel paging abstraction. Only that subpackage is exempted,
+   * not all of {@code org.springframework..}: a domain class depending on, say, {@code
+   * org.springframework.stereotype.Component} still fails this rule.
+   */
+  private static final DescribedPredicate<JavaClass> FORBIDDEN_FRAMEWORK_DEPENDENCY =
+      JavaClass.Predicates.resideInAnyPackage("org.springframework..", "jakarta..", "lombok..")
+          .and(JavaClass.Predicates.resideInAPackage("org.springframework.data.domain..").negate());
+
+  @ArchTest
+  static final ArchRule domainDoesNotDependOnFrameworkTypes =
+      noClasses()
+          .that()
+          .resideInAPackage(DOMAIN_PACKAGE + "..")
+          .should()
+          .dependOnClassesThat(FORBIDDEN_FRAMEWORK_DEPENDENCY);
 
   private static ArchCondition<JavaClass> notDependOnAnotherAggregatesDomainPackage() {
     return new ArchCondition<>("not depend on another aggregate's domain package") {
