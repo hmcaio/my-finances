@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
+import com.chm.myfinances.testsupport.TestFixtures;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,9 +25,8 @@ class PaymentMethodRepositoryAdapterTest {
 
   @Test
   void savesAndReloadsAPaymentMethod() {
-    PaymentMethod paymentMethod = PaymentMethod.create(UUID.randomUUID(), "Debit Card Test");
-
-    paymentMethodRepository.save(paymentMethod);
+    PaymentMethod paymentMethod =
+        TestFixtures.paymentMethod(paymentMethodRepository, "Debit Card Test");
 
     Optional<PaymentMethod> reloaded = paymentMethodRepository.findById(paymentMethod.getId());
     assertThat(reloaded).isPresent();
@@ -35,8 +35,7 @@ class PaymentMethodRepositoryAdapterTest {
 
   @Test
   void renamePersists() {
-    PaymentMethod paymentMethod = PaymentMethod.create(UUID.randomUUID(), "Original");
-    paymentMethodRepository.save(paymentMethod);
+    PaymentMethod paymentMethod = TestFixtures.paymentMethod(paymentMethodRepository, "Original");
 
     paymentMethod.rename("Renamed");
     paymentMethodRepository.save(paymentMethod);
@@ -48,8 +47,7 @@ class PaymentMethodRepositoryAdapterTest {
 
   @Test
   void deleteRemovesThePaymentMethod() {
-    PaymentMethod paymentMethod = PaymentMethod.create(UUID.randomUUID(), "Temp");
-    paymentMethodRepository.save(paymentMethod);
+    PaymentMethod paymentMethod = TestFixtures.paymentMethod(paymentMethodRepository, "Temp");
 
     paymentMethodRepository.deleteById(paymentMethod.getId());
 
@@ -58,7 +56,7 @@ class PaymentMethodRepositoryAdapterTest {
 
   @Test
   void existsByNameIsTrueOnlyForAnExactMatch() {
-    paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), "Unique Name Test"));
+    TestFixtures.paymentMethod(paymentMethodRepository, "Unique Name Test");
 
     assertThat(paymentMethodRepository.existsByName("Unique Name Test")).isTrue();
     assertThat(paymentMethodRepository.existsByName("unique name test")).isFalse();
@@ -68,7 +66,7 @@ class PaymentMethodRepositoryAdapterTest {
   @Test
   void existsByNameAndIdNotExcludesTheGivenId() {
     PaymentMethod paymentMethod =
-        paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), "Exclude Self Test"));
+        TestFixtures.paymentMethod(paymentMethodRepository, "Exclude Self Test");
 
     assertThat(
             paymentMethodRepository.existsByNameAndIdNot(

@@ -6,20 +6,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
-import com.chm.myfinances.domain.account.AccountType;
-import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
-import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
-import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
 import com.chm.myfinances.testsupport.JsonSupport;
 import com.chm.myfinances.testsupport.MockMvcSupport;
-import com.chm.myfinances.testsupport.TestInstitutions;
+import com.chm.myfinances.testsupport.TestFixtures;
+import com.chm.myfinances.testsupport.TransactionMother;
 import com.chm.myfinances.testsupport.WebIntegrationTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
@@ -63,28 +59,13 @@ class BudgetControllerTest {
     mockMvc = MockMvcSupport.build(webApplicationContext);
 
     groceriesCategoryId =
-        categoryRepository
-            .save(Category.create(UUID.randomUUID(), "Groceries Test", CategoryType.EXPENSE))
-            .getId();
+        TestFixtures.category(categoryRepository, "Groceries Test", CategoryType.EXPENSE).getId();
     salaryCategoryId =
-        categoryRepository
-            .save(Category.create(UUID.randomUUID(), "Salary Test", CategoryType.INCOME))
-            .getId();
+        TestFixtures.category(categoryRepository, "Salary Test", CategoryType.INCOME).getId();
     accountId =
-        accountRepository
-            .save(
-                Account.create(
-                    UUID.randomUUID(),
-                    "Checking",
-                    TestInstitutions.builtInId(institutionRepository),
-                    AccountType.CHECKING,
-                    BigDecimal.ZERO,
-                    LocalDate.now()))
-            .getId();
+        TestFixtures.checkingAccount(accountRepository, institutionRepository, "Checking").getId();
     paymentMethodId =
-        paymentMethodRepository
-            .save(PaymentMethod.create(UUID.randomUUID(), "Debit Card Test"))
-            .getId();
+        TestFixtures.paymentMethod(paymentMethodRepository, "Debit Card Test").getId();
   }
 
   private String createBudgetBody(UUID categoryId, String monthlyCap, String effectiveFrom)
@@ -109,17 +90,14 @@ class BudgetControllerTest {
 
   private void persistExpenseTransaction(UUID categoryId, LocalDate date, String amount) {
     transactionRepository.save(
-        Transaction.create(
-            UUID.randomUUID(),
-            date,
-            new BigDecimal(amount),
-            categoryId,
-            CategoryType.EXPENSE,
-            accountId,
-            paymentMethodId,
-            null,
-            "Test transaction",
-            null));
+        TransactionMother.expense()
+            .withDate(date)
+            .withAmount(new BigDecimal(amount))
+            .withCategoryId(categoryId)
+            .withAccountId(accountId)
+            .withPaymentMethodId(paymentMethodId)
+            .withDescription("Test transaction")
+            .build());
   }
 
   @Test

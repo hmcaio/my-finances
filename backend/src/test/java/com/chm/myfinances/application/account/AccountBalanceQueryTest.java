@@ -3,12 +3,14 @@ package com.chm.myfinances.application.account;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.chm.myfinances.domain.account.Account;
-import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transfer.Transfer;
+import com.chm.myfinances.testsupport.AccountMother;
 import com.chm.myfinances.testsupport.FakeTransactionRepository;
 import com.chm.myfinances.testsupport.FakeTransferRepository;
+import com.chm.myfinances.testsupport.TransactionMother;
+import com.chm.myfinances.testsupport.TransferMother;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -32,35 +34,33 @@ class AccountBalanceQueryTest {
 
   private static Transaction transactionOn(
       LocalDate date, BigDecimal amount, CategoryType type, UUID accountId) {
-    return Transaction.create(
-        UUID.randomUUID(),
-        date,
-        amount,
-        UUID.randomUUID(),
-        type,
-        accountId,
-        UUID.randomUUID(),
-        null,
-        "Test transaction",
-        null);
+    return TransactionMother.expense()
+        .withDate(date)
+        .withAmount(amount)
+        .withType(type)
+        .withAccountId(accountId)
+        .withDescription("Test transaction")
+        .build();
   }
 
   private static Transfer transferOn(
       LocalDate date, BigDecimal amount, UUID fromAccountId, UUID toAccountId) {
-    return Transfer.create(
-        UUID.randomUUID(), date, fromAccountId, toAccountId, amount, "Test transfer", null);
+    return TransferMother.transfer()
+        .withDate(date)
+        .withFromAccountId(fromAccountId)
+        .withToAccountId(toAccountId)
+        .withAmount(amount)
+        .withDescription("Test transfer")
+        .build();
   }
 
   @Test
   void balanceAsOfReturnsOpeningBalanceWhenNoActivityExists() {
     Account account =
-        Account.create(
-            UUID.randomUUID(),
-            "Checking",
-            UUID.randomUUID(),
-            AccountType.CHECKING,
-            new BigDecimal("321.45"),
-            LocalDate.of(2026, 1, 1));
+        AccountMother.checking()
+            .withOpeningBalance(new BigDecimal("321.45"))
+            .withOpeningBalanceDate(LocalDate.of(2026, 1, 1))
+            .build();
 
     BigDecimal balance = query.balanceAsOf(account, LocalDate.now());
 
@@ -70,13 +70,10 @@ class AccountBalanceQueryTest {
   @Test
   void balanceAsOfOnAssetAccountAddsIncomeAndSubtractsExpense() {
     Account account =
-        Account.create(
-            UUID.randomUUID(),
-            "Checking",
-            UUID.randomUUID(),
-            AccountType.CHECKING,
-            new BigDecimal("100.00"),
-            LocalDate.of(2026, 1, 1));
+        AccountMother.checking()
+            .withOpeningBalance(new BigDecimal("100.00"))
+            .withOpeningBalanceDate(LocalDate.of(2026, 1, 1))
+            .build();
     transactionRepository.save(
         transactionOn(
             LocalDate.of(2026, 1, 5),
@@ -99,13 +96,11 @@ class AccountBalanceQueryTest {
   @Test
   void balanceAsOfOnCreditCardAccountExpenseIncreasesAndIncomeDecreasesOwedAmount() {
     Account creditCard =
-        Account.create(
-            UUID.randomUUID(),
-            "Nubank",
-            UUID.randomUUID(),
-            AccountType.CREDIT_CARD,
-            new BigDecimal("200.00"),
-            LocalDate.of(2026, 1, 1));
+        AccountMother.creditCard()
+            .withName("Nubank")
+            .withOpeningBalance(new BigDecimal("200.00"))
+            .withOpeningBalanceDate(LocalDate.of(2026, 1, 1))
+            .build();
     transactionRepository.save(
         transactionOn(
             LocalDate.of(2026, 1, 5),
@@ -128,13 +123,10 @@ class AccountBalanceQueryTest {
   @Test
   void balanceAsOfExcludesTransactionsAfterAsOfDate() {
     Account account =
-        Account.create(
-            UUID.randomUUID(),
-            "Checking",
-            UUID.randomUUID(),
-            AccountType.CHECKING,
-            new BigDecimal("100.00"),
-            LocalDate.of(2026, 1, 1));
+        AccountMother.checking()
+            .withOpeningBalance(new BigDecimal("100.00"))
+            .withOpeningBalanceDate(LocalDate.of(2026, 1, 1))
+            .build();
     transactionRepository.save(
         transactionOn(
             LocalDate.of(2026, 2, 1),
@@ -150,13 +142,10 @@ class AccountBalanceQueryTest {
   @Test
   void balanceAsOfIncludesTransactionsOnTheAsOfDateItself() {
     Account account =
-        Account.create(
-            UUID.randomUUID(),
-            "Checking",
-            UUID.randomUUID(),
-            AccountType.CHECKING,
-            new BigDecimal("100.00"),
-            LocalDate.of(2026, 1, 1));
+        AccountMother.checking()
+            .withOpeningBalance(new BigDecimal("100.00"))
+            .withOpeningBalanceDate(LocalDate.of(2026, 1, 1))
+            .build();
     transactionRepository.save(
         transactionOn(
             LocalDate.of(2026, 1, 31),
@@ -172,13 +161,10 @@ class AccountBalanceQueryTest {
   @Test
   void balanceAsOfExcludesTransactionsOnOtherAccounts() {
     Account account =
-        Account.create(
-            UUID.randomUUID(),
-            "Checking",
-            UUID.randomUUID(),
-            AccountType.CHECKING,
-            new BigDecimal("100.00"),
-            LocalDate.of(2026, 1, 1));
+        AccountMother.checking()
+            .withOpeningBalance(new BigDecimal("100.00"))
+            .withOpeningBalanceDate(LocalDate.of(2026, 1, 1))
+            .build();
     transactionRepository.save(
         transactionOn(
             LocalDate.of(2026, 1, 5),
@@ -194,21 +180,15 @@ class AccountBalanceQueryTest {
   @Test
   void balanceAsOfOnAssetToAssetTransferDecreasesSourceAndIncreasesDestination() {
     Account checking =
-        Account.create(
-            UUID.randomUUID(),
-            "Checking",
-            UUID.randomUUID(),
-            AccountType.CHECKING,
-            new BigDecimal("100.00"),
-            LocalDate.of(2026, 1, 1));
+        AccountMother.checking()
+            .withOpeningBalance(new BigDecimal("100.00"))
+            .withOpeningBalanceDate(LocalDate.of(2026, 1, 1))
+            .build();
     Account savings =
-        Account.create(
-            UUID.randomUUID(),
-            "Savings",
-            UUID.randomUUID(),
-            AccountType.SAVINGS,
-            new BigDecimal("50.00"),
-            LocalDate.of(2026, 1, 1));
+        AccountMother.savings()
+            .withOpeningBalance(new BigDecimal("50.00"))
+            .withOpeningBalanceDate(LocalDate.of(2026, 1, 1))
+            .build();
     transferRepository.save(
         transferOn(
             LocalDate.of(2026, 1, 10), new BigDecimal("30.00"), checking.getId(), savings.getId()));
@@ -224,21 +204,16 @@ class AccountBalanceQueryTest {
   @Test
   void balanceAsOfOnAssetToCreditCardTransferDecreasesSourceAndDecreasesDestinationOwedAmount() {
     Account checking =
-        Account.create(
-            UUID.randomUUID(),
-            "Checking",
-            UUID.randomUUID(),
-            AccountType.CHECKING,
-            new BigDecimal("200.00"),
-            LocalDate.of(2026, 1, 1));
+        AccountMother.checking()
+            .withOpeningBalance(new BigDecimal("200.00"))
+            .withOpeningBalanceDate(LocalDate.of(2026, 1, 1))
+            .build();
     Account creditCard =
-        Account.create(
-            UUID.randomUUID(),
-            "Nubank",
-            UUID.randomUUID(),
-            AccountType.CREDIT_CARD,
-            new BigDecimal("150.00"),
-            LocalDate.of(2026, 1, 1));
+        AccountMother.creditCard()
+            .withName("Nubank")
+            .withOpeningBalance(new BigDecimal("150.00"))
+            .withOpeningBalanceDate(LocalDate.of(2026, 1, 1))
+            .build();
     transferRepository.save(
         transferOn(
             LocalDate.of(2026, 1, 10),
@@ -258,21 +233,12 @@ class AccountBalanceQueryTest {
   @Test
   void balanceAsOfExcludesTransfersAfterAsOfDateAndOnOtherAccounts() {
     Account checking =
-        Account.create(
-            UUID.randomUUID(),
-            "Checking",
-            UUID.randomUUID(),
-            AccountType.CHECKING,
-            new BigDecimal("100.00"),
-            LocalDate.of(2026, 1, 1));
+        AccountMother.checking()
+            .withOpeningBalance(new BigDecimal("100.00"))
+            .withOpeningBalanceDate(LocalDate.of(2026, 1, 1))
+            .build();
     Account savings =
-        Account.create(
-            UUID.randomUUID(),
-            "Savings",
-            UUID.randomUUID(),
-            AccountType.SAVINGS,
-            BigDecimal.ZERO,
-            LocalDate.of(2026, 1, 1));
+        AccountMother.savings().withOpeningBalanceDate(LocalDate.of(2026, 1, 1)).build();
     transferRepository.save(
         transferOn(
             LocalDate.of(2026, 2, 1), new BigDecimal("999.00"), checking.getId(), savings.getId()));
@@ -293,9 +259,7 @@ class AccountBalanceQueryTest {
     // F008 stub: no snapshots exist yet, and the account has no opening balance to start from.
     // Transactions/transfers pointing at it don't contribute (F009 replaces this branch with the
     // sum of the products' latest snapshots).
-    Account investment =
-        Account.create(
-            UUID.randomUUID(), "Broker", UUID.randomUUID(), AccountType.INVESTMENT, null, null);
+    Account investment = AccountMother.investment().build();
     transferRepository.save(
         transferOn(
             LocalDate.of(2026, 2, 1),

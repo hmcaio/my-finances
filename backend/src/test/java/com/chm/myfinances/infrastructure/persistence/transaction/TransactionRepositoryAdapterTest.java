@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
-import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
@@ -15,7 +14,7 @@ import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionFilter;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
-import com.chm.myfinances.testsupport.TestInstitutions;
+import com.chm.myfinances.testsupport.TestFixtures;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -62,22 +61,15 @@ class TransactionRepositoryAdapterTest {
   }
 
   private Category persistCategory(String name, CategoryType type) {
-    return categoryRepository.save(Category.create(UUID.randomUUID(), name, type));
+    return TestFixtures.category(categoryRepository, name, type);
   }
 
   private Account persistAccount(String name) {
-    return accountRepository.save(
-        Account.create(
-            UUID.randomUUID(),
-            name,
-            TestInstitutions.builtInId(institutionRepository),
-            AccountType.CHECKING,
-            BigDecimal.ZERO,
-            LocalDate.now()));
+    return TestFixtures.checkingAccount(accountRepository, institutionRepository, name);
   }
 
   private PaymentMethod persistPaymentMethod(String name) {
-    return paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), name));
+    return TestFixtures.paymentMethod(paymentMethodRepository, name);
   }
 
   private Transaction newTransaction(LocalDate date, BigDecimal amount) {

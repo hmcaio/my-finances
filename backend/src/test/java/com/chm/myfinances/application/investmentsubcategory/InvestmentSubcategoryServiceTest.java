@@ -5,12 +5,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.application.investmentcategory.InvestmentCategoryNotFoundException;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
-import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
 import com.chm.myfinances.testsupport.FakeIdGenerator;
 import com.chm.myfinances.testsupport.FakeInvestmentCategoryRepository;
 import com.chm.myfinances.testsupport.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.FakeInvestmentSubcategoryRepository;
+import com.chm.myfinances.testsupport.InvestmentProductMother;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -135,8 +135,11 @@ class InvestmentSubcategoryServiceTest {
   void deleteIsBlockedWhileAProductUsesIt() {
     InvestmentSubcategory created = service.create(fixedIncomeId, "CDB");
     productRepository.save(
-        InvestmentProduct.create(
-            UUID.randomUUID(), UUID.randomUUID(), fixedIncomeId, created.getId(), "CDB Test"));
+        InvestmentProductMother.product()
+            .withInvestmentCategoryId(fixedIncomeId)
+            .withInvestmentSubcategoryId(created.getId())
+            .withName("CDB Test")
+            .build());
 
     assertThatThrownBy(() -> service.delete(created.getId()))
         .isInstanceOf(InvestmentSubcategoryInUseException.class);

@@ -3,19 +3,18 @@ package com.chm.myfinances.application.category;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.chm.myfinances.domain.budget.Budget;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
-import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
-import com.chm.myfinances.domain.transaction.Transaction;
+import com.chm.myfinances.testsupport.BudgetMother;
 import com.chm.myfinances.testsupport.FakeBudgetRepository;
 import com.chm.myfinances.testsupport.FakeCategoryRepository;
 import com.chm.myfinances.testsupport.FakeIdGenerator;
 import com.chm.myfinances.testsupport.FakeRecurringTemplateRepository;
 import com.chm.myfinances.testsupport.FakeTransactionRepository;
+import com.chm.myfinances.testsupport.RecurringTemplateMother;
+import com.chm.myfinances.testsupport.TransactionMother;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -144,7 +143,7 @@ class CategoryServiceTest {
     Category builtIn =
         repository.save(
             Category.reconstitute(UUID.randomUUID(), "Other Income", CategoryType.INCOME, true));
-    budgetRepository.save(Budget.create(UUID.randomUUID(), builtIn.getId()));
+    budgetRepository.save(BudgetMother.budget().withCategoryId(builtIn.getId()).build());
 
     assertThatThrownBy(() -> service.delete(builtIn.getId()))
         .isInstanceOf(BuiltInCategoryException.class);
@@ -174,17 +173,11 @@ class CategoryServiceTest {
     // hard-deletable, since that would orphan those transactions' category reference.
     Category created = service.create("Groceries", CategoryType.EXPENSE);
     transactionRepository.save(
-        Transaction.create(
-            UUID.randomUUID(),
-            LocalDate.now(),
-            BigDecimal.TEN,
-            created.getId(),
-            CategoryType.EXPENSE,
-            UUID.randomUUID(),
-            UUID.randomUUID(),
-            null,
-            "In-use transaction",
-            null));
+        TransactionMother.expense()
+            .withCategoryId(created.getId())
+            .withAmount(BigDecimal.TEN)
+            .withDescription("In-use transaction")
+            .build());
 
     assertThatThrownBy(() -> service.delete(created.getId()))
         .isInstanceOf(CategoryInUseException.class);
@@ -196,7 +189,7 @@ class CategoryServiceTest {
     // Post-F007 schema audit: a category with a Budget but zero transactions was previously still
     // hard-deletable, which would have orphaned budgets.category_id's FK.
     Category created = service.create("Groceries", CategoryType.EXPENSE);
-    budgetRepository.save(Budget.create(UUID.randomUUID(), created.getId()));
+    budgetRepository.save(BudgetMother.budget().withCategoryId(created.getId()).build());
 
     assertThatThrownBy(() -> service.delete(created.getId()))
         .isInstanceOf(CategoryInUseException.class);
@@ -209,7 +202,7 @@ class CategoryServiceTest {
     // recurring_templates.category_id's FK.
     Category created = service.create("Groceries", CategoryType.EXPENSE);
     recurringTemplateRepository.save(
-        RecurringTemplate.create(UUID.randomUUID(), created.getId(), UUID.randomUUID(), "Rent"));
+        RecurringTemplateMother.template().withCategoryId(created.getId()).build());
 
     assertThatThrownBy(() -> service.delete(created.getId()))
         .isInstanceOf(CategoryInUseException.class);

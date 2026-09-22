@@ -2,19 +2,15 @@ package com.chm.myfinances.infrastructure.persistence.recurringtemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
-import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateRepository;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
-import com.chm.myfinances.testsupport.TestInstitutions;
-import java.math.BigDecimal;
-import java.time.LocalDate;
+import com.chm.myfinances.testsupport.TestFixtures;
 import java.time.YearMonth;
 import java.util.Optional;
 import java.util.UUID;
@@ -41,20 +37,9 @@ class RecurringTemplateRepositoryAdapterTest {
   @BeforeEach
   void setUp() {
     categoryId =
-        categoryRepository
-            .save(Category.create(UUID.randomUUID(), "Rent Test", CategoryType.EXPENSE))
-            .getId();
+        TestFixtures.category(categoryRepository, "Rent Test", CategoryType.EXPENSE).getId();
     accountId =
-        accountRepository
-            .save(
-                Account.create(
-                    UUID.randomUUID(),
-                    "Checking",
-                    TestInstitutions.builtInId(institutionRepository),
-                    AccountType.CHECKING,
-                    BigDecimal.ZERO,
-                    LocalDate.now()))
-            .getId();
+        TestFixtures.checkingAccount(accountRepository, institutionRepository, "Checking").getId();
   }
 
   @Test
@@ -101,15 +86,8 @@ class RecurringTemplateRepositoryAdapterTest {
   @Test
   void findByAccountIdReturnsOnlyTemplatesForThatAccount() {
     UUID otherAccountId =
-        accountRepository
-            .save(
-                Account.create(
-                    UUID.randomUUID(),
-                    "Savings",
-                    TestInstitutions.builtInId(institutionRepository),
-                    AccountType.SAVINGS,
-                    BigDecimal.ZERO,
-                    LocalDate.now()))
+        TestFixtures.account(
+                accountRepository, institutionRepository, "Savings", AccountType.SAVINGS)
             .getId();
     RecurringTemplate onTarget =
         templateRepository.save(

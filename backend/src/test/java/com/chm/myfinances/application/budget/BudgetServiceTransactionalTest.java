@@ -8,9 +8,9 @@ import static org.mockito.BDDMockito.willThrow;
 import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.domain.budget.BudgetRepository;
 import com.chm.myfinances.domain.budget.BudgetVersionRepository;
-import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
+import com.chm.myfinances.testsupport.TestFixtures;
 import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.util.UUID;
@@ -48,10 +48,8 @@ class BudgetServiceTransactionalTest {
   @Test
   void createRollsBackTheBudgetWhenSavingItsFirstVersionFails() {
     UUID categoryId =
-        categoryRepository
-            .save(
-                Category.create(
-                    UUID.randomUUID(), "Groceries Budget Create Test", CategoryType.EXPENSE))
+        TestFixtures.category(
+                categoryRepository, "Groceries Budget Create Test", CategoryType.EXPENSE)
             .getId();
 
     willThrow(new RuntimeException("simulated failure saving the first version"))

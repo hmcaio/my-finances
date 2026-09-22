@@ -7,12 +7,12 @@ import com.chm.myfinances.application.account.AccountNotFoundException;
 import com.chm.myfinances.application.category.CategoryNotFoundException;
 import com.chm.myfinances.application.paymentmethod.PaymentMethodNotFoundException;
 import com.chm.myfinances.domain.account.Account;
-import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionFilter;
+import com.chm.myfinances.testsupport.AccountMother;
 import com.chm.myfinances.testsupport.FakeAccountRepository;
 import com.chm.myfinances.testsupport.FakeCategoryRepository;
 import com.chm.myfinances.testsupport.FakeIdGenerator;
@@ -59,24 +59,8 @@ class TransactionServiceTest {
             Category.create(UUID.randomUUID(), "Groceries", CategoryType.EXPENSE));
     incomeCategory =
         categoryRepository.save(Category.create(UUID.randomUUID(), "Salary", CategoryType.INCOME));
-    openAccount =
-        accountRepository.save(
-            Account.create(
-                UUID.randomUUID(),
-                "Checking",
-                UUID.randomUUID(),
-                AccountType.CHECKING,
-                BigDecimal.ZERO,
-                LocalDate.now()));
-    closedAccount =
-        accountRepository.save(
-            Account.create(
-                UUID.randomUUID(),
-                "Old",
-                UUID.randomUUID(),
-                AccountType.CHECKING,
-                BigDecimal.ZERO,
-                LocalDate.now()));
+    openAccount = accountRepository.save(AccountMother.checking().build());
+    closedAccount = accountRepository.save(AccountMother.checking().withName("Old").build());
     closedAccount.close(LocalDate.now());
     accountRepository.save(closedAccount);
     paymentMethod =
@@ -219,15 +203,7 @@ class TransactionServiceTest {
 
   @Test
   void createRejectsAnInvestmentAccount() {
-    Account investment =
-        accountRepository.save(
-            Account.create(
-                UUID.randomUUID(),
-                "Broker",
-                UUID.randomUUID(),
-                AccountType.INVESTMENT,
-                null,
-                null));
+    Account investment = accountRepository.save(AccountMother.investment().build());
 
     assertThatThrownBy(
             () ->
@@ -246,15 +222,7 @@ class TransactionServiceTest {
 
   @Test
   void editRejectsMovingATransactionOntoAnInvestmentAccount() {
-    Account investment =
-        accountRepository.save(
-            Account.create(
-                UUID.randomUUID(),
-                "Broker",
-                UUID.randomUUID(),
-                AccountType.INVESTMENT,
-                null,
-                null));
+    Account investment = accountRepository.save(AccountMother.investment().build());
     Transaction created =
         service.create(
             LocalDate.now(),

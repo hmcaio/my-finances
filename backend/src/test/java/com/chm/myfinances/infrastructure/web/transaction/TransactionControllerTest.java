@@ -10,15 +10,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
-import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
-import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import com.chm.myfinances.testsupport.JsonSupport;
 import com.chm.myfinances.testsupport.MockMvcSupport;
+import com.chm.myfinances.testsupport.TestFixtures;
 import com.chm.myfinances.testsupport.TestInstitutions;
 import com.chm.myfinances.testsupport.WebIntegrationTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -65,35 +64,17 @@ class TransactionControllerTest {
     mockMvc = MockMvcSupport.build(webApplicationContext);
 
     expenseCategoryId =
-        categoryRepository
-            .save(Category.create(UUID.randomUUID(), "Groceries Test", CategoryType.EXPENSE))
-            .getId();
+        TestFixtures.category(categoryRepository, "Groceries Test", CategoryType.EXPENSE).getId();
     incomeCategoryId =
-        categoryRepository
-            .save(Category.create(UUID.randomUUID(), "Salary Test", CategoryType.INCOME))
-            .getId();
+        TestFixtures.category(categoryRepository, "Salary Test", CategoryType.INCOME).getId();
     accountId =
-        accountRepository
-            .save(
-                Account.create(
-                    UUID.randomUUID(),
-                    "Checking",
-                    TestInstitutions.builtInId(institutionRepository),
-                    AccountType.CHECKING,
-                    BigDecimal.ZERO,
-                    LocalDate.now()))
-            .getId();
+        TestFixtures.checkingAccount(accountRepository, institutionRepository, "Checking").getId();
     otherAccountId =
-        accountRepository
-            .save(
-                Account.create(
-                    UUID.randomUUID(),
-                    "Savings",
-                    TestInstitutions.builtInId(institutionRepository),
-                    AccountType.SAVINGS,
-                    BigDecimal.ZERO,
-                    LocalDate.now()))
+        TestFixtures.account(
+                accountRepository, institutionRepository, "Savings", AccountType.SAVINGS)
             .getId();
+    // A closed account is a different shape than the fixture provides (open only), so this one
+    // keeps its own inline Account.create(...) + close(...).
     Account closed =
         Account.create(
             UUID.randomUUID(),
@@ -105,11 +86,8 @@ class TransactionControllerTest {
     closed.close(LocalDate.now());
     closedAccountId = accountRepository.save(closed).getId();
     paymentMethodId =
-        paymentMethodRepository
-            .save(PaymentMethod.create(UUID.randomUUID(), "Debit Card Test"))
-            .getId();
-    otherPaymentMethodId =
-        paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), "Cash Test")).getId();
+        TestFixtures.paymentMethod(paymentMethodRepository, "Debit Card Test").getId();
+    otherPaymentMethodId = TestFixtures.paymentMethod(paymentMethodRepository, "Cash Test").getId();
   }
 
   private String createTransactionBody(
@@ -242,15 +220,8 @@ class TransactionControllerTest {
   @Test
   void createRejectsAnInvestmentAccountWith409() throws Exception {
     UUID investmentAccountId =
-        accountRepository
-            .save(
-                Account.create(
-                    UUID.randomUUID(),
-                    "Broker Test",
-                    TestInstitutions.builtInId(institutionRepository),
-                    AccountType.INVESTMENT,
-                    null,
-                    null))
+        TestFixtures.account(
+                accountRepository, institutionRepository, "Broker Test", AccountType.INVESTMENT)
             .getId();
     String body =
         createTransactionBody("2026-03-15", "10.00", expenseCategoryId, investmentAccountId, null);

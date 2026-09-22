@@ -8,7 +8,6 @@ import com.chm.myfinances.application.account.AccountNotFoundException;
 import com.chm.myfinances.application.category.CategoryNotFoundException;
 import com.chm.myfinances.application.transaction.TransactionService;
 import com.chm.myfinances.domain.account.Account;
-import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
@@ -16,6 +15,7 @@ import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrence;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersion;
 import com.chm.myfinances.domain.transaction.Transaction;
+import com.chm.myfinances.testsupport.AccountMother;
 import com.chm.myfinances.testsupport.FakeAccountRepository;
 import com.chm.myfinances.testsupport.FakeCategoryRepository;
 import com.chm.myfinances.testsupport.FakeIdGenerator;
@@ -93,17 +93,7 @@ class RecurringTemplateServiceTest {
         categoryRepository
             .save(Category.create(UUID.randomUUID(), "Rent", CategoryType.EXPENSE))
             .getId();
-    accountId =
-        accountRepository
-            .save(
-                Account.create(
-                    UUID.randomUUID(),
-                    "Checking",
-                    UUID.randomUUID(),
-                    AccountType.CHECKING,
-                    BigDecimal.ZERO,
-                    LocalDate.now()))
-            .getId();
+    accountId = accountRepository.save(AccountMother.checking().build()).getId();
     paymentMethodId =
         paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), "Debit")).getId();
   }
@@ -166,17 +156,7 @@ class RecurringTemplateServiceTest {
 
   @Test
   void createRejectsAnInvestmentAccount() {
-    UUID investmentId =
-        accountRepository
-            .save(
-                Account.create(
-                    UUID.randomUUID(),
-                    "Broker",
-                    UUID.randomUUID(),
-                    AccountType.INVESTMENT,
-                    null,
-                    null))
-            .getId();
+    UUID investmentId = accountRepository.save(AccountMother.investment().build()).getId();
 
     assertThatThrownBy(
             () ->
@@ -314,17 +294,7 @@ class RecurringTemplateServiceTest {
     RecurringTemplate onAccount =
         service.create(
             categoryId, accountId, "Rent", new BigDecimal("1500.00"), 5, YearMonth.of(2026, 1));
-    UUID otherAccountId =
-        accountRepository
-            .save(
-                Account.create(
-                    UUID.randomUUID(),
-                    "Savings",
-                    UUID.randomUUID(),
-                    AccountType.SAVINGS,
-                    BigDecimal.ZERO,
-                    LocalDate.now()))
-            .getId();
+    UUID otherAccountId = accountRepository.save(AccountMother.savings().build()).getId();
     RecurringTemplate onOtherAccount =
         service.create(
             categoryId, otherAccountId, "Other", new BigDecimal("10.00"), 5, YearMonth.of(2026, 1));
@@ -390,17 +360,7 @@ class RecurringTemplateServiceTest {
         pendingRepository.save(
             PendingRecurringOccurrence.create(
                 UUID.randomUUID(), template.getId(), version.getId(), LocalDate.of(2026, 2, 5)));
-    UUID otherAccountId =
-        accountRepository
-            .save(
-                Account.create(
-                    UUID.randomUUID(),
-                    "Savings",
-                    UUID.randomUUID(),
-                    AccountType.SAVINGS,
-                    BigDecimal.ZERO,
-                    LocalDate.now()))
-            .getId();
+    UUID otherAccountId = accountRepository.save(AccountMother.savings().build()).getId();
 
     Transaction confirmed =
         service.confirmPending(

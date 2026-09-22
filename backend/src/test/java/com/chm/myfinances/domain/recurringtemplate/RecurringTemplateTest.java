@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
+import com.chm.myfinances.testsupport.RecurringTemplateMother;
 import java.time.YearMonth;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -80,7 +81,10 @@ class RecurringTemplateTest {
   @Test
   void closeDeactivatesAnActiveTemplate() {
     RecurringTemplate template =
-        RecurringTemplate.create(UUID.randomUUID(), CATEGORY_ID, ACCOUNT_ID, "Rent");
+        RecurringTemplateMother.template()
+            .withCategoryId(CATEGORY_ID)
+            .withAccountId(ACCOUNT_ID)
+            .build();
 
     template.close();
 
@@ -90,7 +94,10 @@ class RecurringTemplateTest {
   @Test
   void closeIsIdempotentOnAnAlreadyInactiveTemplate() {
     RecurringTemplate template =
-        RecurringTemplate.create(UUID.randomUUID(), CATEGORY_ID, ACCOUNT_ID, "Rent");
+        RecurringTemplateMother.template()
+            .withCategoryId(CATEGORY_ID)
+            .withAccountId(ACCOUNT_ID)
+            .build();
     template.close();
 
     // Closing again (e.g. the user stops it, then its account is separately closed too) must not
@@ -104,7 +111,10 @@ class RecurringTemplateTest {
   @Test
   void reactivateSetsActiveTrue() {
     RecurringTemplate template =
-        RecurringTemplate.create(UUID.randomUUID(), CATEGORY_ID, ACCOUNT_ID, "Rent");
+        RecurringTemplateMother.template()
+            .withCategoryId(CATEGORY_ID)
+            .withAccountId(ACCOUNT_ID)
+            .build();
     template.close();
 
     template.reactivate(YearMonth.of(2026, 6));
@@ -115,7 +125,10 @@ class RecurringTemplateTest {
   @Test
   void reactivateResumesFromTheGivenMonthRatherThanCatchingUpTheStoppedPeriod() {
     RecurringTemplate template =
-        RecurringTemplate.create(UUID.randomUUID(), CATEGORY_ID, ACCOUNT_ID, "Rent");
+        RecurringTemplateMother.template()
+            .withCategoryId(CATEGORY_ID)
+            .withAccountId(ACCOUNT_ID)
+            .build();
     template.advanceLastGeneratedFor(YearMonth.of(2026, 1));
     template.close();
 
@@ -130,7 +143,10 @@ class RecurringTemplateTest {
   @Test
   void advanceLastGeneratedForUpdatesTheTrackedCycle() {
     RecurringTemplate template =
-        RecurringTemplate.create(UUID.randomUUID(), CATEGORY_ID, ACCOUNT_ID, "Rent");
+        RecurringTemplateMother.template()
+            .withCategoryId(CATEGORY_ID)
+            .withAccountId(ACCOUNT_ID)
+            .build();
 
     template.advanceLastGeneratedFor(YearMonth.of(2026, 3));
 

@@ -8,7 +8,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
@@ -20,11 +19,9 @@ import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategoryRepo
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import com.chm.myfinances.testsupport.JsonSupport;
 import com.chm.myfinances.testsupport.MockMvcSupport;
-import com.chm.myfinances.testsupport.TestInstitutions;
+import com.chm.myfinances.testsupport.TestFixtures;
 import com.chm.myfinances.testsupport.WebIntegrationTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -68,10 +65,9 @@ class InvestmentProductControllerTest {
   @BeforeEach
   void setUp() {
     mockMvc = MockMvcSupport.build(webApplicationContext);
-    UUID institutionId = TestInstitutions.builtInId(institutionRepository);
-    accountId = saveAccount("XP Product Test", institutionId, AccountType.INVESTMENT);
-    otherAccountId = saveAccount("Nubank Product Test", institutionId, AccountType.INVESTMENT);
-    checkingId = saveAccount("Checking Product Test", institutionId, AccountType.CHECKING);
+    accountId = saveAccount("XP Product Test", AccountType.INVESTMENT);
+    otherAccountId = saveAccount("Nubank Product Test", AccountType.INVESTMENT);
+    checkingId = saveAccount("Checking Product Test", AccountType.CHECKING);
     fixedIncomeId =
         categoryRepository
             .save(InvestmentCategory.create(UUID.randomUUID(), "Fixed Income Product Test"))
@@ -87,18 +83,8 @@ class InvestmentProductControllerTest {
             .getId();
   }
 
-  private UUID saveAccount(String name, UUID institutionId, AccountType type) {
-    boolean investment = type == AccountType.INVESTMENT;
-    return accountRepository
-        .save(
-            Account.create(
-                UUID.randomUUID(),
-                name,
-                institutionId,
-                type,
-                investment ? null : BigDecimal.ZERO,
-                investment ? null : LocalDate.now()))
-        .getId();
+  private UUID saveAccount(String name, AccountType type) {
+    return TestFixtures.account(accountRepository, institutionRepository, name, type).getId();
   }
 
   private String body(UUID account, UUID category, UUID subcategory, String name) throws Exception {

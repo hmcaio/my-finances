@@ -4,13 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.domain.account.Account;
-import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.institution.Institution;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
+import com.chm.myfinances.testsupport.AccountMother;
 import com.chm.myfinances.testsupport.FakeAccountRepository;
 import com.chm.myfinances.testsupport.FakeIdGenerator;
 import com.chm.myfinances.testsupport.FakeInstitutionRepository;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -39,13 +38,10 @@ class InstitutionServiceTest {
 
   private void accountAt(UUID institutionId, boolean closed) {
     Account account =
-        Account.create(
-            UUID.randomUUID(),
-            "Account " + UUID.randomUUID(),
-            institutionId,
-            AccountType.CHECKING,
-            BigDecimal.ZERO,
-            LocalDate.now());
+        AccountMother.checking()
+            .withName("Account " + UUID.randomUUID())
+            .withInstitutionId(institutionId)
+            .build();
     if (closed) {
       account.close(LocalDate.now());
     }

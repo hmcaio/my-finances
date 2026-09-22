@@ -3,14 +3,12 @@ package com.chm.myfinances.application.paymentmethod;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
-import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.testsupport.FakeIdGenerator;
 import com.chm.myfinances.testsupport.FakePaymentMethodRepository;
 import com.chm.myfinances.testsupport.FakeTransactionRepository;
+import com.chm.myfinances.testsupport.TransactionMother;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -116,17 +114,11 @@ class PaymentMethodServiceTest {
     // be hard-deletable, since that would orphan those transactions' payment method reference.
     PaymentMethod created = service.create("Debit Card");
     transactionRepository.save(
-        Transaction.create(
-            UUID.randomUUID(),
-            LocalDate.now(),
-            BigDecimal.TEN,
-            UUID.randomUUID(),
-            CategoryType.EXPENSE,
-            UUID.randomUUID(),
-            created.getId(),
-            null,
-            "In-use transaction",
-            null));
+        TransactionMother.expense()
+            .withAmount(BigDecimal.TEN)
+            .withPaymentMethodId(created.getId())
+            .withDescription("In-use transaction")
+            .build());
 
     assertThatThrownBy(() -> service.delete(created.getId()))
         .isInstanceOf(PaymentMethodInUseException.class);

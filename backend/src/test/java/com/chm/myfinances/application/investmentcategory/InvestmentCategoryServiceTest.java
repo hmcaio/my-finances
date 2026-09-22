@@ -4,12 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
-import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
 import com.chm.myfinances.testsupport.FakeIdGenerator;
 import com.chm.myfinances.testsupport.FakeInvestmentCategoryRepository;
 import com.chm.myfinances.testsupport.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.FakeInvestmentSubcategoryRepository;
+import com.chm.myfinances.testsupport.InvestmentProductMother;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -146,8 +146,11 @@ class InvestmentCategoryServiceTest {
     subcategoryRepository.save(
         InvestmentSubcategory.create(UUID.randomUUID(), category.getId(), "Multimercado"));
     productRepository.save(
-        InvestmentProduct.create(
-            UUID.randomUUID(), UUID.randomUUID(), category.getId(), null, "Product Test"));
+        InvestmentProductMother.product()
+            .withInvestmentCategoryId(category.getId())
+            .withInvestmentSubcategoryId(null)
+            .withName("Product Test")
+            .build());
 
     assertThat(service.rename(category.getId(), "Investment Funds").getName())
         .isEqualTo("Investment Funds");
@@ -183,8 +186,11 @@ class InvestmentCategoryServiceTest {
   void deleteIsBlockedWhileAProductUsesIt() {
     InvestmentCategory category = service.create("Crypto");
     productRepository.save(
-        InvestmentProduct.create(
-            UUID.randomUUID(), UUID.randomUUID(), category.getId(), null, "Bitcoin Test"));
+        InvestmentProductMother.product()
+            .withInvestmentCategoryId(category.getId())
+            .withInvestmentSubcategoryId(null)
+            .withName("Bitcoin Test")
+            .build());
 
     assertThatThrownBy(() -> service.delete(category.getId()))
         .isInstanceOf(InvestmentCategoryInUseException.class);

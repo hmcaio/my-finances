@@ -3,7 +3,6 @@ package com.chm.myfinances.infrastructure.persistence.investmentproduct;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
@@ -14,7 +13,7 @@ import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategoryRepository;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
-import com.chm.myfinances.testsupport.TestInstitutions;
+import com.chm.myfinances.testsupport.TestFixtures;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -47,9 +46,8 @@ class InvestmentProductRepositoryAdapterTest {
 
   @BeforeEach
   void setUp() {
-    UUID institutionId = TestInstitutions.builtInId(institutionRepository);
-    accountId = saveInvestmentAccount("XP Repo Test", institutionId);
-    otherAccountId = saveInvestmentAccount("Nubank Repo Test", institutionId);
+    accountId = saveInvestmentAccount("XP Repo Test");
+    otherAccountId = saveInvestmentAccount("Nubank Repo Test");
     fixedIncomeId =
         categoryRepository
             .save(InvestmentCategory.create(UUID.randomUUID(), "Fixed Income Repo Test"))
@@ -64,11 +62,9 @@ class InvestmentProductRepositoryAdapterTest {
             .getId();
   }
 
-  private UUID saveInvestmentAccount(String name, UUID institutionId) {
-    return accountRepository
-        .save(
-            Account.create(
-                UUID.randomUUID(), name, institutionId, AccountType.INVESTMENT, null, null))
+  private UUID saveInvestmentAccount(String name) {
+    return TestFixtures.account(
+            accountRepository, institutionRepository, name, AccountType.INVESTMENT)
         .getId();
   }
 

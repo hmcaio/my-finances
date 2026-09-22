@@ -5,9 +5,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.application.account.AccountNotFoundException;
 import com.chm.myfinances.domain.account.Account;
-import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.domain.transfer.TransferFilter;
+import com.chm.myfinances.testsupport.AccountMother;
 import com.chm.myfinances.testsupport.FakeAccountRepository;
 import com.chm.myfinances.testsupport.FakeIdGenerator;
 import com.chm.myfinances.testsupport.FakeTransferRepository;
@@ -39,33 +39,9 @@ class TransferServiceTest {
 
   @BeforeEach
   void setUp() {
-    checking =
-        accountRepository.save(
-            Account.create(
-                UUID.randomUUID(),
-                "Checking",
-                UUID.randomUUID(),
-                AccountType.CHECKING,
-                BigDecimal.ZERO,
-                LocalDate.now()));
-    savings =
-        accountRepository.save(
-            Account.create(
-                UUID.randomUUID(),
-                "Savings",
-                UUID.randomUUID(),
-                AccountType.SAVINGS,
-                BigDecimal.ZERO,
-                LocalDate.now()));
-    closedAccount =
-        accountRepository.save(
-            Account.create(
-                UUID.randomUUID(),
-                "Old",
-                UUID.randomUUID(),
-                AccountType.CHECKING,
-                BigDecimal.ZERO,
-                LocalDate.now()));
+    checking = accountRepository.save(AccountMother.checking().build());
+    savings = accountRepository.save(AccountMother.savings().build());
+    closedAccount = accountRepository.save(AccountMother.checking().withName("Old").build());
     closedAccount.close(LocalDate.now());
     accountRepository.save(closedAccount);
   }

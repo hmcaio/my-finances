@@ -10,9 +10,9 @@ import com.chm.myfinances.domain.institution.Institution;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
-import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
+import com.chm.myfinances.testsupport.InvestmentProductMother;
 import com.chm.myfinances.testsupport.JsonSupport;
 import com.chm.myfinances.testsupport.MockMvcSupport;
 import com.chm.myfinances.testsupport.TestInstitutions;
@@ -499,12 +499,12 @@ class AccountControllerTest {
     UUID productId =
         investmentProductRepository
             .save(
-                InvestmentProduct.create(
-                    UUID.randomUUID(),
-                    UUID.fromString(accountId),
-                    categoryId,
-                    null,
-                    "Bitcoin Test"))
+                InvestmentProductMother.product()
+                    .withAccountId(UUID.fromString(accountId))
+                    .withInvestmentCategoryId(categoryId)
+                    .withInvestmentSubcategoryId(null)
+                    .withName("Bitcoin Test")
+                    .build())
             .getId();
 
     mockMvc.perform(post("/api/accounts/" + accountId + "/close")).andExpect(status().isConflict());

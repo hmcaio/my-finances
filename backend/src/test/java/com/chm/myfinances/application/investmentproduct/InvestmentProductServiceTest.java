@@ -7,17 +7,16 @@ import com.chm.myfinances.application.account.AccountNotFoundException;
 import com.chm.myfinances.application.investmentcategory.InvestmentCategoryNotFoundException;
 import com.chm.myfinances.application.investmentsubcategory.InvestmentSubcategoryNotFoundException;
 import com.chm.myfinances.domain.account.Account;
-import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
+import com.chm.myfinances.testsupport.AccountMother;
 import com.chm.myfinances.testsupport.FakeAccountRepository;
 import com.chm.myfinances.testsupport.FakeHasInvestmentHistoryChecker;
 import com.chm.myfinances.testsupport.FakeIdGenerator;
 import com.chm.myfinances.testsupport.FakeInvestmentCategoryRepository;
 import com.chm.myfinances.testsupport.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.FakeInvestmentSubcategoryRepository;
-import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -66,7 +65,7 @@ class InvestmentProductServiceTest {
 
   private Account saveInvestmentAccount(String name) {
     return accountRepository.save(
-        Account.create(UUID.randomUUID(), name, institutionId, AccountType.INVESTMENT, null, null));
+        AccountMother.investment().withName(name).withInstitutionId(institutionId).build());
   }
 
   @Test
@@ -111,13 +110,10 @@ class InvestmentProductServiceTest {
     UUID checkingId =
         accountRepository
             .save(
-                Account.create(
-                    UUID.randomUUID(),
-                    "Checking Test",
-                    institutionId,
-                    AccountType.CHECKING,
-                    BigDecimal.ZERO,
-                    LocalDate.now()))
+                AccountMother.checking()
+                    .withName("Checking Test")
+                    .withInstitutionId(institutionId)
+                    .build())
             .getId();
 
     assertThatThrownBy(() -> service.create(checkingId, cryptoId, null, "Bitcoin Test"))

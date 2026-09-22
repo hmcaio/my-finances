@@ -2,13 +2,12 @@ package com.chm.myfinances.application.budget;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.chm.myfinances.domain.budget.Budget;
-import com.chm.myfinances.domain.budget.BudgetVersion;
-import com.chm.myfinances.domain.category.CategoryType;
-import com.chm.myfinances.domain.transaction.Transaction;
+import com.chm.myfinances.testsupport.BudgetMother;
+import com.chm.myfinances.testsupport.BudgetVersionMother;
 import com.chm.myfinances.testsupport.FakeBudgetRepository;
 import com.chm.myfinances.testsupport.FakeBudgetVersionRepository;
 import com.chm.myfinances.testsupport.FakeTransactionRepository;
+import com.chm.myfinances.testsupport.TransactionMother;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -39,14 +38,22 @@ class BudgetReportQueryTest {
 
   @Test
   void resolvesTheHistoricallyCorrectCapAndSumsActualAcrossAccounts() {
-    UUID budgetId = UUID.randomUUID();
-    budgetRepository.save(Budget.create(budgetId, groceriesCategoryId));
+    UUID budgetId =
+        budgetRepository
+            .save(BudgetMother.budget().withCategoryId(groceriesCategoryId).build())
+            .getId();
     budgetVersionRepository.save(
-        BudgetVersion.create(
-            UUID.randomUUID(), budgetId, new BigDecimal("300.00"), YearMonth.of(2026, 1)));
+        BudgetVersionMother.version()
+            .withBudgetId(budgetId)
+            .withMonthlyCap(new BigDecimal("300.00"))
+            .withEffectiveFrom(YearMonth.of(2026, 1))
+            .build());
     budgetVersionRepository.save(
-        BudgetVersion.create(
-            UUID.randomUUID(), budgetId, new BigDecimal("400.00"), YearMonth.of(2026, 3)));
+        BudgetVersionMother.version()
+            .withBudgetId(budgetId)
+            .withMonthlyCap(new BigDecimal("400.00"))
+            .withEffectiveFrom(YearMonth.of(2026, 3))
+            .build());
 
     expenseTransaction(groceriesCategoryId, accountOneId, LocalDate.of(2026, 3, 5), "50.00");
     expenseTransaction(groceriesCategoryId, accountTwoId, LocalDate.of(2026, 3, 20), "25.00");
@@ -65,11 +72,16 @@ class BudgetReportQueryTest {
 
   @Test
   void usesThePriorMonthsCapWhenNoNewVersionExistsYetForTheTargetMonth() {
-    UUID budgetId = UUID.randomUUID();
-    budgetRepository.save(Budget.create(budgetId, groceriesCategoryId));
+    UUID budgetId =
+        budgetRepository
+            .save(BudgetMother.budget().withCategoryId(groceriesCategoryId).build())
+            .getId();
     budgetVersionRepository.save(
-        BudgetVersion.create(
-            UUID.randomUUID(), budgetId, new BigDecimal("300.00"), YearMonth.of(2026, 1)));
+        BudgetVersionMother.version()
+            .withBudgetId(budgetId)
+            .withMonthlyCap(new BigDecimal("300.00"))
+            .withEffectiveFrom(YearMonth.of(2026, 1))
+            .build());
 
     List<BudgetReportLine> report = reportQuery.forMonth(YearMonth.of(2026, 6));
 
@@ -78,11 +90,16 @@ class BudgetReportQueryTest {
 
   @Test
   void capIsNullWhenNoVersionIsEffectiveYetForTheTargetMonth() {
-    UUID budgetId = UUID.randomUUID();
-    budgetRepository.save(Budget.create(budgetId, groceriesCategoryId));
+    UUID budgetId =
+        budgetRepository
+            .save(BudgetMother.budget().withCategoryId(groceriesCategoryId).build())
+            .getId();
     budgetVersionRepository.save(
-        BudgetVersion.create(
-            UUID.randomUUID(), budgetId, new BigDecimal("300.00"), YearMonth.of(2026, 6)));
+        BudgetVersionMother.version()
+            .withBudgetId(budgetId)
+            .withMonthlyCap(new BigDecimal("300.00"))
+            .withEffectiveFrom(YearMonth.of(2026, 6))
+            .build());
 
     List<BudgetReportLine> report = reportQuery.forMonth(YearMonth.of(2026, 1));
 
@@ -91,11 +108,16 @@ class BudgetReportQueryTest {
 
   @Test
   void actualIsZeroWhenThereAreNoTransactionsForTheMonth() {
-    UUID budgetId = UUID.randomUUID();
-    budgetRepository.save(Budget.create(budgetId, groceriesCategoryId));
+    UUID budgetId =
+        budgetRepository
+            .save(BudgetMother.budget().withCategoryId(groceriesCategoryId).build())
+            .getId();
     budgetVersionRepository.save(
-        BudgetVersion.create(
-            UUID.randomUUID(), budgetId, new BigDecimal("300.00"), YearMonth.of(2026, 1)));
+        BudgetVersionMother.version()
+            .withBudgetId(budgetId)
+            .withMonthlyCap(new BigDecimal("300.00"))
+            .withEffectiveFrom(YearMonth.of(2026, 1))
+            .build());
 
     List<BudgetReportLine> report = reportQuery.forMonth(YearMonth.of(2026, 3));
 
@@ -104,8 +126,8 @@ class BudgetReportQueryTest {
 
   @Test
   void reportHasOneLinePerBudgetedCategoryOnly() {
-    budgetRepository.save(Budget.create(UUID.randomUUID(), groceriesCategoryId));
-    budgetRepository.save(Budget.create(UUID.randomUUID(), diningCategoryId));
+    budgetRepository.save(BudgetMother.budget().withCategoryId(groceriesCategoryId).build());
+    budgetRepository.save(BudgetMother.budget().withCategoryId(diningCategoryId).build());
 
     List<BudgetReportLine> report = reportQuery.forMonth(YearMonth.of(2026, 3));
 
@@ -116,16 +138,13 @@ class BudgetReportQueryTest {
 
   private void expenseTransaction(UUID categoryId, UUID accountId, LocalDate date, String amount) {
     transactionRepository.save(
-        Transaction.create(
-            UUID.randomUUID(),
-            date,
-            new BigDecimal(amount),
-            categoryId,
-            CategoryType.EXPENSE,
-            accountId,
-            paymentMethodId,
-            null,
-            "Test transaction",
-            null));
+        TransactionMother.expense()
+            .withDate(date)
+            .withAmount(new BigDecimal(amount))
+            .withCategoryId(categoryId)
+            .withAccountId(accountId)
+            .withPaymentMethodId(paymentMethodId)
+            .withDescription("Test transaction")
+            .build());
   }
 }
