@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
+import com.chm.myfinances.testsupport.AccountMother;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -135,13 +136,7 @@ class AccountTest {
   @Test
   void closeSetsClosedDateAndMarksAccountClosed() {
     Account account =
-        Account.create(
-            UUID.randomUUID(),
-            "Old Account",
-            INSTITUTION_ID,
-            AccountType.CHECKING,
-            BigDecimal.ZERO,
-            LocalDate.now());
+        AccountMother.checking().withName("Old Account").withInstitutionId(INSTITUTION_ID).build();
 
     LocalDate closedDate = LocalDate.now();
     account.close(closedDate);
@@ -154,13 +149,7 @@ class AccountTest {
   @Test
   void closeThrowsWhenAlreadyClosed() {
     Account account =
-        Account.create(
-            UUID.randomUUID(),
-            "Old Account",
-            INSTITUTION_ID,
-            AccountType.CHECKING,
-            BigDecimal.ZERO,
-            LocalDate.now());
+        AccountMother.checking().withName("Old Account").withInstitutionId(INSTITUTION_ID).build();
     account.close(LocalDate.now());
 
     assertThatThrownBy(() -> account.close(LocalDate.now()))
@@ -169,14 +158,7 @@ class AccountTest {
 
   @Test
   void requireOpenDoesNotThrowWhileOpen() {
-    Account account =
-        Account.create(
-            UUID.randomUUID(),
-            "Checking",
-            INSTITUTION_ID,
-            AccountType.CHECKING,
-            BigDecimal.ZERO,
-            LocalDate.now());
+    Account account = AccountMother.checking().withInstitutionId(INSTITUTION_ID).build();
 
     account.requireOpen();
   }
@@ -186,14 +168,7 @@ class AccountTest {
     // F003 spec: a closed account "rejects any attempt to post new activity to it (enforced
     // here at the domain level, not just at the API layer)". requireOpen() is the hook
     // F004 (Transaction)/F005 (Transfer) will call before attaching activity to this account.
-    Account account =
-        Account.create(
-            UUID.randomUUID(),
-            "Checking",
-            INSTITUTION_ID,
-            AccountType.CHECKING,
-            BigDecimal.ZERO,
-            LocalDate.now());
+    Account account = AccountMother.checking().withInstitutionId(INSTITUTION_ID).build();
     account.close(LocalDate.now());
 
     assertThatThrownBy(account::requireOpen).isInstanceOf(IllegalStateException.class);
@@ -424,9 +399,7 @@ class AccountTest {
 
   @Test
   void anInvestmentAccountStillEditsAndCloses() {
-    Account account =
-        Account.create(
-            UUID.randomUUID(), "Broker", INSTITUTION_ID, AccountType.INVESTMENT, null, null);
+    Account account = AccountMother.investment().withInstitutionId(INSTITUTION_ID).build();
 
     account.edit("Broker renamed", INSTITUTION_ID);
     account.close(LocalDate.now());
@@ -437,12 +410,6 @@ class AccountTest {
   }
 
   private static Account newChecking() {
-    return Account.create(
-        UUID.randomUUID(),
-        "Checking",
-        INSTITUTION_ID,
-        AccountType.CHECKING,
-        BigDecimal.ZERO,
-        LocalDate.now());
+    return AccountMother.checking().withInstitutionId(INSTITUTION_ID).build();
   }
 }
