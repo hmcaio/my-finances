@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
@@ -152,5 +152,46 @@ describe('RecurringTemplatesPage', () => {
     await user.click(row.getByRole('button', { name: 'Stop' }))
 
     expect(await row.findByText('Stopped')).toBeInTheDocument()
+  })
+})
+
+describe('RecurringTemplatesPage local-time defaults', () => {
+  beforeEach(() => {
+    // 23:30 on 31 March in UTC-3 is already 1 April in UTC.
+    vi.stubEnv('TZ', 'America/Sao_Paulo')
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 2, 31, 23, 30))
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllEnvs()
+  })
+
+  it('sends the local month, not the UTC month, as the new template effectiveFrom', async () => {
+    let sent: { effectiveFrom?: string } = {}
+    server.use(
+      http.post('/api/recurring-templates', async ({ request }) => {
+        sent = (await request.json()) as { effectiveFrom?: string }
+        return HttpResponse.json(
+          { ...seedRecurringTemplates[0], id: 'rt-new', description: 'Internet' },
+          { status: 201 },
+        )
+      }),
+    )
+    const user = userEvent.setup()
+    render(<RecurringTemplatesPage />)
+    await findRow(seedRecurringTemplates[0].description)
+
+    await user.click(screen.getByLabelText('Category'))
+    await user.click(await screen.findByRole('option', { name: seedCategories[0].name }))
+    await user.click(screen.getByLabelText('Account'))
+    await user.click(await screen.findByRole('option', { name: seedAccounts[0].name }))
+    await user.type(screen.getByLabelText('Description'), 'Internet')
+    await user.type(screen.getByLabelText('Amount'), '120')
+    await user.click(screen.getByRole('button', { name: 'Add' }))
+    await templatesTable().findByText('Internet')
+
+    expect(sent.effectiveFrom).toBe('2026-03')
   })
 })

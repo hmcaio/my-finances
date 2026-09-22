@@ -32,15 +32,20 @@ import { DataTableBody } from '../../components/DataTableBody'
 import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
 import { usePagedData } from '../../hooks/usePagedData'
 import { PaginationControls } from '../../components/PaginationControls'
+import { today } from '../../utils/localDate'
 import { nameLookup } from '../../utils/nameLookup'
 
-const EMPTY_FORM = {
-  date: new Date().toISOString().slice(0, 10),
-  amount: '',
-  fromAccountId: '',
-  toAccountId: '',
-  description: '',
-  additionalNotes: '',
+/** A fresh form, built per use so its date is today's local date rather than the date the page
+ * module was first loaded. */
+function emptyForm() {
+  return {
+    date: today(),
+    amount: '',
+    fromAccountId: '',
+    toAccountId: '',
+    description: '',
+    additionalNotes: '',
+  }
 }
 
 const PAGE_SIZE = 20
@@ -71,7 +76,7 @@ export function TransfersPage() {
   })
 
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [form, setForm] = useState(EMPTY_FORM)
+  const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
 
   const [deleteTarget, setDeleteTarget] = useState<Transfer | null>(null)
@@ -103,7 +108,7 @@ export function TransfersPage() {
 
   function cancelEdit() {
     setEditingId(null)
-    setForm(EMPTY_FORM)
+    setForm(emptyForm())
   }
 
   function setFromAccountId(fromAccountId: string) {
