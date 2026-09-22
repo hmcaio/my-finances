@@ -4,10 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
-import com.chm.myfinances.testsupport.FakeIdGenerator;
-import com.chm.myfinances.testsupport.FakePaymentMethodRepository;
-import com.chm.myfinances.testsupport.FakeTransactionRepository;
-import com.chm.myfinances.testsupport.TransactionMother;
+import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
+import com.chm.myfinances.testsupport.fakes.FakePaymentMethodRepository;
+import com.chm.myfinances.testsupport.fakes.FakeTransactionRepository;
+import com.chm.myfinances.testsupport.mothers.TransactionMother;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;

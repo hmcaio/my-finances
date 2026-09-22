@@ -10,7 +10,7 @@ import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrence;
 import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrenceRepository;
-import com.chm.myfinances.testsupport.TestFixtures;
+import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;

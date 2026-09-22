@@ -10,7 +10,7 @@ import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.domain.transfer.TransferFilter;
 import com.chm.myfinances.domain.transfer.TransferRepository;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
-import com.chm.myfinances.testsupport.TestFixtures;
+import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;

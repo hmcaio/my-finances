@@ -7,7 +7,7 @@ import com.chm.myfinances.domain.budget.BudgetRepository;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
-import com.chm.myfinances.testsupport.TestFixtures;
+import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;

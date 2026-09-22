@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
-import com.chm.myfinances.testsupport.RecurringTemplateMother;
+import com.chm.myfinances.testsupport.mothers.RecurringTemplateMother;
 import java.time.YearMonth;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;

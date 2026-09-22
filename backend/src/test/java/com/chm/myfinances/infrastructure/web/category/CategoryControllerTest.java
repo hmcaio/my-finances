@@ -15,12 +15,12 @@ import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
-import com.chm.myfinances.testsupport.BudgetMother;
-import com.chm.myfinances.testsupport.JsonSupport;
-import com.chm.myfinances.testsupport.MockMvcSupport;
-import com.chm.myfinances.testsupport.TestFixtures;
-import com.chm.myfinances.testsupport.TransactionMother;
-import com.chm.myfinances.testsupport.WebIntegrationTest;
+import com.chm.myfinances.testsupport.mothers.BudgetMother;
+import com.chm.myfinances.testsupport.mothers.TestFixtures;
+import com.chm.myfinances.testsupport.mothers.TransactionMother;
+import com.chm.myfinances.testsupport.web.JsonSupport;
+import com.chm.myfinances.testsupport.web.MockMvcSupport;
+import com.chm.myfinances.testsupport.web.WebIntegrationTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.util.Map;
@@ -35,10 +35,9 @@ import org.springframework.web.context.WebApplicationContext;
 
 /**
  * REST-layer integration test for {@link CategoryController}, against a real Testcontainers
- * Postgres (ADR 0010). Boot 4.x removed {@code @AutoConfigureMockMvc}/{@code @WebMvcTest} (see
- * {@code CategoryRepositoryAdapterTest} for the same story on {@code @DataJpaTest}), so {@link
- * MockMvc} is built by hand from the {@link WebApplicationContext} — that builder itself is plain
- * {@code spring-test}, unaffected by Boot's test-slice removal.
+ * Postgres (ADR 0010). See backend/CLAUDE.md's Testing section for why {@link MockMvc} is built by
+ * hand from the {@link WebApplicationContext} here instead of via
+ * {@code @AutoConfigureMockMvc}/{@code @WebMvcTest} (removed in Boot 4.x).
  *
  * <p>Also exercises F002's verification requirement that attempting to change a category's type via
  * {@code PATCH} is rejected: {@link UpdateCategoryRequest} has no {@code type} field at all, so a

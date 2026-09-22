@@ -9,9 +9,11 @@ googleJavaFormat = "1.36.1"
 # platform BOM in build.gradle, pinned to the same version the Spring Boot BOM already resolved
 # for the core artifact so every Testcontainers module stays consistent.
 testcontainers = "2.0.5"
+archunit = "1.5.0"
 
 [libraries]
 springdoc-openapi-starter-webmvc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
+archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "springBoot" }

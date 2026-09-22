@@ -1,12 +1,13 @@
 package com.chm.myfinances.infrastructure.persistence.category;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.groups.Tuple.tuple;
 
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
-import com.chm.myfinances.testsupport.TestFixtures;
+import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -18,11 +19,10 @@ import org.springframework.beans.factory.annotation.Autowired;
  * Postgres via Testcontainers (ADR 0010) instead of an in-memory substitute, so Flyway's {@code
  * V2__categories_and_payment_methods.sql} runs for real too.
  *
- * <p>Spring Boot 4.x no longer ships {@code @DataJpaTest}/{@code @AutoConfigureTestDatabase} (both
- * test-slice annotations were removed from {@code spring-boot-test-autoconfigure}), so this uses
- * the same full {@code @SpringBootTest} + {@code @Import(TestcontainersConfiguration.class)}
- * pattern as {@code MyFinancesApplicationTests} (F001). {@code @Transactional} rolls back each
- * test's writes so tests don't interfere with each other or with the migration's seed data.
+ * <p>See backend/CLAUDE.md's Testing section for why this is a full {@code @SpringBootTest} +
+ * {@code @Import(TestcontainersConfiguration.class)} rather than {@code @DataJpaTest} (removed in
+ * Spring Boot 4.x). {@code @Transactional} rolls back each test's writes so tests don't interfere
+ * with each other or with the migration's seed data.
  */
 @DatabaseIntegrationTest
 class CategoryRepositoryAdapterTest {
@@ -109,8 +109,8 @@ class CategoryRepositoryAdapterTest {
     assertThat(builtIn)
         .extracting(Category::getName, Category::getType)
         .containsExactlyInAnyOrder(
-            org.assertj.core.groups.Tuple.tuple("Other Expense", CategoryType.EXPENSE),
-            org.assertj.core.groups.Tuple.tuple("Other Income", CategoryType.INCOME));
+            tuple("Other Expense", CategoryType.EXPENSE),
+            tuple("Other Income", CategoryType.INCOME));
   }
 
   @Test

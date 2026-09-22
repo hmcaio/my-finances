@@ -3,8 +3,8 @@ package com.chm.myfinances.application.budget;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.chm.myfinances.domain.budget.BudgetVersion;
-import com.chm.myfinances.testsupport.BudgetVersionMother;
-import com.chm.myfinances.testsupport.FakeBudgetVersionRepository;
+import com.chm.myfinances.testsupport.fakes.FakeBudgetVersionRepository;
+import com.chm.myfinances.testsupport.mothers.BudgetVersionMother;
 import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.util.Optional;

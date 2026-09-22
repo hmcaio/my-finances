@@ -3,8 +3,8 @@ package com.chm.myfinances.application.recurringtemplate;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersion;
-import com.chm.myfinances.testsupport.FakeRecurringTemplateVersionRepository;
-import com.chm.myfinances.testsupport.RecurringTemplateVersionMother;
+import com.chm.myfinances.testsupport.fakes.FakeRecurringTemplateVersionRepository;
+import com.chm.myfinances.testsupport.mothers.RecurringTemplateVersionMother;
 import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.util.Optional;

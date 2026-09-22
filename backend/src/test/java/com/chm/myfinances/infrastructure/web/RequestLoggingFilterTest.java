@@ -5,8 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
-import com.chm.myfinances.testsupport.FakeIdGenerator;
 import com.chm.myfinances.testsupport.LogCapture;
+import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import java.util.ArrayList;
