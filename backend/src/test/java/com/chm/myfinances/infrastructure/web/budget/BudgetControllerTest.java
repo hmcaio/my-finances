@@ -20,6 +20,7 @@ import com.chm.myfinances.testsupport.WebIntegrationTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -209,7 +210,7 @@ class BudgetControllerTest {
   /** Small helper so tests always compare against "now" the same way the controller does. */
   private static final class YearMonthNow {
     static String currentMonth() {
-      return java.time.YearMonth.now().toString();
+      return YearMonth.now().toString();
     }
   }
 }

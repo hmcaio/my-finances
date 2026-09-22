@@ -1,6 +1,7 @@
 package com.chm.myfinances.infrastructure.persistence.category;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.groups.Tuple.tuple;
 
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
@@ -109,8 +110,8 @@ class CategoryRepositoryAdapterTest {
     assertThat(builtIn)
         .extracting(Category::getName, Category::getType)
         .containsExactlyInAnyOrder(
-            org.assertj.core.groups.Tuple.tuple("Other Expense", CategoryType.EXPENSE),
-            org.assertj.core.groups.Tuple.tuple("Other Income", CategoryType.INCOME));
+            tuple("Other Expense", CategoryType.EXPENSE),
+            tuple("Other Income", CategoryType.INCOME));
   }
 
   @Test

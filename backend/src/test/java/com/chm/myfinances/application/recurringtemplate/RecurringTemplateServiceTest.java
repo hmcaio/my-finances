@@ -15,6 +15,7 @@ import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrence;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersion;
 import com.chm.myfinances.domain.transaction.Transaction;
+import com.chm.myfinances.domain.transaction.TransactionFilter;
 import com.chm.myfinances.testsupport.AccountMother;
 import com.chm.myfinances.testsupport.FakeAccountRepository;
 import com.chm.myfinances.testsupport.FakeCategoryRepository;
@@ -33,6 +34,7 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.Pageable;
 
 /**
  * Application-layer tests for {@link RecurringTemplateService}, written first (ADR 0004) against
@@ -410,10 +412,7 @@ class RecurringTemplateServiceTest {
     assertThat(pendingRepository.findById(pending.getId())).isEmpty();
     assertThat(
             transactionRepository
-                .findAll(
-                    new com.chm.myfinances.domain.transaction.TransactionFilter(
-                        null, null, null, null, null),
-                    org.springframework.data.domain.Pageable.unpaged())
+                .findAll(new TransactionFilter(null, null, null, null, null), Pageable.unpaged())
                 .getContent())
         .isEmpty();
   }
