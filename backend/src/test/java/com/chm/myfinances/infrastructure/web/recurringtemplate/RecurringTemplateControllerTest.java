@@ -18,6 +18,7 @@ import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
+import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import com.chm.myfinances.testsupport.TestInstitutions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
@@ -152,6 +153,24 @@ class RecurringTemplateControllerTest {
         .andExpect(jsonPath("$.active").value(true))
         .andExpect(jsonPath("$.currentAmount").value(1500.00))
         .andExpect(jsonPath("$.currentDayOfMonth").value(5));
+  }
+
+  @Test
+  void createRejectsDescriptionOverLimitWith400() throws Exception {
+    Map<String, Object> body = new HashMap<>();
+    body.put("categoryId", categoryId.toString());
+    body.put("accountId", accountId.toString());
+    body.put("description", "a".repeat(TextFieldConstraints.MAX_DESCRIPTION_LENGTH + 1));
+    body.put("amount", "1500.00");
+    body.put("dayOfMonth", 5);
+    body.put("effectiveFrom", YearMonth.now().toString());
+
+    mockMvc
+        .perform(
+            post("/api/recurring-templates")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+        .andExpect(status().isBadRequest());
   }
 
   @Test

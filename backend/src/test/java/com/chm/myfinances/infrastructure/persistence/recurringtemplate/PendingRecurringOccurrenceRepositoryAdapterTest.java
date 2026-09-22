@@ -93,14 +93,18 @@ class PendingRecurringOccurrenceRepositoryAdapterTest {
 
   @Test
   void findAllReturnsEveryPendingOccurrence() {
-    pendingRepository.save(
-        PendingRecurringOccurrence.create(
-            UUID.randomUUID(), templateId, versionId, LocalDate.of(2026, 3, 5)));
-    pendingRepository.save(
-        PendingRecurringOccurrence.create(
-            UUID.randomUUID(), templateId, versionId, LocalDate.of(2026, 4, 5)));
+    PendingRecurringOccurrence a =
+        pendingRepository.save(
+            PendingRecurringOccurrence.create(
+                UUID.randomUUID(), templateId, versionId, LocalDate.of(2026, 3, 5)));
+    PendingRecurringOccurrence b =
+        pendingRepository.save(
+            PendingRecurringOccurrence.create(
+                UUID.randomUUID(), templateId, versionId, LocalDate.of(2026, 4, 5)));
 
-    assertThat(pendingRepository.findAll()).hasSize(2);
+    assertThat(pendingRepository.findAll())
+        .extracting(PendingRecurringOccurrence::getId)
+        .contains(a.getId(), b.getId());
   }
 
   @Test

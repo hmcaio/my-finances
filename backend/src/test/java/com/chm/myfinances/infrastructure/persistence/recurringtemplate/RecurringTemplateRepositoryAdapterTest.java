@@ -129,12 +129,16 @@ class RecurringTemplateRepositoryAdapterTest {
 
   @Test
   void findAllReturnsEveryTemplate() {
-    templateRepository.save(
-        RecurringTemplate.create(UUID.randomUUID(), categoryId, accountId, "A"));
-    templateRepository.save(
-        RecurringTemplate.create(UUID.randomUUID(), categoryId, accountId, "B"));
+    RecurringTemplate a =
+        templateRepository.save(
+            RecurringTemplate.create(UUID.randomUUID(), categoryId, accountId, "A"));
+    RecurringTemplate b =
+        templateRepository.save(
+            RecurringTemplate.create(UUID.randomUUID(), categoryId, accountId, "B"));
 
-    assertThat(templateRepository.findAll()).hasSize(2);
+    assertThat(templateRepository.findAll())
+        .extracting(RecurringTemplate::getId)
+        .contains(a.getId(), b.getId());
   }
 
   @Test
