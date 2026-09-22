@@ -19,11 +19,14 @@ import com.chm.myfinances.testsupport.TestInstitutions;
 import com.chm.myfinances.testsupport.WebIntegrationTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -436,41 +439,49 @@ class AccountControllerTest {
         .andExpect(jsonPath("$.balance").value(0));
   }
 
-  @Test
-  void createRejectsOpeningFieldsOnAnInvestmentAccountWith400() throws Exception {
-    for (Map<String, Object> extra :
-        List.<Map<String, Object>>of(
-            Map.of("openingBalance", "10.00", "openingBalanceDate", "2026-01-01"),
-            Map.of("openingBalance", "10.00"),
-            Map.of("openingBalanceDate", "2026-01-01"))) {
-      mockMvc
-          .perform(
-              post("/api/accounts")
-                  .contentType(MediaType.APPLICATION_JSON)
-                  .content(investmentAccountBody("Broker With Values", extra)))
-          .andExpect(status().isBadRequest());
-    }
+  private static Stream<Arguments> openingFieldsOnInvestmentAccountCases() {
+    return Stream.of(
+        Arguments.of(
+            "balance and date",
+            Map.of("openingBalance", "10.00", "openingBalanceDate", "2026-01-01")),
+        Arguments.of("balance only", Map.of("openingBalance", "10.00")),
+        Arguments.of("date only", Map.of("openingBalanceDate", "2026-01-01")));
   }
 
-  @Test
-  void createRejectsMissingOpeningFieldsOnANonInvestmentAccountWith400() throws Exception {
-    for (Map<String, Object> extra :
-        List.<Map<String, Object>>of(
-            Map.of(),
-            Map.of("openingBalance", "10.00"),
-            Map.of("openingBalanceDate", "2026-01-01"))) {
-      Map<String, Object> body = new HashMap<>();
-      body.put("name", "Checking Without Values");
-      body.put("institutionId", institutionId.toString());
-      body.put("type", "CHECKING");
-      body.putAll(extra);
-      mockMvc
-          .perform(
-              post("/api/accounts")
-                  .contentType(MediaType.APPLICATION_JSON)
-                  .content(objectMapper.writeValueAsString(body)))
-          .andExpect(status().isBadRequest());
-    }
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("openingFieldsOnInvestmentAccountCases")
+  void createRejectsOpeningFieldsOnAnInvestmentAccountWith400(
+      String label, Map<String, Object> extra) throws Exception {
+    mockMvc
+        .perform(
+            post("/api/accounts")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(investmentAccountBody("Broker With Values", extra)))
+        .andExpect(status().isBadRequest());
+  }
+
+  private static Stream<Arguments> missingOpeningFieldsOnNonInvestmentAccountCases() {
+    return Stream.of(
+        Arguments.of("neither field", Map.of()),
+        Arguments.of("balance only", Map.of("openingBalance", "10.00")),
+        Arguments.of("date only", Map.of("openingBalanceDate", "2026-01-01")));
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("missingOpeningFieldsOnNonInvestmentAccountCases")
+  void createRejectsMissingOpeningFieldsOnANonInvestmentAccountWith400(
+      String label, Map<String, Object> extra) throws Exception {
+    Map<String, Object> body = new HashMap<>();
+    body.put("name", "Checking Without Values");
+    body.put("institutionId", institutionId.toString());
+    body.put("type", "CHECKING");
+    body.putAll(extra);
+    mockMvc
+        .perform(
+            post("/api/accounts")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+        .andExpect(status().isBadRequest());
   }
 
   @Test

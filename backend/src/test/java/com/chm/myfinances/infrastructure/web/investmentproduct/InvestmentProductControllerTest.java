@@ -25,8 +25,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -137,40 +140,61 @@ class InvestmentProductControllerTest {
         .andExpect(jsonPath("$.investmentSubcategoryId").doesNotExist());
   }
 
-  @Test
-  void createRejectsMissingRequiredFieldsAndOverlongNameWith400() throws Exception {
-    for (String content :
-        new String[] {
-          body(null, cryptoId, null, "Bitcoin Test"),
-          body(accountId, null, null, "Bitcoin Test"),
-          body(accountId, cryptoId, null, " "),
-          body(accountId, cryptoId, null, "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1)),
-          "{}"
-        }) {
-      mockMvc
-          .perform(
-              post("/api/investment-products")
-                  .contentType(MediaType.APPLICATION_JSON)
-                  .content(content))
-          .andExpect(status().isBadRequest());
-    }
+  private static Stream<String> missingRequiredFieldsAndOverlongNameCases() {
+    return Stream.of(
+        "missing accountId",
+        "missing investmentCategoryId",
+        "blank name",
+        "name over the length limit",
+        "empty body");
   }
 
-  @Test
-  void createRejectsUnknownReferencesWith404() throws Exception {
-    for (String content :
-        new String[] {
-          body(UUID.randomUUID(), cryptoId, null, "Bitcoin Test"),
-          body(accountId, UUID.randomUUID(), null, "Bitcoin Test"),
-          body(accountId, fixedIncomeId, UUID.randomUUID(), "Bitcoin Test")
-        }) {
-      mockMvc
-          .perform(
-              post("/api/investment-products")
-                  .contentType(MediaType.APPLICATION_JSON)
-                  .content(content))
-          .andExpect(status().isNotFound());
-    }
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("missingRequiredFieldsAndOverlongNameCases")
+  void createRejectsMissingRequiredFieldsAndOverlongNameWith400(String caseName) throws Exception {
+    String content =
+        switch (caseName) {
+          case "missing accountId" -> body(null, cryptoId, null, "Bitcoin Test");
+          case "missing investmentCategoryId" -> body(accountId, null, null, "Bitcoin Test");
+          case "blank name" -> body(accountId, cryptoId, null, " ");
+          case "name over the length limit" ->
+              body(accountId, cryptoId, null, "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1));
+          case "empty body" -> "{}";
+          default -> throw new IllegalArgumentException(caseName);
+        };
+
+    mockMvc
+        .perform(
+            post("/api/investment-products")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(content))
+        .andExpect(status().isBadRequest());
+  }
+
+  private static Stream<String> unknownReferenceCases() {
+    return Stream.of(
+        "unknown accountId", "unknown investmentCategoryId", "unknown investmentSubcategoryId");
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("unknownReferenceCases")
+  void createRejectsUnknownReferencesWith404(String caseName) throws Exception {
+    String content =
+        switch (caseName) {
+          case "unknown accountId" -> body(UUID.randomUUID(), cryptoId, null, "Bitcoin Test");
+          case "unknown investmentCategoryId" ->
+              body(accountId, UUID.randomUUID(), null, "Bitcoin Test");
+          case "unknown investmentSubcategoryId" ->
+              body(accountId, fixedIncomeId, UUID.randomUUID(), "Bitcoin Test");
+          default -> throw new IllegalArgumentException(caseName);
+        };
+
+    mockMvc
+        .perform(
+            post("/api/investment-products")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(content))
+        .andExpect(status().isNotFound());
   }
 
   @Test

@@ -24,8 +24,12 @@ import com.chm.myfinances.testsupport.WebIntegrationTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -148,16 +152,25 @@ class InvestmentCategoryControllerTest {
         .andExpect(status().isConflict());
   }
 
+  private static Stream<Arguments> blankAndTooLongNames() {
+    return Stream.of(
+        Arguments.of("blank", " "),
+        Arguments.of("too long", "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1)));
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("blankAndTooLongNames")
+  void createRejectsBlankAndTooLongNamesWith400(String label, String name) throws Exception {
+    mockMvc
+        .perform(
+            post("/api/investment-categories")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of("name", name))))
+        .andExpect(status().isBadRequest());
+  }
+
   @Test
-  void createRejectsBlankAndTooLongNamesWith400() throws Exception {
-    for (String name : new String[] {" ", "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1)}) {
-      mockMvc
-          .perform(
-              post("/api/investment-categories")
-                  .contentType(MediaType.APPLICATION_JSON)
-                  .content(objectMapper.writeValueAsString(Map.of("name", name))))
-          .andExpect(status().isBadRequest());
-    }
+  void createRejectsAMissingNameWith400() throws Exception {
     mockMvc
         .perform(
             post("/api/investment-categories")

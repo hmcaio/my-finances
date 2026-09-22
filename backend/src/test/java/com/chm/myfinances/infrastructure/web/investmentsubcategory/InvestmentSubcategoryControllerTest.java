@@ -22,8 +22,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -107,22 +110,29 @@ class InvestmentSubcategoryControllerTest {
         .andExpect(status().isNotFound());
   }
 
-  @Test
-  void createRejectsAMissingParentBlankAndTooLongNamesWith400() throws Exception {
-    for (String content :
-        new String[] {
-          body(null, "CDB Test"),
-          body(categoryId, " "),
-          body(categoryId, "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1)),
-          "{}"
-        }) {
-      mockMvc
-          .perform(
-              post("/api/investment-subcategories")
-                  .contentType(MediaType.APPLICATION_JSON)
-                  .content(content))
-          .andExpect(status().isBadRequest());
-    }
+  private static Stream<String> missingParentBlankAndTooLongNameCases() {
+    return Stream.of("missing parent", "blank name", "name over the length limit", "empty body");
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("missingParentBlankAndTooLongNameCases")
+  void createRejectsAMissingParentBlankAndTooLongNamesWith400(String caseName) throws Exception {
+    String content =
+        switch (caseName) {
+          case "missing parent" -> body(null, "CDB Test");
+          case "blank name" -> body(categoryId, " ");
+          case "name over the length limit" ->
+              body(categoryId, "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1));
+          case "empty body" -> "{}";
+          default -> throw new IllegalArgumentException(caseName);
+        };
+
+    mockMvc
+        .perform(
+            post("/api/investment-subcategories")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(content))
+        .andExpect(status().isBadRequest());
   }
 
   @Test
