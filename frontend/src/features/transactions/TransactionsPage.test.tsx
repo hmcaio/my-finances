@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
@@ -10,16 +10,8 @@ import {
   seedTransactions,
   transactionClosedAccountConflictHandler,
 } from '../../mocks/handlers/transactions'
+import { findRow, selectOption } from '../../test/testUtils'
 import { TransactionsPage } from './TransactionsPage'
-
-async function selectOption(
-  user: ReturnType<typeof userEvent.setup>,
-  comboboxName: string,
-  optionName: string,
-) {
-  await user.click(screen.getByRole('combobox', { name: comboboxName }))
-  await user.click(await screen.findByRole('option', { name: optionName }))
-}
 
 describe('TransactionsPage', () => {
   it('renders the seeded transactions', async () => {
@@ -94,8 +86,8 @@ describe('TransactionsPage', () => {
     const target = seedTransactions[0]
     await screen.findByText(target.description)
 
-    const row = screen.getByText(target.description).closest('tr') as HTMLElement
-    await user.click(within(row).getByRole('button', { name: 'Edit' }))
+    const row = await findRow(target.description)
+    await user.click(row.getByRole('button', { name: 'Edit' }))
 
     expect(await screen.findByRole('button', { name: 'Save changes' })).toBeInTheDocument()
     const descriptionInput = screen.getByRole('textbox', { name: 'Description' })
@@ -112,8 +104,8 @@ describe('TransactionsPage', () => {
     const target = seedTransactions[0]
     await screen.findByText(target.description)
 
-    const row = screen.getByText(target.description).closest('tr') as HTMLElement
-    await user.click(within(row).getByRole('button', { name: 'Delete' }))
+    const row = await findRow(target.description)
+    await user.click(row.getByRole('button', { name: 'Delete' }))
     await screen.findByText('Delete this transaction?')
     await user.click(screen.getByRole('button', { name: 'Delete transaction' }))
 
@@ -153,7 +145,7 @@ describe('TransactionsPage', () => {
     await user.click(await screen.findByRole('button', { name: 'Retry' }))
 
     const transaction = seedTransactions[0]
-    const row = within((await screen.findByText(transaction.description)).closest('tr')!)
+    const row = await findRow(transaction.description)
     // Names, not the raw ids the row falls back to while a lookup list is missing.
     await waitFor(() => {
       expect(

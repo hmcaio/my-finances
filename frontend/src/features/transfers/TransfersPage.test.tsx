@@ -1,19 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { server } from '../../mocks/server'
 import { seedAccounts } from '../../mocks/handlers/accounts'
 import { seedTransfers, transferClosedAccountConflictHandler } from '../../mocks/handlers/transfers'
+import { findRow, selectOption } from '../../test/testUtils'
 import { TransfersPage } from './TransfersPage'
-
-async function selectOption(
-  user: ReturnType<typeof userEvent.setup>,
-  comboboxName: string,
-  optionName: string,
-) {
-  await user.click(screen.getByRole('combobox', { name: comboboxName }))
-  await user.click(await screen.findByRole('option', { name: optionName }))
-}
 
 describe('TransfersPage', () => {
   it('renders the seeded transfers', async () => {
@@ -89,8 +81,8 @@ describe('TransfersPage', () => {
     const target = seedTransfers[0]
     await screen.findByText(target.description)
 
-    const row = screen.getByText(target.description).closest('tr') as HTMLElement
-    await user.click(within(row).getByRole('button', { name: 'Edit' }))
+    const row = await findRow(target.description)
+    await user.click(row.getByRole('button', { name: 'Edit' }))
 
     expect(await screen.findByRole('button', { name: 'Save changes' })).toBeInTheDocument()
     const descriptionInput = screen.getByRole('textbox', { name: 'Description' })
@@ -107,8 +99,8 @@ describe('TransfersPage', () => {
     const target = seedTransfers[0]
     await screen.findByText(target.description)
 
-    const row = screen.getByText(target.description).closest('tr') as HTMLElement
-    await user.click(within(row).getByRole('button', { name: 'Delete' }))
+    const row = await findRow(target.description)
+    await user.click(row.getByRole('button', { name: 'Delete' }))
     await screen.findByText('Delete this transfer?')
     await user.click(screen.getByRole('button', { name: 'Delete transfer' }))
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
@@ -12,15 +12,11 @@ import {
   investmentSubcategoryCreateConflictHandler,
   investmentSubcategoryDeleteConflictHandler,
 } from '../../mocks/handlers/investmentSubcategories'
+import { findRow } from '../../test/testUtils'
 import { InvestmentCategoriesPage } from './InvestmentCategoriesPage'
 
 const FIXED = seedInvestmentCategories.find((c) => c.name === 'Fixed Income')!
 const CRYPTO = seedInvestmentCategories.find((c) => c.name === 'Crypto')!
-
-function findRow(name: string) {
-  const cell = screen.getByText(name)
-  return within(cell.closest('tr') as HTMLElement)
-}
 
 async function expand(user: ReturnType<typeof userEvent.setup>, name: string) {
   await user.click(await screen.findByRole('button', { name: `Expand ${name}` }))
@@ -33,8 +29,8 @@ describe('InvestmentCategoriesPage', () => {
     for (const category of seedInvestmentCategories) {
       expect(await screen.findByText(category.name)).toBeInTheDocument()
     }
-    expect(findRow('Fixed Income').getByText('2 sub-categories')).toBeInTheDocument()
-    expect(findRow('Crypto').getByText('0 sub-categories')).toBeInTheDocument()
+    expect((await findRow('Fixed Income')).getByText('2 sub-categories')).toBeInTheDocument()
+    expect((await findRow('Crypto')).getByText('0 sub-categories')).toBeInTheDocument()
     expect(screen.queryByText('CDB')).not.toBeInTheDocument()
   })
 
@@ -75,7 +71,7 @@ describe('InvestmentCategoriesPage', () => {
 
     expect(await screen.findByText('LCI')).toBeInTheDocument()
     // The category's counter follows.
-    expect(findRow('Fixed Income').getByText('3 sub-categories')).toBeInTheDocument()
+    expect((await findRow('Fixed Income')).getByText('3 sub-categories')).toBeInTheDocument()
   })
 
   it('renames a category inline', async () => {
@@ -83,7 +79,7 @@ describe('InvestmentCategoriesPage', () => {
     render(<InvestmentCategoriesPage />)
     await screen.findByText(CRYPTO.name)
 
-    const row = findRow('Crypto')
+    const row = await findRow('Crypto')
     await user.click(row.getByRole('button', { name: 'Rename' }))
     const input = row.getByRole('textbox', { name: 'Category name' })
     await user.clear(input)
@@ -99,7 +95,7 @@ describe('InvestmentCategoriesPage', () => {
     render(<InvestmentCategoriesPage />)
     await expand(user, 'Fixed Income')
 
-    const row = findRow('CDB')
+    const row = await findRow('CDB')
     await user.click(row.getByRole('button', { name: 'Rename' }))
     const input = row.getByRole('textbox', { name: 'Sub-category name' })
     await user.clear(input)
@@ -115,7 +111,7 @@ describe('InvestmentCategoriesPage', () => {
     render(<InvestmentCategoriesPage />)
     await screen.findByText(CRYPTO.name)
 
-    await user.click(findRow('Crypto').getByRole('button', { name: 'Delete' }))
+    await user.click((await findRow('Crypto')).getByRole('button', { name: 'Delete' }))
 
     await waitFor(() => expect(screen.queryByText('Crypto')).not.toBeInTheDocument())
   })
@@ -125,7 +121,7 @@ describe('InvestmentCategoriesPage', () => {
     render(<InvestmentCategoriesPage />)
     await expand(user, 'Fixed Income')
 
-    await user.click(findRow('CDB').getByRole('button', { name: 'Delete' }))
+    await user.click((await findRow('CDB')).getByRole('button', { name: 'Delete' }))
 
     await waitFor(() => expect(screen.queryByText('CDB')).not.toBeInTheDocument())
     expect(screen.getByText('Tesouro Selic')).toBeInTheDocument()
@@ -137,7 +133,7 @@ describe('InvestmentCategoriesPage', () => {
     render(<InvestmentCategoriesPage />)
     await screen.findByText(FIXED.name)
 
-    await user.click(findRow('Fixed Income').getByRole('button', { name: 'Delete' }))
+    await user.click((await findRow('Fixed Income')).getByRole('button', { name: 'Delete' }))
 
     expect(await screen.findByText(/still has sub-categories or is used/)).toBeInTheDocument()
     expect(screen.getByText('Fixed Income')).toBeInTheDocument()
@@ -149,7 +145,7 @@ describe('InvestmentCategoriesPage', () => {
     render(<InvestmentCategoriesPage />)
     await expand(user, 'Fixed Income')
 
-    await user.click(findRow('CDB').getByRole('button', { name: 'Delete' }))
+    await user.click((await findRow('CDB')).getByRole('button', { name: 'Delete' }))
 
     expect(await screen.findByText(/used by an investment product/)).toBeInTheDocument()
     expect(screen.getByText('CDB')).toBeInTheDocument()
