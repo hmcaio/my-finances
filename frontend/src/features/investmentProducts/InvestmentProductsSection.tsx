@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link as RouterLink } from 'react-router-dom'
 import {
   Box,
   Chip,
@@ -6,12 +7,14 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
+  Link as MuiLink,
   Paper,
   Table,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
+  Tooltip,
   Typography,
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
@@ -170,32 +173,55 @@ export function InvestmentProductsSection({
                 <TableCell>Product</TableCell>
                 <TableCell>Category</TableCell>
                 <TableCell>Sub-category</TableCell>
+                <TableCell align="right">Latest value</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
-            <DataTableBody state={tableState} onRetry={retry} columns={5} actionsColumn>
+            <DataTableBody state={tableState} onRetry={retry} columns={6} actionsColumn>
               {products?.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} align="center">
+                  <TableCell colSpan={6} align="center">
                     <Typography color="text.secondary">No products yet.</Typography>
                   </TableCell>
                 </TableRow>
               )}
               {products?.map((product) => (
                 <TableRow key={product.id}>
-                  <TableCell>{product.name}</TableCell>
+                  <TableCell>
+                    <MuiLink
+                      component={RouterLink}
+                      to={`/investment-products/${product.id}`}
+                      underline="hover"
+                    >
+                      {product.name}
+                    </MuiLink>
+                  </TableCell>
                   <TableCell>{categoryName(product.investmentCategoryId)}</TableCell>
                   <TableCell>
                     {product.investmentSubcategoryId
                       ? subcategoryName(product.investmentSubcategoryId)
                       : '-'}
                   </TableCell>
+                  <TableCell align="right">
+                    {product.latestSnapshot ? (
+                      <Tooltip title={`Snapshot of ${product.latestSnapshot.date}`}>
+                        <span>{product.latestSnapshot.balance.toFixed(2)}</span>
+                      </Tooltip>
+                    ) : (
+                      '-'
+                    )}
+                  </TableCell>
                   <TableCell>
                     {product.closed ? (
                       <Chip label="Closed" size="small" />
                     ) : (
                       <Chip label="Open" size="small" color="success" />
+                    )}
+                    {product.needsSnapshot && (
+                      <Tooltip title="A buy or sell is newer than the latest snapshot: the value may be out of date.">
+                        <Chip label="Needs snapshot" size="small" color="warning" sx={{ ml: 1 }} />
+                      </Tooltip>
                     )}
                   </TableCell>
                   <TableCell align="right">
@@ -278,7 +304,7 @@ export function InvestmentProductsSection({
       <ConfirmDialog
         open={closeTarget !== null}
         title={`Close ${closeTarget?.name}?`}
-        body="Closing a product is not reversible through this app - there is no reopen action. It stays in the list and keeps its history."
+        body="Closing a product is not reversible through this app - there is no reopen action. It stays in the list and keeps its history. A product that still has value can't be closed: record a zero snapshot (or sell the entire position) first."
         confirmLabel="Close product"
         loading={confirming}
         onConfirm={() => void confirmClose()}

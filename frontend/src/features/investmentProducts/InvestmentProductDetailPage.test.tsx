@@ -1,0 +1,220 @@
+import { describe, expect, it } from 'vitest'
+import { screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { delay, http, HttpResponse } from 'msw'
+import { Route, Routes } from 'react-router-dom'
+import { server } from '../../mocks/server'
+import { seedAccounts, seedInvestmentAccount } from '../../mocks/handlers/accounts'
+import { seedInvestmentProducts } from '../../mocks/handlers/investmentProducts'
+import { seedBitcoinSnapshots } from '../../mocks/handlers/investmentSnapshots'
+import { seedBitcoinBuyTransfer, seedBitcoinSellTransfer } from '../../mocks/handlers/transfers'
+import { renderWithRouter, selectOption } from '../../test/testUtils'
+import { InvestmentProductDetailPage } from './InvestmentProductDetailPage'
+
+const bitcoin = seedInvestmentProducts.find((p) => p.id === 'iprod-btc')!
+
+function renderDetail(id = 'iprod-btc') {
+  // The real accounts endpoint includes INVESTMENT accounts; the default seed keeps them out.
+  server.use(
+    http.get('/api/accounts', () => HttpResponse.json([...seedAccounts, seedInvestmentAccount])),
+  )
+  return renderWithRouter(
+    <Routes>
+      <Route path="/investment-products/:id" element={<InvestmentProductDetailPage />} />
+    </Routes>,
+    { initialEntries: [`/investment-products/${id}`] },
+  )
+}
+
+describe('InvestmentProductDetailPage', () => {
+  it('shows the product, its latest value and the needs-snapshot badge', async () => {
+    renderDetail()
+
+    expect(await screen.findByRole('heading', { name: 'Bitcoin' })).toBeInTheDocument()
+    expect(screen.getByText('Needs snapshot')).toBeInTheDocument()
+    expect(screen.getByText('Latest snapshot 2026-08-05')).toBeInTheDocument()
+    // The big figure is the latest snapshot (also a row of the history table below).
+    expect(screen.getAllByText('900.00').length).toBeGreaterThan(0)
+    expect(screen.getByRole('link', { name: /Back to account/ })).toHaveAttribute(
+      'href',
+      `/accounts/${bitcoin.accountId}`,
+    )
+  })
+
+  it('lists the snapshot history, most recent first', async () => {
+    renderDetail()
+    const history = await screen.findByRole('table', { name: 'Snapshot history' })
+
+    const dates = (await within(history).findAllByRole('row'))
+      .slice(1)
+      .map((row) => within(row).getAllByRole('cell')[0].textContent)
+    expect(dates).toEqual(seedBitcoinSnapshots.map((s) => s.date))
+  })
+
+  it('lists the trades with their derived direction and record-only details', async () => {
+    renderDetail()
+    const trades = await screen.findByRole('table', { name: 'Trades' })
+
+    const buy = (await within(trades).findByText(seedBitcoinBuyTransfer.description)).closest('tr')!
+    expect(within(buy).getByText('Buy')).toBeInTheDocument()
+    expect(within(buy).getByText('1005.00')).toBeInTheDocument()
+    expect(within(buy).getByText('0.01')).toBeInTheDocument()
+    expect(within(buy).getByText('100000')).toBeInTheDocument()
+    expect(within(buy).getByText('5.00')).toBeInTheDocument()
+    const sell = within(trades).getByText(seedBitcoinSellTransfer.description).closest('tr')!
+    expect(within(sell).getByText('Sell')).toBeInTheDocument()
+    // No quantity, price or taxes recorded for the sell.
+    expect(within(sell).getAllByText('-')).toHaveLength(3)
+  })
+
+  it('draws the value/contribution chart and lists the raw monthly numbers with units', async () => {
+    renderDetail()
+
+    expect(await screen.findByRole('img', { name: /Value and contributions/ })).toBeInTheDocument()
+    const monthly = await screen.findByRole('table', { name: 'Monthly values' })
+    expect(within(monthly).getByText('2026-06')).toBeInTheDocument()
+    const august = within(monthly).getByText('2026-08').closest('tr')!
+    expect(within(august).getByText('900.00')).toBeInTheDocument()
+    expect(within(august).getByText('500.00')).toBeInTheDocument()
+    expect(within(august).getByText('0.01')).toBeInTheDocument()
+    // No snapshot yet in June: a dash, not a zero.
+    expect(within(within(monthly).getByText('2026-06').closest('tr')!).getByText('-')).toBeVisible()
+  })
+
+  it('records a snapshot and adds it to the history', async () => {
+    const user = userEvent.setup()
+    let sent: unknown = null
+    server.use(
+      http.post('/api/investment-products/:id/snapshots', async ({ request }) => {
+        sent = await request.json()
+        return HttpResponse.json(
+          { id: 'isnap-new', productId: 'iprod-btc', date: '2026-09-01', balance: 1234.5 },
+          { status: 201 },
+        )
+      }),
+    )
+    renderDetail()
+    await screen.findByRole('heading', { name: 'Bitcoin' })
+
+    const group = screen.getByRole('group', { name: 'Record snapshot' })
+    await user.clear(within(group).getByLabelText('Snapshot date'))
+    await user.type(within(group).getByLabelText('Snapshot date'), '2026-09-01')
+    await user.type(within(group).getByRole('spinbutton', { name: 'Balance' }), '1234.5')
+    await user.click(within(group).getByRole('button', { name: 'Record snapshot' }))
+
+    const history = screen.getByRole('table', { name: 'Snapshot history' })
+    expect(await within(history).findByText('1234.50')).toBeInTheDocument()
+    expect(sent).toEqual({ date: '2026-09-01', balance: 1234.5 })
+    // Newest first.
+    expect(within(history).getAllByRole('row')[1]).toHaveTextContent('2026-09-01')
+  })
+
+  it('a same-day snapshot replaces the earlier row instead of adding one', async () => {
+    const user = userEvent.setup()
+    renderDetail()
+    await screen.findByRole('heading', { name: 'Bitcoin' })
+    const history = screen.getByRole('table', { name: 'Snapshot history' })
+    await within(history).findByText('800.00')
+
+    const group = screen.getByRole('group', { name: 'Record snapshot' })
+    await user.clear(within(group).getByLabelText('Snapshot date'))
+    await user.type(within(group).getByLabelText('Snapshot date'), seedBitcoinSnapshots[0].date)
+    await user.type(within(group).getByRole('spinbutton', { name: 'Balance' }), '950')
+    await user.click(within(group).getByRole('button', { name: 'Record snapshot' }))
+
+    expect(await within(history).findByText('950.00')).toBeInTheDocument()
+    expect(within(history).queryByText('900.00')).not.toBeInTheDocument()
+    expect(within(history).getAllByRole('row')).toHaveLength(3)
+  })
+
+  it('accepts a zero balance (a liquidated position) and rejects a negative one', async () => {
+    const user = userEvent.setup()
+    renderDetail()
+    await screen.findByRole('heading', { name: 'Bitcoin' })
+    const group = screen.getByRole('group', { name: 'Record snapshot' })
+    const balance = within(group).getByRole('spinbutton', { name: 'Balance' })
+    const button = within(group).getByRole('button', { name: 'Record snapshot' })
+
+    expect(button).toBeDisabled()
+    await user.type(balance, '0')
+    expect(button).toBeEnabled()
+    await user.clear(balance)
+    await user.type(balance, '-1')
+    expect(button).toBeDisabled()
+  })
+
+  it('opens the transfer form as a Buy for this product and closes it after saving', async () => {
+    const user = userEvent.setup()
+    renderDetail()
+    await screen.findByRole('heading', { name: 'Bitcoin' })
+
+    await user.click(screen.getByRole('button', { name: 'Buy' }))
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByRole('textbox', { name: 'Description' })).toHaveValue('Buy Bitcoin')
+    expect(within(dialog).getByRole('combobox', { name: 'To Account' })).toHaveTextContent(
+      seedInvestmentAccount.name,
+    )
+    expect(await within(dialog).findByRole('combobox', { name: 'Product' })).toHaveTextContent(
+      'Bitcoin',
+    )
+
+    await selectOption(user, 'From Account', seedAccounts[0].name, within(dialog))
+    await user.type(within(dialog).getByRole('spinbutton', { name: 'Amount' }), '100')
+    await user.click(within(dialog).getByRole('button', { name: 'Add' }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  })
+
+  it('opens the Sell form with the investment account as the source', async () => {
+    const user = userEvent.setup()
+    renderDetail()
+    await screen.findByRole('heading', { name: 'Bitcoin' })
+
+    await user.click(screen.getByRole('button', { name: 'Sell' }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByRole('combobox', { name: 'From Account' })).toHaveTextContent(
+      seedInvestmentAccount.name,
+    )
+    expect(
+      await within(dialog).findByRole('checkbox', { name: 'Sold entire position' }),
+    ).toBeInTheDocument()
+  })
+
+  it('disables Buy and Sell on a closed product', async () => {
+    renderDetail('iprod-old')
+
+    expect(await screen.findByRole('heading', { name: 'Old CDB' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Buy' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Sell' })).toBeDisabled()
+  })
+
+  it('shows an error for an unknown product', async () => {
+    renderDetail('iprod-missing')
+
+    expect(await screen.findByText('Investment product not found.')).toBeInTheDocument()
+  })
+
+  it('shows a loading skeleton only when the first fetch is slow, then the product', async () => {
+    server.use(
+      http.get('/api/investment-products/:id', async () => {
+        await delay(400)
+        return HttpResponse.json(bitcoin)
+      }),
+    )
+    renderDetail()
+
+    expect(await screen.findByRole('status', { name: 'Loading product' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Bitcoin' })).toBeInTheDocument()
+    expect(screen.queryByRole('status', { name: 'Loading product' })).not.toBeInTheDocument()
+  })
+
+  it('shows the failure message when the product cannot be loaded', async () => {
+    server.use(
+      http.get('/api/investment-products/:id', () => new HttpResponse(null, { status: 500 })),
+    )
+    renderDetail()
+
+    expect(await screen.findByText(/Request failed with status 500/)).toBeInTheDocument()
+  })
+})
