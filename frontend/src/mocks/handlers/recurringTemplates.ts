@@ -30,6 +30,17 @@ export const seedPendingRecurringOccurrences: PendingRecurringOccurrence[] = [
   },
 ]
 
+/**
+ * Named lookups for the sole seed row of each array, so call sites identify them by description
+ * instead of indexing by position (frontend test audit's F6 finding).
+ */
+export const seedRentRecurringTemplate = seedRecurringTemplates.find(
+  (t) => t.description === 'Rent',
+)!
+export const seedRentPendingOccurrence = seedPendingRecurringOccurrences.find(
+  (o) => o.templateId === seedRentRecurringTemplate.id,
+)!
+
 const RECURRING_TEMPLATES_URL = '/api/recurring-templates'
 
 interface CreateRecurringTemplateRequestBody {

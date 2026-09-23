@@ -12,6 +12,14 @@ export const seedCategories: Category[] = [
   { id: 'cat-4', name: 'Other Income', type: 'INCOME', builtIn: true },
 ]
 
+/**
+ * Named lookups for the two non-built-in seed rows (`cat-1`/`cat-2`), so call sites identify them
+ * by name instead of indexing into `seedCategories` by position (F015 spec's F002 backfill,
+ * position-independent per the frontend test audit's F6 finding).
+ */
+export const seedGroceriesCategory = seedCategories.find((c) => c.name === 'Groceries')!
+export const seedSalaryCategory = seedCategories.find((c) => c.name === 'Salary')!
+
 const CATEGORIES_URL = '/api/categories'
 
 interface CategoryRequestBody {
