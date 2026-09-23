@@ -1,9 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import { seedAccounts } from '../../mocks/handlers/accounts'
 import {
+  seedBitcoinBuyTransfer,
+  seedBitcoinSellTransfer,
   seedCreditCardPaymentTransfer,
   seedTransfers,
   transferClosedAccountConflictHandler,
@@ -159,5 +162,24 @@ describe('TransfersPage local-time defaults', () => {
     render(<TransfersPage />)
 
     expect(await screen.findByLabelText('Date')).toHaveValue('2026-03-31')
+  })
+})
+
+describe('TransfersPage trades', () => {
+  it('labels a tagged transfer Buy or Sell with its product name', async () => {
+    server.use(
+      http.get('/api/transfers', () =>
+        HttpResponse.json({
+          content: [seedBitcoinSellTransfer, seedBitcoinBuyTransfer],
+          page: { size: 20, number: 0, totalElements: 2, totalPages: 1 },
+        }),
+      ),
+    )
+    render(<TransfersPage />)
+
+    expect(
+      await screen.findByText('Buy Bitcoin', { selector: '.MuiChip-label' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Sell Bitcoin', { selector: '.MuiChip-label' })).toBeInTheDocument()
   })
 })
