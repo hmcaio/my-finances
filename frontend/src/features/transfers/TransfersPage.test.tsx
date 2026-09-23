@@ -60,7 +60,7 @@ describe('TransfersPage', () => {
     expect(await screen.findByText('Move to savings')).toBeInTheDocument()
   })
 
-  it("excludes the selected From account from the To account dropdown - can't pick the same account twice", async () => {
+  it('excludes the selected From account from the To dropdown (no same-account transfer)', async () => {
     const user = userEvent.setup()
     render(<TransfersPage />)
     await screen.findByText(seedCreditCardPaymentTransfer.description)

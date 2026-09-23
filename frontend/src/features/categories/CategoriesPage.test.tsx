@@ -98,7 +98,7 @@ describe('CategoriesPage', () => {
     expect(screen.queryByText('Loading…')).not.toBeInTheDocument()
   })
 
-  it('shows a failure row, never a skeleton, after the first fetch fails - even once the banner is dismissed', async () => {
+  it('shows a failure row, never a skeleton, after a failed first fetch, even with the banner dismissed', async () => {
     server.use(http.get('/api/categories', () => new HttpResponse(null, { status: 500 })))
     render(<CategoriesPage />)
 
