@@ -3,7 +3,7 @@
 **Depends on**: F001, F003, F005, F008, F015. See [ADR 0012](../../adr/0012-investments-as-accounts-and-transfers.md).
 
 ## Backend
-- [ ] Write tests first for `InvestmentSnapshot` (balance `>= 0`, `replaceBalance`) and for `Transfer`'s trade details (details require a product, quantity and unit price both-or-neither, positivity, taxes `>= 0`), then implement `InvestmentSnapshot` and `InvestmentTradeDetails`.
+- [x] Write tests first for `InvestmentSnapshot` (balance `>= 0`, `replaceBalance`) and for `Transfer`'s trade details (details require a product, quantity and unit price both-or-neither, positivity, taxes `>= 0`), then implement `InvestmentSnapshot` and `InvestmentTradeDetails`.
 - [ ] Write tests for F008's `HasInvestmentHistoryChecker` implementation: `true` once a snapshot or a tagged transfer exists for the product; implement it.
 - [ ] Write tests for `LatestInvestmentSnapshotQuery` ("latest as of date" with several snapshots, none before the date), then implement it; switch `AccountBalanceQuery`'s `INVESTMENT` branch from `0` to the snapshot sum (extend `AccountBalanceQueryTest`).
 - [ ] Write tests for `InvestmentSnapshotService.record` (create, same-day replace, unknown product), then implement.

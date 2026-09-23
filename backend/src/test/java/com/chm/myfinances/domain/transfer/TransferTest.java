@@ -358,11 +358,134 @@ class TransferTest {
             TO_ACCOUNT_ID,
             new BigDecimal("50.00"),
             "Reconstituted",
-            "Notes");
+            "Notes",
+            null,
+            null);
 
     assertThat(transfer.getId()).isEqualTo(id);
     assertThat(transfer.getAmount()).isEqualByComparingTo("50.00");
     assertThat(transfer.getDescription()).isEqualTo("Reconstituted");
     assertThat(transfer.getAdditionalNotes()).isEqualTo("Notes");
+    assertThat(transfer.getInvestmentProductId()).isNull();
+    assertThat(transfer.getTradeDetails().isEmpty()).isTrue();
+  }
+
+  private static final UUID PRODUCT_ID = UUID.randomUUID();
+
+  private static Transfer buyWith(UUID productId, InvestmentTradeDetails details) {
+    return Transfer.create(
+        UUID.randomUUID(),
+        LocalDate.of(2026, 3, 15),
+        FROM_ACCOUNT_ID,
+        TO_ACCOUNT_ID,
+        new BigDecimal("1005.00"),
+        "Buy",
+        null,
+        productId,
+        details);
+  }
+
+  @Test
+  void plainTransferHasNoProductAndEmptyTradeDetails() {
+    Transfer transfer =
+        Transfer.create(
+            UUID.randomUUID(),
+            LocalDate.now(),
+            FROM_ACCOUNT_ID,
+            TO_ACCOUNT_ID,
+            BigDecimal.TEN,
+            "Transfer",
+            null);
+
+    assertThat(transfer.getInvestmentProductId()).isNull();
+    assertThat(transfer.getTradeDetails().isEmpty()).isTrue();
+  }
+
+  @Test
+  void createsATaggedTransferWithTradeDetails() {
+    InvestmentTradeDetails details =
+        new InvestmentTradeDetails(
+            new BigDecimal("10"), new BigDecimal("100.00000000"), new BigDecimal("5.00"));
+
+    Transfer transfer = buyWith(PRODUCT_ID, details);
+
+    assertThat(transfer.getInvestmentProductId()).isEqualTo(PRODUCT_ID);
+    assertThat(transfer.getTradeDetails()).isEqualTo(details);
+  }
+
+  @Test
+  void createsATaggedTransferWithoutTradeDetails() {
+    assertThat(buyWith(PRODUCT_ID, null).getTradeDetails().isEmpty()).isTrue();
+    assertThat(buyWith(PRODUCT_ID, InvestmentTradeDetails.empty()).getInvestmentProductId())
+        .isEqualTo(PRODUCT_ID);
+  }
+
+  @Test
+  void createRejectsTradeDetailsWithoutAProduct() {
+    assertThatThrownBy(
+            () -> buyWith(null, new InvestmentTradeDetails(BigDecimal.ONE, BigDecimal.TEN, null)))
+        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> buyWith(null, new InvestmentTradeDetails(null, null, BigDecimal.ONE)))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void editCanTagAndUntagAProductAndReplaceDetails() {
+    Transfer transfer =
+        Transfer.create(
+            UUID.randomUUID(),
+            LocalDate.of(2026, 1, 1),
+            FROM_ACCOUNT_ID,
+            TO_ACCOUNT_ID,
+            BigDecimal.TEN,
+            "Transfer",
+            null);
+    InvestmentTradeDetails details =
+        new InvestmentTradeDetails(BigDecimal.ONE, BigDecimal.TEN, BigDecimal.ONE);
+
+    transfer.edit(
+        LocalDate.of(2026, 1, 2),
+        FROM_ACCOUNT_ID,
+        TO_ACCOUNT_ID,
+        BigDecimal.TEN,
+        "Transfer",
+        null,
+        PRODUCT_ID,
+        details);
+    assertThat(transfer.getInvestmentProductId()).isEqualTo(PRODUCT_ID);
+    assertThat(transfer.getTradeDetails()).isEqualTo(details);
+
+    transfer.edit(
+        LocalDate.of(2026, 1, 2),
+        FROM_ACCOUNT_ID,
+        TO_ACCOUNT_ID,
+        BigDecimal.TEN,
+        "Transfer",
+        null,
+        null,
+        null);
+    assertThat(transfer.getInvestmentProductId()).isNull();
+    assertThat(transfer.getTradeDetails().isEmpty()).isTrue();
+  }
+
+  @Test
+  void editRejectsTradeDetailsWithoutAProductAndLeavesTheTransferUntouched() {
+    Transfer transfer = buyWith(PRODUCT_ID, InvestmentTradeDetails.empty());
+
+    assertThatThrownBy(
+            () ->
+                transfer.edit(
+                    LocalDate.of(2027, 1, 1),
+                    FROM_ACCOUNT_ID,
+                    TO_ACCOUNT_ID,
+                    BigDecimal.TEN,
+                    "Changed",
+                    null,
+                    null,
+                    new InvestmentTradeDetails(BigDecimal.ONE, BigDecimal.TEN, null)))
+        .isInstanceOf(IllegalArgumentException.class);
+
+    assertThat(transfer.getDescription()).isEqualTo("Buy");
+    assertThat(transfer.getInvestmentProductId()).isEqualTo(PRODUCT_ID);
   }
 }

@@ -112,6 +112,8 @@ public class TransferRepositoryAdapter implements TransferRepository {
         entity.getToAccountId(),
         entity.getAmount(),
         entity.getDescription(),
-        entity.getAdditionalNotes());
+        entity.getAdditionalNotes(),
+        null,
+        null);
   }
 }
