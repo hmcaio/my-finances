@@ -4,11 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.application.account.AccountNotFoundException;
+import com.chm.myfinances.application.investmentsnapshot.InvestmentSnapshotService;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.domain.transfer.TransferFilter;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
 import com.chm.myfinances.testsupport.fakes.FakeTransferRepository;
 import com.chm.myfinances.testsupport.mothers.AccountMother;
 import java.math.BigDecimal;
@@ -29,9 +32,20 @@ class TransferServiceTest {
 
   private final FakeTransferRepository transferRepository = new FakeTransferRepository();
   private final FakeAccountRepository accountRepository = new FakeAccountRepository();
+  private final FakeInvestmentProductRepository productRepository =
+      new FakeInvestmentProductRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
-  private final TransferService service =
-      new TransferService(transferRepository, accountRepository, idGenerator);
+  private final TransferService service = serviceWith(idGenerator);
+
+  private TransferService serviceWith(FakeIdGenerator generator) {
+    return new TransferService(
+        transferRepository,
+        accountRepository,
+        productRepository,
+        new InvestmentSnapshotService(
+            new FakeInvestmentSnapshotRepository(), productRepository, generator),
+        generator);
+  }
 
   private Account checking;
   private Account savings;
@@ -49,8 +63,7 @@ class TransferServiceTest {
   @Test
   void createAssignsIdFromIdGenerator() {
     UUID nextId = UUID.randomUUID();
-    TransferService service =
-        new TransferService(transferRepository, accountRepository, new FakeIdGenerator(nextId));
+    TransferService service = serviceWith(new FakeIdGenerator(nextId));
 
     Transfer created =
         service.create(
