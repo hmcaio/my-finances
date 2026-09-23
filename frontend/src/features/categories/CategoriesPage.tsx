@@ -17,6 +17,7 @@ import {
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import {
+  CATEGORY_NAME_MAX_LENGTH,
   createCategory,
   deleteCategory,
   getCategories,
@@ -151,6 +152,7 @@ export function CategoriesPage() {
                         size="small"
                         value={editingName}
                         onChange={(e) => setEditingName(e.target.value)}
+                        slotProps={{ htmlInput: { maxLength: CATEGORY_NAME_MAX_LENGTH } }}
                         autoFocus
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') void saveEdit(category.id)
@@ -204,6 +206,7 @@ export function CategoriesPage() {
             size="small"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
+            slotProps={{ htmlInput: { maxLength: CATEGORY_NAME_MAX_LENGTH } }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') void handleAdd()
             }}

@@ -18,6 +18,9 @@ export interface Category {
 export type CreateCategoryRequest = components['schemas']['CreateCategoryRequest']
 export type UpdateCategoryRequest = components['schemas']['UpdateCategoryRequest']
 
+/** Matches the backend's `TextFieldConstraints.MAX_NAME_LENGTH`, so inputs can cap what is typed. */
+export const CATEGORY_NAME_MAX_LENGTH = 100
+
 export const CONFLICT_MESSAGE =
   'This category is used by existing transactions, budgets, or recurring templates — reassign them before deleting it.'
 

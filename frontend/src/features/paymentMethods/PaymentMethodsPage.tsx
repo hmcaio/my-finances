@@ -17,6 +17,7 @@ import {
   createPaymentMethod,
   deletePaymentMethod,
   getPaymentMethods,
+  PAYMENT_METHOD_NAME_MAX_LENGTH,
   renamePaymentMethod,
   type PaymentMethod,
 } from '../../api/paymentMethods'
@@ -140,6 +141,7 @@ export function PaymentMethodsPage() {
                         size="small"
                         value={editingName}
                         onChange={(e) => setEditingName(e.target.value)}
+                        slotProps={{ htmlInput: { maxLength: PAYMENT_METHOD_NAME_MAX_LENGTH } }}
                         autoFocus
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') void saveEdit(paymentMethod.id)
@@ -186,6 +188,7 @@ export function PaymentMethodsPage() {
             size="small"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
+            slotProps={{ htmlInput: { maxLength: PAYMENT_METHOD_NAME_MAX_LENGTH } }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') void handleAdd()
             }}
