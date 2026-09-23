@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
@@ -98,16 +98,23 @@ describe('CategoriesPage', () => {
     expect(screen.queryByText('Loading…')).not.toBeInTheDocument()
   })
 
-  it('shows a failure row, never a skeleton, after the first fetch fails - even once the banner is dismissed', async () => {
+  it('shows a failure row, never a skeleton, after a failed first fetch, even with the banner dismissed', async () => {
     server.use(http.get('/api/categories', () => new HttpResponse(null, { status: 500 })))
-    const user = userEvent.setup()
     render(<CategoriesPage />)
 
     const alert = await screen.findByRole('alert')
     expect(await screen.findByText(/Could not load data/)).toBeInTheDocument()
-    await user.click(within(alert).getByRole('button', { name: 'Close' }))
-    // Wait past the 150ms skeleton delay: the dismissed banner must not bring the skeleton back.
-    await new Promise((resolve) => setTimeout(resolve, 250))
+    // Fake only the timer functions, and only after the real-timer waits above: findBy* polling
+    // needs real timers, while the skeleton gate (useDelayedFlag's setTimeout) must be steppable.
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    try {
+      // fireEvent, not userEvent: RTL's async wrapper awaits a setTimeout(0) that never fires under fake timers.
+      fireEvent.click(within(alert).getByRole('button', { name: 'Close' }))
+      // Advance past the 150ms skeleton delay: the dismissed banner must not bring the skeleton back.
+      await vi.advanceTimersByTimeAsync(250)
+    } finally {
+      vi.useRealTimers()
+    }
 
     expect(screen.queryByText('Loading…')).not.toBeInTheDocument()
     expect(screen.getByText(/Could not load data/)).toBeInTheDocument()

@@ -59,7 +59,10 @@ describe('BudgetsPage', () => {
   it('adds a new budget for an unbudgeted expense category', async () => {
     server.use(
       http.get('/api/categories', () =>
-        HttpResponse.json([...seedCategories, { id: 'cat-3', name: 'Dining', type: 'EXPENSE' }]),
+        HttpResponse.json([
+          ...seedCategories,
+          { id: 'cat-5', name: 'Dining', type: 'EXPENSE', builtIn: false },
+        ]),
       ),
     )
     const user = userEvent.setup()
@@ -77,7 +80,10 @@ describe('BudgetsPage', () => {
   it('surfaces the 409 conflict message when create fails', async () => {
     server.use(
       http.get('/api/categories', () =>
-        HttpResponse.json([...seedCategories, { id: 'cat-3', name: 'Dining', type: 'EXPENSE' }]),
+        HttpResponse.json([
+          ...seedCategories,
+          { id: 'cat-5', name: 'Dining', type: 'EXPENSE', builtIn: false },
+        ]),
       ),
       budgetCreateConflictHandler,
     )

@@ -35,9 +35,38 @@ jobs:
         run: chmod +x gradlew
         working-directory: backend
 
-      - name: spotlessCheck + test
-        run: ./gradlew spotlessCheck test --no-daemon
+      - name: spotlessCheck + test + coverage report
+        # jacocoTestReport goes in the same invocation (it depends on `test`) rather than a later
+        # step: a later step would be skipped when tests fail, or re-run the tests. Report only -
+        # there are no coverage thresholds, so the numbers never fail the job.
+        run: ./gradlew spotlessCheck test jacocoTestReport --no-daemon
         working-directory: backend
+
+      - name: Upload test report
+        # Also when tests fail - that is when the report is most useful. `ignore` because Gradle
+        # writes nothing if the build stops before the test task (e.g. on spotlessCheck). Both
+        # paths sit under backend/build, so the artifact holds reports/tests/test/index.html (the
+        # browsable report) and test-results/test/*.xml (JUnit XML).
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-report
+          path: |
+            backend/build/reports/tests/test
+            backend/build/test-results/test
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload coverage report
+        # JaCoCo's HTML report, a static site (open index.html). Nothing is written when the run
+        # fails before `jacocoTestReport`, hence `ignore`.
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/build/reports/jacoco/test/html
+          if-no-files-found: ignore
+          retention-days: 14
 
   test-frontend:
     name: Frontend tests
@@ -57,18 +86,35 @@ jobs:
       - run: npm run lint
         working-directory: frontend
 
-      - name: Run tests (if a test script is configured)
-        # F001's Vite template hasn't added a test runner yet (no "test" script in
-        # package.json) — check at run time rather than hardcoding `npm test`, so this step
-        # picks up a real test command automatically once one is added, instead of either
-        # failing now or silently staying a no-op forever.
-        run: |
-          if npm run | grep -qE '^  test$'; then
-            npm test
-          else
-            echo "No \"test\" script in package.json yet - skipping."
-          fi
+      - name: Run tests with coverage
+        # Same pass/fail behaviour as `npm test` (no coverage thresholds are configured, so the
+        # numbers never fail the job) - and it avoids running the suite twice. The report is
+        # informational only; it is uploaded below for anyone who wants to browse it.
+        run: npm run test:coverage
         working-directory: frontend
+
+      - name: Upload test report
+        # Vitest's HTML reporter output (configured in vite.config.ts). Unlike the coverage
+        # report below it isn't a static site: to browse a downloaded copy run
+        # `npx vite preview --outDir test-results` from the extracted folder.
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-test-report
+          path: frontend/test-results
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload coverage report
+        # Also on test failure so a red run still leaves whatever report was produced;
+        # `ignore` because Vitest writes no report when the run fails early.
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage
+          if-no-files-found: ignore
+          retention-days: 14
 
   build-and-push:
     name: Build and push images

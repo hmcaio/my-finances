@@ -43,6 +43,8 @@ export function expectLoadStates({
   loadedText,
 }: LoadStatesConfig): void {
   it('shows a loading skeleton only when the first fetch is slow, then loads', async () => {
+    // Real 400ms MSW delay on purpose: it must outlast useDelayedFlag's 150ms gate while
+    // findBy* polls. Fake timers would stall RTL's waitFor and MSW's own delay() (flaky).
     server.use(
       http.get(url, async () => {
         await delay(400)
