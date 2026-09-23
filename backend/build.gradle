@@ -74,7 +74,8 @@ tasks.named('test') {
 // plain `test` task's own dependency chain, so the everyday `./gradlew test` dev loop doesn't
 // pay for report generation. `jacocoTestReport` depends on `test` (the plugin's default), so
 // `./gradlew jacocoTestReport` alone runs the tests and produces
-// build/reports/jacoco/test/html/index.html. Not wired into CI in this PR.
+// build/reports/jacoco/test/html/index.html. CI runs it in the same invocation as `test` and
+// uploads the HTML report as an artifact (report only - no coverage thresholds).
 jacocoTestReport {
     reports {
         html.required = true

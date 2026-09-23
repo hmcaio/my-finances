@@ -35,8 +35,11 @@ jobs:
         run: chmod +x gradlew
         working-directory: backend
 
-      - name: spotlessCheck + test
-        run: ./gradlew spotlessCheck test --no-daemon
+      - name: spotlessCheck + test + coverage report
+        # jacocoTestReport goes in the same invocation (it depends on `test`) rather than a later
+        # step: a later step would be skipped when tests fail, or re-run the tests. Report only -
+        # there are no coverage thresholds, so the numbers never fail the job.
+        run: ./gradlew spotlessCheck test jacocoTestReport --no-daemon
         working-directory: backend
 
       - name: Upload test report
@@ -51,6 +54,17 @@ jobs:
           path: |
             backend/build/reports/tests/test
             backend/build/test-results/test
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload coverage report
+        # JaCoCo's HTML report, a static site (open index.html). Nothing is written when the run
+        # fails before `jacocoTestReport`, hence `ignore`.
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/build/reports/jacoco/test/html
           if-no-files-found: ignore
           retention-days: 14
 
