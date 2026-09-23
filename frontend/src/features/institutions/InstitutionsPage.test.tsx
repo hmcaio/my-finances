@@ -7,12 +7,8 @@ import {
   institutionDeleteConflictHandler,
   seedInstitutions,
 } from '../../mocks/handlers/institutions'
+import { findRow } from '../../test/testUtils'
 import { InstitutionsPage } from './InstitutionsPage'
-
-function findRow(name: string) {
-  const cell = screen.getByText(name)
-  return within(cell.closest('tr') as HTMLElement)
-}
 
 const builtIn = seedInstitutions.find((i) => i.builtIn)!
 const regular = seedInstitutions.filter((i) => !i.builtIn)
@@ -35,11 +31,13 @@ describe('InstitutionsPage', () => {
     render(<InstitutionsPage />)
     await screen.findByText(builtIn.name)
 
-    const row = findRow(builtIn.name)
+    const row = await findRow(builtIn.name)
     expect(row.getByRole('button', { name: 'Rename' })).toBeInTheDocument()
     expect(row.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
     // Every other row does have one.
-    expect(findRow(regular[0].name).getByRole('button', { name: 'Delete' })).toBeInTheDocument()
+    expect(
+      (await findRow(regular[0].name)).getByRole('button', { name: 'Delete' }),
+    ).toBeInTheDocument()
   })
 
   it('adds a new institution', async () => {
@@ -61,7 +59,7 @@ describe('InstitutionsPage', () => {
     expect(screen.getByLabelText('Name')).toHaveAttribute('maxlength', '100')
 
     // While a row is being edited its name is an input value, so hold on to the row first.
-    const row = findRow(regular[0].name)
+    const row = await findRow(regular[0].name)
     await user.click(row.getByRole('button', { name: 'Rename' }))
     expect(row.getByRole('textbox')).toHaveAttribute('maxlength', '100')
   })
@@ -71,7 +69,7 @@ describe('InstitutionsPage', () => {
     render(<InstitutionsPage />)
     await screen.findByText(regular[0].name)
 
-    const row = findRow(regular[0].name)
+    const row = await findRow(regular[0].name)
     await user.click(row.getByRole('button', { name: 'Rename' }))
     const input = row.getByRole('textbox')
     await user.clear(input)
@@ -87,7 +85,7 @@ describe('InstitutionsPage', () => {
     render(<InstitutionsPage />)
     await screen.findByText(builtIn.name)
 
-    const row = findRow(builtIn.name)
+    const row = await findRow(builtIn.name)
     await user.click(row.getByRole('button', { name: 'Rename' }))
     const input = row.getByRole('textbox')
     await user.clear(input)
@@ -99,7 +97,7 @@ describe('InstitutionsPage', () => {
       within(screen.getAllByRole('row')[1]).getByText('Zzz Sem instituicao'),
     ).toBeInTheDocument()
     expect(
-      findRow('Zzz Sem instituicao').queryByRole('button', { name: 'Delete' }),
+      (await findRow('Zzz Sem instituicao')).queryByRole('button', { name: 'Delete' }),
     ).not.toBeInTheDocument()
   })
 
@@ -109,7 +107,7 @@ describe('InstitutionsPage', () => {
     const name = regular[1].name
     await screen.findByText(name)
 
-    await user.click(findRow(name).getByRole('button', { name: 'Delete' }))
+    await user.click((await findRow(name)).getByRole('button', { name: 'Delete' }))
 
     await waitFor(() => expect(screen.queryByText(name)).not.toBeInTheDocument())
   })
@@ -121,7 +119,7 @@ describe('InstitutionsPage', () => {
     const name = regular[0].name
     await screen.findByText(name)
 
-    await user.click(findRow(name).getByRole('button', { name: 'Delete' }))
+    await user.click((await findRow(name)).getByRole('button', { name: 'Delete' }))
 
     expect(await screen.findByText(/still used by an account/)).toBeInTheDocument()
     // A 409 must not optimistically remove the row.

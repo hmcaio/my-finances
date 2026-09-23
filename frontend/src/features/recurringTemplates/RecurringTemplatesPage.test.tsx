@@ -9,6 +9,7 @@ import {
   seedPendingRecurringOccurrences,
   seedRecurringTemplates,
 } from '../../mocks/handlers/recurringTemplates'
+import { findRow } from '../../test/testUtils'
 import { RecurringTemplatesPage } from './RecurringTemplatesPage'
 
 /** Scopes queries to the templates settings table - the pending-occurrences widget below it
@@ -22,16 +23,11 @@ function pendingWidgetTable() {
   return within(screen.getAllByRole('table')[1])
 }
 
-async function findRow(name: string) {
-  const cell = await templatesTable().findByText(name)
-  return within(cell.closest('tr') as HTMLElement)
-}
-
 describe('RecurringTemplatesPage', () => {
   it('renders the seeded template with its current amount and day of month', async () => {
     render(<RecurringTemplatesPage />)
 
-    const row = await findRow(seedRecurringTemplates[0].description)
+    const row = await findRow(seedRecurringTemplates[0].description, templatesTable())
     expect(row.getByText(seedRecurringTemplates[0].currentAmount!.toFixed(2))).toBeInTheDocument()
     expect(row.getByText(String(seedRecurringTemplates[0].currentDayOfMonth))).toBeInTheDocument()
     expect(row.getByText('Active')).toBeInTheDocument()
@@ -43,7 +39,7 @@ describe('RecurringTemplatesPage', () => {
     )
     const user = userEvent.setup()
     render(<RecurringTemplatesPage />)
-    await findRow(seedRecurringTemplates[0].description)
+    await findRow(seedRecurringTemplates[0].description, templatesTable())
 
     await user.click(screen.getByRole('combobox', { name: 'Account' }))
 
@@ -57,7 +53,7 @@ describe('RecurringTemplatesPage', () => {
   it('adds a new recurring template', async () => {
     const user = userEvent.setup()
     render(<RecurringTemplatesPage />)
-    await findRow(seedRecurringTemplates[0].description)
+    await findRow(seedRecurringTemplates[0].description, templatesTable())
 
     await user.click(screen.getByLabelText('Category'))
     await user.click(await screen.findByRole('option', { name: seedCategories[0].name }))
@@ -76,7 +72,7 @@ describe('RecurringTemplatesPage', () => {
   it('edits a template amount and day of month inline', async () => {
     const user = userEvent.setup()
     render(<RecurringTemplatesPage />)
-    const row = await findRow(seedRecurringTemplates[0].description)
+    const row = await findRow(seedRecurringTemplates[0].description, templatesTable())
 
     await user.click(row.getByRole('button', { name: 'Edit amount and day' }))
     const amountInput = row.getByLabelText('Amount')
@@ -100,7 +96,7 @@ describe('RecurringTemplatesPage', () => {
     )
     const user = userEvent.setup()
     render(<RecurringTemplatesPage />)
-    await findRow(seedRecurringTemplates[0].description)
+    await findRow(seedRecurringTemplates[0].description, templatesTable())
     await waitFor(() => expect(pendingCallCount).toBe(1))
 
     await user.click(screen.getByLabelText('Category'))
@@ -132,7 +128,7 @@ describe('RecurringTemplatesPage', () => {
     )
     const user = userEvent.setup()
     render(<RecurringTemplatesPage />)
-    const row = await findRow(seedRecurringTemplates[0].description)
+    const row = await findRow(seedRecurringTemplates[0].description, templatesTable())
     expect(await pendingWidgetTable().findByText('1500.00')).toBeInTheDocument()
 
     await user.click(row.getByRole('button', { name: 'Edit amount and day' }))
@@ -147,7 +143,7 @@ describe('RecurringTemplatesPage', () => {
   it('stops an active template', async () => {
     const user = userEvent.setup()
     render(<RecurringTemplatesPage />)
-    const row = await findRow(seedRecurringTemplates[0].description)
+    const row = await findRow(seedRecurringTemplates[0].description, templatesTable())
 
     await user.click(row.getByRole('button', { name: 'Stop' }))
 
@@ -181,7 +177,7 @@ describe('RecurringTemplatesPage local-time defaults', () => {
     )
     const user = userEvent.setup()
     render(<RecurringTemplatesPage />)
-    await findRow(seedRecurringTemplates[0].description)
+    await findRow(seedRecurringTemplates[0].description, templatesTable())
 
     await user.click(screen.getByLabelText('Category'))
     await user.click(await screen.findByRole('option', { name: seedCategories[0].name }))

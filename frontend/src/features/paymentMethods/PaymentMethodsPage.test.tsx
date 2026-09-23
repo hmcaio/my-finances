@@ -1,17 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { server } from '../../mocks/server'
 import {
   paymentMethodDeleteConflictHandler,
   seedPaymentMethods,
 } from '../../mocks/handlers/paymentMethods'
+import { findRow } from '../../test/testUtils'
 import { PaymentMethodsPage } from './PaymentMethodsPage'
-
-function findRow(name: string) {
-  const cell = screen.getByText(name)
-  return within(cell.closest('tr') as HTMLElement)
-}
 
 describe('PaymentMethodsPage', () => {
   it('renders the seeded payment methods', async () => {
@@ -38,7 +34,7 @@ describe('PaymentMethodsPage', () => {
     render(<PaymentMethodsPage />)
     await screen.findByText(seedPaymentMethods[0].name)
 
-    const row = findRow(seedPaymentMethods[0].name)
+    const row = await findRow(seedPaymentMethods[0].name)
     await user.click(row.getByRole('button', { name: 'Rename' }))
     const input = row.getByRole('textbox')
     await user.clear(input)
@@ -55,7 +51,7 @@ describe('PaymentMethodsPage', () => {
     const name = seedPaymentMethods[1].name
     await screen.findByText(name)
 
-    const row = findRow(name)
+    const row = await findRow(name)
     await user.click(row.getByRole('button', { name: 'Delete' }))
 
     await waitFor(() => expect(screen.queryByText(name)).not.toBeInTheDocument())
@@ -68,7 +64,7 @@ describe('PaymentMethodsPage', () => {
     const name = seedPaymentMethods[0].name
     await screen.findByText(name)
 
-    const row = findRow(name)
+    const row = await findRow(name)
     await user.click(row.getByRole('button', { name: 'Delete' }))
 
     expect(await screen.findByText(/reassign them/)).toBeInTheDocument()

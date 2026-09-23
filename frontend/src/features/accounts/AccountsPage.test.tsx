@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import {
@@ -10,19 +9,11 @@ import {
   seedInvestmentAccount,
 } from '../../mocks/handlers/accounts'
 import { BUILT_IN_INSTITUTION_ID, seedInstitutions } from '../../mocks/handlers/institutions'
+import { findRow, renderWithRouter } from '../../test/testUtils'
 import { AccountsPage } from './AccountsPage'
 
 function renderPage() {
-  return render(
-    <MemoryRouter>
-      <AccountsPage />
-    </MemoryRouter>,
-  )
-}
-
-function findRow(name: string) {
-  const cell = screen.getByText(name)
-  return within(cell.closest('tr') as HTMLElement)
+  return renderWithRouter(<AccountsPage />)
 }
 
 function institutionName(id: string) {
@@ -90,7 +81,7 @@ describe('AccountsPage', () => {
     await screen.findByText(openAccount.name)
 
     expect(
-      findRow(openAccount.name).getByText(institutionName(openAccount.institutionId)),
+      (await findRow(openAccount.name)).getByText(institutionName(openAccount.institutionId)),
     ).toBeInTheDocument()
   })
 
@@ -135,7 +126,7 @@ describe('AccountsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Add' }))
 
     await waitFor(() => expect(sent.body).toMatchObject({ institutionId: 'inst-2' }))
-    expect(findRow('Nu Wallet').getByText('Nubank')).toBeInTheDocument()
+    expect((await findRow('Nu Wallet')).getByText('Nubank')).toBeInTheDocument()
   })
 
   it('creates an institution inline from the add form and assigns it to the new account', async () => {
@@ -155,7 +146,7 @@ describe('AccountsPage', () => {
 
     await waitFor(() => expect(sent.body).toMatchObject({ institutionId: 'inst-new' }))
     // The list column resolves the brand-new institution, not a raw id.
-    expect(findRow('Inter Account').getByText('Inter')).toBeInTheDocument()
+    expect((await findRow('Inter Account')).getByText('Inter')).toBeInTheDocument()
   })
 
   it('edits an account name and institution inline', async () => {
@@ -164,7 +155,7 @@ describe('AccountsPage', () => {
     const openAccount = seedAccounts.find((a) => !a.closed)!
     await screen.findByText(openAccount.name)
 
-    const row = findRow(openAccount.name)
+    const row = await findRow(openAccount.name)
     await user.click(row.getByRole('button', { name: 'Edit' }))
     const nameInput = row.getByRole('textbox', { name: 'Name' })
     await user.clear(nameInput)
@@ -177,7 +168,7 @@ describe('AccountsPage', () => {
     await user.click(row.getByRole('button', { name: 'Save' }))
 
     expect(await screen.findByText('Renamed Account')).toBeInTheDocument()
-    expect(findRow('Renamed Account').getByText('Nubank')).toBeInTheDocument()
+    expect((await findRow('Renamed Account')).getByText('Nubank')).toBeInTheDocument()
   })
 
   it('does not offer a type/opening-balance input when editing - only name/institution', async () => {
@@ -186,7 +177,7 @@ describe('AccountsPage', () => {
     const openAccount = seedAccounts.find((a) => !a.closed)!
     await screen.findByText(openAccount.name)
 
-    const row = findRow(openAccount.name)
+    const row = await findRow(openAccount.name)
     await user.click(row.getByRole('button', { name: 'Edit' }))
 
     // Only the two editable fields render as inputs in the row: the name and the institution picker.
@@ -201,7 +192,7 @@ describe('AccountsPage', () => {
     const openAccount = seedAccounts.find((a) => !a.closed)!
     await screen.findByText(openAccount.name)
 
-    const row = findRow(openAccount.name)
+    const row = await findRow(openAccount.name)
     await user.click(row.getByRole('button', { name: 'Close' }))
 
     expect(await screen.findByText(/not reversible/)).toBeInTheDocument()
@@ -216,7 +207,7 @@ describe('AccountsPage', () => {
     const openAccount = seedAccounts.find((a) => !a.closed)!
     await screen.findByText(openAccount.name)
 
-    const row = findRow(openAccount.name)
+    const row = await findRow(openAccount.name)
     await user.click(row.getByRole('button', { name: 'Close' }))
     await screen.findByText(/not reversible/)
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
@@ -232,7 +223,7 @@ describe('AccountsPage', () => {
     const openAccount = seedAccounts.find((a) => !a.closed)!
     await screen.findByText(openAccount.name)
 
-    const row = findRow(openAccount.name)
+    const row = await findRow(openAccount.name)
     await user.click(row.getByRole('button', { name: 'Close' }))
     await user.click(screen.getByRole('button', { name: 'Close account' }))
 
@@ -308,7 +299,7 @@ describe('AccountsPage', () => {
     renderPage()
 
     expect(await screen.findByText(seedInvestmentAccount.name)).toBeInTheDocument()
-    const row = findRow(seedInvestmentAccount.name)
+    const row = await findRow(seedInvestmentAccount.name)
     expect(row.getByText('Investment')).toBeInTheDocument()
     expect(row.getByText('0.00')).toBeInTheDocument()
   })

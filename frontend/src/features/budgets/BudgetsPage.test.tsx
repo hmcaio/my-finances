@@ -9,6 +9,7 @@ import {
   seedBudgetReport,
   seedBudgets,
 } from '../../mocks/handlers/budgets'
+import { findRow } from '../../test/testUtils'
 import { BudgetsPage } from './BudgetsPage'
 
 /** Scopes queries to the budget settings table - the category name also appears in the
@@ -17,16 +18,11 @@ function settingsTable() {
   return within(screen.getByRole('table'))
 }
 
-async function findRow(name: string) {
-  const cell = await settingsTable().findByText(name)
-  return within(cell.closest('tr') as HTMLElement)
-}
-
 describe('BudgetsPage', () => {
   it('renders the seeded budget with its current cap', async () => {
     render(<BudgetsPage />)
 
-    const row = await findRow(seedCategories[0].name)
+    const row = await findRow(seedCategories[0].name, settingsTable())
     expect(row.getByText(seedBudgets[0].currentCap!.toFixed(2))).toBeInTheDocument()
   })
 
@@ -43,7 +39,7 @@ describe('BudgetsPage', () => {
   it('offers only unbudgeted expense categories in the add-budget picker', async () => {
     const user = userEvent.setup()
     render(<BudgetsPage />)
-    await findRow(seedCategories[0].name)
+    await findRow(seedCategories[0].name, settingsTable())
 
     // cat-1 (Groceries) is already budgeted and cat-2 (Salary) is income - neither belongs here.
     await user.click(screen.getByLabelText('Category'))
@@ -59,7 +55,7 @@ describe('BudgetsPage', () => {
     )
     const user = userEvent.setup()
     render(<BudgetsPage />)
-    await findRow(seedCategories[0].name)
+    await findRow(seedCategories[0].name, settingsTable())
 
     await user.click(screen.getByLabelText('Category'))
     await user.click(await screen.findByRole('option', { name: 'Dining' }))
@@ -78,7 +74,7 @@ describe('BudgetsPage', () => {
     )
     const user = userEvent.setup()
     render(<BudgetsPage />)
-    await findRow(seedCategories[0].name)
+    await findRow(seedCategories[0].name, settingsTable())
 
     await user.click(screen.getByLabelText('Category'))
     await user.click(await screen.findByRole('option', { name: 'Dining' }))
@@ -91,7 +87,7 @@ describe('BudgetsPage', () => {
   it('edits a budget cap inline', async () => {
     const user = userEvent.setup()
     render(<BudgetsPage />)
-    const row = await findRow(seedCategories[0].name)
+    const row = await findRow(seedCategories[0].name, settingsTable())
     await waitFor(() =>
       expect(row.getByText(seedBudgets[0].currentCap!.toFixed(2))).toBeInTheDocument(),
     )

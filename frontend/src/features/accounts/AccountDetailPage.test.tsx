@@ -1,22 +1,24 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import { delay, http, HttpResponse } from 'msw'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
 import { server } from '../../mocks/server'
 import { seedAccounts, seedInvestmentAccount } from '../../mocks/handlers/accounts'
 import { seedInvestmentProducts } from '../../mocks/handlers/investmentProducts'
 import { BUILT_IN_INSTITUTION_ID, seedInstitutions } from '../../mocks/handlers/institutions'
 import { seedTransactions } from '../../mocks/handlers/transactions'
 import { seedTransfers } from '../../mocks/handlers/transfers'
+import { renderWithRouter } from '../../test/testUtils'
 import { AccountDetailPage } from './AccountDetailPage'
 
 function renderDetail(id: string) {
-  return render(
-    <MemoryRouter initialEntries={[`/accounts/${id}`]}>
-      <Routes>
-        <Route path="/accounts/:id" element={<AccountDetailPage />} />
-      </Routes>
-    </MemoryRouter>,
+  return renderWithRouter(
+    <Routes>
+      <Route path="/accounts/:id" element={<AccountDetailPage />} />
+    </Routes>,
+    {
+      initialEntries: [`/accounts/${id}`],
+    },
   )
 }
 

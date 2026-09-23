@@ -10,9 +10,8 @@ import {
   investmentProductDeleteConflictHandler,
   seedInvestmentProducts,
 } from '../../mocks/handlers/investmentProducts'
+import { findRow, selectOption } from '../../test/testUtils'
 import { InvestmentProductsSection } from './InvestmentProductsSection'
-
-type User = ReturnType<typeof userEvent.setup>
 
 function renderSection(accountClosed = false) {
   return render(
@@ -21,21 +20,6 @@ function renderSection(accountClosed = false) {
       accountClosed={accountClosed}
     />,
   )
-}
-
-function findRow(name: string) {
-  const cell = screen.getByText(name)
-  return within(cell.closest('tr') as HTMLElement)
-}
-
-async function choose(
-  user: User,
-  scope: ReturnType<typeof within>,
-  combobox: string,
-  option: string,
-) {
-  await user.click(scope.getByRole('combobox', { name: combobox }))
-  await user.click(await screen.findByRole('option', { name: option }))
 }
 
 function optionNames() {
@@ -70,15 +54,15 @@ describe('InvestmentProductsSection', () => {
     for (const product of seedInvestmentProducts) {
       expect(await screen.findByText(product.name)).toBeInTheDocument()
     }
-    const selic = findRow('Tesouro Selic 2029')
+    const selic = await findRow('Tesouro Selic 2029')
     expect(selic.getByText('Fixed Income')).toBeInTheDocument()
     expect(selic.getByText('Tesouro Selic')).toBeInTheDocument()
     expect(selic.getByText('Open')).toBeInTheDocument()
     // A category-only product shows no sub-category.
-    const bitcoin = findRow('Bitcoin')
+    const bitcoin = await findRow('Bitcoin')
     expect(bitcoin.getByText('Crypto')).toBeInTheDocument()
     expect(bitcoin.getByText('-')).toBeInTheDocument()
-    expect(findRow('Old CDB').getByText('Closed')).toBeInTheDocument()
+    expect((await findRow('Old CDB')).getByText('Closed')).toBeInTheDocument()
   })
 
   it('offers delete only while the product has no history', async () => {
@@ -86,11 +70,13 @@ describe('InvestmentProductsSection', () => {
     await screen.findByText('Bitcoin')
 
     expect(
-      findRow('Tesouro Selic 2029').getByRole('button', { name: 'Delete' }),
+      (await findRow('Tesouro Selic 2029')).getByRole('button', { name: 'Delete' }),
     ).toBeInTheDocument()
     // Bitcoin has history: closing is the only way out.
-    expect(findRow('Bitcoin').queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
-    expect(findRow('Bitcoin').getByRole('button', { name: 'Close' })).toBeEnabled()
+    expect(
+      (await findRow('Bitcoin')).queryByRole('button', { name: 'Delete' }),
+    ).not.toBeInTheDocument()
+    expect((await findRow('Bitcoin')).getByRole('button', { name: 'Close' })).toBeEnabled()
   })
 
   it('follows the chosen category in the sub-category select and resets it on change', async () => {
@@ -105,14 +91,14 @@ describe('InvestmentProductsSection', () => {
       'true',
     )
 
-    await choose(user, form, 'Category', 'Fixed Income')
+    await selectOption(user, 'Category', 'Fixed Income', form)
     await user.click(form.getByRole('combobox', { name: 'Sub-category' }))
     expect(optionNames()).toEqual(['No sub-category', 'CDB', 'Tesouro Selic'])
     await user.click(screen.getByRole('option', { name: 'Tesouro Selic' }))
     expect(form.getByRole('combobox', { name: 'Sub-category' })).toHaveTextContent('Tesouro Selic')
 
     // Changing the category drops the previous sub-category and offers the new one's.
-    await choose(user, form, 'Category', 'Variable Income')
+    await selectOption(user, 'Category', 'Variable Income', form)
     expect(form.getByRole('combobox', { name: 'Sub-category' })).toHaveTextContent(
       'No sub-category',
     )
@@ -128,8 +114,8 @@ describe('InvestmentProductsSection', () => {
     const form = within(screen.getByRole('group', { name: 'Add product' }))
 
     await user.type(form.getByRole('textbox', { name: 'Product name' }), 'CDB 110% Test')
-    await choose(user, form, 'Category', 'Fixed Income')
-    await choose(user, form, 'Sub-category', 'CDB')
+    await selectOption(user, 'Category', 'Fixed Income', form)
+    await selectOption(user, 'Sub-category', 'CDB', form)
     await user.click(form.getByRole('button', { name: 'Add product' }))
 
     await waitFor(() =>
@@ -153,7 +139,7 @@ describe('InvestmentProductsSection', () => {
     const form = within(screen.getByRole('group', { name: 'Add product' }))
 
     await user.type(form.getByRole('textbox', { name: 'Product name' }), 'Ethereum')
-    await choose(user, form, 'Category', 'Crypto')
+    await selectOption(user, 'Category', 'Crypto', form)
     await user.click(form.getByRole('combobox', { name: 'Sub-category' }))
     // Crypto has no sub-categories: the only option is "none".
     expect(optionNames()).toEqual(['No sub-category'])
@@ -178,7 +164,7 @@ describe('InvestmentProductsSection', () => {
     expect(add).toBeDisabled()
     await user.type(form.getByRole('textbox', { name: 'Product name' }), 'Ethereum')
     expect(add).toBeDisabled()
-    await choose(user, form, 'Category', 'Crypto')
+    await selectOption(user, 'Category', 'Crypto', form)
     expect(add).toBeEnabled()
   })
 
@@ -190,7 +176,7 @@ describe('InvestmentProductsSection', () => {
     const form = within(screen.getByRole('group', { name: 'Add product' }))
 
     await user.type(form.getByRole('textbox', { name: 'Product name' }), 'Bitcoin')
-    await choose(user, form, 'Category', 'Crypto')
+    await selectOption(user, 'Category', 'Crypto', form)
     await user.click(form.getByRole('button', { name: 'Add product' }))
 
     expect(await screen.findByText(/could not be saved/)).toBeInTheDocument()
@@ -202,7 +188,7 @@ describe('InvestmentProductsSection', () => {
     renderSection()
     await screen.findByText('Bitcoin')
 
-    await user.click(findRow('Tesouro Selic 2029').getByRole('button', { name: 'Edit' }))
+    await user.click((await findRow('Tesouro Selic 2029')).getByRole('button', { name: 'Edit' }))
     const dialog = within(await screen.findByRole('dialog', { name: 'Edit product' }))
     expect(dialog.getByRole('textbox', { name: 'Product name' })).toHaveValue('Tesouro Selic 2029')
     expect(dialog.getByRole('combobox', { name: 'Category' })).toHaveTextContent('Fixed Income')
@@ -213,7 +199,7 @@ describe('InvestmentProductsSection', () => {
     const name = dialog.getByRole('textbox', { name: 'Product name' })
     await user.clear(name)
     await user.type(name, 'Tesouro Selic 2031')
-    await choose(user, dialog, 'Sub-category', 'CDB')
+    await selectOption(user, 'Sub-category', 'CDB', dialog)
     await user.click(dialog.getByRole('button', { name: 'Save' }))
 
     await waitFor(() =>
@@ -235,15 +221,17 @@ describe('InvestmentProductsSection', () => {
     renderSection()
     await screen.findByText('Bitcoin')
 
-    await user.click(findRow('Tesouro Selic 2029').getByRole('button', { name: 'Close' }))
+    await user.click((await findRow('Tesouro Selic 2029')).getByRole('button', { name: 'Close' }))
     await user.click(await screen.findByRole('button', { name: 'Close product' }))
 
-    await waitFor(() =>
-      expect(findRow('Tesouro Selic 2029').getByText('Closed')).toBeInTheDocument(),
+    await waitFor(async () =>
+      expect((await findRow('Tesouro Selic 2029')).getByText('Closed')).toBeInTheDocument(),
     )
     // The dialog is still fading out (and hiding the page from the accessibility tree) for a moment.
-    await waitFor(() =>
-      expect(findRow('Tesouro Selic 2029').getByRole('button', { name: 'Close' })).toBeDisabled(),
+    await waitFor(async () =>
+      expect(
+        (await findRow('Tesouro Selic 2029')).getByRole('button', { name: 'Close' }),
+      ).toBeDisabled(),
     )
   })
 
@@ -253,7 +241,7 @@ describe('InvestmentProductsSection', () => {
     renderSection()
     await screen.findByText('Bitcoin')
 
-    await user.click(findRow('Bitcoin').getByRole('button', { name: 'Close' }))
+    await user.click((await findRow('Bitcoin')).getByRole('button', { name: 'Close' }))
     await user.click(await screen.findByRole('button', { name: 'Close product' }))
 
     expect(await screen.findByText('This product is already closed.')).toBeInTheDocument()
@@ -264,7 +252,7 @@ describe('InvestmentProductsSection', () => {
     renderSection()
     await screen.findByText('Bitcoin')
 
-    await user.click(findRow('Tesouro Selic 2029').getByRole('button', { name: 'Delete' }))
+    await user.click((await findRow('Tesouro Selic 2029')).getByRole('button', { name: 'Delete' }))
     await user.click(await screen.findByRole('button', { name: 'Delete product' }))
 
     await waitFor(() => expect(screen.queryByText('Tesouro Selic 2029')).not.toBeInTheDocument())
@@ -276,7 +264,7 @@ describe('InvestmentProductsSection', () => {
     renderSection()
     await screen.findByText('Bitcoin')
 
-    await user.click(findRow('Tesouro Selic 2029').getByRole('button', { name: 'Delete' }))
+    await user.click((await findRow('Tesouro Selic 2029')).getByRole('button', { name: 'Delete' }))
     await user.click(await screen.findByRole('button', { name: 'Delete product' }))
 
     expect(await screen.findByText(/close it instead/)).toBeInTheDocument()
@@ -288,7 +276,7 @@ describe('InvestmentProductsSection', () => {
     await screen.findByText('Bitcoin')
 
     expect(screen.queryByRole('group', { name: 'Add product' })).not.toBeInTheDocument()
-    expect(findRow('Bitcoin').getByRole('button', { name: 'Edit' })).toBeDisabled()
+    expect((await findRow('Bitcoin')).getByRole('button', { name: 'Edit' })).toBeDisabled()
   })
 
   it('shows an empty state for an account without products', async () => {

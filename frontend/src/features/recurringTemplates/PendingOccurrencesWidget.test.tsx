@@ -1,14 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { seedPaymentMethods } from '../../mocks/handlers/paymentMethods'
 import { seedPendingRecurringOccurrences } from '../../mocks/handlers/recurringTemplates'
+import { findRow } from '../../test/testUtils'
 import { PendingOccurrencesWidget } from './PendingOccurrencesWidget'
-
-async function findRow(name: string) {
-  const cell = await screen.findByText(name)
-  return within(cell.closest('tr') as HTMLElement)
-}
 
 describe('PendingOccurrencesWidget', () => {
   it('renders the seeded pending occurrence with its template description and amount', async () => {

@@ -4,15 +4,11 @@ import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import { categoryDeleteConflictHandler, seedCategories } from '../../mocks/handlers/categories'
+import { findRow } from '../../test/testUtils'
 import { CategoriesPage } from './CategoriesPage'
 
 const builtInExpense = seedCategories.find((c) => c.builtIn && c.type === 'EXPENSE')!
 const builtInIncome = seedCategories.find((c) => c.builtIn && c.type === 'INCOME')!
-
-function findRow(name: string) {
-  const cell = screen.getByText(name)
-  return within(cell.closest('tr') as HTMLElement)
-}
 
 describe('CategoriesPage', () => {
   it('renders the seeded categories', async () => {
@@ -39,7 +35,7 @@ describe('CategoriesPage', () => {
     render(<CategoriesPage />)
     await screen.findByText(seedCategories[0].name)
 
-    const row = findRow(seedCategories[0].name)
+    const row = await findRow(seedCategories[0].name)
     await user.click(row.getByRole('button', { name: 'Rename' }))
     const input = row.getByRole('textbox')
     await user.clear(input)
@@ -56,7 +52,7 @@ describe('CategoriesPage', () => {
     const name = seedCategories[1].name
     await screen.findByText(name)
 
-    const row = findRow(name)
+    const row = await findRow(name)
     await user.click(row.getByRole('button', { name: 'Delete' }))
 
     await waitFor(() => expect(screen.queryByText(name)).not.toBeInTheDocument())
@@ -69,7 +65,7 @@ describe('CategoriesPage', () => {
     const name = seedCategories[0].name
     await screen.findByText(name)
 
-    const row = findRow(name)
+    const row = await findRow(name)
     await user.click(row.getByRole('button', { name: 'Delete' }))
 
     expect(await screen.findByText(/reassign them/)).toBeInTheDocument()
@@ -93,11 +89,11 @@ describe('CategoriesPage', () => {
     render(<CategoriesPage />)
     await screen.findByText(builtInExpense.name)
 
-    const row = findRow(builtInExpense.name)
+    const row = await findRow(builtInExpense.name)
     expect(row.getByRole('button', { name: 'Rename' })).toBeInTheDocument()
     expect(row.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
     // An ordinary row still has it.
-    expect(findRow('Groceries').getByRole('button', { name: 'Delete' })).toBeInTheDocument()
+    expect((await findRow('Groceries')).getByRole('button', { name: 'Delete' })).toBeInTheDocument()
   })
 
   it('renames a built-in row, which stays first and still has no delete action', async () => {
@@ -105,7 +101,7 @@ describe('CategoriesPage', () => {
     render(<CategoriesPage />)
     await screen.findByText(builtInIncome.name)
 
-    const row = findRow(builtInIncome.name)
+    const row = await findRow(builtInIncome.name)
     await user.click(row.getByRole('button', { name: 'Rename' }))
     const input = row.getByRole('textbox')
     await user.clear(input)
@@ -113,7 +109,7 @@ describe('CategoriesPage', () => {
     await user.click(row.getByRole('button', { name: 'Save' }))
 
     expect(await screen.findByText('Outras receitas')).toBeInTheDocument()
-    const renamed = findRow('Outras receitas')
+    const renamed = await findRow('Outras receitas')
     expect(renamed.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
     const names = screen
       .getAllByRole('row')
