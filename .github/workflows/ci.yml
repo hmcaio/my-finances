@@ -39,6 +39,21 @@ jobs:
         run: ./gradlew spotlessCheck test --no-daemon
         working-directory: backend
 
+      - name: Upload test report
+        # Also when tests fail - that is when the report is most useful. `ignore` because Gradle
+        # writes nothing if the build stops before the test task (e.g. on spotlessCheck). Both
+        # paths sit under backend/build, so the artifact holds reports/tests/test/index.html (the
+        # browsable report) and test-results/test/*.xml (JUnit XML).
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-report
+          path: |
+            backend/build/reports/tests/test
+            backend/build/test-results/test
+          if-no-files-found: ignore
+          retention-days: 14
+
   test-frontend:
     name: Frontend tests
     runs-on: ubuntu-latest
@@ -64,6 +79,18 @@ jobs:
         run: npm run test:coverage
         working-directory: frontend
 
+      - name: Upload test report
+        # Vitest's HTML reporter output (configured in vite.config.ts). Unlike the coverage
+        # report below it isn't a static site: to browse a downloaded copy run
+        # `npx vite preview --outDir test-results` from the extracted folder.
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-test-report
+          path: frontend/test-results
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Upload coverage report
         # Also on test failure so a red run still leaves whatever report was produced;
         # `ignore` because Vitest writes no report when the run fails early.
@@ -73,6 +100,7 @@ jobs:
           name: frontend-coverage
           path: frontend/coverage
           if-no-files-found: ignore
+          retention-days: 14
 
   build-and-push:
     name: Build and push images
