@@ -45,7 +45,7 @@ One habit worth keeping on top of those: for a bug fix, temporarily restore the 
 
 Run everything the CI runs, and fix rather than skip failures:
 
-- Backend (from `backend/`): `./gradlew spotlessApply` then `./gradlew spotlessCheck test`. Use `spotlessApply` instead of hand-formatting Java — google-java-format rewraps javadoc.
+- Backend (from `backend/`): `./gradlew spotlessApply` then `./gradlew spotlessCheck test integrationTest`. Use `spotlessApply` instead of hand-formatting Java — google-java-format rewraps javadoc.
 - Frontend (from `frontend/`): `npm run lint`, `npm run format:check`, `npm test`, `npm run build`. Run `npx prettier --write` only on files you touched; don't reformat pre-existing offenders you didn't change.
 
 If many tests fail after one change, look for one shared root cause (a seed-name collision, a changed constructor) before fixing files individually.

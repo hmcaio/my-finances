@@ -17,6 +17,7 @@ import com.chm.myfinances.testsupport.web.MockMvcSupport;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -45,6 +46,7 @@ import org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolv
  * force a realistic unchecked exception, exactly as a real bug (e.g. a database error) would
  * surface it.
  */
+@Tag("integration")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @Import(TestcontainersConfiguration.class)
 class GlobalExceptionHandlerTest {

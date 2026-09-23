@@ -1,5 +1,6 @@
 package com.chm.myfinances;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -10,6 +11,7 @@ import org.springframework.context.annotation.Import;
  * to end. Real feature tests (net worth calc, versioning, recurring catch-up, ...) start with
  * F002+.
  */
+@Tag("integration")
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 class MyFinancesApplicationTests {

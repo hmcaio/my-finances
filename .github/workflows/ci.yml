@@ -35,11 +35,13 @@ jobs:
         run: chmod +x gradlew
         working-directory: backend
 
-      - name: spotlessCheck + test + coverage report
-        # jacocoTestReport goes in the same invocation (it depends on `test`) rather than a later
+      - name: spotlessCheck + tests + coverage report
+        # `test` (fast tier) and `integrationTest` (Spring + Testcontainers tier) both run, and
+        # `--continue` keeps the second going when the first fails so one run reports everything.
+        # jacocoTestReport goes in the same invocation (it depends on both) rather than a later
         # step: a later step would be skipped when tests fail, or re-run the tests. Report only -
         # there are no coverage thresholds, so the numbers never fail the job.
-        run: ./gradlew spotlessCheck test jacocoTestReport --no-daemon
+        run: ./gradlew spotlessCheck test integrationTest jacocoTestReport --continue --no-daemon
         working-directory: backend
 
       - name: Upload test report
@@ -53,7 +55,9 @@ jobs:
           name: backend-test-report
           path: |
             backend/build/reports/tests/test
+            backend/build/reports/tests/integrationTest
             backend/build/test-results/test
+            backend/build/test-results/integrationTest
           if-no-files-found: ignore
           retention-days: 14
 

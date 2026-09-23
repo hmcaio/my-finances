@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -32,6 +33,7 @@ import org.springframework.context.annotation.Import;
  * {@code InstitutionBackfillMigrationTest}, including the non-pooled data source). The seed is
  * asserted here, in a fresh schema, rather than against the shared one that other tests write to.
  */
+@Tag("integration")
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 class InvestmentTaxonomyMigrationTest extends AbstractMigrationTest {

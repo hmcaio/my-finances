@@ -23,6 +23,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.UUID;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -45,6 +46,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
  * in place (no delete port exists for any of them); the {@link PendingRecurringOccurrence} row is
  * cleaned up manually since this class opts out of the rollback-per-test convention.
  */
+@Tag("integration")
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 class AccountServiceTransactionalTest {
