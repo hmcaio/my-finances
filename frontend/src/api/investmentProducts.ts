@@ -28,7 +28,7 @@ export type UpdateInvestmentProductRequest = components['schemas']['UpdateInvest
 
 // The backend sends no message text, so every expected 409 needs its own wording here.
 export const SAVE_CONFLICT_MESSAGE =
-  'The product could not be saved: its name must be unique within the account, the account must be an open investment account, and the sub-category must belong to the chosen category.'
+  'The product could not be saved: its name must be unique within the account, the account must be an open investment account, and the sub-category must belong to the chosen category, and a product with history cannot move to another account.'
 export const CLOSE_CONFLICT_MESSAGE =
   'This product could not be closed: it is already closed, or its latest snapshot still has value. Record a zero snapshot (or sell the entire position) first.'
 export const DELETE_CONFLICT_MESSAGE =

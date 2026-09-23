@@ -96,6 +96,9 @@ public class InvestmentProductService {
       String name) {
     InvestmentProduct product = findById(id);
     requireValidReferences(accountId, investmentCategoryId, investmentSubcategoryId);
+    if (!accountId.equals(product.getAccountId()) && historyChecker.hasHistory(id)) {
+      throw new InvestmentProductMoveBlockedException(id);
+    }
     if (productRepository.existsByAccountIdAndNameAndIdNot(accountId, name, id)) {
       throw new InvestmentProductNameAlreadyExistsException(name);
     }

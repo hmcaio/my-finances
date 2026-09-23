@@ -250,6 +250,39 @@ class InvestmentProductServiceTest {
   }
 
   @Test
+  void editRejectsMovingAProductWithHistoryToAnotherAccount() {
+    InvestmentProduct created = service.create(xpAccountId, cryptoId, null, "Bitcoin Test");
+    historyChecker.markHasHistory(created.getId());
+
+    assertThatThrownBy(
+            () -> service.edit(created.getId(), nuAccountId, cryptoId, null, "Bitcoin Test"))
+        .isInstanceOf(InvestmentProductMoveBlockedException.class);
+    assertThat(productRepository.findById(created.getId()).orElseThrow().getAccountId())
+        .isEqualTo(xpAccountId);
+  }
+
+  @Test
+  void editAllowsRenamingAProductWithHistoryInPlace() {
+    InvestmentProduct created = service.create(xpAccountId, cryptoId, null, "Bitcoin Test");
+    historyChecker.markHasHistory(created.getId());
+
+    InvestmentProduct edited =
+        service.edit(created.getId(), xpAccountId, cryptoId, null, "BTC Test");
+
+    assertThat(edited.getName()).isEqualTo("BTC Test");
+  }
+
+  @Test
+  void editAllowsMovingAProductWithoutHistory() {
+    InvestmentProduct created = service.create(xpAccountId, cryptoId, null, "Bitcoin Test");
+
+    InvestmentProduct edited =
+        service.edit(created.getId(), nuAccountId, cryptoId, null, "Bitcoin Test");
+
+    assertThat(edited.getAccountId()).isEqualTo(nuAccountId);
+  }
+
+  @Test
   void editOfUnknownIdThrowsNotFound() {
     assertThatThrownBy(
             () -> service.edit(UUID.randomUUID(), xpAccountId, cryptoId, null, "Bitcoin Test"))
