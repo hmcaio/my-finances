@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { seedDebitCardPaymentMethod } from '../../mocks/handlers/paymentMethods'
+import { seedDebitCardPaymentMethod, seedPaymentMethods } from '../../mocks/handlers/paymentMethods'
 import { seedRentPendingOccurrence } from '../../mocks/handlers/recurringTemplates'
 import { findRow } from '../../test/testUtils'
+import { expectLoadStates } from '../../test/loadStates'
 import { PendingOccurrencesWidget } from './PendingOccurrencesWidget'
 
 describe('PendingOccurrencesWidget', () => {
@@ -53,5 +54,16 @@ describe('PendingOccurrencesWidget', () => {
     await user.click(screen.getByRole('button', { name: 'Dismiss' }))
 
     expect(await screen.findByText('Nothing pending right now.')).toBeInTheDocument()
+  })
+
+  // Payment methods are a source the widget's own `tableState` composes but nothing else in this
+  // component depends on, so delaying/failing that one endpoint alone exercises this widget's load
+  // states without touching the categories/accounts/templates it shares with the page that embeds
+  // it (`RecurringTemplatesPage`, tested separately).
+  expectLoadStates({
+    render: () => render(<PendingOccurrencesWidget />),
+    url: '/api/payment-methods',
+    successBody: seedPaymentMethods,
+    loadedText: 'Rent',
   })
 })

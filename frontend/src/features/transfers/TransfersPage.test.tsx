@@ -10,6 +10,7 @@ import {
 } from '../../mocks/handlers/transfers'
 import { CLOSED_ACCOUNT_MESSAGE } from '../../api/transfers'
 import { findRow, selectOption } from '../../test/testUtils'
+import { expectLoadStates } from '../../test/loadStates'
 import { TransfersPage } from './TransfersPage'
 
 describe('TransfersPage', () => {
@@ -128,6 +129,16 @@ describe('TransfersPage', () => {
     await user.click(screen.getByRole('button', { name: 'Add' }))
 
     expect(await screen.findByText(CLOSED_ACCOUNT_MESSAGE)).toBeInTheDocument()
+  })
+
+  // The table's load state is `combineLoadState(accountsState, transfersState)` (F2 audit finding);
+  // intercepting either composed source shows the same skeleton/failure - accounts is the simpler
+  // body to fake a delayed/failing response for.
+  expectLoadStates({
+    render: () => render(<TransfersPage />),
+    url: '/api/accounts',
+    successBody: seedAccounts,
+    loadedText: seedCreditCardPaymentTransfer.description,
   })
 })
 

@@ -10,11 +10,13 @@ import {
 } from '../../mocks/handlers/categories'
 import {
   budgetCreateConflictHandler,
+  seedBudgets,
   seedGroceriesBudget,
   seedGroceriesBudgetReportLine,
 } from '../../mocks/handlers/budgets'
 import { CREATE_CONFLICT_MESSAGE } from '../../api/budgets'
 import { findRow } from '../../test/testUtils'
+import { expectLoadStates } from '../../test/loadStates'
 import { BudgetsPage } from './BudgetsPage'
 
 /** Scopes queries to the budget settings table - the category name also appears in the
@@ -120,6 +122,19 @@ describe('BudgetsPage', () => {
     expect(await screen.findByRole('status', { name: 'Loading budget report' })).toBeInTheDocument()
     expect(await screen.findByText('No budgeted categories yet.')).toBeInTheDocument()
     expect(screen.queryByRole('status', { name: 'Loading budget report' })).not.toBeInTheDocument()
+  })
+
+  // The settings table's own load state is `combineLoadState(categoriesState, budgetsState)` (F2
+  // audit finding) - distinct from the report skeleton test above, which only covers the
+  // budget-vs-actual section. `successBody` must match what the default handler returns too (the
+  // after-retry case falls through to it), so `loadedText` holds in both generated cases.
+  expectLoadStates({
+    render: () => render(<BudgetsPage />),
+    url: '/api/budgets',
+    successBody: seedBudgets,
+    // The category name also appears in the budget-vs-actual report line below the table, so the
+    // cap value (a lone `TableCell` string, unlike the report's composite line) is unambiguous.
+    loadedText: seedGroceriesBudget.currentCap!.toFixed(2),
   })
 })
 

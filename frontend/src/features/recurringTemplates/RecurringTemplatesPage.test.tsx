@@ -15,6 +15,7 @@ import {
   seedRentRecurringTemplate,
 } from '../../mocks/handlers/recurringTemplates'
 import { findRow } from '../../test/testUtils'
+import { expectLoadStates } from '../../test/loadStates'
 import { RecurringTemplatesPage } from './RecurringTemplatesPage'
 
 /** Scopes queries to the templates settings table - the pending-occurrences widget below it
@@ -151,6 +152,18 @@ describe('RecurringTemplatesPage', () => {
     await user.click(row.getByRole('button', { name: 'Stop' }))
 
     expect(await row.findByText('Stopped')).toBeInTheDocument()
+  })
+
+  // The templates table's load state is `combineLoadState(categoriesState, accountsState,
+  // templatesState)` (F2 audit finding). Every one of those sources is also used by the embedded
+  // `PendingOccurrencesWidget` (tested on its own above), so delaying/failing `/api/accounts` here
+  // affects both tables at once - `expectLoadStates`'s assertions tolerate that (1..N matches)
+  // rather than assuming a single "Loading…"/"Could not load data" instance.
+  expectLoadStates({
+    render: () => render(<RecurringTemplatesPage />),
+    url: '/api/accounts',
+    successBody: seedAccounts,
+    loadedText: seedRentRecurringTemplate.description,
   })
 })
 
