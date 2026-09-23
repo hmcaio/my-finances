@@ -1,5 +1,6 @@
 package com.chm.myfinances.testsupport.mothers;
 
+import com.chm.myfinances.domain.transfer.InvestmentTradeDetails;
 import com.chm.myfinances.domain.transfer.Transfer;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -20,6 +21,8 @@ public final class TransferMother {
   private BigDecimal amount = new BigDecimal("100.00");
   private String description = "Credit card payment";
   private String additionalNotes = null;
+  private UUID investmentProductId = null;
+  private InvestmentTradeDetails tradeDetails = null;
 
   private TransferMother() {}
 
@@ -62,8 +65,26 @@ public final class TransferMother {
     return this;
   }
 
+  public TransferMother withInvestmentProductId(UUID investmentProductId) {
+    this.investmentProductId = investmentProductId;
+    return this;
+  }
+
+  public TransferMother withTradeDetails(InvestmentTradeDetails tradeDetails) {
+    this.tradeDetails = tradeDetails;
+    return this;
+  }
+
   public Transfer build() {
     return Transfer.create(
-        id, date, fromAccountId, toAccountId, amount, description, additionalNotes);
+        id,
+        date,
+        fromAccountId,
+        toAccountId,
+        amount,
+        description,
+        additionalNotes,
+        investmentProductId,
+        tradeDetails);
   }
 }

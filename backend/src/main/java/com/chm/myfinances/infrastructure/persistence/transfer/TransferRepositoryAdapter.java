@@ -1,5 +1,6 @@
 package com.chm.myfinances.infrastructure.persistence.transfer;
 
+import com.chm.myfinances.domain.transfer.InvestmentTradeDetails;
 import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.domain.transfer.TransferFilter;
 import com.chm.myfinances.domain.transfer.TransferRepository;
@@ -41,6 +42,10 @@ public class TransferRepositoryAdapter implements TransferRepository {
                   existing.setAmount(transfer.getAmount());
                   existing.setDescription(transfer.getDescription());
                   existing.setAdditionalNotes(transfer.getAdditionalNotes());
+                  existing.setInvestmentProductId(transfer.getInvestmentProductId());
+                  existing.setQuantity(transfer.getTradeDetails().quantity());
+                  existing.setUnitPrice(transfer.getTradeDetails().unitPrice());
+                  existing.setTaxes(transfer.getTradeDetails().taxes());
                   return existing;
                 })
             .orElseGet(
@@ -52,7 +57,11 @@ public class TransferRepositoryAdapter implements TransferRepository {
                         transfer.getToAccountId(),
                         transfer.getAmount(),
                         transfer.getDescription(),
-                        transfer.getAdditionalNotes()));
+                        transfer.getAdditionalNotes(),
+                        transfer.getInvestmentProductId(),
+                        transfer.getTradeDetails().quantity(),
+                        transfer.getTradeDetails().unitPrice(),
+                        transfer.getTradeDetails().taxes()));
     return toDomain(jpaRepository.save(entity));
   }
 
@@ -85,6 +94,25 @@ public class TransferRepositoryAdapter implements TransferRepository {
         .toList();
   }
 
+  @Override
+  public List<Transfer> findByInvestmentProductId(UUID investmentProductId) {
+    return jpaRepository.findByInvestmentProductId(investmentProductId).stream()
+        .map(TransferRepositoryAdapter::toDomain)
+        .toList();
+  }
+
+  @Override
+  public List<Transfer> findAllInvestmentTrades() {
+    return jpaRepository.findByInvestmentProductIdIsNotNull().stream()
+        .map(TransferRepositoryAdapter::toDomain)
+        .toList();
+  }
+
+  @Override
+  public boolean existsByInvestmentProductId(UUID investmentProductId) {
+    return jpaRepository.existsByInvestmentProductId(investmentProductId);
+  }
+
   private static Specification<TransferJpaEntity> toSpecification(TransferFilter filter) {
     return (root, query, criteriaBuilder) -> {
       List<Predicate> predicates = new ArrayList<>();
@@ -100,6 +128,10 @@ public class TransferRepositoryAdapter implements TransferRepository {
                 criteriaBuilder.equal(root.get("fromAccountId"), filter.accountId()),
                 criteriaBuilder.equal(root.get("toAccountId"), filter.accountId())));
       }
+      if (filter.investmentProductId() != null) {
+        predicates.add(
+            criteriaBuilder.equal(root.get("investmentProductId"), filter.investmentProductId()));
+      }
       return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
     };
   }
@@ -113,7 +145,7 @@ public class TransferRepositoryAdapter implements TransferRepository {
         entity.getAmount(),
         entity.getDescription(),
         entity.getAdditionalNotes(),
-        null,
-        null);
+        entity.getInvestmentProductId(),
+        new InvestmentTradeDetails(entity.getQuantity(), entity.getUnitPrice(), entity.getTaxes()));
   }
 }

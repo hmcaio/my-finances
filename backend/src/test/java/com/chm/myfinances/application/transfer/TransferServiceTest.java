@@ -253,7 +253,8 @@ class TransferServiceTest {
         null);
 
     Page<Transfer> page =
-        service.findAll(new TransferFilter(null, null, savings.getId()), PageRequest.of(0, 20));
+        service.findAll(
+            new TransferFilter(null, null, savings.getId(), null), PageRequest.of(0, 20));
 
     assertThat(page.getTotalElements()).isEqualTo(2);
   }

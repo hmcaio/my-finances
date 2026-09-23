@@ -151,7 +151,7 @@ class TransferRepositoryAdapterTest {
     transferRepository.save(outOfDateRange);
 
     TransferFilter filter =
-        new TransferFilter(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 2, 28), checkingId);
+        new TransferFilter(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 2, 28), checkingId, null);
 
     Page<Transfer> page = transferRepository.findAll(filter, PageRequest.of(0, 1));
 

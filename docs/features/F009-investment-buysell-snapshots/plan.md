@@ -4,7 +4,7 @@
 
 ## Backend
 - [x] Write tests first for `InvestmentSnapshot` (balance `>= 0`, `replaceBalance`) and for `Transfer`'s trade details (details require a product, quantity and unit price both-or-neither, positivity, taxes `>= 0`), then implement `InvestmentSnapshot` and `InvestmentTradeDetails`.
-- [ ] Write tests for F008's `HasInvestmentHistoryChecker` implementation: `true` once a snapshot or a tagged transfer exists for the product; implement it.
+- [x] Write tests for F008's `HasInvestmentHistoryChecker` implementation: `true` once a snapshot or a tagged transfer exists for the product; implement it.
 - [ ] Write tests for `LatestInvestmentSnapshotQuery` ("latest as of date" with several snapshots, none before the date), then implement it; switch `AccountBalanceQuery`'s `INVESTMENT` branch from `0` to the snapshot sum (extend `AccountBalanceQueryTest`).
 - [ ] Write tests for `InvestmentSnapshotService.record` (create, same-day replace, unknown product), then implement.
 - [ ] Write tests for `TransferService`'s investment rules — product required with an `INVESTMENT` endpoint, product must belong to the account, product without an `INVESTMENT` endpoint rejected, two `INVESTMENT` endpoints rejected, closed product rejected, on create and edit — then implement.

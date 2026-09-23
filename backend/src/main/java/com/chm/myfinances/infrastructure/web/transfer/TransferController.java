@@ -50,7 +50,7 @@ public class TransferController {
       @RequestParam(required = false) UUID accountId,
       @PageableDefault(size = 20, sort = "date", direction = Sort.Direction.DESC)
           Pageable pageable) {
-    TransferFilter filter = new TransferFilter(dateFrom, dateTo, accountId);
+    TransferFilter filter = new TransferFilter(dateFrom, dateTo, accountId, null);
     Page<Transfer> page = transferService.findAll(filter, pageable);
     return new PagedModel<>(page.map(TransferResponse::from));
   }
