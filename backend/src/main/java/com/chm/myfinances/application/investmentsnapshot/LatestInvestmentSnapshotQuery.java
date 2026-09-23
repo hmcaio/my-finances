@@ -4,6 +4,7 @@ import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshotRepository;
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -43,8 +44,17 @@ public class LatestInvestmentSnapshotQuery {
    * product id. Products with no snapshot by then are absent.
    */
   public Map<UUID, InvestmentSnapshot> latestByProduct(LocalDate asOfDate) {
+    return reduceToLatest(snapshotRepository.findAllOnOrBefore(asOfDate));
+  }
+
+  /** The most recent snapshot of every product that has one, regardless of date. */
+  public Map<UUID, InvestmentSnapshot> latestByProduct() {
+    return reduceToLatest(snapshotRepository.findAll());
+  }
+
+  private static Map<UUID, InvestmentSnapshot> reduceToLatest(List<InvestmentSnapshot> snapshots) {
     Map<UUID, InvestmentSnapshot> latest = new HashMap<>();
-    for (InvestmentSnapshot snapshot : snapshotRepository.findAllOnOrBefore(asOfDate)) {
+    for (InvestmentSnapshot snapshot : snapshots) {
       latest.merge(
           snapshot.getProductId(),
           snapshot,

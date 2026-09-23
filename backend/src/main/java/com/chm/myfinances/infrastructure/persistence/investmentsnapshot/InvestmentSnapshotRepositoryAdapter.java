@@ -64,6 +64,13 @@ public class InvestmentSnapshotRepositoryAdapter implements InvestmentSnapshotRe
   }
 
   @Override
+  public List<InvestmentSnapshot> findAll() {
+    return jpaRepository.findAll().stream()
+        .map(InvestmentSnapshotRepositoryAdapter::toDomain)
+        .toList();
+  }
+
+  @Override
   public boolean existsByProductId(UUID productId) {
     return jpaRepository.existsByProductId(productId);
   }

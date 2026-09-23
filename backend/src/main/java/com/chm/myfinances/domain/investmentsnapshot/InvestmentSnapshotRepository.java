@@ -26,6 +26,9 @@ public interface InvestmentSnapshotRepository {
    */
   List<InvestmentSnapshot> findAllOnOrBefore(LocalDate asOfDate);
 
+  /** Every snapshot of every product, in no particular order. */
+  List<InvestmentSnapshot> findAll();
+
   /** Whether the product has any snapshot - half of the delete-safety history check. */
   boolean existsByProductId(UUID productId);
 }
