@@ -8,6 +8,8 @@ import {
 } from '../mocks/handlers/paymentMethods'
 import { ApiError } from './apiError'
 import {
+  CONFLICT_MESSAGE,
+  DUPLICATE_NAME_MESSAGE,
   createPaymentMethod,
   deletePaymentMethod,
   getPaymentMethods,
@@ -41,7 +43,7 @@ describe('paymentMethods API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toContain('reassign them')
+    expect((error as ApiError).message).toBe(CONFLICT_MESSAGE)
   })
 
   it('createPaymentMethod maps a 409 to the duplicate-name message', async () => {
@@ -53,7 +55,7 @@ describe('paymentMethods API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toContain('already exists')
+    expect((error as ApiError).message).toBe(DUPLICATE_NAME_MESSAGE)
   })
 
   it('renamePaymentMethod maps a 409 to the duplicate-name message', async () => {
@@ -65,6 +67,6 @@ describe('paymentMethods API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toContain('already exists')
+    expect((error as ApiError).message).toBe(DUPLICATE_NAME_MESSAGE)
   })
 })

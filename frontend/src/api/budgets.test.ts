@@ -6,7 +6,13 @@ import {
   seedBudgets,
 } from '../mocks/handlers/budgets'
 import { ApiError } from './apiError'
-import { createBudget, getBudgetReport, getBudgets, setBudgetCap } from './budgets'
+import {
+  CREATE_CONFLICT_MESSAGE,
+  createBudget,
+  getBudgetReport,
+  getBudgets,
+  setBudgetCap,
+} from './budgets'
 
 describe('budgets API client', () => {
   it('getBudgets returns the seeded list', async () => {
@@ -39,7 +45,7 @@ describe('budgets API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toContain('cannot be budgeted')
+    expect((error as ApiError).message).toBe(CREATE_CONFLICT_MESSAGE)
   })
 
   it('setBudgetCap patches the cap and returns the updated budget', async () => {

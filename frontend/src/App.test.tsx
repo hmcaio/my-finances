@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { http, HttpResponse } from 'msw'
-import { server } from './mocks/server'
 import App from './App'
 
 // jsdom does not implement `matchMedia`, and ColorModeProvider (rendered by App) reads it to pick
@@ -19,11 +17,7 @@ function stubMatchMedia() {
 describe('App', () => {
   it('renders the nav on the dashboard and navigates to another page on a link click', async () => {
     stubMatchMedia()
-    server.use(
-      http.get('/api/health', () =>
-        HttpResponse.json({ status: 'UP', timestamp: '2026-01-01T00:00:00Z' }),
-      ),
-    )
+    // The default `GET /api/health` handler already answers UP - no override needed.
     const user = userEvent.setup()
     render(<App />)
 

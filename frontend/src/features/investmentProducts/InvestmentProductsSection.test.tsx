@@ -10,6 +10,11 @@ import {
   investmentProductDeleteConflictHandler,
   seedInvestmentProducts,
 } from '../../mocks/handlers/investmentProducts'
+import {
+  CLOSE_CONFLICT_MESSAGE,
+  DELETE_CONFLICT_MESSAGE,
+  SAVE_CONFLICT_MESSAGE,
+} from '../../api/investmentProducts'
 import { findRow, selectOption } from '../../test/testUtils'
 import { InvestmentProductsSection } from './InvestmentProductsSection'
 
@@ -34,7 +39,7 @@ function captureBody(method: 'post' | 'patch', path: string) {
       sent.body = (await request.json()) as Record<string, unknown>
       return HttpResponse.json(
         {
-          ...seedInvestmentProducts[0],
+          ...seedInvestmentProducts.find((p) => p.name === 'Tesouro Selic 2029')!,
           id: (params.id as string | undefined) ?? 'iprod-new',
           name: sent.body.name,
           investmentCategoryId: sent.body.investmentCategoryId,
@@ -179,7 +184,7 @@ describe('InvestmentProductsSection', () => {
     await selectOption(user, 'Category', 'Crypto', form)
     await user.click(form.getByRole('button', { name: 'Add product' }))
 
-    expect(await screen.findByText(/could not be saved/)).toBeInTheDocument()
+    expect(await screen.findByText(SAVE_CONFLICT_MESSAGE)).toBeInTheDocument()
   })
 
   it('edits a product in a dialog prefilled with its current values', async () => {
@@ -244,7 +249,7 @@ describe('InvestmentProductsSection', () => {
     await user.click((await findRow('Bitcoin')).getByRole('button', { name: 'Close' }))
     await user.click(await screen.findByRole('button', { name: 'Close product' }))
 
-    expect(await screen.findByText('This product is already closed.')).toBeInTheDocument()
+    expect(await screen.findByText(CLOSE_CONFLICT_MESSAGE)).toBeInTheDocument()
   })
 
   it('deletes a product without history after confirmation', async () => {
@@ -267,7 +272,7 @@ describe('InvestmentProductsSection', () => {
     await user.click((await findRow('Tesouro Selic 2029')).getByRole('button', { name: 'Delete' }))
     await user.click(await screen.findByRole('button', { name: 'Delete product' }))
 
-    expect(await screen.findByText(/close it instead/)).toBeInTheDocument()
+    expect(await screen.findByText(DELETE_CONFLICT_MESSAGE)).toBeInTheDocument()
     expect(screen.getByText('Tesouro Selic 2029')).toBeInTheDocument()
   })
 

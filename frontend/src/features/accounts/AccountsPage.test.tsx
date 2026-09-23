@@ -5,10 +5,13 @@ import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import {
   accountAlreadyClosedConflictHandler,
+  accountsWithInvestmentHandler,
   seedAccounts,
+  seedCheckingAccount,
   seedInvestmentAccount,
 } from '../../mocks/handlers/accounts'
 import { BUILT_IN_INSTITUTION_ID, seedInstitutions } from '../../mocks/handlers/institutions'
+import { CLOSE_CONFLICT_MESSAGE } from '../../api/accounts'
 import { findRow, renderWithRouter } from '../../test/testUtils'
 import { AccountsPage } from './AccountsPage'
 
@@ -28,7 +31,7 @@ function captureCreateBody() {
       sent.body = (await request.json()) as Record<string, unknown>
       return HttpResponse.json(
         {
-          ...seedAccounts[0],
+          ...seedCheckingAccount,
           id: 'acct-new',
           name: sent.body.name,
           institutionId: sent.body.institutionId,
@@ -90,7 +93,7 @@ describe('AccountsPage', () => {
     renderPage()
 
     expect((await screen.findAllByText(/Could not load data/)).length).toBeGreaterThan(0)
-    expect(screen.queryByText(seedAccounts[0].name)).not.toBeInTheDocument()
+    expect(screen.queryByText(seedCheckingAccount.name)).not.toBeInTheDocument()
   })
 
   it('preselects "No institution" in the add form and sends its id', async () => {
@@ -228,7 +231,7 @@ describe('AccountsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Close account' }))
 
     // The backend sends no message text, so the client supplies one covering the 409 cases.
-    expect(await screen.findByText(/could not be closed/)).toBeInTheDocument()
+    expect(await screen.findByText(CLOSE_CONFLICT_MESSAGE)).toBeInTheDocument()
     expect(screen.getByText(openAccount.name)).toBeInTheDocument()
   })
 
@@ -293,9 +296,7 @@ describe('AccountsPage', () => {
   })
 
   it('lists an investment account with its type and a zero balance', async () => {
-    server.use(
-      http.get('/api/accounts', () => HttpResponse.json([...seedAccounts, seedInvestmentAccount])),
-    )
+    server.use(accountsWithInvestmentHandler)
     renderPage()
 
     expect(await screen.findByText(seedInvestmentAccount.name)).toBeInTheDocument()

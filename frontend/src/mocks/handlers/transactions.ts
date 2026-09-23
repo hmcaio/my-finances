@@ -35,6 +35,14 @@ export const seedTransactions: Transaction[] = [
   },
 ]
 
+/**
+ * Named lookup for the seeded groceries transaction (`txn-1`), so call sites identify it by name
+ * instead of indexing into `seedTransactions` by position (frontend test audit's F6 finding).
+ */
+export const seedGroceriesTransaction = seedTransactions.find(
+  (t) => t.description === 'Weekly groceries',
+)!
+
 const TRANSACTIONS_URL = '/api/transactions'
 
 interface TransactionRequestBody {

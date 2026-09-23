@@ -5,10 +5,19 @@ import {
   accountCreateConflictHandler,
   accountEditConflictHandler,
   seedAccounts,
+  seedCheckingAccount,
   seedInvestmentAccount,
 } from '../mocks/handlers/accounts'
 import { ApiError } from './apiError'
-import { closeAccount, createAccount, editAccount, getAccount, getAccounts } from './accounts'
+import {
+  CLOSE_CONFLICT_MESSAGE,
+  DUPLICATE_NAME_MESSAGE,
+  closeAccount,
+  createAccount,
+  editAccount,
+  getAccount,
+  getAccounts,
+} from './accounts'
 
 describe('accounts API client', () => {
   it('getAccounts excludes closed accounts by default', async () => {
@@ -26,7 +35,7 @@ describe('accounts API client', () => {
   it('getAccount returns a single account by id', async () => {
     const account = await getAccount('acct-1')
 
-    expect(account).toEqual(seedAccounts[0])
+    expect(account).toEqual(seedCheckingAccount)
   })
 
   it('createAccount posts the new account, institution included, and returns the created one', async () => {
@@ -78,7 +87,7 @@ describe('accounts API client', () => {
 
     const error: unknown = await closeAccount(seedInvestmentAccount.id).catch((err: unknown) => err)
 
-    expect((error as ApiError).message).toContain('open products')
+    expect((error as ApiError).message).toBe(CLOSE_CONFLICT_MESSAGE)
   })
 
   it('editAccount patches name and institution and returns the updated account', async () => {
@@ -116,7 +125,7 @@ describe('accounts API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toContain('already exists')
+    expect((error as ApiError).message).toBe(DUPLICATE_NAME_MESSAGE)
   })
 
   it('editAccount maps a 409 to the duplicate-name message', async () => {
@@ -129,6 +138,6 @@ describe('accounts API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toContain('already exists')
+    expect((error as ApiError).message).toBe(DUPLICATE_NAME_MESSAGE)
   })
 })

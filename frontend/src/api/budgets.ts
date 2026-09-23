@@ -26,7 +26,7 @@ export interface BudgetReportLine {
 export type CreateBudgetRequest = components['schemas']['CreateBudgetRequest']
 export type UpdateBudgetCapRequest = components['schemas']['UpdateBudgetCapRequest']
 
-const CREATE_CONFLICT_MESSAGE =
+export const CREATE_CONFLICT_MESSAGE =
   'This category cannot be budgeted - it may already have a budget, or not be an expense category.'
 
 /** Fetches every Budget, each with its cap as of the current month (F006 spec). */

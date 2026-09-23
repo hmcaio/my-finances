@@ -3,11 +3,16 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
-import { seedCategories } from '../../mocks/handlers/categories'
-import { seedAccounts, seedInvestmentAccount } from '../../mocks/handlers/accounts'
+import { seedGroceriesCategory } from '../../mocks/handlers/categories'
 import {
-  seedPendingRecurringOccurrences,
-  seedRecurringTemplates,
+  accountsWithInvestmentHandler,
+  seedAccounts,
+  seedCheckingAccount,
+  seedInvestmentAccount,
+} from '../../mocks/handlers/accounts'
+import {
+  seedRentPendingOccurrence,
+  seedRentRecurringTemplate,
 } from '../../mocks/handlers/recurringTemplates'
 import { findRow } from '../../test/testUtils'
 import { RecurringTemplatesPage } from './RecurringTemplatesPage'
@@ -27,19 +32,17 @@ describe('RecurringTemplatesPage', () => {
   it('renders the seeded template with its current amount and day of month', async () => {
     render(<RecurringTemplatesPage />)
 
-    const row = await findRow(seedRecurringTemplates[0].description, templatesTable())
-    expect(row.getByText(seedRecurringTemplates[0].currentAmount!.toFixed(2))).toBeInTheDocument()
-    expect(row.getByText(String(seedRecurringTemplates[0].currentDayOfMonth))).toBeInTheDocument()
+    const row = await findRow(seedRentRecurringTemplate.description, templatesTable())
+    expect(row.getByText(seedRentRecurringTemplate.currentAmount!.toFixed(2))).toBeInTheDocument()
+    expect(row.getByText(String(seedRentRecurringTemplate.currentDayOfMonth))).toBeInTheDocument()
     expect(row.getByText('Active')).toBeInTheDocument()
   })
 
   it('never offers an investment account in the create form account dropdown', async () => {
-    server.use(
-      http.get('/api/accounts', () => HttpResponse.json([...seedAccounts, seedInvestmentAccount])),
-    )
+    server.use(accountsWithInvestmentHandler)
     const user = userEvent.setup()
     render(<RecurringTemplatesPage />)
-    await findRow(seedRecurringTemplates[0].description, templatesTable())
+    await findRow(seedRentRecurringTemplate.description, templatesTable())
 
     await user.click(screen.getByRole('combobox', { name: 'Account' }))
 
@@ -53,12 +56,12 @@ describe('RecurringTemplatesPage', () => {
   it('adds a new recurring template', async () => {
     const user = userEvent.setup()
     render(<RecurringTemplatesPage />)
-    await findRow(seedRecurringTemplates[0].description, templatesTable())
+    await findRow(seedRentRecurringTemplate.description, templatesTable())
 
     await user.click(screen.getByLabelText('Category'))
-    await user.click(await screen.findByRole('option', { name: seedCategories[0].name }))
+    await user.click(await screen.findByRole('option', { name: seedGroceriesCategory.name }))
     await user.click(screen.getByLabelText('Account'))
-    await user.click(await screen.findByRole('option', { name: seedAccounts[0].name }))
+    await user.click(await screen.findByRole('option', { name: seedCheckingAccount.name }))
     await user.type(screen.getByLabelText('Description'), 'Internet')
     await user.type(screen.getByLabelText('Amount'), '120')
     const dayInput = screen.getByLabelText('Day of month')
@@ -72,7 +75,7 @@ describe('RecurringTemplatesPage', () => {
   it('edits a template amount and day of month inline', async () => {
     const user = userEvent.setup()
     render(<RecurringTemplatesPage />)
-    const row = await findRow(seedRecurringTemplates[0].description, templatesTable())
+    const row = await findRow(seedRentRecurringTemplate.description, templatesTable())
 
     await user.click(row.getByRole('button', { name: 'Edit amount and day' }))
     const amountInput = row.getByLabelText('Amount')
@@ -91,18 +94,18 @@ describe('RecurringTemplatesPage', () => {
     server.use(
       http.get('/api/recurring-templates/pending', () => {
         pendingCallCount += 1
-        return HttpResponse.json(seedPendingRecurringOccurrences)
+        return HttpResponse.json([seedRentPendingOccurrence])
       }),
     )
     const user = userEvent.setup()
     render(<RecurringTemplatesPage />)
-    await findRow(seedRecurringTemplates[0].description, templatesTable())
+    await findRow(seedRentRecurringTemplate.description, templatesTable())
     await waitFor(() => expect(pendingCallCount).toBe(1))
 
     await user.click(screen.getByLabelText('Category'))
-    await user.click(await screen.findByRole('option', { name: seedCategories[0].name }))
+    await user.click(await screen.findByRole('option', { name: seedGroceriesCategory.name }))
     await user.click(screen.getByLabelText('Account'))
-    await user.click(await screen.findByRole('option', { name: seedAccounts[0].name }))
+    await user.click(await screen.findByRole('option', { name: seedCheckingAccount.name }))
     await user.type(screen.getByLabelText('Description'), 'Internet')
     await user.type(screen.getByLabelText('Amount'), '120')
     const dayInput = screen.getByLabelText('Day of month')
@@ -123,12 +126,12 @@ describe('RecurringTemplatesPage', () => {
       http.get('/api/recurring-templates/pending', () => {
         pendingCallCount += 1
         const amount = pendingCallCount === 1 ? 1500 : 1750
-        return HttpResponse.json([{ ...seedPendingRecurringOccurrences[0], amount }])
+        return HttpResponse.json([{ ...seedRentPendingOccurrence, amount }])
       }),
     )
     const user = userEvent.setup()
     render(<RecurringTemplatesPage />)
-    const row = await findRow(seedRecurringTemplates[0].description, templatesTable())
+    const row = await findRow(seedRentRecurringTemplate.description, templatesTable())
     expect(await pendingWidgetTable().findByText('1500.00')).toBeInTheDocument()
 
     await user.click(row.getByRole('button', { name: 'Edit amount and day' }))
@@ -143,7 +146,7 @@ describe('RecurringTemplatesPage', () => {
   it('stops an active template', async () => {
     const user = userEvent.setup()
     render(<RecurringTemplatesPage />)
-    const row = await findRow(seedRecurringTemplates[0].description, templatesTable())
+    const row = await findRow(seedRentRecurringTemplate.description, templatesTable())
 
     await user.click(row.getByRole('button', { name: 'Stop' }))
 
@@ -170,19 +173,19 @@ describe('RecurringTemplatesPage local-time defaults', () => {
       http.post('/api/recurring-templates', async ({ request }) => {
         sent = (await request.json()) as { effectiveFrom?: string }
         return HttpResponse.json(
-          { ...seedRecurringTemplates[0], id: 'rt-new', description: 'Internet' },
+          { ...seedRentRecurringTemplate, id: 'rt-new', description: 'Internet' },
           { status: 201 },
         )
       }),
     )
     const user = userEvent.setup()
     render(<RecurringTemplatesPage />)
-    await findRow(seedRecurringTemplates[0].description, templatesTable())
+    await findRow(seedRentRecurringTemplate.description, templatesTable())
 
     await user.click(screen.getByLabelText('Category'))
-    await user.click(await screen.findByRole('option', { name: seedCategories[0].name }))
+    await user.click(await screen.findByRole('option', { name: seedGroceriesCategory.name }))
     await user.click(screen.getByLabelText('Account'))
-    await user.click(await screen.findByRole('option', { name: seedAccounts[0].name }))
+    await user.click(await screen.findByRole('option', { name: seedCheckingAccount.name }))
     await user.type(screen.getByLabelText('Description'), 'Internet')
     await user.type(screen.getByLabelText('Amount'), '120')
     await user.click(screen.getByRole('button', { name: 'Add' }))

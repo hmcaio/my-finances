@@ -7,7 +7,14 @@ import {
   seedCategories,
 } from '../mocks/handlers/categories'
 import { ApiError } from './apiError'
-import { createCategory, deleteCategory, getCategories, renameCategory } from './categories'
+import {
+  CONFLICT_MESSAGE,
+  DUPLICATE_NAME_MESSAGE,
+  createCategory,
+  deleteCategory,
+  getCategories,
+  renameCategory,
+} from './categories'
 
 describe('categories API client', () => {
   it('getCategories returns the seeded list', async () => {
@@ -36,7 +43,7 @@ describe('categories API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toContain('reassign them')
+    expect((error as ApiError).message).toBe(CONFLICT_MESSAGE)
   })
 
   it('createCategory maps a 409 to the duplicate-name message', async () => {
@@ -48,7 +55,7 @@ describe('categories API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toContain('already exists')
+    expect((error as ApiError).message).toBe(DUPLICATE_NAME_MESSAGE)
   })
 
   it('renameCategory maps a 409 to the duplicate-name message', async () => {
@@ -60,6 +67,6 @@ describe('categories API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toContain('already exists')
+    expect((error as ApiError).message).toBe(DUPLICATE_NAME_MESSAGE)
   })
 })

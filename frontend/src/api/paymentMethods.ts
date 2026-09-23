@@ -11,10 +11,10 @@ export interface PaymentMethod {
 export type CreatePaymentMethodRequest = components['schemas']['CreatePaymentMethodRequest']
 export type UpdatePaymentMethodRequest = components['schemas']['UpdatePaymentMethodRequest']
 
-const CONFLICT_MESSAGE =
+export const CONFLICT_MESSAGE =
   'This payment method is used by existing transactions — reassign them before deleting it.'
 
-const DUPLICATE_NAME_MESSAGE = 'A payment method with this name already exists.'
+export const DUPLICATE_NAME_MESSAGE = 'A payment method with this name already exists.'
 
 /**
  * Fetches every payment method. Reused as a dropdown-options source by F004 (Transactions), per

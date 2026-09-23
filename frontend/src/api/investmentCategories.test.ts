@@ -8,6 +8,8 @@ import {
 } from '../mocks/handlers/investmentCategories'
 import { ApiError } from './apiError'
 import {
+  CONFLICT_MESSAGE,
+  DUPLICATE_NAME_MESSAGE,
   createInvestmentCategory,
   deleteInvestmentCategory,
   getInvestmentCategories,
@@ -48,7 +50,7 @@ describe('investment categories API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toContain('sub-categories')
+    expect((error as ApiError).message).toBe(CONFLICT_MESSAGE)
   })
 
   it('createInvestmentCategory and rename map a 409 to the duplicate-name message', async () => {
@@ -64,7 +66,7 @@ describe('investment categories API client', () => {
     for (const error of [created, renamed]) {
       expect(error).toBeInstanceOf(ApiError)
       expect((error as ApiError).status).toBe(409)
-      expect((error as ApiError).message).toContain('already exists')
+      expect((error as ApiError).message).toBe(DUPLICATE_NAME_MESSAGE)
     }
   })
 })

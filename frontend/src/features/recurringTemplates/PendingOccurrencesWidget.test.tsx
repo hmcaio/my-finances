@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { seedPaymentMethods } from '../../mocks/handlers/paymentMethods'
-import { seedPendingRecurringOccurrences } from '../../mocks/handlers/recurringTemplates'
+import { seedDebitCardPaymentMethod } from '../../mocks/handlers/paymentMethods'
+import { seedRentPendingOccurrence } from '../../mocks/handlers/recurringTemplates'
 import { findRow } from '../../test/testUtils'
 import { PendingOccurrencesWidget } from './PendingOccurrencesWidget'
 
@@ -11,8 +11,8 @@ describe('PendingOccurrencesWidget', () => {
     render(<PendingOccurrencesWidget />)
 
     const row = await findRow('Rent')
-    expect(row.getByText(seedPendingRecurringOccurrences[0].amount.toFixed(2))).toBeInTheDocument()
-    expect(row.getByText(seedPendingRecurringOccurrences[0].dueDate)).toBeInTheDocument()
+    expect(row.getByText(seedRentPendingOccurrence.amount.toFixed(2))).toBeInTheDocument()
+    expect(row.getByText(seedRentPendingOccurrence.dueDate)).toBeInTheDocument()
   })
 
   it('confirms an occurrence with a payment method and removes it from the list', async () => {
@@ -22,7 +22,7 @@ describe('PendingOccurrencesWidget', () => {
 
     await user.click(row.getByRole('button', { name: 'Confirm occurrence' }))
     await user.click(screen.getByLabelText('Payment Method'))
-    await user.click(await screen.findByRole('option', { name: seedPaymentMethods[0].name }))
+    await user.click(await screen.findByRole('option', { name: seedDebitCardPaymentMethod.name }))
     await user.click(screen.getByRole('button', { name: 'Confirm' }))
 
     expect(screen.queryByText('Rent')).not.toBeInTheDocument()
@@ -38,7 +38,7 @@ describe('PendingOccurrencesWidget', () => {
     await user.clear(amountInput)
     await user.type(amountInput, '1650')
     await user.click(screen.getByLabelText('Payment Method'))
-    await user.click(await screen.findByRole('option', { name: seedPaymentMethods[0].name }))
+    await user.click(await screen.findByRole('option', { name: seedDebitCardPaymentMethod.name }))
     await user.click(screen.getByRole('button', { name: 'Confirm' }))
 
     expect(await screen.findByText('Nothing pending right now.')).toBeInTheDocument()

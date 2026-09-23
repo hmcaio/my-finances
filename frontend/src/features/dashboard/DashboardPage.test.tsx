@@ -1,17 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
+import { healthDownHandler } from '../../mocks/handlers/health'
 import { DashboardPage } from './DashboardPage'
 
 describe('DashboardPage', () => {
   it('shows a success alert once the backend health check resolves', async () => {
-    server.use(
-      http.get('/api/health', () =>
-        HttpResponse.json({ status: 'UP', timestamp: '2026-01-01T00:00:00Z' }),
-      ),
-    )
-
+    // The default `GET /api/health` handler already answers UP - no override needed.
     render(<DashboardPage />)
 
     expect(screen.getByText('Checking backend health...')).toBeInTheDocument()
@@ -19,7 +14,7 @@ describe('DashboardPage', () => {
   })
 
   it('shows an error alert when the health check fails', async () => {
-    server.use(http.get('/api/health', () => new HttpResponse(null, { status: 500 })))
+    server.use(healthDownHandler)
 
     render(<DashboardPage />)
 

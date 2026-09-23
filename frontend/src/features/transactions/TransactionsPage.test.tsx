@@ -3,13 +3,19 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
-import { seedAccounts, seedInvestmentAccount } from '../../mocks/handlers/accounts'
-import { seedCategories } from '../../mocks/handlers/categories'
-import { seedPaymentMethods } from '../../mocks/handlers/paymentMethods'
 import {
+  accountsWithInvestmentHandler,
+  seedAccounts,
+  seedInvestmentAccount,
+} from '../../mocks/handlers/accounts'
+import { seedCategories, seedGroceriesCategory } from '../../mocks/handlers/categories'
+import { seedDebitCardPaymentMethod, seedPaymentMethods } from '../../mocks/handlers/paymentMethods'
+import {
+  seedGroceriesTransaction,
   seedTransactions,
   transactionClosedAccountConflictHandler,
 } from '../../mocks/handlers/transactions'
+import { CLOSED_ACCOUNT_MESSAGE } from '../../api/transactions'
 import { findRow, selectOption } from '../../test/testUtils'
 import { TransactionsPage } from './TransactionsPage'
 
@@ -25,7 +31,7 @@ describe('TransactionsPage', () => {
   it('filters by category', async () => {
     const user = userEvent.setup()
     render(<TransactionsPage />)
-    await screen.findByText(seedTransactions[0].description)
+    await screen.findByText(seedGroceriesTransaction.description)
 
     const incomeCategory = seedCategories.find((c) => c.type === 'INCOME')!
     await selectOption(user, 'Category filter', incomeCategory.name)
@@ -39,13 +45,13 @@ describe('TransactionsPage', () => {
   it('adds a new transaction with the create form', async () => {
     const user = userEvent.setup()
     render(<TransactionsPage />)
-    await screen.findByText(seedTransactions[0].description)
+    await screen.findByText(seedGroceriesTransaction.description)
 
     await user.type(screen.getByRole('spinbutton', { name: 'Amount' }), '15')
-    await selectOption(user, 'Category', seedCategories[0].name)
+    await selectOption(user, 'Category', seedGroceriesCategory.name)
     const openAccount = seedAccounts.find((a) => !a.closed)!
     await selectOption(user, 'Account', openAccount.name)
-    await selectOption(user, 'Payment Method', seedPaymentMethods[0].name)
+    await selectOption(user, 'Payment Method', seedDebitCardPaymentMethod.name)
     await user.type(screen.getByRole('textbox', { name: 'Description' }), 'Coffee run')
     await user.click(screen.getByRole('button', { name: 'Add' }))
 
@@ -55,7 +61,7 @@ describe('TransactionsPage', () => {
   it('excludes closed accounts from the create/edit form account dropdown', async () => {
     const user = userEvent.setup()
     render(<TransactionsPage />)
-    await screen.findByText(seedTransactions[0].description)
+    await screen.findByText(seedGroceriesTransaction.description)
 
     const closedAccount = seedAccounts.find((a) => a.closed)!
     await user.click(screen.getByRole('combobox', { name: 'Account' }))
@@ -64,12 +70,10 @@ describe('TransactionsPage', () => {
   })
 
   it('never offers an investment account in the form account dropdown', async () => {
-    server.use(
-      http.get('/api/accounts', () => HttpResponse.json([...seedAccounts, seedInvestmentAccount])),
-    )
+    server.use(accountsWithInvestmentHandler)
     const user = userEvent.setup()
     render(<TransactionsPage />)
-    await screen.findByText(seedTransactions[0].description)
+    await screen.findByText(seedGroceriesTransaction.description)
 
     await user.click(screen.getByRole('combobox', { name: 'Account' }))
 
@@ -83,7 +87,7 @@ describe('TransactionsPage', () => {
   it('edits a transaction', async () => {
     const user = userEvent.setup()
     render(<TransactionsPage />)
-    const target = seedTransactions[0]
+    const target = seedGroceriesTransaction
     await screen.findByText(target.description)
 
     const row = await findRow(target.description)
@@ -101,7 +105,7 @@ describe('TransactionsPage', () => {
   it('deletes a transaction after confirming the dialog', async () => {
     const user = userEvent.setup()
     render(<TransactionsPage />)
-    const target = seedTransactions[0]
+    const target = seedGroceriesTransaction
     await screen.findByText(target.description)
 
     const row = await findRow(target.description)
@@ -116,17 +120,17 @@ describe('TransactionsPage', () => {
     server.use(transactionClosedAccountConflictHandler)
     const user = userEvent.setup()
     render(<TransactionsPage />)
-    await screen.findByText(seedTransactions[0].description)
+    await screen.findByText(seedGroceriesTransaction.description)
 
     await user.type(screen.getByRole('spinbutton', { name: 'Amount' }), '15')
-    await selectOption(user, 'Category', seedCategories[0].name)
+    await selectOption(user, 'Category', seedGroceriesCategory.name)
     const openAccount = seedAccounts.find((a) => !a.closed)!
     await selectOption(user, 'Account', openAccount.name)
-    await selectOption(user, 'Payment Method', seedPaymentMethods[0].name)
+    await selectOption(user, 'Payment Method', seedDebitCardPaymentMethod.name)
     await user.type(screen.getByRole('textbox', { name: 'Description' }), 'Coffee run')
     await user.click(screen.getByRole('button', { name: 'Add' }))
 
-    expect(await screen.findByText(/cannot accept new transactions/)).toBeInTheDocument()
+    expect(await screen.findByText(CLOSED_ACCOUNT_MESSAGE)).toBeInTheDocument()
   })
 
   it('retries the table and its name lookups together, clearing the error banner', async () => {
@@ -144,7 +148,7 @@ describe('TransactionsPage', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Retry' }))
 
-    const transaction = seedTransactions[0]
+    const transaction = seedGroceriesTransaction
     const row = await findRow(transaction.description)
     // Names, not the raw ids the row falls back to while a lookup list is missing.
     await waitFor(() => {
@@ -169,7 +173,7 @@ describe('TransactionsPage', () => {
       }),
     )
     render(<TransactionsPage />)
-    const transaction = seedTransactions[0]
+    const transaction = seedGroceriesTransaction
 
     // The transactions themselves arrive right away; the skeleton stays up for the slow lookup.
     expect(await screen.findByText('Loading…')).toBeInTheDocument()

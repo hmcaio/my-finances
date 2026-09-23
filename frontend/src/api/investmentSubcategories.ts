@@ -15,10 +15,10 @@ export type UpdateInvestmentSubcategoryRequest =
   components['schemas']['UpdateInvestmentSubcategoryRequest']
 
 // The backend sends no message text, so every expected 409 needs its own wording here.
-const CONFLICT_MESSAGE =
+export const CONFLICT_MESSAGE =
   'This sub-category is used by an investment product - reclassify those products before deleting it.'
 
-const DUPLICATE_NAME_MESSAGE = 'This category already has a sub-category with this name.'
+export const DUPLICATE_NAME_MESSAGE = 'This category already has a sub-category with this name.'
 
 /** Creates a sub-category under a category; its parent can never be changed afterwards. */
 export async function createInvestmentSubcategory(

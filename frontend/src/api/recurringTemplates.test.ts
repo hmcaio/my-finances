@@ -7,6 +7,7 @@ import {
 } from '../mocks/handlers/recurringTemplates'
 import { ApiError } from './apiError'
 import {
+  CREATE_CONFLICT_MESSAGE,
   confirmPendingRecurringOccurrence,
   createRecurringTemplate,
   dismissPendingRecurringOccurrence,
@@ -55,7 +56,7 @@ describe('recurringTemplates API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toContain('closed')
+    expect((error as ApiError).message).toBe(CREATE_CONFLICT_MESSAGE)
   })
 
   it('setRecurringTemplateCap patches the amount/day and returns the updated template', async () => {

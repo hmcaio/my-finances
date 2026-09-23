@@ -10,6 +10,13 @@ export const seedPaymentMethods: PaymentMethod[] = [
   { id: 'pm-2', name: 'Cash' },
 ]
 
+/**
+ * Named lookups for the two seed rows, so call sites identify them by name instead of indexing
+ * into `seedPaymentMethods` by position (frontend test audit's F6 finding).
+ */
+export const seedDebitCardPaymentMethod = seedPaymentMethods.find((p) => p.name === 'Debit Card')!
+export const seedCashPaymentMethod = seedPaymentMethods.find((p) => p.name === 'Cash')!
+
 const PAYMENT_METHODS_URL = '/api/payment-methods'
 
 interface PaymentMethodRequestBody {

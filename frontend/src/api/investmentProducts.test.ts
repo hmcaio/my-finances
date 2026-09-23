@@ -11,6 +11,9 @@ import {
 } from '../mocks/handlers/investmentProducts'
 import { ApiError } from './apiError'
 import {
+  CLOSE_CONFLICT_MESSAGE,
+  DELETE_CONFLICT_MESSAGE,
+  SAVE_CONFLICT_MESSAGE,
   closeInvestmentProduct,
   createInvestmentProduct,
   deleteInvestmentProduct,
@@ -93,7 +96,7 @@ describe('investment products API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toContain('close it instead')
+    expect((error as ApiError).message).toBe(DELETE_CONFLICT_MESSAGE)
   })
 
   it('closeInvestmentProduct maps a 409 to the already-closed message', async () => {
@@ -103,7 +106,7 @@ describe('investment products API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toContain('already closed')
+    expect((error as ApiError).message).toBe(CLOSE_CONFLICT_MESSAGE)
   })
 
   it('create and edit map a 409 to the save-conflict message', async () => {
@@ -122,7 +125,7 @@ describe('investment products API client', () => {
     for (const error of [created, edited]) {
       expect(error).toBeInstanceOf(ApiError)
       expect((error as ApiError).status).toBe(409)
-      expect((error as ApiError).message).toContain('could not be saved')
+      expect((error as ApiError).message).toBe(SAVE_CONFLICT_MESSAGE)
     }
   })
 })

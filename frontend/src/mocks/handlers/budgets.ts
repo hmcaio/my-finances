@@ -18,6 +18,13 @@ export const seedBudgets: Budget[] = [
 /** Seed data returned by the default `GET /api/budgets/report` handler below. */
 export const seedBudgetReport: BudgetReportLine[] = [{ categoryId: 'cat-1', cap: 500, actual: 620 }]
 
+/**
+ * Named lookups for the sole seed row of each array, so call sites identify them by their category
+ * instead of indexing by position (frontend test audit's F6 finding).
+ */
+export const seedGroceriesBudget = seedBudgets.find((b) => b.categoryId === 'cat-1')!
+export const seedGroceriesBudgetReportLine = seedBudgetReport.find((l) => l.categoryId === 'cat-1')!
+
 const BUDGETS_URL = '/api/budgets'
 
 interface CreateBudgetRequestBody {

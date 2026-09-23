@@ -7,6 +7,8 @@ import {
 } from '../mocks/handlers/investmentSubcategories'
 import { ApiError } from './apiError'
 import {
+  CONFLICT_MESSAGE,
+  DUPLICATE_NAME_MESSAGE,
   createInvestmentSubcategory,
   deleteInvestmentSubcategory,
   renameInvestmentSubcategory,
@@ -46,7 +48,7 @@ describe('investment sub-categories API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toContain('reclassify')
+    expect((error as ApiError).message).toBe(CONFLICT_MESSAGE)
   })
 
   it('create and rename map a 409 to the duplicate-name message', async () => {
@@ -66,7 +68,7 @@ describe('investment sub-categories API client', () => {
     for (const error of [created, renamed]) {
       expect(error).toBeInstanceOf(ApiError)
       expect((error as ApiError).status).toBe(409)
-      expect((error as ApiError).message).toContain('already has a sub-category')
+      expect((error as ApiError).message).toBe(DUPLICATE_NAME_MESSAGE)
     }
   })
 })

@@ -28,6 +28,14 @@ export const seedTransfers: Transfer[] = [
   },
 ]
 
+/**
+ * Named lookup for the seeded credit-card-payment transfer (`trf-1`), so call sites identify it by
+ * name instead of indexing into `seedTransfers` by position (frontend test audit's F6 finding).
+ */
+export const seedCreditCardPaymentTransfer = seedTransfers.find(
+  (t) => t.description === 'Credit card payment',
+)!
+
 const TRANSFERS_URL = '/api/transfers'
 
 interface TransferRequestBody {

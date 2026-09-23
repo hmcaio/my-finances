@@ -3,7 +3,12 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { server } from '../../mocks/server'
 import { seedAccounts } from '../../mocks/handlers/accounts'
-import { seedTransfers, transferClosedAccountConflictHandler } from '../../mocks/handlers/transfers'
+import {
+  seedCreditCardPaymentTransfer,
+  seedTransfers,
+  transferClosedAccountConflictHandler,
+} from '../../mocks/handlers/transfers'
+import { CLOSED_ACCOUNT_MESSAGE } from '../../api/transfers'
 import { findRow, selectOption } from '../../test/testUtils'
 import { TransfersPage } from './TransfersPage'
 
@@ -19,10 +24,12 @@ describe('TransfersPage', () => {
   it('filters by account, matching either side', async () => {
     const user = userEvent.setup()
     render(<TransfersPage />)
-    await screen.findByText(seedTransfers[0].description)
+    await screen.findByText(seedCreditCardPaymentTransfer.description)
 
     const otherAccount = seedAccounts.find(
-      (a) => a.id !== seedTransfers[0].fromAccountId && a.id !== seedTransfers[0].toAccountId,
+      (a) =>
+        a.id !== seedCreditCardPaymentTransfer.fromAccountId &&
+        a.id !== seedCreditCardPaymentTransfer.toAccountId,
     )!
     await selectOption(user, 'Account filter', otherAccount.name)
 
@@ -40,7 +47,7 @@ describe('TransfersPage', () => {
   it('adds a new transfer with the create form', async () => {
     const user = userEvent.setup()
     render(<TransfersPage />)
-    await screen.findByText(seedTransfers[0].description)
+    await screen.findByText(seedCreditCardPaymentTransfer.description)
 
     const openAccounts = seedAccounts.filter((a) => !a.closed)
     await user.type(screen.getByRole('spinbutton', { name: 'Amount' }), '15')
@@ -55,7 +62,7 @@ describe('TransfersPage', () => {
   it("excludes the selected From account from the To account dropdown - can't pick the same account twice", async () => {
     const user = userEvent.setup()
     render(<TransfersPage />)
-    await screen.findByText(seedTransfers[0].description)
+    await screen.findByText(seedCreditCardPaymentTransfer.description)
 
     const openAccounts = seedAccounts.filter((a) => !a.closed)
     await selectOption(user, 'From Account', openAccounts[0].name)
@@ -67,7 +74,7 @@ describe('TransfersPage', () => {
   it('excludes closed accounts from the create/edit form account dropdowns', async () => {
     const user = userEvent.setup()
     render(<TransfersPage />)
-    await screen.findByText(seedTransfers[0].description)
+    await screen.findByText(seedCreditCardPaymentTransfer.description)
 
     const closedAccount = seedAccounts.find((a) => a.closed)!
     await user.click(screen.getByRole('combobox', { name: 'From Account' }))
@@ -78,7 +85,7 @@ describe('TransfersPage', () => {
   it('edits a transfer', async () => {
     const user = userEvent.setup()
     render(<TransfersPage />)
-    const target = seedTransfers[0]
+    const target = seedCreditCardPaymentTransfer
     await screen.findByText(target.description)
 
     const row = await findRow(target.description)
@@ -96,7 +103,7 @@ describe('TransfersPage', () => {
   it('deletes a transfer after confirming the dialog', async () => {
     const user = userEvent.setup()
     render(<TransfersPage />)
-    const target = seedTransfers[0]
+    const target = seedCreditCardPaymentTransfer
     await screen.findByText(target.description)
 
     const row = await findRow(target.description)
@@ -111,7 +118,7 @@ describe('TransfersPage', () => {
     server.use(transferClosedAccountConflictHandler)
     const user = userEvent.setup()
     render(<TransfersPage />)
-    await screen.findByText(seedTransfers[0].description)
+    await screen.findByText(seedCreditCardPaymentTransfer.description)
 
     const openAccounts = seedAccounts.filter((a) => !a.closed)
     await user.type(screen.getByRole('spinbutton', { name: 'Amount' }), '15')
@@ -120,7 +127,7 @@ describe('TransfersPage', () => {
     await user.type(screen.getByRole('textbox', { name: 'Description' }), 'Move to savings')
     await user.click(screen.getByRole('button', { name: 'Add' }))
 
-    expect(await screen.findByText(/cannot accept new transfers/)).toBeInTheDocument()
+    expect(await screen.findByText(CLOSED_ACCOUNT_MESSAGE)).toBeInTheDocument()
   })
 })
 
