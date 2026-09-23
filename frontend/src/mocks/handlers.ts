@@ -4,8 +4,11 @@ import { categoriesHandlers } from './handlers/categories'
 import { healthHandlers } from './handlers/health'
 import { institutionsHandlers } from './handlers/institutions'
 import { investmentCategoriesHandlers } from './handlers/investmentCategories'
+import { investmentAllocationHandlers } from './handlers/investmentAllocation'
 import { investmentProductsHandlers } from './handlers/investmentProducts'
+import { investmentSnapshotsHandlers } from './handlers/investmentSnapshots'
 import { investmentSubcategoriesHandlers } from './handlers/investmentSubcategories'
+import { investmentValueSeriesHandlers } from './handlers/investmentValueSeries'
 import { paymentMethodsHandlers } from './handlers/paymentMethods'
 import { recurringTemplatesHandlers } from './handlers/recurringTemplates'
 import { transactionsHandlers } from './handlers/transactions'
@@ -26,7 +29,10 @@ export const handlers = [
   ...healthHandlers,
   ...institutionsHandlers,
   ...investmentCategoriesHandlers,
+  ...investmentAllocationHandlers,
   ...investmentProductsHandlers,
+  ...investmentSnapshotsHandlers,
+  ...investmentValueSeriesHandlers,
   ...investmentSubcategoriesHandlers,
   ...paymentMethodsHandlers,
   ...recurringTemplatesHandlers,

@@ -8,7 +8,7 @@ import {
   seedTransfers,
   transferClosedAccountConflictHandler,
 } from '../../mocks/handlers/transfers'
-import { CLOSED_ACCOUNT_MESSAGE } from '../../api/transfers'
+import { TRANSFER_CONFLICT_MESSAGE } from '../../api/transfers'
 import { findRow, selectOption } from '../../test/testUtils'
 import { expectLoadStates } from '../../test/loadStates'
 import { TransfersPage } from './TransfersPage'
@@ -128,7 +128,7 @@ describe('TransfersPage', () => {
     await user.type(screen.getByRole('textbox', { name: 'Description' }), 'Move to savings')
     await user.click(screen.getByRole('button', { name: 'Add' }))
 
-    expect(await screen.findByText(CLOSED_ACCOUNT_MESSAGE)).toBeInTheDocument()
+    expect(await screen.findByText(TRANSFER_CONFLICT_MESSAGE)).toBeInTheDocument()
   })
 
   // The table's load state is `combineLoadState(accountsState, transfersState)` (F2 audit finding);

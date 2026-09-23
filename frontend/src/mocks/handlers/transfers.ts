@@ -16,6 +16,10 @@ export const seedTransfers: Transfer[] = [
     amount: 200,
     description: 'Credit card payment',
     additionalNotes: null,
+    investmentProductId: null,
+    quantity: null,
+    unitPrice: null,
+    taxes: null,
   },
   {
     id: 'trf-2',
@@ -25,8 +29,49 @@ export const seedTransfers: Transfer[] = [
     amount: 50,
     description: 'Refund',
     additionalNotes: 'Overpaid last month',
+    investmentProductId: null,
+    quantity: null,
+    unitPrice: null,
+    taxes: null,
   },
 ]
+
+/**
+ * A buy of the seeded Bitcoin product (F009): checking into the seeded INVESTMENT account with
+ * quantity, unit price and taxes. Kept OUT of `seedTransfers` - that list feeds the general list
+ * tests, where a tagged transfer would be a surprise - and served only when the list is filtered by
+ * its product (`investmentProductId=iprod-btc`).
+ */
+export const seedBitcoinBuyTransfer: Transfer = {
+  id: 'trf-btc-buy',
+  date: '2026-08-10',
+  fromAccountId: 'acct-1',
+  toAccountId: 'acct-inv',
+  amount: 1005,
+  description: 'Buy Bitcoin',
+  additionalNotes: null,
+  investmentProductId: 'iprod-btc',
+  quantity: 0.01,
+  unitPrice: 100000,
+  taxes: 5,
+}
+
+/** The matching sell (out of the INVESTMENT account, no trade details recorded). */
+export const seedBitcoinSellTransfer: Transfer = {
+  id: 'trf-btc-sell',
+  date: '2026-08-20',
+  fromAccountId: 'acct-inv',
+  toAccountId: 'acct-1',
+  amount: 500,
+  description: 'Sell some Bitcoin',
+  additionalNotes: null,
+  investmentProductId: 'iprod-btc',
+  quantity: null,
+  unitPrice: null,
+  taxes: null,
+}
+
+const seedProductTrades: Transfer[] = [seedBitcoinBuyTransfer, seedBitcoinSellTransfer]
 
 /**
  * Named lookup for the seeded credit-card-payment transfer (`trf-1`), so call sites identify it by
@@ -45,6 +90,27 @@ interface TransferRequestBody {
   amount: number
   description: string
   additionalNotes?: string
+  investmentProductId?: string
+  quantity?: number
+  unitPrice?: number
+  taxes?: number
+}
+
+/** The response for a create/edit request: the body echoed back, trade fields defaulting to null. */
+function toTransfer(id: string, body: TransferRequestBody): Transfer {
+  return {
+    id,
+    date: body.date,
+    fromAccountId: body.fromAccountId,
+    toAccountId: body.toAccountId,
+    amount: body.amount,
+    description: body.description,
+    additionalNotes: body.additionalNotes ?? null,
+    investmentProductId: body.investmentProductId ?? null,
+    quantity: body.quantity ?? null,
+    unitPrice: body.unitPrice ?? null,
+    taxes: body.taxes ?? null,
+  }
 }
 
 /**
@@ -60,10 +126,14 @@ export const transfersHandlers = [
     const dateFrom = url.searchParams.get('dateFrom')
     const dateTo = url.searchParams.get('dateTo')
     const accountId = url.searchParams.get('accountId')
+    const investmentProductId = url.searchParams.get('investmentProductId')
     const page = Number(url.searchParams.get('page') ?? '0')
     const size = Number(url.searchParams.get('size') ?? '20')
 
-    const filtered = seedTransfers
+    // Only a product-filtered list includes the (otherwise hidden) product trades.
+    const source = investmentProductId ? seedProductTrades : seedTransfers
+    const filtered = source
+      .filter((t) => !investmentProductId || t.investmentProductId === investmentProductId)
       .filter((t) => !dateFrom || t.date >= dateFrom)
       .filter((t) => !dateTo || t.date <= dateTo)
       .filter((t) => !accountId || t.fromAccountId === accountId || t.toAccountId === accountId)
@@ -84,37 +154,19 @@ export const transfersHandlers = [
   }),
 
   http.get(`${TRANSFERS_URL}/:id`, ({ params }) => {
-    const transfer = seedTransfers.find((t) => t.id === params.id)
+    const transfer = [...seedTransfers, ...seedProductTrades].find((t) => t.id === params.id)
     if (!transfer) return new HttpResponse(null, { status: 404 })
     return HttpResponse.json(transfer)
   }),
 
   http.post(TRANSFERS_URL, async ({ request }) => {
     const body = (await request.json()) as TransferRequestBody
-    const created: Transfer = {
-      id: 'trf-new',
-      date: body.date,
-      fromAccountId: body.fromAccountId,
-      toAccountId: body.toAccountId,
-      amount: body.amount,
-      description: body.description,
-      additionalNotes: body.additionalNotes ?? null,
-    }
-    return HttpResponse.json(created, { status: 201 })
+    return HttpResponse.json(toTransfer('trf-new', body), { status: 201 })
   }),
 
   http.patch(`${TRANSFERS_URL}/:id`, async ({ request, params }) => {
     const body = (await request.json()) as TransferRequestBody
-    const updated: Transfer = {
-      id: params.id as string,
-      date: body.date,
-      fromAccountId: body.fromAccountId,
-      toAccountId: body.toAccountId,
-      amount: body.amount,
-      description: body.description,
-      additionalNotes: body.additionalNotes ?? null,
-    }
-    return HttpResponse.json(updated)
+    return HttpResponse.json(toTransfer(params.id as string, body))
   }),
 
   http.delete(`${TRANSFERS_URL}/:id`, () => new HttpResponse(null, { status: 204 })),

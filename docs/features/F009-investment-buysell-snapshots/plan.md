@@ -15,7 +15,7 @@
 - [x] REST: snapshot endpoints, transfer DTOs (`CreateTransferRequest`/`UpdateTransferRequest`/`TransferResponse`, `investmentProductId` filter), product response flags, allocation and value-series endpoints; controller tests including an 8-decimal quantity/price round trip; regenerate `frontend/src/api/generated/schema.ts` and check the `YearMonth` shape.
 
 ## Frontend
-- [ ] `src/api/investmentSnapshots.ts`, `src/api/investmentAllocation.ts`, `src/api/investmentValueSeries.ts`; extend `src/api/transfers.ts` and the MSW handlers.
+- [x] `src/api/investmentSnapshots.ts`, `src/api/investmentAllocation.ts`, `src/api/investmentValueSeries.ts`; extend `src/api/transfers.ts` and the MSW handlers.
 - [ ] Extend the transfer form (F005) with the product select, quantity/unit price/taxes with live total, resulting balance and "Sold entire position".
 - [ ] Extend F008's product detail with snapshot form + history, trade history, Buy/Sell buttons, value-series chart, `needsSnapshot` badge, and the close-guard `conflictMessage`.
 - [ ] Allocation chart with category → sub-category drill-down and the stale footnote.

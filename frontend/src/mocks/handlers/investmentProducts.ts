@@ -5,7 +5,8 @@ import { seedInvestmentAccount } from './accounts'
 /**
  * Seed data returned by the default `GET /api/investment-products` handler below, all inside the
  * seeded INVESTMENT account. "Tesouro Selic 2029" has no history (deletable), "Bitcoin" has some
- * (`hasHistory`, so close-only) and is classified by category only, and "Old CDB" is closed.
+ * (`hasHistory`, so close-only), is classified by category only and `needsSnapshot` (a buy newer
+ * than its latest snapshot, see `seedBitcoinBuyTransfer`), and "Old CDB" is closed.
  */
 export const seedInvestmentProducts: InvestmentProduct[] = [
   {
@@ -17,6 +18,8 @@ export const seedInvestmentProducts: InvestmentProduct[] = [
     closedDate: null,
     closed: false,
     hasHistory: false,
+    needsSnapshot: false,
+    latestSnapshot: null,
   },
   {
     id: 'iprod-btc',
@@ -27,6 +30,8 @@ export const seedInvestmentProducts: InvestmentProduct[] = [
     closedDate: null,
     closed: false,
     hasHistory: true,
+    needsSnapshot: true,
+    latestSnapshot: { date: '2026-08-05', balance: 900 },
   },
   {
     id: 'iprod-old',
@@ -37,6 +42,8 @@ export const seedInvestmentProducts: InvestmentProduct[] = [
     closedDate: '2026-03-01',
     closed: true,
     hasHistory: false,
+    needsSnapshot: false,
+    latestSnapshot: null,
   },
 ]
 
@@ -79,6 +86,8 @@ export const investmentProductsHandlers = [
       closedDate: null,
       closed: false,
       hasHistory: false,
+      needsSnapshot: false,
+      latestSnapshot: null,
     }
     return HttpResponse.json(created, { status: 201 })
   }),
@@ -95,6 +104,8 @@ export const investmentProductsHandlers = [
       closedDate: existing?.closedDate ?? null,
       closed: existing?.closed ?? false,
       hasHistory: existing?.hasHistory ?? false,
+      needsSnapshot: existing?.needsSnapshot ?? false,
+      latestSnapshot: existing?.latestSnapshot ?? null,
     }
     return HttpResponse.json(updated)
   }),
@@ -110,6 +121,8 @@ export const investmentProductsHandlers = [
       closedDate: '2026-09-15',
       closed: true,
       hasHistory: existing?.hasHistory ?? false,
+      needsSnapshot: existing?.needsSnapshot ?? false,
+      latestSnapshot: existing?.latestSnapshot ?? null,
     }
     return HttpResponse.json(closed)
   }),
