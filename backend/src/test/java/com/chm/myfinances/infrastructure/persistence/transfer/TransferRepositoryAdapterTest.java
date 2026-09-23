@@ -6,11 +6,16 @@ import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
+import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
+import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
+import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
+import com.chm.myfinances.domain.transfer.InvestmentTradeDetails;
 import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.domain.transfer.TransferFilter;
 import com.chm.myfinances.domain.transfer.TransferRepository;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
+import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -37,16 +42,32 @@ class TransferRepositoryAdapterTest {
   @Autowired private InstitutionRepository institutionRepository;
   @Autowired private TransferRepository transferRepository;
   @Autowired private AccountRepository accountRepository;
+  @Autowired private EntityManager entityManager;
+  @Autowired private InvestmentCategoryRepository investmentCategoryRepository;
+  @Autowired private InvestmentProductRepository investmentProductRepository;
 
   private UUID checkingId;
   private UUID savingsId;
   private UUID creditCardId;
+  private UUID brokerId;
+  private UUID productId;
 
   @BeforeEach
   void setUp() {
     checkingId = persistAccount("Checking", AccountType.CHECKING).getId();
     savingsId = persistAccount("Savings", AccountType.SAVINGS).getId();
     creditCardId = persistAccount("Credit Card", AccountType.CREDIT_CARD).getId();
+    brokerId = persistAccount("Broker Transfer Repo Test", AccountType.INVESTMENT).getId();
+    productId =
+        investmentProductRepository
+            .save(
+                InvestmentProduct.create(
+                    UUID.randomUUID(),
+                    brokerId,
+                    investmentCategoryRepository.findAll().get(0).getId(),
+                    null,
+                    "Product Transfer Repo Test"))
+            .getId();
   }
 
   private Account persistAccount(String name, AccountType type) {
@@ -168,5 +189,125 @@ class TransferRepositoryAdapterTest {
     Page<Transfer> page = transferRepository.findAll(TransferFilter.none(), PageRequest.of(0, 20));
 
     assertThat(page.getTotalElements()).isGreaterThanOrEqualTo(2);
+  }
+
+  private Transfer newTrade(
+      LocalDate date, UUID fromAccountId, UUID toAccountId, InvestmentTradeDetails details) {
+    return Transfer.create(
+        UUID.randomUUID(),
+        date,
+        fromAccountId,
+        toAccountId,
+        new BigDecimal("1005.00"),
+        "Trade",
+        null,
+        productId,
+        details);
+  }
+
+  @Test
+  void aTaggedTradeRoundTripsWithEightDecimalQuantityAndPrice() {
+    InvestmentTradeDetails details =
+        new InvestmentTradeDetails(
+            new BigDecimal("0.12345678"),
+            new BigDecimal("250000.87654321"),
+            new BigDecimal("5.25"));
+    Transfer trade = newTrade(LocalDate.of(2026, 3, 10), checkingId, brokerId, details);
+
+    transferRepository.save(trade);
+    entityManager.flush();
+    entityManager.clear();
+
+    Transfer reloaded = transferRepository.findById(trade.getId()).orElseThrow();
+    assertThat(reloaded.getInvestmentProductId()).isEqualTo(productId);
+    assertThat(reloaded.getTradeDetails().quantity()).isEqualByComparingTo("0.12345678");
+    assertThat(reloaded.getTradeDetails().unitPrice()).isEqualByComparingTo("250000.87654321");
+    assertThat(reloaded.getTradeDetails().taxes()).isEqualByComparingTo("5.25");
+  }
+
+  @Test
+  void aPlainTransferReloadsWithNoProductAndEmptyDetails() {
+    Transfer plain = newTransfer(LocalDate.now(), checkingId, savingsId);
+    transferRepository.save(plain);
+    entityManager.flush();
+    entityManager.clear();
+
+    Transfer reloaded = transferRepository.findById(plain.getId()).orElseThrow();
+
+    assertThat(reloaded.getInvestmentProductId()).isNull();
+    assertThat(reloaded.getTradeDetails().isEmpty()).isTrue();
+  }
+
+  @Test
+  void editingATradePersistsTheTagAndDetailsAndClearingThemWorks() {
+    Transfer transfer = newTransfer(LocalDate.of(2026, 1, 1), checkingId, brokerId);
+    transferRepository.save(transfer);
+
+    transfer.edit(
+        LocalDate.of(2026, 1, 2),
+        checkingId,
+        brokerId,
+        BigDecimal.TEN,
+        "Now a buy",
+        null,
+        productId,
+        new InvestmentTradeDetails(BigDecimal.ONE, BigDecimal.TEN, null));
+    transferRepository.save(transfer);
+    entityManager.flush();
+    entityManager.clear();
+    Transfer tagged = transferRepository.findById(transfer.getId()).orElseThrow();
+    assertThat(tagged.getInvestmentProductId()).isEqualTo(productId);
+    assertThat(tagged.getTradeDetails().quantity()).isEqualByComparingTo("1");
+
+    tagged.edit(
+        LocalDate.of(2026, 1, 3), checkingId, savingsId, BigDecimal.TEN, "Plain again", null);
+    transferRepository.save(tagged);
+    entityManager.flush();
+    entityManager.clear();
+    Transfer untagged = transferRepository.findById(transfer.getId()).orElseThrow();
+    assertThat(untagged.getInvestmentProductId()).isNull();
+    assertThat(untagged.getTradeDetails().isEmpty()).isTrue();
+  }
+
+  @Test
+  void findByInvestmentProductIdAndFindAllInvestmentTradesReturnOnlyTaggedTransfers() {
+    Transfer buy = newTrade(LocalDate.of(2026, 3, 1), checkingId, brokerId, null);
+    Transfer sell = newTrade(LocalDate.of(2026, 3, 20), brokerId, checkingId, null);
+    Transfer plain = newTransfer(LocalDate.of(2026, 3, 5), checkingId, savingsId);
+    transferRepository.save(buy);
+    transferRepository.save(sell);
+    transferRepository.save(plain);
+
+    assertThat(transferRepository.findByInvestmentProductId(productId))
+        .extracting(Transfer::getId)
+        .containsExactlyInAnyOrder(buy.getId(), sell.getId());
+    assertThat(transferRepository.findAllInvestmentTrades())
+        .extracting(Transfer::getId)
+        .contains(buy.getId(), sell.getId())
+        .doesNotContain(plain.getId());
+  }
+
+  @Test
+  void existsByInvestmentProductIdIsTrueOnlyOnceATransferIsTagged() {
+    assertThat(transferRepository.existsByInvestmentProductId(productId)).isFalse();
+    transferRepository.save(newTransfer(LocalDate.now(), checkingId, savingsId));
+    assertThat(transferRepository.existsByInvestmentProductId(productId)).isFalse();
+
+    transferRepository.save(newTrade(LocalDate.now(), checkingId, brokerId, null));
+
+    assertThat(transferRepository.existsByInvestmentProductId(productId)).isTrue();
+  }
+
+  @Test
+  void findAllFiltersByInvestmentProductId() {
+    Transfer buy = newTrade(LocalDate.of(2026, 3, 1), checkingId, brokerId, null);
+    transferRepository.save(buy);
+    transferRepository.save(newTransfer(LocalDate.of(2026, 3, 2), checkingId, savingsId));
+
+    Page<Transfer> page =
+        transferRepository.findAll(
+            new TransferFilter(null, null, null, productId), PageRequest.of(0, 20));
+
+    assertThat(page.getContent()).extracting(Transfer::getId).containsExactly(buy.getId());
   }
 }
