@@ -14,6 +14,7 @@ import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.util.UUID;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -35,6 +36,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
  * here, and this app's own category delete guard would in any case reject deleting a category with
  * a - rolled back or not - budget reference attempt against it).
  */
+@Tag("integration")
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 class BudgetServiceTransactionalTest {

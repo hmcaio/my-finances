@@ -24,7 +24,7 @@ pgAdmin login, the pre-registered server, and the "editing `servers.json` needs 
 
 Production packaging (F014) is a wholly separate `docker-compose.prod.yml` (ADR 0006), not part of the dev loop. Local smoke test: build `ghcr.io/hmcaio/my-finances-{backend,frontend}:local` from `backend`/`frontend`, `cp .env.example .env` with `IMAGE_TAG=local`, then `docker compose -f docker-compose.prod.yml up -d` / `down -v`. Both compose files default to the same project name and both have a `postgres` service, so prod `up`/`down` replaces/removes the *dev* Postgres container (its data volume survives; `docker compose up -d` brings dev back).
 
-CI (`.github/workflows/ci.yml`) runs backend `spotlessCheck test` and frontend `npm ci && npm run lint && npm test` on every push/PR, and builds+pushes both images to GHCR on `main` and `vX.Y.Z` tags.
+CI (`.github/workflows/ci.yml`) runs backend `spotlessCheck test integrationTest` and frontend `npm ci && npm run lint && npm test` on every push/PR, and builds+pushes both images to GHCR on `main` and `vX.Y.Z` tags.
 
 ## Workflow
 

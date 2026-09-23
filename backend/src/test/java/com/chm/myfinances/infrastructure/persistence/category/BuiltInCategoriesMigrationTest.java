@@ -13,6 +13,7 @@ import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -26,6 +27,7 @@ import org.springframework.context.annotation.Import;
  * <p>Runs Flyway by hand in its own schema of the shared Testcontainers Postgres: migrate to V13,
  * shape the seeded rows, migrate to V14 (same setup as {@code InstitutionBackfillMigrationTest}).
  */
+@Tag("integration")
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 class BuiltInCategoriesMigrationTest extends AbstractMigrationTest {

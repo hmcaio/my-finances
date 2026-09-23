@@ -62,8 +62,31 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
+// Two tiers, split by the JUnit tag `integration` (carried by every @SpringBootTest class, enforced
+// by TestTaggingTest): `test` is the fast tier (domain, application with fakes, ArchUnit - no
+// Docker), `integrationTest` runs the Spring + Testcontainers Postgres tier, and `check` runs both.
 tasks.named('test') {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags 'integration'
+    }
+}
+
+tasks.register('integrationTest', Test) {
+    description = 'Runs the @SpringBootTest tests against the Testcontainers Postgres.'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'integration'
+    }
+    shouldRunAfter tasks.named('test')
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('integrationTest')
+}
+
+tasks.withType(Test).configureEach {
     // Tests run under the default `dev` profile, whose logging.file.name would write
     // backend/logs/. System properties outrank config files, and Spring Boot treats an empty
     // name as "no log file" (F016).
@@ -72,11 +95,13 @@ tasks.named('test') {
 
 // Report-only (issue #31, B15): no coverage thresholds/enforcement, and not wired into the
 // plain `test` task's own dependency chain, so the everyday `./gradlew test` dev loop doesn't
-// pay for report generation. `jacocoTestReport` depends on `test` (the plugin's default), so
-// `./gradlew jacocoTestReport` alone runs the tests and produces
-// build/reports/jacoco/test/html/index.html. CI runs it in the same invocation as `test` and
-// uploads the HTML report as an artifact (report only - no coverage thresholds).
+// pay for report generation. The report merges both tiers' execution data, so
+// `./gradlew jacocoTestReport` runs `test` and `integrationTest` and produces
+// build/reports/jacoco/test/html/index.html. CI runs it in the same invocation as the tests and
+// uploads the HTML report as an artifact.
 jacocoTestReport {
+    executionData.setFrom(fileTree(layout.buildDirectory.dir('jacoco')) { include '*.exec' })
+    dependsOn tasks.named('test'), tasks.named('integrationTest')
     reports {
         html.required = true
         xml.required = false

@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -27,6 +28,7 @@ import org.springframework.context.annotation.Import;
  * afterwards and is separate from the one the rest of the suite uses (same setup as {@code
  * PendingOccurrenceCycleUniquenessMigrationTest}).
  */
+@Tag("integration")
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 class InstitutionBackfillMigrationTest extends AbstractMigrationTest {

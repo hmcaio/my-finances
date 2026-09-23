@@ -13,6 +13,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -27,6 +28,7 @@ import org.springframework.context.annotation.Import;
  * insert the kind of rows the race produced, migrate to V11. The schema is dropped afterwards, and
  * it is separate from the schema the rest of the suite uses, so nothing here can leak into it.
  */
+@Tag("integration")
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 class PendingOccurrenceCycleUniquenessMigrationTest extends AbstractMigrationTest {

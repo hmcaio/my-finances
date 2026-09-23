@@ -25,6 +25,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.UUID;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -57,6 +58,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
  * deleteById}/{@code deleteByTemplateId} it did NOT stub to throw (stubbing the other one would
  * make cleanup itself fail).
  */
+@Tag("integration")
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 class RecurringTemplateServiceTransactionalTest {
