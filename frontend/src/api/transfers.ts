@@ -37,7 +37,7 @@ export interface TransferPage {
   }
 }
 
-const CLOSED_ACCOUNT_MESSAGE = 'This account is closed and cannot accept new transfers.'
+export const CLOSED_ACCOUNT_MESSAGE = 'This account is closed and cannot accept new transfers.'
 
 /**
  * Fetches a filtered, paginated page of transfers. `page` is 0-indexed; both `page`/`size` default

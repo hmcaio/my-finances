@@ -42,7 +42,7 @@ export interface TransactionPage {
   }
 }
 
-const CLOSED_ACCOUNT_MESSAGE = 'This account is closed and cannot accept new transactions.'
+export const CLOSED_ACCOUNT_MESSAGE = 'This account is closed and cannot accept new transactions.'
 
 /**
  * Fetches a filtered, paginated page of transactions. `page` is 0-indexed; both `page`/`size`

@@ -27,10 +27,10 @@ export type UpdateInvestmentCategoryRequest =
   components['schemas']['UpdateInvestmentCategoryRequest']
 
 // The backend sends no message text, so every expected 409 needs its own wording here.
-const CONFLICT_MESSAGE =
+export const CONFLICT_MESSAGE =
   'This category still has sub-categories or is used by an investment product - delete or reclassify those first.'
 
-const DUPLICATE_NAME_MESSAGE = 'An investment category with this name already exists.'
+export const DUPLICATE_NAME_MESSAGE = 'An investment category with this name already exists.'
 
 /** Fetches every category with its sub-categories, both levels sorted by name. */
 export async function getInvestmentCategories(): Promise<InvestmentCategory[]> {

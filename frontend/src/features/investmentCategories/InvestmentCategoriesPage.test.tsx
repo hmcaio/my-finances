@@ -12,6 +12,14 @@ import {
   investmentSubcategoryCreateConflictHandler,
   investmentSubcategoryDeleteConflictHandler,
 } from '../../mocks/handlers/investmentSubcategories'
+import {
+  CONFLICT_MESSAGE as CATEGORY_CONFLICT_MESSAGE,
+  DUPLICATE_NAME_MESSAGE as CATEGORY_DUPLICATE_NAME_MESSAGE,
+} from '../../api/investmentCategories'
+import {
+  CONFLICT_MESSAGE as SUBCATEGORY_CONFLICT_MESSAGE,
+  DUPLICATE_NAME_MESSAGE as SUBCATEGORY_DUPLICATE_NAME_MESSAGE,
+} from '../../api/investmentSubcategories'
 import { findRow } from '../../test/testUtils'
 import { InvestmentCategoriesPage } from './InvestmentCategoriesPage'
 
@@ -135,7 +143,7 @@ describe('InvestmentCategoriesPage', () => {
 
     await user.click((await findRow('Fixed Income')).getByRole('button', { name: 'Delete' }))
 
-    expect(await screen.findByText(/still has sub-categories or is used/)).toBeInTheDocument()
+    expect(await screen.findByText(CATEGORY_CONFLICT_MESSAGE)).toBeInTheDocument()
     expect(screen.getByText('Fixed Income')).toBeInTheDocument()
   })
 
@@ -147,7 +155,7 @@ describe('InvestmentCategoriesPage', () => {
 
     await user.click((await findRow('CDB')).getByRole('button', { name: 'Delete' }))
 
-    expect(await screen.findByText(/used by an investment product/)).toBeInTheDocument()
+    expect(await screen.findByText(SUBCATEGORY_CONFLICT_MESSAGE)).toBeInTheDocument()
     expect(screen.getByText('CDB')).toBeInTheDocument()
   })
 
@@ -159,13 +167,11 @@ describe('InvestmentCategoriesPage', () => {
 
     await user.type(screen.getByLabelText('New sub-category in Fixed Income'), 'CDB')
     await user.click(screen.getByRole('button', { name: 'Add sub-category to Fixed Income' }))
-    expect(await screen.findByText(/already has a sub-category with this name/)).toBeInTheDocument()
+    expect(await screen.findByText(SUBCATEGORY_DUPLICATE_NAME_MESSAGE)).toBeInTheDocument()
 
     await user.type(screen.getByRole('textbox', { name: 'Category name' }), 'Crypto')
     await user.click(screen.getByRole('button', { name: 'Add category' }))
-    expect(
-      await screen.findByText('An investment category with this name already exists.'),
-    ).toBeInTheDocument()
+    expect(await screen.findByText(CATEGORY_DUPLICATE_NAME_MESSAGE)).toBeInTheDocument()
   })
 
   it('keeps a sub-category draft per category', async () => {

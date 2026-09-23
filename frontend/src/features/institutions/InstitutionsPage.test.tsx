@@ -7,6 +7,7 @@ import {
   institutionDeleteConflictHandler,
   seedInstitutions,
 } from '../../mocks/handlers/institutions'
+import { CONFLICT_MESSAGE, DUPLICATE_NAME_MESSAGE } from '../../api/institutions'
 import { findRow } from '../../test/testUtils'
 import { InstitutionsPage } from './InstitutionsPage'
 
@@ -121,7 +122,7 @@ describe('InstitutionsPage', () => {
 
     await user.click((await findRow(name)).getByRole('button', { name: 'Delete' }))
 
-    expect(await screen.findByText(/still used by an account/)).toBeInTheDocument()
+    expect(await screen.findByText(CONFLICT_MESSAGE)).toBeInTheDocument()
     // A 409 must not optimistically remove the row.
     expect(screen.getByText(name)).toBeInTheDocument()
   })
@@ -135,6 +136,6 @@ describe('InstitutionsPage', () => {
     await user.type(screen.getByLabelText('Name'), regular[0].name)
     await user.click(screen.getByRole('button', { name: 'Add' }))
 
-    expect(await screen.findByText(/already exists/)).toBeInTheDocument()
+    expect(await screen.findByText(DUPLICATE_NAME_MESSAGE)).toBeInTheDocument()
   })
 })

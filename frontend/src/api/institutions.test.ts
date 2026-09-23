@@ -8,6 +8,8 @@ import {
 } from '../mocks/handlers/institutions'
 import { ApiError } from './apiError'
 import {
+  CONFLICT_MESSAGE,
+  DUPLICATE_NAME_MESSAGE,
   createInstitution,
   deleteInstitution,
   getInstitutions,
@@ -52,7 +54,7 @@ describe('institutions API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toContain('still used by an account')
+    expect((error as ApiError).message).toBe(CONFLICT_MESSAGE)
   })
 
   it('createInstitution maps a 409 to the duplicate-name message', async () => {
@@ -62,7 +64,7 @@ describe('institutions API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toContain('already exists')
+    expect((error as ApiError).message).toBe(DUPLICATE_NAME_MESSAGE)
   })
 
   it('renameInstitution maps a 409 to the duplicate-name message', async () => {
@@ -74,6 +76,6 @@ describe('institutions API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toContain('already exists')
+    expect((error as ApiError).message).toBe(DUPLICATE_NAME_MESSAGE)
   })
 })

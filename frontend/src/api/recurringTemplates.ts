@@ -37,8 +37,9 @@ export type UpdateRecurringTemplateCapRequest =
 export type ConfirmPendingOccurrenceRequest =
   components['schemas']['ConfirmPendingOccurrenceRequest']
 
-const CREATE_CONFLICT_MESSAGE = 'This account is closed and cannot accept new recurring activity.'
-const CONFIRM_CONFLICT_MESSAGE = 'This account is closed and cannot accept new transactions.'
+export const CREATE_CONFLICT_MESSAGE =
+  'This account is closed and cannot accept new recurring activity.'
+export const CONFIRM_CONFLICT_MESSAGE = 'This account is closed and cannot accept new transactions.'
 
 /** Fetches every RecurringTemplate, each with its amount/day-of-month as of the current month
  * (F007 spec). */

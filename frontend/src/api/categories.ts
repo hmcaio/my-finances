@@ -18,10 +18,10 @@ export interface Category {
 export type CreateCategoryRequest = components['schemas']['CreateCategoryRequest']
 export type UpdateCategoryRequest = components['schemas']['UpdateCategoryRequest']
 
-const CONFLICT_MESSAGE =
+export const CONFLICT_MESSAGE =
   'This category is used by existing transactions, budgets, or recurring templates — reassign them before deleting it.'
 
-const DUPLICATE_NAME_MESSAGE = 'A category with this name already exists.'
+export const DUPLICATE_NAME_MESSAGE = 'A category with this name already exists.'
 
 /**
  * Fetches every category. Reused as a dropdown-options source by F004 (Transactions), F006

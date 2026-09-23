@@ -21,7 +21,7 @@ export interface Account {
 export type CreateAccountRequest = components['schemas']['CreateAccountRequest']
 export type UpdateAccountRequest = components['schemas']['UpdateAccountRequest']
 
-const DUPLICATE_NAME_MESSAGE = 'An account with this name already exists.'
+export const DUPLICATE_NAME_MESSAGE = 'An account with this name already exists.'
 
 /**
  * Fetches accounts. Closed accounts are excluded by default (`includeClosed` mirrors the
@@ -48,7 +48,7 @@ export async function editAccount(id: string, request: UpdateAccountRequest): Pr
 
 // The backend sends no message text, so every expected 409 needs its own wording here: the account
 // is already closed, or (F008) it is an investment account that still has an open product.
-const CLOSE_CONFLICT_MESSAGE =
+export const CLOSE_CONFLICT_MESSAGE =
   'This account could not be closed: it is already closed, or it is an investment account that still has open products - close those first.'
 
 /** Closes an account. Not reversible through the UI - no "reopen" flow (F003 spec). */

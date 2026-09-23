@@ -9,7 +9,7 @@ import {
   institutionCreateConflictHandler,
   seedInstitutions,
 } from '../../mocks/handlers/institutions'
-import type { Institution } from '../../api/institutions'
+import { DUPLICATE_NAME_MESSAGE, type Institution } from '../../api/institutions'
 import { InstitutionSelect } from './InstitutionSelect'
 
 /** A parent that owns the value, like a form does. */
@@ -139,7 +139,7 @@ describe('InstitutionSelect', () => {
     await user.type(input(), 'Inter')
     await user.click(await screen.findByRole('option', { name: 'Add “Inter”' }))
 
-    expect(await screen.findByText(/already exists/)).toBeInTheDocument()
+    expect(await screen.findByText(DUPLICATE_NAME_MESSAGE)).toBeInTheDocument()
     expect(onChange).not.toHaveBeenCalled()
   })
 
