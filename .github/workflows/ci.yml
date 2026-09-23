@@ -57,18 +57,22 @@ jobs:
       - run: npm run lint
         working-directory: frontend
 
-      - name: Run tests (if a test script is configured)
-        # F001's Vite template hasn't added a test runner yet (no "test" script in
-        # package.json) — check at run time rather than hardcoding `npm test`, so this step
-        # picks up a real test command automatically once one is added, instead of either
-        # failing now or silently staying a no-op forever.
-        run: |
-          if npm run | grep -qE '^  test$'; then
-            npm test
-          else
-            echo "No \"test\" script in package.json yet - skipping."
-          fi
+      - name: Run tests with coverage
+        # Same pass/fail behaviour as `npm test` (no coverage thresholds are configured, so the
+        # numbers never fail the job) - and it avoids running the suite twice. The report is
+        # informational only; it is uploaded below for anyone who wants to browse it.
+        run: npm run test:coverage
         working-directory: frontend
+
+      - name: Upload coverage report
+        # Also on test failure so a red run still leaves whatever report was produced;
+        # `ignore` because Vitest writes no report when the run fails early.
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage
+          if-no-files-found: ignore
 
   build-and-push:
     name: Build and push images

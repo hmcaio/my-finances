@@ -20,6 +20,16 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'html'],
       reportsDirectory: 'coverage',
+      // Report on product code only: list every source file (so untested ones show as 0%) but not
+      // test tooling, MSW handlers/fixtures or generated code, which would inflate the numbers.
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/api/generated/**',
+        'src/mocks/**',
+        'src/test/**',
+        'src/**/*.d.ts',
+        'src/api/schemaDrift.ts',
+      ],
     },
   },
 })
