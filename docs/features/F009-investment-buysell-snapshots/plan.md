@@ -18,7 +18,7 @@
 - [x] `src/api/investmentSnapshots.ts`, `src/api/investmentAllocation.ts`, `src/api/investmentValueSeries.ts`; extend `src/api/transfers.ts` and the MSW handlers.
 - [x] Extend the transfer form (F005) with the product select, quantity/unit price/taxes with live total, resulting balance and "Sold entire position".
 - [x] Extend F008's product detail with snapshot form + history, trade history, Buy/Sell buttons, value-series chart, `needsSnapshot` badge, and the close-guard `conflictMessage`.
-- [ ] Allocation chart with category → sub-category drill-down and the stale footnote.
+- [x] Allocation chart with category → sub-category drill-down and the stale footnote.
 
 ## Verification
 - [ ] Add a snapshot to a product; confirm F008's delete-safety now blocks hard-deleting that product, and a same-day second snapshot replaces the first.
