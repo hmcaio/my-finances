@@ -1,74 +1,52 @@
-import { describe, expect, it } from 'vitest'
-import { server } from '../mocks/server'
+import { expect } from 'vitest'
 import {
   investmentSubcategoryCreateConflictHandler,
   investmentSubcategoryDeleteConflictHandler,
   investmentSubcategoryRenameConflictHandler,
 } from '../mocks/handlers/investmentSubcategories'
-import { ApiError } from './apiError'
+import { describeNamedEntityApi } from '../test/apiContract'
 import {
   CONFLICT_MESSAGE,
   DUPLICATE_NAME_MESSAGE,
   createInvestmentSubcategory,
   deleteInvestmentSubcategory,
   renameInvestmentSubcategory,
+  type CreateInvestmentSubcategoryRequest,
+  type InvestmentSubcategory,
+  type UpdateInvestmentSubcategoryRequest,
 } from './investmentSubcategories'
 
-describe('investment sub-categories API client', () => {
-  it('createInvestmentSubcategory posts the parent and name and returns the created one', async () => {
-    const created = await createInvestmentSubcategory({
-      investmentCategoryId: 'icat-fixed',
-      name: 'LCI',
-    })
-
-    expect(created).toMatchObject({ investmentCategoryId: 'icat-fixed', name: 'LCI' })
-    expect(created.id).toBeTruthy()
-  })
-
-  it('renameInvestmentSubcategory patches the name and keeps the parent', async () => {
-    const updated = await renameInvestmentSubcategory('isub-cdb', { name: 'CDB / RDB' })
-
-    expect(updated).toMatchObject({
-      id: 'isub-cdb',
-      investmentCategoryId: 'icat-fixed',
-      name: 'CDB / RDB',
-    })
-  })
-
-  it('deleteInvestmentSubcategory resolves on success', async () => {
-    await expect(deleteInvestmentSubcategory('isub-cdb')).resolves.toBeUndefined()
-  })
-
-  it('deleteInvestmentSubcategory maps a 409 to the in-use message', async () => {
-    server.use(investmentSubcategoryDeleteConflictHandler)
-
-    const error: unknown = await deleteInvestmentSubcategory('isub-cdb').catch(
-      (err: unknown) => err,
-    )
-
-    expect(error).toBeInstanceOf(ApiError)
-    expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toBe(CONFLICT_MESSAGE)
-  })
-
-  it('create and rename map a 409 to the duplicate-name message', async () => {
-    server.use(
-      investmentSubcategoryCreateConflictHandler,
-      investmentSubcategoryRenameConflictHandler,
-    )
-
-    const created: unknown = await createInvestmentSubcategory({
-      investmentCategoryId: 'icat-fixed',
-      name: 'CDB',
-    }).catch((err: unknown) => err)
-    const renamed: unknown = await renameInvestmentSubcategory('isub-selic', {
-      name: 'CDB',
-    }).catch((err: unknown) => err)
-
-    for (const error of [created, renamed]) {
-      expect(error).toBeInstanceOf(ApiError)
-      expect((error as ApiError).status).toBe(409)
-      expect((error as ApiError).message).toBe(DUPLICATE_NAME_MESSAGE)
-    }
-  })
+// No `api.get`: sub-categories have no standalone list endpoint - they're only ever read nested
+// under their category (`investmentCategories.ts`'s `getInvestmentCategories`).
+describeNamedEntityApi<
+  InvestmentSubcategory,
+  CreateInvestmentSubcategoryRequest,
+  UpdateInvestmentSubcategoryRequest
+>({
+  label: 'investment sub-categories',
+  api: {
+    create: createInvestmentSubcategory,
+    rename: renameInvestmentSubcategory,
+    remove: deleteInvestmentSubcategory,
+  },
+  create: {
+    request: { investmentCategoryId: 'icat-fixed', name: 'LCI' },
+    expect: { investmentCategoryId: 'icat-fixed', name: 'LCI', id: expect.any(String) },
+  },
+  rename: {
+    id: 'isub-cdb',
+    request: { name: 'CDB / RDB' },
+    expect: { id: 'isub-cdb', investmentCategoryId: 'icat-fixed', name: 'CDB / RDB' },
+  },
+  remove: { id: 'isub-cdb' },
+  conflict: {
+    message: CONFLICT_MESSAGE,
+    duplicateNameMessage: DUPLICATE_NAME_MESSAGE,
+    createHandler: investmentSubcategoryCreateConflictHandler,
+    renameHandler: investmentSubcategoryRenameConflictHandler,
+    deleteHandler: investmentSubcategoryDeleteConflictHandler,
+    createRequest: { investmentCategoryId: 'icat-fixed', name: 'CDB' },
+    renameId: 'isub-selic',
+    renameRequest: { name: 'CDB' },
+  },
 })

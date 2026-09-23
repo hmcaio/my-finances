@@ -1,20 +1,40 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { server } from '../../mocks/server'
 import {
   institutionCreateConflictHandler,
   institutionDeleteConflictHandler,
   seedInstitutions,
 } from '../../mocks/handlers/institutions'
-import { CONFLICT_MESSAGE, DUPLICATE_NAME_MESSAGE } from '../../api/institutions'
+import {
+  CONFLICT_MESSAGE,
+  DUPLICATE_NAME_MESSAGE,
+  INSTITUTION_NAME_MAX_LENGTH,
+} from '../../api/institutions'
 import { findRow } from '../../test/testUtils'
+import { describeSettingsPage } from '../../test/settingsPageContract'
 import { InstitutionsPage } from './InstitutionsPage'
 
 const builtIn = seedInstitutions.find((i) => i.builtIn)!
 const regular = seedInstitutions.filter((i) => !i.builtIn)
 
 describe('InstitutionsPage', () => {
+  describeSettingsPage({
+    page: <InstitutionsPage />,
+    seedRows: seedInstitutions,
+    renameTarget: regular[0],
+    deleteTarget: regular[1],
+    newName: 'Inter',
+    conflict: { message: CONFLICT_MESSAGE, handler: institutionDeleteConflictHandler },
+    duplicateName: { message: DUPLICATE_NAME_MESSAGE, handler: institutionCreateConflictHandler },
+    maxLength: INSTITUTION_NAME_MAX_LENGTH,
+    loadStates: { url: '/api/institutions', successBody: seedInstitutions },
+  })
+
+  // Bespoke: the built-in "No institution" row, its fixed first position, and the fact renaming
+  // it doesn't move or unlock it have no equivalent in the other settings pages, so they stay here
+  // on top of the shared contract.
+
   it('renders the seeded institutions with the built-in row first', async () => {
     render(<InstitutionsPage />)
 
@@ -41,46 +61,6 @@ describe('InstitutionsPage', () => {
     ).toBeInTheDocument()
   })
 
-  it('adds a new institution', async () => {
-    const user = userEvent.setup()
-    render(<InstitutionsPage />)
-    await screen.findByText(regular[0].name)
-
-    await user.type(screen.getByLabelText('Name'), 'Inter')
-    await user.click(screen.getByRole('button', { name: 'Add' }))
-
-    expect(await screen.findByText('Inter')).toBeInTheDocument()
-  })
-
-  it('caps the name inputs at the backend length limit', async () => {
-    const user = userEvent.setup()
-    render(<InstitutionsPage />)
-    await screen.findByText(regular[0].name)
-
-    expect(screen.getByLabelText('Name')).toHaveAttribute('maxlength', '100')
-
-    // While a row is being edited its name is an input value, so hold on to the row first.
-    const row = await findRow(regular[0].name)
-    await user.click(row.getByRole('button', { name: 'Rename' }))
-    expect(row.getByRole('textbox')).toHaveAttribute('maxlength', '100')
-  })
-
-  it('renames an institution inline', async () => {
-    const user = userEvent.setup()
-    render(<InstitutionsPage />)
-    await screen.findByText(regular[0].name)
-
-    const row = await findRow(regular[0].name)
-    await user.click(row.getByRole('button', { name: 'Rename' }))
-    const input = row.getByRole('textbox')
-    await user.clear(input)
-    await user.type(input, 'Itau Unibanco')
-    await user.click(row.getByRole('button', { name: 'Save' }))
-
-    expect(await screen.findByText('Itau Unibanco')).toBeInTheDocument()
-    expect(screen.queryByText(regular[0].name)).not.toBeInTheDocument()
-  })
-
   it('renames the built-in row, which stays first and still has no delete action', async () => {
     const user = userEvent.setup()
     render(<InstitutionsPage />)
@@ -100,42 +80,5 @@ describe('InstitutionsPage', () => {
     expect(
       (await findRow('Zzz Sem instituicao')).queryByRole('button', { name: 'Delete' }),
     ).not.toBeInTheDocument()
-  })
-
-  it('deletes an institution', async () => {
-    const user = userEvent.setup()
-    render(<InstitutionsPage />)
-    const name = regular[1].name
-    await screen.findByText(name)
-
-    await user.click((await findRow(name)).getByRole('button', { name: 'Delete' }))
-
-    await waitFor(() => expect(screen.queryByText(name)).not.toBeInTheDocument())
-  })
-
-  it('surfaces the 409 message when delete fails and keeps the row', async () => {
-    server.use(institutionDeleteConflictHandler)
-    const user = userEvent.setup()
-    render(<InstitutionsPage />)
-    const name = regular[0].name
-    await screen.findByText(name)
-
-    await user.click((await findRow(name)).getByRole('button', { name: 'Delete' }))
-
-    expect(await screen.findByText(CONFLICT_MESSAGE)).toBeInTheDocument()
-    // A 409 must not optimistically remove the row.
-    expect(screen.getByText(name)).toBeInTheDocument()
-  })
-
-  it('surfaces the duplicate-name message when adding fails', async () => {
-    server.use(institutionCreateConflictHandler)
-    const user = userEvent.setup()
-    render(<InstitutionsPage />)
-    await screen.findByText(regular[0].name)
-
-    await user.type(screen.getByLabelText('Name'), regular[0].name)
-    await user.click(screen.getByRole('button', { name: 'Add' }))
-
-    expect(await screen.findByText(DUPLICATE_NAME_MESSAGE)).toBeInTheDocument()
   })
 })

@@ -1,83 +1,39 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import {
+  categoryCreateConflictHandler,
   categoryDeleteConflictHandler,
   seedCategories,
   seedGroceriesCategory,
   seedSalaryCategory,
 } from '../../mocks/handlers/categories'
-import { CONFLICT_MESSAGE } from '../../api/categories'
+import { CONFLICT_MESSAGE, DUPLICATE_NAME_MESSAGE } from '../../api/categories'
 import { findRow } from '../../test/testUtils'
+import { describeSettingsPage } from '../../test/settingsPageContract'
 import { CategoriesPage } from './CategoriesPage'
 
 const builtInExpense = seedCategories.find((c) => c.builtIn && c.type === 'EXPENSE')!
 const builtInIncome = seedCategories.find((c) => c.builtIn && c.type === 'INCOME')!
 
 describe('CategoriesPage', () => {
-  it('renders the seeded categories', async () => {
-    render(<CategoriesPage />)
-
-    for (const category of seedCategories) {
-      expect(await screen.findByText(category.name)).toBeInTheDocument()
-    }
+  describeSettingsPage({
+    page: <CategoriesPage />,
+    seedRows: seedCategories,
+    renameTarget: seedGroceriesCategory,
+    deleteTarget: seedSalaryCategory,
+    newName: 'Rent',
+    conflict: { message: CONFLICT_MESSAGE, handler: categoryDeleteConflictHandler },
+    duplicateName: { message: DUPLICATE_NAME_MESSAGE, handler: categoryCreateConflictHandler },
+    // No maxLength: CategoriesPage doesn't cap its Name input today (see this PR's report - a
+    // pre-existing gap against `frontend/CLAUDE.md`'s bounded-free-text convention, out of scope
+    // for this test-only PR).
   })
 
-  it('adds a new category', async () => {
-    const user = userEvent.setup()
-    render(<CategoriesPage />)
-    await screen.findByText(seedGroceriesCategory.name)
-
-    await user.type(screen.getByLabelText('Name'), 'Rent')
-    await user.click(screen.getByRole('button', { name: 'Add' }))
-
-    expect(await screen.findByText('Rent')).toBeInTheDocument()
-  })
-
-  it('renames a category inline', async () => {
-    const user = userEvent.setup()
-    render(<CategoriesPage />)
-    await screen.findByText(seedGroceriesCategory.name)
-
-    const row = await findRow(seedGroceriesCategory.name)
-    await user.click(row.getByRole('button', { name: 'Rename' }))
-    const input = row.getByRole('textbox')
-    await user.clear(input)
-    await user.type(input, 'Groceries & Dining')
-    await user.click(row.getByRole('button', { name: 'Save' }))
-
-    expect(await screen.findByText('Groceries & Dining')).toBeInTheDocument()
-    expect(screen.queryByText(seedGroceriesCategory.name)).not.toBeInTheDocument()
-  })
-
-  it('deletes a category', async () => {
-    const user = userEvent.setup()
-    render(<CategoriesPage />)
-    const name = seedSalaryCategory.name
-    await screen.findByText(name)
-
-    const row = await findRow(name)
-    await user.click(row.getByRole('button', { name: 'Delete' }))
-
-    await waitFor(() => expect(screen.queryByText(name)).not.toBeInTheDocument())
-  })
-
-  it('surfaces the 409 conflict message when delete fails', async () => {
-    server.use(categoryDeleteConflictHandler)
-    const user = userEvent.setup()
-    render(<CategoriesPage />)
-    const name = seedGroceriesCategory.name
-    await screen.findByText(name)
-
-    const row = await findRow(name)
-    await user.click(row.getByRole('button', { name: 'Delete' }))
-
-    expect(await screen.findByText(CONFLICT_MESSAGE)).toBeInTheDocument()
-    // The row is still there - a 409 must not optimistically remove it.
-    expect(screen.getByText(name)).toBeInTheDocument()
-  })
+  // Bespoke: type (income/expense), the built-in row per type, and their ordering have no
+  // equivalent in the other settings pages, so they stay here on top of the shared contract.
 
   it('lists each type with its built-in row first', async () => {
     render(<CategoriesPage />)
@@ -123,6 +79,10 @@ describe('CategoriesPage', () => {
       .map((r) => within(r).getAllByRole('cell')[0].textContent)
     expect(names.indexOf('Outras receitas')).toBeLessThan(names.indexOf('Salary'))
   })
+
+  // Bespoke load-state coverage: richer than the shared `expectLoadStates` pair (also checks that
+  // dismissing the error banner doesn't bring the skeleton back), so it stays as-is rather than
+  // being replaced by the generated cases (this page already had full F2 coverage).
 
   it('shows a loading skeleton only when the first fetch is slow, then the rows', async () => {
     server.use(
