@@ -3,7 +3,13 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
-import { categoryDeleteConflictHandler, seedCategories } from '../../mocks/handlers/categories'
+import {
+  categoryDeleteConflictHandler,
+  seedCategories,
+  seedGroceriesCategory,
+  seedSalaryCategory,
+} from '../../mocks/handlers/categories'
+import { CONFLICT_MESSAGE } from '../../api/categories'
 import { findRow } from '../../test/testUtils'
 import { CategoriesPage } from './CategoriesPage'
 
@@ -22,7 +28,7 @@ describe('CategoriesPage', () => {
   it('adds a new category', async () => {
     const user = userEvent.setup()
     render(<CategoriesPage />)
-    await screen.findByText(seedCategories[0].name)
+    await screen.findByText(seedGroceriesCategory.name)
 
     await user.type(screen.getByLabelText('Name'), 'Rent')
     await user.click(screen.getByRole('button', { name: 'Add' }))
@@ -33,9 +39,9 @@ describe('CategoriesPage', () => {
   it('renames a category inline', async () => {
     const user = userEvent.setup()
     render(<CategoriesPage />)
-    await screen.findByText(seedCategories[0].name)
+    await screen.findByText(seedGroceriesCategory.name)
 
-    const row = await findRow(seedCategories[0].name)
+    const row = await findRow(seedGroceriesCategory.name)
     await user.click(row.getByRole('button', { name: 'Rename' }))
     const input = row.getByRole('textbox')
     await user.clear(input)
@@ -43,13 +49,13 @@ describe('CategoriesPage', () => {
     await user.click(row.getByRole('button', { name: 'Save' }))
 
     expect(await screen.findByText('Groceries & Dining')).toBeInTheDocument()
-    expect(screen.queryByText(seedCategories[0].name)).not.toBeInTheDocument()
+    expect(screen.queryByText(seedGroceriesCategory.name)).not.toBeInTheDocument()
   })
 
   it('deletes a category', async () => {
     const user = userEvent.setup()
     render(<CategoriesPage />)
-    const name = seedCategories[1].name
+    const name = seedSalaryCategory.name
     await screen.findByText(name)
 
     const row = await findRow(name)
@@ -62,13 +68,13 @@ describe('CategoriesPage', () => {
     server.use(categoryDeleteConflictHandler)
     const user = userEvent.setup()
     render(<CategoriesPage />)
-    const name = seedCategories[0].name
+    const name = seedGroceriesCategory.name
     await screen.findByText(name)
 
     const row = await findRow(name)
     await user.click(row.getByRole('button', { name: 'Delete' }))
 
-    expect(await screen.findByText(/reassign them/)).toBeInTheDocument()
+    expect(await screen.findByText(CONFLICT_MESSAGE)).toBeInTheDocument()
     // The row is still there - a 409 must not optimistically remove it.
     expect(screen.getByText(name)).toBeInTheDocument()
   })
@@ -128,7 +134,7 @@ describe('CategoriesPage', () => {
     render(<CategoriesPage />)
 
     expect(await screen.findByText('Loading…')).toBeInTheDocument()
-    expect(await screen.findByText(seedCategories[0].name)).toBeInTheDocument()
+    expect(await screen.findByText(seedGroceriesCategory.name)).toBeInTheDocument()
     expect(screen.queryByText('Loading…')).not.toBeInTheDocument()
   })
 
@@ -156,7 +162,7 @@ describe('CategoriesPage', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Retry' }))
 
-    expect(await screen.findByText(seedCategories[0].name)).toBeInTheDocument()
+    expect(await screen.findByText(seedGroceriesCategory.name)).toBeInTheDocument()
     expect(screen.queryByText(/Could not load data/)).not.toBeInTheDocument()
     // The banner from the failed attempt is cleared, not left showing after a successful retry.
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()

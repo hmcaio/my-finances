@@ -61,6 +61,12 @@ export const seedInvestmentAccount: Account = {
   balance: 0,
 }
 
+/**
+ * Named lookup for the seeded open checking account (`acct-1`), so call sites identify it by name
+ * instead of indexing into `seedAccounts` by position (frontend test audit's F6 finding).
+ */
+export const seedCheckingAccount = seedAccounts.find((a) => a.name === 'Itau Checking')!
+
 const ACCOUNTS_URL = '/api/accounts'
 
 function findAccount(id: string): Account | undefined {
@@ -170,4 +176,14 @@ export const accountCreateConflictHandler = http.post(ACCOUNTS_URL, () =>
 
 export const accountEditConflictHandler = http.patch(`${ACCOUNTS_URL}/:id`, () =>
   HttpResponse.json({ message: 'Account name already exists' }, { status: 409 }),
+)
+
+/**
+ * Success-path variant of `GET /api/accounts` that also includes the seeded INVESTMENT account
+ * (kept out of `seedAccounts` itself - see its own doc comment) - applied via `server.use(...)` in
+ * tests asserting that an investment account must never appear in a transaction/transfer/recurring
+ * account picker (duplicated verbatim across those pages' tests before this extraction, F7 finding).
+ */
+export const accountsWithInvestmentHandler = http.get(ACCOUNTS_URL, () =>
+  HttpResponse.json([...seedAccounts, seedInvestmentAccount]),
 )

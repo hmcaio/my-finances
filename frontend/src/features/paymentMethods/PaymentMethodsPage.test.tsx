@@ -4,8 +4,11 @@ import userEvent from '@testing-library/user-event'
 import { server } from '../../mocks/server'
 import {
   paymentMethodDeleteConflictHandler,
+  seedCashPaymentMethod,
+  seedDebitCardPaymentMethod,
   seedPaymentMethods,
 } from '../../mocks/handlers/paymentMethods'
+import { CONFLICT_MESSAGE } from '../../api/paymentMethods'
 import { findRow } from '../../test/testUtils'
 import { PaymentMethodsPage } from './PaymentMethodsPage'
 
@@ -21,7 +24,7 @@ describe('PaymentMethodsPage', () => {
   it('adds a new payment method', async () => {
     const user = userEvent.setup()
     render(<PaymentMethodsPage />)
-    await screen.findByText(seedPaymentMethods[0].name)
+    await screen.findByText(seedDebitCardPaymentMethod.name)
 
     await user.type(screen.getByLabelText('Name'), 'Credit Card')
     await user.click(screen.getByRole('button', { name: 'Add' }))
@@ -32,9 +35,9 @@ describe('PaymentMethodsPage', () => {
   it('renames a payment method inline', async () => {
     const user = userEvent.setup()
     render(<PaymentMethodsPage />)
-    await screen.findByText(seedPaymentMethods[0].name)
+    await screen.findByText(seedDebitCardPaymentMethod.name)
 
-    const row = await findRow(seedPaymentMethods[0].name)
+    const row = await findRow(seedDebitCardPaymentMethod.name)
     await user.click(row.getByRole('button', { name: 'Rename' }))
     const input = row.getByRole('textbox')
     await user.clear(input)
@@ -42,13 +45,13 @@ describe('PaymentMethodsPage', () => {
     await user.click(row.getByRole('button', { name: 'Save' }))
 
     expect(await screen.findByText('Debit Card (Checking)')).toBeInTheDocument()
-    expect(screen.queryByText(seedPaymentMethods[0].name)).not.toBeInTheDocument()
+    expect(screen.queryByText(seedDebitCardPaymentMethod.name)).not.toBeInTheDocument()
   })
 
   it('deletes a payment method', async () => {
     const user = userEvent.setup()
     render(<PaymentMethodsPage />)
-    const name = seedPaymentMethods[1].name
+    const name = seedCashPaymentMethod.name
     await screen.findByText(name)
 
     const row = await findRow(name)
@@ -61,13 +64,13 @@ describe('PaymentMethodsPage', () => {
     server.use(paymentMethodDeleteConflictHandler)
     const user = userEvent.setup()
     render(<PaymentMethodsPage />)
-    const name = seedPaymentMethods[0].name
+    const name = seedDebitCardPaymentMethod.name
     await screen.findByText(name)
 
     const row = await findRow(name)
     await user.click(row.getByRole('button', { name: 'Delete' }))
 
-    expect(await screen.findByText(/reassign them/)).toBeInTheDocument()
+    expect(await screen.findByText(CONFLICT_MESSAGE)).toBeInTheDocument()
     // The row is still there - a 409 must not optimistically remove it.
     expect(screen.getByText(name)).toBeInTheDocument()
   })

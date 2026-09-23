@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { server } from '../mocks/server'
-import { seedTransfers, transferClosedAccountConflictHandler } from '../mocks/handlers/transfers'
+import {
+  seedCreditCardPaymentTransfer,
+  seedTransfers,
+  transferClosedAccountConflictHandler,
+} from '../mocks/handlers/transfers'
 import { ApiError } from './apiError'
 import {
+  CLOSED_ACCOUNT_MESSAGE,
   createTransfer,
   deleteTransfer,
   editTransfer,
@@ -27,9 +32,9 @@ describe('transfers API client', () => {
   })
 
   it('getTransfer returns a single transfer by id', async () => {
-    const transfer = await getTransfer(seedTransfers[0].id)
+    const transfer = await getTransfer(seedCreditCardPaymentTransfer.id)
 
-    expect(transfer).toEqual(seedTransfers[0])
+    expect(transfer).toEqual(seedCreditCardPaymentTransfer)
   })
 
   it('getTransfer of an unknown id maps a 404 to an ApiError', async () => {
@@ -65,11 +70,11 @@ describe('transfers API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toMatch(/cannot accept new transfers/)
+    expect((error as ApiError).message).toBe(CLOSED_ACCOUNT_MESSAGE)
   })
 
   it('editTransfer patches every field and returns the updated transfer', async () => {
-    const updated = await editTransfer(seedTransfers[0].id, {
+    const updated = await editTransfer(seedCreditCardPaymentTransfer.id, {
       date: '2026-05-01',
       fromAccountId: 'acct-3',
       toAccountId: 'acct-1',
@@ -78,7 +83,7 @@ describe('transfers API client', () => {
     })
 
     expect(updated).toMatchObject({
-      id: seedTransfers[0].id,
+      id: seedCreditCardPaymentTransfer.id,
       date: '2026-05-01',
       amount: 99,
       description: 'Edited',
@@ -86,6 +91,6 @@ describe('transfers API client', () => {
   })
 
   it('deleteTransfer resolves on success', async () => {
-    await expect(deleteTransfer(seedTransfers[0].id)).resolves.toBeUndefined()
+    await expect(deleteTransfer(seedCreditCardPaymentTransfer.id)).resolves.toBeUndefined()
   })
 })

@@ -3,7 +3,7 @@ import { screen } from '@testing-library/react'
 import { delay, http, HttpResponse } from 'msw'
 import { Route, Routes } from 'react-router-dom'
 import { server } from '../../mocks/server'
-import { seedAccounts, seedInvestmentAccount } from '../../mocks/handlers/accounts'
+import { seedCheckingAccount, seedInvestmentAccount } from '../../mocks/handlers/accounts'
 import { seedInvestmentProducts } from '../../mocks/handlers/investmentProducts'
 import { BUILT_IN_INSTITUTION_ID, seedInstitutions } from '../../mocks/handlers/institutions'
 import { seedTransactions } from '../../mocks/handlers/transactions'
@@ -28,7 +28,7 @@ function institutionName(id: string) {
 
 describe('AccountDetailPage', () => {
   it('renders the account name, balance, and metadata', async () => {
-    const account = seedAccounts[0]
+    const account = seedCheckingAccount
     renderDetail(account.id)
 
     expect(await screen.findByRole('heading', { name: account.name })).toBeInTheDocument()
@@ -42,7 +42,7 @@ describe('AccountDetailPage', () => {
   })
 
   it('shows the built-in row for an account with no institution', async () => {
-    const account = { ...seedAccounts[0], institutionId: BUILT_IN_INSTITUTION_ID }
+    const account = { ...seedCheckingAccount, institutionId: BUILT_IN_INSTITUTION_ID }
     server.use(http.get(`/api/accounts/${account.id}`, () => HttpResponse.json(account)))
     renderDetail(account.id)
 
@@ -51,14 +51,19 @@ describe('AccountDetailPage', () => {
 
   it('shows an error when the institutions cannot be loaded', async () => {
     server.use(http.get('/api/institutions', () => new HttpResponse(null, { status: 500 })))
-    renderDetail(seedAccounts[0].id)
+    renderDetail(seedCheckingAccount.id)
 
-    expect(await screen.findByText(/Request failed/)).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: seedAccounts[0].name })).not.toBeInTheDocument()
+    // No conflictMessage applies to a GET, and the backend sends no body here, so this is
+    // apiError.ts's own generic `toApiError` fallback ("Request failed with status ${status}") -
+    // not Axios's literal default wording (which reads "status code", not "status").
+    expect(await screen.findByText('Request failed with status 500')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('heading', { name: seedCheckingAccount.name }),
+    ).not.toBeInTheDocument()
   })
 
   it('embeds the transaction history pre-filtered to this account', async () => {
-    const account = seedAccounts[0]
+    const account = seedCheckingAccount
     renderDetail(account.id)
 
     await screen.findByRole('heading', { name: account.name })
@@ -70,7 +75,7 @@ describe('AccountDetailPage', () => {
   })
 
   it('embeds the transfer history pre-filtered to this account', async () => {
-    const account = seedAccounts[0]
+    const account = seedCheckingAccount
     renderDetail(account.id)
 
     await screen.findByRole('heading', { name: account.name })
@@ -88,7 +93,7 @@ describe('AccountDetailPage', () => {
   })
 
   it('shows a loading skeleton only when the account fetch is slow', async () => {
-    const account = seedAccounts[0]
+    const account = seedCheckingAccount
     server.use(
       http.get(`/api/accounts/${account.id}`, async () => {
         await delay(400)
@@ -130,7 +135,7 @@ describe('AccountDetailPage', () => {
   })
 
   it('keeps showing transactions, not products, for a non-investment account', async () => {
-    renderDetail(seedAccounts[0].id)
+    renderDetail(seedCheckingAccount.id)
 
     expect(await screen.findByRole('heading', { name: 'Transactions' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Products' })).not.toBeInTheDocument()

@@ -3,12 +3,17 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
-import { seedCategories } from '../../mocks/handlers/categories'
+import {
+  seedCategories,
+  seedGroceriesCategory,
+  seedSalaryCategory,
+} from '../../mocks/handlers/categories'
 import {
   budgetCreateConflictHandler,
-  seedBudgetReport,
-  seedBudgets,
+  seedGroceriesBudget,
+  seedGroceriesBudgetReportLine,
 } from '../../mocks/handlers/budgets'
+import { CREATE_CONFLICT_MESSAGE } from '../../api/budgets'
 import { findRow } from '../../test/testUtils'
 import { BudgetsPage } from './BudgetsPage'
 
@@ -22,14 +27,14 @@ describe('BudgetsPage', () => {
   it('renders the seeded budget with its current cap', async () => {
     render(<BudgetsPage />)
 
-    const row = await findRow(seedCategories[0].name, settingsTable())
-    expect(row.getByText(seedBudgets[0].currentCap!.toFixed(2))).toBeInTheDocument()
+    const row = await findRow(seedGroceriesCategory.name, settingsTable())
+    expect(row.getByText(seedGroceriesBudget.currentCap!.toFixed(2))).toBeInTheDocument()
   })
 
   it('renders the budget-vs-actual report for the current month, flagging an over-cap category', async () => {
     render(<BudgetsPage />)
 
-    const line = seedBudgetReport[0]
+    const line = seedGroceriesBudgetReportLine
     expect(
       await screen.findByText(new RegExp(`${line.actual.toFixed(2)} / ${line.cap!.toFixed(2)}`)),
     ).toBeInTheDocument()
@@ -39,12 +44,14 @@ describe('BudgetsPage', () => {
   it('offers only unbudgeted expense categories in the add-budget picker', async () => {
     const user = userEvent.setup()
     render(<BudgetsPage />)
-    await findRow(seedCategories[0].name, settingsTable())
+    await findRow(seedGroceriesCategory.name, settingsTable())
 
-    // cat-1 (Groceries) is already budgeted and cat-2 (Salary) is income - neither belongs here.
+    // Groceries is already budgeted and Salary is income - neither belongs here.
     await user.click(screen.getByLabelText('Category'))
-    expect(screen.queryByRole('option', { name: seedCategories[0].name })).not.toBeInTheDocument()
-    expect(screen.queryByRole('option', { name: seedCategories[1].name })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('option', { name: seedGroceriesCategory.name }),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: seedSalaryCategory.name })).not.toBeInTheDocument()
   })
 
   it('adds a new budget for an unbudgeted expense category', async () => {
@@ -55,7 +62,7 @@ describe('BudgetsPage', () => {
     )
     const user = userEvent.setup()
     render(<BudgetsPage />)
-    await findRow(seedCategories[0].name, settingsTable())
+    await findRow(seedGroceriesCategory.name, settingsTable())
 
     await user.click(screen.getByLabelText('Category'))
     await user.click(await screen.findByRole('option', { name: 'Dining' }))
@@ -74,22 +81,22 @@ describe('BudgetsPage', () => {
     )
     const user = userEvent.setup()
     render(<BudgetsPage />)
-    await findRow(seedCategories[0].name, settingsTable())
+    await findRow(seedGroceriesCategory.name, settingsTable())
 
     await user.click(screen.getByLabelText('Category'))
     await user.click(await screen.findByRole('option', { name: 'Dining' }))
     await user.type(screen.getByLabelText('Monthly cap'), '150')
     await user.click(screen.getByRole('button', { name: 'Add' }))
 
-    expect(await screen.findByText(/cannot be budgeted/)).toBeInTheDocument()
+    expect(await screen.findByText(CREATE_CONFLICT_MESSAGE)).toBeInTheDocument()
   })
 
   it('edits a budget cap inline', async () => {
     const user = userEvent.setup()
     render(<BudgetsPage />)
-    const row = await findRow(seedCategories[0].name, settingsTable())
+    const row = await findRow(seedGroceriesCategory.name, settingsTable())
     await waitFor(() =>
-      expect(row.getByText(seedBudgets[0].currentCap!.toFixed(2))).toBeInTheDocument(),
+      expect(row.getByText(seedGroceriesBudget.currentCap!.toFixed(2))).toBeInTheDocument(),
     )
 
     await user.click(row.getByRole('button', { name: 'Edit cap' }))

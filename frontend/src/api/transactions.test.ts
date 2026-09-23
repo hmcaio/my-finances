@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { server } from '../mocks/server'
 import {
+  seedGroceriesTransaction,
   seedTransactions,
   transactionClosedAccountConflictHandler,
 } from '../mocks/handlers/transactions'
 import { ApiError } from './apiError'
 import {
+  CLOSED_ACCOUNT_MESSAGE,
   createTransaction,
   deleteTransaction,
   editTransaction,
@@ -31,9 +33,9 @@ describe('transactions API client', () => {
   })
 
   it('getTransaction returns a single transaction by id', async () => {
-    const transaction = await getTransaction(seedTransactions[0].id)
+    const transaction = await getTransaction(seedGroceriesTransaction.id)
 
-    expect(transaction).toEqual(seedTransactions[0])
+    expect(transaction).toEqual(seedGroceriesTransaction)
   })
 
   it('getTransaction of an unknown id maps a 404 to an ApiError', async () => {
@@ -71,11 +73,11 @@ describe('transactions API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toMatch(/cannot accept new transactions/)
+    expect((error as ApiError).message).toBe(CLOSED_ACCOUNT_MESSAGE)
   })
 
   it('editTransaction patches every field and returns the updated transaction', async () => {
-    const updated = await editTransaction(seedTransactions[0].id, {
+    const updated = await editTransaction(seedGroceriesTransaction.id, {
       date: '2026-05-01',
       amount: 99,
       categoryId: 'cat-2',
@@ -85,7 +87,7 @@ describe('transactions API client', () => {
     })
 
     expect(updated).toMatchObject({
-      id: seedTransactions[0].id,
+      id: seedGroceriesTransaction.id,
       date: '2026-05-01',
       amount: 99,
       description: 'Edited',
@@ -93,6 +95,6 @@ describe('transactions API client', () => {
   })
 
   it('deleteTransaction resolves on success', async () => {
-    await expect(deleteTransaction(seedTransactions[0].id)).resolves.toBeUndefined()
+    await expect(deleteTransaction(seedGroceriesTransaction.id)).resolves.toBeUndefined()
   })
 })
