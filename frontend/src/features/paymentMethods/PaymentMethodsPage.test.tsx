@@ -5,7 +5,11 @@ import {
   seedDebitCardPaymentMethod,
   seedPaymentMethods,
 } from '../../mocks/handlers/paymentMethods'
-import { CONFLICT_MESSAGE, DUPLICATE_NAME_MESSAGE } from '../../api/paymentMethods'
+import {
+  CONFLICT_MESSAGE,
+  DUPLICATE_NAME_MESSAGE,
+  PAYMENT_METHOD_NAME_MAX_LENGTH,
+} from '../../api/paymentMethods'
 import { describeSettingsPageOnly } from '../../test/settingsPageContract'
 import { PaymentMethodsPage } from './PaymentMethodsPage'
 
@@ -17,8 +21,6 @@ describeSettingsPageOnly('PaymentMethodsPage', {
   newName: 'Credit Card',
   conflict: { message: CONFLICT_MESSAGE, handler: paymentMethodDeleteConflictHandler },
   duplicateName: { message: DUPLICATE_NAME_MESSAGE, handler: paymentMethodCreateConflictHandler },
-  // No maxLength: PaymentMethodsPage doesn't cap its Name input today (see this PR's report - a
-  // pre-existing gap against `frontend/CLAUDE.md`'s bounded-free-text convention, out of scope
-  // for this test-only PR).
+  maxLength: PAYMENT_METHOD_NAME_MAX_LENGTH,
   loadStates: { url: '/api/payment-methods', successBody: seedPaymentMethods },
 })

@@ -11,6 +11,9 @@ export interface PaymentMethod {
 export type CreatePaymentMethodRequest = components['schemas']['CreatePaymentMethodRequest']
 export type UpdatePaymentMethodRequest = components['schemas']['UpdatePaymentMethodRequest']
 
+/** Matches the backend's `TextFieldConstraints.MAX_NAME_LENGTH`, so inputs can cap what is typed. */
+export const PAYMENT_METHOD_NAME_MAX_LENGTH = 100
+
 export const CONFLICT_MESSAGE =
   'This payment method is used by existing transactions — reassign them before deleting it.'
 

@@ -10,7 +10,11 @@ import {
   seedGroceriesCategory,
   seedSalaryCategory,
 } from '../../mocks/handlers/categories'
-import { CONFLICT_MESSAGE, DUPLICATE_NAME_MESSAGE } from '../../api/categories'
+import {
+  CATEGORY_NAME_MAX_LENGTH,
+  CONFLICT_MESSAGE,
+  DUPLICATE_NAME_MESSAGE,
+} from '../../api/categories'
 import { findRow } from '../../test/testUtils'
 import { describeSettingsPage } from '../../test/settingsPageContract'
 import { CategoriesPage } from './CategoriesPage'
@@ -27,9 +31,7 @@ describe('CategoriesPage', () => {
     newName: 'Rent',
     conflict: { message: CONFLICT_MESSAGE, handler: categoryDeleteConflictHandler },
     duplicateName: { message: DUPLICATE_NAME_MESSAGE, handler: categoryCreateConflictHandler },
-    // No maxLength: CategoriesPage doesn't cap its Name input today (see this PR's report - a
-    // pre-existing gap against `frontend/CLAUDE.md`'s bounded-free-text convention, out of scope
-    // for this test-only PR).
+    maxLength: CATEGORY_NAME_MAX_LENGTH,
   })
 
   // Bespoke: type (income/expense), the built-in row per type, and their ordering have no
