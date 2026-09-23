@@ -21,6 +21,8 @@ public interface InvestmentProductRepository {
 
   void deleteById(UUID id);
 
+  boolean existsById(UUID id);
+
   /** Whether a product already has this exact name inside the account (create guard). */
   boolean existsByAccountIdAndName(UUID accountId, String name);
 
