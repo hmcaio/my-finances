@@ -1,6 +1,6 @@
 import { useMemo, type PropsWithChildren } from 'react'
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
-import { CssBaseline, ThemeProvider } from '@mui/material'
+import { Box, CssBaseline, Skeleton, ThemeProvider } from '@mui/material'
 import { ColorModeProvider } from './hooks/ColorModeProvider'
 import { useColorMode } from './hooks/useColorMode'
 import { useHasAccounts } from './hooks/useHasAccounts'
@@ -8,6 +8,10 @@ import { getTheme } from './theme'
 import { Layout } from './components/Layout'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ComingSoon } from './components/ComingSoon'
+import { LoadFailedNotice } from './components/LoadFailedNotice'
+import { fadeInSx } from './components/fadeIn'
+import { useDelayedFlag } from './hooks/useDelayedFlag'
+import { OnboardingPage } from './features/onboarding/OnboardingPage'
 import { DashboardPage } from './features/dashboard/DashboardPage'
 import { AccountsPage } from './features/accounts/AccountsPage'
 import { AccountDetailPage } from './features/accounts/AccountDetailPage'
@@ -35,13 +39,28 @@ function ThemedApp() {
   const { mode } = useColorMode()
   const theme = useMemo(() => getTheme(mode), [mode])
   // Onboarding (F011) is not part of the route tree: it's a top-level check gating whether
-  // the router+layout shell renders at all (see F001 spec's "Onboarding" section).
-  const hasAccounts = useHasAccounts()
+  // the router+layout shell renders at all. `hasAccounts` stays null while the check is loading
+  // or failed, so neither the shell nor onboarding renders on a guess.
+  const { hasAccounts, loading, loadError, reload, markHasAccounts } = useHasAccounts()
+  const showSkeleton = useDelayedFlag(loading)
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      {hasAccounts ? (
+      {hasAccounts === null ? (
+        <Box sx={{ maxWidth: 720, mx: 'auto', px: 2, py: 6 }}>
+          {loadError !== null ? (
+            <LoadFailedNotice message={loadError} onRetry={reload} />
+          ) : (
+            showSkeleton && (
+              <Box sx={fadeInSx}>
+                <Skeleton variant="text" width="60%" height={48} />
+                <Skeleton variant="rounded" height={120} />
+              </Box>
+            )
+          )}
+        </Box>
+      ) : hasAccounts ? (
         <BrowserRouter>
           <Layout>
             <PageErrorBoundary>
@@ -68,7 +87,7 @@ function ThemedApp() {
           </Layout>
         </BrowserRouter>
       ) : (
-        <ComingSoon title="Onboarding" />
+        <OnboardingPage onCompleted={markHasAccounts} />
       )}
     </ThemeProvider>
   )

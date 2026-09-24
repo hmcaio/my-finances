@@ -13,7 +13,8 @@ First-run flow: create at least one account, setting its opening balance and dat
 ## Frontend
 - App-level check on load: if `GET /api/accounts` (including closed) returns empty, render the onboarding flow instead of the normal app shell.
 - Onboarding flow: a focused version of F003's create-account form (name, institution via F017's `InstitutionSelect` — mandatory but preselected to the seeded "No institution" row, so a fresh install needs no setup; the inline "Add “X”" create is there if the user wants a real one — type, opening balance, opening balance date) with framing copy explaining this is the starting point for tracking.
-- On successful creation, transition into the normal app (dashboard, etc.).
+- While the check is loading, or if it failed, neither onboarding nor the shell renders: a delayed skeleton, or the usual "Could not load data" notice with Retry (never onboarding on a guess).
+- On successful creation, transition into the normal app (dashboard, etc.) without a refetch. The form is F003's, extracted as `AccountCreateForm` and shared with the accounts page.
 
 ## Dependencies
 F003 (account creation), F017 (institution picker).

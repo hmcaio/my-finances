@@ -1,14 +1,11 @@
 import { useMemo, useState } from 'react'
 import {
   Box,
-  Button,
   Chip,
   FormControlLabel,
   IconButton,
   Link as MuiLink,
-  MenuItem,
   Paper,
-  Select,
   Switch,
   Table,
   TableCell,
@@ -20,14 +17,7 @@ import {
 } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
 import LockIcon from '@mui/icons-material/Lock'
-import {
-  closeAccount,
-  createAccount,
-  editAccount,
-  getAccounts,
-  type Account,
-  type AccountType,
-} from '../../api/accounts'
+import { closeAccount, editAccount, getAccounts, type Account } from '../../api/accounts'
 import { defaultErrorMessage } from '../../api/apiError'
 import { getInstitutions, type Institution } from '../../api/institutions'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
@@ -35,10 +25,10 @@ import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
 import { DataTableBody } from '../../components/DataTableBody'
 import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
-import { today } from '../../utils/localDate'
 import { nameLookup } from '../../utils/nameLookup'
 import { ACCOUNT_TYPE_LABELS } from './accountTypes'
 import { InstitutionSelect } from '../institutions/InstitutionSelect'
+import { AccountCreateForm } from './AccountCreateForm'
 
 /**
  * Account list/management screen (F003 spec): table with name, institution, type, running
@@ -74,45 +64,8 @@ export function AccountsPage() {
   const [editingName, setEditingName] = useState('')
   const [editingInstitutionId, setEditingInstitutionId] = useState<string | undefined>()
 
-  const [newName, setNewName] = useState('')
-  // `undefined` until InstitutionSelect reports its default (the built-in "No institution" row).
-  const [newInstitutionId, setNewInstitutionId] = useState<string | undefined>()
-  const [newType, setNewType] = useState<AccountType>('CHECKING')
-  const [newOpeningBalance, setNewOpeningBalance] = useState('0')
-  const [newOpeningBalanceDate, setNewOpeningBalanceDate] = useState(today)
-  const [adding, setAdding] = useState(false)
-
   const [closeTarget, setCloseTarget] = useState<Account | null>(null)
   const [closing, setClosing] = useState(false)
-
-  async function handleAdd() {
-    if (!newName.trim() || !newInstitutionId) return
-    setError(null)
-    setAdding(true)
-    try {
-      const created = await createAccount({
-        name: newName.trim(),
-        institutionId: newInstitutionId,
-        type: newType,
-        // An investment account has no opening balance or date (its value comes from snapshots).
-        ...(newType === 'INVESTMENT'
-          ? {}
-          : {
-              openingBalance: Number(newOpeningBalance),
-              openingBalanceDate: newOpeningBalanceDate,
-            }),
-      })
-      setAccounts((prev) => [...(prev ?? []), created])
-      setNewName('')
-      setNewInstitutionId(undefined)
-      setNewType('CHECKING')
-      setNewOpeningBalance('0')
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    } finally {
-      setAdding(false)
-    }
-  }
 
   function startEdit(account: Account) {
     setEditingId(account.id)
@@ -286,58 +239,11 @@ export function AccountsPage() {
         <Typography variant="subtitle1" gutterBottom>
           Add account
         </Typography>
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          <TextField
-            label="Name"
-            size="small"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-          />
-          <InstitutionSelect
-            value={newInstitutionId}
-            onChange={setNewInstitutionId}
-            onCreated={addInstitution}
-          />
-          <Select
-            size="small"
-            value={newType}
-            onChange={(e) => setNewType(e.target.value as AccountType)}
-            aria-label="Account type"
-          >
-            {Object.entries(ACCOUNT_TYPE_LABELS).map(([value, label]) => (
-              <MenuItem key={value} value={value}>
-                {label}
-              </MenuItem>
-            ))}
-          </Select>
-          {newType !== 'INVESTMENT' && (
-            <>
-              <TextField
-                label="Opening Balance"
-                size="small"
-                type="number"
-                value={newOpeningBalance}
-                onChange={(e) => setNewOpeningBalance(e.target.value)}
-                slotProps={{ htmlInput: { step: '0.01' } }}
-              />
-              <TextField
-                label="Opening Balance Date"
-                size="small"
-                type="date"
-                value={newOpeningBalanceDate}
-                onChange={(e) => setNewOpeningBalanceDate(e.target.value)}
-                slotProps={{ inputLabel: { shrink: true } }}
-              />
-            </>
-          )}
-          <Button
-            variant="contained"
-            disabled={adding || !newName.trim() || !newInstitutionId}
-            onClick={() => void handleAdd()}
-          >
-            Add
-          </Button>
-        </Box>
+        <AccountCreateForm
+          onCreated={(created) => setAccounts((prev) => [...(prev ?? []), created])}
+          onError={setError}
+          onInstitutionCreated={addInstitution}
+        />
       </Paper>
 
       <ConfirmDialog
