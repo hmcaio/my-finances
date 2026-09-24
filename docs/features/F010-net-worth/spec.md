@@ -26,7 +26,7 @@ The net worth formula and its trend series over time (PRD §5.9). A read-only co
 - `GET /api/net-worth/trend?from=&to=&granularity=CHANGE_DATE|MONTH` — `{ date, netWorth, assets, liabilities, investments }[]` for the chart. `asOf` (the point endpoint) and `to` default to today, `from` to twelve months before `to` (all `yyyy-MM-dd`), and `granularity` to `CHANGE_DATE` (today's behaviour); with `MONTH` there is one point per calendar month overlapping the range, each dated month-end (the current month, today). Amounts are plain numbers; `liabilities` is the amount owed on credit cards, a positive number, so `netWorth = assets + investments - liabilities`.
 
 ## Frontend
-- Net worth trend line chart with a change-date/monthly toggle — reusable prop-less component (`NetWorthTrendChart`, monthly by default; change-date is drawn as a step line) embedded in F012's dashboard. Until F012 replaces the placeholder `DashboardPage` it is hosted there, so it is reachable.
+- Net worth trend line chart with a change-date/monthly toggle — reusable prop-less component (`NetWorthTrendChart`, monthly by default; change-date is drawn as a step line) embedded in F012's dashboard.
 - No standalone screen beyond the dashboard widget is required by the PRD, though a dedicated "net worth" page with date-range controls is a reasonable minor addition if useful; not specified further here since the PRD doesn't call for one beyond the dashboard.
 
 ## Dependencies

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { server } from '../mocks/server'
 import {
+  seedCategorySpend,
   seedGroceriesTransaction,
   seedTransactions,
   transactionClosedAccountConflictHandler,
@@ -11,6 +12,7 @@ import {
   createTransaction,
   deleteTransaction,
   editTransaction,
+  getSpendByCategory,
   getTransaction,
   getTransactions,
 } from './transactions'
@@ -96,5 +98,9 @@ describe('transactions API client', () => {
 
   it('deleteTransaction resolves on success', async () => {
     await expect(deleteTransaction(seedGroceriesTransaction.id)).resolves.toBeUndefined()
+  })
+
+  it('getSpendByCategory returns the per-category totals for the month', async () => {
+    expect(await getSpendByCategory('2026-01')).toEqual(seedCategorySpend)
   })
 })

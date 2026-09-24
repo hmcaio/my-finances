@@ -1,10 +1,13 @@
 package com.chm.myfinances.infrastructure.web.transaction;
 
+import com.chm.myfinances.application.transaction.MonthlySpendByCategoryQuery;
 import com.chm.myfinances.application.transaction.TransactionService;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionFilter;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -30,9 +33,25 @@ import org.springframework.web.bind.annotation.RestController;
 public class TransactionController {
 
   private final TransactionService transactionService;
+  private final MonthlySpendByCategoryQuery monthlySpendByCategoryQuery;
 
-  public TransactionController(TransactionService transactionService) {
+  public TransactionController(
+      TransactionService transactionService,
+      MonthlySpendByCategoryQuery monthlySpendByCategoryQuery) {
     this.transactionService = transactionService;
+    this.monthlySpendByCategoryQuery = monthlySpendByCategoryQuery;
+  }
+
+  /**
+   * Expense total per category for {@code month} ({@code YYYY-MM}), largest first (F012's dashboard
+   * widget).
+   */
+  @GetMapping("/spend-by-category")
+  public List<CategorySpendResponse> spendByCategory(
+      @RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth month) {
+    return monthlySpendByCategoryQuery.forMonth(month).stream()
+        .map(CategorySpendResponse::from)
+        .toList();
   }
 
   /**

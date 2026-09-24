@@ -49,8 +49,7 @@ const EMPTY_CREATE_FORM = {
  * account, current amount/day-of-month, active/inactive) with inline amount/day edit and a
  * stop/reactivate toggle, plus a create form - all following F006's `BudgetsPage` layout
  * conventions. The "upcoming recurring bills" widget ({@link PendingOccurrencesWidget}) is
- * embedded below; F012's real dashboard (not built yet) will embed the same component rather than
- * duplicating it.
+ * embedded below; F012's dashboard embeds the same component rather than duplicating it.
  */
 export function RecurringTemplatesPage() {
   const [error, setError] = useState<string | null>(null)

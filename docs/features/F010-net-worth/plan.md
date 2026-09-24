@@ -11,7 +11,7 @@
 
 ## Frontend
 - [x] `src/api/netWorth.ts` (plus the MSW handler and the `schemaDrift.ts` entry).
-- [x] Net worth trend chart component (`NetWorthTrendChart`) with a change-date/monthly toggle, embedded in F012's dashboard (F012 isn't built: it is hosted on the placeholder `DashboardPage` until then).
+- [x] Net worth trend chart component (`NetWorthTrendChart`) with a change-date/monthly toggle, embedded in F012's dashboard.
 
 ## Verification
 - [x] Cross-check the point-in-time net worth value by hand against known account balances and investment snapshots for a test dataset.

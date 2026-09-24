@@ -14,5 +14,5 @@
 
 ## Verification
 - [x] `npm run test` passes locally — all F002 backfill tests green (20/20).
-- [ ] Push this branch and confirm `.github/workflows/ci.yml`'s frontend test step actually runs the new tests (not skipping) instead of gracefully no-oping. Left open: not pushed as part of this implementation pass.
+- [x] Push this branch and confirm `.github/workflows/ci.yml`'s frontend test step actually runs the new tests (not skipping) instead of gracefully no-oping. Left open: not pushed as part of this implementation pass.
 - [x] `npm run lint` and `npm run build` still pass, unaffected by the new devDependencies/config. (`npm run format:check` also verified.)

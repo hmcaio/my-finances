@@ -12,7 +12,7 @@ import type { ProductValueSeries, ValueSeriesPoint } from './investmentValueSeri
 import type { NetWorthPoint } from './netWorth'
 import type { PaymentMethod } from './paymentMethods'
 import type { PendingRecurringOccurrence, RecurringTemplate } from './recurringTemplates'
-import type { Transaction, TransactionPage } from './transactions'
+import type { CategorySpend, Transaction, TransactionPage } from './transactions'
 import type { Transfer, TransferPage } from './transfers'
 
 /**
@@ -81,6 +81,7 @@ export type PendingRecurringOccurrenceKeys = Assert<
 export type RecurringTemplateKeys = Assert<
   SameKeys<RecurringTemplate, Schemas['RecurringTemplateResponse']>
 >
+export type CategorySpendKeys = Assert<SameKeys<CategorySpend, Schemas['CategorySpendResponse']>>
 export type TransactionKeys = Assert<SameKeys<Transaction, Schemas['TransactionResponse']>>
 export type TransferKeys = Assert<SameKeys<Transfer, Schemas['TransferResponse']>>
 // The paged envelopes: the wrapper, and its nested `page` metadata.

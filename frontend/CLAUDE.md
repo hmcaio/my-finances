@@ -43,7 +43,7 @@ Use MUI `Skeleton`, not spinners or "Loading…" text. Gate every skeleton behin
 
 ## Pages that embed other pages' widgets
 
-A widget that fetches its own data on mount and takes no props (`PendingOccurrencesWidget`, kept prop-less so F012's dashboard can drop it in) won't refetch when the embedding page changes what it should show. The embedding page remounts it with a `key` counter it bumps after the relevant mutation (`RecurringTemplatesPage` does this after a cap edit or template creation).
+A widget that fetches its own data on mount and takes no props (`PendingOccurrencesWidget`, `NetWorthTrendChart`, `InvestmentAllocationChart`, all dropped into F012's dashboard) won't refetch when the embedding page changes what it should show. The embedding page remounts it with a `key` counter it bumps after the relevant mutation (`RecurringTemplatesPage` does this after a cap edit or template creation; `DashboardPage` does it after a confirmed occurrence, which `PendingOccurrencesWidget` announces through its optional `onConfirmed`, since that creates a transaction the other widgets sum).
 
 ## Charts
 
