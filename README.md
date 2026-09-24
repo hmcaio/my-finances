@@ -72,12 +72,13 @@ Built:
 - **F008** — investment accounts, products and taxonomy (`INVESTMENT` accounts with no opening balance that take no transactions or recurring templates; a two-level, user-editable investment category/sub-category taxonomy seeded with Brazilian defaults; `InvestmentProduct`s inside those accounts, closed instead of deleted once they have history. Snapshots, buy/sell transfers and the allocation view are F009)
 - **F009** — investment trades, snapshots and reports (`InvestmentSnapshot`, the manually entered value of a product and the sole source of its worth; buys and sells as `Transfer`s tagged with a product, with record-only quantity, unit price and taxes and an optional resulting balance that records the snapshot in the same step; a `needsSnapshot` flag and a close guard that keep trades and snapshots in step; an `INVESTMENT` account's balance as the sum of its products' latest snapshots; the allocation chart with category to sub-category drill-down and a monthly per-product value series)
 - **F010** — net worth (`NetWorthQuery`, computed on read and never stored: asset plus investment account balances minus credit card balances as of a date, counting each account only from its opening date until its closed date so closing an account leaves past months unchanged; a point endpoint and a trend endpoint sampled at every change date or at each month-end; a trend chart with a monthly/every-change toggle, hosted on the placeholder Dashboard until F012)
+- **F011** — onboarding (frontend only: while no account exists, closed ones included, the app shows a first-run screen with the account form instead of the app shell; nothing is persisted, so the state can't drift from the data)
 - **F014** — CI/CD and production packaging
 - **F015** — frontend test tooling (Vitest + React Testing Library + MSW, with real coverage backfilled for F002/F003)
 - **F016** — logging (SLF4J/Logback with a per-request `X-Request-Id` traced browser → nginx → backend, a size- and age-capped rolling backend log that survives `docker compose down`, a frontend `logger` with HTTP/uncaught-error capture and a page error boundary; ids and counts only, never amounts or descriptions)
 - **F017** — institutions (a shared `Institution` list with a built-in "No institution" row that can be renamed but not deleted; every account references exactly one, replacing the old free-text `institution`, which migration `V12` converts; picked or created inline via a shared `InstitutionSelect`)
 
-Documented and next up: **F011–F013** (onboarding, dashboard, data export) — see [docs/features/](docs/features/) for the full breakdown, in build order, with each feature's spec and its dependencies on the others.
+Documented and next up: **F012–F013** (dashboard, data export) — see [docs/features/](docs/features/) for the full breakdown, in build order, with each feature's spec and its dependencies on the others.
 
 ## Workflow
 
