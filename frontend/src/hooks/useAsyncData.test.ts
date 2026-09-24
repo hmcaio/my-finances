@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { ApiError } from '../api/apiError'
-import { combineLoadState, useAsyncData } from './useAsyncData'
+import { useAsyncData } from './useAsyncData'
 
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -99,38 +99,5 @@ describe('useAsyncData', () => {
     act(() => result.current.setData((prev) => [...(prev ?? []), 'b']))
 
     expect(result.current.data).toEqual(['a', 'b'])
-  })
-})
-
-describe('combineLoadState', () => {
-  const loaded = { loading: false, loadError: null, reload: vi.fn() }
-  const loading = { loading: true, loadError: null, reload: vi.fn() }
-  const failed = (message: string) => ({ loading: false, loadError: message, reload: vi.fn() })
-
-  it('is loading while any source is still loading', () => {
-    expect(combineLoadState(loaded, loading)).toMatchObject({ loading: true, loadError: null })
-  })
-
-  it('is not loading once every source has loaded', () => {
-    expect(combineLoadState(loaded, loaded)).toMatchObject({ loading: false, loadError: null })
-  })
-
-  it('reports the first failure right away, even while another source is still loading', () => {
-    expect(combineLoadState(loading, failed('down'), failed('later'))).toMatchObject({
-      loading: false,
-      loadError: 'down',
-    })
-  })
-
-  it('reload retries only the sources that failed', () => {
-    const a = failed('a down')
-    const b = { ...loaded, reload: vi.fn() }
-    const c = failed('c down')
-
-    combineLoadState(a, b, c).reload()
-
-    expect(a.reload).toHaveBeenCalledTimes(1)
-    expect(b.reload).not.toHaveBeenCalled()
-    expect(c.reload).toHaveBeenCalledTimes(1)
   })
 })

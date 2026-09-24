@@ -89,23 +89,6 @@ export function useAsyncData<T>(
   }
 }
 
-type LoadState = Pick<AsyncData<unknown>, 'loading' | 'loadError' | 'reload'>
-
-/**
- * One load state for a table and the lookup lists behind its name columns (categories, accounts,
- * ...). It is loading until every source has loaded, so rows never render with raw ids standing in
- * for names that haven't arrived yet; it reports the first failure, and `reload` retries only the
- * sources that failed (the lists fail together when the backend is down).
- */
-export function combineLoadState(...sources: LoadState[]): LoadState {
-  const loadError = sources.find((source) => source.loadError)?.loadError ?? null
-  return {
-    loading: loadError === null && sources.some((source) => source.loading),
-    loadError,
-    reload: () => {
-      for (const source of sources) {
-        if (source.loadError) source.reload()
-      }
-    },
-  }
-}
+// Shared with the TanStack Query adapter (`queryState.ts`); re-exported so pages migrate one
+// area at a time.
+export { combineLoadState } from './queryState'

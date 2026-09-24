@@ -9,12 +9,12 @@ One feature branch (`feature/f019-tanstack-query`), one commit per phase (per ar
 - [x] `docs/features/F019-tanstack-query/{spec,plan}.md` and the `docs/features/README.md` row.
 
 ## Phase 1 — Infrastructure
-- [ ] Add `@tanstack/react-query`, `@tanstack/react-query-devtools` (dev) and `@tanstack/eslint-plugin-query` (check ESLint 10 compatibility; if incompatible, skip the plugin and rely on the import rule).
-- [ ] Test first: `queryClient` factory — defaults (`retry: false`, `gcTime` 10 min, `refetchOnWindowFocus`), a successful mutation invalidates cached queries, a failed one does not, `meta.skipInvalidate` opts out.
-- [ ] Implement `src/api/queryClient.ts` and wrap the app in `QueryClientProvider` in `src/main.tsx`; devtools dev-only and absent from the production bundle (confirm with `npm run build`).
-- [ ] `src/test/renderWithQueryClient.tsx` (fresh client per test, `retry: false`, `gcTime: 0`).
-- [ ] Adapter from a query result to the state `DataTableBody`/`LoadFailedNotice`/`combineLoadState` consume (skeleton on `isPending` only, stale rows kept on refetch error, `keepPreviousData` for paged reads, `useDelayedFlag` retained). Test first.
-- [ ] ESLint: forbid `src/features/**` importing `src/api/<area>` modules (allow `<area>Queries`, `apiError`, generated types).
+- [x] Add `@tanstack/react-query`, `@tanstack/react-query-devtools` (dev) and `@tanstack/eslint-plugin-query` (compatible with ESLint 10: peer range `^8.57 || ^9 || ^10`, `flat/recommended` enabled).
+- [x] Test first: `queryClient` factory — defaults (`retry: false`, `gcTime` 10 min, `refetchOnWindowFocus`), a successful mutation invalidates cached queries, a failed one does not, `meta.skipInvalidate` opts out.
+- [x] Implement `src/api/queryClient.ts` and wrap the app in `QueryClientProvider` in `src/main.tsx`; devtools dev-only and absent from the production bundle (confirm with `npm run build`).
+- [x] `src/test/renderWithQueryClient.tsx` (fresh client per test, `retry: false`, `gcTime: 0`).
+- [x] Adapter from a query result to the state `DataTableBody`/`LoadFailedNotice`/`combineLoadState` consume (skeleton on `isPending` only, stale rows kept on refetch error, `keepPreviousData` for paged reads, `useDelayedFlag` retained). Test first.
+- [x] ESLint: forbid `src/features/**` importing `src/api/<area>` modules (allow `<area>Queries`, `apiError`, generated types).
 
 ## Phase 2 — Reference slice, then the remaining areas
 Each area: test first (hook via MSW: loads, error, mutation success invalidates), add `<area>Queries.ts` (key factory, `useX`, `useMutation` hooks), move the area's pages/components onto it, keep the existing page tests passing with only the wrapper changed, then commit.
