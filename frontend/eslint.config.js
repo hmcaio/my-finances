@@ -43,7 +43,6 @@ export default tseslint.config(
       // folder from this list, and the last one deletes the list (F019 plan, Phase 3).
       'src/features/accounts/**',
       'src/features/budgets/**',
-      'src/features/categories/**',
       'src/features/dashboard/**',
       'src/features/export/**',
       'src/features/institutions/**',

@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { JsonBodyType, RequestHandler } from 'msw'
 import type { ReactElement } from 'react'
 import { server } from '../mocks/server'
 import { findRow } from './testUtils'
+import { renderWithQueryClient } from './renderWithQueryClient'
 import { expectLoadStates } from './loadStates'
 
 /** Config for {@link describeSettingsPage}. */
@@ -70,7 +71,7 @@ export function describeSettingsPage<Entity extends { id: string; name: string }
   } = config
 
   it('renders the seeded rows', async () => {
-    render(page)
+    renderWithQueryClient(page)
 
     for (const row of seedRows) {
       expect(await screen.findByText(row.name)).toBeInTheDocument()
@@ -79,7 +80,7 @@ export function describeSettingsPage<Entity extends { id: string; name: string }
 
   it('adds a new row', async () => {
     const user = userEvent.setup()
-    render(page)
+    renderWithQueryClient(page)
     await screen.findByText(seedRows[0].name)
 
     await user.type(screen.getByLabelText('Name'), newName)
@@ -90,7 +91,7 @@ export function describeSettingsPage<Entity extends { id: string; name: string }
 
   it('renames a row inline', async () => {
     const user = userEvent.setup()
-    render(page)
+    renderWithQueryClient(page)
     await screen.findByText(renameTarget.name)
     const renamed = `${renameTarget.name} (renamed)`
 
@@ -107,7 +108,7 @@ export function describeSettingsPage<Entity extends { id: string; name: string }
 
   it('deletes a row', async () => {
     const user = userEvent.setup()
-    render(page)
+    renderWithQueryClient(page)
     await screen.findByText(deleteTarget.name)
 
     const row = await findRow(deleteTarget.name)
@@ -119,7 +120,7 @@ export function describeSettingsPage<Entity extends { id: string; name: string }
   it('surfaces the 409 conflict message when delete fails', async () => {
     server.use(conflict.handler)
     const user = userEvent.setup()
-    render(page)
+    renderWithQueryClient(page)
     await screen.findByText(deleteTarget.name)
 
     const row = await findRow(deleteTarget.name)
@@ -133,7 +134,7 @@ export function describeSettingsPage<Entity extends { id: string; name: string }
   it('surfaces the duplicate-name message when adding fails', async () => {
     server.use(duplicateName.handler)
     const user = userEvent.setup()
-    render(page)
+    renderWithQueryClient(page)
     await screen.findByText(seedRows[0].name)
 
     await user.type(screen.getByLabelText('Name'), seedRows[0].name)
@@ -145,7 +146,7 @@ export function describeSettingsPage<Entity extends { id: string; name: string }
   if (maxLength !== undefined) {
     it('caps the name inputs at the backend length limit', async () => {
       const user = userEvent.setup()
-      render(page)
+      renderWithQueryClient(page)
       await screen.findByText(seedRows[0].name)
 
       expect(screen.getByLabelText('Name')).toHaveAttribute('maxlength', String(maxLength))
@@ -159,7 +160,7 @@ export function describeSettingsPage<Entity extends { id: string; name: string }
 
   if (config.loadStates) {
     expectLoadStates({
-      render: () => render(page),
+      render: () => renderWithQueryClient(page),
       url: config.loadStates.url,
       successBody: config.loadStates.successBody,
       loadedText: seedRows[0].name,

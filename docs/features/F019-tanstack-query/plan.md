@@ -18,7 +18,7 @@ One feature branch (`feature/f019-tanstack-query`), one commit per phase (per ar
 
 ## Phase 2 — Reference slice, then the remaining areas
 Each area: test first (hook via MSW: loads, error, mutation success invalidates), add `<area>Queries.ts` (key factory, `useX`, `useMutation` hooks), move the area's pages/components onto it, keep the existing page tests passing with only the wrapper changed, then commit.
-- [ ] Categories (reference pattern; also proves dedup between the categories page and any component sharing the list).
+- [x] Categories (reference pattern; also proves dedup between the categories page and any component sharing the list).
 - [ ] Payment methods, institutions (including `InstitutionSelect`, sharing `institutionKeys.list()`).
 - [ ] Accounts, and the onboarding gate: `useHasAccounts` derived from the accounts list (`includeClosed: true`), `markHasAccounts` removed; `null` while loading or failed, `false` only for a resolved empty list, flips to `true` after the create-account mutation.
 - [ ] Investment categories/sub-categories, investment products, investments (trades, snapshots, allocation, value series).

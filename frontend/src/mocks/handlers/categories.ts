@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw'
 import type { Category, CategoryType } from '../../api/categories'
+import { createStore } from '../store'
 
 /**
  * Seed data returned by the default `GET /api/categories` handler below. Exported so tests can
@@ -27,40 +28,37 @@ interface CategoryRequestBody {
   type?: CategoryType
 }
 
+const categories = createStore(seedCategories)
+
 /**
- * Default success-path handlers for every categories endpoint (F002's REST API). Requests are
- * answered purely from the request itself (echoing the body back with a generated/known id)
- * rather than mutating `seedCategories`, so every test starts from the same fixture regardless of
- * execution order - `src/test/setup.ts`'s `server.resetHandlers()` only needs to undo per-test
- * `server.use(...)` overrides (like the 409 variant below), not any stored mutation.
+ * Default success-path handlers for every categories endpoint (F002's REST API), backed by an
+ * in-memory store that `resetStores()` restores after each test - a mutation must show up in the
+ * next `GET`, because a successful write refetches every active query (F019).
  */
 export const categoriesHandlers = [
-  http.get(CATEGORIES_URL, () => HttpResponse.json(seedCategories)),
+  http.get(CATEGORIES_URL, () => HttpResponse.json(categories.list())),
 
   http.post(CATEGORIES_URL, async ({ request }) => {
     const body = (await request.json()) as CategoryRequestBody
-    const created: Category = {
-      id: 'cat-new',
+    const created = categories.add({
+      id: categories.nextId('cat'),
       name: body.name,
       type: body.type ?? 'EXPENSE',
       builtIn: false,
-    }
+    })
     return HttpResponse.json(created, { status: 201 })
   }),
 
   http.patch(`${CATEGORIES_URL}/:id`, async ({ request, params }) => {
     const body = (await request.json()) as CategoryRequestBody
-    const existing = seedCategories.find((category) => category.id === params.id)
-    const updated: Category = {
-      id: params.id as string,
-      name: body.name,
-      type: existing?.type ?? 'EXPENSE',
-      builtIn: existing?.builtIn ?? false,
-    }
-    return HttpResponse.json(updated)
+    const updated = categories.replace(params.id as string, (row) => ({ ...row, name: body.name }))
+    return updated ? HttpResponse.json(updated) : new HttpResponse(null, { status: 404 })
   }),
 
-  http.delete(`${CATEGORIES_URL}/:id`, () => new HttpResponse(null, { status: 204 })),
+  http.delete(`${CATEGORIES_URL}/:id`, ({ params }) => {
+    categories.remove(params.id as string)
+    return new HttpResponse(null, { status: 204 })
+  }),
 ]
 
 /**

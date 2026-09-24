@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
@@ -16,6 +16,7 @@ import {
   DUPLICATE_NAME_MESSAGE,
 } from '../../api/categories'
 import { findRow } from '../../test/testUtils'
+import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 import { describeSettingsPage } from '../../test/settingsPageContract'
 import { CategoriesPage } from './CategoriesPage'
 
@@ -38,7 +39,7 @@ describe('CategoriesPage', () => {
   // equivalent in the other settings pages, so they stay here on top of the shared contract.
 
   it('lists each type with its built-in row first', async () => {
-    render(<CategoriesPage />)
+    renderWithQueryClient(<CategoriesPage />)
     await screen.findByText(builtInExpense.name)
 
     // Row 0 is the header. Expenses lead, the built-in one first within them, then income.
@@ -50,7 +51,7 @@ describe('CategoriesPage', () => {
   })
 
   it('offers no delete action on a built-in row, only rename', async () => {
-    render(<CategoriesPage />)
+    renderWithQueryClient(<CategoriesPage />)
     await screen.findByText(builtInExpense.name)
 
     const row = await findRow(builtInExpense.name)
@@ -62,7 +63,7 @@ describe('CategoriesPage', () => {
 
   it('renames a built-in row, which stays first and still has no delete action', async () => {
     const user = userEvent.setup()
-    render(<CategoriesPage />)
+    renderWithQueryClient(<CategoriesPage />)
     await screen.findByText(builtInIncome.name)
 
     const row = await findRow(builtInIncome.name)
@@ -93,7 +94,7 @@ describe('CategoriesPage', () => {
         return HttpResponse.json(seedCategories)
       }),
     )
-    render(<CategoriesPage />)
+    renderWithQueryClient(<CategoriesPage />)
 
     expect(await screen.findByText('Loading…')).toBeInTheDocument()
     expect(await screen.findByText(seedGroceriesCategory.name)).toBeInTheDocument()
@@ -102,7 +103,7 @@ describe('CategoriesPage', () => {
 
   it('shows a failure row, never a skeleton, after a failed first fetch, even with the banner dismissed', async () => {
     server.use(http.get('/api/categories', () => new HttpResponse(null, { status: 500 })))
-    render(<CategoriesPage />)
+    renderWithQueryClient(<CategoriesPage />)
 
     const alert = await screen.findByRole('alert')
     expect(await screen.findByText(/Could not load data/)).toBeInTheDocument()
@@ -127,7 +128,7 @@ describe('CategoriesPage', () => {
       http.get('/api/categories', () => new HttpResponse(null, { status: 500 }), { once: true }),
     )
     const user = userEvent.setup()
-    render(<CategoriesPage />)
+    renderWithQueryClient(<CategoriesPage />)
 
     await user.click(await screen.findByRole('button', { name: 'Retry' }))
 

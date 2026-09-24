@@ -16,20 +16,18 @@ import {
   Typography,
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
+import { CATEGORY_NAME_MAX_LENGTH, type Category, type CategoryType } from '../../api/categories'
 import {
-  CATEGORY_NAME_MAX_LENGTH,
-  createCategory,
-  deleteCategory,
-  getCategories,
-  renameCategory,
-  type Category,
-  type CategoryType,
-} from '../../api/categories'
+  useCategories,
+  useCreateCategory,
+  useDeleteCategory,
+  useRenameCategory,
+} from '../../api/categoriesQueries'
 import { defaultErrorMessage } from '../../api/apiError'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
 import { DataTableBody } from '../../components/DataTableBody'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { useQueryState } from '../../hooks/queryState'
 import { sortCategories } from './sortCategories'
 
 /**
@@ -41,11 +39,12 @@ import { sortCategories } from './sortCategories'
  */
 export function CategoriesPage() {
   const [error, setError] = useState<string | null>(null)
-  const {
-    data: categories,
-    setData: setCategories,
-    ...categoriesState
-  } = useAsyncData(getCategories, [], { onError: setError })
+  const categoriesQuery = useCategories()
+  const categories = categoriesQuery.data
+  const categoriesState = useQueryState(categoriesQuery, setError)
+  const createMutation = useCreateCategory()
+  const renameMutation = useRenameCategory()
+  const deleteMutation = useDeleteCategory()
   const sorted = useMemo(() => sortCategories(categories ?? []), [categories])
 
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -62,8 +61,7 @@ export function CategoriesPage() {
     setError(null)
     setAdding(true)
     try {
-      const created = await createCategory({ name: newName.trim(), type: newType })
-      setCategories((prev) => [...(prev ?? []), created])
+      await createMutation.mutateAsync({ name: newName.trim(), type: newType })
       setNewName('')
     } catch (err) {
       setError(defaultErrorMessage(err))
@@ -86,8 +84,7 @@ export function CategoriesPage() {
     if (!editingName.trim()) return
     setError(null)
     try {
-      const updated = await renameCategory(id, { name: editingName.trim() })
-      setCategories((prev) => prev?.map((c) => (c.id === id ? updated : c)) ?? null)
+      await renameMutation.mutateAsync({ id, name: editingName.trim() })
       cancelEdit()
     } catch (err) {
       setError(defaultErrorMessage(err))
@@ -98,8 +95,7 @@ export function CategoriesPage() {
     setError(null)
     setPendingDeleteId(id)
     try {
-      await deleteCategory(id)
-      setCategories((prev) => prev?.filter((c) => c.id !== id) ?? null)
+      await deleteMutation.mutateAsync(id)
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {
