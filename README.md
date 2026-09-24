@@ -79,8 +79,9 @@ Built:
 - **F015** — frontend test tooling (Vitest + React Testing Library + MSW, with real coverage backfilled for F002/F003)
 - **F016** — logging (SLF4J/Logback with a per-request `X-Request-Id` traced browser → nginx → backend, a size- and age-capped rolling backend log that survives `docker compose down`, a frontend `logger` with HTTP/uncaught-error capture and a page error boundary; ids and counts only, never amounts or descriptions)
 - **F017** — institutions (a shared `Institution` list with a built-in "No institution" row that can be renamed but not deleted; every account references exactly one, replacing the old free-text `institution`, which migration `V12` converts; picked or created inline via a shared `InstitutionSelect`)
+- **F019** — TanStack Query migration (frontend only: every read and write goes through per-area `<area>Queries` hooks over TanStack Query v5, replacing `useAsyncData`/`usePagedData`; shared reads are fetched once per staleness window, and any successful write invalidates every query so no view shows stale money; the pending-occurrences read is never cached because it triggers lazy catch-up; no backend or server-cache change)
 
-Documented and next up: **F018** (automated encrypted backups for the prod stack) and **F019** (TanStack Query migration) — see [docs/features/](docs/features/) for the full breakdown, in build order, with each feature's spec and its dependencies on the others.
+Documented and next up: **F018** (automated encrypted backups for the prod stack) — see [docs/features/](docs/features/) for the full breakdown, in build order, with each feature's spec and its dependencies on the others.
 
 ## Workflow
 

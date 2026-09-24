@@ -25,7 +25,7 @@ Each area: test first (hook via MSW: loads, error, mutation success invalidates)
 - [x] Budgets, transactions (filters and paging), transfers.
 - [x] Recurring templates; the pending-occurrences read with `staleTime: 0` (lazy catch-up side effect, ADR 0003), confirm/dismiss mutations.
 - [x] Net worth, dashboard widgets and the export page. (The spec's "dashboard health check" no longer exists in the code base, so there is no `staleTime: 0` health query to build; the `key`-counter remounts on the dashboard and budgets pages are removed instead, since global invalidation replaces them.)
-- [ ] After each area: `npm run lint && npm test`.
+- [x] After each area: `npm run lint && npm test`.
 
 ## Phase 3 — Cleanup
 - [x] Delete `useAsyncData`, `usePagedData`, their tests, `combineLoadState` if now unused, and any `setData`/`markHasAccounts` remains.
@@ -34,17 +34,17 @@ Each area: test first (hook via MSW: loads, error, mutation success invalidates)
 - [x] `npm run lint && npm test && npm run build`.
 
 ## Phase 4 — Docs
-- [ ] `frontend/CLAUDE.md`: rewrite "Data loading" (hooks per area, key factories, global invalidation and `skipInvalidate`, `mutation.error` handling with `defaultErrorMessage`, defaults, no optimistic updates, `renderWithQueryClient`), update the layout note and drop `useAsyncData`/`usePagedData` mentions.
-- [ ] Root `README.md` "Project status" entry.
-- [ ] `CHANGELOG.md` `[Unreleased]` entry (`**F019 — TanStack Query migration**`); add the PR link in a follow-up commit once the PR is open.
-- [ ] Tick this plan.
+- [x] `frontend/CLAUDE.md`: rewrite "Data loading" (hooks per area, key factories, global invalidation and `skipInvalidate`, `mutateAsync` + `try/catch` error handling with `defaultErrorMessage`, defaults, no optimistic updates, `renderWithQueryClient`), update the layout note and drop `useAsyncData`/`usePagedData` mentions.
+- [x] Root `README.md` "Project status" entry.
+- [x] `CHANGELOG.md` `[Unreleased]` entry (`**F019 — TanStack Query migration**`); the PR link is added in a follow-up commit once the PR is open (still to do).
+- [x] Tick this plan.
 
 ## Verification
-- [ ] `npm run lint && npm test && npm run build` green; every pre-existing page test passes with only the wrapper changed.
-- [ ] Manual, dev: navigating between pages that share a list (categories, accounts, institutions) makes one request per staleness window (check the Network tab and devtools).
-- [ ] Manual: create, edit and delete in each area — every view (balances, net worth, allocation, budget-vs-actual) reflects the change without a reload; a failed write (e.g. a 409) shows its `conflictMessage` and leaves cached data untouched.
-- [ ] Manual: first-run onboarding still appears on an empty DB, disappears right after the first account is created, and never appears when the accounts request fails.
-- [ ] Manual: stop the backend — lists with cached data keep their rows and show the error; first-load failure shows the "Could not load data" row with a working Retry.
-- [ ] Manual: paging and filtering keep the previous page visible while the next loads; no skeleton flicker.
-- [ ] Manual: pending recurring occurrences are refetched on every visit.
-- [ ] Production build has no devtools code.
+- [x] `npm run lint && npm test && npm run build` green. Every pre-existing page test passes; besides the wrapper change, tests that overrode a write endpoint with a fixed response now record the body and fall through to the (now stateful) default handler, and a few assertions moved to `waitFor` (see the report of this feature).
+- [ ] Manual, dev: navigating between pages that share a list (categories, accounts, institutions) makes one request per staleness window (check the Network tab and devtools). (Not checked in a browser; the shared-key dedup is covered by hook and page tests only.)
+- [ ] Manual: create, edit and delete in each area — every view (balances, net worth, allocation, budget-vs-actual) reflects the change without a reload; a failed write (e.g. a 409) shows its `conflictMessage` and leaves cached data untouched. (Not checked in a browser; the behaviour is covered by the automated tests only.)
+- [ ] Manual: first-run onboarding still appears on an empty DB, disappears right after the first account is created, and never appears when the accounts request fails. (Not checked in a browser; the behaviour is covered by the automated tests only.)
+- [ ] Manual: stop the backend — lists with cached data keep their rows and show the error; first-load failure shows the "Could not load data" row with a working Retry. (Not checked in a browser; the behaviour is covered by the automated tests only.)
+- [ ] Manual: paging and filtering keep the previous page visible while the next loads; no skeleton flicker. (Not checked in a browser; the behaviour is covered by the automated tests only.)
+- [ ] Manual: pending recurring occurrences are refetched on every visit. (Not checked in a browser; the behaviour is covered by the automated tests only.)
+- [x] Production build has no devtools code (`grep` of `dist/` for `ReactQueryDevtools`/`react-query-devtools`/`tsqd` finds nothing).

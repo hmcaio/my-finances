@@ -32,6 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **F019 — TanStack Query migration** — the app keeps what it has loaded, so moving between pages that share data (categories, accounts, institutions, payment methods) no longer reloads it, and every view (balances, net worth, allocation, budget vs. actual, the dashboard widgets) updates as soon as you save a change, without a reload.
 - Categories now have a built-in row per type, "Other Expense" and "Other Income", that can be renamed but not deleted, like "No institution". (closes [#29](https://github.com/hmcaio/my-finances/issues/29), [#30](https://github.com/hmcaio/my-finances/pull/30))
   - Upgrade: migration `V14` marks the existing "Other Income" and the seeded `Other` as built-in, renaming `Other` to "Other Expense" (kept as `Other` if an income category already uses that name). A seed row you renamed or deleted gets a fresh built-in row instead, so a category you renamed stays as an ordinary one. The category API's response gains a `builtIn` field.
 - Loading states use skeleton placeholders instead of spinners, and a failed first load shows a "Could not load data" row with Retry. (closes [#16](https://github.com/hmcaio/my-finances/issues/16), [#17](https://github.com/hmcaio/my-finances/pull/17))
