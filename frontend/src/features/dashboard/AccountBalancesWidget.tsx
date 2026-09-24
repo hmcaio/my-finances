@@ -9,10 +9,10 @@ import {
   Typography,
 } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
-import { getAccounts } from '../../api/accounts'
+import { useAccounts } from '../../api/accountsQueries'
 import { fadeInSx } from '../../components/fadeIn'
 import { LoadFailedNotice } from '../../components/LoadFailedNotice'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { ACCOUNT_TYPE_LABELS } from '../accounts/accountTypes'
 
@@ -22,11 +22,13 @@ import { ACCOUNT_TYPE_LABELS } from '../accounts/accountTypes'
  * fetches its own data on mount (frontend `CLAUDE.md`, "Pages that embed other pages' widgets").
  */
 export function AccountBalancesWidget() {
-  const { data: accounts, loading, loadError, reload } = useAsyncData(() => getAccounts(false), [])
+  const accountsQuery = useAccounts()
+  const accounts = accountsQuery.data
+  const { loading, loadError, reload } = useQueryState(accountsQuery)
   const showSkeleton = useDelayedFlag(loading)
 
   if (loadError) return <LoadFailedNotice message={loadError} onRetry={reload} />
-  if (accounts === null) {
+  if (accounts === undefined) {
     return showSkeleton ? (
       <Box role="status" aria-label="Loading account balances">
         {[0, 1, 2].map((row) => (

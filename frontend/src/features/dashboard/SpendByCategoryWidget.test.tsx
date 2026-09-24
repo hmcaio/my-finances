@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { http, HttpResponse } from 'msw'
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import { server } from '../../mocks/server'
 import { SpendByCategoryWidget } from './SpendByCategoryWidget'
+import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
 describe('SpendByCategoryWidget', () => {
   it('lists each category with its total and the grand total', async () => {
@@ -15,7 +16,7 @@ describe('SpendByCategoryWidget', () => {
       ),
     )
 
-    render(<SpendByCategoryWidget />)
+    renderWithQueryClient(<SpendByCategoryWidget />)
 
     expect(await screen.findByText('Groceries')).toBeInTheDocument()
     expect(screen.getByText('100.00')).toBeInTheDocument()
@@ -26,7 +27,7 @@ describe('SpendByCategoryWidget', () => {
   it('shows an empty state when nothing was spent this month', async () => {
     server.use(http.get('/api/transactions/spend-by-category', () => HttpResponse.json([])))
 
-    render(<SpendByCategoryWidget />)
+    renderWithQueryClient(<SpendByCategoryWidget />)
 
     expect(await screen.findByText('Nothing spent this month yet.')).toBeInTheDocument()
   })
@@ -36,7 +37,7 @@ describe('SpendByCategoryWidget', () => {
       http.get('/api/transactions/spend-by-category', () => HttpResponse.json({}, { status: 500 })),
     )
 
-    render(<SpendByCategoryWidget />)
+    renderWithQueryClient(<SpendByCategoryWidget />)
 
     expect(await screen.findByRole('button', { name: /retry/i })).toBeInTheDocument()
   })

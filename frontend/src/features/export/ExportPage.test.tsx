@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
@@ -9,6 +9,7 @@ import { exportBadRangeHandler } from '../../mocks/handlers/export'
 import { REVERSED_RANGE_MESSAGE } from '../../api/export'
 import { selectOption } from '../../test/testUtils'
 import { ExportPage } from './ExportPage'
+import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
 describe('ExportPage', () => {
   let createObjectURL: ReturnType<typeof vi.fn>
@@ -34,7 +35,7 @@ describe('ExportPage', () => {
       }),
     )
     const user = userEvent.setup()
-    render(<ExportPage />)
+    renderWithQueryClient(<ExportPage />)
 
     await user.click(screen.getByRole('button', { name: 'Download' }))
 
@@ -54,7 +55,7 @@ describe('ExportPage', () => {
       }),
     )
     const user = userEvent.setup()
-    render(<ExportPage />)
+    renderWithQueryClient(<ExportPage />)
     const account = seedAccounts[0]
     const category = seedCategories[0]
     await screen.findByRole('combobox', { name: 'Account filter' })
@@ -76,7 +77,7 @@ describe('ExportPage', () => {
 
   it('rejects a reversed date range without calling the backend', async () => {
     const user = userEvent.setup()
-    render(<ExportPage />)
+    renderWithQueryClient(<ExportPage />)
 
     await user.type(screen.getByLabelText('From'), '2026-03-01')
     await user.type(screen.getByLabelText('To'), '2026-01-01')
@@ -89,7 +90,7 @@ describe('ExportPage', () => {
   it('shows the error when the backend refuses', async () => {
     server.use(exportBadRangeHandler)
     const user = userEvent.setup()
-    render(<ExportPage />)
+    renderWithQueryClient(<ExportPage />)
 
     await user.click(screen.getByRole('button', { name: 'Download' }))
 
@@ -100,7 +101,7 @@ describe('ExportPage', () => {
 
   it('clears the filters', async () => {
     const user = userEvent.setup()
-    render(<ExportPage />)
+    renderWithQueryClient(<ExportPage />)
     await user.type(screen.getByLabelText('From'), '2026-01-01')
 
     await user.click(screen.getByRole('button', { name: 'Clear filters' }))

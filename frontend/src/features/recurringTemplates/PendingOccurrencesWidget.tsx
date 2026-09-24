@@ -37,15 +37,6 @@ import { DataTableBody } from '../../components/DataTableBody'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { nameLookup } from '../../utils/nameLookup'
 
-interface PendingOccurrencesWidgetProps {
-  /**
-   * Called after an occurrence is confirmed (which creates a transaction), so an embedding page
-   * can refresh whatever that changes - the dashboard's spend, budgets, balances and net worth.
-   * Dismissing creates nothing, so it doesn't call this.
-   */
-  onConfirmed?: () => void
-}
-
 /**
  * "Upcoming recurring bills" widget (F007 spec, embedded on F012's dashboard and on {@link
  * RecurringTemplatesPage}). Entirely self-contained
@@ -57,7 +48,7 @@ interface PendingOccurrencesWidgetProps {
  * default from the occurrence/template, and payment method - which the template has no default
  * for - is always required.
  */
-export function PendingOccurrencesWidget({ onConfirmed }: PendingOccurrencesWidgetProps = {}) {
+export function PendingOccurrencesWidget() {
   const [error, setError] = useState<string | null>(null)
   const templatesQuery = useRecurringTemplates()
   const templates = templatesQuery.data
@@ -129,7 +120,6 @@ export function PendingOccurrencesWidget({ onConfirmed }: PendingOccurrencesWidg
         paymentMethodId: confirmPaymentMethodId,
       })
       closeConfirm()
-      onConfirmed?.()
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {

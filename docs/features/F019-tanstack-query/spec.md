@@ -1,14 +1,14 @@
 # F019 — TanStack Query Migration (queries, mutations, caching)
 
 ## Summary
-Replaces the frontend's hand-written data layer (`useAsyncData`, `usePagedData`, direct API calls plus `setData` patching, and two stray `useEffect` fetches) with TanStack Query v5, for both reads and writes. Caching, request deduplication and invalidation come with it. Frontend only: no backend, API or data-model change. Decision record: [ADR 0016](../../adr/0016-tanstack-query-client-cache.md).
+Replaces the frontend's hand-written data layer (`useAsyncData`, `usePagedData`, direct API calls plus `setData` patching) with TanStack Query v5, for both reads and writes. Caching, request deduplication and invalidation come with it. Frontend only: no backend, API or data-model change. Decision record: [ADR 0016](../../adr/0016-tanstack-query-client-cache.md).
 
 Motivation is preventive (no measured latency problem in a local single-user app): fewer redundant requests, less bespoke fetch state, one consistent place for invalidation. The hard requirement is correctness: a user's own write must show up immediately and no view may show stale money after it.
 
 ## Scope
 - `QueryClient` setup, provider, defaults, devtools, test helper.
 - Per-area query/mutation hooks and key factories; migration of all pages and shared components to them.
-- Deleting `useAsyncData`, `usePagedData`, `markHasAccounts` and every fetch-in-`useEffect`.
+- Deleting `useAsyncData`, `usePagedData`, `markHasAccounts`, the `reloadKey`/`key`-counter remounts and every fetch-in-`useEffect`.
 - ESLint guardrails, tests, `frontend/CLAUDE.md`, ADR 0016, CHANGELOG.
 - Out of scope: see [Non-goals](#non-goals).
 
@@ -22,11 +22,11 @@ Motivation is preventive (no measured latency problem in a local single-user app
 | Global invalidation: `new MutationCache({ onSuccess })` calls `queryClient.invalidateQueries()` for every successful mutation; `meta: { skipInvalidate: true }` opts out. Failed mutations never invalidate. | One place, can't be forgotten in a new mutation. Coarse on purpose: one transfer changes balances, net worth, allocation and budget-vs-actual, and per-key invalidation is where stale-data bugs would come from. The data is small enough that refetching everything active is cheap. |
 | `unwrap`/`conflictMessage` stay in the `src/api` functions; a `mutationFn` just calls them. Pages read `mutation.error` and use `defaultErrorMessage(err, statusOverrides?)`. | The backend never sends exception text (root `CLAUDE.md`), so the call-site message contract is unchanged and no new error abstraction is needed. |
 | No optimistic updates. | After a success, global invalidation refetches and rows update within one local round trip. Avoids rollback bugs. Revisit only if a screen feels laggy. |
-| Defaults: `staleTime` 30s (lists, reports), 5 min (reference data: categories, payment methods, institutions, investment taxonomy), 0 (pending-occurrences read, health check); `gcTime` 10 min; `refetchOnWindowFocus` on; `retry: false`. | `retry: false` keeps the single-attempt UX (Retry button, `conflictMessage`) and one F016 log line per failed request. The pending-occurrences read has a side effect (lazy catch-up, ADR 0003) and must not be served from cache. |
+| Defaults: `staleTime` 30s (lists, reports), 5 min (reference data: categories, payment methods, institutions, investment taxonomy), 0 (pending-occurrences read); `gcTime` 10 min; `refetchOnWindowFocus` on; `retry: false`. | `retry: false` keeps the single-attempt UX (Retry button, `conflictMessage`) and one F016 log line per failed request. The pending-occurrences read has a side effect (lazy catch-up, ADR 0003) and must not be served from cache. |
 | In-memory cache only; no `persistQueryClient`. | Persisting puts financial data in browser storage as a second uncontrolled copy and creates staleness after a restore (F018); a reload against a local server is fast. |
 | UX parity is the contract: skeleton only on first load (`isPending`), stale rows kept when a refetch fails, previous page kept while the next loads (`placeholderData: keepPreviousData`), `useDelayedFlag` retained, `DataTableBody`/`LoadFailedNotice` fed through a small adapter from the query result. | The loading/error behaviour is already documented and tested (`frontend/CLAUDE.md`); the migration must not change what users see. Existing page tests are the parity check. |
 | The onboarding gate (`useHasAccounts`, F011) derives from the cached accounts list (`includeClosed: true`); `markHasAccounts` is deleted. `hasAccounts` stays `null` while loading or failed, never `false`. | The gate can't drift from the data, and a failed check must never show onboarding. Creating the first account is a mutation, so global invalidation flips the gate. |
-| `InstitutionSelect` and `DashboardPage`'s health check migrate too. | `InstitutionSelect` then shares `institutionKeys.list()` with the institutions page and sees inline-created rows through invalidation. No fetch-in-`useEffect` may remain. |
+| `InstitutionSelect` migrates too. (`DashboardPage` no longer has a health check: F012's dashboard composes widgets, so there is nothing to migrate there.) | `InstitutionSelect` then shares `institutionKeys.list()` with the institutions page and sees inline-created rows through invalidation. No fetch-in-`useEffect` may remain. |
 | ESLint guardrails: `@tanstack/eslint-plugin-query` (if compatible with the repo's ESLint 10; otherwise the rule below plus docs), and a rule forbidding `src/features/**` from importing `src/api/<area>` modules directly (only `<area>Queries`). | Enforces the layering so the migration doesn't erode. |
 | Devtools in dev builds only, tree-shaken from production. | Cache inspection during migration; no production cost. |
 

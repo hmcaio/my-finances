@@ -24,7 +24,7 @@ Each area: test first (hook via MSW: loads, error, mutation success invalidates)
 - [x] Investment categories/sub-categories, investment products, investments (trades, snapshots, allocation, value series).
 - [x] Budgets, transactions (filters and paging), transfers.
 - [x] Recurring templates; the pending-occurrences read with `staleTime: 0` (lazy catch-up side effect, ADR 0003), confirm/dismiss mutations.
-- [ ] Net worth, dashboard (health check as a `staleTime: 0` query).
+- [x] Net worth, dashboard widgets and the export page. (The spec's "dashboard health check" no longer exists in the code base, so there is no `staleTime: 0` health query to build; the `key`-counter remounts on the dashboard and budgets pages are removed instead, since global invalidation replaces them.)
 - [ ] After each area: `npm run lint && npm test`.
 
 ## Phase 3 — Cleanup
@@ -46,5 +46,5 @@ Each area: test first (hook via MSW: loads, error, mutation success invalidates)
 - [ ] Manual: first-run onboarding still appears on an empty DB, disappears right after the first account is created, and never appears when the accounts request fails.
 - [ ] Manual: stop the backend — lists with cached data keep their rows and show the error; first-load failure shows the "Could not load data" row with a working Retry.
 - [ ] Manual: paging and filtering keep the previous page visible while the next loads; no skeleton flicker.
-- [ ] Manual: pending recurring occurrences are refetched on every visit and the dashboard health check reflects the backend's current state.
+- [ ] Manual: pending recurring occurrences are refetched on every visit.
 - [ ] Production build has no devtools code.

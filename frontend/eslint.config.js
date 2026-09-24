@@ -41,9 +41,6 @@ export default tseslint.config(
       '**/*.test.{ts,tsx}',
       // Areas not yet migrated to their <area>Queries hooks; each migration commit removes its
       // folder from this list, and the last one deletes the list (F019 plan, Phase 3).
-      'src/features/dashboard/**',
-      'src/features/export/**',
-      'src/features/netWorth/**',
     ],
     rules: {
       'no-restricted-imports': [

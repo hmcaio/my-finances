@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { seedDebitCardPaymentMethod, seedPaymentMethods } from '../../mocks/handlers/paymentMethods'
@@ -28,33 +28,6 @@ describe('PendingOccurrencesWidget', () => {
     await user.click(screen.getByRole('button', { name: 'Confirm' }))
 
     expect(screen.queryByText('Rent')).not.toBeInTheDocument()
-  })
-
-  it('notifies the embedding page after a confirm, but not after a dismiss', async () => {
-    const user = userEvent.setup()
-    const onConfirmed = vi.fn()
-    renderWithQueryClient(<PendingOccurrencesWidget onConfirmed={onConfirmed} />)
-    const row = await findRow('Rent')
-
-    await user.click(row.getByRole('button', { name: 'Dismiss occurrence' }))
-    await user.click(screen.getByRole('button', { name: 'Dismiss' }))
-    expect(await screen.findByText('Nothing pending right now.')).toBeInTheDocument()
-    expect(onConfirmed).not.toHaveBeenCalled()
-  })
-
-  it('calls onConfirmed once an occurrence is confirmed', async () => {
-    const user = userEvent.setup()
-    const onConfirmed = vi.fn()
-    renderWithQueryClient(<PendingOccurrencesWidget onConfirmed={onConfirmed} />)
-    const row = await findRow('Rent')
-
-    await user.click(row.getByRole('button', { name: 'Confirm occurrence' }))
-    await user.click(screen.getByLabelText('Payment Method'))
-    await user.click(await screen.findByRole('option', { name: seedDebitCardPaymentMethod.name }))
-    await user.click(screen.getByRole('button', { name: 'Confirm' }))
-
-    expect(await screen.findByText('Nothing pending right now.')).toBeInTheDocument()
-    expect(onConfirmed).toHaveBeenCalledTimes(1)
   })
 
   it('confirms an occurrence with an overridden amount', async () => {

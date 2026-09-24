@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { Alert, Box, Button, MenuItem, Paper, Select, TextField, Typography } from '@mui/material'
 import DownloadIcon from '@mui/icons-material/Download'
-import { getAccounts } from '../../api/accounts'
-import { getCategories } from '../../api/categories'
+import { useAccounts } from '../../api/accountsQueries'
+import { useCategories } from '../../api/categoriesQueries'
 import { defaultErrorMessage } from '../../api/apiError'
-import { REVERSED_RANGE_MESSAGE, downloadExport, type ExportFilter } from '../../api/export'
+import { REVERSED_RANGE_MESSAGE, type ExportFilter } from '../../api/export'
+import { useDownloadExport } from '../../api/exportQueries'
 import { ErrorAlert } from '../../components/ErrorAlert'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { useQueryState } from '../../hooks/queryState'
 
 /**
  * Data export (F013, PRD S6.9): optional date range, account and category filters, then one ZIP
@@ -20,8 +21,13 @@ export function ExportPage() {
   const [error, setError] = useState<string | null>(null)
 
   // Closed and investment accounts are included: their history is part of the export.
-  const { data: accounts } = useAsyncData(() => getAccounts(true), [], { onError: setError })
-  const { data: categories } = useAsyncData(getCategories, [], { onError: setError })
+  const accountsQuery = useAccounts(true)
+  const accounts = accountsQuery.data
+  useQueryState(accountsQuery, setError)
+  const categoriesQuery = useCategories()
+  const categories = categoriesQuery.data
+  useQueryState(categoriesQuery, setError)
+  const downloadMutation = useDownloadExport()
 
   function update(patch: Partial<ExportFilter>) {
     setFilter((prev) => ({ ...prev, ...patch }))
@@ -37,7 +43,7 @@ export function ExportPage() {
     }
     setDownloading(true)
     try {
-      await downloadExport(filter)
+      await downloadMutation.mutateAsync(filter)
       setDownloaded(true)
     } catch (err) {
       setError(defaultErrorMessage(err))

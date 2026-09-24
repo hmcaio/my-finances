@@ -13,7 +13,7 @@ The app is local, single-user and small (PRD §7.3), so there is no measured lat
 - **Layering**: each `src/api/<area>.ts` keeps the HTTP functions (including `unwrap`/`conflictMessage`); a sibling `<area>Queries.ts` exports the `useX`/`useMutation` hooks and that area's query-key factory under a root `['api']` prefix. Pages use only those hooks, never raw keys or the API modules; ESLint enforces it.
 - **Coarse invalidation**: a global `MutationCache.onSuccess` invalidates every query after any successful mutation (opt-out via `meta.skipInvalidate`). Failed mutations never invalidate. No optimistic updates.
 - **One cache layer.** No `ETag`/`Cache-Control` and no in-process or Redis cache on the backend. Conditional GETs would only save body transfer on localhost, and a second layer would bring a second invalidation problem.
-- **Short staleness, in memory only**: `staleTime` 30s for lists and reports, 5 min for reference data, 0 for endpoints with side effects or time dependence (the pending-occurrences read that triggers lazy catch-up, ADR 0003; the health check). `retry: false`, refetch on window focus, no persistence to browser storage.
+- **Short staleness, in memory only**: `staleTime` 30s for lists and reports, 5 min for reference data, 0 for endpoints with side effects or time dependence (the pending-occurrences read that triggers lazy catch-up, ADR 0003). `retry: false`, refetch on window focus, no persistence to browser storage.
 
 ## Consequences
 - Shared reads (categories, accounts, institutions) are fetched once per staleness window regardless of how many components use them.

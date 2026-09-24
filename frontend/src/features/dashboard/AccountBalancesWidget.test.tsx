@@ -1,14 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { http, HttpResponse } from 'msw'
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { server } from '../../mocks/server'
 import { seedAccounts } from '../../mocks/handlers/accounts'
 import { AccountBalancesWidget } from './AccountBalancesWidget'
+import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
 describe('AccountBalancesWidget', () => {
   it('lists each open account with its balance, linking to its detail page', async () => {
-    render(
+    renderWithQueryClient(
       <MemoryRouter>
         <AccountBalancesWidget />
       </MemoryRouter>,
@@ -36,7 +37,7 @@ describe('AccountBalancesWidget', () => {
       ),
     )
 
-    render(
+    renderWithQueryClient(
       <MemoryRouter>
         <AccountBalancesWidget />
       </MemoryRouter>,
@@ -48,7 +49,7 @@ describe('AccountBalancesWidget', () => {
   it('shows a retryable notice when the load fails', async () => {
     server.use(http.get('/api/accounts', () => HttpResponse.json({}, { status: 500 })))
 
-    render(
+    renderWithQueryClient(
       <MemoryRouter>
         <AccountBalancesWidget />
       </MemoryRouter>,

@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { API_KEY_ROOT, STALE_TIME } from './queryClient'
 import {
   confirmPendingRecurringOccurrence,
@@ -61,6 +61,15 @@ export function useConfirmPendingOccurrence() {
   })
 }
 
+/**
+ * Dismissing creates nothing, so it opts out of the global invalidate-everything rule and only
+ * refetches the pending list (the other dashboard widgets don't move).
+ */
 export function useDismissPendingOccurrence() {
-  return useMutation({ mutationFn: dismissPendingRecurringOccurrence })
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: dismissPendingRecurringOccurrence,
+    meta: { skipInvalidate: true },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: recurringTemplateKeys.pending() }),
+  })
 }
