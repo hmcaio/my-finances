@@ -19,6 +19,7 @@ One file per decision, numbered sequentially, never renumbered or edited to chan
 | [0013](0013-two-tier-backend-test-strategy.md) | Backend test strategy: two tiers, real Postgres for persistence, fakes for logic | Accepted |
 | [0014](0014-archunit-for-architecture-rules.md) | Enforce architecture rules with ArchUnit, with `Transaction` depending on `CategoryType` as a documented exception | Accepted |
 | [0015](0015-automated-encrypted-backups-sidecar.md) | Automated, encrypted backups run by a sidecar container in the prod stack | Accepted |
+| [0016](0016-tanstack-query-client-cache.md) | Client-side query cache with TanStack Query and coarse invalidation; no server cache until measured | Accepted |
 
 Template:
 ```
