@@ -119,6 +119,11 @@ public class DataExportService {
   /** Writes the twelve CSVs, zipped, to {@code out} (which is left open for the caller). */
   @Transactional(readOnly = true)
   public void export(ExportFilter filter, OutputStream out) throws IOException {
+    if (filter.dateFrom() != null
+        && filter.dateTo() != null
+        && filter.dateFrom().isAfter(filter.dateTo())) {
+      throw new InvalidExportRangeException();
+    }
     Lookups names = new Lookups();
     ZipOutputStream zip = new ZipOutputStream(out);
     writeCategories(zip);

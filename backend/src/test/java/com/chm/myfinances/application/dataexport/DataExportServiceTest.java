@@ -1,6 +1,7 @@
 package com.chm.myfinances.application.dataexport;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.domain.budget.Budget;
 import com.chm.myfinances.domain.category.Category;
@@ -453,6 +454,15 @@ class DataExportServiceTest {
 
     assertThat(column(files, "budgets.csv", "effective_from"))
         .containsExactlyInAnyOrder("2026-02", "2026-03");
+  }
+
+  @Test
+  void aReversedDateRangeIsRejected() {
+    ExportFilter reversed =
+        new ExportFilter(LocalDate.parse("2026-03-01"), LocalDate.parse("2026-02-01"), null, null);
+
+    assertThatThrownBy(() -> service.export(reversed, new ByteArrayOutputStream()))
+        .isInstanceOf(InvalidExportRangeException.class);
   }
 
   @Test
