@@ -21,6 +21,7 @@ Each feature below has its own folder with a `spec.md` (technical specification)
 | [F015 — Frontend Test Tooling](F015-frontend-test-tooling/spec.md) | Vitest, React Testing Library, and MSW — unblocks F014's CI frontend test step; backfills real test coverage for F002. |
 | [F016 — Logging](F016-logging/spec.md) | SLF4J/Logback config per profile, request-id (`X-Request-Id`/MDC) access logging, logged unexpected/expected errors, a frontend `logger` + Axios/global/React error capture, nginx and compose log plumbing, and a capped rolling backend log file (`backend/logs/` in dev, a named volume in prod) that survives `down`. No aggregator, no JSON, no browser→backend shipping. |
 | [F017 — Institutions](F017-institutions/spec.md) | `Institution` entity (PRD §5.10) replacing the free-text `institution` on accounts (investment accounts are accounts, so they inherit it): CRUD, `accounts.institution_id` migration with backfill, shared `InstitutionSelect`. Must land before F008; enables a future allocation-by-institution view. |
+| [F018 — Backups](F018-backups/spec.md) | Automated, encrypted `pg_dump` backups for the prod stack via a sidecar container: catch-up scheduling with a forced pre-upgrade backup, GFS retention, `BACKUP_DIR`/external-volume storage with optional `rclone` off-site push, a status marker surfaced as a UI banner, and a safe restore script ([ADR 0015](../adr/0015-automated-encrypted-backups-sidecar.md)). |
 
 ## Cross-cutting conventions (defined in F001, applied everywhere)
 
