@@ -17,14 +17,15 @@ import {
 } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
 import LockIcon from '@mui/icons-material/Lock'
-import { closeAccount, editAccount, getAccounts, type Account } from '../../api/accounts'
+import type { Account } from '../../api/accounts'
+import { useAccounts, useCloseAccount, useEditAccount } from '../../api/accountsQueries'
 import { defaultErrorMessage } from '../../api/apiError'
-import { getInstitutions, type Institution } from '../../api/institutions'
+import { useInstitutions } from '../../api/institutionsQueries'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
 import { DataTableBody } from '../../components/DataTableBody'
-import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
+import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { nameLookup } from '../../utils/nameLookup'
 import { ACCOUNT_TYPE_LABELS } from './accountTypes'
 import { InstitutionSelect } from '../institutions/InstitutionSelect'
@@ -40,25 +41,18 @@ import { AccountCreateForm } from './AccountCreateForm'
 export function AccountsPage() {
   const [includeClosed, setIncludeClosed] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const {
-    data: accounts,
-    setData: setAccounts,
-    ...accountsState
-  } = useAsyncData(() => getAccounts(includeClosed), [includeClosed], { onError: setError })
-  const {
-    data: institutions,
-    setData: setInstitutions,
-    ...institutionsState
-  } = useAsyncData(getInstitutions, [], { onError: setError })
+  const accountsQuery = useAccounts(includeClosed)
+  const accounts = accountsQuery.data
+  const accountsState = useQueryState(accountsQuery, setError)
+  const institutionsQuery = useInstitutions()
+  const institutions = institutionsQuery.data
+  const institutionsState = useQueryState(institutionsQuery, setError)
+  const editMutation = useEditAccount()
+  const closeMutation = useCloseAccount()
   const institutionName = useMemo(
     () => nameLookup(institutions ?? [], (i) => i.name),
     [institutions],
   )
-
-  // Adds an institution created inline (InstitutionSelect) to the list the Institution column reads.
-  function addInstitution(created: Institution) {
-    setInstitutions((prev) => [...(prev ?? []), created])
-  }
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
@@ -83,11 +77,11 @@ export function AccountsPage() {
     if (!editingName.trim() || !editingInstitutionId) return
     setError(null)
     try {
-      const updated = await editAccount(id, {
+      await editMutation.mutateAsync({
+        id,
         name: editingName.trim(),
         institutionId: editingInstitutionId,
       })
-      setAccounts((prev) => prev?.map((a) => (a.id === id ? updated : a)) ?? null)
       cancelEdit()
     } catch (err) {
       setError(defaultErrorMessage(err))
@@ -99,12 +93,7 @@ export function AccountsPage() {
     setError(null)
     setClosing(true)
     try {
-      const closed = await closeAccount(closeTarget.id)
-      setAccounts((prev) =>
-        includeClosed
-          ? (prev?.map((a) => (a.id === closed.id ? closed : a)) ?? null)
-          : (prev?.filter((a) => a.id !== closed.id) ?? null),
-      )
+      await closeMutation.mutateAsync(closeTarget.id)
       setCloseTarget(null)
     } catch (err) {
       setError(defaultErrorMessage(err))
@@ -194,7 +183,6 @@ export function AccountsPage() {
                       <InstitutionSelect
                         value={editingInstitutionId}
                         onChange={setEditingInstitutionId}
-                        onCreated={addInstitution}
                       />
                     ) : (
                       institutionName(account.institutionId)
@@ -239,11 +227,7 @@ export function AccountsPage() {
         <Typography variant="subtitle1" gutterBottom>
           Add account
         </Typography>
-        <AccountCreateForm
-          onCreated={(created) => setAccounts((prev) => [...(prev ?? []), created])}
-          onError={setError}
-          onInstitutionCreated={addInstitution}
-        />
+        <AccountCreateForm onError={setError} />
       </Paper>
 
       <ConfirmDialog

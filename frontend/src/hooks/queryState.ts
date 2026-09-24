@@ -25,18 +25,20 @@ export function useQueryState(
     'isPending' | 'isError' | 'error' | 'errorUpdatedAt' | 'data' | 'refetch'
   >,
   onError?: (message: string) => void,
+  /** Turns the error into text; defaults to `defaultErrorMessage`. */
+  errorMessage: (err: unknown) => string = defaultErrorMessage,
 ): LoadState {
   const { isError, error, errorUpdatedAt, data, isPending, refetch } = query
 
   useEffect(() => {
-    if (isError) onError?.(defaultErrorMessage(error))
+    if (isError) onError?.(errorMessage(error))
     // Re-run per failed fetch (errorUpdatedAt), not when the caller's setter identity changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [errorUpdatedAt])
 
   return {
     loading: isPending,
-    loadError: data === undefined && isError ? defaultErrorMessage(error) : null,
+    loadError: data === undefined && isError ? errorMessage(error) : null,
     reload: () => void refetch(),
   }
 }

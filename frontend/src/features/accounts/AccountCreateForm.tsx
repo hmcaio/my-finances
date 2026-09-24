@@ -1,19 +1,17 @@
 import { useState } from 'react'
 import { Box, Button, MenuItem, Select, TextField } from '@mui/material'
-import { createAccount, type Account, type AccountType } from '../../api/accounts'
+import type { Account, AccountType } from '../../api/accounts'
+import { useCreateAccount } from '../../api/accountsQueries'
 import { defaultErrorMessage } from '../../api/apiError'
-import type { Institution } from '../../api/institutions'
 import { today } from '../../utils/localDate'
 import { InstitutionSelect } from '../institutions/InstitutionSelect'
 import { ACCOUNT_TYPE_LABELS } from './accountTypes'
 
 interface AccountCreateFormProps {
-  /** Called with the created account once the backend accepted it. */
-  onCreated: (account: Account) => void
+  /** Called with the created account once the backend accepted it. Lists refetch on their own. */
+  onCreated?: (account: Account) => void
   /** Called with a message when creation fails, and with `null` when a new attempt starts. */
   onError: (message: string | null) => void
-  /** Called with an institution created inline, for a caller that keeps its own institution list. */
-  onInstitutionCreated?: (institution: Institution) => void
   submitLabel?: string
 }
 
@@ -26,7 +24,6 @@ interface AccountCreateFormProps {
 export function AccountCreateForm({
   onCreated,
   onError,
-  onInstitutionCreated,
   submitLabel = 'Add',
 }: AccountCreateFormProps) {
   const [name, setName] = useState('')
@@ -36,13 +33,14 @@ export function AccountCreateForm({
   const [openingBalance, setOpeningBalance] = useState('0')
   const [openingBalanceDate, setOpeningBalanceDate] = useState(today)
   const [adding, setAdding] = useState(false)
+  const createMutation = useCreateAccount()
 
   async function handleAdd() {
     if (!name.trim() || !institutionId) return
     onError(null)
     setAdding(true)
     try {
-      const created = await createAccount({
+      const created = await createMutation.mutateAsync({
         name: name.trim(),
         institutionId,
         type,
@@ -54,7 +52,7 @@ export function AccountCreateForm({
       setInstitutionId(undefined)
       setType('CHECKING')
       setOpeningBalance('0')
-      onCreated(created)
+      onCreated?.(created)
     } catch (err) {
       onError(defaultErrorMessage(err))
     } finally {
@@ -65,11 +63,7 @@ export function AccountCreateForm({
   return (
     <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
       <TextField label="Name" size="small" value={name} onChange={(e) => setName(e.target.value)} />
-      <InstitutionSelect
-        value={institutionId}
-        onChange={setInstitutionId}
-        onCreated={onInstitutionCreated}
-      />
+      <InstitutionSelect value={institutionId} onChange={setInstitutionId} />
       <Select
         size="small"
         value={type}

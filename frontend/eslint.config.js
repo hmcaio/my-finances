@@ -41,7 +41,6 @@ export default tseslint.config(
       '**/*.test.{ts,tsx}',
       // Areas not yet migrated to their <area>Queries hooks; each migration commit removes its
       // folder from this list, and the last one deletes the list (F019 plan, Phase 3).
-      'src/features/accounts/**',
       'src/features/budgets/**',
       'src/features/dashboard/**',
       'src/features/export/**',
@@ -49,7 +48,6 @@ export default tseslint.config(
       'src/features/investmentProducts/**',
       'src/features/investments/**',
       'src/features/netWorth/**',
-      'src/features/onboarding/**',
       'src/features/recurringTemplates/**',
       'src/features/transactions/**',
       'src/features/transfers/**',

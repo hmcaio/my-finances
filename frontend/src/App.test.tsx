@@ -68,7 +68,14 @@ describe('App', () => {
 
     it('moves into the normal app after the first account is created', async () => {
       stubMatchMedia()
-      server.use(http.get('/api/accounts', () => HttpResponse.json([])))
+      // An empty database until the first account is created (a refetch must see it).
+      let created = false
+      server.use(
+        http.get('/api/accounts', () => (created ? undefined : HttpResponse.json([]))),
+        http.post('/api/accounts', () => {
+          created = true
+        }),
+      )
       const user = userEvent.setup()
       renderWithQueryClient(<App />)
 

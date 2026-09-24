@@ -20,7 +20,7 @@ One feature branch (`feature/f019-tanstack-query`), one commit per phase (per ar
 Each area: test first (hook via MSW: loads, error, mutation success invalidates), add `<area>Queries.ts` (key factory, `useX`, `useMutation` hooks), move the area's pages/components onto it, keep the existing page tests passing with only the wrapper changed, then commit.
 - [x] Categories (reference pattern; also proves dedup between the categories page and any component sharing the list).
 - [x] Payment methods, institutions (including `InstitutionSelect`, sharing `institutionKeys.list()`).
-- [ ] Accounts, and the onboarding gate: `useHasAccounts` derived from the accounts list (`includeClosed: true`), `markHasAccounts` removed; `null` while loading or failed, `false` only for a resolved empty list, flips to `true` after the create-account mutation.
+- [x] Accounts, and the onboarding gate: `useHasAccounts` derived from the accounts list (`includeClosed: true`), `markHasAccounts` removed; `null` while loading or failed, `false` only for a resolved empty list, flips to `true` after the create-account mutation.
 - [ ] Investment categories/sub-categories, investment products, investments (trades, snapshots, allocation, value series).
 - [ ] Budgets, transactions (filters and paging), transfers.
 - [ ] Recurring templates; the pending-occurrences read with `staleTime: 0` (lazy catch-up side effect, ADR 0003), confirm/dismiss mutations.

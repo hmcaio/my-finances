@@ -20,8 +20,8 @@ interface InstitutionSelectProps {
   value: string | undefined
   onChange: (institutionId: string) => void
   /**
-   * Called with an institution created through the "Add “X”" entry, so a caller that keeps its own
-   * institution list (to resolve ids to names) can add it too.
+   * Called with an institution created through the "Add “X”" entry. Other views of the list need
+   * nothing more: the shared institutions query refetches after the create.
    */
   onCreated?: (institution: Institution) => void
   label?: string
