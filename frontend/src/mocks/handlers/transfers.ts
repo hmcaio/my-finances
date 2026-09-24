@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw'
 import type { Transfer } from '../../api/transfers'
+import { createStore } from '../store'
 
 /**
  * Seed data returned by the default `GET /api/transfers` handler below. Spans both seed accounts
@@ -113,12 +114,15 @@ function toTransfer(id: string, body: TransferRequestBody): Transfer {
   }
 }
 
+const transfers = createStore([...seedTransfers, ...seedProductTrades])
+const seedProductTradeIds = new Set(seedProductTrades.map((t) => t.id))
+
 /**
  * Default success-path handlers for every transfers endpoint (F005's REST API). List applies the
  * same filter dimensions the real backend does (including `accountId` matching either side, PRD
- * S6.9), against `seedTransfers`, and paginates with the same page/size defaults (page 0, size 20)
- * as F004's transactions handlers. Create/edit echo the request body back rather than mutating
- * `seedTransfers`, so every test starts from the same fixture regardless of execution order.
+ * S6.9), against an in-memory store
+ * (restored after each test by `resetStores()`, see `categories.ts`), and paginates with the same
+ * page/size defaults (page 0, size 20) as F004's transactions handlers.
  */
 export const transfersHandlers = [
   http.get(TRANSFERS_URL, ({ request }) => {
@@ -130,9 +134,10 @@ export const transfersHandlers = [
     const page = Number(url.searchParams.get('page') ?? '0')
     const size = Number(url.searchParams.get('size') ?? '20')
 
-    // Only a product-filtered list includes the (otherwise hidden) product trades.
-    const source = investmentProductId ? seedProductTrades : seedTransfers
-    const filtered = source
+    // Only a product-filtered list includes the (otherwise hidden) seeded product trades.
+    const filtered = transfers
+      .list()
+      .filter((t) => (investmentProductId ? true : !seedProductTradeIds.has(t.id)))
       .filter((t) => !investmentProductId || t.investmentProductId === investmentProductId)
       .filter((t) => !dateFrom || t.date >= dateFrom)
       .filter((t) => !dateTo || t.date <= dateTo)
@@ -154,22 +159,29 @@ export const transfersHandlers = [
   }),
 
   http.get(`${TRANSFERS_URL}/:id`, ({ params }) => {
-    const transfer = [...seedTransfers, ...seedProductTrades].find((t) => t.id === params.id)
+    const transfer = transfers.find(params.id as string)
     if (!transfer) return new HttpResponse(null, { status: 404 })
     return HttpResponse.json(transfer)
   }),
 
   http.post(TRANSFERS_URL, async ({ request }) => {
     const body = (await request.json()) as TransferRequestBody
-    return HttpResponse.json(toTransfer('trf-new', body), { status: 201 })
+    const created = transfers.add(toTransfer(transfers.nextId('trf'), body))
+    return HttpResponse.json(created, { status: 201 })
   }),
 
   http.patch(`${TRANSFERS_URL}/:id`, async ({ request, params }) => {
     const body = (await request.json()) as TransferRequestBody
-    return HttpResponse.json(toTransfer(params.id as string, body))
+    const updated = transfers.replace(params.id as string, () =>
+      toTransfer(params.id as string, body),
+    )
+    return updated ? HttpResponse.json(updated) : new HttpResponse(null, { status: 404 })
   }),
 
-  http.delete(`${TRANSFERS_URL}/:id`, () => new HttpResponse(null, { status: 204 })),
+  http.delete(`${TRANSFERS_URL}/:id`, ({ params }) => {
+    transfers.remove(params.id as string)
+    return new HttpResponse(null, { status: 204 })
+  }),
 ]
 
 /**

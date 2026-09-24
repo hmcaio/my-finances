@@ -1,5 +1,7 @@
 import { http, HttpResponse } from 'msw'
 import type { InvestmentSnapshot } from '../../api/investmentSnapshots'
+import { investmentProductsStore } from './investmentProducts'
+import { createStore } from '../store'
 
 /**
  * Seed snapshots of the seeded Bitcoin product (`iprod-btc`, see `investmentProducts.ts`), most
@@ -17,28 +19,47 @@ interface SnapshotRequestBody {
   balance: number
 }
 
+const snapshots = createStore(seedBitcoinSnapshots)
+
 /**
- * Default success-path handlers for the snapshot endpoints (F009's REST API), request-echoing like
- * the other aggregates' handlers: a POST answers `201` with the entry, or `200` when the date
- * matches an existing seed snapshot (the real endpoint's replace-in-place), without mutating the
- * seed. Products other than the seeded Bitcoin one have no snapshots.
+ * Default success-path handlers for the snapshot endpoints (F009's REST API), backed by an
+ * in-memory store restored after each test: a POST answers `201` with the entry, or `200` when
+ * the date matches an existing snapshot (the real endpoint's replace-in-place), and moves the
+ * product's `latestSnapshot` when the entry is the newest. Products other than the seeded Bitcoin
+ * one have no snapshots.
  */
 export const investmentSnapshotsHandlers = [
   http.get(`${PRODUCTS_URL}/:productId/snapshots`, ({ params }) =>
-    HttpResponse.json(seedBitcoinSnapshots.filter((s) => s.productId === params.productId)),
+    HttpResponse.json(
+      snapshots
+        .list()
+        .filter((s) => s.productId === params.productId)
+        .sort((a, b) => (a.date < b.date ? 1 : -1)),
+    ),
   ),
 
   http.post(`${PRODUCTS_URL}/:productId/snapshots`, async ({ request, params }) => {
     const body = (await request.json()) as SnapshotRequestBody
-    const existing = seedBitcoinSnapshots.find(
-      (s) => s.productId === params.productId && s.date === body.date,
-    )
+    const productId = params.productId as string
+    const existing = snapshots.list().find((s) => s.productId === productId && s.date === body.date)
     const snapshot: InvestmentSnapshot = {
-      id: existing?.id ?? 'isnap-new',
-      productId: params.productId as string,
+      id: existing?.id ?? snapshots.nextId('isnap'),
+      productId,
       date: body.date,
       balance: body.balance,
     }
+    if (existing) snapshots.replace(existing.id, () => snapshot)
+    else snapshots.add(snapshot)
+    investmentProductsStore.replace(productId, (product) =>
+      !product.latestSnapshot || product.latestSnapshot.date <= body.date
+        ? {
+            ...product,
+            hasHistory: true,
+            needsSnapshot: false,
+            latestSnapshot: { date: body.date, balance: body.balance },
+          }
+        : product,
+    )
     return HttpResponse.json(snapshot, { status: existing ? 200 : 201 })
   }),
 ]

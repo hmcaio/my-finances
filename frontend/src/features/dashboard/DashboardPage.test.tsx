@@ -1,15 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { http, HttpResponse } from 'msw'
-import { render, screen, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { server } from '../../mocks/server'
 import { seedDebitCardPaymentMethod } from '../../mocks/handlers/paymentMethods'
 import { findRow } from '../../test/testUtils'
 import { DashboardPage } from './DashboardPage'
+import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
 function renderDashboard() {
-  return render(
+  return renderWithQueryClient(
     <MemoryRouter>
       <DashboardPage />
     </MemoryRouter>,

@@ -57,7 +57,9 @@ interface ProductRequestBody {
   name: string
 }
 
-const products = createStore(seedInvestmentProducts)
+/** Shared with the snapshot handlers, which move a product's latest snapshot. */
+export const investmentProductsStore = createStore(seedInvestmentProducts)
+const products = investmentProductsStore
 
 /**
  * Default success-path handlers for the investment products endpoints (F008's REST API), backed

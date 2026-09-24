@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
 import { Box, Button, Skeleton, Typography } from '@mui/material'
-import { getInvestmentAllocation, type AllocationRow } from '../../api/investmentAllocation'
+import type { AllocationRow } from '../../api/investmentAllocation'
+import { useInvestmentAllocation } from '../../api/investmentAllocationQueries'
 import { fadeInSx } from '../../components/fadeIn'
 import { LoadFailedNotice } from '../../components/LoadFailedNotice'
-import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
+import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 
 // Categorical colors that stay distinguishable on both the light and the dark theme.
@@ -78,14 +79,12 @@ function segmentPath(start: number, end: number): string {
  * - so drilling in is instant. Hand-drawn SVG donut, no chart dependency.
  */
 export function InvestmentAllocationChart() {
-  const { data: byCategory, ...categoryState } = useAsyncData(
-    () => getInvestmentAllocation({ groupBy: 'CATEGORY' }),
-    [],
-  )
-  const { data: bySubcategory, ...subcategoryState } = useAsyncData(
-    () => getInvestmentAllocation({ groupBy: 'SUBCATEGORY' }),
-    [],
-  )
+  const categoryQuery = useInvestmentAllocation({ groupBy: 'CATEGORY' })
+  const byCategory = categoryQuery.data
+  const categoryState = useQueryState(categoryQuery)
+  const subcategoryQuery = useInvestmentAllocation({ groupBy: 'SUBCATEGORY' })
+  const bySubcategory = subcategoryQuery.data
+  const subcategoryState = useQueryState(subcategoryQuery)
   const [drilledCategoryId, setDrilledCategoryId] = useState<string | null>(null)
 
   const state = combineLoadState(categoryState, subcategoryState)

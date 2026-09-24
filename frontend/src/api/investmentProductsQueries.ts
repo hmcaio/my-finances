@@ -17,10 +17,11 @@ export const investmentProductKeys = {
 }
 
 /** Products of one INVESTMENT account, or every product when `accountId` is omitted. */
-export function useInvestmentProducts(accountId?: string) {
+export function useInvestmentProducts(accountId?: string, options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: investmentProductKeys.list(accountId),
     queryFn: () => getInvestmentProducts(accountId),
+    enabled: options.enabled,
   })
 }
 
