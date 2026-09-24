@@ -1,14 +1,8 @@
-import { createContext, useContext, useMemo, useState, type PropsWithChildren } from 'react'
+import { useMemo, useState, type PropsWithChildren } from 'react'
 import type { PaletteMode } from '@mui/material'
+import { ColorModeContext, type ColorModeContextValue } from './useColorMode'
 
 const STORAGE_KEY = 'my-finances:color-mode'
-
-interface ColorModeContextValue {
-  mode: PaletteMode
-  toggleMode: () => void
-}
-
-const ColorModeContext = createContext<ColorModeContextValue | undefined>(undefined)
 
 function getInitialMode(): PaletteMode {
   const stored = localStorage.getItem(STORAGE_KEY)
@@ -41,12 +35,4 @@ export function ColorModeProvider({ children }: PropsWithChildren) {
   )
 
   return <ColorModeContext.Provider value={value}>{children}</ColorModeContext.Provider>
-}
-
-export function useColorMode(): ColorModeContextValue {
-  const context = useContext(ColorModeContext)
-  if (!context) {
-    throw new Error('useColorMode must be used within a ColorModeProvider')
-  }
-  return context
 }
