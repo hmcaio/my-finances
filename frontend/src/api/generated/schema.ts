@@ -452,6 +452,22 @@ export interface paths {
         patch: operations["edit_3"];
         trace?: never;
     };
+    "/api/transactions/spend-by-category": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["spendByCategory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/recurring-templates/pending": {
         parameters: {
             query?: never;
@@ -920,6 +936,11 @@ export interface components {
         PagedModelTransactionResponse: {
             content?: components["schemas"]["TransactionResponse"][];
             page?: components["schemas"]["PageMetadata"];
+        };
+        CategorySpendResponse: {
+            /** Format: uuid */
+            categoryId?: string;
+            total?: number;
         };
         PendingRecurringOccurrenceResponse: {
             /** Format: uuid */
@@ -2151,6 +2172,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AccountResponse"];
+                };
+            };
+        };
+    };
+    spendByCategory: {
+        parameters: {
+            query: {
+                month: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CategorySpendResponse"][];
                 };
             };
         };

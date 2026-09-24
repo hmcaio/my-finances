@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw'
-import type { Transaction, TransactionType } from '../../api/transactions'
+import type { CategorySpend, Transaction, TransactionType } from '../../api/transactions'
 import { seedCategories } from './categories'
 
 /**
@@ -43,6 +43,9 @@ export const seedGroceriesTransaction = seedTransactions.find(
   (t) => t.description === 'Weekly groceries',
 )!
 
+/** Seed data returned by the default `GET /api/transactions/spend-by-category` handler. */
+export const seedCategorySpend: CategorySpend[] = [{ categoryId: 'cat-1', total: 42.5 }]
+
 const TRANSACTIONS_URL = '/api/transactions'
 
 interface TransactionRequestBody {
@@ -68,6 +71,9 @@ function typeForCategory(categoryId: string): TransactionType {
  * `seedTransactions`, so every test starts from the same fixture regardless of execution order.
  */
 export const transactionsHandlers = [
+  // Registered before the `/:id` route so `spend-by-category` isn't taken for an id.
+  http.get(`${TRANSACTIONS_URL}/spend-by-category`, () => HttpResponse.json(seedCategorySpend)),
+
   http.get(TRANSACTIONS_URL, ({ request }) => {
     const url = new URL(request.url)
     const dateFrom = url.searchParams.get('dateFrom')

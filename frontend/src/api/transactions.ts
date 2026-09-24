@@ -81,3 +81,16 @@ export async function editTransaction(
 export async function deleteTransaction(id: string): Promise<void> {
   await unwrap(apiClient.delete<void>(`/transactions/${id}`))
 }
+
+/** One row of the monthly spend by category (F012's `GET /api/transactions/spend-by-category`). */
+export interface CategorySpend {
+  categoryId: string
+  total: number
+}
+
+/** Expense total per category for `month` (`YYYY-MM`), largest first. */
+export async function getSpendByCategory(month: string): Promise<CategorySpend[]> {
+  return unwrap(
+    apiClient.get<CategorySpend[]>('/transactions/spend-by-category', { params: { month } }),
+  )
+}

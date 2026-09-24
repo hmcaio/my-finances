@@ -8,8 +8,8 @@
 
 ## Frontend
 - [ ] `src/features/dashboard` page, grid layout.
-- [ ] Monthly spend by category widget.
-- [ ] Embed F006's budget-vs-actual component.
+- [x] Monthly spend by category widget.
+- [x] Embed F006's budget-vs-actual component.
 - [ ] Account balances overview widget (from F003's account list).
 - [ ] Embed F010's net worth trend chart.
 - [ ] Embed F009's allocation chart.

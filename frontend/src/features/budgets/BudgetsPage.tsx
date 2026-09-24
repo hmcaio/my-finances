@@ -2,11 +2,9 @@ import { useMemo, useState } from 'react'
 import {
   Box,
   Button,
-  LinearProgress,
   MenuItem,
   Paper,
   Select,
-  Skeleton,
   Table,
   TableCell,
   TableContainer,
@@ -16,23 +14,15 @@ import {
   Typography,
 } from '@mui/material'
 import { getCategories } from '../../api/categories'
-import {
-  createBudget,
-  getBudgetReport,
-  getBudgets,
-  setBudgetCap,
-  type Budget,
-} from '../../api/budgets'
+import { createBudget, getBudgets, setBudgetCap, type Budget } from '../../api/budgets'
 import { defaultErrorMessage } from '../../api/apiError'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
 import { DataTableBody } from '../../components/DataTableBody'
-import { fadeInSx } from '../../components/fadeIn'
-import { LoadFailedNotice } from '../../components/LoadFailedNotice'
 import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
-import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { currentMonth } from '../../utils/localDate'
 import { nameLookup } from '../../utils/nameLookup'
+import { BudgetVsActualReport } from './BudgetVsActualReport'
 
 /**
  * Budgets screen (F006 spec): a settings-style list of budgeted categories with their current cap
@@ -62,15 +52,8 @@ export function BudgetsPage() {
   const [savingCap, setSavingCap] = useState(false)
 
   const [reportMonth, setReportMonth] = useState(currentMonth())
-  const { data: report, ...reportState } = useAsyncData(
-    () => getBudgetReport(reportMonth),
-    [reportMonth],
-    { onError: setError },
-  )
-
-  // The report also names categories, so it waits for that list too (no raw ids in the lines).
-  const reportView = combineLoadState(categoriesState, reportState)
-  const showReportSkeleton = useDelayedFlag(reportView.loading)
+  // Bumped after a budget/cap change so the (self-fetching) report remounts and refetches.
+  const [reportReloadKey, setReportReloadKey] = useState(0)
 
   const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
 
@@ -92,7 +75,7 @@ export function BudgetsPage() {
       setBudgets((prev) => [...(prev ?? []), created])
       setNewCategoryId('')
       setNewCap('')
-      if (reportMonth >= currentMonth()) reportState.reload()
+      if (reportMonth >= currentMonth()) setReportReloadKey((k) => k + 1)
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {
@@ -121,7 +104,7 @@ export function BudgetsPage() {
       })
       setBudgets((prev) => prev?.map((b) => (b.id === id ? updated : b)) ?? null)
       cancelEditCap()
-      if (reportMonth >= currentMonth()) reportState.reload()
+      if (reportMonth >= currentMonth()) setReportReloadKey((k) => k + 1)
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {
@@ -134,7 +117,7 @@ export function BudgetsPage() {
   const tableState = combineLoadState(categoriesState, budgetsState)
   function retry() {
     setError(null)
-    combineLoadState(categoriesState, budgetsState, reportState).reload()
+    tableState.reload()
   }
 
   return (
@@ -269,65 +252,7 @@ export function BudgetsPage() {
         />
       </Box>
 
-      <Paper variant="outlined" sx={{ p: 2 }} aria-busy={reportView.loading}>
-        {showReportSkeleton && <BudgetReportSkeleton />}
-        {reportView.loadError && (
-          <LoadFailedNotice message={reportView.loadError} onRetry={retry} />
-        )}
-        {report !== null && categories !== null && (
-          <Box sx={fadeInSx}>
-            {report.length === 0 && (
-              <Typography color="text.secondary">No budgeted categories yet.</Typography>
-            )}
-            {report.map((line) => {
-              const overCap = line.cap !== null && line.actual > line.cap
-              const progress =
-                line.cap !== null && line.cap > 0
-                  ? Math.min(100, (line.actual / line.cap) * 100)
-                  : 0
-              return (
-                <Box key={line.categoryId} sx={{ mb: 2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                    <Typography variant="body2">{categoryName(line.categoryId)}</Typography>
-                    <Typography
-                      variant="body2"
-                      color={overCap ? 'error' : 'text.secondary'}
-                      sx={{ fontWeight: overCap ? 'bold' : undefined }}
-                    >
-                      {line.actual.toFixed(2)} /{' '}
-                      {line.cap !== null ? line.cap.toFixed(2) : 'no cap'}
-                      {overCap && ' — over budget'}
-                    </Typography>
-                  </Box>
-                  <LinearProgress
-                    variant="determinate"
-                    value={progress}
-                    color={overCap ? 'error' : 'primary'}
-                    aria-label={`${categoryName(line.categoryId)} budget usage`}
-                  />
-                </Box>
-              )
-            })}
-          </Box>
-        )}
-      </Paper>
-    </Box>
-  )
-}
-
-/** Placeholder for the budget-vs-actual report, sized like three report lines. */
-function BudgetReportSkeleton() {
-  return (
-    <Box role="status" aria-label="Loading budget report">
-      {[0, 1, 2].map((line) => (
-        <Box key={line} sx={{ mb: 2 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-            <Skeleton variant="text" width="25%" sx={{ typography: 'body2' }} />
-            <Skeleton variant="text" width="15%" sx={{ typography: 'body2' }} />
-          </Box>
-          <Skeleton variant="rounded" height={4} />
-        </Box>
-      ))}
+      <BudgetVsActualReport month={reportMonth} reloadKey={reportReloadKey} />
     </Box>
   )
 }
