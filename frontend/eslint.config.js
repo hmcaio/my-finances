@@ -44,7 +44,6 @@ export default tseslint.config(
       'src/features/budgets/**',
       'src/features/dashboard/**',
       'src/features/export/**',
-      'src/features/investmentCategories/**',
       'src/features/investmentProducts/**',
       'src/features/investments/**',
       'src/features/netWorth/**',
