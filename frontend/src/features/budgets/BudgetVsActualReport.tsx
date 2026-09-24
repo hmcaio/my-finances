@@ -1,22 +1,16 @@
 import { useMemo } from 'react'
 import { Box, LinearProgress, Paper, Skeleton, Typography } from '@mui/material'
-import { getCategories } from '../../api/categories'
-import { getBudgetReport } from '../../api/budgets'
+import { useBudgetReport } from '../../api/budgetsQueries'
+import { useCategories } from '../../api/categoriesQueries'
 import { fadeInSx } from '../../components/fadeIn'
 import { LoadFailedNotice } from '../../components/LoadFailedNotice'
-import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
+import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { nameLookup } from '../../utils/nameLookup'
 
 interface BudgetVsActualReportProps {
   /** The month to report on, `YYYY-MM`. */
   month: string
-  /**
-   * Bump to refetch after the embedding page changed a budget or spend (it remounts the inner
-   * report, like the `key` counter in frontend `CLAUDE.md`'s "Pages that embed other pages'
-   * widgets").
-   */
-  reloadKey?: number
 }
 
 /**
@@ -24,13 +18,13 @@ interface BudgetVsActualReportProps {
  * page (with its month picker) and embedded by F012's dashboard (current month). Fetches its own
  * data; an over-cap category is flagged in red.
  */
-export function BudgetVsActualReport({ month, reloadKey = 0 }: BudgetVsActualReportProps) {
-  return <Report key={reloadKey} month={month} />
-}
-
-function Report({ month }: { month: string }) {
-  const { data: categories, ...categoriesState } = useAsyncData(getCategories, [])
-  const { data: report, ...reportState } = useAsyncData(() => getBudgetReport(month), [month])
+export function BudgetVsActualReport({ month }: BudgetVsActualReportProps) {
+  const categoriesQuery = useCategories()
+  const categories = categoriesQuery.data
+  const categoriesState = useQueryState(categoriesQuery)
+  const reportQuery = useBudgetReport(month)
+  const report = reportQuery.data
+  const reportState = useQueryState(reportQuery)
 
   // The report also names categories, so it waits for that list too (no raw ids in the lines).
   const view = combineLoadState(categoriesState, reportState)
@@ -41,7 +35,7 @@ function Report({ month }: { month: string }) {
     <Paper variant="outlined" sx={{ p: 2 }} aria-busy={view.loading}>
       {showSkeleton && <BudgetReportSkeleton />}
       {view.loadError && <LoadFailedNotice message={view.loadError} onRetry={view.reload} />}
-      {report !== null && categories !== null && (
+      {report !== undefined && categories !== undefined && (
         <Box sx={fadeInSx}>
           {report.length === 0 && (
             <Typography color="text.secondary">No budgeted categories yet.</Typography>

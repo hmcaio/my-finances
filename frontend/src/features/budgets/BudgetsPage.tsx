@@ -13,13 +13,14 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import { getCategories } from '../../api/categories'
-import { createBudget, getBudgets, setBudgetCap, type Budget } from '../../api/budgets'
+import { useCategories } from '../../api/categoriesQueries'
+import type { Budget } from '../../api/budgets'
+import { useBudgets, useCreateBudget, useSetBudgetCap } from '../../api/budgetsQueries'
 import { defaultErrorMessage } from '../../api/apiError'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
 import { DataTableBody } from '../../components/DataTableBody'
-import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
+import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { currentMonth } from '../../utils/localDate'
 import { nameLookup } from '../../utils/nameLookup'
 import { BudgetVsActualReport } from './BudgetVsActualReport'
@@ -34,14 +35,14 @@ import { BudgetVsActualReport } from './BudgetVsActualReport'
  */
 export function BudgetsPage() {
   const [error, setError] = useState<string | null>(null)
-  const { data: categories, ...categoriesState } = useAsyncData(getCategories, [], {
-    onError: setError,
-  })
-  const {
-    data: budgets,
-    setData: setBudgets,
-    ...budgetsState
-  } = useAsyncData(getBudgets, [], { onError: setError })
+  const categoriesQuery = useCategories()
+  const categories = categoriesQuery.data
+  const categoriesState = useQueryState(categoriesQuery, setError)
+  const budgetsQuery = useBudgets()
+  const budgets = budgetsQuery.data
+  const budgetsState = useQueryState(budgetsQuery, setError)
+  const createMutation = useCreateBudget()
+  const capMutation = useSetBudgetCap()
 
   const [newCategoryId, setNewCategoryId] = useState('')
   const [newCap, setNewCap] = useState('')
@@ -52,8 +53,6 @@ export function BudgetsPage() {
   const [savingCap, setSavingCap] = useState(false)
 
   const [reportMonth, setReportMonth] = useState(currentMonth())
-  // Bumped after a budget/cap change so the (self-fetching) report remounts and refetches.
-  const [reportReloadKey, setReportReloadKey] = useState(0)
 
   const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
 
@@ -67,15 +66,13 @@ export function BudgetsPage() {
     setError(null)
     setAdding(true)
     try {
-      const created = await createBudget({
+      await createMutation.mutateAsync({
         categoryId: newCategoryId,
         monthlyCap: Number(newCap),
         effectiveFrom: currentMonth(),
       })
-      setBudgets((prev) => [...(prev ?? []), created])
       setNewCategoryId('')
       setNewCap('')
-      if (reportMonth >= currentMonth()) setReportReloadKey((k) => k + 1)
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {
@@ -98,13 +95,12 @@ export function BudgetsPage() {
     setError(null)
     setSavingCap(true)
     try {
-      const updated = await setBudgetCap(id, {
+      await capMutation.mutateAsync({
+        id,
         monthlyCap: Number(editingCap),
         effectiveFrom: currentMonth(),
       })
-      setBudgets((prev) => prev?.map((b) => (b.id === id ? updated : b)) ?? null)
       cancelEditCap()
-      if (reportMonth >= currentMonth()) setReportReloadKey((k) => k + 1)
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {
@@ -252,7 +248,7 @@ export function BudgetsPage() {
         />
       </Box>
 
-      <BudgetVsActualReport month={reportMonth} reloadKey={reportReloadKey} />
+      <BudgetVsActualReport month={reportMonth} />
     </Box>
   )
 }

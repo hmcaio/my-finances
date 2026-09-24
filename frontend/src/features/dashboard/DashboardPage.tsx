@@ -50,7 +50,7 @@ export function DashboardPage() {
         </Section>
 
         <Section title="Budget vs. actual">
-          <BudgetVsActualReport month={currentMonth()} reloadKey={revision} />
+          <BudgetVsActualReport month={currentMonth()} />
         </Section>
 
         <Section title="Account balances">
