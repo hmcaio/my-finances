@@ -23,24 +23,26 @@ export function exportFileName(): string {
 
 /**
  * Downloads the export ZIP. Goes through the shared Axios client (so `X-Request-Id` is sent and
- * the request is logged like every other one) with a `blob` response, then hands the bytes to the
+ * the request is logged like every other one) with an `arraybuffer` response, then wraps them in a Blob and hands them to the
  * browser as a native file download via a temporary object URL - no JSON parsing involved.
  * Empty filter values are dropped so they are not sent as blank query params.
  */
 export async function downloadExport(filter: ExportFilter = {}): Promise<void> {
   const params = Object.fromEntries(Object.entries(filter).filter(([, value]) => Boolean(value)))
-  let blob: Blob
+  let bytes: ArrayBuffer
   try {
-    blob = await unwrap(apiClient.get<Blob>('/export', { params, responseType: 'blob' }))
+    bytes = await unwrap(
+      apiClient.get<ArrayBuffer>('/export', { params, responseType: 'arraybuffer' }),
+    )
   } catch (err) {
     if (err instanceof ApiError && err.status === 400) {
-      // Error bodies arrive as a Blob here, so `unwrap` can't read a message from them; the only
+      // Error bodies arrive as raw bytes here, so `unwrap` can't read a message from them; the only
       // 400 the backend sends for this endpoint is a reversed date range.
       throw new ApiError(400, REVERSED_RANGE_MESSAGE)
     }
     throw err
   }
-  saveBlob(blob, exportFileName())
+  saveBlob(new Blob([bytes], { type: 'application/zip' }), exportFileName())
 }
 
 function saveBlob(blob: Blob, fileName: string): void {
