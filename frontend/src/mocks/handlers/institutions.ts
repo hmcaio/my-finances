@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw'
 import type { Institution } from '../../api/institutions'
+import { createStore } from '../store'
 
 /**
  * Seed data returned by the default `GET /api/institutions` handler below, in the backend's order
@@ -21,32 +22,38 @@ interface InstitutionRequestBody {
   name: string
 }
 
+const institutions = createStore(seedInstitutions)
+
 /**
- * Default success-path handlers for every institutions endpoint (F017's REST API). Same
- * request-echoing approach as `categories.ts` - no mutation of `seedInstitutions`, so every test
- * starts from the same fixture regardless of execution order.
+ * Default success-path handlers for every institutions endpoint (F017's REST API), backed by an
+ * in-memory store restored after each test (see `categories.ts`).
  */
 export const institutionsHandlers = [
-  http.get(INSTITUTIONS_URL, () => HttpResponse.json(seedInstitutions)),
+  http.get(INSTITUTIONS_URL, () => HttpResponse.json(institutions.list())),
 
   http.post(INSTITUTIONS_URL, async ({ request }) => {
     const body = (await request.json()) as InstitutionRequestBody
-    const created: Institution = { id: 'inst-new', name: body.name, builtIn: false }
+    const created = institutions.add({
+      id: institutions.nextId('inst'),
+      name: body.name,
+      builtIn: false,
+    })
     return HttpResponse.json(created, { status: 201 })
   }),
 
   http.patch(`${INSTITUTIONS_URL}/:id`, async ({ request, params }) => {
     const body = (await request.json()) as InstitutionRequestBody
-    const existing = seedInstitutions.find((institution) => institution.id === params.id)
-    const updated: Institution = {
-      id: params.id as string,
+    const updated = institutions.replace(params.id as string, (row) => ({
+      ...row,
       name: body.name,
-      builtIn: existing?.builtIn ?? false,
-    }
-    return HttpResponse.json(updated)
+    }))
+    return updated ? HttpResponse.json(updated) : new HttpResponse(null, { status: 404 })
   }),
 
-  http.delete(`${INSTITUTIONS_URL}/:id`, () => new HttpResponse(null, { status: 204 })),
+  http.delete(`${INSTITUTIONS_URL}/:id`, ({ params }) => {
+    institutions.remove(params.id as string)
+    return new HttpResponse(null, { status: 204 })
+  }),
 ]
 
 /**

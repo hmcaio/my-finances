@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { server } from './mocks/server'
 import App from './App'
+import { renderWithQueryClient } from './test/renderWithQueryClient'
 
 // jsdom does not implement `matchMedia`, and ColorModeProvider (rendered by App) reads it to pick
 // the initial theme - same stub as useColorMode.test.tsx.
@@ -24,7 +25,7 @@ describe('App', () => {
     stubMatchMedia()
     // The default `GET /api/health` handler already answers UP - no override needed.
     const user = userEvent.setup()
-    render(<App />)
+    renderWithQueryClient(<App />)
 
     expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Accounts' })).toBeInTheDocument()
@@ -39,7 +40,7 @@ describe('App', () => {
   it('routes the Export nav link to the data export page', async () => {
     stubMatchMedia()
     const user = userEvent.setup()
-    render(<App />)
+    renderWithQueryClient(<App />)
     await screen.findByRole('heading', { name: 'Dashboard' })
 
     await user.click(screen.getByRole('link', { name: 'Export' }))
@@ -57,7 +58,7 @@ describe('App', () => {
           return HttpResponse.json([])
         }),
       )
-      render(<App />)
+      renderWithQueryClient(<App />)
 
       expect(await screen.findByRole('heading', { name: /welcome/i })).toBeInTheDocument()
       expect(includeClosed).toBe('true')
@@ -69,7 +70,7 @@ describe('App', () => {
       stubMatchMedia()
       server.use(http.get('/api/accounts', () => HttpResponse.json([])))
       const user = userEvent.setup()
-      render(<App />)
+      renderWithQueryClient(<App />)
 
       await screen.findByRole('heading', { name: /welcome/i })
       await screen.findByRole('combobox', { name: 'Institution' })
@@ -86,7 +87,7 @@ describe('App', () => {
         http.get('/api/accounts', () => new HttpResponse(null, { status: 500 }), { once: true }),
       )
       const user = userEvent.setup()
-      render(<App />)
+      renderWithQueryClient(<App />)
 
       expect(await screen.findByText(/Could not load data/)).toBeInTheDocument()
       expect(screen.queryByRole('heading', { name: /welcome/i })).not.toBeInTheDocument()

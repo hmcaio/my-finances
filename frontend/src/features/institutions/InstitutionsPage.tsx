@@ -13,19 +13,18 @@ import {
   Typography,
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
+import { INSTITUTION_NAME_MAX_LENGTH, type Institution } from '../../api/institutions'
 import {
-  createInstitution,
-  deleteInstitution,
-  getInstitutions,
-  INSTITUTION_NAME_MAX_LENGTH,
-  renameInstitution,
-  type Institution,
-} from '../../api/institutions'
+  useInstitutions,
+  useCreateInstitution,
+  useRenameInstitution,
+  useDeleteInstitution,
+} from '../../api/institutionsQueries'
 import { defaultErrorMessage } from '../../api/apiError'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
 import { DataTableBody } from '../../components/DataTableBody'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { useQueryState } from '../../hooks/queryState'
 import { sortInstitutions } from './sortInstitutions'
 
 /**
@@ -36,11 +35,12 @@ import { sortInstitutions } from './sortInstitutions'
  */
 export function InstitutionsPage() {
   const [error, setError] = useState<string | null>(null)
-  const {
-    data: institutions,
-    setData: setInstitutions,
-    ...institutionsState
-  } = useAsyncData(getInstitutions, [], { onError: setError })
+  const institutionsQuery = useInstitutions()
+  const institutions = institutionsQuery.data
+  const institutionsState = useQueryState(institutionsQuery, setError)
+  const createMutation = useCreateInstitution()
+  const renameMutation = useRenameInstitution()
+  const deleteMutation = useDeleteInstitution()
   const sorted = useMemo(() => sortInstitutions(institutions ?? []), [institutions])
 
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -56,8 +56,7 @@ export function InstitutionsPage() {
     setError(null)
     setAdding(true)
     try {
-      const created = await createInstitution({ name: newName.trim() })
-      setInstitutions((prev) => [...(prev ?? []), created])
+      await createMutation.mutateAsync({ name: newName.trim() })
       setNewName('')
     } catch (err) {
       setError(defaultErrorMessage(err))
@@ -80,8 +79,7 @@ export function InstitutionsPage() {
     if (!editingName.trim()) return
     setError(null)
     try {
-      const updated = await renameInstitution(id, { name: editingName.trim() })
-      setInstitutions((prev) => prev?.map((i) => (i.id === id ? updated : i)) ?? null)
+      await renameMutation.mutateAsync({ id, name: editingName.trim() })
       cancelEdit()
     } catch (err) {
       setError(defaultErrorMessage(err))
@@ -92,8 +90,7 @@ export function InstitutionsPage() {
     setError(null)
     setPendingDeleteId(id)
     try {
-      await deleteInstitution(id)
-      setInstitutions((prev) => prev?.filter((i) => i.id !== id) ?? null)
+      await deleteMutation.mutateAsync(id)
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {

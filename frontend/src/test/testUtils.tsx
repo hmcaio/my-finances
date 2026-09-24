@@ -1,7 +1,8 @@
 import type { ReactElement } from 'react'
-import { render, screen, within, type RenderResult } from '@testing-library/react'
+import { screen, within, type RenderResult } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
+import { renderWithQueryClient } from './renderWithQueryClient'
 
 /**
  * Finds the `<tr>` containing the given text and scopes queries to it - the shape every list
@@ -33,7 +34,7 @@ export async function selectOption(
 }
 
 /**
- * Renders `ui` inside a `MemoryRouter`, for a page/component that calls router hooks or renders
+ * Renders `ui` inside a `MemoryRouter` (and a fresh `QueryClient`, see `renderWithQueryClient`), for a page/component that calls router hooks or renders
  * a `Link` outside of `App`'s own `BrowserRouter`. Pass `initialEntries` for a page that reads
  * its route params (e.g. `AccountDetailPage`'s `:id`).
  */
@@ -41,5 +42,7 @@ export function renderWithRouter(
   ui: ReactElement,
   options?: { initialEntries?: string[] },
 ): RenderResult {
-  return render(<MemoryRouter initialEntries={options?.initialEntries}>{ui}</MemoryRouter>)
+  return renderWithQueryClient(
+    <MemoryRouter initialEntries={options?.initialEntries}>{ui}</MemoryRouter>,
+  )
 }

@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw'
 import type { PaymentMethod } from '../../api/paymentMethods'
+import { createStore } from '../store'
 
 /**
  * Seed data returned by the default `GET /api/payment-methods` handler below. Exported so tests
@@ -23,27 +24,34 @@ interface PaymentMethodRequestBody {
   name: string
 }
 
+const paymentMethods = createStore(seedPaymentMethods)
+
 /**
- * Default success-path handlers for every payment-methods endpoint (F002's REST API). Same
- * request-echoing approach as `categories.ts` - no mutation of `seedPaymentMethods`, so every test
- * starts from the same fixture regardless of execution order.
+ * Default success-path handlers for every payment-methods endpoint (F002's REST API), backed by an
+ * in-memory store restored after each test (see `categories.ts`).
  */
 export const paymentMethodsHandlers = [
-  http.get(PAYMENT_METHODS_URL, () => HttpResponse.json(seedPaymentMethods)),
+  http.get(PAYMENT_METHODS_URL, () => HttpResponse.json(paymentMethods.list())),
 
   http.post(PAYMENT_METHODS_URL, async ({ request }) => {
     const body = (await request.json()) as PaymentMethodRequestBody
-    const created: PaymentMethod = { id: 'pm-new', name: body.name }
+    const created = paymentMethods.add({ id: paymentMethods.nextId('pm'), name: body.name })
     return HttpResponse.json(created, { status: 201 })
   }),
 
   http.patch(`${PAYMENT_METHODS_URL}/:id`, async ({ request, params }) => {
     const body = (await request.json()) as PaymentMethodRequestBody
-    const updated: PaymentMethod = { id: params.id as string, name: body.name }
-    return HttpResponse.json(updated)
+    const updated = paymentMethods.replace(params.id as string, (row) => ({
+      ...row,
+      name: body.name,
+    }))
+    return updated ? HttpResponse.json(updated) : new HttpResponse(null, { status: 404 })
   }),
 
-  http.delete(`${PAYMENT_METHODS_URL}/:id`, () => new HttpResponse(null, { status: 204 })),
+  http.delete(`${PAYMENT_METHODS_URL}/:id`, ({ params }) => {
+    paymentMethods.remove(params.id as string)
+    return new HttpResponse(null, { status: 204 })
+  }),
 ]
 
 /**
