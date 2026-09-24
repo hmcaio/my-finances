@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw'
 import type { PendingRecurringOccurrence, RecurringTemplate } from '../../api/recurringTemplates'
+import { createStore } from '../store'
 
 /**
  * Seed data returned by the default `GET /api/recurring-templates` handler below. `cat-1`
@@ -58,24 +59,25 @@ interface UpdateRecurringTemplateCapRequestBody {
   effectiveFrom: string
 }
 
+const templates = createStore(seedRecurringTemplates)
+const pendingOccurrences = createStore(seedPendingRecurringOccurrences)
+
 /**
- * Default success-path handlers for every recurring-templates endpoint (F007's REST API). Create/
- * set-cap echo the request body back rather than mutating `seedRecurringTemplates`, so every test
- * starts from the same fixture regardless of execution order (same convention as `budgetsHandlers`).
- * Stop/reactivate look up the existing seed row so the `active` flag actually flips, matching the
- * accounts handler's `close` precedent.
+ * Default success-path handlers for every recurring-templates endpoint (F007's REST API), backed
+ * by in-memory stores restored after each test (see `categories.ts`). Stop/reactivate flip the
+ * `active` flag; confirming or dismissing removes the pending occurrence.
  */
 export const recurringTemplatesHandlers = [
-  http.get(RECURRING_TEMPLATES_URL, () => HttpResponse.json(seedRecurringTemplates)),
+  http.get(RECURRING_TEMPLATES_URL, () => HttpResponse.json(templates.list())),
 
   http.get(`${RECURRING_TEMPLATES_URL}/pending`, () =>
-    HttpResponse.json(seedPendingRecurringOccurrences),
+    HttpResponse.json(pendingOccurrences.list()),
   ),
 
   http.post(RECURRING_TEMPLATES_URL, async ({ request }) => {
     const body = (await request.json()) as CreateRecurringTemplateRequestBody
-    const created: RecurringTemplate = {
-      id: 'rt-new',
+    const created = templates.add({
+      id: templates.nextId('rt'),
       categoryId: body.categoryId,
       accountId: body.accountId,
       description: body.description,
@@ -83,39 +85,35 @@ export const recurringTemplatesHandlers = [
       currentAmount: body.amount,
       currentDayOfMonth: body.dayOfMonth,
       currentEffectiveFrom: body.effectiveFrom,
-    }
+    })
     return HttpResponse.json(created, { status: 201 })
   }),
 
   http.patch(`${RECURRING_TEMPLATES_URL}/:id/cap`, async ({ request, params }) => {
     const body = (await request.json()) as UpdateRecurringTemplateCapRequestBody
-    const existing = seedRecurringTemplates.find((t) => t.id === params.id)
-    const updated: RecurringTemplate = {
-      id: params.id as string,
-      categoryId: existing?.categoryId ?? 'cat-1',
-      accountId: existing?.accountId ?? 'acct-1',
-      description: existing?.description ?? 'Rent',
-      active: existing?.active ?? true,
+    const updated = templates.replace(params.id as string, (row) => ({
+      ...row,
       currentAmount: body.amount,
       currentDayOfMonth: body.dayOfMonth,
       currentEffectiveFrom: body.effectiveFrom,
-    }
-    return HttpResponse.json(updated)
+    }))
+    return updated ? HttpResponse.json(updated) : new HttpResponse(null, { status: 404 })
   }),
 
   http.post(`${RECURRING_TEMPLATES_URL}/:id/stop`, ({ params }) => {
-    const existing = seedRecurringTemplates.find((t) => t.id === params.id)
-    return HttpResponse.json({ ...(existing ?? seedRecurringTemplates[0]), active: false })
+    const updated = templates.replace(params.id as string, (row) => ({ ...row, active: false }))
+    return updated ? HttpResponse.json(updated) : new HttpResponse(null, { status: 404 })
   }),
 
   http.post(`${RECURRING_TEMPLATES_URL}/:id/reactivate`, ({ params }) => {
-    const existing = seedRecurringTemplates.find((t) => t.id === params.id)
-    return HttpResponse.json({ ...(existing ?? seedRecurringTemplates[0]), active: true })
+    const updated = templates.replace(params.id as string, (row) => ({ ...row, active: true }))
+    return updated ? HttpResponse.json(updated) : new HttpResponse(null, { status: 404 })
   }),
 
   http.post(`${RECURRING_TEMPLATES_URL}/pending/:id/confirm`, async ({ request, params }) => {
     const body = (await request.json()) as { amount?: number; date?: string; accountId?: string }
-    const occurrence = seedPendingRecurringOccurrences.find((o) => o.id === params.id)
+    const occurrence = pendingOccurrences.find(params.id as string)
+    pendingOccurrences.remove(params.id as string)
     return HttpResponse.json({
       id: 'txn-new',
       date: body.date ?? occurrence?.dueDate ?? '2026-03-05',
@@ -130,10 +128,10 @@ export const recurringTemplatesHandlers = [
     })
   }),
 
-  http.delete(
-    `${RECURRING_TEMPLATES_URL}/pending/:id`,
-    () => new HttpResponse(null, { status: 204 }),
-  ),
+  http.delete(`${RECURRING_TEMPLATES_URL}/pending/:id`, ({ params }) => {
+    pendingOccurrences.remove(params.id as string)
+    return new HttpResponse(null, { status: 204 })
+  }),
 ]
 
 /**

@@ -17,21 +17,21 @@ import {
 } from '@mui/material'
 import PauseIcon from '@mui/icons-material/Pause'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
-import { getAccounts } from '../../api/accounts'
-import { getCategories } from '../../api/categories'
+import { useAccounts } from '../../api/accountsQueries'
+import { useCategories } from '../../api/categoriesQueries'
+import type { RecurringTemplate } from '../../api/recurringTemplates'
 import {
-  createRecurringTemplate,
-  getRecurringTemplates,
-  reactivateRecurringTemplate,
-  setRecurringTemplateCap,
-  stopRecurringTemplate,
-  type RecurringTemplate,
-} from '../../api/recurringTemplates'
+  useCreateRecurringTemplate,
+  useReactivateRecurringTemplate,
+  useRecurringTemplates,
+  useSetRecurringTemplateCap,
+  useStopRecurringTemplate,
+} from '../../api/recurringTemplatesQueries'
 import { defaultErrorMessage } from '../../api/apiError'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
 import { DataTableBody } from '../../components/DataTableBody'
-import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
+import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { currentMonth } from '../../utils/localDate'
 import { nameLookup } from '../../utils/nameLookup'
 import { PendingOccurrencesWidget } from './PendingOccurrencesWidget'
@@ -53,17 +53,19 @@ const EMPTY_CREATE_FORM = {
  */
 export function RecurringTemplatesPage() {
   const [error, setError] = useState<string | null>(null)
-  const { data: categories, ...categoriesState } = useAsyncData(getCategories, [], {
-    onError: setError,
-  })
-  const { data: accounts, ...accountsState } = useAsyncData(() => getAccounts(false), [], {
-    onError: setError,
-  })
-  const {
-    data: templates,
-    setData: setTemplates,
-    ...templatesState
-  } = useAsyncData(getRecurringTemplates, [], { onError: setError })
+  const categoriesQuery = useCategories()
+  const categories = categoriesQuery.data
+  const categoriesState = useQueryState(categoriesQuery, setError)
+  const accountsQuery = useAccounts()
+  const accounts = accountsQuery.data
+  const accountsState = useQueryState(accountsQuery, setError)
+  const templatesQuery = useRecurringTemplates()
+  const templates = templatesQuery.data
+  const templatesState = useQueryState(templatesQuery, setError)
+  const createMutation = useCreateRecurringTemplate()
+  const capMutation = useSetRecurringTemplateCap()
+  const stopMutation = useStopRecurringTemplate()
+  const reactivateMutation = useReactivateRecurringTemplate()
 
   const [createForm, setCreateForm] = useState(EMPTY_CREATE_FORM)
   const [creating, setCreating] = useState(false)
@@ -74,13 +76,6 @@ export function RecurringTemplatesPage() {
   const [savingCap, setSavingCap] = useState(false)
 
   const [togglingId, setTogglingId] = useState<string | null>(null)
-
-  // PendingOccurrencesWidget fetches its own data once on mount and takes no props (deliberately,
-  // so F012's dashboard can embed it as-is) - remounting it via this key is how this page tells it
-  // to refetch after a cap edit changes what an already-generated pending occurrence should show,
-  // or after creating a new template that catch-up may immediately generate a pending occurrence
-  // for (effectiveFrom defaults to the current month, whose day-of-month may already have passed).
-  const [pendingRefreshKey, setPendingRefreshKey] = useState(0)
 
   const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
   const accountName = useMemo(() => nameLookup(accounts ?? [], (a) => a.name), [accounts])
@@ -107,7 +102,7 @@ export function RecurringTemplatesPage() {
     setError(null)
     setCreating(true)
     try {
-      const created = await createRecurringTemplate({
+      await createMutation.mutateAsync({
         categoryId: createForm.categoryId,
         accountId: createForm.accountId,
         description: createForm.description.trim(),
@@ -115,9 +110,7 @@ export function RecurringTemplatesPage() {
         dayOfMonth: Number(createForm.dayOfMonth),
         effectiveFrom: currentMonth(),
       })
-      setTemplates((prev) => (prev ? [...prev, created] : [created]))
       setCreateForm(EMPTY_CREATE_FORM)
-      setPendingRefreshKey((key) => key + 1)
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {
@@ -146,13 +139,12 @@ export function RecurringTemplatesPage() {
     setError(null)
     setSavingCap(true)
     try {
-      const updated = await setRecurringTemplateCap(id, {
+      await capMutation.mutateAsync({
+        id,
         amount: Number(editAmount),
         dayOfMonth: Number(editDayOfMonth),
         effectiveFrom: currentMonth(),
       })
-      setTemplates((prev) => prev?.map((t) => (t.id === id ? updated : t)) ?? null)
-      setPendingRefreshKey((key) => key + 1)
       cancelEditCap()
     } catch (err) {
       setError(defaultErrorMessage(err))
@@ -165,10 +157,8 @@ export function RecurringTemplatesPage() {
     setError(null)
     setTogglingId(template.id)
     try {
-      const updated = template.active
-        ? await stopRecurringTemplate(template.id)
-        : await reactivateRecurringTemplate(template.id)
-      setTemplates((prev) => prev?.map((t) => (t.id === template.id ? updated : t)) ?? null)
+      if (template.active) await stopMutation.mutateAsync(template.id)
+      else await reactivateMutation.mutateAsync(template.id)
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {
@@ -370,7 +360,7 @@ export function RecurringTemplatesPage() {
         </Box>
       </Paper>
 
-      <PendingOccurrencesWidget key={pendingRefreshKey} />
+      <PendingOccurrencesWidget />
     </Box>
   )
 }

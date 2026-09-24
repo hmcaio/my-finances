@@ -23,7 +23,7 @@ Each area: test first (hook via MSW: loads, error, mutation success invalidates)
 - [x] Accounts, and the onboarding gate: `useHasAccounts` derived from the accounts list (`includeClosed: true`), `markHasAccounts` removed; `null` while loading or failed, `false` only for a resolved empty list, flips to `true` after the create-account mutation.
 - [x] Investment categories/sub-categories, investment products, investments (trades, snapshots, allocation, value series).
 - [x] Budgets, transactions (filters and paging), transfers.
-- [ ] Recurring templates; the pending-occurrences read with `staleTime: 0` (lazy catch-up side effect, ADR 0003), confirm/dismiss mutations.
+- [x] Recurring templates; the pending-occurrences read with `staleTime: 0` (lazy catch-up side effect, ADR 0003), confirm/dismiss mutations.
 - [ ] Net worth, dashboard (health check as a `staleTime: 0` query).
 - [ ] After each area: `npm run lint && npm test`.
 
