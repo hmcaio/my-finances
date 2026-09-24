@@ -50,6 +50,15 @@ public final class FakeTransferRepository extends InMemoryRepository<Transfer>
   }
 
   @Override
+  public List<LocalDate> findDistinctDatesBetween(LocalDate from, LocalDate to) {
+    return values().stream()
+        .map(Transfer::getDate)
+        .filter(date -> !date.isBefore(from) && !date.isAfter(to))
+        .distinct()
+        .toList();
+  }
+
+  @Override
   public List<Transfer> findByInvestmentProductId(UUID investmentProductId) {
     return values().stream()
         .filter(t -> investmentProductId.equals(t.getInvestmentProductId()))

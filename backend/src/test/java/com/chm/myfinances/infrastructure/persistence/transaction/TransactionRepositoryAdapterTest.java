@@ -98,6 +98,20 @@ class TransactionRepositoryAdapterTest {
   }
 
   @Test
+  void findDistinctDatesBetweenReturnsEachDateOnceWithinTheInclusiveRange() {
+    transactionRepository.save(newTransaction(LocalDate.of(1990, 1, 9), new BigDecimal("1.00")));
+    transactionRepository.save(newTransaction(LocalDate.of(1990, 1, 10), new BigDecimal("2.00")));
+    transactionRepository.save(newTransaction(LocalDate.of(1990, 1, 10), new BigDecimal("3.00")));
+    transactionRepository.save(newTransaction(LocalDate.of(1990, 1, 20), new BigDecimal("4.00")));
+    transactionRepository.save(newTransaction(LocalDate.of(1990, 1, 21), new BigDecimal("5.00")));
+
+    assertThat(
+            transactionRepository.findDistinctDatesBetween(
+                LocalDate.of(1990, 1, 10), LocalDate.of(1990, 1, 20)))
+        .containsExactlyInAnyOrder(LocalDate.of(1990, 1, 10), LocalDate.of(1990, 1, 20));
+  }
+
+  @Test
   void savesAndReloadsATransaction() {
     Transaction transaction =
         Transaction.create(

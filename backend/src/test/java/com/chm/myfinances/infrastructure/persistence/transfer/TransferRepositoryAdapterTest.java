@@ -161,6 +161,20 @@ class TransferRepositoryAdapterTest {
   }
 
   @Test
+  void findDistinctDatesBetweenReturnsEachDateOnceWithinTheInclusiveRange() {
+    transferRepository.save(newTransfer(LocalDate.of(1990, 1, 9), checkingId, creditCardId));
+    transferRepository.save(newTransfer(LocalDate.of(1990, 1, 10), checkingId, creditCardId));
+    transferRepository.save(newTransfer(LocalDate.of(1990, 1, 10), savingsId, checkingId));
+    transferRepository.save(newTransfer(LocalDate.of(1990, 1, 20), checkingId, creditCardId));
+    transferRepository.save(newTransfer(LocalDate.of(1990, 1, 21), checkingId, creditCardId));
+
+    assertThat(
+            transferRepository.findDistinctDatesBetween(
+                LocalDate.of(1990, 1, 10), LocalDate.of(1990, 1, 20)))
+        .containsExactlyInAnyOrder(LocalDate.of(1990, 1, 10), LocalDate.of(1990, 1, 20));
+  }
+
+  @Test
   void findAllFiltersByAccountIdOnEitherSideAndDateRangeAndPaginates() {
     Transfer matchingAsSource = newTransfer(LocalDate.of(2026, 2, 1), checkingId, creditCardId);
     Transfer matchingAsDestination = newTransfer(LocalDate.of(2026, 2, 15), savingsId, checkingId);

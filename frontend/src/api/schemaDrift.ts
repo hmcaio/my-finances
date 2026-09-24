@@ -9,6 +9,7 @@ import type { InvestmentProduct } from './investmentProducts'
 import type { InvestmentSnapshot } from './investmentSnapshots'
 import type { InvestmentSubcategory } from './investmentSubcategories'
 import type { ProductValueSeries, ValueSeriesPoint } from './investmentValueSeries'
+import type { NetWorthPoint } from './netWorth'
 import type { PaymentMethod } from './paymentMethods'
 import type { PendingRecurringOccurrence, RecurringTemplate } from './recurringTemplates'
 import type { Transaction, TransactionPage } from './transactions'
@@ -72,6 +73,7 @@ export type ValueSeriesPointKeys = Assert<
 export type InvestmentSubcategoryKeys = Assert<
   SameKeys<InvestmentSubcategory, Schemas['InvestmentSubcategoryResponse']>
 >
+export type NetWorthPointKeys = Assert<SameKeys<NetWorthPoint, Schemas['NetWorthPointResponse']>>
 export type PaymentMethodKeys = Assert<SameKeys<PaymentMethod, Schemas['PaymentMethodResponse']>>
 export type PendingRecurringOccurrenceKeys = Assert<
   SameKeys<PendingRecurringOccurrence, Schemas['PendingRecurringOccurrenceResponse']>

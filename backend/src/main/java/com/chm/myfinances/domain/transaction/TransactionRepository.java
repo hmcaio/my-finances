@@ -37,6 +37,12 @@ public interface TransactionRepository {
   List<Transaction> findByAccountIdOnOrBefore(UUID accountId, LocalDate asOfDate);
 
   /**
+   * The distinct dates, within {@code from}..{@code to} inclusive, on which any transaction is
+   * posted - the change dates of F010's net worth trend.
+   */
+  List<LocalDate> findDistinctDatesBetween(LocalDate from, LocalDate to);
+
+  /**
    * Whether any transaction references {@code categoryId} - backs {@code CategoryService}'s
    * referenced-by-transaction delete guard (F002 plan.md's deferred item, added now that this table
    * exists to check against).
