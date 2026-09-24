@@ -33,9 +33,7 @@ describe('SpendByCategoryWidget', () => {
 
   it('shows a retryable notice when the load fails', async () => {
     server.use(
-      http.get('/api/transactions/spend-by-category', () =>
-        HttpResponse.json({}, { status: 500 }),
-      ),
+      http.get('/api/transactions/spend-by-category', () => HttpResponse.json({}, { status: 500 })),
     )
 
     render(<SpendByCategoryWidget />)

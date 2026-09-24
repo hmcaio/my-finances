@@ -1,80 +1,82 @@
-import { useEffect, useState } from 'react'
-import { Alert, Box, CircularProgress, Paper, Typography } from '@mui/material'
-import { getHealth, type HealthResponse } from '../../api/health'
+import { useState, type PropsWithChildren } from 'react'
+import { Box, Paper, Typography } from '@mui/material'
+import { currentMonth } from '../../utils/localDate'
+import { BudgetVsActualReport } from '../budgets/BudgetVsActualReport'
+import { InvestmentAllocationChart } from '../investments/InvestmentAllocationChart'
 import { NetWorthTrendChart } from '../netWorth/NetWorthTrendChart'
+import { PendingOccurrencesWidget } from '../recurringTemplates/PendingOccurrencesWidget'
+import { AccountBalancesWidget } from './AccountBalancesWidget'
+import { SpendByCategoryWidget } from './SpendByCategoryWidget'
 
-type Status = 'loading' | 'up' | 'error'
+function Section({ title, children }: PropsWithChildren<{ title: string }>) {
+  return (
+    <Box component="section" aria-label={title}>
+      <Typography variant="h5" component="h2" gutterBottom>
+        {title}
+      </Typography>
+      {children}
+    </Box>
+  )
+}
 
 /**
- * Stands in for the real Dashboard (F012, not built yet). Also serves as F001's
- * frontend-to-backend connectivity check: calls the health-check endpoint and displays the
- * result (see F001 spec's "Add a placeholder page..." requirement). Also hosts F010's net worth
- * trend widget until F012 replaces this component entirely (and embeds the widget itself).
+ * The dashboard (F012, PRD S6.8): a fixed grid that only composes widgets other features own -
+ * each fetches its own data, so there is no dashboard endpoint (see F012 spec). Widgets that
+ * depend on transactions remount (`key` counter, frontend `CLAUDE.md`, "Pages that embed other
+ * pages' widgets") after a pending recurring occurrence is confirmed there, since that creates a
+ * transaction; dismissing creates nothing, so it needs no refresh.
  */
 export function DashboardPage() {
-  const [status, setStatus] = useState<Status>('loading')
-  const [health, setHealth] = useState<HealthResponse | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-
-    getHealth()
-      .then((result) => {
-        if (cancelled) return
-        setHealth(result)
-        setStatus('up')
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return
-        setError(err instanceof Error ? err.message : 'Unknown error')
-        setStatus('error')
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  const [revision, setRevision] = useState(0)
+  const bumpRevision = () => setRevision((r) => r + 1)
 
   return (
     <Box sx={{ py: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
         Dashboard
       </Typography>
-      <Typography color="text.secondary" sx={{ mb: 3 }}>
-        The real dashboard (spend by category, budgets, net worth trend, ...) arrives with F012. For
-        now, this page confirms the frontend can reach the backend.
-      </Typography>
 
-      <Paper variant="outlined" sx={{ p: 3, maxWidth: 720, mb: 3 }}>
-        <Typography variant="subtitle1" gutterBottom>
-          Net worth
-        </Typography>
-        <NetWorthTrendChart />
-      </Paper>
+      <Box
+        sx={{
+          display: 'grid',
+          gap: 3,
+          gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' },
+        }}
+      >
+        <Section title="Spend by category">
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <SpendByCategoryWidget key={`spend-${revision}`} />
+          </Paper>
+        </Section>
 
-      <Paper variant="outlined" sx={{ p: 3, maxWidth: 480 }}>
-        <Typography variant="subtitle1" gutterBottom>
-          Backend connectivity
-        </Typography>
-        {status === 'loading' && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <CircularProgress size={20} />
-            <Typography>Checking backend health...</Typography>
-          </Box>
-        )}
-        {status === 'up' && health && (
-          <Alert severity="success">
-            Backend is {health.status} as of {new Date(health.timestamp).toLocaleString()}
-          </Alert>
-        )}
-        {status === 'error' && (
-          <Alert severity="error">
-            Could not reach the backend at http://localhost:8080 ({error}). Is it running (
-            ./gradlew bootRun)?
-          </Alert>
-        )}
-      </Paper>
+        <Section title="Budget vs. actual">
+          <BudgetVsActualReport month={currentMonth()} reloadKey={revision} />
+        </Section>
+
+        <Section title="Account balances">
+          <Paper variant="outlined" sx={{ p: 1 }}>
+            <AccountBalancesWidget key={`accounts-${revision}`} />
+          </Paper>
+        </Section>
+
+        <Section title="Investment allocation">
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <InvestmentAllocationChart key={`allocation-${revision}`} />
+          </Paper>
+        </Section>
+
+        <Box sx={{ gridColumn: { md: '1 / -1' } }}>
+          <Section title="Net worth">
+            <Paper variant="outlined" sx={{ p: 2 }}>
+              <NetWorthTrendChart key={`net-worth-${revision}`} />
+            </Paper>
+          </Section>
+        </Box>
+
+        <Box sx={{ gridColumn: { md: '1 / -1' } }}>
+          <PendingOccurrencesWidget onConfirmed={bumpRevision} />
+        </Box>
+      </Box>
     </Box>
   )
 }

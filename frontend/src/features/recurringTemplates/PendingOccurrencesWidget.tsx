@@ -37,9 +37,18 @@ import { DataTableBody } from '../../components/DataTableBody'
 import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
 import { nameLookup } from '../../utils/nameLookup'
 
+interface PendingOccurrencesWidgetProps {
+  /**
+   * Called after an occurrence is confirmed (which creates a transaction), so an embedding page
+   * can refresh whatever that changes - the dashboard's spend, budgets, balances and net worth.
+   * Dismissing creates nothing, so it doesn't call this.
+   */
+  onConfirmed?: () => void
+}
+
 /**
- * "Upcoming recurring bills" widget (F007 spec, embedded on F012's future dashboard - not built
- * yet, so {@link RecurringTemplatesPage} embeds it directly for now). Entirely self-contained
+ * "Upcoming recurring bills" widget (F007 spec, embedded on F012's dashboard and on {@link
+ * RecurringTemplatesPage}). Entirely self-contained
  * (loads its own reference data) so it can be dropped onto any page without props, same
  * embeddable-component spirit as F004/F005's `AccountTransactionList`/`AccountTransferList` -
  * those take an `accountId`; this one has nothing to scope by, so it takes nothing.
@@ -48,7 +57,7 @@ import { nameLookup } from '../../utils/nameLookup'
  * default from the occurrence/template, and payment method - which the template has no default
  * for - is always required.
  */
-export function PendingOccurrencesWidget() {
+export function PendingOccurrencesWidget({ onConfirmed }: PendingOccurrencesWidgetProps = {}) {
   const [error, setError] = useState<string | null>(null)
   const { data: templates, ...templatesState } = useAsyncData(getRecurringTemplates, [], {
     onError: setError,
@@ -120,6 +129,7 @@ export function PendingOccurrencesWidget() {
       })
       setPending((prev) => prev?.filter((o) => o.id !== confirmTarget.id) ?? null)
       closeConfirm()
+      onConfirmed?.()
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {
