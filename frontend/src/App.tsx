@@ -7,7 +7,6 @@ import { useHasAccounts } from './hooks/useHasAccounts'
 import { getTheme } from './theme'
 import { Layout } from './components/Layout'
 import { ErrorBoundary } from './components/ErrorBoundary'
-import { ComingSoon } from './components/ComingSoon'
 import { LoadFailedNotice } from './components/LoadFailedNotice'
 import { fadeInSx } from './components/fadeIn'
 import { useDelayedFlag } from './hooks/useDelayedFlag'
@@ -24,6 +23,7 @@ import { PaymentMethodsPage } from './features/paymentMethods/PaymentMethodsPage
 import { TransactionsPage } from './features/transactions/TransactionsPage'
 import { TransfersPage } from './features/transfers/TransfersPage'
 import { BudgetsPage } from './features/budgets/BudgetsPage'
+import { ExportPage } from './features/export/ExportPage'
 import { RecurringTemplatesPage } from './features/recurringTemplates/RecurringTemplatesPage'
 
 /**
@@ -81,7 +81,7 @@ function ThemedApp() {
                   element={<InvestmentCategoriesPage />}
                 />
                 <Route path="/settings/payment-methods" element={<PaymentMethodsPage />} />
-                <Route path="/export" element={<ComingSoon title="Data Export" />} />
+                <Route path="/export" element={<ExportPage />} />
               </Routes>
             </PageErrorBoundary>
           </Layout>

@@ -10,8 +10,8 @@
 
 ## Frontend
 - [x] `src/api/export.ts` (triggers a native download rather than JSON parsing).
-- [ ] `src/features/export` — filter inputs + download button.
+- [x] `src/features/export` — filter inputs + download button.
 
 ## Verification
-- [ ] Full export with no filters: confirm all twelve CSVs are present and each row's `_name` columns (including `institution_name` on accounts, and the product and category/sub-category names on `transfers.csv`/`investment_products.csv`) match the referenced entity's current name.
-- [ ] Filtered export (date range + account): confirm only the documented files are filtered and reference files remain complete.
+- [x] Full export with no filters: confirm all twelve CSVs are present and each row's `_name` columns (including `institution_name` on accounts, and the product and category/sub-category names on `transfers.csv`/`investment_products.csv`) match the referenced entity's current name. *Verified by `DataExportServiceTest`/`DataExportControllerTest` and by calling `GET /api/export` on a running backend against the dev database (all twelve files present, names as expected); not checked in a browser.*
+- [x] Filtered export (date range + account): confirm only the documented files are filtered and reference files remain complete. *Verified the same way (a unit test per filter, plus `GET /api/export?dateFrom=&dateTo=&accountId=` on a running backend: transactions, transfers and recurring templates shrank, every reference file stayed full, and the account filter left snapshots and budgets alone); not checked in a browser.*

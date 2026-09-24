@@ -74,12 +74,13 @@ Built:
 - **F010** — net worth (`NetWorthQuery`, computed on read and never stored: asset plus investment account balances minus credit card balances as of a date, counting each account only from its opening date until its closed date so closing an account leaves past months unchanged; a point endpoint and a trend endpoint sampled at every change date or at each month-end; a trend chart with a monthly/every-change toggle)
 - **F011** — onboarding (frontend only: while no account exists, closed ones included, the app shows a first-run screen with the account form instead of the app shell; nothing is persisted, so the state can't drift from the data)
 - **F012** — dashboard (a fixed grid composing the widgets other features own, each fetching its own data: this month's spend by category (a new `GET /api/transactions/spend-by-category`), budget-vs-actual bars, open account balances, the net worth trend, the investment allocation and the pending recurring bills, whose confirm refreshes the widgets it affects; no composed dashboard endpoint)
+- **F013** — data export (`GET /api/export`: a ZIP of twelve CSVs, one per entity, every foreign key as `_id` plus `_name`, optionally narrowed by date range, account and category, each filter touching only the files that have that dimension; text cells are guarded against spreadsheet formulas; an Export page downloads it)
 - **F014** — CI/CD and production packaging
 - **F015** — frontend test tooling (Vitest + React Testing Library + MSW, with real coverage backfilled for F002/F003)
 - **F016** — logging (SLF4J/Logback with a per-request `X-Request-Id` traced browser → nginx → backend, a size- and age-capped rolling backend log that survives `docker compose down`, a frontend `logger` with HTTP/uncaught-error capture and a page error boundary; ids and counts only, never amounts or descriptions)
 - **F017** — institutions (a shared `Institution` list with a built-in "No institution" row that can be renamed but not deleted; every account references exactly one, replacing the old free-text `institution`, which migration `V12` converts; picked or created inline via a shared `InstitutionSelect`)
 
-Documented and next up: **F013** (data export), **F018** (automated encrypted backups for the prod stack) and **F019** (TanStack Query migration) — see [docs/features/](docs/features/) for the full breakdown, in build order, with each feature's spec and its dependencies on the others.
+Documented and next up: **F018** (automated encrypted backups for the prod stack) and **F019** (TanStack Query migration) — see [docs/features/](docs/features/) for the full breakdown, in build order, with each feature's spec and its dependencies on the others.
 
 ## Workflow
 

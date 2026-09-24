@@ -22,10 +22,25 @@ All-entity export as a ZIP of CSVs, with FK names denormalized inline, optionall
   | Always full, no filter | `categories`, `payment_methods`, `institutions`, `accounts`, `investment_categories`, `investment_subcategories`, `investment_products` |
 
 ### API
-- `GET /api/export?dateFrom=&dateTo=&accountId=&categoryId=` — streams a `.zip` response (`Content-Disposition: attachment`). Any combination of filters, or none (full export).
+- `GET /api/export?dateFrom=&dateTo=&accountId=&categoryId=` — a `.zip` response (`Content-Type: application/zip`, `Content-Disposition: attachment; filename="my-finances-export-YYYY-MM-DD.zip"`, the date being today). Any combination of filters, or none (full export). `dateFrom` after `dateTo` is a `400` (`InvalidExportRangeException`); a malformed date or UUID is Spring's standard `400`. An unknown `accountId`/`categoryId` is not an error, it simply matches nothing in the filtered files.
+
+### Decisions (resolving PRD §8's "exact CSV column ordering/naming and ZIP naming")
+- **Built in memory, then sent.** `DataExportService.export(filter, OutputStream)` writes the twelve entries straight into a `ZipOutputStream`, but the controller hands it a `ByteArrayOutputStream`, so a failure is a clean error response rather than a truncated download. Fine for a local single-user dataset. The service is `@Transactional(readOnly = true)` so all twelve files come from one snapshot.
+- **Format**: UTF-8 without a BOM, RFC 4180 (CRLF line endings; a cell is quoted only if it contains a comma, quote, CR or LF, quotes doubled). Dates are ISO (`2026-03-09`), a budget/template `effective_from` and `last_generated_for` are `yyyy-MM`, amounts are plain decimals (no scientific notation, database scale kept, so trade `quantity`/`unit_price` read `1.00000000`), booleans `true`/`false`, enums their names, `null` an empty cell. Excel may need "import as UTF-8" for accented names.
+- **Formula-injection guard**: a *text* cell (names, descriptions, notes: the only user-typed values) whose first character is `=`, `+`, `-`, `@`, tab or CR is written with a leading `'`, so spreadsheets show it as text instead of evaluating it. Ids, dates, enums and numbers are never touched (a negative amount stays a number). The trade-off is that the exported text differs from the stored text by that one character; the export is for reading in a spreadsheet, and the guard is the safer default.
+- **Row order** is deterministic: dated files by date then id, versioned files by parent then `effective_from`, reference files by name then id.
+- **Date range on versioned files compares months**: a budget or recurring-template version is kept when its `effective_from` month lies within `[month(dateFrom), month(dateTo)]`, so `dateFrom = 2026-02-20` still includes the version effective `2026-02`. Filters combine with AND.
+- **Columns** (FK columns are `x_id` then `x_name`; `investment_subcategory_*` is empty when a product has none):
+  - `categories`: `id, name, type, built_in`; `payment_methods`: `id, name`; `institutions`: `id, name, built_in`; `investment_categories`: `id, name`
+  - `accounts`: `id, name, type, institution_id, institution_name, opening_balance, opening_balance_date, closed_date`
+  - `transactions`: `id, date, amount, type, category_*, account_*, payment_method_*, recurring_template_version_id, description, additional_notes`
+  - `transfers`: `id, date, from_account_*, to_account_*, amount, description, additional_notes, investment_product_*, quantity, unit_price, taxes`
+  - `budgets` (one row per version): `budget_id, version_id, category_*, monthly_cap, effective_from`
+  - `recurring_templates` (one row per version): `template_id, version_id, category_*, account_*, description, active, last_generated_for, amount, day_of_month, effective_from`
+  - `investment_subcategories`: `id, investment_category_*, name`; `investment_products`: `id, account_*, investment_category_*, investment_subcategory_*, name, closed_date`; `investment_snapshots`: `id, investment_product_*, date, balance`
 
 ## Frontend
-- Export page/panel: optional date range, account, category filter inputs, a "download" button that triggers the browser's native file download of the ZIP response.
+- Export page (`/export`, `features/export/ExportPage`): optional From/To dates, account (closed and investment accounts included) and category selects, a note on which files each filter touches and that the reference files are always complete, and a "Download" button. It rejects a reversed date range client-side. The request goes through the shared Axios client (so `X-Request-Id` is sent) with `responseType: 'blob'` and is saved through a temporary object URL as `my-finances-export-YYYY-MM-DD.zip` (named client-side: `Content-Disposition` isn't exposed to the dev server's cross-origin requests).
 
 ## Dependencies
 All prior features (F002–F009, F017) — this is the last feature to implement, since it reads from every entity introduced by them.
