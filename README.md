@@ -78,7 +78,7 @@ Built:
 - **F016** — logging (SLF4J/Logback with a per-request `X-Request-Id` traced browser → nginx → backend, a size- and age-capped rolling backend log that survives `docker compose down`, a frontend `logger` with HTTP/uncaught-error capture and a page error boundary; ids and counts only, never amounts or descriptions)
 - **F017** — institutions (a shared `Institution` list with a built-in "No institution" row that can be renamed but not deleted; every account references exactly one, replacing the old free-text `institution`, which migration `V12` converts; picked or created inline via a shared `InstitutionSelect`)
 
-Documented and next up: **F012–F013** (dashboard, data export) and **F018** (automated encrypted backups for the prod stack) — see [docs/features/](docs/features/) for the full breakdown, in build order, with each feature's spec and its dependencies on the others.
+Documented and next up: **F012–F013** (dashboard, data export), **F018** (automated encrypted backups for the prod stack) and **F019** (TanStack Query migration) — see [docs/features/](docs/features/) for the full breakdown, in build order, with each feature's spec and its dependencies on the others.
 
 ## Workflow
 
