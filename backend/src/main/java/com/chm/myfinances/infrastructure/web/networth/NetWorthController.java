@@ -42,7 +42,7 @@ public class NetWorthController {
    * before {@code to}; {@code granularity} to {@code CHANGE_DATE}.
    */
   @GetMapping("/trend")
-  public List<NetWorthPointResponse> trend(
+  public List<NetWorthPointResponse> netWorthTrend(
       @RequestParam(name = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
           LocalDate from,
       @RequestParam(name = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
