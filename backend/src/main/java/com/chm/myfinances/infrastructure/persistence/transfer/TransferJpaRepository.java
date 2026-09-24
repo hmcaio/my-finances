@@ -26,6 +26,10 @@ interface TransferJpaRepository
   List<TransferJpaEntity> findByAccountIdOnOrBefore(
       @Param("accountId") UUID accountId, @Param("asOfDate") LocalDate asOfDate);
 
+  @Query("select distinct t.date from TransferJpaEntity t where t.date >= :from and t.date <= :to")
+  List<LocalDate> findDistinctDatesBetween(
+      @Param("from") LocalDate from, @Param("to") LocalDate to);
+
   List<TransferJpaEntity> findByInvestmentProductId(UUID investmentProductId);
 
   List<TransferJpaEntity> findByInvestmentProductIdIsNotNull();

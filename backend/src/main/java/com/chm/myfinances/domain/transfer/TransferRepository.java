@@ -34,6 +34,12 @@ public interface TransferRepository {
    */
   List<Transfer> findByAccountIdOnOrBefore(UUID accountId, LocalDate asOfDate);
 
+  /**
+   * The distinct dates, within {@code from}..{@code to} inclusive, on which any transfer is dated -
+   * the change dates of F010's net worth trend.
+   */
+  List<LocalDate> findDistinctDatesBetween(LocalDate from, LocalDate to);
+
   /** Every buy/sell of one investment product (F009), in no particular order. */
   List<Transfer> findByInvestmentProductId(UUID investmentProductId);
 

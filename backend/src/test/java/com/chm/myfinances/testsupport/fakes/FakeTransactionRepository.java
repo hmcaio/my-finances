@@ -62,6 +62,15 @@ public final class FakeTransactionRepository extends InMemoryRepository<Transact
   }
 
   @Override
+  public List<LocalDate> findDistinctDatesBetween(LocalDate from, LocalDate to) {
+    return values().stream()
+        .map(Transaction::getDate)
+        .filter(date -> !date.isBefore(from) && !date.isAfter(to))
+        .distinct()
+        .toList();
+  }
+
+  @Override
   public boolean existsByCategoryId(UUID categoryId) {
     return values().stream().anyMatch(t -> t.getCategoryId().equals(categoryId));
   }

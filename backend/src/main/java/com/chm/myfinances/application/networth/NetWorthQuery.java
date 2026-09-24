@@ -4,9 +4,17 @@ import com.chm.myfinances.application.account.AccountBalanceQuery;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
+import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
+import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshotRepository;
+import com.chm.myfinances.domain.transaction.TransactionRepository;
+import com.chm.myfinances.domain.transfer.TransferRepository;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeSet;
 import org.springframework.stereotype.Service;
 
 /**
@@ -23,17 +31,97 @@ import org.springframework.stereotype.Service;
 @Service
 public class NetWorthQuery {
 
+  /** Upper bound on the requested range, so one request can't fan out over decades of dates. */
+  static final int MAX_MONTHS = 120;
+
   private final AccountRepository accountRepository;
   private final AccountBalanceQuery balanceQuery;
+  private final TransactionRepository transactionRepository;
+  private final TransferRepository transferRepository;
+  private final InvestmentSnapshotRepository snapshotRepository;
+  private final Clock clock;
 
-  public NetWorthQuery(AccountRepository accountRepository, AccountBalanceQuery balanceQuery) {
+  public NetWorthQuery(
+      AccountRepository accountRepository,
+      AccountBalanceQuery balanceQuery,
+      TransactionRepository transactionRepository,
+      TransferRepository transferRepository,
+      InvestmentSnapshotRepository snapshotRepository,
+      Clock clock) {
     this.accountRepository = accountRepository;
     this.balanceQuery = balanceQuery;
+    this.transactionRepository = transactionRepository;
+    this.transferRepository = transferRepository;
+    this.snapshotRepository = snapshotRepository;
+    this.clock = clock;
   }
 
   /** Net worth and its three parts on {@code date}. */
   public NetWorthPoint asOf(LocalDate date) {
     return pointFor(accountRepository.findAll(), date);
+  }
+
+  /**
+   * The net worth series over {@code from}..{@code to}, clamped to today (nothing after the current
+   * date is reported). {@link NetWorthGranularity#MONTH}: one point per calendar month overlapping
+   * the range, dated month-end (the current month at today), so quiet months carry the last value
+   * forward. {@link NetWorthGranularity#CHANGE_DATE}: one point on each distinct date within the
+   * range where a transaction, transfer or snapshot is dated, or an account is opened or closed
+   * (the as-of filter makes those change net worth too). Evaluated straight from the raw data on
+   * every call - no cache (F010 spec).
+   */
+  public List<NetWorthPoint> trend(LocalDate from, LocalDate to, NetWorthGranularity granularity) {
+    if (from.isAfter(to)) {
+      throw new InvalidNetWorthRangeException("from must not be after to");
+    }
+    if (to.isAfter(from.plusMonths(MAX_MONTHS))) {
+      throw new InvalidNetWorthRangeException("range must not exceed " + MAX_MONTHS + " months");
+    }
+    LocalDate today = LocalDate.now(clock);
+    LocalDate last = to.isAfter(today) ? today : to;
+    if (from.isAfter(last)) {
+      return List.of();
+    }
+    List<Account> accounts = accountRepository.findAll();
+    List<NetWorthPoint> points = new ArrayList<>();
+    for (LocalDate date : sampleDates(accounts, from, last, today, granularity)) {
+      points.add(pointFor(accounts, date));
+    }
+    return List.copyOf(points);
+  }
+
+  private List<LocalDate> sampleDates(
+      List<Account> accounts,
+      LocalDate from,
+      LocalDate last,
+      LocalDate today,
+      NetWorthGranularity granularity) {
+    List<LocalDate> dates = new ArrayList<>();
+    if (granularity == NetWorthGranularity.MONTH) {
+      for (YearMonth month = YearMonth.from(from);
+          !month.isAfter(YearMonth.from(last));
+          month = month.plusMonths(1)) {
+        LocalDate monthEnd = month.atEndOfMonth();
+        dates.add(monthEnd.isAfter(today) ? today : monthEnd);
+      }
+      return dates;
+    }
+    TreeSet<LocalDate> changeDates = new TreeSet<>();
+    changeDates.addAll(transactionRepository.findDistinctDatesBetween(from, last));
+    changeDates.addAll(transferRepository.findDistinctDatesBetween(from, last));
+    for (InvestmentSnapshot snapshot : snapshotRepository.findAll()) {
+      changeDates.add(snapshot.getDate());
+    }
+    for (Account account : accounts) {
+      if (account.getOpeningBalanceDate() != null) {
+        changeDates.add(account.getOpeningBalanceDate());
+      }
+      if (account.getClosedDate() != null) {
+        changeDates.add(account.getClosedDate());
+      }
+    }
+    dates.addAll(changeDates.subSet(from, true, last, true));
+    return dates;
   }
 
   private NetWorthPoint pointFor(List<Account> accounts, LocalDate date) {

@@ -95,6 +95,11 @@ public class TransferRepositoryAdapter implements TransferRepository {
   }
 
   @Override
+  public List<LocalDate> findDistinctDatesBetween(LocalDate from, LocalDate to) {
+    return jpaRepository.findDistinctDatesBetween(from, to);
+  }
+
+  @Override
   public List<Transfer> findByInvestmentProductId(UUID investmentProductId) {
     return jpaRepository.findByInvestmentProductId(investmentProductId).stream()
         .map(TransferRepositoryAdapter::toDomain)

@@ -91,6 +91,11 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
   }
 
   @Override
+  public List<LocalDate> findDistinctDatesBetween(LocalDate from, LocalDate to) {
+    return jpaRepository.findDistinctDatesBetween(from, to);
+  }
+
+  @Override
   public boolean existsByCategoryId(UUID categoryId) {
     return jpaRepository.existsByCategoryId(categoryId);
   }

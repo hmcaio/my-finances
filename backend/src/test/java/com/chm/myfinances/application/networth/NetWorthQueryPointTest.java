@@ -17,7 +17,9 @@ import com.chm.myfinances.testsupport.mothers.AccountMother;
 import com.chm.myfinances.testsupport.mothers.InvestmentProductMother;
 import com.chm.myfinances.testsupport.mothers.TransactionMother;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -44,7 +46,11 @@ class NetWorthQueryPointTest {
               transactionRepository,
               transferRepository,
               productRepository,
-              new LatestInvestmentSnapshotQuery(snapshotRepository)));
+              new LatestInvestmentSnapshotQuery(snapshotRepository)),
+          transactionRepository,
+          transferRepository,
+          snapshotRepository,
+          Clock.fixed(TODAY.atStartOfDay().toInstant(ZoneOffset.UTC), ZoneOffset.UTC));
 
   private Account save(AccountMother mother) {
     return accountRepository.save(mother.build());
