@@ -44,6 +44,16 @@ public class TransferJpaEntity extends AuditableEntity {
   @Column(name = "additional_notes")
   private String additionalNotes;
 
+  @Column(name = "investment_product_id")
+  private UUID investmentProductId;
+
+  private BigDecimal quantity;
+
+  @Column(name = "unit_price")
+  private BigDecimal unitPrice;
+
+  private BigDecimal taxes;
+
   public TransferJpaEntity(
       UUID id,
       LocalDate date,
@@ -51,7 +61,11 @@ public class TransferJpaEntity extends AuditableEntity {
       UUID toAccountId,
       BigDecimal amount,
       String description,
-      String additionalNotes) {
+      String additionalNotes,
+      UUID investmentProductId,
+      BigDecimal quantity,
+      BigDecimal unitPrice,
+      BigDecimal taxes) {
     this.id = id;
     this.date = date;
     this.fromAccountId = fromAccountId;
@@ -59,5 +73,9 @@ public class TransferJpaEntity extends AuditableEntity {
     this.amount = amount;
     this.description = description;
     this.additionalNotes = additionalNotes;
+    this.investmentProductId = investmentProductId;
+    this.quantity = quantity;
+    this.unitPrice = unitPrice;
+    this.taxes = taxes;
   }
 }

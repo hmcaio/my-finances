@@ -35,6 +35,10 @@ public final class FakeTransferRepository extends InMemoryRepository<Transfer>
                     filter.accountId() == null
                         || t.getFromAccountId().equals(filter.accountId())
                         || t.getToAccountId().equals(filter.accountId()))
+            .filter(
+                t ->
+                    filter.investmentProductId() == null
+                        || filter.investmentProductId().equals(t.getInvestmentProductId()))
             .sorted(Comparator.comparing(Transfer::getDate).reversed())
             .toList();
 
@@ -43,6 +47,23 @@ public final class FakeTransferRepository extends InMemoryRepository<Transfer>
     List<Transfer> pageContent =
         start >= filtered.size() ? List.of() : filtered.subList(start, end);
     return new PageImpl<>(pageContent, pageable, filtered.size());
+  }
+
+  @Override
+  public List<Transfer> findByInvestmentProductId(UUID investmentProductId) {
+    return values().stream()
+        .filter(t -> investmentProductId.equals(t.getInvestmentProductId()))
+        .toList();
+  }
+
+  @Override
+  public List<Transfer> findAllInvestmentTrades() {
+    return values().stream().filter(t -> t.getInvestmentProductId() != null).toList();
+  }
+
+  @Override
+  public boolean existsByInvestmentProductId(UUID investmentProductId) {
+    return values().stream().anyMatch(t -> investmentProductId.equals(t.getInvestmentProductId()));
   }
 
   @Override

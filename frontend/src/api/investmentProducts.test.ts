@@ -41,10 +41,15 @@ describe('investment products API client', () => {
     expect(sentAccountId).toBe(seedInvestmentAccount.id)
   })
 
-  it('getInvestmentProduct returns one product with its hasHistory flag', async () => {
+  it('getInvestmentProduct returns one product with its hasHistory flag and freshness data', async () => {
     const product = await getInvestmentProduct('iprod-btc')
 
-    expect(product).toMatchObject({ id: 'iprod-btc', hasHistory: true })
+    expect(product).toMatchObject({
+      id: 'iprod-btc',
+      hasHistory: true,
+      needsSnapshot: true,
+      latestSnapshot: { date: '2026-08-05', balance: 900 },
+    })
   })
 
   it('createInvestmentProduct posts the product, sub-category optional, and returns it', async () => {
@@ -99,7 +104,7 @@ describe('investment products API client', () => {
     expect((error as ApiError).message).toBe(DELETE_CONFLICT_MESSAGE)
   })
 
-  it('closeInvestmentProduct maps a 409 to the already-closed message', async () => {
+  it('closeInvestmentProduct maps a 409 to a message pointing at the zero snapshot', async () => {
     server.use(investmentProductCloseConflictHandler)
 
     const error: unknown = await closeInvestmentProduct('iprod-old').catch((err: unknown) => err)

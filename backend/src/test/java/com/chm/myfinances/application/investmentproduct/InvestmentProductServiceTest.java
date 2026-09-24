@@ -5,18 +5,22 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.application.account.AccountNotFoundException;
 import com.chm.myfinances.application.investmentcategory.InvestmentCategoryNotFoundException;
+import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
 import com.chm.myfinances.application.investmentsubcategory.InvestmentSubcategoryNotFoundException;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
+import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
 import com.chm.myfinances.testsupport.fakes.FakeHasInvestmentHistoryChecker;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentCategoryRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSubcategoryRepository;
 import com.chm.myfinances.testsupport.mothers.AccountMother;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -39,6 +43,10 @@ class InvestmentProductServiceTest {
       new FakeInvestmentSubcategoryRepository();
   private final FakeHasInvestmentHistoryChecker historyChecker =
       new FakeHasInvestmentHistoryChecker();
+  private final FakeInvestmentSnapshotRepository snapshotRepository =
+      new FakeInvestmentSnapshotRepository();
+  private final LatestInvestmentSnapshotQuery latestSnapshotQuery =
+      new LatestInvestmentSnapshotQuery(snapshotRepository);
   private final InvestmentProductService service =
       new InvestmentProductService(
           productRepository,
@@ -46,6 +54,7 @@ class InvestmentProductServiceTest {
           categoryRepository,
           subcategoryRepository,
           historyChecker,
+          latestSnapshotQuery,
           new FakeIdGenerator(),
           Clock.systemDefaultZone());
 
@@ -78,6 +87,7 @@ class InvestmentProductServiceTest {
             categoryRepository,
             subcategoryRepository,
             historyChecker,
+            latestSnapshotQuery,
             new FakeIdGenerator(nextId),
             Clock.systemDefaultZone());
 
@@ -240,6 +250,39 @@ class InvestmentProductServiceTest {
   }
 
   @Test
+  void editRejectsMovingAProductWithHistoryToAnotherAccount() {
+    InvestmentProduct created = service.create(xpAccountId, cryptoId, null, "Bitcoin Test");
+    historyChecker.markHasHistory(created.getId());
+
+    assertThatThrownBy(
+            () -> service.edit(created.getId(), nuAccountId, cryptoId, null, "Bitcoin Test"))
+        .isInstanceOf(InvestmentProductMoveBlockedException.class);
+    assertThat(productRepository.findById(created.getId()).orElseThrow().getAccountId())
+        .isEqualTo(xpAccountId);
+  }
+
+  @Test
+  void editAllowsRenamingAProductWithHistoryInPlace() {
+    InvestmentProduct created = service.create(xpAccountId, cryptoId, null, "Bitcoin Test");
+    historyChecker.markHasHistory(created.getId());
+
+    InvestmentProduct edited =
+        service.edit(created.getId(), xpAccountId, cryptoId, null, "BTC Test");
+
+    assertThat(edited.getName()).isEqualTo("BTC Test");
+  }
+
+  @Test
+  void editAllowsMovingAProductWithoutHistory() {
+    InvestmentProduct created = service.create(xpAccountId, cryptoId, null, "Bitcoin Test");
+
+    InvestmentProduct edited =
+        service.edit(created.getId(), nuAccountId, cryptoId, null, "Bitcoin Test");
+
+    assertThat(edited.getAccountId()).isEqualTo(nuAccountId);
+  }
+
+  @Test
   void editOfUnknownIdThrowsNotFound() {
     assertThatThrownBy(
             () -> service.edit(UUID.randomUUID(), xpAccountId, cryptoId, null, "Bitcoin Test"))
@@ -263,6 +306,48 @@ class InvestmentProductServiceTest {
 
     assertThatThrownBy(() -> service.close(created.getId()))
         .isInstanceOf(InvestmentProductAlreadyClosedException.class);
+  }
+
+  private void snapshot(InvestmentProduct product, LocalDate date, String balance) {
+    snapshotRepository.save(
+        InvestmentSnapshot.create(
+            UUID.randomUUID(), product.getId(), date, new BigDecimal(balance)));
+  }
+
+  @Test
+  void closeIsBlockedWhileTheLatestSnapshotIsNonZero() {
+    InvestmentProduct created = service.create(xpAccountId, cryptoId, null, "Bitcoin Test");
+    snapshot(created, LocalDate.of(2026, 3, 31), "150.00");
+
+    assertThatThrownBy(() -> service.close(created.getId()))
+        .isInstanceOf(InvestmentProductNotEmptyException.class);
+    assertThat(productRepository.findById(created.getId()).orElseThrow().isClosed()).isFalse();
+  }
+
+  @Test
+  void closeIsAllowedWhenTheLatestSnapshotIsZeroEvenAfterAnEarlierNonZeroOne() {
+    InvestmentProduct created = service.create(xpAccountId, cryptoId, null, "Bitcoin Test");
+    snapshot(created, LocalDate.of(2026, 3, 31), "150.00");
+    snapshot(created, LocalDate.of(2026, 4, 30), "0.00");
+
+    assertThat(service.close(created.getId()).isClosed()).isTrue();
+  }
+
+  @Test
+  void closeIsBlockedWhenANonZeroSnapshotFollowsAZeroOne() {
+    InvestmentProduct created = service.create(xpAccountId, cryptoId, null, "Bitcoin Test");
+    snapshot(created, LocalDate.of(2026, 3, 31), "0.00");
+    snapshot(created, LocalDate.of(2026, 4, 30), "20.00");
+
+    assertThatThrownBy(() -> service.close(created.getId()))
+        .isInstanceOf(InvestmentProductNotEmptyException.class);
+  }
+
+  @Test
+  void closeIsAllowedWithNoSnapshotAtAll() {
+    InvestmentProduct created = service.create(xpAccountId, cryptoId, null, "Bitcoin Test");
+
+    assertThat(service.close(created.getId()).isClosed()).isTrue();
   }
 
   @Test

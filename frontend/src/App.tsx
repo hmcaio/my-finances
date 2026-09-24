@@ -12,6 +12,8 @@ import { AccountsPage } from './features/accounts/AccountsPage'
 import { AccountDetailPage } from './features/accounts/AccountDetailPage'
 import { CategoriesPage } from './features/categories/CategoriesPage'
 import { InstitutionsPage } from './features/institutions/InstitutionsPage'
+import { InvestmentsPage } from './features/investments/InvestmentsPage'
+import { InvestmentProductDetailPage } from './features/investmentProducts/InvestmentProductDetailPage'
 import { InvestmentCategoriesPage } from './features/investmentCategories/InvestmentCategoriesPage'
 import { PaymentMethodsPage } from './features/paymentMethods/PaymentMethodsPage'
 import { TransactionsPage } from './features/transactions/TransactionsPage'
@@ -47,10 +49,11 @@ function ThemedApp() {
                 <Route path="/transactions" element={<TransactionsPage />} />
                 <Route path="/accounts" element={<AccountsPage />} />
                 <Route path="/accounts/:id" element={<AccountDetailPage />} />
+                <Route path="/investment-products/:id" element={<InvestmentProductDetailPage />} />
                 <Route path="/transfers" element={<TransfersPage />} />
                 <Route path="/budgets" element={<BudgetsPage />} />
                 <Route path="/recurring" element={<RecurringTemplatesPage />} />
-                <Route path="/investments" element={<ComingSoon title="Investments" />} />
+                <Route path="/investments" element={<InvestmentsPage />} />
                 <Route path="/settings/categories" element={<CategoriesPage />} />
                 <Route path="/settings/institutions" element={<InstitutionsPage />} />
                 <Route

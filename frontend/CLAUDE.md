@@ -45,6 +45,10 @@ Use MUI `Skeleton`, not spinners or "Loading…" text. Gate every skeleton behin
 
 A widget that fetches its own data on mount and takes no props (`PendingOccurrencesWidget`, kept prop-less so F012's dashboard can drop it in) won't refetch when the embedding page changes what it should show. The embedding page remounts it with a `key` counter it bumps after the relevant mutation (`RecurringTemplatesPage` does this after a cap edit or template creation).
 
+## Charts
+
+No chart library: `ValueSeriesChart` and `InvestmentAllocationChart` are hand-drawn SVG. Their React Compiler lint rules bite in charts specifically: no reassigning a `let` after render (compute running offsets with `reduce`/`slice`) and no `useMemo` over values the compiler can't preserve (compute plainly).
+
 ## Testing
 
 - Vitest is configured entirely through `vite.config.ts`'s `test` key (`environment: 'jsdom'`, `setupFiles: ['src/test/setup.ts']`) — there is no `vitest.config.ts`. `globals` is off, so `src/test/setup.ts` calls React Testing Library's `cleanup()` itself.

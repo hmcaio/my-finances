@@ -4,8 +4,11 @@ import type { Budget, BudgetReportLine } from './budgets'
 import type { Category } from './categories'
 import type { Institution } from './institutions'
 import type { InvestmentCategory, InvestmentSubcategoryEntry } from './investmentCategories'
+import type { AllocationRow } from './investmentAllocation'
 import type { InvestmentProduct } from './investmentProducts'
+import type { InvestmentSnapshot } from './investmentSnapshots'
 import type { InvestmentSubcategory } from './investmentSubcategories'
+import type { ProductValueSeries, ValueSeriesPoint } from './investmentValueSeries'
 import type { PaymentMethod } from './paymentMethods'
 import type { PendingRecurringOccurrence, RecurringTemplate } from './recurringTemplates'
 import type { Transaction, TransactionPage } from './transactions'
@@ -52,6 +55,19 @@ export type InvestmentSubcategoryEntryKeys = Assert<
 >
 export type InvestmentProductKeys = Assert<
   SameKeys<InvestmentProduct, Schemas['InvestmentProductResponse']>
+>
+export type InvestmentProductLatestSnapshotKeys = Assert<
+  SameKeys<NonNullable<InvestmentProduct['latestSnapshot']>, Schemas['LatestSnapshotResponse']>
+>
+export type InvestmentSnapshotKeys = Assert<
+  SameKeys<InvestmentSnapshot, Schemas['InvestmentSnapshotResponse']>
+>
+export type AllocationRowKeys = Assert<SameKeys<AllocationRow, Schemas['AllocationRowResponse']>>
+export type ProductValueSeriesKeys = Assert<
+  SameKeys<ProductValueSeries, Schemas['ProductSeriesResponse']>
+>
+export type ValueSeriesPointKeys = Assert<
+  SameKeys<ValueSeriesPoint, Schemas['SeriesPointResponse']>
 >
 export type InvestmentSubcategoryKeys = Assert<
   SameKeys<InvestmentSubcategory, Schemas['InvestmentSubcategoryResponse']>

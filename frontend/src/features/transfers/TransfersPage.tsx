@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import {
   Box,
   Button,
+  Chip,
   IconButton,
   MenuItem,
   Paper,
@@ -17,10 +18,9 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
 import { getAccounts } from '../../api/accounts'
+import { getInvestmentProducts } from '../../api/investmentProducts'
 import {
-  createTransfer,
   deleteTransfer,
-  editTransfer,
   getTransfers,
   type Transfer,
   type TransferFilter,
@@ -32,21 +32,8 @@ import { DataTableBody } from '../../components/DataTableBody'
 import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
 import { usePagedData } from '../../hooks/usePagedData'
 import { PaginationControls } from '../../components/PaginationControls'
-import { today } from '../../utils/localDate'
 import { nameLookup } from '../../utils/nameLookup'
-
-/** A fresh form, built per use so its date is today's local date rather than the date the page
- * module was first loaded. */
-function emptyForm() {
-  return {
-    date: today(),
-    amount: '',
-    fromAccountId: '',
-    toAccountId: '',
-    description: '',
-    additionalNotes: '',
-  }
-}
+import { TransferForm } from './TransferForm'
 
 const PAGE_SIZE = 20
 
@@ -54,9 +41,8 @@ const PAGE_SIZE = 20
  * Transfer list/table with filter controls (date range, account), plus a create/edit form and
  * delete-with-confirmation (F005 spec) - same shape as F004's `TransactionsPage`, minus the
  * category/payment-method dimensions a Transfer doesn't have (PRD S5.5: never "categorized"). The
- * create/edit form's "To" picker excludes whichever account is currently selected as "From" (F005
- * spec: "can't pick the same account twice"), so the same-account case is prevented client-side
- * rather than relying on the backend's 400 (`SameAccountTransferException`).
+ * form is `TransferForm`, which also handles buys and sells of investment products (F009): a
+ * tagged transfer shows a Buy/Sell chip with its product's name here.
  */
 export function TransfersPage() {
   const [page, setPage] = useState(0)
@@ -64,6 +50,9 @@ export function TransfersPage() {
   const [error, setError] = useState<string | null>(null)
 
   const { data: accounts, ...accountsState } = useAsyncData(() => getAccounts(true), [], {
+    onError: setError,
+  })
+  const { data: products, ...productsState } = useAsyncData(() => getInvestmentProducts(), [], {
     onError: setError,
   })
   const {
@@ -75,9 +64,9 @@ export function TransfersPage() {
     onError: setError,
   })
 
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [form, setForm] = useState(emptyForm)
-  const [saving, setSaving] = useState(false)
+  const [editing, setEditing] = useState<Transfer | null>(null)
+  // Bumped after each save/cancel so the form remounts with fresh state (today's date, no leftovers).
+  const [formKey, setFormKey] = useState(0)
 
   const [deleteTarget, setDeleteTarget] = useState<Transfer | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -88,76 +77,20 @@ export function TransfersPage() {
   }
 
   const accountName = useMemo(() => nameLookup(accounts ?? [], (a) => a.name), [accounts])
-  const openAccounts = useMemo(() => (accounts ?? []).filter((a) => !a.closed), [accounts])
-  const toAccountOptions = useMemo(
-    () => openAccounts.filter((a) => a.id !== form.fromAccountId),
-    [openAccounts, form.fromAccountId],
-  )
+  const productsById = useMemo(() => new Map((products ?? []).map((p) => [p.id, p])), [products])
 
-  function startEdit(transfer: Transfer) {
-    setEditingId(transfer.id)
-    setForm({
-      date: transfer.date,
-      amount: String(transfer.amount),
-      fromAccountId: transfer.fromAccountId,
-      toAccountId: transfer.toAccountId,
-      description: transfer.description,
-      additionalNotes: transfer.additionalNotes ?? '',
-    })
+  function resetForm() {
+    setEditing(null)
+    setFormKey((n) => n + 1)
   }
 
-  function cancelEdit() {
-    setEditingId(null)
-    setForm(emptyForm())
-  }
-
-  function setFromAccountId(fromAccountId: string) {
-    setForm((prev) => ({
-      ...prev,
-      fromAccountId,
-      // Clear "To" if it now collides with the newly-picked "From" (F005 spec: can't pick the
-      // same account twice on both sides).
-      toAccountId: prev.toAccountId === fromAccountId ? '' : prev.toAccountId,
-    }))
-  }
-
-  function isFormValid() {
-    return (
-      form.date !== '' &&
-      Number(form.amount) > 0 &&
-      form.fromAccountId !== '' &&
-      form.toAccountId !== '' &&
-      form.fromAccountId !== form.toAccountId &&
-      form.description.trim() !== ''
-    )
-  }
-
-  async function handleSubmit() {
-    if (!isFormValid()) return
-    setError(null)
-    setSaving(true)
-    const request = {
-      date: form.date,
-      fromAccountId: form.fromAccountId,
-      toAccountId: form.toAccountId,
-      amount: Number(form.amount),
-      description: form.description.trim(),
-      additionalNotes: form.additionalNotes.trim() || undefined,
+  function handleSaved(saved: Transfer) {
+    if (editing) {
+      setTransfers((prev) => prev.map((t) => (t.id === saved.id ? saved : t)))
+    } else {
+      setTransfers((prev) => [saved, ...prev])
     }
-    try {
-      if (editingId) {
-        const updated = await editTransfer(editingId, request)
-        setTransfers((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
-      } else {
-        const created = await createTransfer(request)
-        setTransfers((prev) => [created, ...prev])
-      }
-      cancelEdit()
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    } finally {
-      setSaving(false)
-    }
+    resetForm()
   }
 
   async function confirmDelete() {
@@ -175,9 +108,18 @@ export function TransfersPage() {
     }
   }
 
+  /** "Buy"/"Sell" plus the product's name for a tagged transfer; direction is derived from the
+   * accounts (a transfer into the product's own account is a buy), never stored. */
+  function tradeLabel(transfer: Transfer): string | null {
+    if (!transfer.investmentProductId) return null
+    const product = productsById.get(transfer.investmentProductId)
+    if (!product) return null
+    return `${transfer.toAccountId === product.accountId ? 'Buy' : 'Sell'} ${product.name}`
+  }
+
   // One load state for the table plus the lookup lists behind its name columns: rows show only
   // once every name can be resolved. Retry clears the stale banner and reloads what failed.
-  const tableState = combineLoadState(accountsState, transfersState)
+  const tableState = combineLoadState(accountsState, productsState, transfersState)
   function retry() {
     setError(null)
     tableState.reload()
@@ -190,7 +132,8 @@ export function TransfersPage() {
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         Money moved between your own accounts - most commonly paying a credit card statement from
-        checking. Transfers are never categorized and don't count toward budgets.
+        checking, or buying into and selling out of an investment product. Transfers are never
+        categorized and don't count toward budgets.
       </Typography>
 
       <ErrorAlert message={error} onDismiss={() => setError(null)} />
@@ -264,27 +207,40 @@ export function TransfersPage() {
                   </TableCell>
                 </TableRow>
               )}
-              {transfers?.map((transfer) => (
-                <TableRow key={transfer.id}>
-                  <TableCell>{transfer.date}</TableCell>
-                  <TableCell>{accountName(transfer.fromAccountId)}</TableCell>
-                  <TableCell>{accountName(transfer.toAccountId)}</TableCell>
-                  <TableCell align="right">{transfer.amount.toFixed(2)}</TableCell>
-                  <TableCell>{transfer.description}</TableCell>
-                  <TableCell align="right">
-                    <IconButton size="small" aria-label="Edit" onClick={() => startEdit(transfer)}>
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      aria-label="Delete"
-                      onClick={() => setDeleteTarget(transfer)}
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {transfers?.map((transfer) => {
+                const trade = tradeLabel(transfer)
+                return (
+                  <TableRow key={transfer.id}>
+                    <TableCell>{transfer.date}</TableCell>
+                    <TableCell>{accountName(transfer.fromAccountId)}</TableCell>
+                    <TableCell>{accountName(transfer.toAccountId)}</TableCell>
+                    <TableCell align="right">{transfer.amount.toFixed(2)}</TableCell>
+                    <TableCell>
+                      {transfer.description}
+                      {trade && <Chip label={trade} size="small" sx={{ ml: 1 }} />}
+                    </TableCell>
+                    <TableCell align="right">
+                      <IconButton
+                        size="small"
+                        aria-label="Edit"
+                        onClick={() => {
+                          setEditing(transfer)
+                          setFormKey((n) => n + 1)
+                        }}
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        aria-label="Delete"
+                        onClick={() => setDeleteTarget(transfer)}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
             </DataTableBody>
           </Table>
         </TableContainer>
@@ -292,89 +248,18 @@ export function TransfersPage() {
 
       <PaginationControls pageInfo={pageInfo} onPageChange={setPage} sx={{ mt: 0, mb: 3 }} />
 
-      <Paper variant="outlined" sx={{ p: 2, maxWidth: 720 }}>
+      <Paper variant="outlined" sx={{ p: 2, maxWidth: 900 }}>
         <Typography variant="subtitle1" gutterBottom>
-          {editingId ? 'Edit transfer' : 'Add transfer'}
+          {editing ? 'Edit transfer' : 'Add transfer'}
         </Typography>
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          <TextField
-            label="Date"
-            type="date"
-            size="small"
-            value={form.date}
-            onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
-            slotProps={{ inputLabel: { shrink: true } }}
-          />
-          <Select
-            size="small"
-            displayEmpty
-            value={form.fromAccountId}
-            onChange={(e) => setFromAccountId(e.target.value)}
-            aria-label="From Account"
-            sx={{ minWidth: 160 }}
-          >
-            <MenuItem value="" disabled>
-              From Account
-            </MenuItem>
-            {openAccounts.map((a) => (
-              <MenuItem key={a.id} value={a.id}>
-                {a.name}
-              </MenuItem>
-            ))}
-          </Select>
-          <Select
-            size="small"
-            displayEmpty
-            value={form.toAccountId}
-            onChange={(e) => setForm((prev) => ({ ...prev, toAccountId: e.target.value }))}
-            aria-label="To Account"
-            sx={{ minWidth: 160 }}
-          >
-            <MenuItem value="" disabled>
-              To Account
-            </MenuItem>
-            {toAccountOptions.map((a) => (
-              <MenuItem key={a.id} value={a.id}>
-                {a.name}
-              </MenuItem>
-            ))}
-          </Select>
-          <TextField
-            label="Amount"
-            type="number"
-            size="small"
-            value={form.amount}
-            onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value }))}
-            slotProps={{ htmlInput: { step: '0.01', min: '0.01' } }}
-          />
-          <TextField
-            label="Description"
-            size="small"
-            required
-            value={form.description}
-            onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
-            slotProps={{ htmlInput: { maxLength: 150 } }}
-          />
-          <TextField
-            label="Additional Notes"
-            size="small"
-            value={form.additionalNotes}
-            onChange={(e) => setForm((prev) => ({ ...prev, additionalNotes: e.target.value }))}
-            slotProps={{ htmlInput: { maxLength: 500 } }}
-          />
-          <Button
-            variant="contained"
-            disabled={saving || !isFormValid()}
-            onClick={() => void handleSubmit()}
-          >
-            {editingId ? 'Save changes' : 'Add'}
-          </Button>
-          {editingId && (
-            <Button onClick={cancelEdit} disabled={saving}>
-              Cancel
-            </Button>
-          )}
-        </Box>
+        <TransferForm
+          key={formKey}
+          accounts={accounts ?? []}
+          editing={editing}
+          onSaved={handleSaved}
+          onError={setError}
+          onCancel={editing ? resetForm : undefined}
+        />
       </Paper>
 
       <ConfirmDialog

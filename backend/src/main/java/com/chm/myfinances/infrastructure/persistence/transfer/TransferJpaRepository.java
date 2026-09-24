@@ -25,4 +25,10 @@ interface TransferJpaRepository
           + "and (t.fromAccountId = :accountId or t.toAccountId = :accountId)")
   List<TransferJpaEntity> findByAccountIdOnOrBefore(
       @Param("accountId") UUID accountId, @Param("asOfDate") LocalDate asOfDate);
+
+  List<TransferJpaEntity> findByInvestmentProductId(UUID investmentProductId);
+
+  List<TransferJpaEntity> findByInvestmentProductIdIsNotNull();
+
+  boolean existsByInvestmentProductId(UUID investmentProductId);
 }

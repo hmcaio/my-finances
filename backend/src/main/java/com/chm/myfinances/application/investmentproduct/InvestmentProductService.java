@@ -2,6 +2,7 @@ package com.chm.myfinances.application.investmentproduct;
 
 import com.chm.myfinances.application.account.AccountNotFoundException;
 import com.chm.myfinances.application.investmentcategory.InvestmentCategoryNotFoundException;
+import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
 import com.chm.myfinances.application.investmentsubcategory.InvestmentSubcategoryNotFoundException;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
@@ -40,6 +41,7 @@ public class InvestmentProductService {
   private final InvestmentCategoryRepository categoryRepository;
   private final InvestmentSubcategoryRepository subcategoryRepository;
   private final HasInvestmentHistoryChecker historyChecker;
+  private final LatestInvestmentSnapshotQuery latestSnapshotQuery;
   private final IdGenerator idGenerator;
   private final Clock clock;
 
@@ -49,6 +51,7 @@ public class InvestmentProductService {
       InvestmentCategoryRepository categoryRepository,
       InvestmentSubcategoryRepository subcategoryRepository,
       HasInvestmentHistoryChecker historyChecker,
+      LatestInvestmentSnapshotQuery latestSnapshotQuery,
       IdGenerator idGenerator,
       Clock clock) {
     this.productRepository = productRepository;
@@ -56,6 +59,7 @@ public class InvestmentProductService {
     this.categoryRepository = categoryRepository;
     this.subcategoryRepository = subcategoryRepository;
     this.historyChecker = historyChecker;
+    this.latestSnapshotQuery = latestSnapshotQuery;
     this.idGenerator = idGenerator;
     this.clock = clock;
   }
@@ -92,6 +96,9 @@ public class InvestmentProductService {
       String name) {
     InvestmentProduct product = findById(id);
     requireValidReferences(accountId, investmentCategoryId, investmentSubcategoryId);
+    if (!accountId.equals(product.getAccountId()) && historyChecker.hasHistory(id)) {
+      throw new InvestmentProductMoveBlockedException(id);
+    }
     if (productRepository.existsByAccountIdAndNameAndIdNot(accountId, name, id)) {
       throw new InvestmentProductNameAlreadyExistsException(name);
     }
@@ -100,13 +107,20 @@ public class InvestmentProductService {
   }
 
   /**
-   * Closes a product. One write, so no {@code @Transactional}. F009 adds the guard that a product
-   * can only be closed while its latest snapshot is {@code 0} or absent.
+   * Closes a product. One write, so no {@code @Transactional}. A product can only be closed while
+   * its latest snapshot is {@code 0} or absent (F009, {@link InvestmentProductNotEmptyException}),
+   * so a closed product never keeps counting a stale value.
    */
   public InvestmentProduct close(UUID id) {
     InvestmentProduct product = findById(id);
     if (product.isClosed()) {
       throw new InvestmentProductAlreadyClosedException(id);
+    }
+    if (latestSnapshotQuery
+        .latestOf(id)
+        .filter(snapshot -> snapshot.getBalance().signum() != 0)
+        .isPresent()) {
+      throw new InvestmentProductNotEmptyException(id);
     }
     product.close(LocalDate.now(clock));
     return productRepository.save(product);

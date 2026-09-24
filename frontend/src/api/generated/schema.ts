@@ -148,6 +148,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/investment-products/{productId}/snapshots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_5"];
+        put?: never;
+        post: operations["record"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/investment-products/{id}/close": {
         parameters: {
             query?: never;
@@ -171,7 +187,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_5"];
+        get: operations["list_6"];
         put?: never;
         post: operations["create_6"];
         delete?: never;
@@ -187,7 +203,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_6"];
+        get: operations["list_7"];
         put?: never;
         post: operations["create_7"];
         delete?: never;
@@ -203,7 +219,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_7"];
+        get: operations["list_8"];
         put?: never;
         post: operations["create_8"];
         delete?: never;
@@ -219,7 +235,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_8"];
+        get: operations["list_9"];
         put?: never;
         post: operations["create_9"];
         delete?: never;
@@ -235,7 +251,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_9"];
+        get: operations["list_10"];
         put?: never;
         post: operations["create_10"];
         delete?: never;
@@ -452,6 +468,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/investments/value-series": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["valueSeries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/investments/allocation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["allocation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health": {
         parameters: {
             query?: never;
@@ -514,6 +562,12 @@ export interface components {
             amount: number;
             description: string;
             additionalNotes?: string;
+            /** Format: uuid */
+            investmentProductId?: string;
+            quantity?: number;
+            unitPrice?: number;
+            taxes?: number;
+            resultingBalance?: number;
         };
         TransferResponse: {
             /** Format: uuid */
@@ -527,6 +581,11 @@ export interface components {
             amount?: number;
             description?: string;
             additionalNotes?: string;
+            /** Format: uuid */
+            investmentProductId?: string;
+            quantity?: number;
+            unitPrice?: number;
+            taxes?: number;
         };
         CreateTransactionRequest: {
             /** Format: date */
@@ -639,6 +698,27 @@ export interface components {
             closedDate?: string;
             closed?: boolean;
             hasHistory?: boolean;
+            needsSnapshot?: boolean;
+            latestSnapshot?: components["schemas"]["LatestSnapshotResponse"];
+        };
+        LatestSnapshotResponse: {
+            /** Format: date */
+            date?: string;
+            balance?: number;
+        };
+        RecordSnapshotRequest: {
+            /** Format: date */
+            date: string;
+            balance: number;
+        };
+        InvestmentSnapshotResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            productId?: string;
+            /** Format: date */
+            date?: string;
+            balance?: number;
         };
         CreateInvestmentCategoryRequest: {
             name: string;
@@ -726,6 +806,11 @@ export interface components {
             amount: number;
             description: string;
             additionalNotes?: string;
+            /** Format: uuid */
+            investmentProductId?: string;
+            quantity?: number;
+            unitPrice?: number;
+            taxes?: number;
         };
         UpdateTransactionRequest: {
             /** Format: date */
@@ -815,6 +900,27 @@ export interface components {
             dueDate?: string;
             amount?: number;
         };
+        ProductSeriesResponse: {
+            /** Format: uuid */
+            productId?: string;
+            points?: components["schemas"]["SeriesPointResponse"][];
+        };
+        SeriesPointResponse: {
+            month?: string;
+            value?: number;
+            contributed?: number;
+            units?: number;
+        };
+        AllocationRowResponse: {
+            /** Format: uuid */
+            categoryId?: string;
+            categoryName?: string;
+            /** Format: uuid */
+            subcategoryId?: string;
+            subcategoryName?: string;
+            totalValue?: number;
+            needsSnapshot?: boolean;
+        };
         BudgetReportLineResponse: {
             /** Format: uuid */
             categoryId?: string;
@@ -836,6 +942,7 @@ export interface operations {
                 dateFrom?: string;
                 dateTo?: string;
                 accountId?: string;
+                investmentProductId?: string;
                 pageable: components["schemas"]["Pageable"];
             };
             header?: never;
@@ -1158,6 +1265,54 @@ export interface operations {
             };
         };
     };
+    list_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvestmentSnapshotResponse"][];
+                };
+            };
+        };
+    };
+    record: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordSnapshotRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvestmentSnapshotResponse"];
+                };
+            };
+        };
+    };
     close: {
         parameters: {
             query?: never;
@@ -1180,7 +1335,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -1224,7 +1379,7 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    list_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -1268,7 +1423,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    list_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -1312,7 +1467,7 @@ export interface operations {
             };
         };
     };
-    list_8: {
+    list_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -1356,7 +1511,7 @@ export interface operations {
             };
         };
     };
-    list_9: {
+    list_10: {
         parameters: {
             query?: {
                 includeClosed?: boolean;
@@ -1976,6 +2131,53 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PendingRecurringOccurrenceResponse"][];
+                };
+            };
+        };
+    };
+    valueSeries: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                productId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProductSeriesResponse"][];
+                };
+            };
+        };
+    };
+    allocation: {
+        parameters: {
+            query?: {
+                asOf?: string;
+                groupBy?: "CATEGORY" | "SUBCATEGORY";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AllocationRowResponse"][];
                 };
             };
         };

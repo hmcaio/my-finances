@@ -1,6 +1,7 @@
 package com.chm.myfinances.infrastructure.web.transfer;
 
 import com.chm.myfinances.application.transfer.TransferService;
+import com.chm.myfinances.domain.transfer.InvestmentTradeDetails;
 import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.domain.transfer.TransferFilter;
 import jakarta.validation.Valid;
@@ -36,10 +37,11 @@ public class TransferController {
   }
 
   /**
-   * Filtered, paginated list - {@code GET /api/transfers?dateFrom=&dateTo=&accountId=&page=&size=&
-   * sort=}. {@code accountId} matches either side of the transfer (PRD S6.9). Defaults to 20 per
-   * page, most recent first ({@code date} descending) - same {@link PagedModel} envelope convention
-   * as F004's transaction list endpoint.
+   * Filtered, paginated list - {@code GET /api/transfers?dateFrom=&dateTo=&accountId=&
+   * investmentProductId=&page=&size=&sort=}. {@code accountId} matches either side of the transfer
+   * (PRD S6.9); {@code investmentProductId} (F009) is one product's buy/sell history. Defaults to
+   * 20 per page, most recent first ({@code date} descending) - same {@link PagedModel} envelope
+   * convention as F004's transaction list endpoint.
    */
   @GetMapping
   public PagedModel<TransferResponse> list(
@@ -48,9 +50,10 @@ public class TransferController {
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
           LocalDate dateTo,
       @RequestParam(required = false) UUID accountId,
+      @RequestParam(required = false) UUID investmentProductId,
       @PageableDefault(size = 20, sort = "date", direction = Sort.Direction.DESC)
           Pageable pageable) {
-    TransferFilter filter = new TransferFilter(dateFrom, dateTo, accountId);
+    TransferFilter filter = new TransferFilter(dateFrom, dateTo, accountId, investmentProductId);
     Page<Transfer> page = transferService.findAll(filter, pageable);
     return new PagedModel<>(page.map(TransferResponse::from));
   }
@@ -65,7 +68,10 @@ public class TransferController {
             request.toAccountId(),
             request.amount(),
             request.description(),
-            request.additionalNotes());
+            request.additionalNotes(),
+            request.investmentProductId(),
+            new InvestmentTradeDetails(request.quantity(), request.unitPrice(), request.taxes()),
+            request.resultingBalance());
     return TransferResponse.from(transfer);
   }
 
@@ -85,7 +91,9 @@ public class TransferController {
             request.toAccountId(),
             request.amount(),
             request.description(),
-            request.additionalNotes());
+            request.additionalNotes(),
+            request.investmentProductId(),
+            new InvestmentTradeDetails(request.quantity(), request.unitPrice(), request.taxes()));
     return TransferResponse.from(transfer);
   }
 

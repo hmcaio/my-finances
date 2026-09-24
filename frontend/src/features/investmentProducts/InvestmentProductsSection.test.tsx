@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
@@ -15,11 +15,11 @@ import {
   DELETE_CONFLICT_MESSAGE,
   SAVE_CONFLICT_MESSAGE,
 } from '../../api/investmentProducts'
-import { findRow, selectOption } from '../../test/testUtils'
+import { findRow, renderWithRouter, selectOption } from '../../test/testUtils'
 import { InvestmentProductsSection } from './InvestmentProductsSection'
 
 function renderSection(accountClosed = false) {
-  return render(
+  return renderWithRouter(
     <InvestmentProductsSection
       accountId={seedInvestmentAccount.id}
       accountClosed={accountClosed}
@@ -68,6 +68,22 @@ describe('InvestmentProductsSection', () => {
     expect(bitcoin.getByText('Crypto')).toBeInTheDocument()
     expect(bitcoin.getByText('-')).toBeInTheDocument()
     expect((await findRow('Old CDB')).getByText('Closed')).toBeInTheDocument()
+  })
+
+  it('links each product to its detail page, shows the latest value and flags a stale product', async () => {
+    renderSection()
+    await screen.findByText('Bitcoin')
+
+    expect(screen.getByRole('link', { name: 'Bitcoin' })).toHaveAttribute(
+      'href',
+      '/investment-products/iprod-btc',
+    )
+    const bitcoin = await findRow('Bitcoin')
+    // Seeded: latest snapshot 900 on 2026-08-05, and a buy newer than it.
+    expect(bitcoin.getByText('900.00')).toBeInTheDocument()
+    expect(bitcoin.getByText('Needs snapshot')).toBeInTheDocument()
+    const selic = await findRow('Tesouro Selic 2029')
+    expect(selic.queryByText('Needs snapshot')).not.toBeInTheDocument()
   })
 
   it('offers delete only while the product has no history', async () => {
@@ -240,7 +256,7 @@ describe('InvestmentProductsSection', () => {
     )
   })
 
-  it('surfaces the already-closed message when closing is refused', async () => {
+  it('surfaces the close-refused message (already closed or still has value) when closing is refused', async () => {
     server.use(investmentProductCloseConflictHandler)
     const user = userEvent.setup()
     renderSection()

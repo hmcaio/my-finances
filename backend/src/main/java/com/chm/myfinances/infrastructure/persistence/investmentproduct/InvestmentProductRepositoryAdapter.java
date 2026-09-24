@@ -72,6 +72,11 @@ public class InvestmentProductRepositoryAdapter implements InvestmentProductRepo
   }
 
   @Override
+  public boolean existsById(UUID id) {
+    return jpaRepository.existsById(id);
+  }
+
+  @Override
   public boolean existsByAccountIdAndName(UUID accountId, String name) {
     return jpaRepository.existsByAccountIdAndName(accountId, name);
   }

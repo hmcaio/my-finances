@@ -2,13 +2,19 @@ package com.chm.myfinances.application.account;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.category.CategoryType;
+import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
+import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transfer.Transfer;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
 import com.chm.myfinances.testsupport.fakes.FakeTransactionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeTransferRepository;
 import com.chm.myfinances.testsupport.mothers.AccountMother;
+import com.chm.myfinances.testsupport.mothers.InvestmentProductMother;
 import com.chm.myfinances.testsupport.mothers.TransactionMother;
 import com.chm.myfinances.testsupport.mothers.TransferMother;
 import java.math.BigDecimal;
@@ -29,8 +35,27 @@ class AccountBalanceQueryTest {
 
   private final FakeTransactionRepository transactionRepository = new FakeTransactionRepository();
   private final FakeTransferRepository transferRepository = new FakeTransferRepository();
+  private final FakeInvestmentProductRepository productRepository =
+      new FakeInvestmentProductRepository();
+  private final FakeInvestmentSnapshotRepository snapshotRepository =
+      new FakeInvestmentSnapshotRepository();
   private final AccountBalanceQuery query =
-      new AccountBalanceQuery(transactionRepository, transferRepository);
+      new AccountBalanceQuery(
+          transactionRepository,
+          transferRepository,
+          productRepository,
+          new LatestInvestmentSnapshotQuery(snapshotRepository));
+
+  private InvestmentProduct productIn(Account investment, String name) {
+    return productRepository.save(
+        InvestmentProductMother.product().withAccountId(investment.getId()).withName(name).build());
+  }
+
+  private void snapshot(InvestmentProduct product, LocalDate date, String balance) {
+    snapshotRepository.save(
+        InvestmentSnapshot.create(
+            UUID.randomUUID(), product.getId(), date, new BigDecimal(balance)));
+  }
 
   private static Transaction transactionOn(
       LocalDate date, BigDecimal amount, CategoryType type, UUID accountId) {
@@ -256,10 +281,10 @@ class AccountBalanceQueryTest {
 
   @Test
   void balanceAsOfOnAnInvestmentAccountIsZeroUntilSnapshotsExist() {
-    // F008 stub: no snapshots exist yet, and the account has no opening balance to start from.
-    // Transactions/transfers pointing at it don't contribute (F009 replaces this branch with the
-    // sum of the products' latest snapshots).
+    // No snapshots yet, and the account has no opening balance to start from. Transfers pointing
+    // at it don't contribute - only snapshots do.
     Account investment = AccountMother.investment().build();
+    productIn(investment, "Tesouro Selic");
     transferRepository.save(
         transferOn(
             LocalDate.of(2026, 2, 1),
@@ -270,5 +295,73 @@ class AccountBalanceQueryTest {
     BigDecimal balance = query.balanceAsOf(investment, LocalDate.of(2026, 3, 1));
 
     assertThat(balance).isEqualByComparingTo("0");
+  }
+
+  @Test
+  void balanceAsOfOnAnInvestmentAccountSumsItsProductsLatestSnapshots() {
+    Account investment = AccountMother.investment().build();
+    InvestmentProduct selic = productIn(investment, "Tesouro Selic");
+    InvestmentProduct fund = productIn(investment, "Fund");
+    snapshot(selic, LocalDate.of(2026, 1, 31), "1000.00");
+    snapshot(selic, LocalDate.of(2026, 2, 28), "1100.00");
+    snapshot(fund, LocalDate.of(2026, 1, 31), "250.50");
+
+    BigDecimal balance = query.balanceAsOf(investment, LocalDate.of(2026, 3, 1));
+
+    // Latest per product, not every snapshot: 1100 + 250.50.
+    assertThat(balance).isEqualByComparingTo("1350.50");
+  }
+
+  @Test
+  void balanceAsOfOnAnInvestmentAccountIgnoresSnapshotsAfterTheDateAndOtherAccountsProducts() {
+    Account investment = AccountMother.investment().build();
+    Account otherInvestment = AccountMother.investment().withName("Other broker").build();
+    InvestmentProduct selic = productIn(investment, "Tesouro Selic");
+    InvestmentProduct foreign = productIn(otherInvestment, "Foreign");
+    snapshot(selic, LocalDate.of(2026, 1, 31), "1000.00");
+    snapshot(selic, LocalDate.of(2026, 3, 31), "9999.00");
+    snapshot(foreign, LocalDate.of(2026, 1, 31), "777.00");
+
+    BigDecimal balance = query.balanceAsOf(investment, LocalDate.of(2026, 2, 15));
+
+    assertThat(balance).isEqualByComparingTo("1000.00");
+  }
+
+  @Test
+  void balanceAsOfOnAnInvestmentAccountCountsAZeroedProductAsNothing() {
+    Account investment = AccountMother.investment().build();
+    InvestmentProduct sold = productIn(investment, "Sold");
+    snapshot(sold, LocalDate.of(2026, 1, 31), "500.00");
+    snapshot(sold, LocalDate.of(2026, 2, 28), "0.00");
+
+    BigDecimal balance = query.balanceAsOf(investment, LocalDate.of(2026, 3, 1));
+
+    assertThat(balance).isEqualByComparingTo("0");
+  }
+
+  @Test
+  void aSellIntoCheckingRaisesCheckingWithoutTouchingTheInvestmentSideBalance() {
+    Account checking =
+        AccountMother.checking()
+            .withOpeningBalance(new BigDecimal("100.00"))
+            .withOpeningBalanceDate(LocalDate.of(2026, 1, 1))
+            .build();
+    Account investment = AccountMother.investment().build();
+    InvestmentProduct selic = productIn(investment, "Tesouro Selic");
+    snapshot(selic, LocalDate.of(2026, 1, 31), "1000.00");
+    transferRepository.save(
+        TransferMother.transfer()
+            .withDate(LocalDate.of(2026, 2, 10))
+            .withFromAccountId(investment.getId())
+            .withToAccountId(checking.getId())
+            .withAmount(new BigDecimal("400.00"))
+            .withInvestmentProductId(selic.getId())
+            .build());
+
+    assertThat(query.balanceAsOf(checking, LocalDate.of(2026, 2, 28)))
+        .isEqualByComparingTo("500.00");
+    // Snapshots stay the sole source of value: the sell doesn't change the investment side.
+    assertThat(query.balanceAsOf(investment, LocalDate.of(2026, 2, 28)))
+        .isEqualByComparingTo("1000.00");
   }
 }
