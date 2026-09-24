@@ -16,23 +16,21 @@ import {
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
-import { getAccounts } from '../../api/accounts'
-import { getCategories } from '../../api/categories'
-import { getPaymentMethods } from '../../api/paymentMethods'
+import { useAccounts } from '../../api/accountsQueries'
+import { useCategories } from '../../api/categoriesQueries'
+import { usePaymentMethods } from '../../api/paymentMethodsQueries'
+import type { Transaction, TransactionFilter } from '../../api/transactions'
 import {
-  createTransaction,
-  deleteTransaction,
-  editTransaction,
-  getTransactions,
-  type Transaction,
-  type TransactionFilter,
-} from '../../api/transactions'
+  useCreateTransaction,
+  useDeleteTransaction,
+  useEditTransaction,
+  useTransactions,
+} from '../../api/transactionsQueries'
 import { defaultErrorMessage } from '../../api/apiError'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { DataTableBody } from '../../components/DataTableBody'
-import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
-import { usePagedData } from '../../hooks/usePagedData'
+import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { PaginationControls } from '../../components/PaginationControls'
 import { today } from '../../utils/localDate'
 import { nameLookup } from '../../utils/nameLookup'
@@ -65,23 +63,27 @@ export function TransactionsPage() {
   const [filters, setFilters] = useState<TransactionFilter>({})
   const [error, setError] = useState<string | null>(null)
 
-  const { data: categories, ...categoriesState } = useAsyncData(getCategories, [], {
-    onError: setError,
-  })
-  const { data: accounts, ...accountsState } = useAsyncData(() => getAccounts(true), [], {
-    onError: setError,
-  })
-  const { data: paymentMethods, ...paymentMethodsState } = useAsyncData(getPaymentMethods, [], {
-    onError: setError,
-  })
-  const {
-    items: transactions,
-    setItems: setTransactions,
-    pageInfo,
-    ...transactionsState
-  } = usePagedData(() => getTransactions(filters, page, PAGE_SIZE), [filters, page], {
-    onError: setError,
-  })
+  const categoriesQuery = useCategories()
+  const categories = categoriesQuery.data
+  const categoriesState = useQueryState(categoriesQuery, setError)
+  const accountsQuery = useAccounts(true)
+  const accounts = accountsQuery.data
+  const accountsState = useQueryState(accountsQuery, setError)
+  const paymentMethodsQuery = usePaymentMethods()
+  const paymentMethods = paymentMethodsQuery.data
+  const paymentMethodsState = useQueryState(paymentMethodsQuery, setError)
+  const transactionsQuery = useTransactions(filters, page, PAGE_SIZE)
+  const transactions = transactionsQuery.data?.content
+  const pageInfo = transactionsQuery.data
+    ? {
+        number: transactionsQuery.data.page.number,
+        totalPages: transactionsQuery.data.page.totalPages,
+      }
+    : null
+  const transactionsState = useQueryState(transactionsQuery, setError)
+  const createMutation = useCreateTransaction()
+  const editMutation = useEditTransaction()
+  const deleteMutation = useDeleteTransaction()
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState(emptyForm)
@@ -152,11 +154,9 @@ export function TransactionsPage() {
     }
     try {
       if (editingId) {
-        const updated = await editTransaction(editingId, request)
-        setTransactions((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
+        await editMutation.mutateAsync({ id: editingId, ...request })
       } else {
-        const created = await createTransaction(request)
-        setTransactions((prev) => [created, ...prev])
+        await createMutation.mutateAsync(request)
       }
       cancelEdit()
     } catch (err) {
@@ -171,8 +171,7 @@ export function TransactionsPage() {
     setError(null)
     setDeleting(true)
     try {
-      await deleteTransaction(deleteTarget.id)
-      setTransactions((prev) => prev.filter((t) => t.id !== deleteTarget.id))
+      await deleteMutation.mutateAsync(deleteTarget.id)
       setDeleteTarget(null)
     } catch (err) {
       setError(defaultErrorMessage(err))

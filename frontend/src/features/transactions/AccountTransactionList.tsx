@@ -8,13 +8,12 @@ import {
   TableRow,
   Typography,
 } from '@mui/material'
-import { getCategories } from '../../api/categories'
-import { getPaymentMethods } from '../../api/paymentMethods'
-import { getTransactions } from '../../api/transactions'
+import { useCategories } from '../../api/categoriesQueries'
+import { usePaymentMethods } from '../../api/paymentMethodsQueries'
+import { useTransactions } from '../../api/transactionsQueries'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { DataTableBody } from '../../components/DataTableBody'
-import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
-import { usePagedData } from '../../hooks/usePagedData'
+import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { PaginationControls } from '../../components/PaginationControls'
 import { nameLookup } from '../../utils/nameLookup'
 
@@ -34,19 +33,21 @@ interface AccountTransactionListProps {
 export function AccountTransactionList({ accountId }: AccountTransactionListProps) {
   const [page, setPage] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  const { data: categories, ...categoriesState } = useAsyncData(getCategories, [], {
-    onError: setError,
-  })
-  const { data: paymentMethods, ...paymentMethodsState } = useAsyncData(getPaymentMethods, [], {
-    onError: setError,
-  })
-  const {
-    items: transactions,
-    pageInfo,
-    ...transactionsState
-  } = usePagedData(() => getTransactions({ accountId }, page, PAGE_SIZE), [accountId, page], {
-    onError: setError,
-  })
+  const categoriesQuery = useCategories()
+  const categories = categoriesQuery.data
+  const categoriesState = useQueryState(categoriesQuery, setError)
+  const paymentMethodsQuery = usePaymentMethods()
+  const paymentMethods = paymentMethodsQuery.data
+  const paymentMethodsState = useQueryState(paymentMethodsQuery, setError)
+  const transactionsQuery = useTransactions({ accountId }, page, PAGE_SIZE)
+  const transactions = transactionsQuery.data?.content
+  const pageInfo = transactionsQuery.data
+    ? {
+        number: transactionsQuery.data.page.number,
+        totalPages: transactionsQuery.data.page.totalPages,
+      }
+    : null
+  const transactionsState = useQueryState(transactionsQuery, setError)
 
   const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
   const paymentMethodName = useMemo(
