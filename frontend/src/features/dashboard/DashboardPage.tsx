@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react'
 import { Alert, Box, CircularProgress, Paper, Typography } from '@mui/material'
 import { getHealth, type HealthResponse } from '../../api/health'
+import { NetWorthTrendChart } from '../netWorth/NetWorthTrendChart'
 
 type Status = 'loading' | 'up' | 'error'
 
 /**
  * Stands in for the real Dashboard (F012, not built yet). Also serves as F001's
  * frontend-to-backend connectivity check: calls the health-check endpoint and displays the
- * result (see F001 spec's "Add a placeholder page..." requirement). F012 replaces this
- * component entirely.
+ * result (see F001 spec's "Add a placeholder page..." requirement). Also hosts F010's net worth
+ * trend widget until F012 replaces this component entirely (and embeds the widget itself).
  */
 export function DashboardPage() {
   const [status, setStatus] = useState<Status>('loading')
@@ -44,6 +45,13 @@ export function DashboardPage() {
         The real dashboard (spend by category, budgets, net worth trend, ...) arrives with F012. For
         now, this page confirms the frontend can reach the backend.
       </Typography>
+
+      <Paper variant="outlined" sx={{ p: 3, maxWidth: 720, mb: 3 }}>
+        <Typography variant="subtitle1" gutterBottom>
+          Net worth
+        </Typography>
+        <NetWorthTrendChart />
+      </Paper>
 
       <Paper variant="outlined" sx={{ p: 3, maxWidth: 480 }}>
         <Typography variant="subtitle1" gutterBottom>

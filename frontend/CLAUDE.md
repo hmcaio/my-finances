@@ -47,7 +47,7 @@ A widget that fetches its own data on mount and takes no props (`PendingOccurren
 
 ## Charts
 
-No chart library: `ValueSeriesChart` and `InvestmentAllocationChart` are hand-drawn SVG. Their React Compiler lint rules bite in charts specifically: no reassigning a `let` after render (compute running offsets with `reduce`/`slice`) and no `useMemo` over values the compiler can't preserve (compute plainly).
+No chart library: `ValueSeriesChart`, `InvestmentAllocationChart` and `NetWorthTrendChart` are hand-drawn SVG. Their React Compiler lint rules bite in charts specifically: no reassigning a `let` after render (compute running offsets with `reduce`/`slice`) and no `useMemo` over values the compiler can't preserve (compute plainly).
 
 ## Testing
 
