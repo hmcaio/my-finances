@@ -27,6 +27,22 @@ function settingsTable() {
 }
 
 describe('BudgetsPage', () => {
+  it('fetches the categories once for the page and its embedded report (shared query)', async () => {
+    let categoryRequests = 0
+    server.use(
+      http.get('/api/categories', () => {
+        categoryRequests += 1
+        return HttpResponse.json(seedCategories)
+      }),
+    )
+    renderWithQueryClient(<BudgetsPage />)
+
+    await findRow(seedGroceriesCategory.name, settingsTable())
+    await screen.findByText(/620\.00 \/ 500\.00 — over budget/)
+
+    expect(categoryRequests).toBe(1)
+  })
+
   it('renders the seeded budget with its current cap', async () => {
     renderWithQueryClient(<BudgetsPage />)
 

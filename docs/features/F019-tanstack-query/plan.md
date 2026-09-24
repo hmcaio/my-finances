@@ -28,10 +28,10 @@ Each area: test first (hook via MSW: loads, error, mutation success invalidates)
 - [ ] After each area: `npm run lint && npm test`.
 
 ## Phase 3 — Cleanup
-- [ ] Delete `useAsyncData`, `usePagedData`, their tests, `combineLoadState` if now unused, and any `setData`/`markHasAccounts` remains.
-- [ ] Grep to confirm no `useEffect`-based fetching and no direct `src/api/<area>` import from `src/features/**` remains.
-- [ ] Tests for the cache rules if not already covered: shared-key dedup (one request for two consumers), invalidation after success, none after failure.
-- [ ] `npm run lint && npm test && npm run build`.
+- [x] Delete `useAsyncData`, `usePagedData`, their tests, `combineLoadState` if now unused, and any `setData`/`markHasAccounts` remains.
+- [x] Grep to confirm no `useEffect`-based fetching and no direct `src/api/<area>` import from `src/features/**` remains.
+- [x] Tests for the cache rules if not already covered: shared-key dedup (one request for two consumers), invalidation after success, none after failure.
+- [x] `npm run lint && npm test && npm run build`.
 
 ## Phase 4 — Docs
 - [ ] `frontend/CLAUDE.md`: rewrite "Data loading" (hooks per area, key factories, global invalidation and `skipInvalidate`, `mutation.error` handling with `defaultErrorMessage`, defaults, no optimistic updates, `renderWithQueryClient`), update the layout note and drop `useAsyncData`/`usePagedData` mentions.

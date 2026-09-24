@@ -37,11 +37,7 @@ export default tseslint.config(
     // hooks, never by calling an `src/api/<area>` HTTP function itself. Types, constants and the
     // conflict messages can still be imported from the area module.
     files: ['src/features/**/*.{ts,tsx}'],
-    ignores: [
-      '**/*.test.{ts,tsx}',
-      // Areas not yet migrated to their <area>Queries hooks; each migration commit removes its
-      // folder from this list, and the last one deletes the list (F019 plan, Phase 3).
-    ],
+    ignores: ['**/*.test.{ts,tsx}'],
     rules: {
       'no-restricted-imports': [
         'error',
