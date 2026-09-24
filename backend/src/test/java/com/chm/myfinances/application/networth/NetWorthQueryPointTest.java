@@ -73,7 +73,7 @@ class NetWorthQueryPointTest {
   }
 
   @Test
-  void matchesTheFormula_assetsAndInvestmentsAddCreditCardsSubtract() {
+  void matchesTheFormulaAssetsAndInvestmentsAddCreditCardsSubtract() {
     LocalDate opened = LocalDate.of(2026, 1, 1);
     save(AccountMother.checking().withOpeningBalance(bd("1000.00")).withOpeningBalanceDate(opened));
     save(AccountMother.savings().withOpeningBalance(bd("500.00")).withOpeningBalanceDate(opened));
@@ -93,7 +93,7 @@ class NetWorthQueryPointTest {
   }
 
   @Test
-  void balancesAreAsOfTheDate_transactionsAfterItAreIgnored() {
+  void balancesAreAsOfTheDateTransactionsAfterItAreIgnored() {
     Account checking =
         save(
             AccountMother.checking()
@@ -133,7 +133,7 @@ class NetWorthQueryPointTest {
   }
 
   @Test
-  void anAccountClosedAfterTheDateStillCounts_andStopsCountingFromItsClosedDate() {
+  void anAccountClosedAfterTheDateStillCountsAndStopsCountingFromItsClosedDate() {
     Account savings =
         save(
             AccountMother.savings()

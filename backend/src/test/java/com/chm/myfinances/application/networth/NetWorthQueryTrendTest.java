@@ -106,7 +106,7 @@ class NetWorthQueryTrendTest {
   }
 
   @Test
-  void changeDate_hasAPointOnEveryTransactionTransferAndSnapshotDate() {
+  void changeDateHasAPointOnEveryTransactionTransferAndSnapshotDate() {
     Account savings =
         accountRepository.save(
             AccountMother.savings()
@@ -129,7 +129,7 @@ class NetWorthQueryTrendTest {
   }
 
   @Test
-  void changeDate_aValueChangeIsReflectedOnItsOwnDate() {
+  void changeDateAValueChangeIsReflectedOnItsOwnDate() {
     expense(d(2, 10), "100.00");
     snapshot(d(4, 20), "500.00");
 
@@ -146,7 +146,7 @@ class NetWorthQueryTrendTest {
   }
 
   @Test
-  void changeDate_accountOpenedAndClosedDatesAreChangePointsToo() {
+  void changeDateAccountOpenedAndClosedDatesAreChangePointsToo() {
     Account extra =
         accountRepository.save(
             AccountMother.savings()
@@ -164,7 +164,7 @@ class NetWorthQueryTrendTest {
   }
 
   @Test
-  void changeDate_distinctDatesOnly_andNothingOutsideTheRangeOrAfterToday() {
+  void changeDateDistinctDatesOnlyAndNothingOutsideTheRangeOrAfterToday() {
     expense(d(2, 10), "10.00");
     expense(d(2, 10), "20.00");
     expense(d(2, 9), "5.00");
@@ -177,7 +177,7 @@ class NetWorthQueryTrendTest {
   }
 
   @Test
-  void month_hasOnePointPerMonthDatedMonthEnd_andCarriesValuesThroughQuietMonths() {
+  void monthHasOnePointPerMonthDatedMonthEndAndCarriesValuesThroughQuietMonths() {
     expense(d(1, 20), "100.00");
     snapshot(d(4, 10), "700.00");
 
@@ -190,7 +190,7 @@ class NetWorthQueryTrendTest {
   }
 
   @Test
-  void month_aTransactionOnAMonthEndIsInThatMonth() {
+  void monthATransactionOnAMonthEndIsInThatMonth() {
     expense(d(2, 28), "100.00");
 
     List<NetWorthPoint> points = query.trend(d(1, 1), d(3, 31), NetWorthGranularity.MONTH);
@@ -200,14 +200,14 @@ class NetWorthQueryTrendTest {
   }
 
   @Test
-  void month_coversEveryMonthOverlappingTheRange() {
+  void monthCoversEveryMonthOverlappingTheRange() {
     List<NetWorthPoint> points = query.trend(d(1, 20), d(3, 5), NetWorthGranularity.MONTH);
 
     assertThat(dates(points)).containsExactly(d(1, 31), d(2, 28), d(3, 31));
   }
 
   @Test
-  void month_theCurrentMonthIsEvaluatedAtToday_andLaterMonthsAreNotIncluded() {
+  void monthTheCurrentMonthIsEvaluatedAtTodayAndLaterMonthsAreNotIncluded() {
     expense(d(6, 10), "100.00");
     expense(d(6, 20), "50.00");
 
