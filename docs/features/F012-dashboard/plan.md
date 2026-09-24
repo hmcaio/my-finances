@@ -4,7 +4,7 @@
 
 ## Backend
 - [ ] (Optional but recommended) `GET /api/dashboard` composing the underlying feature endpoints into one response.
-- [ ] Monthly-spend-by-category query (current month, per category), if not already covered by an existing F004/F006 endpoint.
+- [x] Monthly-spend-by-category query (current month, per category), if not already covered by an existing F004/F006 endpoint.
 
 ## Frontend
 - [ ] `src/features/dashboard` page, grid layout.

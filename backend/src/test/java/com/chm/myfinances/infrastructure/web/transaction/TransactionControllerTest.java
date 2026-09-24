@@ -484,4 +484,26 @@ class TransactionControllerTest {
         .andExpect(jsonPath("$.page.totalElements").value(1))
         .andExpect(jsonPath("$.content[0].id").value(uniqueByPaymentMethod));
   }
+
+  @Test
+  void spendByCategorySumsExpensesOfTheMonthOnly() throws Exception {
+    createTransaction("2001-05-03", "10.00", expenseCategoryId, accountId);
+    createTransaction("2001-05-20", "15.50", expenseCategoryId, otherAccountId);
+    createTransaction("2001-06-01", "999.00", expenseCategoryId, accountId);
+    createTransaction("2001-05-10", "3000.00", incomeCategoryId, accountId);
+
+    mockMvc
+        .perform(get("/api/transactions/spend-by-category").param("month", "2001-05"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(1))
+        .andExpect(jsonPath("$[0].categoryId").value(expenseCategoryId.toString()))
+        .andExpect(jsonPath("$[0].total").value(25.50));
+  }
+
+  @Test
+  void spendByCategoryRejectsAMalformedMonthWith400() throws Exception {
+    mockMvc
+        .perform(get("/api/transactions/spend-by-category").param("month", "nope"))
+        .andExpect(status().isBadRequest());
+  }
 }
