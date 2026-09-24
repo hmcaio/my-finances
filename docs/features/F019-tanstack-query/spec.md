@@ -52,7 +52,7 @@ Reference pattern is built for categories first, then the other areas follow it:
 
 ## Docs
 - ADR 0016 and its README row; `docs/features/README.md` row.
-- `frontend/CLAUDE.md`: rewrite the "Data loading" section (hooks per area, key factories, global invalidation, `skipInvalidate`, `mutation.error` handling, defaults, no optimistic updates, tests via `renderWithQueryClient`) and the layout note about `<area>Queries.ts`. Remove references to `useAsyncData`/`usePagedData`.
+- `frontend/CLAUDE.md`: rewrite the "Data loading" section (hooks per area, key factories, global invalidation, `skipInvalidate`, `mutateAsync` error handling, defaults, no optimistic updates, tests via `renderWithQueryClient`) and the layout note about `<area>Queries.ts`. Remove references to `useAsyncData`/`usePagedData`.
 - Root `README.md`: "Project status" entry once built.
 - `CHANGELOG.md` `[Unreleased]` entry (`**F019 — TanStack Query migration**`, user-visible: fewer reloads and faster navigation). No `Upgrade:` line (no compose, env or config change).
 
