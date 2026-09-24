@@ -9,7 +9,7 @@
 - [x] `GET /api/export` endpoint streaming the ZIP with correct `Content-Disposition`.
 
 ## Frontend
-- [ ] `src/api/export.ts` (triggers a native download rather than JSON parsing).
+- [x] `src/api/export.ts` (triggers a native download rather than JSON parsing).
 - [ ] `src/features/export` — filter inputs + download button.
 
 ## Verification
