@@ -253,7 +253,7 @@ These are low-level choices left to implementation rather than product decisions
 - Exact predefined starter category and payment method lists.
 - Category/payment-method deletion/reassignment behavior when transactions reference it.
 - Currency precision/rounding rules.
-- Exact CSV column ordering/naming and ZIP file naming convention for data export (§6.9).
+- ~~Exact CSV column ordering/naming and ZIP file naming convention for data export (§6.9).~~ Decided in F013's spec.
 
 ## 9. Future Directions (explicitly out of scope for v1)
 

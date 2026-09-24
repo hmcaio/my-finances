@@ -36,6 +36,17 @@ describe('App', () => {
     expect(await screen.findByRole('switch', { name: 'Show closed accounts' })).toBeInTheDocument()
   })
 
+  it('routes the Export nav link to the data export page', async () => {
+    stubMatchMedia()
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Dashboard' })
+
+    await user.click(screen.getByRole('link', { name: 'Export' }))
+
+    expect(await screen.findByRole('button', { name: 'Download' })).toBeInTheDocument()
+  })
+
   describe('onboarding gate (F011)', () => {
     it('shows onboarding instead of the app shell when no account exists, closed ones included', async () => {
       stubMatchMedia()

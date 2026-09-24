@@ -42,6 +42,11 @@ public final class FakeTransferRepository extends InMemoryRepository<Transfer>
             .sorted(Comparator.comparing(Transfer::getDate).reversed())
             .toList();
 
+    // Pageable.unpaged() means "every match" (F013 export), as for real Spring Data JPA.
+    if (pageable.isUnpaged()) {
+      return new PageImpl<>(filtered);
+    }
+
     int start = (int) pageable.getOffset();
     int end = Math.min(start + pageable.getPageSize(), filtered.size());
     List<Transfer> pageContent =
