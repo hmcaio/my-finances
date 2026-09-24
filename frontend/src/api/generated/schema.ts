@@ -468,6 +468,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/net-worth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["netWorth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/net-worth/trend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["netWorthTrend"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/investments/value-series": {
         parameters: {
             query?: never;
@@ -899,6 +931,14 @@ export interface components {
             /** Format: date */
             dueDate?: string;
             amount?: number;
+        };
+        NetWorthPointResponse: {
+            /** Format: date */
+            date?: string;
+            netWorth?: number;
+            assets?: number;
+            liabilities?: number;
+            investments?: number;
         };
         ProductSeriesResponse: {
             /** Format: uuid */
@@ -2131,6 +2171,52 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PendingRecurringOccurrenceResponse"][];
+                };
+            };
+        };
+    };
+    netWorth: {
+        parameters: {
+            query?: {
+                asOf?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["NetWorthPointResponse"];
+                };
+            };
+        };
+    };
+    netWorthTrend: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                granularity?: "CHANGE_DATE" | "MONTH";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["NetWorthPointResponse"][];
                 };
             };
         };
