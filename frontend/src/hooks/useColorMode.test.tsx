@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
-import { ColorModeProvider, useColorMode } from './useColorMode'
+import { ColorModeProvider } from './ColorModeProvider'
+import { useColorMode } from './useColorMode'
 
 const STORAGE_KEY = 'my-finances:color-mode'
 
