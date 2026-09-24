@@ -8,12 +8,11 @@ import {
   TableRow,
   Typography,
 } from '@mui/material'
-import { getAccounts } from '../../api/accounts'
-import { getTransfers } from '../../api/transfers'
+import { useAccounts } from '../../api/accountsQueries'
+import { useTransfers } from '../../api/transfersQueries'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { DataTableBody } from '../../components/DataTableBody'
-import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
-import { usePagedData } from '../../hooks/usePagedData'
+import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { PaginationControls } from '../../components/PaginationControls'
 import { nameLookup } from '../../utils/nameLookup'
 
@@ -34,16 +33,15 @@ interface AccountTransferListProps {
 export function AccountTransferList({ accountId }: AccountTransferListProps) {
   const [page, setPage] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  const { data: accounts, ...accountsState } = useAsyncData(() => getAccounts(true), [], {
-    onError: setError,
-  })
-  const {
-    items: transfers,
-    pageInfo,
-    ...transfersState
-  } = usePagedData(() => getTransfers({ accountId }, page, PAGE_SIZE), [accountId, page], {
-    onError: setError,
-  })
+  const accountsQuery = useAccounts(true)
+  const accounts = accountsQuery.data
+  const accountsState = useQueryState(accountsQuery, setError)
+  const transfersQuery = useTransfers({ accountId }, page, PAGE_SIZE)
+  const transfers = transfersQuery.data?.content
+  const pageInfo = transfersQuery.data
+    ? { number: transfersQuery.data.page.number, totalPages: transfersQuery.data.page.totalPages }
+    : null
+  const transfersState = useQueryState(transfersQuery, setError)
 
   const accountName = useMemo(() => nameLookup(accounts ?? [], (a) => a.name), [accounts])
 

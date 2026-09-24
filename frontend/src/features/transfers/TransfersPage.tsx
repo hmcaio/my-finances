@@ -17,20 +17,15 @@ import {
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
-import { getAccounts } from '../../api/accounts'
-import { getInvestmentProducts } from '../../api/investmentProducts'
-import {
-  deleteTransfer,
-  getTransfers,
-  type Transfer,
-  type TransferFilter,
-} from '../../api/transfers'
+import { useAccounts } from '../../api/accountsQueries'
+import { useInvestmentProducts } from '../../api/investmentProductsQueries'
+import type { Transfer, TransferFilter } from '../../api/transfers'
+import { useDeleteTransfer, useTransfers } from '../../api/transfersQueries'
 import { defaultErrorMessage } from '../../api/apiError'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { DataTableBody } from '../../components/DataTableBody'
-import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
-import { usePagedData } from '../../hooks/usePagedData'
+import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { PaginationControls } from '../../components/PaginationControls'
 import { nameLookup } from '../../utils/nameLookup'
 import { TransferForm } from './TransferForm'
@@ -49,20 +44,19 @@ export function TransfersPage() {
   const [filters, setFilters] = useState<TransferFilter>({})
   const [error, setError] = useState<string | null>(null)
 
-  const { data: accounts, ...accountsState } = useAsyncData(() => getAccounts(true), [], {
-    onError: setError,
-  })
-  const { data: products, ...productsState } = useAsyncData(() => getInvestmentProducts(), [], {
-    onError: setError,
-  })
-  const {
-    items: transfers,
-    setItems: setTransfers,
-    pageInfo,
-    ...transfersState
-  } = usePagedData(() => getTransfers(filters, page, PAGE_SIZE), [filters, page], {
-    onError: setError,
-  })
+  const accountsQuery = useAccounts(true)
+  const accounts = accountsQuery.data
+  const accountsState = useQueryState(accountsQuery, setError)
+  const productsQuery = useInvestmentProducts()
+  const products = productsQuery.data
+  const productsState = useQueryState(productsQuery, setError)
+  const transfersQuery = useTransfers(filters, page, PAGE_SIZE)
+  const transfers = transfersQuery.data?.content
+  const pageInfo = transfersQuery.data
+    ? { number: transfersQuery.data.page.number, totalPages: transfersQuery.data.page.totalPages }
+    : null
+  const transfersState = useQueryState(transfersQuery, setError)
+  const deleteMutation = useDeleteTransfer()
 
   const [editing, setEditing] = useState<Transfer | null>(null)
   // Bumped after each save/cancel so the form remounts with fresh state (today's date, no leftovers).
@@ -84,12 +78,8 @@ export function TransfersPage() {
     setFormKey((n) => n + 1)
   }
 
-  function handleSaved(saved: Transfer) {
-    if (editing) {
-      setTransfers((prev) => prev.map((t) => (t.id === saved.id ? saved : t)))
-    } else {
-      setTransfers((prev) => [saved, ...prev])
-    }
+  // The saved row shows up through the refetch that follows every successful write.
+  function handleSaved() {
     resetForm()
   }
 
@@ -98,8 +88,7 @@ export function TransfersPage() {
     setError(null)
     setDeleting(true)
     try {
-      await deleteTransfer(deleteTarget.id)
-      setTransfers((prev) => prev.filter((t) => t.id !== deleteTarget.id))
+      await deleteMutation.mutateAsync(deleteTarget.id)
       setDeleteTarget(null)
     } catch (err) {
       setError(defaultErrorMessage(err))

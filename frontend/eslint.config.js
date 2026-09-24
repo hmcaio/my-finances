@@ -45,7 +45,6 @@ export default tseslint.config(
       'src/features/export/**',
       'src/features/netWorth/**',
       'src/features/recurringTemplates/**',
-      'src/features/transfers/**',
     ],
     rules: {
       'no-restricted-imports': [
