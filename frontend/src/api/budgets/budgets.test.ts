@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import {
   budgetCreateConflictHandler,
@@ -12,6 +13,7 @@ import {
   getBudgetReport,
   getBudgets,
   setBudgetCap,
+  stopBudget,
 } from './budgets'
 
 describe('budgets API client', () => {
@@ -56,6 +58,28 @@ describe('budgets API client', () => {
       currentCap: 750,
       currentCapEffectiveFrom: '2026-04',
     })
+  })
+
+  it('stopBudget posts the month and returns the stopped budget', async () => {
+    const stopped = await stopBudget('budget-1', { effectiveFrom: '2026-05' })
+
+    expect(stopped).toMatchObject({
+      id: 'budget-1',
+      currentCap: null,
+      currentCapEffectiveFrom: '2026-05',
+      stopped: true,
+    })
+  })
+
+  it('stopBudget rejects an unknown budget with a 404 ApiError', async () => {
+    server.use(http.post('/api/budgets/:id/stop', () => new HttpResponse(null, { status: 404 })))
+
+    const error: unknown = await stopBudget('nope', { effectiveFrom: '2026-05' }).catch(
+      (err: unknown) => err,
+    )
+
+    expect(error).toBeInstanceOf(ApiError)
+    expect((error as ApiError).status).toBe(404)
   })
 
   it('getBudgetReport returns the seeded report for the requested month', async () => {

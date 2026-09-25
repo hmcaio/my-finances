@@ -13,6 +13,7 @@ export const seedBudgets: Budget[] = [
     categoryId: 'cat-1',
     currentCap: 500,
     currentCapEffectiveFrom: '2026-01',
+    stopped: false,
   },
 ]
 
@@ -39,6 +40,10 @@ interface UpdateBudgetCapRequestBody {
   effectiveFrom: string
 }
 
+interface StopBudgetRequestBody {
+  effectiveFrom: string
+}
+
 const budgets = createStore(seedBudgets)
 
 /**
@@ -58,6 +63,7 @@ export const budgetsHandlers = [
       categoryId: body.categoryId,
       currentCap: body.monthlyCap,
       currentCapEffectiveFrom: body.effectiveFrom,
+      stopped: false,
     })
     return HttpResponse.json(created, { status: 201 })
   }),
@@ -68,6 +74,20 @@ export const budgetsHandlers = [
       ...row,
       currentCap: body.monthlyCap,
       currentCapEffectiveFrom: body.effectiveFrom,
+      stopped: false,
+    }))
+    return updated ? HttpResponse.json(updated) : new HttpResponse(null, { status: 404 })
+  }),
+
+  // Simplification: like the real API for a stop from the current month or earlier, the row turns
+  // into `stopped` at once (a future-month stop is not modelled). The report is a fixed seed.
+  http.post(`${BUDGETS_URL}/:id/stop`, async ({ request, params }) => {
+    const body = (await request.json()) as StopBudgetRequestBody
+    const updated = budgets.replace(params.id as string, (row) => ({
+      ...row,
+      currentCap: null,
+      currentCapEffectiveFrom: body.effectiveFrom,
+      stopped: true,
     }))
     return updated ? HttpResponse.json(updated) : new HttpResponse(null, { status: 404 })
   }),

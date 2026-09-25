@@ -133,6 +133,85 @@ describe('BudgetsPage', () => {
     expect(await settingsTable().findByText('750.00')).toBeInTheDocument()
   })
 
+  it('stops a budget after confirming, keeping past months and hiding it from the picker', async () => {
+    // Once stopped the backend omits the line from the current month's report.
+    server.use(http.get('/api/budgets/report', () => HttpResponse.json([])))
+    const user = userEvent.setup()
+    renderWithQueryClient(<BudgetsPage />)
+    const row = await findRow(seedGroceriesCategory.name, settingsTable())
+
+    await user.click(row.getByRole('button', { name: 'Stop budget' }))
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText(/Past months keep the cap they had/)).toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: 'Stop budget' }))
+
+    await waitFor(() => expect(settingsTable().getByText('Stopped')).toBeInTheDocument())
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    const stoppedRow = await findRow(seedGroceriesCategory.name, settingsTable())
+    expect(stoppedRow.queryByRole('button', { name: 'Stop budget' })).not.toBeInTheDocument()
+    expect(stoppedRow.getByRole('button', { name: 'Resume budget' })).toBeInTheDocument()
+    expect(await screen.findByText('No active budgets for this month.')).toBeInTheDocument()
+
+    // Its category already has a budget row: not offered for a duplicate.
+    await user.click(screen.getByLabelText('Category'))
+    expect(
+      screen.queryByRole('option', { name: seedGroceriesCategory.name }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('does nothing when the stop confirmation is cancelled', async () => {
+    const user = userEvent.setup()
+    renderWithQueryClient(<BudgetsPage />)
+    const row = await findRow(seedGroceriesCategory.name, settingsTable())
+
+    await user.click(row.getByRole('button', { name: 'Stop budget' }))
+    await user.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel' }),
+    )
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(settingsTable().queryByText('Stopped')).not.toBeInTheDocument()
+  })
+
+  it('shows an error banner when stopping fails', async () => {
+    server.use(http.post('/api/budgets/:id/stop', () => new HttpResponse(null, { status: 404 })))
+    const user = userEvent.setup()
+    renderWithQueryClient(<BudgetsPage />)
+    const row = await findRow(seedGroceriesCategory.name, settingsTable())
+
+    await user.click(row.getByRole('button', { name: 'Stop budget' }))
+    await user.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Stop budget' }),
+    )
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(settingsTable().queryByText('Stopped')).not.toBeInTheDocument()
+  })
+
+  it('resumes a stopped budget through the cap edit', async () => {
+    const user = userEvent.setup()
+    renderWithQueryClient(<BudgetsPage />)
+    const row = await findRow(seedGroceriesCategory.name, settingsTable())
+    await user.click(row.getByRole('button', { name: 'Stop budget' }))
+    await user.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Stop budget' }),
+    )
+    await waitFor(() => expect(settingsTable().getByText('Stopped')).toBeInTheDocument())
+
+    const stoppedRow = await findRow(seedGroceriesCategory.name, settingsTable())
+    await user.click(stoppedRow.getByRole('button', { name: 'Resume budget' }))
+    await user.type(stoppedRow.getByLabelText('Monthly cap'), '640')
+    await user.click(stoppedRow.getByRole('button', { name: 'Resume with this cap' }))
+
+    expect(await settingsTable().findByText('640.00')).toBeInTheDocument()
+    expect(settingsTable().queryByText('Stopped')).not.toBeInTheDocument()
+    expect(
+      (await findRow(seedGroceriesCategory.name, settingsTable())).getByRole('button', {
+        name: 'Stop budget',
+      }),
+    ).toBeInTheDocument()
+  })
+
   it('shows a report skeleton only when the report fetch is slow', async () => {
     server.use(
       http.get('/api/budgets/report', async () => {
@@ -143,7 +222,7 @@ describe('BudgetsPage', () => {
     renderWithQueryClient(<BudgetsPage />)
 
     expect(await screen.findByRole('status', { name: 'Loading budget report' })).toBeInTheDocument()
-    expect(await screen.findByText('No budgeted categories yet.')).toBeInTheDocument()
+    expect(await screen.findByText('No active budgets for this month.')).toBeInTheDocument()
     expect(screen.queryByRole('status', { name: 'Loading budget report' })).not.toBeInTheDocument()
   })
 

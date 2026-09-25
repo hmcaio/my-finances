@@ -25,7 +25,7 @@ describe('BudgetVsActualReport', () => {
     )
     const user = userEvent.setup()
     renderWithQueryClient(<WithCapEditor />)
-    expect(await screen.findByText('No budgeted categories yet.')).toBeInTheDocument()
+    expect(await screen.findByText('No active budgets for this month.')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Save cap' }))
 
