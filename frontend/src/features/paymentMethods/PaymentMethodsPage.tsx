@@ -13,17 +13,20 @@ import {
   Typography,
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
-import { PAYMENT_METHOD_NAME_MAX_LENGTH, type PaymentMethod } from '../../api/paymentMethods'
+import {
+  PAYMENT_METHOD_NAME_MAX_LENGTH,
+  type PaymentMethod,
+} from '../../api/paymentMethods/paymentMethods'
 import {
   usePaymentMethods,
   useCreatePaymentMethod,
   useRenamePaymentMethod,
   useDeletePaymentMethod,
-} from '../../api/paymentMethodsQueries'
-import { defaultErrorMessage } from '../../api/apiError'
-import { ErrorAlert } from '../../components/ErrorAlert'
-import { InlineEditActions } from '../../components/InlineEditActions'
-import { DataTableBody } from '../../components/DataTableBody'
+} from '../../api/paymentMethods/paymentMethodsQueries'
+import { defaultErrorMessage } from '../../api/core/apiError'
+import { ErrorAlert } from '../../components/feedback/ErrorAlert'
+import { InlineEditActions } from '../../components/table/InlineEditActions'
+import { DataTableBody } from '../../components/table/DataTableBody'
 import { useQueryState } from '../../hooks/queryState'
 
 /**

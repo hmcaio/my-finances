@@ -1,4 +1,4 @@
-import { useAccounts } from '../api/accountsQueries'
+import { useAccounts } from '../api/accounts/accountsQueries'
 import { useQueryState, type LoadState } from './queryState'
 
 export interface HasAccountsState extends LoadState {

@@ -15,7 +15,7 @@ import {
   seedTransactions,
   transactionClosedAccountConflictHandler,
 } from '../../mocks/handlers/transactions'
-import { CLOSED_ACCOUNT_MESSAGE } from '../../api/transactions'
+import { CLOSED_ACCOUNT_MESSAGE } from '../../api/transactions/transactions'
 import { findRow, selectOption } from '../../test/testUtils'
 import { TransactionsPage } from './TransactionsPage'
 import { renderWithQueryClient } from '../../test/renderWithQueryClient'

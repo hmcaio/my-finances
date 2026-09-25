@@ -11,7 +11,7 @@ import {
   seedInvestmentAccount,
 } from '../../mocks/handlers/accounts'
 import { BUILT_IN_INSTITUTION_ID, seedInstitutions } from '../../mocks/handlers/institutions'
-import { CLOSE_CONFLICT_MESSAGE } from '../../api/accounts'
+import { CLOSE_CONFLICT_MESSAGE } from '../../api/accounts/accounts'
 import { findRow, renderWithRouter } from '../../test/testUtils'
 import { AccountsPage } from './AccountsPage'
 

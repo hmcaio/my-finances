@@ -14,7 +14,7 @@ import {
   seedGroceriesBudget,
   seedGroceriesBudgetReportLine,
 } from '../../mocks/handlers/budgets'
-import { CREATE_CONFLICT_MESSAGE } from '../../api/budgets'
+import { CREATE_CONFLICT_MESSAGE } from '../../api/budgets/budgets'
 import { findRow } from '../../test/testUtils'
 import { expectLoadStates } from '../../test/loadStates'
 import { BudgetsPage } from './BudgetsPage'

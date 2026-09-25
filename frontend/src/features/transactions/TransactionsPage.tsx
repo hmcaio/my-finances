@@ -16,22 +16,22 @@ import {
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
-import { useAccounts } from '../../api/accountsQueries'
-import { useCategories } from '../../api/categoriesQueries'
-import { usePaymentMethods } from '../../api/paymentMethodsQueries'
-import type { Transaction, TransactionFilter } from '../../api/transactions'
+import { useAccounts } from '../../api/accounts/accountsQueries'
+import { useCategories } from '../../api/categories/categoriesQueries'
+import { usePaymentMethods } from '../../api/paymentMethods/paymentMethodsQueries'
+import type { Transaction, TransactionFilter } from '../../api/transactions/transactions'
 import {
   useCreateTransaction,
   useDeleteTransaction,
   useEditTransaction,
   useTransactions,
-} from '../../api/transactionsQueries'
-import { defaultErrorMessage } from '../../api/apiError'
-import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { ErrorAlert } from '../../components/ErrorAlert'
-import { DataTableBody } from '../../components/DataTableBody'
+} from '../../api/transactions/transactionsQueries'
+import { defaultErrorMessage } from '../../api/core/apiError'
+import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
+import { ErrorAlert } from '../../components/feedback/ErrorAlert'
+import { DataTableBody } from '../../components/table/DataTableBody'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
-import { PaginationControls } from '../../components/PaginationControls'
+import { PaginationControls } from '../../components/table/PaginationControls'
 import { today } from '../../utils/localDate'
 import { nameLookup } from '../../utils/nameLookup'
 

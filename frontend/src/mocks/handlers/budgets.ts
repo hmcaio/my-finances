@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw'
-import type { Budget, BudgetReportLine } from '../../api/budgets'
+import type { Budget, BudgetReportLine } from '../../api/budgets/budgets'
 import { createStore } from '../store'
 
 /**

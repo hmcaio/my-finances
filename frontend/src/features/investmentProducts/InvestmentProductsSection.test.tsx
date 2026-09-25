@@ -14,7 +14,7 @@ import {
   CLOSE_CONFLICT_MESSAGE,
   DELETE_CONFLICT_MESSAGE,
   SAVE_CONFLICT_MESSAGE,
-} from '../../api/investmentProducts'
+} from '../../api/investments/investmentProducts'
 import { findRow, renderWithRouter, selectOption } from '../../test/testUtils'
 import { InvestmentProductsSection } from './InvestmentProductsSection'
 

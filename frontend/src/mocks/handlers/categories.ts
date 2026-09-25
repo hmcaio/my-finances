@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw'
-import type { Category, CategoryType } from '../../api/categories'
+import type { Category, CategoryType } from '../../api/categories/categories'
 import { createStore } from '../store'
 
 /**

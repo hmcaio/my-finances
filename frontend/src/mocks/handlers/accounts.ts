@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw'
-import type { Account, AccountType } from '../../api/accounts'
+import type { Account, AccountType } from '../../api/accounts/accounts'
 import { createStore } from '../store'
 
 /**

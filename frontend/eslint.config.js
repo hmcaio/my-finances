@@ -34,7 +34,7 @@ export default tseslint.config(
   ...pluginQuery.configs['flat/recommended'],
   {
     // Layering (F019, ADR 0016): feature code reaches the backend only through the `<area>Queries`
-    // hooks, never by calling an `src/api/<area>` HTTP function itself. Types, constants and the
+    // hooks, never by calling an `src/api/<area>/<area>` HTTP function itself. Types, constants and the
     // conflict messages can still be imported from the area module.
     files: ['src/features/**/*.{ts,tsx}'],
     ignores: ['**/*.test.{ts,tsx}'],
@@ -44,11 +44,16 @@ export default tseslint.config(
         {
           patterns: [
             {
-              group: ['**/api/*', '!**/api/*Queries', '!**/api/apiError', '!**/api/queryClient'],
+              group: [
+                '**/api/*/*',
+                '!**/api/*/*Queries',
+                '!**/api/core/apiError',
+                '!**/api/core/queryClient',
+              ],
               importNamePattern:
                 '^(get|create|rename|delete|edit|close|set|record|stop|reactivate|dismiss|confirm|download)[A-Z]',
               message:
-                'Call the area hooks from src/api/<area>Queries instead of the HTTP function (F019).',
+                'Call the area hooks from src/api/<area>/<area>Queries instead of the HTTP function (F019).',
             },
           ],
         },

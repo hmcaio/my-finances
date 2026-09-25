@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw'
-import type { HealthResponse } from '../../api/health'
+import type { HealthResponse } from '../../api/core/health'
 
 /**
  * Seed data returned by the default `GET /api/health` handler below (F001's connectivity check).

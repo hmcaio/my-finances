@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Box, Paper, Typography } from '@mui/material'
-import type { Account } from '../../api/accounts'
-import { ErrorAlert } from '../../components/ErrorAlert'
+import type { Account } from '../../api/accounts/accounts'
+import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { AccountCreateForm } from '../accounts/AccountCreateForm'
 
 interface OnboardingPageProps {

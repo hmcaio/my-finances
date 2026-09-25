@@ -1,5 +1,8 @@
 import { http, HttpResponse } from 'msw'
-import type { PendingRecurringOccurrence, RecurringTemplate } from '../../api/recurringTemplates'
+import type {
+  PendingRecurringOccurrence,
+  RecurringTemplate,
+} from '../../api/recurringTemplates/recurringTemplates'
 import { createStore } from '../store'
 
 /**

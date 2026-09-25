@@ -9,7 +9,7 @@ import {
   CONFLICT_MESSAGE,
   DUPLICATE_NAME_MESSAGE,
   PAYMENT_METHOD_NAME_MAX_LENGTH,
-} from '../../api/paymentMethods'
+} from '../../api/paymentMethods/paymentMethods'
 import { describeSettingsPageOnly } from '../../test/settingsPageContract'
 import { PaymentMethodsPage } from './PaymentMethodsPage'
 

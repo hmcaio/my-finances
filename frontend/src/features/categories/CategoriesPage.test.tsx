@@ -14,7 +14,7 @@ import {
   CATEGORY_NAME_MAX_LENGTH,
   CONFLICT_MESSAGE,
   DUPLICATE_NAME_MESSAGE,
-} from '../../api/categories'
+} from '../../api/categories/categories'
 import { findRow } from '../../test/testUtils'
 import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 import { describeSettingsPage } from '../../test/settingsPageContract'

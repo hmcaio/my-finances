@@ -20,19 +20,19 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
 import LockIcon from '@mui/icons-material/Lock'
-import { defaultErrorMessage } from '../../api/apiError'
-import { useInvestmentCategories } from '../../api/investmentCategoriesQueries'
-import type { InvestmentProduct } from '../../api/investmentProducts'
+import { defaultErrorMessage } from '../../api/core/apiError'
+import { useInvestmentCategories } from '../../api/investments/investmentCategoriesQueries'
+import type { InvestmentProduct } from '../../api/investments/investmentProducts'
 import {
   useCloseInvestmentProduct,
   useCreateInvestmentProduct,
   useDeleteInvestmentProduct,
   useEditInvestmentProduct,
   useInvestmentProducts,
-} from '../../api/investmentProductsQueries'
-import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { DataTableBody } from '../../components/DataTableBody'
-import { ErrorAlert } from '../../components/ErrorAlert'
+} from '../../api/investments/investmentProductsQueries'
+import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
+import { DataTableBody } from '../../components/table/DataTableBody'
+import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { nameLookup } from '../../utils/nameLookup'
 import { InvestmentProductForm, type InvestmentProductFormValues } from './InvestmentProductForm'

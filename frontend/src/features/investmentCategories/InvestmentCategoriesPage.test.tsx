@@ -15,11 +15,11 @@ import {
 import {
   CONFLICT_MESSAGE as CATEGORY_CONFLICT_MESSAGE,
   DUPLICATE_NAME_MESSAGE as CATEGORY_DUPLICATE_NAME_MESSAGE,
-} from '../../api/investmentCategories'
+} from '../../api/investments/investmentCategories'
 import {
   CONFLICT_MESSAGE as SUBCATEGORY_CONFLICT_MESSAGE,
   DUPLICATE_NAME_MESSAGE as SUBCATEGORY_DUPLICATE_NAME_MESSAGE,
-} from '../../api/investmentSubcategories'
+} from '../../api/investments/investmentSubcategories'
 import { findRow } from '../../test/testUtils'
 import { InvestmentCategoriesPage } from './InvestmentCategoriesPage'
 import { renderWithQueryClient } from '../../test/renderWithQueryClient'

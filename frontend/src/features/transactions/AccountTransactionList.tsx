@@ -8,13 +8,13 @@ import {
   TableRow,
   Typography,
 } from '@mui/material'
-import { useCategories } from '../../api/categoriesQueries'
-import { usePaymentMethods } from '../../api/paymentMethodsQueries'
-import { useTransactions } from '../../api/transactionsQueries'
-import { ErrorAlert } from '../../components/ErrorAlert'
-import { DataTableBody } from '../../components/DataTableBody'
+import { useCategories } from '../../api/categories/categoriesQueries'
+import { usePaymentMethods } from '../../api/paymentMethods/paymentMethodsQueries'
+import { useTransactions } from '../../api/transactions/transactionsQueries'
+import { ErrorAlert } from '../../components/feedback/ErrorAlert'
+import { DataTableBody } from '../../components/table/DataTableBody'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
-import { PaginationControls } from '../../components/PaginationControls'
+import { PaginationControls } from '../../components/table/PaginationControls'
 import { nameLookup } from '../../utils/nameLookup'
 
 const PAGE_SIZE = 10

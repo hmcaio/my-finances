@@ -21,21 +21,21 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import { useAccounts } from '../../api/accountsQueries'
-import { defaultErrorMessage } from '../../api/apiError'
-import { useInvestmentProduct } from '../../api/investmentProductsQueries'
-import type { InvestmentSnapshot } from '../../api/investmentSnapshots'
+import { useAccounts } from '../../api/accounts/accountsQueries'
+import { defaultErrorMessage } from '../../api/core/apiError'
+import { useInvestmentProduct } from '../../api/investments/investmentProductsQueries'
+import type { InvestmentSnapshot } from '../../api/investments/investmentSnapshots'
 import {
   useInvestmentSnapshots,
   useRecordInvestmentSnapshot,
-} from '../../api/investmentSnapshotsQueries'
-import { useInvestmentValueSeries } from '../../api/investmentValueSeriesQueries'
-import type { Transfer } from '../../api/transfers'
-import { useTransfers } from '../../api/transfersQueries'
-import { DataTableBody } from '../../components/DataTableBody'
-import { ErrorAlert } from '../../components/ErrorAlert'
-import { fadeInSx } from '../../components/fadeIn'
-import { PaginationControls } from '../../components/PaginationControls'
+} from '../../api/investments/investmentSnapshotsQueries'
+import { useInvestmentValueSeries } from '../../api/investments/investmentValueSeriesQueries'
+import type { Transfer } from '../../api/transfers/transfers'
+import { useTransfers } from '../../api/transfers/transfersQueries'
+import { DataTableBody } from '../../components/table/DataTableBody'
+import { ErrorAlert } from '../../components/feedback/ErrorAlert'
+import { fadeInSx } from '../../components/feedback/fadeIn'
+import { PaginationControls } from '../../components/table/PaginationControls'
 import { combineLoadState, useQueryState, type LoadState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { today } from '../../utils/localDate'

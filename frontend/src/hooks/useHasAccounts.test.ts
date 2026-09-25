@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { server } from '../mocks/server'
-import { useCreateAccount } from '../api/accountsQueries'
+import { useCreateAccount } from '../api/accounts/accountsQueries'
 import { renderHookWithQueryClient } from '../test/renderWithQueryClient'
 import { useHasAccounts } from './useHasAccounts'
 

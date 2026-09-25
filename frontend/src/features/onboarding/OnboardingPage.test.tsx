@@ -5,7 +5,7 @@ import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import { accountCreateConflictHandler } from '../../mocks/handlers/accounts'
 import { BUILT_IN_INSTITUTION_ID } from '../../mocks/handlers/institutions'
-import { DUPLICATE_NAME_MESSAGE } from '../../api/accounts'
+import { DUPLICATE_NAME_MESSAGE } from '../../api/accounts/accounts'
 import { OnboardingPage } from './OnboardingPage'
 import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 

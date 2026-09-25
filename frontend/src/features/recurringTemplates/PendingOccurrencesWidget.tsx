@@ -20,20 +20,20 @@ import {
 } from '@mui/material'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import CloseIcon from '@mui/icons-material/Close'
-import { useAccounts } from '../../api/accountsQueries'
-import { useCategories } from '../../api/categoriesQueries'
-import { usePaymentMethods } from '../../api/paymentMethodsQueries'
-import type { PendingRecurringOccurrence } from '../../api/recurringTemplates'
+import { useAccounts } from '../../api/accounts/accountsQueries'
+import { useCategories } from '../../api/categories/categoriesQueries'
+import { usePaymentMethods } from '../../api/paymentMethods/paymentMethodsQueries'
+import type { PendingRecurringOccurrence } from '../../api/recurringTemplates/recurringTemplates'
 import {
   useConfirmPendingOccurrence,
   useDismissPendingOccurrence,
   usePendingRecurringOccurrences,
   useRecurringTemplates,
-} from '../../api/recurringTemplatesQueries'
-import { defaultErrorMessage } from '../../api/apiError'
-import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { ErrorAlert } from '../../components/ErrorAlert'
-import { DataTableBody } from '../../components/DataTableBody'
+} from '../../api/recurringTemplates/recurringTemplatesQueries'
+import { defaultErrorMessage } from '../../api/core/apiError'
+import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
+import { ErrorAlert } from '../../components/feedback/ErrorAlert'
+import { DataTableBody } from '../../components/table/DataTableBody'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { nameLookup } from '../../utils/nameLookup'
 
