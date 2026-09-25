@@ -9,7 +9,8 @@ import java.util.UUID;
  * isolated from persistence details). Implemented by an adapter in {@code
  * infrastructure/persistence/account}.
  *
- * <p>No {@code deleteById} - accounts are never hard-deleted (PRD S5.4/S8, F003 spec), only closed.
+ * <p>{@link #deleteById} is only for an account with no history (ADR 0017); everything else is
+ * closed, never deleted.
  */
 public interface AccountRepository {
 
@@ -18,6 +19,8 @@ public interface AccountRepository {
   Optional<Account> findById(UUID id);
 
   List<Account> findAll();
+
+  void deleteById(UUID id);
 
   boolean existsById(UUID id);
 
@@ -33,7 +36,8 @@ public interface AccountRepository {
 
   /**
    * Whether any Account, open or closed, references this institution - backs {@code
-   * InstitutionService}'s delete guard. Closed accounts count: accounts are never deleted.
+   * InstitutionService}'s delete guard. Closed accounts count: a closed account is only deletable
+   * once it has no history.
    */
   boolean existsByInstitutionId(UUID institutionId);
 }

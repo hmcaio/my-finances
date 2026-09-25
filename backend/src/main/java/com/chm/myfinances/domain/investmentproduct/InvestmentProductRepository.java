@@ -39,6 +39,9 @@ public interface InvestmentProductRepository {
    */
   boolean existsOpenByAccountId(UUID accountId);
 
+  /** Whether the account owns any product, open or closed - part of the account delete guard. */
+  boolean existsByAccountId(UUID accountId);
+
   /** Whether any product is classified under this category - backs the category delete guard. */
   boolean existsByInvestmentCategoryId(UUID investmentCategoryId);
 

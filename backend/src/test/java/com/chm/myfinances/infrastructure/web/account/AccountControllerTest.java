@@ -1,5 +1,6 @@
 package com.chm.myfinances.infrastructure.web.account;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -12,8 +13,10 @@ import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
+import com.chm.myfinances.domain.transfer.TransferRepository;
 import com.chm.myfinances.testsupport.mothers.InvestmentProductMother;
 import com.chm.myfinances.testsupport.mothers.TestInstitutions;
+import com.chm.myfinances.testsupport.mothers.TransferMother;
 import com.chm.myfinances.testsupport.web.JsonSupport;
 import com.chm.myfinances.testsupport.web.MockMvcSupport;
 import com.chm.myfinances.testsupport.web.WebIntegrationTest;
@@ -46,6 +49,7 @@ class AccountControllerTest {
   @Autowired private InstitutionRepository institutionRepository;
   @Autowired private InvestmentCategoryRepository investmentCategoryRepository;
   @Autowired private InvestmentProductRepository investmentProductRepository;
+  @Autowired private TransferRepository transferRepository;
 
   /** Sentinel: leave the institutionId field out of the request body entirely. */
   private static final Object OMIT = new Object();
@@ -213,6 +217,45 @@ class AccountControllerTest {
     mockMvc.perform(post("/api/accounts/" + id + "/close")).andExpect(status().isOk());
 
     mockMvc.perform(post("/api/accounts/" + id + "/close")).andExpect(status().isConflict());
+  }
+
+  @Test
+  void deleteRemovesAnAccountWithNoHistory() throws Exception {
+    String id = createAccount("Delete Me", "CHECKING", "10.00", "2026-01-01");
+
+    mockMvc.perform(delete("/api/accounts/" + id)).andExpect(status().isNoContent());
+
+    mockMvc.perform(get("/api/accounts/" + id)).andExpect(status().isNotFound());
+  }
+
+  @Test
+  void deleteRemovesAClosedAccountWithNoHistory() throws Exception {
+    String id = createAccount("Close Then Delete", "CHECKING", "10.00", "2026-01-01");
+    mockMvc.perform(post("/api/accounts/" + id + "/close")).andExpect(status().isOk());
+
+    mockMvc.perform(delete("/api/accounts/" + id)).andExpect(status().isNoContent());
+
+    mockMvc.perform(get("/api/accounts/" + id)).andExpect(status().isNotFound());
+  }
+
+  @Test
+  void deleteOfUnknownIdReturns404() throws Exception {
+    mockMvc.perform(delete("/api/accounts/" + UUID.randomUUID())).andExpect(status().isNotFound());
+  }
+
+  @Test
+  void deleteOfAnAccountWithHistoryReturns409AndKeepsTheAccount() throws Exception {
+    String id = createAccount("Has History", "CHECKING", "10.00", "2026-01-01");
+    String otherId = createAccount("Other Side", "SAVINGS", "10.00", "2026-01-01");
+    transferRepository.save(
+        TransferMother.transfer()
+            .withFromAccountId(UUID.fromString(id))
+            .withToAccountId(UUID.fromString(otherId))
+            .build());
+
+    mockMvc.perform(delete("/api/accounts/" + id)).andExpect(status().isConflict());
+
+    mockMvc.perform(get("/api/accounts/" + id)).andExpect(status().isOk());
   }
 
   @Test

@@ -51,4 +51,7 @@ public interface TransferRepository {
 
   /** Whether any transfer is tagged with the product - half of the delete-safety history check. */
   boolean existsByInvestmentProductId(UUID investmentProductId);
+
+  /** Whether any transfer touches {@code accountId} on either side - account delete guard. */
+  boolean existsByAccountId(UUID accountId);
 }

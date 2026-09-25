@@ -39,6 +39,11 @@ public final class FakeInvestmentProductRepository extends InMemoryRepository<In
   }
 
   @Override
+  public boolean existsByAccountId(UUID accountId) {
+    return values().stream().anyMatch(p -> p.getAccountId().equals(accountId));
+  }
+
+  @Override
   public boolean existsOpenByAccountId(UUID accountId) {
     return values().stream().anyMatch(p -> p.getAccountId().equals(accountId) && !p.isClosed());
   }

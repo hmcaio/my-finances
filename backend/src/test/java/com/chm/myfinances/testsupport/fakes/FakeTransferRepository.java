@@ -81,6 +81,13 @@ public final class FakeTransferRepository extends InMemoryRepository<Transfer>
   }
 
   @Override
+  public boolean existsByAccountId(UUID accountId) {
+    return values().stream()
+        .anyMatch(
+            t -> t.getFromAccountId().equals(accountId) || t.getToAccountId().equals(accountId));
+  }
+
+  @Override
   public List<Transfer> findByAccountIdOnOrBefore(UUID accountId, LocalDate asOfDate) {
     return values().stream()
         .filter(

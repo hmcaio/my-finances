@@ -185,6 +185,17 @@ class AccountRepositoryAdapterTest {
   }
 
   @Test
+  void deleteByIdRemovesTheAccount() {
+    Account account =
+        TestFixtures.checkingAccount(accountRepository, institutionRepository, "Delete Test");
+
+    accountRepository.deleteById(account.getId());
+
+    assertThat(accountRepository.findById(account.getId())).isEmpty();
+    assertThat(accountRepository.existsById(account.getId())).isFalse();
+  }
+
+  @Test
   void existsByInstitutionIdIsTrueOnlyWhileAnAccountReferencesIt() {
     assertThat(accountRepository.existsByInstitutionId(institutionId)).isFalse();
 

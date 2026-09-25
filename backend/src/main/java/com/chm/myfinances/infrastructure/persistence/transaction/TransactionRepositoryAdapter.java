@@ -105,6 +105,11 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
     return jpaRepository.existsByPaymentMethodId(paymentMethodId);
   }
 
+  @Override
+  public boolean existsByAccountId(UUID accountId) {
+    return jpaRepository.existsByAccountId(accountId);
+  }
+
   private static Specification<TransactionJpaEntity> toSpecification(TransactionFilter filter) {
     return (root, query, criteriaBuilder) -> {
       List<Predicate> predicates = new ArrayList<>();
