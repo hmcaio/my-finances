@@ -10,8 +10,8 @@ One feature branch (`feature/f020-playwright-e2e`), one commit per phase.
 - [x] Exclude `e2e/` from Vitest and from `tsc` build output; add `e2e/tsconfig` if needed; ESLint covers the new folder.
 
 ## Phase 2 — Mock layer and helpers
-- [ ] `e2e/support/mockApi.ts`: `page.route('**/api/**')` handler built from `src/mocks` fixtures; unmocked `/api` requests fail the test.
-- [ ] `expectNoHorizontalOverflow`, `expectNavMode` helpers, with a self-check spec (test first).
+- [x] `e2e/support/mockApi.ts`: `page.route('**/api/**')` handler built from `src/mocks` fixtures; unmocked `/api` requests fail the test.
+- [x] `expectNoHorizontalOverflow`, `expectNavMode` helpers, with a self-check spec (test first).
 
 ## Phase 3 — Smoke suite
 - [ ] `e2e/smoke.spec.ts`: landing route loads, `Layout` present, no overflow, no console errors, on all three projects.
