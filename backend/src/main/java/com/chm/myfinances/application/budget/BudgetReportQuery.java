@@ -41,14 +41,23 @@ public class BudgetReportQuery {
   }
 
   public List<BudgetReportLine> forMonth(YearMonth month) {
-    return budgetRepository.findAll().stream().map(budget -> toReportLine(budget, month)).toList();
+    return budgetRepository.findAll().stream()
+        .map(budget -> toReportLine(budget, month))
+        .flatMap(Optional::stream)
+        .toList();
   }
 
-  private BudgetReportLine toReportLine(Budget budget, YearMonth month) {
+  /**
+   * Empty when the budget is stopped as of {@code month} (its effective version is a tombstone).
+   */
+  private Optional<BudgetReportLine> toReportLine(Budget budget, YearMonth month) {
     Optional<BudgetVersion> effective = budgetCapQuery.effectiveCap(budget.getId(), month);
+    if (effective.isPresent() && effective.get().isTombstone()) {
+      return Optional.empty();
+    }
     BigDecimal cap = effective.map(BudgetVersion::getMonthlyCap).orElse(null);
     BigDecimal actual = sumActualExpenses(budget.getCategoryId(), month);
-    return new BudgetReportLine(budget.getCategoryId(), cap, actual);
+    return Optional.of(new BudgetReportLine(budget.getCategoryId(), cap, actual));
   }
 
   /**

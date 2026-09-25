@@ -150,6 +150,111 @@ class BudgetServiceTest {
   }
 
   @Test
+  void stopOfUnknownBudgetThrowsNotFound() {
+    assertThatThrownBy(() -> service.stop(UUID.randomUUID(), YearMonth.of(2026, 2)))
+        .isInstanceOf(BudgetNotFoundException.class);
+  }
+
+  @Test
+  void stopForANewMonthCreatesATombstoneVersion() {
+    Budget budget = service.create(groceriesId, new BigDecimal("500.00"), YearMonth.of(2026, 1));
+
+    BudgetVersion tombstone = service.stop(budget.getId(), YearMonth.of(2026, 4));
+
+    assertThat(tombstone.isTombstone()).isTrue();
+    assertThat(tombstone.getEffectiveFrom()).isEqualTo(YearMonth.of(2026, 4));
+    assertThat(budgetVersionRepository.findByBudgetId(budget.getId())).hasSize(2);
+  }
+
+  @Test
+  void stopKeepsPastMonthsCappedAndOmitsFutureOnes() {
+    Budget budget = service.create(groceriesId, new BigDecimal("500.00"), YearMonth.of(2026, 1));
+
+    service.stop(budget.getId(), YearMonth.of(2026, 4));
+
+    List<BudgetVersion> versions = budgetVersionRepository.findByBudgetId(budget.getId());
+    BudgetVersion pastMonth =
+        BudgetVersion.resolveEffective(versions, YearMonth.of(2026, 3)).orElseThrow();
+    assertThat(pastMonth.isTombstone()).isFalse();
+    assertThat(pastMonth.getMonthlyCap()).isEqualByComparingTo("500.00");
+    assertThat(isStoppedIn(versions, YearMonth.of(2026, 4))).isTrue();
+    assertThat(isStoppedIn(versions, YearMonth.of(2027, 1))).isTrue();
+  }
+
+  @Test
+  void stopForAnAlreadyVersionedMonthReplacesRatherThanDuplicates() {
+    Budget budget = service.create(groceriesId, new BigDecimal("500.00"), YearMonth.of(2026, 1));
+
+    BudgetVersion stopped = service.stop(budget.getId(), YearMonth.of(2026, 1));
+
+    List<BudgetVersion> versions = budgetVersionRepository.findByBudgetId(budget.getId());
+    assertThat(versions).hasSize(1);
+    assertThat(stopped.isTombstone()).isTrue();
+    assertThat(versions.get(0).isTombstone()).isTrue();
+  }
+
+  @Test
+  void stopWhenAlreadyStoppedIsANoOp() {
+    Budget budget = service.create(groceriesId, new BigDecimal("500.00"), YearMonth.of(2026, 1));
+    service.stop(budget.getId(), YearMonth.of(2026, 4));
+
+    service.stop(budget.getId(), YearMonth.of(2026, 6));
+
+    assertThat(budgetVersionRepository.findByBudgetId(budget.getId())).hasSize(2);
+  }
+
+  @Test
+  void stopThenResumeLeavesTheGapUncapped() {
+    Budget budget = service.create(groceriesId, new BigDecimal("500.00"), YearMonth.of(2026, 1));
+    service.stop(budget.getId(), YearMonth.of(2026, 4));
+
+    service.setCap(budget.getId(), new BigDecimal("650.00"), YearMonth.of(2026, 8));
+
+    List<BudgetVersion> versions = budgetVersionRepository.findByBudgetId(budget.getId());
+    assertThat(versions).hasSize(3);
+    assertThat(
+            BudgetVersion.resolveEffective(versions, YearMonth.of(2026, 3))
+                .orElseThrow()
+                .getMonthlyCap())
+        .isEqualByComparingTo("500.00");
+    assertThat(isStoppedIn(versions, YearMonth.of(2026, 6))).isTrue();
+    assertThat(
+            BudgetVersion.resolveEffective(versions, YearMonth.of(2026, 9))
+                .orElseThrow()
+                .getMonthlyCap())
+        .isEqualByComparingTo("650.00");
+  }
+
+  @Test
+  void setCapInTheStoppedMonthResumesInPlace() {
+    Budget budget = service.create(groceriesId, new BigDecimal("500.00"), YearMonth.of(2026, 1));
+    service.stop(budget.getId(), YearMonth.of(2026, 4));
+
+    BudgetVersion resumed =
+        service.setCap(budget.getId(), new BigDecimal("700.00"), YearMonth.of(2026, 4));
+
+    assertThat(resumed.isTombstone()).isFalse();
+    assertThat(budgetVersionRepository.findByBudgetId(budget.getId())).hasSize(2);
+  }
+
+  @Test
+  void stopLogsAStoppedLineWithoutTheAmount() {
+    Budget budget = service.create(groceriesId, new BigDecimal("612.34"), YearMonth.of(2026, 1));
+
+    try (LogCapture logs = LogCapture.of(BudgetService.class)) {
+      service.stop(budget.getId(), YearMonth.of(2026, 4));
+
+      assertThat(logs.messagesAt(Level.INFO))
+          .containsExactly("Budget " + budget.getId() + ": stopped effective 2026-04");
+      assertThat(logs.events()).hasSize(1);
+    }
+  }
+
+  private static boolean isStoppedIn(List<BudgetVersion> versions, YearMonth month) {
+    return BudgetVersion.resolveEffective(versions, month).orElseThrow().isTombstone();
+  }
+
+  @Test
   void setCapForANewMonthLogsANewVersionLineWithoutTheAmount() {
     Budget budget = service.create(groceriesId, new BigDecimal("500.00"), YearMonth.of(2026, 1));
 

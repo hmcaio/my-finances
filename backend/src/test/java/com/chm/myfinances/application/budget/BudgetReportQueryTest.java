@@ -2,6 +2,7 @@ package com.chm.myfinances.application.budget;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.chm.myfinances.domain.budget.BudgetVersion;
 import com.chm.myfinances.testsupport.fakes.FakeBudgetRepository;
 import com.chm.myfinances.testsupport.fakes.FakeBudgetVersionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeTransactionRepository;
@@ -134,6 +135,55 @@ class BudgetReportQueryTest {
     assertThat(report)
         .extracting(BudgetReportLine::categoryId)
         .containsExactlyInAnyOrder(groceriesCategoryId, diningCategoryId);
+  }
+
+  @Test
+  void omitsTheLineOnceTheBudgetIsStoppedButKeepsPastMonths() {
+    UUID budgetId =
+        budgetRepository
+            .save(BudgetMother.budget().withCategoryId(groceriesCategoryId).build())
+            .getId();
+    budgetVersionRepository.save(
+        BudgetVersionMother.version()
+            .withBudgetId(budgetId)
+            .withMonthlyCap(new BigDecimal("300.00"))
+            .withEffectiveFrom(YearMonth.of(2026, 1))
+            .build());
+    budgetVersionRepository.save(
+        BudgetVersion.tombstone(UUID.randomUUID(), budgetId, YearMonth.of(2026, 4)));
+
+    assertThat(reportQuery.forMonth(YearMonth.of(2026, 3)))
+        .singleElement()
+        .satisfies(line -> assertThat(line.cap()).isEqualByComparingTo("300.00"));
+    assertThat(reportQuery.forMonth(YearMonth.of(2026, 4))).isEmpty();
+    assertThat(reportQuery.forMonth(YearMonth.of(2026, 12))).isEmpty();
+  }
+
+  @Test
+  void aResumedBudgetIsBackInTheReportAndTheGapStaysOmitted() {
+    UUID budgetId =
+        budgetRepository
+            .save(BudgetMother.budget().withCategoryId(groceriesCategoryId).build())
+            .getId();
+    budgetVersionRepository.save(
+        BudgetVersionMother.version()
+            .withBudgetId(budgetId)
+            .withMonthlyCap(new BigDecimal("300.00"))
+            .withEffectiveFrom(YearMonth.of(2026, 1))
+            .build());
+    budgetVersionRepository.save(
+        BudgetVersion.tombstone(UUID.randomUUID(), budgetId, YearMonth.of(2026, 4)));
+    budgetVersionRepository.save(
+        BudgetVersionMother.version()
+            .withBudgetId(budgetId)
+            .withMonthlyCap(new BigDecimal("450.00"))
+            .withEffectiveFrom(YearMonth.of(2026, 8))
+            .build());
+
+    assertThat(reportQuery.forMonth(YearMonth.of(2026, 6))).isEmpty();
+    assertThat(reportQuery.forMonth(YearMonth.of(2026, 9)))
+        .singleElement()
+        .satisfies(line -> assertThat(line.cap()).isEqualByComparingTo("450.00"));
   }
 
   private void expenseTransaction(UUID categoryId, UUID accountId, LocalDate date, String amount) {

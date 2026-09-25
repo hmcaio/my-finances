@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.domain.budget.Budget;
+import com.chm.myfinances.domain.budget.BudgetVersion;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.Institution;
@@ -402,6 +403,28 @@ class DataExportServiceTest {
     var without = products.stream().filter(r -> r.get("name").equals("Pension")).findFirst();
     assertThat(without.orElseThrow().get("investment_subcategory_id")).isEmpty();
     assertThat(without.get().get("investment_subcategory_name")).isEmpty();
+  }
+
+  @Test
+  void aTombstoneBudgetVersionExportsAnEmptyMonthlyCap() throws IOException {
+    Budget rentBudget =
+        budgets.findAll().stream()
+            .filter(b -> b.getCategoryId().equals(rent))
+            .findFirst()
+            .orElseThrow();
+    budgetVersions.save(
+        BudgetVersion.tombstone(UUID.randomUUID(), rentBudget.getId(), YearMonth.parse("2026-04")));
+
+    var rows = export(ExportFilter.none()).get("budgets.csv");
+
+    assertThat(rows).hasSize(4);
+    assertThat(rows)
+        .filteredOn(r -> r.get("effective_from").equals("2026-04"))
+        .singleElement()
+        .satisfies(r -> assertThat(r.get("monthly_cap")).isEmpty());
+    assertThat(rows)
+        .filteredOn(r -> !r.get("effective_from").equals("2026-04"))
+        .allSatisfy(r -> assertThat(r.get("monthly_cap")).isNotEmpty());
   }
 
   @Test
