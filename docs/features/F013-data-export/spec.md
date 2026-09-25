@@ -35,7 +35,7 @@ All-entity export as a ZIP of CSVs, with FK names denormalized inline, optionall
   - `accounts`: `id, name, type, institution_id, institution_name, opening_balance, opening_balance_date, closed_date`
   - `transactions`: `id, date, amount, type, category_*, account_*, payment_method_*, recurring_template_version_id, description, additional_notes`
   - `transfers`: `id, date, from_account_*, to_account_*, amount, description, additional_notes, investment_product_*, quantity, unit_price, taxes`
-  - `budgets` (one row per version): `budget_id, version_id, category_*, monthly_cap, effective_from`
+  - `budgets` (one row per version): `budget_id, version_id, category_*, monthly_cap, effective_from` — `monthly_cap` is empty on a tombstone version (the budget was stopped from that month, F006 / issue #61)
   - `recurring_templates` (one row per version): `template_id, version_id, category_*, account_*, description, active, last_generated_for, amount, day_of_month, effective_from`
   - `investment_subcategories`: `id, investment_category_*, name`; `investment_products`: `id, account_*, investment_category_*, investment_subcategory_*, name, closed_date`; `investment_snapshots`: `id, investment_product_*, date, balance`
 

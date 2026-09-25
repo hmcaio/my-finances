@@ -11,6 +11,11 @@
 - [x] Write tests for the budget-vs-actual report (correct cap resolved per month, actual summed across accounts), then implement the query joining resolved cap with F004's transaction sums per category/month.
 - [x] REST controller + DTOs.
 
+## Stop a budget (issue #61)
+- [x] Migration `V16__budget_version_tombstone.sql`: `monthly_cap` nullable, CHECK `monthly_cap IS NULL OR monthly_cap > 0`.
+- [x] Tests first, then `BudgetVersion.tombstone`/`isTombstone`/`stop`, `BudgetService.stop`, `BudgetReportQuery` omitting stopped budgets, `POST /api/budgets/{id}/stop`, `BudgetResponse.stopped`.
+- [x] Frontend: `stopBudget`/`useStopBudget`, stop action + confirm dialog, "Resume budget" via the cap edit, MSW handler, regenerated API types.
+
 ## Frontend
 - [x] `src/api/budgets.ts`.
 - [x] `src/features/budgets` — budget settings list, add/edit-cap forms, budget-vs-actual view with month picker and over-cap indicator.
