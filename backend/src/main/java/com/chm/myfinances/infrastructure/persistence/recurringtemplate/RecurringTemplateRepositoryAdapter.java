@@ -69,6 +69,11 @@ public class RecurringTemplateRepositoryAdapter implements RecurringTemplateRepo
     return jpaRepository.existsByCategoryId(categoryId);
   }
 
+  @Override
+  public boolean existsByAccountId(UUID accountId) {
+    return jpaRepository.existsByAccountId(accountId);
+  }
+
   private static LocalDate toFirstOfMonth(YearMonth yearMonth) {
     return yearMonth == null ? null : yearMonth.atDay(1);
   }

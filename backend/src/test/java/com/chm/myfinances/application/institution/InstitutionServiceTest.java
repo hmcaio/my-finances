@@ -189,7 +189,8 @@ class InstitutionServiceTest {
 
   @Test
   void deleteIsBlockedWhileAClosedAccountReferencesTheInstitution() {
-    // Accounts are never deleted, so a closed one still pins its institution.
+    // A closed account still pins its institution until it is deleted (only possible with no
+    // history).
     Institution created = service.create("Nubank");
     accountAt(created.getId(), true);
 

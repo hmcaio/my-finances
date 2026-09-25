@@ -118,6 +118,11 @@ public class TransferRepositoryAdapter implements TransferRepository {
     return jpaRepository.existsByInvestmentProductId(investmentProductId);
   }
 
+  @Override
+  public boolean existsByAccountId(UUID accountId) {
+    return jpaRepository.existsByFromAccountIdOrToAccountId(accountId, accountId);
+  }
+
   private static Specification<TransferJpaEntity> toSpecification(TransferFilter filter) {
     return (root, query, criteriaBuilder) -> {
       List<Predicate> predicates = new ArrayList<>();

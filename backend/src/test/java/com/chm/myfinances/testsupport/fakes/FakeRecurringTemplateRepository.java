@@ -27,6 +27,11 @@ public final class FakeRecurringTemplateRepository extends InMemoryRepository<Re
   }
 
   @Override
+  public boolean existsByAccountId(UUID accountId) {
+    return values().stream().anyMatch(t -> t.getAccountId().equals(accountId));
+  }
+
+  @Override
   public boolean existsByCategoryId(UUID categoryId) {
     return values().stream().anyMatch(t -> t.getCategoryId().equals(categoryId));
   }

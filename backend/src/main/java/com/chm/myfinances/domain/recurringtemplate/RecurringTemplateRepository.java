@@ -37,4 +37,10 @@ public interface RecurringTemplateRepository {
    * orphan {@code recurring_templates.category_id}'s FK).
    */
   boolean existsByCategoryId(UUID categoryId);
+
+  /**
+   * Whether any template, active or not, points at {@code accountId} - part of the account delete
+   * guard (an inactive template still holds the FK).
+   */
+  boolean existsByAccountId(UUID accountId);
 }

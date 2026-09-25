@@ -16,9 +16,15 @@ import {
   Typography,
 } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
+import DeleteIcon from '@mui/icons-material/Delete'
 import LockIcon from '@mui/icons-material/Lock'
 import type { Account } from '../../api/accounts/accounts'
-import { useAccounts, useCloseAccount, useEditAccount } from '../../api/accounts/accountsQueries'
+import {
+  useAccounts,
+  useCloseAccount,
+  useDeleteAccount,
+  useEditAccount,
+} from '../../api/accounts/accountsQueries'
 import { defaultErrorMessage } from '../../api/core/apiError'
 import { useInstitutions } from '../../api/institutions/institutionsQueries'
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
@@ -36,7 +42,8 @@ import { AccountCreateForm } from './AccountCreateForm'
  * balance; a toggle to show/hide closed accounts (default: hide, PRD S5.4); inline rename of
  * name/institution (the only editable fields - type and opening balance/date are immutable once
  * an account exists, so they render as plain text, never an input, in this table); an add-account
- * form; and a close action gated behind a non-reversible confirmation dialog.
+ * form; a close action gated behind a non-reversible confirmation dialog; and a delete action,
+ * allowed by the backend only for an account with no history (ADR 0017).
  */
 export function AccountsPage() {
   const [includeClosed, setIncludeClosed] = useState(false)
@@ -49,6 +56,7 @@ export function AccountsPage() {
   const institutionsState = useQueryState(institutionsQuery, setError)
   const editMutation = useEditAccount()
   const closeMutation = useCloseAccount()
+  const deleteMutation = useDeleteAccount()
   const institutionName = useMemo(
     () => nameLookup(institutions ?? [], (i) => i.name),
     [institutions],
@@ -60,6 +68,8 @@ export function AccountsPage() {
 
   const [closeTarget, setCloseTarget] = useState<Account | null>(null)
   const [closing, setClosing] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<Account | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   function startEdit(account: Account) {
     setEditingId(account.id)
@@ -99,6 +109,21 @@ export function AccountsPage() {
       setError(defaultErrorMessage(err))
     } finally {
       setClosing(false)
+    }
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return
+    setError(null)
+    setDeleting(true)
+    try {
+      await deleteMutation.mutateAsync(deleteTarget.id)
+      setDeleteTarget(null)
+    } catch (err) {
+      setDeleteTarget(null)
+      setError(defaultErrorMessage(err))
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -215,6 +240,15 @@ export function AccountsPage() {
                         <LockIcon fontSize="small" />
                       </IconButton>
                     )}
+                    {editingId !== account.id && (
+                      <IconButton
+                        size="small"
+                        aria-label="Delete"
+                        onClick={() => setDeleteTarget(account)}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -245,6 +279,24 @@ export function AccountsPage() {
         loading={closing}
         onConfirm={() => void confirmClose()}
         onCancel={() => setCloseTarget(null)}
+      />
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title={`Delete ${deleteTarget?.name}?`}
+        body={
+          <>
+            This permanently removes the account. It only works for an account with no transactions,
+            transfers, recurring templates or investment products - otherwise close it instead. An
+            account counts in past net worth from its opening date, so deleting one that has an
+            opening balance also changes your past net worth figures. If this is your last account,
+            the app returns to the welcome screen.
+          </>
+        }
+        confirmLabel="Delete account"
+        loading={deleting}
+        onConfirm={() => void confirmDelete()}
+        onCancel={() => setDeleteTarget(null)}
       />
     </Box>
   )

@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,7 +21,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-/** REST API for {@code Account} (F003 spec). No delete endpoint - accounts are only ever closed. */
+/**
+ * REST API for {@code Account} (F003 spec). {@code DELETE} works only for an account with no
+ * history (ADR 0017); otherwise it is closed.
+ */
 @RestController
 @RequestMapping("/api/accounts")
 public class AccountController {
@@ -78,6 +82,12 @@ public class AccountController {
   public AccountResponse close(@PathVariable UUID id) {
     Account account = accountService.close(id);
     return toResponse(account, LocalDate.now(clock));
+  }
+
+  @DeleteMapping("/{id}")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void delete(@PathVariable UUID id) {
+    accountService.delete(id);
   }
 
   private AccountResponse toResponse(Account account, LocalDate asOf) {

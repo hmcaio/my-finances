@@ -13,6 +13,7 @@ import com.chm.myfinances.domain.institution.Institution;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.testsupport.LogCapture;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
+import com.chm.myfinances.testsupport.fakes.FakeAccountUsageChecker;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeInstitutionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
@@ -38,6 +39,7 @@ class AccountServiceTest {
       new FakeInvestmentProductRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
   private final FakeAccountClosedNotifier notifier = new FakeAccountClosedNotifier();
+  private final FakeAccountUsageChecker usageChecker = new FakeAccountUsageChecker();
   private final UUID institutionId =
       institutionRepository.save(Institution.create(UUID.randomUUID(), "Nubank Test")).getId();
   private final UUID otherInstitutionId =
@@ -49,6 +51,7 @@ class AccountServiceTest {
           investmentProductRepository,
           idGenerator,
           notifier,
+          usageChecker,
           Clock.systemDefaultZone());
 
   @Test
@@ -61,6 +64,7 @@ class AccountServiceTest {
             investmentProductRepository,
             new FakeIdGenerator(nextId),
             notifier,
+            usageChecker,
             Clock.systemDefaultZone());
 
     Account created =
@@ -74,6 +78,57 @@ class AccountServiceTest {
     assertThat(created.getId()).isEqualTo(nextId);
     assertThat(created.getName()).isEqualTo("Itau Checking");
     assertThat(repository.findById(nextId)).isPresent();
+  }
+
+  @Test
+  void deleteRemovesAnAccountWithNoHistory() {
+    Account account = createChecking("Mistake Account");
+
+    service.delete(account.getId());
+
+    assertThat(repository.findById(account.getId())).isEmpty();
+  }
+
+  @Test
+  void deleteRemovesAClosedAccountWithNoHistory() {
+    Account account = createChecking("Closed Mistake");
+    service.close(account.getId());
+
+    service.delete(account.getId());
+
+    assertThat(repository.findById(account.getId())).isEmpty();
+  }
+
+  @Test
+  void deleteOfAnUnknownAccountThrowsNotFound() {
+    assertThatThrownBy(() -> service.delete(UUID.randomUUID()))
+        .isInstanceOf(AccountNotFoundException.class);
+  }
+
+  @Test
+  void deleteOfAnAccountWithHistoryIsRejectedAndKeepsTheAccount() {
+    Account account = createChecking("Used Account");
+    usageChecker.markUsed(account.getId());
+
+    assertThatThrownBy(() -> service.delete(account.getId()))
+        .isInstanceOf(AccountHasHistoryException.class);
+    assertThat(repository.findById(account.getId())).isPresent();
+  }
+
+  @Test
+  void deleteLogsOnlyTheId() {
+    Account account = createChecking("Secret Name Account");
+    try (LogCapture logs = LogCapture.of(AccountService.class)) {
+      service.delete(account.getId());
+
+      assertThat(logs.messagesAt(Level.INFO))
+          .containsExactly("Account " + account.getId() + " deleted");
+    }
+  }
+
+  private Account createChecking(String name) {
+    return service.create(
+        name, institutionId, AccountType.CHECKING, BigDecimal.TEN, LocalDate.of(2026, 1, 1));
   }
 
   @Test

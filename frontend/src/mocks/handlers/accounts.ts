@@ -67,6 +67,13 @@ export const seedInvestmentAccount: Account = {
  */
 export const seedCheckingAccount = seedAccounts.find((a) => a.name === 'Itau Checking')!
 
+/**
+ * Seed accounts that the other seed data references (`acct-1`/`acct-3` carry seed transactions,
+ * transfers and templates), so the default `DELETE` answers `409` for them like the backend does
+ * for an account with history (ADR 0017). `acct-2` (closed) and the investment account have none.
+ */
+export const seedAccountIdsWithHistory: readonly string[] = ['acct-1', 'acct-3']
+
 const ACCOUNTS_URL = '/api/accounts'
 
 const accounts = createStore([...seedAccounts, seedInvestmentAccount])
@@ -140,6 +147,16 @@ export const accountsHandlers = [
       closed: true,
     }))
     return closed ? HttpResponse.json(closed) : new HttpResponse(null, { status: 404 })
+  }),
+
+  http.delete(`${ACCOUNTS_URL}/:id`, ({ params }) => {
+    const id = params.id as string
+    if (!accounts.find(id)) return new HttpResponse(null, { status: 404 })
+    if (seedAccountIdsWithHistory.includes(id)) {
+      return HttpResponse.json({ message: 'Account has history' }, { status: 409 })
+    }
+    accounts.remove(id)
+    return new HttpResponse(null, { status: 204 })
   }),
 ]
 

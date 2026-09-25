@@ -76,6 +76,11 @@ public final class FakeTransactionRepository extends InMemoryRepository<Transact
   }
 
   @Override
+  public boolean existsByAccountId(UUID accountId) {
+    return values().stream().anyMatch(t -> t.getAccountId().equals(accountId));
+  }
+
+  @Override
   public boolean existsByPaymentMethodId(UUID paymentMethodId) {
     return values().stream().anyMatch(t -> t.getPaymentMethodId().equals(paymentMethodId));
   }

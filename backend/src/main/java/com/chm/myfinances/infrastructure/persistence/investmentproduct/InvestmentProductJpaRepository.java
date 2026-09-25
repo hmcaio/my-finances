@@ -17,6 +17,8 @@ interface InvestmentProductJpaRepository extends JpaRepository<InvestmentProduct
 
   boolean existsByAccountIdAndClosedDateIsNull(UUID accountId);
 
+  boolean existsByAccountId(UUID accountId);
+
   boolean existsByInvestmentCategoryId(UUID investmentCategoryId);
 
   boolean existsByInvestmentSubcategoryId(UUID investmentSubcategoryId);

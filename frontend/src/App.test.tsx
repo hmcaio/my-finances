@@ -3,6 +3,8 @@ import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { server } from './mocks/server'
+import { seedCheckingAccount } from './mocks/handlers/accounts'
+import { findRow } from './test/testUtils'
 import App from './App'
 import { renderWithQueryClient } from './test/renderWithQueryClient'
 
@@ -64,6 +66,29 @@ describe('App', () => {
       expect(includeClosed).toBe('true')
       expect(screen.queryByRole('link', { name: 'Accounts' })).not.toBeInTheDocument()
       expect(screen.queryByRole('heading', { name: 'Dashboard' })).not.toBeInTheDocument()
+    })
+
+    it('returns to onboarding after the last account is deleted', async () => {
+      stubMatchMedia()
+      window.history.pushState({}, '', '/accounts')
+      // One open account with no history; the delete empties the list the gate refetches.
+      const only = { ...seedCheckingAccount }
+      let rows = [only]
+      server.use(
+        http.get('/api/accounts', () => HttpResponse.json(rows)),
+        http.delete('/api/accounts/:id', () => {
+          rows = []
+          return new HttpResponse(null, { status: 204 })
+        }),
+      )
+      const user = userEvent.setup()
+      renderWithQueryClient(<App />)
+
+      const row = await findRow(only.name)
+      await user.click(row.getByRole('button', { name: 'Delete' }))
+      await user.click(screen.getByRole('button', { name: 'Delete account' }))
+
+      expect(await screen.findByRole('heading', { name: /welcome/i })).toBeInTheDocument()
     })
 
     it('moves into the normal app after the first account is created', async () => {

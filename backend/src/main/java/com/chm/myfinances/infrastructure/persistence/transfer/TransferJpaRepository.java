@@ -35,4 +35,6 @@ interface TransferJpaRepository
   List<TransferJpaEntity> findByInvestmentProductIdIsNotNull();
 
   boolean existsByInvestmentProductId(UUID investmentProductId);
+
+  boolean existsByFromAccountIdOrToAccountId(UUID fromAccountId, UUID toAccountId);
 }
