@@ -1,0 +1,43 @@
+# F021 — Action Plan
+
+**Depends on**: F001–F013, F017, F019, **F020** (Playwright tooling must be merged first).
+
+Multiple PRs, each off `develop`, each shippable and each with its Playwright checks. Branch names: `feature/f021-<step>`. The CHANGELOG bullet (`**F021 — Responsive layout**`) is added in the first PR and edited as the rest land.
+
+## PR 1 — Shell
+- [ ] Test first: `Layout` shows the permanent drawer on desktop and a hamburger-opened temporary drawer below `lg`; drawer closes on route change; padding `p: 2` on mobile and `p: 3` otherwise; content `maxWidth` about 1600.
+- [ ] Implement responsive `Layout`; group the settings items under a subheader in the nav.
+- [ ] `theme.ts`: `@media (pointer: coarse)` 44px minimum for `MuiIconButton`, `MuiButton`, `MuiListItemButton`.
+- [ ] Playwright: nav-mode and no-overflow checks on the landing route at all three viewports.
+- [ ] CHANGELOG bullet.
+
+## PR 2 — Shared primitives
+- [ ] `ResponsiveTable` (columns with roles and tablet priority, `renderCard` override; table on tablet/desktop, cards below `sm`; tables with 1–2 columns stay tables). Test first with `useMediaQuery` mocked.
+- [ ] `ResponsiveDialog` (`fullScreen` below `sm`, one-column form grid helper). Test first.
+- [ ] `ResponsiveFilterBar` (inline bar vs. "Filters" button with active-count badge). Test first.
+- [ ] `PaginationControls` compact mode below `sm`. Test first.
+- [ ] Extract row-edit field components so inline editing and the mobile edit dialog share them (pattern documented for the migrations below).
+
+## PR 3 — Pilot: Transactions
+- [ ] Migrate Transactions to all four primitives, with a `renderCard` override; the Add button opens `ResponsiveDialog`; mobile edit opens a full-screen dialog.
+- [ ] Playwright spec: no overflow, cards on mobile, table on tablet/desktop, filter button on mobile.
+- [ ] Adjust primitives if the pilot shows gaps (record the change here).
+
+## PR 4 — Remaining features (batches)
+Each batch: migrate pages, decide per-page details from the actual markup and record them under the batch, add Playwright checks, keep desktop behaviour unchanged.
+- [ ] Accounts and transfers.
+- [ ] Budgets and recurring templates.
+- [ ] Investments (products, trades, snapshots, allocation).
+- [ ] Settings pages (categories, investment categories, institutions, payment methods; keep 1–2 column tables as tables).
+- [ ] Dashboard (fluid widget grid: 3, 2 and 1 columns), Export filters, Onboarding (outside `Layout`).
+
+## PR 5 — Docs and ADR
+- [ ] `docs/adr/0017-responsive-layout-strategy.md` and its row in `docs/adr/README.md`.
+- [ ] `frontend/CLAUDE.md`: primitive-per-purpose guidance, no raw `useMediaQuery` in feature code, no hard-coded widths.
+- [ ] Root `README.md` "Project status" entry; tick this plan; PR link on the CHANGELOG bullet once the PRs exist.
+
+## Verification
+- [ ] `npm run lint && npm test && npm run build && npm run e2e` green.
+- [ ] Every feature page has a Playwright spec passing at 390, 768 and 1280.
+- [ ] Manual, real browser at 360, 768 and 1280: no horizontal scroll on any page; nav, tables/cards, filters, dialogs and pagination behave per the spec; dark mode toggle reachable on all sizes.
+- [ ] Desktop diff review: only nav and padding differ from before.
