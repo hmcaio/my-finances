@@ -32,11 +32,12 @@
 - `GET /api/accounts/{id}` — detail, including computed running balance as of "now" (or an optional `asOf` query param).
 - `PATCH /api/accounts/{id}` — edit name/institution only (type and opening balance/date are immutable per the domain invariant above).
 - `POST /api/accounts/{id}/close` — sets `closedDate`; publishes an "account closed" event/port call so F007 can deactivate dependent recurring templates without F003 depending on F007's package.
-- No `DELETE` endpoint — accounts are never hard-deleted (PRD §5.4/§8), only closed.
+- `DELETE /api/accounts/{id}` — `204` and hard delete only for an account with no history (open or closed); `404` for an unknown id; `409` (`AccountHasHistoryException`, frontend message "close it instead") when any transaction, transfer (either side), recurring template (active or not) or investment product references it (PRD §5.4, ADR 0017; added by issue #60 — F003 first shipped with no `DELETE`). `AccountService.delete` asks the `domain/account/AccountUsageChecker` port, implemented by `infrastructure/account/RealAccountUsageChecker` over the four repositories' `existsByAccountId`; the FKs stay as backstop, no migration. An account with only an opening balance counts as history-free, so deleting it changes past net worth; the confirmation dialog says so. Deleting the last account returns the app to onboarding.
 
 ## Frontend
 - Account list view: name, institution, type, current running balance; toggle to show/hide closed accounts.
 - Create/edit account form (type and opening balance/date fields disabled once the account exists). Implemented as two separate UI surfaces rather than one shared form toggled between modes: an "Add account" form (all fields: name, institution, type, opening balance, opening balance date) and an inline name/institution-only edit on each existing row (matching F002's `CategoriesPage`/`PaymentMethodsPage` inline-edit pattern) — functionally equivalent (type/opening balance/date are never editable once an account exists), just two forms instead of one form with some fields disabled.
+- Delete action on each row with a confirmation dialog (warns about the net worth caveat and that the last account returns the app to onboarding); a `409` shows the "close it instead" message.
 - Close-account action with a confirmation dialog explaining it's not reversible through the UI (no "reopen" flow specified by the PRD) and that any recurring bills on it will stop.
 - Account detail view: running balance, transaction/transfer history (populated once F004/F005 exist).
 

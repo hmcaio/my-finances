@@ -10,11 +10,12 @@
 - [x] Write tests for the list application service (closed accounts excluded by default), then implement: create, edit (name/institution only), close, get, list (with closed-account filter).
 - [x] Write tests for `AccountBalanceQuery` (opening-balance-only case for now), then implement it: computes running balance from opening balance (+ transactions/transfers once F004/F005 exist — revisit tests and implementation when those land). F004 has since landed and did exactly that revisit (transaction activity now summed in); F005 will extend it again for transfers.
 - [x] Domain event or port (`AccountClosedNotifier` or similar) fired on close, for F007 to consume later without F003 depending on F007.
-- [x] REST controller + DTOs; no delete endpoint.
+- [x] REST controller + DTOs; no delete endpoint at first. Issue #60 later added `DELETE /api/accounts/{id}` for history-free accounts (ADR 0017): `AccountUsageChecker` port + `RealAccountUsageChecker`, `AccountService.delete`, tests.
 
 ## Frontend
 - [x] `src/api/accounts.ts`.
 - [x] `src/features/accounts` — list (with closed toggle), create/edit form, detail view, close action with confirmation.
+- [x] Delete action with confirmation, `deleteAccount` (with `conflictMessage`), `useDeleteAccount`, MSW handler (issue #60).
 
 ## Verification
 - [x] Create an account, confirm opening balance/date can't be edited afterward.
