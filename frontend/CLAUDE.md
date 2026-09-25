@@ -11,6 +11,7 @@ npm run build              # typecheck + production build
 npm run lint               # ESLint
 npm run format / format:check   # Prettier (write Prettier only on files you touched)
 npm test                   # Vitest, non-watch, CI-friendly
+npm run e2e                # Playwright layout checks (mobile/tablet/desktop), see "E2E"
 npm run generate-api-types # regenerate src/api/generated/schema.ts from the running backend's /v3/api-docs
 ```
 
@@ -62,6 +63,14 @@ No chart library: `ValueSeriesChart`, `InvestmentAllocationChart` and `NetWorthT
 - `App.test.tsx` renders the real `BrowserRouter`, which reads the jsdom URL that a previous test's navigation leaves behind: reset it with `window.history.pushState({}, '', '/')` in `beforeEach`.
 - `frontend/.env.test` sets `VITE_API_BASE_URL=/api` (relative, same-origin) so the Axios base URL and MSW's relative matching resolve against the same jsdom origin.
 - **Test files have no Node types** (`@types/node` isn't a dependency). `process.env` in a test passes under Vitest but fails `npm run build` with TS2591 — always run the build, not just `npm test`. Pin an env var/timezone with `vi.stubEnv('TZ', ...)` and `vi.unstubAllEnvs()` in cleanup, and pin a non-UTC zone for any date/time test: CI runs in UTC, where a UTC-vs-local bug is invisible.
+
+## E2E (Playwright, F020)
+
+`npm run e2e` runs `frontend/e2e/*.spec.ts` in Chromium at three viewports (projects `mobile` 390x844, `tablet` 768x1024, `desktop` 1280x800) against the Vite dev server that `playwright.config.ts` starts on port 5199. First time: `npx playwright install chromium`. The HTML report lands in `playwright-report/`, artifacts in `e2e-results/` (not `test-results/`, which is Vitest's). `e2e/` is excluded from Vitest and from the `tsc -b` build; ESLint covers it.
+
+- **Mock by route, not by backend.** Every `/api` request is fulfilled by `page.route` in `e2e/support/mockApi.ts`, which runs the `src/mocks` MSW handlers (same fixtures and in-memory stores as Vitest) through `msw`'s `getResponse` in the Node test process. MSW is never started in the browser. A request no handler answers gets a `501` and fails the test, so add the handler in `src/mocks/handlers/` (not in the spec) when a route needs a new endpoint. Import `test`/`expect` from `e2e/support`, not `@playwright/test`: its auto fixture calls `mockApi` and enforces that rule. Per-test data: `mockApi(page, [http.get(...)])` overrides, like `server.use`.
+- **Geometry and DOM only.** No `toHaveScreenshot` or pixel baselines (flaky across Windows/Linux). Use `expectNoHorizontalOverflow(page)` and `expectNavMode(page, 'permanent' | 'temporary')` from `e2e/support/`; they have their own self-check in `e2e/support.spec.ts`.
+- A helper glob like `**/api/**` would also match Vite's `/src/api/*.ts` modules, which is why `mockApi` matches on `pathname.startsWith('/api/')`.
 
 ## Logging
 
