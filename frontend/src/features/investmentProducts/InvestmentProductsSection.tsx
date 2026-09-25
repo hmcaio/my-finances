@@ -21,19 +21,19 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
 import LockIcon from '@mui/icons-material/Lock'
 import { defaultErrorMessage } from '../../api/apiError'
-import { getInvestmentCategories } from '../../api/investmentCategories'
+import { useInvestmentCategories } from '../../api/investmentCategoriesQueries'
+import type { InvestmentProduct } from '../../api/investmentProducts'
 import {
-  closeInvestmentProduct,
-  createInvestmentProduct,
-  deleteInvestmentProduct,
-  editInvestmentProduct,
-  getInvestmentProducts,
-  type InvestmentProduct,
-} from '../../api/investmentProducts'
+  useCloseInvestmentProduct,
+  useCreateInvestmentProduct,
+  useDeleteInvestmentProduct,
+  useEditInvestmentProduct,
+  useInvestmentProducts,
+} from '../../api/investmentProductsQueries'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { DataTableBody } from '../../components/DataTableBody'
 import { ErrorAlert } from '../../components/ErrorAlert'
-import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
+import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { nameLookup } from '../../utils/nameLookup'
 import { InvestmentProductForm, type InvestmentProductFormValues } from './InvestmentProductForm'
 
@@ -55,14 +55,16 @@ export function InvestmentProductsSection({
   accountClosed,
 }: InvestmentProductsSectionProps) {
   const [error, setError] = useState<string | null>(null)
-  const {
-    data: products,
-    setData: setProducts,
-    ...productsState
-  } = useAsyncData(() => getInvestmentProducts(accountId), [accountId], { onError: setError })
-  const { data: categories, ...categoriesState } = useAsyncData(getInvestmentCategories, [], {
-    onError: setError,
-  })
+  const productsQuery = useInvestmentProducts(accountId)
+  const products = productsQuery.data
+  const productsState = useQueryState(productsQuery, setError)
+  const categoriesQuery = useInvestmentCategories()
+  const categories = categoriesQuery.data
+  const categoriesState = useQueryState(categoriesQuery, setError)
+  const createMutation = useCreateInvestmentProduct()
+  const editMutation = useEditInvestmentProduct()
+  const closeMutation = useCloseInvestmentProduct()
+  const deleteMutation = useDeleteInvestmentProduct()
 
   const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
   const subcategoryName = useMemo(
@@ -95,13 +97,12 @@ export function InvestmentProductsSection({
     setError(null)
     setAdding(true)
     try {
-      const created = await createInvestmentProduct({
+      await createMutation.mutateAsync({
         accountId,
         investmentCategoryId: values.categoryId,
         investmentSubcategoryId: values.subcategoryId || undefined,
         name: values.name,
       })
-      setProducts((prev) => [...(prev ?? []), created])
       setAddFormKey((n) => n + 1)
     } catch (err) {
       setError(defaultErrorMessage(err))
@@ -115,13 +116,13 @@ export function InvestmentProductsSection({
     setError(null)
     setSaving(true)
     try {
-      const updated = await editInvestmentProduct(editTarget.id, {
+      await editMutation.mutateAsync({
+        id: editTarget.id,
         accountId,
         investmentCategoryId: values.categoryId,
         investmentSubcategoryId: values.subcategoryId || undefined,
         name: values.name,
       })
-      setProducts((prev) => prev?.map((p) => (p.id === updated.id ? updated : p)) ?? null)
       setEditTarget(null)
     } catch (err) {
       setError(defaultErrorMessage(err))
@@ -135,8 +136,7 @@ export function InvestmentProductsSection({
     setError(null)
     setConfirming(true)
     try {
-      const closed = await closeInvestmentProduct(closeTarget.id)
-      setProducts((prev) => prev?.map((p) => (p.id === closed.id ? closed : p)) ?? null)
+      await closeMutation.mutateAsync(closeTarget.id)
       setCloseTarget(null)
     } catch (err) {
       setError(defaultErrorMessage(err))
@@ -150,8 +150,7 @@ export function InvestmentProductsSection({
     setError(null)
     setConfirming(true)
     try {
-      await deleteInvestmentProduct(deleteTarget.id)
-      setProducts((prev) => prev?.filter((p) => p.id !== deleteTarget.id) ?? null)
+      await deleteMutation.mutateAsync(deleteTarget.id)
       setDeleteTarget(null)
     } catch (err) {
       setError(defaultErrorMessage(err))

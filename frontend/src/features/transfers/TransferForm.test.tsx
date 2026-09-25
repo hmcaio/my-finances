@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
@@ -8,6 +8,7 @@ import { seedBitcoinBuyTransfer } from '../../mocks/handlers/transfers'
 import { TRANSFER_CONFLICT_MESSAGE } from '../../api/transfers'
 import { selectOption } from '../../test/testUtils'
 import { TransferForm, type TransferFormPreset } from './TransferForm'
+import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
 const accounts = [...seedAccounts, seedInvestmentAccount]
 const CHECKING = seedAccounts[0].name
@@ -17,7 +18,9 @@ function renderForm(
   props: Partial<Parameters<typeof TransferForm>[0]> = {},
 ): ReturnType<typeof vi.fn> {
   const onSaved = vi.fn()
-  render(<TransferForm accounts={accounts} onSaved={onSaved} onError={vi.fn()} {...props} />)
+  renderWithQueryClient(
+    <TransferForm accounts={accounts} onSaved={onSaved} onError={vi.fn()} {...props} />,
+  )
   return onSaved
 }
 
@@ -232,7 +235,10 @@ describe('TransferForm buys and sells', () => {
 
     expect(screen.getByRole('textbox', { name: 'Description' })).toHaveValue('Buy Bitcoin')
     expect(screen.getByRole('combobox', { name: 'To Account' })).toHaveTextContent(BROKER)
-    expect(await screen.findByRole('combobox', { name: 'Product' })).toHaveTextContent('Bitcoin')
+    // The product list arrives after the select first renders.
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: 'Product' })).toHaveTextContent('Bitcoin'),
+    )
   })
 
   it('starts from a Sell preset with the investment account as the source', async () => {
@@ -264,7 +270,10 @@ describe('TransferForm buys and sells', () => {
 
     expect(screen.queryByRole('spinbutton', { name: 'Resulting balance' })).not.toBeInTheDocument()
     expect(screen.getByText('Editing a trade never changes snapshots.')).toBeInTheDocument()
-    expect(await screen.findByRole('combobox', { name: 'Product' })).toHaveTextContent('Bitcoin')
+    // The product list arrives after the select first renders.
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: 'Product' })).toHaveTextContent('Bitcoin'),
+    )
     expect(screen.getByRole('spinbutton', { name: 'Quantity' })).toHaveValue(0.01)
 
     await user.click(screen.getByRole('button', { name: 'Save changes' }))

@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import { seedTransfers } from '../../mocks/handlers/transfers'
 import { AccountTransferList } from './AccountTransferList'
+import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
 describe('AccountTransferList', () => {
   it('renders only transfers touching the given account, on either side', async () => {
-    render(<AccountTransferList accountId="acct-1" />)
+    renderWithQueryClient(<AccountTransferList accountId="acct-1" />)
 
     for (const transfer of seedTransfers.filter(
       (t) => t.fromAccountId === 'acct-1' || t.toAccountId === 'acct-1',
@@ -15,7 +16,7 @@ describe('AccountTransferList', () => {
   })
 
   it('shows an empty state when the account has no transfers', async () => {
-    render(<AccountTransferList accountId="acct-with-no-transfers" />)
+    renderWithQueryClient(<AccountTransferList accountId="acct-with-no-transfers" />)
 
     expect(await screen.findByText('No transfers yet.')).toBeInTheDocument()
   })

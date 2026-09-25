@@ -5,8 +5,11 @@ import { ErrorAlert } from '../../components/ErrorAlert'
 import { AccountCreateForm } from '../accounts/AccountCreateForm'
 
 interface OnboardingPageProps {
-  /** Called once the first account exists; the app then swaps onboarding for the normal shell. */
-  onCompleted: (account: Account) => void
+  /**
+   * Called once the first account exists. Optional: the app swaps onboarding for the shell by
+   * itself, because its gate derives from the (then invalidated) accounts list.
+   */
+  onCompleted?: (account: Account) => void
 }
 
 /**
@@ -36,7 +39,7 @@ export function OnboardingPage({ onCompleted }: OnboardingPageProps) {
           Create your first account
         </Typography>
         <AccountCreateForm
-          onCreated={onCompleted}
+          onCreated={(account) => onCompleted?.(account)}
           onError={setError}
           submitLabel="Create account"
         />

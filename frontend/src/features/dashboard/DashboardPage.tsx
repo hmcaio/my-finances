@@ -1,4 +1,4 @@
-import { useState, type PropsWithChildren } from 'react'
+import type { PropsWithChildren } from 'react'
 import { Box, Paper, Typography } from '@mui/material'
 import { currentMonth } from '../../utils/localDate'
 import { BudgetVsActualReport } from '../budgets/BudgetVsActualReport'
@@ -21,15 +21,11 @@ function Section({ title, children }: PropsWithChildren<{ title: string }>) {
 
 /**
  * The dashboard (F012, PRD S6.8): a fixed grid that only composes widgets other features own -
- * each fetches its own data, so there is no dashboard endpoint (see F012 spec). Widgets that
- * depend on transactions remount (`key` counter, frontend `CLAUDE.md`, "Pages that embed other
- * pages' widgets") after a pending recurring occurrence is confirmed there, since that creates a
- * transaction; dismissing creates nothing, so it needs no refresh.
+ * each fetches its own data, so there is no dashboard endpoint (see F012 spec). Nothing here
+ * coordinates refreshes: a confirmed pending occurrence (which creates a transaction) or any other
+ * successful write refetches every widget through the global query invalidation (F019).
  */
 export function DashboardPage() {
-  const [revision, setRevision] = useState(0)
-  const bumpRevision = () => setRevision((r) => r + 1)
-
   return (
     <Box sx={{ py: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
@@ -45,36 +41,36 @@ export function DashboardPage() {
       >
         <Section title="Spend by category">
           <Paper variant="outlined" sx={{ p: 2 }}>
-            <SpendByCategoryWidget key={`spend-${revision}`} />
+            <SpendByCategoryWidget />
           </Paper>
         </Section>
 
         <Section title="Budget vs. actual">
-          <BudgetVsActualReport month={currentMonth()} reloadKey={revision} />
+          <BudgetVsActualReport month={currentMonth()} />
         </Section>
 
         <Section title="Account balances">
           <Paper variant="outlined" sx={{ p: 1 }}>
-            <AccountBalancesWidget key={`accounts-${revision}`} />
+            <AccountBalancesWidget />
           </Paper>
         </Section>
 
         <Section title="Investment allocation">
           <Paper variant="outlined" sx={{ p: 2 }}>
-            <InvestmentAllocationChart key={`allocation-${revision}`} />
+            <InvestmentAllocationChart />
           </Paper>
         </Section>
 
         <Box sx={{ gridColumn: { md: '1 / -1' } }}>
           <Section title="Net worth">
             <Paper variant="outlined" sx={{ p: 2 }}>
-              <NetWorthTrendChart key={`net-worth-${revision}`} />
+              <NetWorthTrendChart />
             </Paper>
           </Section>
         </Box>
 
         <Box sx={{ gridColumn: { md: '1 / -1' } }}>
-          <PendingOccurrencesWidget onConfirmed={bumpRevision} />
+          <PendingOccurrencesWidget />
         </Box>
       </Box>
     </Box>

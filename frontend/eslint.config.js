@@ -3,6 +3,7 @@ import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
+import pluginQuery from '@tanstack/eslint-plugin-query'
 import prettierConfig from 'eslint-config-prettier'
 
 export default tseslint.config(
@@ -29,6 +30,30 @@ export default tseslint.config(
   {
     files: ['src/utils/logger.ts'],
     rules: { 'no-console': 'off' },
+  },
+  ...pluginQuery.configs['flat/recommended'],
+  {
+    // Layering (F019, ADR 0016): feature code reaches the backend only through the `<area>Queries`
+    // hooks, never by calling an `src/api/<area>` HTTP function itself. Types, constants and the
+    // conflict messages can still be imported from the area module.
+    files: ['src/features/**/*.{ts,tsx}'],
+    ignores: ['**/*.test.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/api/*', '!**/api/*Queries', '!**/api/apiError', '!**/api/queryClient'],
+              importNamePattern:
+                '^(get|create|rename|delete|edit|close|set|record|stop|reactivate|dismiss|confirm|download)[A-Z]',
+              message:
+                'Call the area hooks from src/api/<area>Queries instead of the HTTP function (F019).',
+            },
+          ],
+        },
+      ],
+    },
   },
   prettierConfig,
 )

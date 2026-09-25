@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw'
 import type { CategorySpend, Transaction, TransactionType } from '../../api/transactions'
 import { seedCategories } from './categories'
+import { createStore } from '../store'
 
 /**
  * Seed data returned by the default `GET /api/transactions` handler below. Spans both seed
@@ -62,13 +63,14 @@ function typeForCategory(categoryId: string): TransactionType {
   return seedCategories.find((category) => category.id === categoryId)?.type ?? 'EXPENSE'
 }
 
+const transactions = createStore(seedTransactions)
+
 /**
- * Default success-path handlers for every transactions endpoint (F004's REST API). List applies
- * the same filter dimensions the real backend does, against `seedTransactions`, and paginates
- * with the same page/size defaults (page 0, size 20) - so `TransactionsPage`'s filter/pagination
- * UI has real behavior to test against without a database. Create/edit echo the request body back
- * (with type derived from the category, like the real backend) rather than mutating
- * `seedTransactions`, so every test starts from the same fixture regardless of execution order.
+ * Default success-path handlers for every transactions endpoint (F004's REST API), backed by an
+ * in-memory store restored after each test (see `categories.ts`). List applies the same filter
+ * dimensions the real backend does and paginates with the same page/size defaults (page 0,
+ * size 20), so `TransactionsPage`'s filter/pagination UI has real behavior to test against without
+ * a database. Type is derived from the category, like the real backend does.
  */
 export const transactionsHandlers = [
   // Registered before the `/:id` route so `spend-by-category` isn't taken for an id.
@@ -84,7 +86,8 @@ export const transactionsHandlers = [
     const page = Number(url.searchParams.get('page') ?? '0')
     const size = Number(url.searchParams.get('size') ?? '20')
 
-    const filtered = seedTransactions
+    const filtered = transactions
+      .list()
       .filter((t) => !dateFrom || t.date >= dateFrom)
       .filter((t) => !dateTo || t.date <= dateTo)
       .filter((t) => !categoryId || t.categoryId === categoryId)
@@ -107,15 +110,15 @@ export const transactionsHandlers = [
   }),
 
   http.get(`${TRANSACTIONS_URL}/:id`, ({ params }) => {
-    const transaction = seedTransactions.find((t) => t.id === params.id)
+    const transaction = transactions.find(params.id as string)
     if (!transaction) return new HttpResponse(null, { status: 404 })
     return HttpResponse.json(transaction)
   }),
 
   http.post(TRANSACTIONS_URL, async ({ request }) => {
     const body = (await request.json()) as TransactionRequestBody
-    const created: Transaction = {
-      id: 'txn-new',
+    const created = transactions.add({
+      id: transactions.nextId('txn'),
       date: body.date,
       amount: body.amount,
       categoryId: body.categoryId,
@@ -125,13 +128,13 @@ export const transactionsHandlers = [
       recurringTemplateVersionId: null,
       description: body.description,
       additionalNotes: body.additionalNotes ?? null,
-    }
+    })
     return HttpResponse.json(created, { status: 201 })
   }),
 
   http.patch(`${TRANSACTIONS_URL}/:id`, async ({ request, params }) => {
     const body = (await request.json()) as TransactionRequestBody
-    const updated: Transaction = {
+    const updated = transactions.replace(params.id as string, () => ({
       id: params.id as string,
       date: body.date,
       amount: body.amount,
@@ -142,11 +145,14 @@ export const transactionsHandlers = [
       recurringTemplateVersionId: null,
       description: body.description,
       additionalNotes: body.additionalNotes ?? null,
-    }
-    return HttpResponse.json(updated)
+    }))
+    return updated ? HttpResponse.json(updated) : new HttpResponse(null, { status: 404 })
   }),
 
-  http.delete(`${TRANSACTIONS_URL}/:id`, () => new HttpResponse(null, { status: 204 })),
+  http.delete(`${TRANSACTIONS_URL}/:id`, ({ params }) => {
+    transactions.remove(params.id as string)
+    return new HttpResponse(null, { status: 204 })
+  }),
 ]
 
 /**

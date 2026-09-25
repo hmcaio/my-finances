@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
@@ -7,10 +7,11 @@ import { accountCreateConflictHandler } from '../../mocks/handlers/accounts'
 import { BUILT_IN_INSTITUTION_ID } from '../../mocks/handlers/institutions'
 import { DUPLICATE_NAME_MESSAGE } from '../../api/accounts'
 import { OnboardingPage } from './OnboardingPage'
+import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
 describe('OnboardingPage', () => {
   it('explains the starting point and offers the account fields', async () => {
-    render(<OnboardingPage onCompleted={() => {}} />)
+    renderWithQueryClient(<OnboardingPage onCompleted={() => {}} />)
 
     expect(screen.getByRole('heading', { name: /welcome/i })).toBeInTheDocument()
     expect(screen.getByText(/starting point for tracking/i)).toBeInTheDocument()
@@ -36,7 +37,7 @@ describe('OnboardingPage', () => {
     )
     const onCompleted = vi.fn()
     const user = userEvent.setup()
-    render(<OnboardingPage onCompleted={onCompleted} />)
+    renderWithQueryClient(<OnboardingPage onCompleted={onCompleted} />)
 
     await screen.findByRole('combobox', { name: 'Institution' })
     await user.type(screen.getByLabelText('Name'), 'Main checking')
@@ -57,7 +58,7 @@ describe('OnboardingPage', () => {
     server.use(accountCreateConflictHandler)
     const onCompleted = vi.fn()
     const user = userEvent.setup()
-    render(<OnboardingPage onCompleted={onCompleted} />)
+    renderWithQueryClient(<OnboardingPage onCompleted={onCompleted} />)
 
     await screen.findByRole('combobox', { name: 'Institution' })
     await user.type(screen.getByLabelText('Name'), 'Main checking')

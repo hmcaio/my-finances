@@ -23,21 +23,15 @@ function institutionName(id: string) {
   return seedInstitutions.find((i) => i.id === id)!.name
 }
 
-/** Records the body of the next `POST /api/accounts` and answers like the default handler. */
+/**
+ * Records the body of the next `POST /api/accounts`, then falls through to the default (stateful)
+ * handler, so the created row is in the store the follow-up refetch reads.
+ */
 function captureCreateBody() {
   const sent: { body?: Record<string, unknown> } = {}
   server.use(
     http.post('/api/accounts', async ({ request }) => {
-      sent.body = (await request.json()) as Record<string, unknown>
-      return HttpResponse.json(
-        {
-          ...seedCheckingAccount,
-          id: 'acct-new',
-          name: sent.body.name,
-          institutionId: sent.body.institutionId,
-        },
-        { status: 201 },
-      )
+      sent.body = (await request.clone().json()) as Record<string, unknown>
     }),
   )
   return sent

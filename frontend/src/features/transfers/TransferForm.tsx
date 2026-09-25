@@ -11,9 +11,10 @@ import {
 } from '@mui/material'
 import type { Account } from '../../api/accounts'
 import { defaultErrorMessage } from '../../api/apiError'
-import { getInvestmentProducts } from '../../api/investmentProducts'
-import { createTransfer, editTransfer, type Transfer } from '../../api/transfers'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { useInvestmentProducts } from '../../api/investmentProductsQueries'
+import type { Transfer } from '../../api/transfers'
+import { useCreateTransfer, useEditTransfer } from '../../api/transfersQueries'
+import { useQueryState } from '../../hooks/queryState'
 import { today } from '../../utils/localDate'
 import {
   grossTradedValue,
@@ -162,11 +163,13 @@ export function TransferForm({
   )
 
   const investmentAccountId = investmentAccount?.id
-  const { data: products } = useAsyncData(
-    () => (investmentAccountId ? getInvestmentProducts(investmentAccountId) : Promise.resolve([])),
-    [investmentAccountId],
-    { onError },
-  )
+  const productsQuery = useInvestmentProducts(investmentAccountId, {
+    enabled: investmentAccountId !== undefined,
+  })
+  useQueryState(productsQuery, onError)
+  const products = investmentAccountId ? productsQuery.data : undefined
+  const createMutation = useCreateTransfer()
+  const editMutation = useEditTransfer()
   const productOptions = (products ?? []).filter(
     (p) => p.accountId === investmentAccountId && (!p.closed || p.id === form.investmentProductId),
   )
@@ -312,8 +315,8 @@ export function TransferForm({
     }
     try {
       const saved = editing
-        ? await editTransfer(editing.id, request)
-        : await createTransfer({
+        ? await editMutation.mutateAsync({ id: editing.id, ...request })
+        : await createMutation.mutateAsync({
             ...request,
             ...(showResulting && resultingValue.trim() !== ''
               ? { resultingBalance: Number(resultingValue) }

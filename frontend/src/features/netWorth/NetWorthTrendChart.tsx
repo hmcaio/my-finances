@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { Box, Skeleton, ToggleButton, ToggleButtonGroup, Typography, useTheme } from '@mui/material'
-import { getNetWorthTrend, type NetWorthGranularity, type NetWorthPoint } from '../../api/netWorth'
+import type { NetWorthGranularity, NetWorthPoint } from '../../api/netWorth'
+import { useNetWorthTrend } from '../../api/netWorthQueries'
 import { fadeInSx } from '../../components/fadeIn'
 import { LoadFailedNotice } from '../../components/LoadFailedNotice'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 
 const WIDTH = 640
@@ -58,12 +59,9 @@ function money(value: number): string {
 export function NetWorthTrendChart() {
   const theme = useTheme()
   const [granularity, setGranularity] = useState<NetWorthGranularity>('MONTH')
-  const {
-    data: points,
-    loading,
-    loadError,
-    reload,
-  } = useAsyncData(() => getNetWorthTrend({ granularity }), [granularity])
+  const trendQuery = useNetWorthTrend({ granularity })
+  const points = trendQuery.data
+  const { loading, loadError, reload } = useQueryState(trendQuery)
   const showSkeleton = useDelayedFlag(loading)
 
   const toggle = (

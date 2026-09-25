@@ -1,14 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Autocomplete, Box, createFilterOptions, Skeleton, TextField } from '@mui/material'
-import {
-  createInstitution,
-  getInstitutions,
-  INSTITUTION_NAME_MAX_LENGTH,
-  type Institution,
-} from '../../api/institutions'
+import { INSTITUTION_NAME_MAX_LENGTH, type Institution } from '../../api/institutions'
+import { useCreateInstitution, useInstitutions } from '../../api/institutionsQueries'
 import { defaultErrorMessage } from '../../api/apiError'
 import { LoadFailedNotice } from '../../components/LoadFailedNotice'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { sortInstitutions } from './sortInstitutions'
 
@@ -24,8 +20,8 @@ interface InstitutionSelectProps {
   value: string | undefined
   onChange: (institutionId: string) => void
   /**
-   * Called with an institution created through the "Add “X”" entry, so a caller that keeps its own
-   * institution list (to resolve ids to names) can add it too.
+   * Called with an institution created through the "Add “X”" entry. Other views of the list need
+   * nothing more: the shared institutions query refetches after the create.
    */
   onCreated?: (institution: Institution) => void
   label?: string
@@ -48,13 +44,10 @@ export function InstitutionSelect({
   label = 'Institution',
   disabled = false,
 }: InstitutionSelectProps) {
-  const {
-    data: institutions,
-    setData: setInstitutions,
-    loading,
-    loadError,
-    reload,
-  } = useAsyncData(getInstitutions, [])
+  const institutionsQuery = useInstitutions()
+  const institutions = institutionsQuery.data
+  const { loading, loadError, reload } = useQueryState(institutionsQuery)
+  const createMutation = useCreateInstitution()
   const showSkeleton = useDelayedFlag(loading)
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
@@ -75,8 +68,7 @@ export function InstitutionSelect({
     }
     setCreating(true)
     try {
-      const created = await createInstitution({ name: option.name })
-      setInstitutions((prev) => [...(prev ?? []), created])
+      const created = await createMutation.mutateAsync({ name: option.name })
       onCreated?.(created)
       onChange(created.id)
     } catch (err) {

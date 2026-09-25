@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw'
 import type { Budget, BudgetReportLine } from '../../api/budgets'
+import { createStore } from '../store'
 
 /**
  * Seed data returned by the default `GET /api/budgets` handler below. `cat-1` (Groceries, see
@@ -38,38 +39,37 @@ interface UpdateBudgetCapRequestBody {
   effectiveFrom: string
 }
 
+const budgets = createStore(seedBudgets)
+
 /**
- * Default success-path handlers for every budgets endpoint (F006's REST API). Create/set-cap echo
- * the request body back rather than mutating `seedBudgets`, so every test starts from the same
- * fixture regardless of execution order (same convention as `transactionsHandlers`/
- * `transfersHandlers`).
+ * Default success-path handlers for every budgets endpoint (F006's REST API), backed by an
+ * in-memory store restored after each test (see `categories.ts`). The report is a fixed seed:
+ * tests that care about its numbers override it.
  */
 export const budgetsHandlers = [
-  http.get(BUDGETS_URL, () => HttpResponse.json(seedBudgets)),
+  http.get(BUDGETS_URL, () => HttpResponse.json(budgets.list())),
 
   http.get(`${BUDGETS_URL}/report`, () => HttpResponse.json(seedBudgetReport)),
 
   http.post(BUDGETS_URL, async ({ request }) => {
     const body = (await request.json()) as CreateBudgetRequestBody
-    const created: Budget = {
-      id: 'budget-new',
+    const created = budgets.add({
+      id: budgets.nextId('budget'),
       categoryId: body.categoryId,
       currentCap: body.monthlyCap,
       currentCapEffectiveFrom: body.effectiveFrom,
-    }
+    })
     return HttpResponse.json(created, { status: 201 })
   }),
 
   http.patch(`${BUDGETS_URL}/:id/cap`, async ({ request, params }) => {
     const body = (await request.json()) as UpdateBudgetCapRequestBody
-    const existing = seedBudgets.find((budget) => budget.id === params.id)
-    const updated: Budget = {
-      id: params.id as string,
-      categoryId: existing?.categoryId ?? 'cat-1',
+    const updated = budgets.replace(params.id as string, (row) => ({
+      ...row,
       currentCap: body.monthlyCap,
       currentCapEffectiveFrom: body.effectiveFrom,
-    }
-    return HttpResponse.json(updated)
+    }))
+    return updated ? HttpResponse.json(updated) : new HttpResponse(null, { status: 404 })
   }),
 ]
 

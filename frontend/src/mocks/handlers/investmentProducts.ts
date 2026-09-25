@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw'
 import type { InvestmentProduct } from '../../api/investmentProducts'
 import { seedInvestmentAccount } from './accounts'
+import { createStore } from '../store'
 
 /**
  * Seed data returned by the default `GET /api/investment-products` handler below, all inside the
@@ -56,29 +57,33 @@ interface ProductRequestBody {
   name: string
 }
 
+/** Shared with the snapshot handlers, which move a product's latest snapshot. */
+export const investmentProductsStore = createStore(seedInvestmentProducts)
+const products = investmentProductsStore
+
 /**
- * Default success-path handlers for the investment products endpoints (F008's REST API),
- * request-echoing like the other aggregates' handlers: no mutation of the seed.
+ * Default success-path handlers for the investment products endpoints (F008's REST API), backed
+ * by an in-memory store restored after each test (see `categories.ts`).
  */
 export const investmentProductsHandlers = [
   http.get(PRODUCTS_URL, ({ request }) => {
     const accountId = new URL(request.url).searchParams.get('accountId')
-    const products = accountId
-      ? seedInvestmentProducts.filter((p) => p.accountId === accountId)
-      : seedInvestmentProducts
-    return HttpResponse.json(products)
+    const rows = accountId
+      ? products.list().filter((p) => p.accountId === accountId)
+      : products.list()
+    return HttpResponse.json(rows)
   }),
 
   http.get(`${PRODUCTS_URL}/:id`, ({ params }) => {
-    const product = seedInvestmentProducts.find((p) => p.id === params.id)
+    const product = products.find(params.id as string)
     if (!product) return new HttpResponse(null, { status: 404 })
     return HttpResponse.json(product)
   }),
 
   http.post(PRODUCTS_URL, async ({ request }) => {
     const body = (await request.json()) as ProductRequestBody
-    const created: InvestmentProduct = {
-      id: 'iprod-new',
+    const created = products.add({
+      id: products.nextId('iprod'),
       accountId: body.accountId,
       investmentCategoryId: body.investmentCategoryId,
       investmentSubcategoryId: body.investmentSubcategoryId ?? null,
@@ -88,46 +93,35 @@ export const investmentProductsHandlers = [
       hasHistory: false,
       needsSnapshot: false,
       latestSnapshot: null,
-    }
+    })
     return HttpResponse.json(created, { status: 201 })
   }),
 
   http.patch(`${PRODUCTS_URL}/:id`, async ({ request, params }) => {
     const body = (await request.json()) as ProductRequestBody
-    const existing = seedInvestmentProducts.find((p) => p.id === params.id)
-    const updated: InvestmentProduct = {
-      id: params.id as string,
+    const updated = products.replace(params.id as string, (row) => ({
+      ...row,
       accountId: body.accountId,
       investmentCategoryId: body.investmentCategoryId,
       investmentSubcategoryId: body.investmentSubcategoryId ?? null,
       name: body.name,
-      closedDate: existing?.closedDate ?? null,
-      closed: existing?.closed ?? false,
-      hasHistory: existing?.hasHistory ?? false,
-      needsSnapshot: existing?.needsSnapshot ?? false,
-      latestSnapshot: existing?.latestSnapshot ?? null,
-    }
-    return HttpResponse.json(updated)
+    }))
+    return updated ? HttpResponse.json(updated) : new HttpResponse(null, { status: 404 })
   }),
 
   http.post(`${PRODUCTS_URL}/:id/close`, ({ params }) => {
-    const existing = seedInvestmentProducts.find((p) => p.id === params.id)
-    const closed: InvestmentProduct = {
-      id: params.id as string,
-      accountId: existing?.accountId ?? seedInvestmentAccount.id,
-      investmentCategoryId: existing?.investmentCategoryId ?? 'icat-fixed',
-      investmentSubcategoryId: existing?.investmentSubcategoryId ?? null,
-      name: existing?.name ?? 'Product',
+    const closed = products.replace(params.id as string, (row) => ({
+      ...row,
       closedDate: '2026-09-15',
       closed: true,
-      hasHistory: existing?.hasHistory ?? false,
-      needsSnapshot: existing?.needsSnapshot ?? false,
-      latestSnapshot: existing?.latestSnapshot ?? null,
-    }
-    return HttpResponse.json(closed)
+    }))
+    return closed ? HttpResponse.json(closed) : new HttpResponse(null, { status: 404 })
   }),
 
-  http.delete(`${PRODUCTS_URL}/:id`, () => new HttpResponse(null, { status: 204 })),
+  http.delete(`${PRODUCTS_URL}/:id`, ({ params }) => {
+    products.remove(params.id as string)
+    return new HttpResponse(null, { status: 204 })
+  }),
 ]
 
 /**

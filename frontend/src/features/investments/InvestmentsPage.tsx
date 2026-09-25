@@ -11,9 +11,9 @@ import {
   TableRow,
   Typography,
 } from '@mui/material'
-import { getAccounts } from '../../api/accounts'
+import { useAccounts } from '../../api/accountsQueries'
 import { DataTableBody } from '../../components/DataTableBody'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { useQueryState } from '../../hooks/queryState'
 import { InvestmentAllocationChart } from './InvestmentAllocationChart'
 
 /**
@@ -22,7 +22,9 @@ import { InvestmentAllocationChart } from './InvestmentAllocationChart'
  * trades.
  */
 export function InvestmentsPage() {
-  const { data: accounts, ...accountsState } = useAsyncData(() => getAccounts(), [])
+  const accountsQuery = useAccounts()
+  const accounts = accountsQuery.data
+  const accountsState = useQueryState(accountsQuery)
   const investmentAccounts = useMemo(
     () => (accounts ?? []).filter((a) => a.type === 'INVESTMENT'),
     [accounts],

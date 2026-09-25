@@ -41,7 +41,7 @@ function ThemedApp() {
   // Onboarding (F011) is not part of the route tree: it's a top-level check gating whether
   // the router+layout shell renders at all. `hasAccounts` stays null while the check is loading
   // or failed, so neither the shell nor onboarding renders on a guess.
-  const { hasAccounts, loading, loadError, reload, markHasAccounts } = useHasAccounts()
+  const { hasAccounts, loading, loadError, reload } = useHasAccounts()
   const showSkeleton = useDelayedFlag(loading)
 
   return (
@@ -87,7 +87,7 @@ function ThemedApp() {
           </Layout>
         </BrowserRouter>
       ) : (
-        <OnboardingPage onCompleted={markHasAccounts} />
+        <OnboardingPage />
       )}
     </ThemeProvider>
   )

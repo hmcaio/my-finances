@@ -1,15 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import { seedNetWorthTrend } from '../../mocks/handlers/netWorth'
 import { expectLoadStates } from '../../test/loadStates'
 import { NetWorthTrendChart } from './NetWorthTrendChart'
+import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
 describe('NetWorthTrendChart', () => {
   it('draws the monthly net worth line with a point per month', async () => {
-    render(<NetWorthTrendChart />)
+    renderWithQueryClient(<NetWorthTrendChart />)
 
     const chart = await screen.findByRole('img', { name: 'Net worth by month' })
     expect(chart.querySelectorAll('circle')).toHaveLength(seedNetWorthTrend.length)
@@ -18,7 +19,7 @@ describe('NetWorthTrendChart', () => {
   })
 
   it('summarizes the latest point as assets plus investments minus liabilities', async () => {
-    render(<NetWorthTrendChart />)
+    renderWithQueryClient(<NetWorthTrendChart />)
 
     expect(
       await screen.findByText(
@@ -35,7 +36,7 @@ describe('NetWorthTrendChart', () => {
         return HttpResponse.json(seedNetWorthTrend)
       }),
     )
-    render(<NetWorthTrendChart />)
+    renderWithQueryClient(<NetWorthTrendChart />)
     await screen.findByRole('img', { name: 'Net worth by month' })
     expect(screen.getByRole('button', { name: 'Monthly' })).toHaveAttribute('aria-pressed', 'true')
 
@@ -48,7 +49,7 @@ describe('NetWorthTrendChart', () => {
   })
 
   it('draws the change-date series as a step line', async () => {
-    render(<NetWorthTrendChart />)
+    renderWithQueryClient(<NetWorthTrendChart />)
     await screen.findByRole('img', { name: 'Net worth by month' })
 
     await userEvent.click(screen.getByRole('button', { name: 'Every change' }))
@@ -62,7 +63,7 @@ describe('NetWorthTrendChart', () => {
   it('shows a message when the period has no data', async () => {
     server.use(http.get('/api/net-worth/trend', () => HttpResponse.json([])))
 
-    render(<NetWorthTrendChart />)
+    renderWithQueryClient(<NetWorthTrendChart />)
 
     expect(await screen.findByText('No net worth data for this period.')).toBeInTheDocument()
   })
@@ -70,7 +71,7 @@ describe('NetWorthTrendChart', () => {
   it('renders a single point without breaking', async () => {
     server.use(http.get('/api/net-worth/trend', () => HttpResponse.json([seedNetWorthTrend[0]])))
 
-    render(<NetWorthTrendChart />)
+    renderWithQueryClient(<NetWorthTrendChart />)
 
     const chart = await screen.findByRole('img', { name: 'Net worth by month' })
     expect(chart.querySelectorAll('circle')).toHaveLength(1)
@@ -86,14 +87,14 @@ describe('NetWorthTrendChart', () => {
       ),
     )
 
-    render(<NetWorthTrendChart />)
+    renderWithQueryClient(<NetWorthTrendChart />)
 
     expect(await screen.findByText(/net worth -20.00 = assets 60.00/)).toBeInTheDocument()
   })
 
   describe('load states', () => {
     expectLoadStates({
-      render: () => render(<NetWorthTrendChart />),
+      render: () => renderWithQueryClient(<NetWorthTrendChart />),
       url: '/api/net-worth/trend',
       successBody: seedNetWorthTrend,
       loadedText: /As of 2026-08-31/,

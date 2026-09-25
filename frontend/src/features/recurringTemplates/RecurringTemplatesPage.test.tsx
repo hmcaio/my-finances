@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
@@ -17,6 +17,7 @@ import {
 import { findRow } from '../../test/testUtils'
 import { expectLoadStates } from '../../test/loadStates'
 import { RecurringTemplatesPage } from './RecurringTemplatesPage'
+import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
 /** Scopes queries to the templates settings table - the pending-occurrences widget below it
  * renders overlapping text (description/category/account), so an unscoped `getByText` would be
@@ -31,7 +32,7 @@ function pendingWidgetTable() {
 
 describe('RecurringTemplatesPage', () => {
   it('renders the seeded template with its current amount and day of month', async () => {
-    render(<RecurringTemplatesPage />)
+    renderWithQueryClient(<RecurringTemplatesPage />)
 
     const row = await findRow(seedRentRecurringTemplate.description, templatesTable())
     expect(row.getByText(seedRentRecurringTemplate.currentAmount!.toFixed(2))).toBeInTheDocument()
@@ -42,7 +43,7 @@ describe('RecurringTemplatesPage', () => {
   it('never offers an investment account in the create form account dropdown', async () => {
     server.use(accountsWithInvestmentHandler)
     const user = userEvent.setup()
-    render(<RecurringTemplatesPage />)
+    renderWithQueryClient(<RecurringTemplatesPage />)
     await findRow(seedRentRecurringTemplate.description, templatesTable())
 
     await user.click(screen.getByRole('combobox', { name: 'Account' }))
@@ -56,7 +57,7 @@ describe('RecurringTemplatesPage', () => {
 
   it('adds a new recurring template', async () => {
     const user = userEvent.setup()
-    render(<RecurringTemplatesPage />)
+    renderWithQueryClient(<RecurringTemplatesPage />)
     await findRow(seedRentRecurringTemplate.description, templatesTable())
 
     await user.click(screen.getByLabelText('Category'))
@@ -75,7 +76,7 @@ describe('RecurringTemplatesPage', () => {
 
   it('edits a template amount and day of month inline', async () => {
     const user = userEvent.setup()
-    render(<RecurringTemplatesPage />)
+    renderWithQueryClient(<RecurringTemplatesPage />)
     const row = await findRow(seedRentRecurringTemplate.description, templatesTable())
 
     await user.click(row.getByRole('button', { name: 'Edit amount and day' }))
@@ -99,7 +100,7 @@ describe('RecurringTemplatesPage', () => {
       }),
     )
     const user = userEvent.setup()
-    render(<RecurringTemplatesPage />)
+    renderWithQueryClient(<RecurringTemplatesPage />)
     await findRow(seedRentRecurringTemplate.description, templatesTable())
     await waitFor(() => expect(pendingCallCount).toBe(1))
 
@@ -131,7 +132,7 @@ describe('RecurringTemplatesPage', () => {
       }),
     )
     const user = userEvent.setup()
-    render(<RecurringTemplatesPage />)
+    renderWithQueryClient(<RecurringTemplatesPage />)
     const row = await findRow(seedRentRecurringTemplate.description, templatesTable())
     expect(await pendingWidgetTable().findByText('1500.00')).toBeInTheDocument()
 
@@ -146,7 +147,7 @@ describe('RecurringTemplatesPage', () => {
 
   it('stops an active template', async () => {
     const user = userEvent.setup()
-    render(<RecurringTemplatesPage />)
+    renderWithQueryClient(<RecurringTemplatesPage />)
     const row = await findRow(seedRentRecurringTemplate.description, templatesTable())
 
     await user.click(row.getByRole('button', { name: 'Stop' }))
@@ -160,7 +161,7 @@ describe('RecurringTemplatesPage', () => {
   // affects both tables at once - `expectLoadStates`'s assertions tolerate that (1..N matches)
   // rather than assuming a single "Loading…"/"Could not load data" instance.
   expectLoadStates({
-    render: () => render(<RecurringTemplatesPage />),
+    render: () => renderWithQueryClient(<RecurringTemplatesPage />),
     url: '/api/accounts',
     successBody: seedAccounts,
     loadedText: seedRentRecurringTemplate.description,
@@ -184,15 +185,12 @@ describe('RecurringTemplatesPage local-time defaults', () => {
     let sent: { effectiveFrom?: string } = {}
     server.use(
       http.post('/api/recurring-templates', async ({ request }) => {
-        sent = (await request.json()) as { effectiveFrom?: string }
-        return HttpResponse.json(
-          { ...seedRentRecurringTemplate, id: 'rt-new', description: 'Internet' },
-          { status: 201 },
-        )
+        // Record the body, then fall through to the default (stateful) handler.
+        sent = (await request.clone().json()) as { effectiveFrom?: string }
       }),
     )
     const user = userEvent.setup()
-    render(<RecurringTemplatesPage />)
+    renderWithQueryClient(<RecurringTemplatesPage />)
     await findRow(seedRentRecurringTemplate.description, templatesTable())
 
     await user.click(screen.getByLabelText('Category'))

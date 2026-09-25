@@ -1,10 +1,10 @@
 import { useMemo } from 'react'
 import { Box, LinearProgress, Skeleton, Typography } from '@mui/material'
-import { getCategories } from '../../api/categories'
-import { getSpendByCategory } from '../../api/transactions'
+import { useCategories } from '../../api/categoriesQueries'
+import { useSpendByCategory } from '../../api/transactionsQueries'
 import { fadeInSx } from '../../components/fadeIn'
 import { LoadFailedNotice } from '../../components/LoadFailedNotice'
-import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
+import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { currentMonth } from '../../utils/localDate'
 import { nameLookup } from '../../utils/nameLookup'
@@ -16,15 +16,19 @@ import { nameLookup } from '../../utils/nameLookup'
  * report it lists every category with spending, budgeted or not.
  */
 export function SpendByCategoryWidget() {
-  const { data: spend, ...spendState } = useAsyncData(() => getSpendByCategory(currentMonth()), [])
-  const { data: categories, ...categoriesState } = useAsyncData(getCategories, [])
+  const spendQuery = useSpendByCategory(currentMonth())
+  const spend = spendQuery.data
+  const spendState = useQueryState(spendQuery)
+  const categoriesQuery = useCategories()
+  const categories = categoriesQuery.data
+  const categoriesState = useQueryState(categoriesQuery)
   // Names are needed to render a row, so both fetches gate it (no raw ids on screen).
   const state = combineLoadState(categoriesState, spendState)
   const showSkeleton = useDelayedFlag(state.loading)
   const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
 
   if (state.loadError) return <LoadFailedNotice message={state.loadError} onRetry={state.reload} />
-  if (spend === null || categories === null) {
+  if (spend === undefined || categories === undefined) {
     return showSkeleton ? (
       <Box role="status" aria-label="Loading spend by category">
         {[0, 1, 2].map((row) => (

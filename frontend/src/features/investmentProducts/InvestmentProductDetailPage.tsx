@@ -21,23 +21,23 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import { getAccounts } from '../../api/accounts'
+import { useAccounts } from '../../api/accountsQueries'
 import { defaultErrorMessage } from '../../api/apiError'
-import { getInvestmentProduct } from '../../api/investmentProducts'
+import { useInvestmentProduct } from '../../api/investmentProductsQueries'
+import type { InvestmentSnapshot } from '../../api/investmentSnapshots'
 import {
-  getInvestmentSnapshots,
-  recordInvestmentSnapshot,
-  type InvestmentSnapshot,
-} from '../../api/investmentSnapshots'
-import { getInvestmentValueSeries } from '../../api/investmentValueSeries'
-import { getTransfers, type Transfer } from '../../api/transfers'
+  useInvestmentSnapshots,
+  useRecordInvestmentSnapshot,
+} from '../../api/investmentSnapshotsQueries'
+import { useInvestmentValueSeries } from '../../api/investmentValueSeriesQueries'
+import type { Transfer } from '../../api/transfers'
+import { useTransfers } from '../../api/transfersQueries'
 import { DataTableBody } from '../../components/DataTableBody'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { fadeInSx } from '../../components/fadeIn'
 import { PaginationControls } from '../../components/PaginationControls'
-import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
+import { combineLoadState, useQueryState, type LoadState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
-import { usePagedData } from '../../hooks/usePagedData'
 import { today } from '../../utils/localDate'
 import { TransferForm, type TransferFormPreset } from '../transfers/TransferForm'
 import { ValueSeriesChart } from './ValueSeriesChart'
@@ -55,34 +55,28 @@ export function InvestmentProductDetailPage() {
   const productId = id ?? ''
   const [error, setError] = useState<string | null>(null)
 
-  const { data: product, ...productState } = useAsyncData(
-    () => (id ? getInvestmentProduct(id) : Promise.reject(new Error('Missing product id.'))),
-    [id],
-    { errorMessage: (err) => defaultErrorMessage(err, { 404: 'Investment product not found.' }) },
+  const productQuery = useInvestmentProduct(id)
+  const product = productQuery.data
+  const productState = useQueryState(productQuery, undefined, (err) =>
+    defaultErrorMessage(err, { 404: 'Investment product not found.' }),
   )
-  const { data: accounts, ...accountsState } = useAsyncData(() => getAccounts(true), [], {
-    onError: setError,
-  })
-  const {
-    data: snapshots,
-    setData: setSnapshots,
-    ...snapshotsState
-  } = useAsyncData(() => getInvestmentSnapshots(productId), [productId], { onError: setError })
-  const { data: series, ...seriesState } = useAsyncData(
-    () => getInvestmentValueSeries({ productId }),
-    [productId],
-    { onError: setError },
-  )
+  const accountsQuery = useAccounts(true)
+  const accounts = accountsQuery.data
+  const accountsState = useQueryState(accountsQuery, setError)
+  const snapshotsQuery = useInvestmentSnapshots(productId)
+  const snapshots = snapshotsQuery.data
+  const snapshotsState = useQueryState(snapshotsQuery, setError)
+  const seriesQuery = useInvestmentValueSeries({ productId })
+  const series = seriesQuery.data
+  const seriesState = useQueryState(seriesQuery, setError)
   const [tradesPage, setTradesPage] = useState(0)
-  const {
-    items: trades,
-    pageInfo,
-    ...tradesState
-  } = usePagedData(
-    () => getTransfers({ investmentProductId: productId }, tradesPage, TRADES_PAGE_SIZE),
-    [productId, tradesPage],
-    { onError: setError },
-  )
+  const tradesQuery = useTransfers({ investmentProductId: productId }, tradesPage, TRADES_PAGE_SIZE)
+  const trades = tradesQuery.data?.content
+  const pageInfo = tradesQuery.data
+    ? { number: tradesQuery.data.page.number, totalPages: tradesQuery.data.page.totalPages }
+    : null
+  const tradesState = useQueryState(tradesQuery, setError)
+  const recordSnapshot = useRecordInvestmentSnapshot()
 
   const [snapshotForm, setSnapshotForm] = useState(() => ({ date: today(), balance: '' }))
   const [recording, setRecording] = useState(false)
@@ -94,18 +88,11 @@ export function InvestmentProductDetailPage() {
   const showSkeleton = useDelayedFlag(loading)
   const account = accounts?.find((a) => a.id === product?.accountId)
   const accountClosed = account?.closed ?? false
-  const canTrade = product !== null && !product.closed && !accountClosed && accounts !== null
+  const canTrade =
+    product !== undefined && !product.closed && !accountClosed && accounts !== undefined
 
   const points = series?.[0]?.points ?? []
   const hasUnits = points.some((p) => p.units !== null)
-
-  // Trades, the chart and the product's own flags all move when a snapshot or a trade is recorded.
-  function refreshAfterChange() {
-    productState.reload()
-    tradesState.reload()
-    seriesState.reload()
-    snapshotsState.reload()
-  }
 
   async function handleRecordSnapshot() {
     if (!product) return
@@ -114,16 +101,9 @@ export function InvestmentProductDetailPage() {
     setError(null)
     setRecording(true)
     try {
-      const saved = await recordInvestmentSnapshot(product.id, { date: snapshotForm.date, balance })
-      // A same-day entry replaces the earlier one; keep the list newest first.
-      setSnapshots((prev) =>
-        [saved, ...(prev ?? []).filter((s) => s.date !== saved.date)].sort((a, b) =>
-          a.date < b.date ? 1 : -1,
-        ),
-      )
+      // A same-day entry replaces the earlier one; the refetch after the write reorders the list.
+      await recordSnapshot.mutateAsync({ productId: product.id, date: snapshotForm.date, balance })
       setSnapshotForm((prev) => ({ ...prev, balance: '' }))
-      productState.reload()
-      seriesState.reload()
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {
@@ -146,15 +126,12 @@ export function InvestmentProductDetailPage() {
   function handleTradeSaved() {
     setTradeDialog(null)
     setTradesPage(0)
-    refreshAfterChange()
   }
 
   // Direction is derived, never stored: a transfer into the product's own account is a buy.
   function tradeDirection(trade: Transfer): string {
     return trade.toAccountId === product?.accountId ? 'Buy' : 'Sell'
   }
-  const tradesTableState = combineLoadState(tradesState)
-  const snapshotsTableState = combineLoadState(snapshotsState)
 
   return (
     <Box sx={{ py: 4 }}>
@@ -305,7 +282,7 @@ export function InvestmentProductDetailPage() {
             </Box>
             <SnapshotHistory
               snapshots={snapshots}
-              state={snapshotsTableState}
+              state={snapshotsState}
               onRetry={snapshotsState.reload}
             />
           </Paper>
@@ -328,7 +305,7 @@ export function InvestmentProductDetailPage() {
                   </TableRow>
                 </TableHead>
                 <DataTableBody
-                  state={combineLoadState(tradesTableState, accountsState)}
+                  state={combineLoadState(tradesState, accountsState)}
                   onRetry={() => {
                     tradesState.reload()
                     accountsState.reload()
@@ -397,8 +374,8 @@ export function InvestmentProductDetailPage() {
 }
 
 interface SnapshotHistoryProps {
-  snapshots: InvestmentSnapshot[] | null
-  state: ReturnType<typeof combineLoadState>
+  snapshots: InvestmentSnapshot[] | undefined
+  state: LoadState
   onRetry: () => void
 }
 

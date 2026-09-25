@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
@@ -18,6 +18,7 @@ import { CREATE_CONFLICT_MESSAGE } from '../../api/budgets'
 import { findRow } from '../../test/testUtils'
 import { expectLoadStates } from '../../test/loadStates'
 import { BudgetsPage } from './BudgetsPage'
+import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
 /** Scopes queries to the budget settings table - the category name also appears in the
  * budget-vs-actual section below it, so an unscoped `getByText` would be ambiguous. */
@@ -26,15 +27,31 @@ function settingsTable() {
 }
 
 describe('BudgetsPage', () => {
+  it('fetches the categories once for the page and its embedded report (shared query)', async () => {
+    let categoryRequests = 0
+    server.use(
+      http.get('/api/categories', () => {
+        categoryRequests += 1
+        return HttpResponse.json(seedCategories)
+      }),
+    )
+    renderWithQueryClient(<BudgetsPage />)
+
+    await findRow(seedGroceriesCategory.name, settingsTable())
+    await screen.findByText(/620\.00 \/ 500\.00 — over budget/)
+
+    expect(categoryRequests).toBe(1)
+  })
+
   it('renders the seeded budget with its current cap', async () => {
-    render(<BudgetsPage />)
+    renderWithQueryClient(<BudgetsPage />)
 
     const row = await findRow(seedGroceriesCategory.name, settingsTable())
     expect(row.getByText(seedGroceriesBudget.currentCap!.toFixed(2))).toBeInTheDocument()
   })
 
   it('renders the budget-vs-actual report for the current month, flagging an over-cap category', async () => {
-    render(<BudgetsPage />)
+    renderWithQueryClient(<BudgetsPage />)
 
     const line = seedGroceriesBudgetReportLine
     expect(
@@ -45,7 +62,7 @@ describe('BudgetsPage', () => {
 
   it('offers only unbudgeted expense categories in the add-budget picker', async () => {
     const user = userEvent.setup()
-    render(<BudgetsPage />)
+    renderWithQueryClient(<BudgetsPage />)
     await findRow(seedGroceriesCategory.name, settingsTable())
 
     // Groceries is already budgeted and Salary is income - neither belongs here.
@@ -66,7 +83,7 @@ describe('BudgetsPage', () => {
       ),
     )
     const user = userEvent.setup()
-    render(<BudgetsPage />)
+    renderWithQueryClient(<BudgetsPage />)
     await findRow(seedGroceriesCategory.name, settingsTable())
 
     await user.click(screen.getByLabelText('Category'))
@@ -88,7 +105,7 @@ describe('BudgetsPage', () => {
       budgetCreateConflictHandler,
     )
     const user = userEvent.setup()
-    render(<BudgetsPage />)
+    renderWithQueryClient(<BudgetsPage />)
     await findRow(seedGroceriesCategory.name, settingsTable())
 
     await user.click(screen.getByLabelText('Category'))
@@ -101,7 +118,7 @@ describe('BudgetsPage', () => {
 
   it('edits a budget cap inline', async () => {
     const user = userEvent.setup()
-    render(<BudgetsPage />)
+    renderWithQueryClient(<BudgetsPage />)
     const row = await findRow(seedGroceriesCategory.name, settingsTable())
     await waitFor(() =>
       expect(row.getByText(seedGroceriesBudget.currentCap!.toFixed(2))).toBeInTheDocument(),
@@ -123,7 +140,7 @@ describe('BudgetsPage', () => {
         return HttpResponse.json([])
       }),
     )
-    render(<BudgetsPage />)
+    renderWithQueryClient(<BudgetsPage />)
 
     expect(await screen.findByRole('status', { name: 'Loading budget report' })).toBeInTheDocument()
     expect(await screen.findByText('No budgeted categories yet.')).toBeInTheDocument()
@@ -135,7 +152,7 @@ describe('BudgetsPage', () => {
   // budget-vs-actual section. `successBody` must match what the default handler returns too (the
   // after-retry case falls through to it), so `loadedText` holds in both generated cases.
   expectLoadStates({
-    render: () => render(<BudgetsPage />),
+    render: () => renderWithQueryClient(<BudgetsPage />),
     url: '/api/budgets',
     successBody: seedBudgets,
     // The category name also appears in the budget-vs-actual report line below the table, so the
@@ -158,7 +175,7 @@ describe('BudgetsPage local-time defaults', () => {
   })
 
   it('defaults the report month to the local month, not the UTC month', async () => {
-    render(<BudgetsPage />)
+    renderWithQueryClient(<BudgetsPage />)
 
     expect(await screen.findByLabelText('Month')).toHaveValue('2026-03')
   })

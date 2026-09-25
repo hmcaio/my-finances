@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
@@ -11,6 +11,7 @@ import {
 } from '../../mocks/handlers/institutions'
 import { DUPLICATE_NAME_MESSAGE, type Institution } from '../../api/institutions'
 import { InstitutionSelect } from './InstitutionSelect'
+import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
 /** A parent that owns the value, like a form does. */
 function Harness({
@@ -40,7 +41,7 @@ const input = () => screen.getByRole('combobox', { name: 'Institution' })
 describe('InstitutionSelect', () => {
   it('lists the built-in row first, then the rest by the list order', async () => {
     const user = userEvent.setup()
-    render(<Harness initial="inst-1" />)
+    renderWithQueryClient(<Harness initial="inst-1" />)
     await user.click(await screen.findByRole('combobox', { name: 'Institution' }))
 
     const options = await screen.findAllByRole('option')
@@ -50,7 +51,7 @@ describe('InstitutionSelect', () => {
 
   it('defaults to the built-in row when no value is passed, and reports it', async () => {
     const onChange = vi.fn()
-    render(<Harness onChange={onChange} />)
+    renderWithQueryClient(<Harness onChange={onChange} />)
 
     expect(await screen.findByRole('combobox', { name: 'Institution' })).toHaveValue(
       'No institution',
@@ -61,7 +62,7 @@ describe('InstitutionSelect', () => {
 
   it('shows the institution it is given instead of the default, and does not override it', async () => {
     const onChange = vi.fn()
-    render(<Harness initial="inst-2" onChange={onChange} />)
+    renderWithQueryClient(<Harness initial="inst-2" onChange={onChange} />)
 
     expect(await screen.findByRole('combobox', { name: 'Institution' })).toHaveValue('Nubank')
     expect(onChange).not.toHaveBeenCalled()
@@ -70,7 +71,7 @@ describe('InstitutionSelect', () => {
   it('selects another institution', async () => {
     const user = userEvent.setup()
     const onChange = vi.fn()
-    render(<Harness onChange={onChange} />)
+    renderWithQueryClient(<Harness onChange={onChange} />)
     await user.click(await screen.findByRole('combobox', { name: 'Institution' }))
 
     await user.click(await screen.findByRole('option', { name: 'Nubank' }))
@@ -81,14 +82,14 @@ describe('InstitutionSelect', () => {
 
   it('is not clearable', async () => {
     const user = userEvent.setup()
-    render(<Harness initial="inst-1" />)
+    renderWithQueryClient(<Harness initial="inst-1" />)
     await user.click(await screen.findByRole('combobox', { name: 'Institution' }))
 
     expect(screen.queryByRole('button', { name: 'Clear' })).not.toBeInTheDocument()
   })
 
   it('caps the typed name at the backend length limit', async () => {
-    render(<Harness initial="inst-1" />)
+    renderWithQueryClient(<Harness initial="inst-1" />)
 
     expect(await screen.findByRole('combobox', { name: 'Institution' })).toHaveAttribute(
       'maxlength',
@@ -100,7 +101,7 @@ describe('InstitutionSelect', () => {
     const user = userEvent.setup()
     const onChange = vi.fn()
     const onCreated = vi.fn()
-    render(<Harness initial="inst-1" onChange={onChange} onCreated={onCreated} />)
+    renderWithQueryClient(<Harness initial="inst-1" onChange={onChange} onCreated={onCreated} />)
     await user.click(await screen.findByRole('combobox', { name: 'Institution' }))
 
     await user.clear(input())
@@ -118,7 +119,7 @@ describe('InstitutionSelect', () => {
 
   it('does not offer to add a name that already exists', async () => {
     const user = userEvent.setup()
-    render(<Harness initial="inst-1" />)
+    renderWithQueryClient(<Harness initial="inst-1" />)
     await user.click(await screen.findByRole('combobox', { name: 'Institution' }))
 
     await user.clear(input())
@@ -132,7 +133,7 @@ describe('InstitutionSelect', () => {
     server.use(institutionCreateConflictHandler)
     const user = userEvent.setup()
     const onChange = vi.fn()
-    render(<Harness initial="inst-1" onChange={onChange} />)
+    renderWithQueryClient(<Harness initial="inst-1" onChange={onChange} />)
     await user.click(await screen.findByRole('combobox', { name: 'Institution' }))
 
     await user.clear(input())
@@ -151,7 +152,7 @@ describe('InstitutionSelect', () => {
       ),
     )
     const user = userEvent.setup()
-    render(<Harness initial="inst-1" />)
+    renderWithQueryClient(<Harness initial="inst-1" />)
 
     expect(await screen.findByText(/Could not load data/)).toBeInTheDocument()
 

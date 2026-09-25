@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
@@ -15,10 +15,11 @@ import { TRANSFER_CONFLICT_MESSAGE } from '../../api/transfers'
 import { findRow, selectOption } from '../../test/testUtils'
 import { expectLoadStates } from '../../test/loadStates'
 import { TransfersPage } from './TransfersPage'
+import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
 describe('TransfersPage', () => {
   it('renders the seeded transfers', async () => {
-    render(<TransfersPage />)
+    renderWithQueryClient(<TransfersPage />)
 
     for (const transfer of seedTransfers) {
       expect(await screen.findByText(transfer.description)).toBeInTheDocument()
@@ -27,7 +28,7 @@ describe('TransfersPage', () => {
 
   it('filters by account, matching either side', async () => {
     const user = userEvent.setup()
-    render(<TransfersPage />)
+    renderWithQueryClient(<TransfersPage />)
     await screen.findByText(seedCreditCardPaymentTransfer.description)
 
     const otherAccount = seedAccounts.find(
@@ -50,7 +51,7 @@ describe('TransfersPage', () => {
 
   it('adds a new transfer with the create form', async () => {
     const user = userEvent.setup()
-    render(<TransfersPage />)
+    renderWithQueryClient(<TransfersPage />)
     await screen.findByText(seedCreditCardPaymentTransfer.description)
 
     const openAccounts = seedAccounts.filter((a) => !a.closed)
@@ -65,7 +66,7 @@ describe('TransfersPage', () => {
 
   it('excludes the selected From account from the To dropdown (no same-account transfer)', async () => {
     const user = userEvent.setup()
-    render(<TransfersPage />)
+    renderWithQueryClient(<TransfersPage />)
     await screen.findByText(seedCreditCardPaymentTransfer.description)
 
     const openAccounts = seedAccounts.filter((a) => !a.closed)
@@ -77,7 +78,7 @@ describe('TransfersPage', () => {
 
   it('excludes closed accounts from the create/edit form account dropdowns', async () => {
     const user = userEvent.setup()
-    render(<TransfersPage />)
+    renderWithQueryClient(<TransfersPage />)
     await screen.findByText(seedCreditCardPaymentTransfer.description)
 
     const closedAccount = seedAccounts.find((a) => a.closed)!
@@ -88,7 +89,7 @@ describe('TransfersPage', () => {
 
   it('edits a transfer', async () => {
     const user = userEvent.setup()
-    render(<TransfersPage />)
+    renderWithQueryClient(<TransfersPage />)
     const target = seedCreditCardPaymentTransfer
     await screen.findByText(target.description)
 
@@ -106,7 +107,7 @@ describe('TransfersPage', () => {
 
   it('deletes a transfer after confirming the dialog', async () => {
     const user = userEvent.setup()
-    render(<TransfersPage />)
+    renderWithQueryClient(<TransfersPage />)
     const target = seedCreditCardPaymentTransfer
     await screen.findByText(target.description)
 
@@ -121,7 +122,7 @@ describe('TransfersPage', () => {
   it('surfaces the closed-account conflict message on create', async () => {
     server.use(transferClosedAccountConflictHandler)
     const user = userEvent.setup()
-    render(<TransfersPage />)
+    renderWithQueryClient(<TransfersPage />)
     await screen.findByText(seedCreditCardPaymentTransfer.description)
 
     const openAccounts = seedAccounts.filter((a) => !a.closed)
@@ -138,7 +139,7 @@ describe('TransfersPage', () => {
   // intercepting either composed source shows the same skeleton/failure - accounts is the simpler
   // body to fake a delayed/failing response for.
   expectLoadStates({
-    render: () => render(<TransfersPage />),
+    render: () => renderWithQueryClient(<TransfersPage />),
     url: '/api/accounts',
     successBody: seedAccounts,
     loadedText: seedCreditCardPaymentTransfer.description,
@@ -159,7 +160,7 @@ describe('TransfersPage local-time defaults', () => {
   })
 
   it('defaults the form date to the local date, not the UTC date', async () => {
-    render(<TransfersPage />)
+    renderWithQueryClient(<TransfersPage />)
 
     expect(await screen.findByLabelText('Date')).toHaveValue('2026-03-31')
   })
@@ -175,7 +176,7 @@ describe('TransfersPage trades', () => {
         }),
       ),
     )
-    render(<TransfersPage />)
+    renderWithQueryClient(<TransfersPage />)
 
     expect(
       await screen.findByText('Buy Bitcoin', { selector: '.MuiChip-label' }),

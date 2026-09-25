@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
@@ -9,6 +9,7 @@ import {
 } from '../../mocks/handlers/investmentAllocation'
 import { expectLoadStates } from '../../test/loadStates'
 import { InvestmentAllocationChart } from './InvestmentAllocationChart'
+import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
 function legend() {
   return within(screen.getByRole('list', { name: 'Allocation legend' }))
@@ -16,7 +17,7 @@ function legend() {
 
 describe('InvestmentAllocationChart', () => {
   it('shows a slice per category with its value and share, and the total in the middle', async () => {
-    render(<InvestmentAllocationChart />)
+    renderWithQueryClient(<InvestmentAllocationChart />)
 
     expect(await screen.findByRole('img', { name: 'Allocation by category' })).toBeInTheDocument()
     const items = legend().getAllByRole('listitem')
@@ -28,7 +29,7 @@ describe('InvestmentAllocationChart', () => {
   })
 
   it('explains the star in a footnote', async () => {
-    render(<InvestmentAllocationChart />)
+    renderWithQueryClient(<InvestmentAllocationChart />)
 
     expect(await screen.findByText(/newer than its latest snapshot/)).toBeInTheDocument()
   })
@@ -41,7 +42,7 @@ describe('InvestmentAllocationChart', () => {
         ),
       ),
     )
-    render(<InvestmentAllocationChart />)
+    renderWithQueryClient(<InvestmentAllocationChart />)
     await screen.findByRole('img', { name: 'Allocation by category' })
 
     expect(screen.queryByText(/newer than its latest snapshot/)).not.toBeInTheDocument()
@@ -50,7 +51,7 @@ describe('InvestmentAllocationChart', () => {
 
   it('drills from a category into its sub-categories, summing to the category total', async () => {
     const user = userEvent.setup()
-    render(<InvestmentAllocationChart />)
+    renderWithQueryClient(<InvestmentAllocationChart />)
     await screen.findByRole('img', { name: 'Allocation by category' })
 
     await user.click(screen.getByRole('button', { name: 'Fixed Income: show sub-categories' }))
@@ -71,7 +72,7 @@ describe('InvestmentAllocationChart', () => {
 
   it('goes back to all categories', async () => {
     const user = userEvent.setup()
-    render(<InvestmentAllocationChart />)
+    renderWithQueryClient(<InvestmentAllocationChart />)
     await screen.findByRole('img', { name: 'Allocation by category' })
     await user.click(screen.getByRole('button', { name: 'Fixed Income: show sub-categories' }))
     await screen.findByRole('img', { name: 'Allocation of Fixed Income by sub-category' })
@@ -90,7 +91,7 @@ describe('InvestmentAllocationChart', () => {
         return HttpResponse.json(bySub ? seedAllocationBySubcategory : seedAllocationByCategory)
       }),
     )
-    render(<InvestmentAllocationChart />)
+    renderWithQueryClient(<InvestmentAllocationChart />)
     await screen.findByRole('img', { name: 'Allocation by category' })
 
     await user.click(screen.getByRole('button', { name: 'Crypto: show sub-categories' }))
@@ -100,7 +101,7 @@ describe('InvestmentAllocationChart', () => {
 
   it('shows an empty-state hint when there is nothing invested yet', async () => {
     server.use(http.get('/api/investments/allocation', () => HttpResponse.json([])))
-    render(<InvestmentAllocationChart />)
+    renderWithQueryClient(<InvestmentAllocationChart />)
 
     expect(await screen.findByText(/No investment values yet/)).toBeInTheDocument()
   })
@@ -114,7 +115,7 @@ describe('InvestmentAllocationChart', () => {
         ]),
       ),
     )
-    render(<InvestmentAllocationChart />)
+    renderWithQueryClient(<InvestmentAllocationChart />)
     await screen.findByRole('img', { name: 'Allocation by category' })
 
     expect(legend().getAllByRole('listitem')[0]).toHaveTextContent('Crypto*0.00 (0.0%)')
@@ -125,7 +126,7 @@ describe('InvestmentAllocationChart', () => {
   // The chart's load state is `combineLoadState` of both groupings; slowing/failing the shared
   // endpoint exercises the skeleton and the failure notice for either.
   expectLoadStates({
-    render: () => render(<InvestmentAllocationChart />),
+    render: () => renderWithQueryClient(<InvestmentAllocationChart />),
     url: '/api/investments/allocation',
     successBody: seedAllocationByCategory,
     loadedText: /Allocation by category|Crypto/,

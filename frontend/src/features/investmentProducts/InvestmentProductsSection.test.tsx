@@ -31,22 +31,15 @@ function optionNames() {
   return screen.getAllByRole('option').map((o) => o.textContent)
 }
 
-/** Records the body of the next request to `method path` and answers like the default handler. */
+/**
+ * Records the body of the next request to `method path`, then falls through to the default
+ * (stateful) handler, so the follow-up refetch sees the saved product.
+ */
 function captureBody(method: 'post' | 'patch', path: string) {
   const sent: { body?: Record<string, unknown> } = {}
   server.use(
-    http[method](path, async ({ request, params }) => {
-      sent.body = (await request.json()) as Record<string, unknown>
-      return HttpResponse.json(
-        {
-          ...seedInvestmentProducts.find((p) => p.name === 'Tesouro Selic 2029')!,
-          id: (params.id as string | undefined) ?? 'iprod-new',
-          name: sent.body.name,
-          investmentCategoryId: sent.body.investmentCategoryId,
-          investmentSubcategoryId: sent.body.investmentSubcategoryId ?? null,
-        },
-        { status: method === 'post' ? 201 : 200 },
-      )
+    http[method](path, async ({ request }) => {
+      sent.body = (await request.clone().json()) as Record<string, unknown>
     }),
   )
   return sent

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
@@ -18,10 +18,11 @@ import {
 import { CLOSED_ACCOUNT_MESSAGE } from '../../api/transactions'
 import { findRow, selectOption } from '../../test/testUtils'
 import { TransactionsPage } from './TransactionsPage'
+import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
 describe('TransactionsPage', () => {
   it('renders the seeded transactions', async () => {
-    render(<TransactionsPage />)
+    renderWithQueryClient(<TransactionsPage />)
 
     for (const transaction of seedTransactions) {
       expect(await screen.findByText(transaction.description)).toBeInTheDocument()
@@ -30,7 +31,7 @@ describe('TransactionsPage', () => {
 
   it('filters by category', async () => {
     const user = userEvent.setup()
-    render(<TransactionsPage />)
+    renderWithQueryClient(<TransactionsPage />)
     await screen.findByText(seedGroceriesTransaction.description)
 
     const incomeCategory = seedCategories.find((c) => c.type === 'INCOME')!
@@ -44,7 +45,7 @@ describe('TransactionsPage', () => {
 
   it('adds a new transaction with the create form', async () => {
     const user = userEvent.setup()
-    render(<TransactionsPage />)
+    renderWithQueryClient(<TransactionsPage />)
     await screen.findByText(seedGroceriesTransaction.description)
 
     await user.type(screen.getByRole('spinbutton', { name: 'Amount' }), '15')
@@ -60,7 +61,7 @@ describe('TransactionsPage', () => {
 
   it('excludes closed accounts from the create/edit form account dropdown', async () => {
     const user = userEvent.setup()
-    render(<TransactionsPage />)
+    renderWithQueryClient(<TransactionsPage />)
     await screen.findByText(seedGroceriesTransaction.description)
 
     const closedAccount = seedAccounts.find((a) => a.closed)!
@@ -72,7 +73,7 @@ describe('TransactionsPage', () => {
   it('never offers an investment account in the form account dropdown', async () => {
     server.use(accountsWithInvestmentHandler)
     const user = userEvent.setup()
-    render(<TransactionsPage />)
+    renderWithQueryClient(<TransactionsPage />)
     await screen.findByText(seedGroceriesTransaction.description)
 
     await user.click(screen.getByRole('combobox', { name: 'Account' }))
@@ -86,7 +87,7 @@ describe('TransactionsPage', () => {
 
   it('edits a transaction', async () => {
     const user = userEvent.setup()
-    render(<TransactionsPage />)
+    renderWithQueryClient(<TransactionsPage />)
     const target = seedGroceriesTransaction
     await screen.findByText(target.description)
 
@@ -104,7 +105,7 @@ describe('TransactionsPage', () => {
 
   it('deletes a transaction after confirming the dialog', async () => {
     const user = userEvent.setup()
-    render(<TransactionsPage />)
+    renderWithQueryClient(<TransactionsPage />)
     const target = seedGroceriesTransaction
     await screen.findByText(target.description)
 
@@ -119,7 +120,7 @@ describe('TransactionsPage', () => {
   it('surfaces the closed-account conflict message on create', async () => {
     server.use(transactionClosedAccountConflictHandler)
     const user = userEvent.setup()
-    render(<TransactionsPage />)
+    renderWithQueryClient(<TransactionsPage />)
     await screen.findByText(seedGroceriesTransaction.description)
 
     await user.type(screen.getByRole('spinbutton', { name: 'Amount' }), '15')
@@ -143,7 +144,7 @@ describe('TransactionsPage', () => {
       failOnce('/api/payment-methods'),
     )
     const user = userEvent.setup()
-    render(<TransactionsPage />)
+    renderWithQueryClient(<TransactionsPage />)
     await screen.findAllByRole('alert')
 
     await user.click(await screen.findByRole('button', { name: 'Retry' }))
@@ -172,7 +173,7 @@ describe('TransactionsPage', () => {
         return HttpResponse.json(seedCategories)
       }),
     )
-    render(<TransactionsPage />)
+    renderWithQueryClient(<TransactionsPage />)
     const transaction = seedGroceriesTransaction
 
     // The transactions themselves arrive right away; the skeleton stays up for the slow lookup.
@@ -199,7 +200,7 @@ describe('TransactionsPage local-time defaults', () => {
   })
 
   it('defaults the form date to the local date, not the UTC date', async () => {
-    render(<TransactionsPage />)
+    renderWithQueryClient(<TransactionsPage />)
 
     expect(await screen.findByLabelText('Date')).toHaveValue('2026-03-31')
   })

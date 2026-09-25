@@ -13,19 +13,18 @@ import {
   Typography,
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
+import { PAYMENT_METHOD_NAME_MAX_LENGTH, type PaymentMethod } from '../../api/paymentMethods'
 import {
-  createPaymentMethod,
-  deletePaymentMethod,
-  getPaymentMethods,
-  PAYMENT_METHOD_NAME_MAX_LENGTH,
-  renamePaymentMethod,
-  type PaymentMethod,
-} from '../../api/paymentMethods'
+  usePaymentMethods,
+  useCreatePaymentMethod,
+  useRenamePaymentMethod,
+  useDeletePaymentMethod,
+} from '../../api/paymentMethodsQueries'
 import { defaultErrorMessage } from '../../api/apiError'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
 import { DataTableBody } from '../../components/DataTableBody'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { useQueryState } from '../../hooks/queryState'
 
 /**
  * Settings-style CRUD screen for payment methods (F002 spec): table with name, inline rename,
@@ -34,11 +33,12 @@ import { useAsyncData } from '../../hooks/useAsyncData'
  */
 export function PaymentMethodsPage() {
   const [error, setError] = useState<string | null>(null)
-  const {
-    data: paymentMethods,
-    setData: setPaymentMethods,
-    ...paymentMethodsState
-  } = useAsyncData(getPaymentMethods, [], { onError: setError })
+  const paymentMethodsQuery = usePaymentMethods()
+  const paymentMethods = paymentMethodsQuery.data
+  const paymentMethodsState = useQueryState(paymentMethodsQuery, setError)
+  const createMutation = useCreatePaymentMethod()
+  const renameMutation = useRenamePaymentMethod()
+  const deleteMutation = useDeletePaymentMethod()
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
@@ -53,8 +53,7 @@ export function PaymentMethodsPage() {
     setError(null)
     setAdding(true)
     try {
-      const created = await createPaymentMethod({ name: newName.trim() })
-      setPaymentMethods((prev) => [...(prev ?? []), created])
+      await createMutation.mutateAsync({ name: newName.trim() })
       setNewName('')
     } catch (err) {
       setError(defaultErrorMessage(err))
@@ -77,8 +76,7 @@ export function PaymentMethodsPage() {
     if (!editingName.trim()) return
     setError(null)
     try {
-      const updated = await renamePaymentMethod(id, { name: editingName.trim() })
-      setPaymentMethods((prev) => prev?.map((pm) => (pm.id === id ? updated : pm)) ?? null)
+      await renameMutation.mutateAsync({ id, name: editingName.trim() })
       cancelEdit()
     } catch (err) {
       setError(defaultErrorMessage(err))
@@ -89,8 +87,7 @@ export function PaymentMethodsPage() {
     setError(null)
     setPendingDeleteId(id)
     try {
-      await deletePaymentMethod(id)
-      setPaymentMethods((prev) => prev?.filter((pm) => pm.id !== id) ?? null)
+      await deleteMutation.mutateAsync(id)
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {

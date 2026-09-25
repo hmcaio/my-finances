@@ -20,31 +20,22 @@ import {
 } from '@mui/material'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import CloseIcon from '@mui/icons-material/Close'
-import { getAccounts } from '../../api/accounts'
-import { getCategories } from '../../api/categories'
-import { getPaymentMethods } from '../../api/paymentMethods'
+import { useAccounts } from '../../api/accountsQueries'
+import { useCategories } from '../../api/categoriesQueries'
+import { usePaymentMethods } from '../../api/paymentMethodsQueries'
+import type { PendingRecurringOccurrence } from '../../api/recurringTemplates'
 import {
-  confirmPendingRecurringOccurrence,
-  dismissPendingRecurringOccurrence,
-  getPendingRecurringOccurrences,
-  getRecurringTemplates,
-  type PendingRecurringOccurrence,
-} from '../../api/recurringTemplates'
+  useConfirmPendingOccurrence,
+  useDismissPendingOccurrence,
+  usePendingRecurringOccurrences,
+  useRecurringTemplates,
+} from '../../api/recurringTemplatesQueries'
 import { defaultErrorMessage } from '../../api/apiError'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { DataTableBody } from '../../components/DataTableBody'
-import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
+import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { nameLookup } from '../../utils/nameLookup'
-
-interface PendingOccurrencesWidgetProps {
-  /**
-   * Called after an occurrence is confirmed (which creates a transaction), so an embedding page
-   * can refresh whatever that changes - the dashboard's spend, budgets, balances and net worth.
-   * Dismissing creates nothing, so it doesn't call this.
-   */
-  onConfirmed?: () => void
-}
 
 /**
  * "Upcoming recurring bills" widget (F007 spec, embedded on F012's dashboard and on {@link
@@ -57,25 +48,25 @@ interface PendingOccurrencesWidgetProps {
  * default from the occurrence/template, and payment method - which the template has no default
  * for - is always required.
  */
-export function PendingOccurrencesWidget({ onConfirmed }: PendingOccurrencesWidgetProps = {}) {
+export function PendingOccurrencesWidget() {
   const [error, setError] = useState<string | null>(null)
-  const { data: templates, ...templatesState } = useAsyncData(getRecurringTemplates, [], {
-    onError: setError,
-  })
-  const { data: categories, ...categoriesState } = useAsyncData(getCategories, [], {
-    onError: setError,
-  })
-  const { data: accounts, ...accountsState } = useAsyncData(() => getAccounts(false), [], {
-    onError: setError,
-  })
-  const { data: paymentMethods, ...paymentMethodsState } = useAsyncData(getPaymentMethods, [], {
-    onError: setError,
-  })
-  const {
-    data: pending,
-    setData: setPending,
-    ...pendingState
-  } = useAsyncData(getPendingRecurringOccurrences, [], { onError: setError })
+  const templatesQuery = useRecurringTemplates()
+  const templates = templatesQuery.data
+  const templatesState = useQueryState(templatesQuery, setError)
+  const categoriesQuery = useCategories()
+  const categories = categoriesQuery.data
+  const categoriesState = useQueryState(categoriesQuery, setError)
+  const accountsQuery = useAccounts()
+  const accounts = accountsQuery.data
+  const accountsState = useQueryState(accountsQuery, setError)
+  const paymentMethodsQuery = usePaymentMethods()
+  const paymentMethods = paymentMethodsQuery.data
+  const paymentMethodsState = useQueryState(paymentMethodsQuery, setError)
+  const pendingQuery = usePendingRecurringOccurrences()
+  const pending = pendingQuery.data
+  const pendingState = useQueryState(pendingQuery, setError)
+  const confirmMutation = useConfirmPendingOccurrence()
+  const dismissMutation = useDismissPendingOccurrence()
 
   const [confirmTarget, setConfirmTarget] = useState<PendingRecurringOccurrence | null>(null)
   const [confirmAmount, setConfirmAmount] = useState('')
@@ -121,15 +112,14 @@ export function PendingOccurrencesWidget({ onConfirmed }: PendingOccurrencesWidg
     setError(null)
     setConfirming(true)
     try {
-      await confirmPendingRecurringOccurrence(confirmTarget.id, {
+      await confirmMutation.mutateAsync({
+        id: confirmTarget.id,
         amount: Number(confirmAmount),
         date: confirmDate,
         accountId: confirmAccountId,
         paymentMethodId: confirmPaymentMethodId,
       })
-      setPending((prev) => prev?.filter((o) => o.id !== confirmTarget.id) ?? null)
       closeConfirm()
-      onConfirmed?.()
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {
@@ -142,8 +132,7 @@ export function PendingOccurrencesWidget({ onConfirmed }: PendingOccurrencesWidg
     setError(null)
     setDismissing(true)
     try {
-      await dismissPendingRecurringOccurrence(dismissTarget.id)
-      setPending((prev) => prev?.filter((o) => o.id !== dismissTarget.id) ?? null)
+      await dismissMutation.mutateAsync(dismissTarget.id)
       setDismissTarget(null)
     } catch (err) {
       setError(defaultErrorMessage(err))

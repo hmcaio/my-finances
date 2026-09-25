@@ -1,11 +1,11 @@
 import { useMemo } from 'react'
 import { Link as RouterLink, useParams } from 'react-router-dom'
 import { Alert, Box, Chip, Link as MuiLink, Paper, Skeleton, Typography } from '@mui/material'
-import { getAccount } from '../../api/accounts'
+import { useAccount } from '../../api/accountsQueries'
 import { defaultErrorMessage } from '../../api/apiError'
-import { getInstitutions } from '../../api/institutions'
+import { useInstitutions } from '../../api/institutionsQueries'
 import { fadeInSx } from '../../components/fadeIn'
-import { combineLoadState, useAsyncData } from '../../hooks/useAsyncData'
+import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { nameLookup } from '../../utils/nameLookup'
 import { ACCOUNT_TYPE_LABELS } from './accountTypes'
@@ -22,12 +22,14 @@ import { AccountTransferList } from '../transfers/AccountTransferList'
  */
 export function AccountDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const { data: account, ...accountState } = useAsyncData(
-    () => (id ? getAccount(id) : Promise.reject(new Error('Missing account id.'))),
-    [id],
-    { errorMessage: (err) => defaultErrorMessage(err, { 404: 'Account not found.' }) },
+  const accountQuery = useAccount(id)
+  const account = accountQuery.data
+  const accountState = useQueryState(accountQuery, undefined, (err) =>
+    defaultErrorMessage(err, { 404: 'Account not found.' }),
   )
-  const { data: institutions, ...institutionsState } = useAsyncData(getInstitutions, [])
+  const institutionsQuery = useInstitutions()
+  const institutions = institutionsQuery.data
+  const institutionsState = useQueryState(institutionsQuery)
   const institutionName = useMemo(
     () => nameLookup(institutions ?? [], (i) => i.name),
     [institutions],

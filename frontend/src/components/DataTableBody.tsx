@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Box, Skeleton, TableBody, TableCell, TableRow } from '@mui/material'
-import type { AsyncData } from '../hooks/useAsyncData'
+import type { LoadState } from '../hooks/queryState'
 import { useDelayedFlag } from '../hooks/useDelayedFlag'
 import { fadeInSx } from './fadeIn'
 import { LoadFailedNotice } from './LoadFailedNotice'
@@ -22,9 +22,9 @@ const VISUALLY_HIDDEN = {
 } as const
 
 interface DataTableBodyProps {
-  /** The table's data source (`useAsyncData`): skeleton while `loading`, a failure row with Retry
+  /** The table's data source (`useQueryState`): skeleton while `loading`, a failure row with Retry
    * when `loadError` is set (nothing pulses once a fetch has failed), otherwise the children. */
-  state: Pick<AsyncData<unknown>, 'loading' | 'loadError' | 'reload'>
+  state: LoadState
   /** Overrides `state.reload` for the failure row's Retry button, e.g. to also clear the page's
    * error banner and retry the lookup lists behind the name columns. */
   onRetry?: () => void

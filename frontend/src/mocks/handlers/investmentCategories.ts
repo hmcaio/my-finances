@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw'
 import type { InvestmentCategory } from '../../api/investmentCategories'
+import { createStore } from '../store'
 
 /**
  * Seed data returned by the default `GET /api/investment-categories` handler below, in the
@@ -29,32 +30,50 @@ interface CategoryRequestBody {
   name: string
 }
 
+/** Shared with the sub-category handlers, which edit the nested rows. */
+export const investmentCategoriesStore = createStore(seedInvestmentCategories)
+
+const byName = <T extends { name: string }>(a: T, b: T) =>
+  a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+
+/** The backend's order: both levels sorted by name. */
+function sortedCategories(): InvestmentCategory[] {
+  return investmentCategoriesStore
+    .list()
+    .map((c) => ({ ...c, subcategories: [...c.subcategories].sort(byName) }))
+    .sort(byName)
+}
+
 /**
- * Default success-path handlers for the investment categories endpoints (F008's REST API). Same
- * request-echoing approach as `categories.ts`: no mutation of the seed, so every test starts from
- * the same fixture regardless of execution order.
+ * Default success-path handlers for the investment categories endpoints (F008's REST API), backed
+ * by an in-memory store restored after each test (see `categories.ts`).
  */
 export const investmentCategoriesHandlers = [
-  http.get(CATEGORIES_URL, () => HttpResponse.json(seedInvestmentCategories)),
+  http.get(CATEGORIES_URL, () => HttpResponse.json(sortedCategories())),
 
   http.post(CATEGORIES_URL, async ({ request }) => {
     const body = (await request.json()) as CategoryRequestBody
-    const created: InvestmentCategory = { id: 'icat-new', name: body.name, subcategories: [] }
+    const created = investmentCategoriesStore.add({
+      id: investmentCategoriesStore.nextId('icat'),
+      name: body.name,
+      subcategories: [],
+    })
     return HttpResponse.json(created, { status: 201 })
   }),
 
   http.patch(`${CATEGORIES_URL}/:id`, async ({ request, params }) => {
     const body = (await request.json()) as CategoryRequestBody
-    const existing = seedInvestmentCategories.find((category) => category.id === params.id)
-    const updated: InvestmentCategory = {
-      id: params.id as string,
+    const updated = investmentCategoriesStore.replace(params.id as string, (row) => ({
+      ...row,
       name: body.name,
-      subcategories: existing?.subcategories ?? [],
-    }
-    return HttpResponse.json(updated)
+    }))
+    return updated ? HttpResponse.json(updated) : new HttpResponse(null, { status: 404 })
   }),
 
-  http.delete(`${CATEGORIES_URL}/:id`, () => new HttpResponse(null, { status: 204 })),
+  http.delete(`${CATEGORIES_URL}/:id`, ({ params }) => {
+    investmentCategoriesStore.remove(params.id as string)
+    return new HttpResponse(null, { status: 204 })
+  }),
 ]
 
 /**

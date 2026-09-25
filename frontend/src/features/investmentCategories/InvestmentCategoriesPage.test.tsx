@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
@@ -22,6 +22,7 @@ import {
 } from '../../api/investmentSubcategories'
 import { findRow } from '../../test/testUtils'
 import { InvestmentCategoriesPage } from './InvestmentCategoriesPage'
+import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
 const FIXED = seedInvestmentCategories.find((c) => c.name === 'Fixed Income')!
 const CRYPTO = seedInvestmentCategories.find((c) => c.name === 'Crypto')!
@@ -32,7 +33,7 @@ async function expand(user: ReturnType<typeof userEvent.setup>, name: string) {
 
 describe('InvestmentCategoriesPage', () => {
   it('renders the seeded categories collapsed, with their sub-category counts', async () => {
-    render(<InvestmentCategoriesPage />)
+    renderWithQueryClient(<InvestmentCategoriesPage />)
 
     for (const category of seedInvestmentCategories) {
       expect(await screen.findByText(category.name)).toBeInTheDocument()
@@ -44,7 +45,7 @@ describe('InvestmentCategoriesPage', () => {
 
   it('expands a category to show its sub-categories and collapses it again', async () => {
     const user = userEvent.setup()
-    render(<InvestmentCategoriesPage />)
+    renderWithQueryClient(<InvestmentCategoriesPage />)
 
     await expand(user, 'Fixed Income')
 
@@ -60,7 +61,7 @@ describe('InvestmentCategoriesPage', () => {
 
   it('adds a category', async () => {
     const user = userEvent.setup()
-    render(<InvestmentCategoriesPage />)
+    renderWithQueryClient(<InvestmentCategoriesPage />)
     await screen.findByText(CRYPTO.name)
 
     await user.type(screen.getByRole('textbox', { name: 'Category name' }), 'Real Estate')
@@ -71,7 +72,7 @@ describe('InvestmentCategoriesPage', () => {
 
   it('adds a sub-category under its category', async () => {
     const user = userEvent.setup()
-    render(<InvestmentCategoriesPage />)
+    renderWithQueryClient(<InvestmentCategoriesPage />)
     await expand(user, 'Fixed Income')
 
     await user.type(screen.getByLabelText('New sub-category in Fixed Income'), 'LCI')
@@ -84,7 +85,7 @@ describe('InvestmentCategoriesPage', () => {
 
   it('renames a category inline', async () => {
     const user = userEvent.setup()
-    render(<InvestmentCategoriesPage />)
+    renderWithQueryClient(<InvestmentCategoriesPage />)
     await screen.findByText(CRYPTO.name)
 
     const row = await findRow('Crypto')
@@ -100,7 +101,7 @@ describe('InvestmentCategoriesPage', () => {
 
   it('renames a sub-category inline', async () => {
     const user = userEvent.setup()
-    render(<InvestmentCategoriesPage />)
+    renderWithQueryClient(<InvestmentCategoriesPage />)
     await expand(user, 'Fixed Income')
 
     const row = await findRow('CDB')
@@ -116,7 +117,7 @@ describe('InvestmentCategoriesPage', () => {
 
   it('deletes a category', async () => {
     const user = userEvent.setup()
-    render(<InvestmentCategoriesPage />)
+    renderWithQueryClient(<InvestmentCategoriesPage />)
     await screen.findByText(CRYPTO.name)
 
     await user.click((await findRow('Crypto')).getByRole('button', { name: 'Delete' }))
@@ -126,7 +127,7 @@ describe('InvestmentCategoriesPage', () => {
 
   it('deletes a sub-category', async () => {
     const user = userEvent.setup()
-    render(<InvestmentCategoriesPage />)
+    renderWithQueryClient(<InvestmentCategoriesPage />)
     await expand(user, 'Fixed Income')
 
     await user.click((await findRow('CDB')).getByRole('button', { name: 'Delete' }))
@@ -138,7 +139,7 @@ describe('InvestmentCategoriesPage', () => {
   it('surfaces the category 409 message and keeps the row when delete is refused', async () => {
     server.use(investmentCategoryDeleteConflictHandler)
     const user = userEvent.setup()
-    render(<InvestmentCategoriesPage />)
+    renderWithQueryClient(<InvestmentCategoriesPage />)
     await screen.findByText(FIXED.name)
 
     await user.click((await findRow('Fixed Income')).getByRole('button', { name: 'Delete' }))
@@ -150,7 +151,7 @@ describe('InvestmentCategoriesPage', () => {
   it('surfaces the sub-category 409 message and keeps the row when delete is refused', async () => {
     server.use(investmentSubcategoryDeleteConflictHandler)
     const user = userEvent.setup()
-    render(<InvestmentCategoriesPage />)
+    renderWithQueryClient(<InvestmentCategoriesPage />)
     await expand(user, 'Fixed Income')
 
     await user.click((await findRow('CDB')).getByRole('button', { name: 'Delete' }))
@@ -162,7 +163,7 @@ describe('InvestmentCategoriesPage', () => {
   it('surfaces the duplicate-name 409 on add for both levels', async () => {
     server.use(investmentCategoryCreateConflictHandler, investmentSubcategoryCreateConflictHandler)
     const user = userEvent.setup()
-    render(<InvestmentCategoriesPage />)
+    renderWithQueryClient(<InvestmentCategoriesPage />)
     await expand(user, 'Fixed Income')
 
     await user.type(screen.getByLabelText('New sub-category in Fixed Income'), 'CDB')
@@ -176,7 +177,7 @@ describe('InvestmentCategoriesPage', () => {
 
   it('keeps a sub-category draft per category', async () => {
     const user = userEvent.setup()
-    render(<InvestmentCategoriesPage />)
+    renderWithQueryClient(<InvestmentCategoriesPage />)
     await expand(user, 'Fixed Income')
     await expand(user, 'Variable Income')
 
@@ -192,7 +193,7 @@ describe('InvestmentCategoriesPage', () => {
         return HttpResponse.json(seedInvestmentCategories)
       }),
     )
-    render(<InvestmentCategoriesPage />)
+    renderWithQueryClient(<InvestmentCategoriesPage />)
 
     expect(await screen.findByText('Loading…')).toBeInTheDocument()
     expect(await screen.findByText(CRYPTO.name)).toBeInTheDocument()
@@ -204,7 +205,7 @@ describe('InvestmentCategoriesPage', () => {
       http.get('/api/investment-categories', () => new HttpResponse(null, { status: 500 })),
     )
     const user = userEvent.setup()
-    render(<InvestmentCategoriesPage />)
+    renderWithQueryClient(<InvestmentCategoriesPage />)
 
     expect(await screen.findByText(/Could not load data/)).toBeInTheDocument()
     server.resetHandlers()

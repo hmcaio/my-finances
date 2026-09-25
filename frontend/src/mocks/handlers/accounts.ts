@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw'
 import type { Account, AccountType } from '../../api/accounts'
-import { BUILT_IN_INSTITUTION_ID } from './institutions'
+import { createStore } from '../store'
 
 /**
  * Seed data returned by the default `GET /api/accounts` handler below. Exported so tests can
@@ -69,9 +69,7 @@ export const seedCheckingAccount = seedAccounts.find((a) => a.name === 'Itau Che
 
 const ACCOUNTS_URL = '/api/accounts'
 
-function findAccount(id: string): Account | undefined {
-  return [...seedAccounts, seedInvestmentAccount].find((a) => a.id === id)
-}
+const accounts = createStore([...seedAccounts, seedInvestmentAccount])
 
 interface CreateAccountRequestBody {
   name: string
@@ -87,20 +85,21 @@ interface UpdateAccountRequestBody {
 }
 
 /**
- * Default success-path handlers for every accounts endpoint (F003's REST API). Requests are
- * answered purely from the request itself (echoing the body back with a generated/known id)
- * rather than mutating `seedAccounts`, so every test starts from the same fixture regardless of
- * execution order - same approach as `categories.ts`/`paymentMethods.ts`.
+ * Default success-path handlers for every accounts endpoint (F003's REST API), backed by an
+ * in-memory store restored after each test (see `categories.ts`). The investment account is in
+ * the store but out of the list responses, like `seedAccounts`' doc comment says.
  */
 export const accountsHandlers = [
   http.get(ACCOUNTS_URL, ({ request }) => {
     const includeClosed = new URL(request.url).searchParams.get('includeClosed') === 'true'
-    const accounts = includeClosed ? seedAccounts : seedAccounts.filter((a) => !a.closed)
-    return HttpResponse.json(accounts)
+    const visible = accounts
+      .list()
+      .filter((a) => a.id !== seedInvestmentAccount.id && (includeClosed || !a.closed))
+    return HttpResponse.json(visible)
   }),
 
   http.get(`${ACCOUNTS_URL}/:id`, ({ params }) => {
-    const account = findAccount(params.id as string)
+    const account = accounts.find(params.id as string)
     if (!account) return new HttpResponse(null, { status: 404 })
     return HttpResponse.json(account)
   }),
@@ -110,8 +109,8 @@ export const accountsHandlers = [
     const type = body.type ?? 'CHECKING'
     // An INVESTMENT account has no opening balance/date (F008); the backend answers 0 for its balance.
     const isInvestment = type === 'INVESTMENT'
-    const created: Account = {
-      id: 'acct-new',
+    const created = accounts.add({
+      id: accounts.nextId('acct'),
       name: body.name,
       institutionId: body.institutionId,
       type,
@@ -120,41 +119,27 @@ export const accountsHandlers = [
       closedDate: null,
       closed: false,
       balance: isInvestment ? 0 : (body.openingBalance ?? 0),
-    }
+    })
     return HttpResponse.json(created, { status: 201 })
   }),
 
   http.patch(`${ACCOUNTS_URL}/:id`, async ({ request, params }) => {
     const body = (await request.json()) as UpdateAccountRequestBody
-    const existing = findAccount(params.id as string)
-    const updated: Account = {
-      id: params.id as string,
+    const updated = accounts.replace(params.id as string, (row) => ({
+      ...row,
       name: body.name,
       institutionId: body.institutionId,
-      type: existing?.type ?? 'CHECKING',
-      openingBalance: existing ? existing.openingBalance : 0,
-      openingBalanceDate: existing ? existing.openingBalanceDate : '2026-01-01',
-      closedDate: existing?.closedDate ?? null,
-      closed: existing?.closed ?? false,
-      balance: existing?.balance ?? 0,
-    }
-    return HttpResponse.json(updated)
+    }))
+    return updated ? HttpResponse.json(updated) : new HttpResponse(null, { status: 404 })
   }),
 
   http.post(`${ACCOUNTS_URL}/:id/close`, ({ params }) => {
-    const existing = findAccount(params.id as string)
-    const closed: Account = {
-      id: params.id as string,
-      name: existing?.name ?? 'Account',
-      institutionId: existing?.institutionId ?? BUILT_IN_INSTITUTION_ID,
-      type: existing?.type ?? 'CHECKING',
-      openingBalance: existing ? existing.openingBalance : 0,
-      openingBalanceDate: existing ? existing.openingBalanceDate : '2026-01-01',
+    const closed = accounts.replace(params.id as string, (row) => ({
+      ...row,
       closedDate: '2026-09-15',
       closed: true,
-      balance: existing?.balance ?? 0,
-    }
-    return HttpResponse.json(closed)
+    }))
+    return closed ? HttpResponse.json(closed) : new HttpResponse(null, { status: 404 })
   }),
 ]
 

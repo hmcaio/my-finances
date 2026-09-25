@@ -86,11 +86,8 @@ describe('InvestmentProductDetailPage', () => {
     let sent: unknown = null
     server.use(
       http.post('/api/investment-products/:id/snapshots', async ({ request }) => {
-        sent = await request.json()
-        return HttpResponse.json(
-          { id: 'isnap-new', productId: 'iprod-btc', date: '2026-09-01', balance: 1234.5 },
-          { status: 201 },
-        )
+        // Record the body, then fall through to the default (stateful) handler.
+        sent = await request.clone().json()
       }),
     )
     renderDetail()

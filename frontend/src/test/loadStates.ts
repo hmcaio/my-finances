@@ -12,7 +12,7 @@ export interface LoadStatesConfig {
    */
   render: () => void
   /**
-   * The endpoint to slow down / fail. Any endpoint the page's `useAsyncData`/`usePagedData`
+   * The endpoint to slow down / fail. Any endpoint the page's query hooks
    * (directly, or composed through `combineLoadState`) depends on for its first render works,
    * since `combineLoadState` stays loading until every source resolves and surfaces the first
    * failure - it doesn't have to be "the" primary fetch. A page that embeds a prop-less widget

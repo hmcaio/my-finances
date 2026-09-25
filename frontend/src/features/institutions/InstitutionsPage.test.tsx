@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   institutionCreateConflictHandler,
@@ -14,6 +14,7 @@ import {
 import { findRow } from '../../test/testUtils'
 import { describeSettingsPage } from '../../test/settingsPageContract'
 import { InstitutionsPage } from './InstitutionsPage'
+import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
 const builtIn = seedInstitutions.find((i) => i.builtIn)!
 const regular = seedInstitutions.filter((i) => !i.builtIn)
@@ -36,7 +37,7 @@ describe('InstitutionsPage', () => {
   // on top of the shared contract.
 
   it('renders the seeded institutions with the built-in row first', async () => {
-    render(<InstitutionsPage />)
+    renderWithQueryClient(<InstitutionsPage />)
 
     for (const institution of seedInstitutions) {
       expect(await screen.findByText(institution.name)).toBeInTheDocument()
@@ -49,7 +50,7 @@ describe('InstitutionsPage', () => {
   })
 
   it('offers no delete action on the built-in row, only rename', async () => {
-    render(<InstitutionsPage />)
+    renderWithQueryClient(<InstitutionsPage />)
     await screen.findByText(builtIn.name)
 
     const row = await findRow(builtIn.name)
@@ -63,7 +64,7 @@ describe('InstitutionsPage', () => {
 
   it('renames the built-in row, which stays first and still has no delete action', async () => {
     const user = userEvent.setup()
-    render(<InstitutionsPage />)
+    renderWithQueryClient(<InstitutionsPage />)
     await screen.findByText(builtIn.name)
 
     const row = await findRow(builtIn.name)

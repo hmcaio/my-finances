@@ -17,30 +17,25 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { defaultErrorMessage } from '../../api/apiError'
+import { INVESTMENT_NAME_MAX_LENGTH, type InvestmentCategory } from '../../api/investmentCategories'
 import {
-  createInvestmentCategory,
-  deleteInvestmentCategory,
-  getInvestmentCategories,
-  INVESTMENT_NAME_MAX_LENGTH,
-  renameInvestmentCategory,
-  type InvestmentCategory,
-  type InvestmentSubcategoryEntry,
-} from '../../api/investmentCategories'
+  useCreateInvestmentCategory,
+  useDeleteInvestmentCategory,
+  useInvestmentCategories,
+  useRenameInvestmentCategory,
+} from '../../api/investmentCategoriesQueries'
 import {
-  createInvestmentSubcategory,
-  deleteInvestmentSubcategory,
-  renameInvestmentSubcategory,
-} from '../../api/investmentSubcategories'
+  useCreateInvestmentSubcategory,
+  useDeleteInvestmentSubcategory,
+  useRenameInvestmentSubcategory,
+} from '../../api/investmentSubcategoriesQueries'
 import { DataTableBody } from '../../components/DataTableBody'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import { InlineEditActions } from '../../components/InlineEditActions'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { useQueryState } from '../../hooks/queryState'
 
 /** What is being renamed inline: one row at a time, either level. */
 type Editing = { kind: 'category' | 'subcategory'; id: string } | null
-
-const byName = <T extends { name: string }>(a: T, b: T) =>
-  a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
 
 /**
  * Settings screen for the two-level investment taxonomy (F008 spec): an expandable list of
@@ -52,11 +47,15 @@ const byName = <T extends { name: string }>(a: T, b: T) =>
  */
 export function InvestmentCategoriesPage() {
   const [error, setError] = useState<string | null>(null)
-  const {
-    data: categories,
-    setData: setCategories,
-    ...categoriesState
-  } = useAsyncData(getInvestmentCategories, [], { onError: setError })
+  const categoriesQuery = useInvestmentCategories()
+  const categories = categoriesQuery.data
+  const categoriesState = useQueryState(categoriesQuery, setError)
+  const createCategory = useCreateInvestmentCategory()
+  const renameCategory = useRenameInvestmentCategory()
+  const deleteCategory = useDeleteInvestmentCategory()
+  const createSubcategory = useCreateInvestmentSubcategory()
+  const renameSubcategory = useRenameInvestmentSubcategory()
+  const deleteSubcategory = useDeleteInvestmentSubcategory()
 
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
   const [editing, setEditing] = useState<Editing>(null)
@@ -93,8 +92,7 @@ export function InvestmentCategoriesPage() {
     setError(null)
     setAddingCategory(true)
     try {
-      const created = await createInvestmentCategory({ name })
-      setCategories((prev) => [...(prev ?? []), created].sort(byName))
+      await createCategory.mutateAsync({ name })
       setNewCategoryName('')
     } catch (err) {
       setError(defaultErrorMessage(err))
@@ -109,19 +107,7 @@ export function InvestmentCategoriesPage() {
     setError(null)
     setAddingSubcategoryTo(category.id)
     try {
-      const created = await createInvestmentSubcategory({
-        investmentCategoryId: category.id,
-        name,
-      })
-      const entry: InvestmentSubcategoryEntry = { id: created.id, name: created.name }
-      setCategories(
-        (prev) =>
-          prev?.map((c) =>
-            c.id === category.id
-              ? { ...c, subcategories: [...c.subcategories, entry].sort(byName) }
-              : c,
-          ) ?? null,
-      )
+      await createSubcategory.mutateAsync({ investmentCategoryId: category.id, name })
       setNewSubcategoryNames((prev) => ({ ...prev, [category.id]: '' }))
     } catch (err) {
       setError(defaultErrorMessage(err))
@@ -136,24 +122,9 @@ export function InvestmentCategoriesPage() {
     setError(null)
     try {
       if (editing.kind === 'category') {
-        const updated = await renameInvestmentCategory(editing.id, { name })
-        setCategories(
-          (prev) =>
-            prev
-              ?.map((c) => (c.id === editing.id ? { ...c, name: updated.name } : c))
-              .sort(byName) ?? null,
-        )
+        await renameCategory.mutateAsync({ id: editing.id, name })
       } else {
-        const updated = await renameInvestmentSubcategory(editing.id, { name })
-        setCategories(
-          (prev) =>
-            prev?.map((c) => ({
-              ...c,
-              subcategories: c.subcategories
-                .map((s) => (s.id === editing.id ? { ...s, name: updated.name } : s))
-                .sort(byName),
-            })) ?? null,
-        )
+        await renameSubcategory.mutateAsync({ id: editing.id, name })
       }
       cancelEdit()
     } catch (err) {
@@ -165,8 +136,7 @@ export function InvestmentCategoriesPage() {
     setError(null)
     setPendingDeleteId(id)
     try {
-      await deleteInvestmentCategory(id)
-      setCategories((prev) => prev?.filter((c) => c.id !== id) ?? null)
+      await deleteCategory.mutateAsync(id)
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {
@@ -178,12 +148,7 @@ export function InvestmentCategoriesPage() {
     setError(null)
     setPendingDeleteId(id)
     try {
-      await deleteInvestmentSubcategory(id)
-      setCategories(
-        (prev) =>
-          prev?.map((c) => ({ ...c, subcategories: c.subcategories.filter((s) => s.id !== id) })) ??
-          null,
-      )
+      await deleteSubcategory.mutateAsync(id)
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {
