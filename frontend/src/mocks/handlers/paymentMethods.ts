@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw'
-import type { PaymentMethod } from '../../api/paymentMethods'
+import type { PaymentMethod } from '../../api/paymentMethods/paymentMethods'
 import { createStore } from '../store'
 
 /**

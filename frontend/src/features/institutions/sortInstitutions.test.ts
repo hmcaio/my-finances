@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Institution } from '../../api/institutions'
+import type { Institution } from '../../api/institutions/institutions'
 import { sortInstitutions } from './sortInstitutions'
 
 function institution(name: string, builtIn = false): Institution {

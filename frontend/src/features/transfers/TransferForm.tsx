@@ -9,11 +9,11 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import type { Account } from '../../api/accounts'
-import { defaultErrorMessage } from '../../api/apiError'
-import { useInvestmentProducts } from '../../api/investmentProductsQueries'
-import type { Transfer } from '../../api/transfers'
-import { useCreateTransfer, useEditTransfer } from '../../api/transfersQueries'
+import type { Account } from '../../api/accounts/accounts'
+import { defaultErrorMessage } from '../../api/core/apiError'
+import { useInvestmentProducts } from '../../api/investments/investmentProductsQueries'
+import type { Transfer } from '../../api/transfers/transfers'
+import { useCreateTransfer, useEditTransfer } from '../../api/transfers/transfersQueries'
 import { useQueryState } from '../../hooks/queryState'
 import { today } from '../../utils/localDate'
 import {

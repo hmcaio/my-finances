@@ -8,12 +8,12 @@ import {
   TableRow,
   Typography,
 } from '@mui/material'
-import { useAccounts } from '../../api/accountsQueries'
-import { useTransfers } from '../../api/transfersQueries'
-import { ErrorAlert } from '../../components/ErrorAlert'
-import { DataTableBody } from '../../components/DataTableBody'
+import { useAccounts } from '../../api/accounts/accountsQueries'
+import { useTransfers } from '../../api/transfers/transfersQueries'
+import { ErrorAlert } from '../../components/feedback/ErrorAlert'
+import { DataTableBody } from '../../components/table/DataTableBody'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
-import { PaginationControls } from '../../components/PaginationControls'
+import { PaginationControls } from '../../components/table/PaginationControls'
 import { nameLookup } from '../../utils/nameLookup'
 
 const PAGE_SIZE = 10

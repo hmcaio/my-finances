@@ -1,4 +1,4 @@
-import type { Category } from '../../api/categories'
+import type { Category } from '../../api/categories/categories'
 
 /**
  * Display order for categories: expenses before income, and within a type the built-in fallback

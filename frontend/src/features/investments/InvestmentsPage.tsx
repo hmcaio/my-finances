@@ -11,8 +11,8 @@ import {
   TableRow,
   Typography,
 } from '@mui/material'
-import { useAccounts } from '../../api/accountsQueries'
-import { DataTableBody } from '../../components/DataTableBody'
+import { useAccounts } from '../../api/accounts/accountsQueries'
+import { DataTableBody } from '../../components/table/DataTableBody'
 import { useQueryState } from '../../hooks/queryState'
 import { InvestmentAllocationChart } from './InvestmentAllocationChart'
 

@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Box, Skeleton, ToggleButton, ToggleButtonGroup, Typography, useTheme } from '@mui/material'
-import type { NetWorthGranularity, NetWorthPoint } from '../../api/netWorth'
-import { useNetWorthTrend } from '../../api/netWorthQueries'
-import { fadeInSx } from '../../components/fadeIn'
-import { LoadFailedNotice } from '../../components/LoadFailedNotice'
+import type { NetWorthGranularity, NetWorthPoint } from '../../api/netWorth/netWorth'
+import { useNetWorthTrend } from '../../api/netWorth/netWorthQueries'
+import { fadeInSx } from '../../components/feedback/fadeIn'
+import { LoadFailedNotice } from '../../components/feedback/LoadFailedNotice'
 import { useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 

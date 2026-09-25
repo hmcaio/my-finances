@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw'
-import type { Transfer } from '../../api/transfers'
+import type { Transfer } from '../../api/transfers/transfers'
 import { createStore } from '../store'
 
 /**

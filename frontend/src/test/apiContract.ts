@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { RequestHandler } from 'msw'
 import { server } from '../mocks/server'
-import { ApiError } from '../api/apiError'
+import { ApiError } from '../api/core/apiError'
 
 /**
  * Config for {@link describeNamedEntityApi}: the shared shape behind every flat-taxonomy API

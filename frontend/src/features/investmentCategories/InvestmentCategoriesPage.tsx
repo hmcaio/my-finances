@@ -16,22 +16,25 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import { defaultErrorMessage } from '../../api/apiError'
-import { INVESTMENT_NAME_MAX_LENGTH, type InvestmentCategory } from '../../api/investmentCategories'
+import { defaultErrorMessage } from '../../api/core/apiError'
+import {
+  INVESTMENT_NAME_MAX_LENGTH,
+  type InvestmentCategory,
+} from '../../api/investments/investmentCategories'
 import {
   useCreateInvestmentCategory,
   useDeleteInvestmentCategory,
   useInvestmentCategories,
   useRenameInvestmentCategory,
-} from '../../api/investmentCategoriesQueries'
+} from '../../api/investments/investmentCategoriesQueries'
 import {
   useCreateInvestmentSubcategory,
   useDeleteInvestmentSubcategory,
   useRenameInvestmentSubcategory,
-} from '../../api/investmentSubcategoriesQueries'
-import { DataTableBody } from '../../components/DataTableBody'
-import { ErrorAlert } from '../../components/ErrorAlert'
-import { InlineEditActions } from '../../components/InlineEditActions'
+} from '../../api/investments/investmentSubcategoriesQueries'
+import { DataTableBody } from '../../components/table/DataTableBody'
+import { ErrorAlert } from '../../components/feedback/ErrorAlert'
+import { InlineEditActions } from '../../components/table/InlineEditActions'
 import { useQueryState } from '../../hooks/queryState'
 
 /** What is being renamed inline: one row at a time, either level. */

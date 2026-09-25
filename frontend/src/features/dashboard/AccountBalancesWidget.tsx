@@ -9,9 +9,9 @@ import {
   Typography,
 } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
-import { useAccounts } from '../../api/accountsQueries'
-import { fadeInSx } from '../../components/fadeIn'
-import { LoadFailedNotice } from '../../components/LoadFailedNotice'
+import { useAccounts } from '../../api/accounts/accountsQueries'
+import { fadeInSx } from '../../components/feedback/fadeIn'
+import { LoadFailedNotice } from '../../components/feedback/LoadFailedNotice'
 import { useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { ACCOUNT_TYPE_LABELS } from '../accounts/accountTypes'

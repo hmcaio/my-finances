@@ -28,7 +28,7 @@ export default defineConfig({
         'src/mocks/**',
         'src/test/**',
         'src/**/*.d.ts',
-        'src/api/schemaDrift.ts',
+        'src/api/core/schemaDrift.ts',
       ],
     },
   },

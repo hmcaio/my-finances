@@ -1,4 +1,4 @@
-import type { Institution } from '../../api/institutions'
+import type { Institution } from '../../api/institutions/institutions'
 
 /**
  * Display order for institutions: the built-in "No institution" row first (it is the default and

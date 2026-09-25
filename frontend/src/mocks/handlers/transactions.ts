@@ -1,5 +1,9 @@
 import { http, HttpResponse } from 'msw'
-import type { CategorySpend, Transaction, TransactionType } from '../../api/transactions'
+import type {
+  CategorySpend,
+  Transaction,
+  TransactionType,
+} from '../../api/transactions/transactions'
 import { seedCategories } from './categories'
 import { createStore } from '../store'
 

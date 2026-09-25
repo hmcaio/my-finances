@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import type { UseQueryResult } from '@tanstack/react-query'
-import { defaultErrorMessage } from '../api/apiError'
+import { defaultErrorMessage } from '../api/core/apiError'
 
 /** What `DataTableBody` / `LoadFailedNotice` consume: the non-data part of a query. */
 export interface LoadState {

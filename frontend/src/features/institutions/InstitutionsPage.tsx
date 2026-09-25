@@ -13,17 +13,17 @@ import {
   Typography,
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
-import { INSTITUTION_NAME_MAX_LENGTH, type Institution } from '../../api/institutions'
+import { INSTITUTION_NAME_MAX_LENGTH, type Institution } from '../../api/institutions/institutions'
 import {
   useInstitutions,
   useCreateInstitution,
   useRenameInstitution,
   useDeleteInstitution,
-} from '../../api/institutionsQueries'
-import { defaultErrorMessage } from '../../api/apiError'
-import { ErrorAlert } from '../../components/ErrorAlert'
-import { InlineEditActions } from '../../components/InlineEditActions'
-import { DataTableBody } from '../../components/DataTableBody'
+} from '../../api/institutions/institutionsQueries'
+import { defaultErrorMessage } from '../../api/core/apiError'
+import { ErrorAlert } from '../../components/feedback/ErrorAlert'
+import { InlineEditActions } from '../../components/table/InlineEditActions'
+import { DataTableBody } from '../../components/table/DataTableBody'
 import { useQueryState } from '../../hooks/queryState'
 import { sortInstitutions } from './sortInstitutions'
 

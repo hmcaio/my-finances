@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw'
-import type { AllocationRow } from '../../api/investmentAllocation'
+import type { AllocationRow } from '../../api/investments/investmentAllocation'
 
 /**
  * Seed rows of `GET /api/investments/allocation?groupBy=CATEGORY`: Fixed Income (stale - a trade

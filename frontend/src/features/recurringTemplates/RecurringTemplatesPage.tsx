@@ -17,20 +17,20 @@ import {
 } from '@mui/material'
 import PauseIcon from '@mui/icons-material/Pause'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
-import { useAccounts } from '../../api/accountsQueries'
-import { useCategories } from '../../api/categoriesQueries'
-import type { RecurringTemplate } from '../../api/recurringTemplates'
+import { useAccounts } from '../../api/accounts/accountsQueries'
+import { useCategories } from '../../api/categories/categoriesQueries'
+import type { RecurringTemplate } from '../../api/recurringTemplates/recurringTemplates'
 import {
   useCreateRecurringTemplate,
   useReactivateRecurringTemplate,
   useRecurringTemplates,
   useSetRecurringTemplateCap,
   useStopRecurringTemplate,
-} from '../../api/recurringTemplatesQueries'
-import { defaultErrorMessage } from '../../api/apiError'
-import { ErrorAlert } from '../../components/ErrorAlert'
-import { InlineEditActions } from '../../components/InlineEditActions'
-import { DataTableBody } from '../../components/DataTableBody'
+} from '../../api/recurringTemplates/recurringTemplatesQueries'
+import { defaultErrorMessage } from '../../api/core/apiError'
+import { ErrorAlert } from '../../components/feedback/ErrorAlert'
+import { InlineEditActions } from '../../components/table/InlineEditActions'
+import { DataTableBody } from '../../components/table/DataTableBody'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { currentMonth } from '../../utils/localDate'
 import { nameLookup } from '../../utils/nameLookup'

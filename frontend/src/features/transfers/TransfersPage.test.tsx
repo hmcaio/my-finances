@@ -11,7 +11,7 @@ import {
   seedTransfers,
   transferClosedAccountConflictHandler,
 } from '../../mocks/handlers/transfers'
-import { TRANSFER_CONFLICT_MESSAGE } from '../../api/transfers'
+import { TRANSFER_CONFLICT_MESSAGE } from '../../api/transfers/transfers'
 import { findRow, selectOption } from '../../test/testUtils'
 import { expectLoadStates } from '../../test/loadStates'
 import { TransfersPage } from './TransfersPage'

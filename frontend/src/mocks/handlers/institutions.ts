@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw'
-import type { Institution } from '../../api/institutions'
+import type { Institution } from '../../api/institutions/institutions'
 import { createStore } from '../store'
 
 /**

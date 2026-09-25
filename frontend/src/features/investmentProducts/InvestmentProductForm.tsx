@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { Box, Button, MenuItem, Select, TextField } from '@mui/material'
-import { INVESTMENT_NAME_MAX_LENGTH, type InvestmentCategory } from '../../api/investmentCategories'
+import {
+  INVESTMENT_NAME_MAX_LENGTH,
+  type InvestmentCategory,
+} from '../../api/investments/investmentCategories'
 
 /** What the form collects; an empty `subcategoryId` means "no sub-category". */
 export interface InvestmentProductFormValues {

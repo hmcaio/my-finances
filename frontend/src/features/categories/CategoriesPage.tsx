@@ -16,17 +16,21 @@ import {
   Typography,
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
-import { CATEGORY_NAME_MAX_LENGTH, type Category, type CategoryType } from '../../api/categories'
+import {
+  CATEGORY_NAME_MAX_LENGTH,
+  type Category,
+  type CategoryType,
+} from '../../api/categories/categories'
 import {
   useCategories,
   useCreateCategory,
   useDeleteCategory,
   useRenameCategory,
-} from '../../api/categoriesQueries'
-import { defaultErrorMessage } from '../../api/apiError'
-import { ErrorAlert } from '../../components/ErrorAlert'
-import { InlineEditActions } from '../../components/InlineEditActions'
-import { DataTableBody } from '../../components/DataTableBody'
+} from '../../api/categories/categoriesQueries'
+import { defaultErrorMessage } from '../../api/core/apiError'
+import { ErrorAlert } from '../../components/feedback/ErrorAlert'
+import { InlineEditActions } from '../../components/table/InlineEditActions'
+import { DataTableBody } from '../../components/table/DataTableBody'
 import { useQueryState } from '../../hooks/queryState'
 import { sortCategories } from './sortCategories'
 

@@ -10,7 +10,7 @@ import {
   CONFLICT_MESSAGE,
   DUPLICATE_NAME_MESSAGE,
   INSTITUTION_NAME_MAX_LENGTH,
-} from '../../api/institutions'
+} from '../../api/institutions/institutions'
 import { findRow } from '../../test/testUtils'
 import { describeSettingsPage } from '../../test/settingsPageContract'
 import { InstitutionsPage } from './InstitutionsPage'

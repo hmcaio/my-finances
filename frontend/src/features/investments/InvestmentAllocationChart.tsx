@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Box, Button, Skeleton, Typography } from '@mui/material'
-import type { AllocationRow } from '../../api/investmentAllocation'
-import { useInvestmentAllocation } from '../../api/investmentAllocationQueries'
-import { fadeInSx } from '../../components/fadeIn'
-import { LoadFailedNotice } from '../../components/LoadFailedNotice'
+import type { AllocationRow } from '../../api/investments/investmentAllocation'
+import { useInvestmentAllocation } from '../../api/investments/investmentAllocationQueries'
+import { fadeInSx } from '../../components/feedback/fadeIn'
+import { LoadFailedNotice } from '../../components/feedback/LoadFailedNotice'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 

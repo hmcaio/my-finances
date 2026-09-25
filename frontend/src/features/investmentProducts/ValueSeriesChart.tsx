@@ -1,5 +1,5 @@
 import { Box, Typography, useTheme } from '@mui/material'
-import type { ValueSeriesPoint } from '../../api/investmentValueSeries'
+import type { ValueSeriesPoint } from '../../api/investments/investmentValueSeries'
 
 const WIDTH = 640
 const HEIGHT = 260

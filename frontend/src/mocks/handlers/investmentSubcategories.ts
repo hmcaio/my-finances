@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw'
-import type { InvestmentSubcategory } from '../../api/investmentSubcategories'
+import type { InvestmentSubcategory } from '../../api/investments/investmentSubcategories'
 import { investmentCategoriesStore } from './investmentCategories'
 
 const SUBCATEGORIES_URL = '/api/investment-subcategories'

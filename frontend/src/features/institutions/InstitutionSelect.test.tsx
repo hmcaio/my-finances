@@ -9,7 +9,7 @@ import {
   institutionCreateConflictHandler,
   seedInstitutions,
 } from '../../mocks/handlers/institutions'
-import { DUPLICATE_NAME_MESSAGE, type Institution } from '../../api/institutions'
+import { DUPLICATE_NAME_MESSAGE, type Institution } from '../../api/institutions/institutions'
 import { InstitutionSelect } from './InstitutionSelect'
 import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 

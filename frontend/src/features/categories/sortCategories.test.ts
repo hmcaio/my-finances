@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Category } from '../../api/categories'
+import type { Category } from '../../api/categories/categories'
 import { sortCategories } from './sortCategories'
 
 function category(name: string, type: Category['type'], builtIn = false): Category {

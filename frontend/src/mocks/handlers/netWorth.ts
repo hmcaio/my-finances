@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw'
-import type { NetWorthPoint } from '../../api/netWorth'
+import type { NetWorthPoint } from '../../api/netWorth/netWorth'
 
 /**
  * Seed trend: a checking balance falling with a credit card spend, then an investment snapshot.
