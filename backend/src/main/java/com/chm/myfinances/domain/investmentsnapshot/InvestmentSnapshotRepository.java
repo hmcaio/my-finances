@@ -7,12 +7,15 @@ import java.util.UUID;
 
 /**
  * Repository port for {@link InvestmentSnapshot} (ADR 0004). Implemented by an adapter in {@code
- * infrastructure/persistence/investmentsnapshot}. Snapshots are never deleted (the F009 spec has no
- * delete), so the port has no delete method.
+ * infrastructure/persistence/investmentsnapshot}.
  */
 public interface InvestmentSnapshotRepository {
 
   InvestmentSnapshot save(InvestmentSnapshot snapshot);
+
+  Optional<InvestmentSnapshot> findById(UUID id);
+
+  void deleteById(UUID id);
 
   /** The product's snapshot on exactly this date, for the same-day upsert. */
   Optional<InvestmentSnapshot> findByProductIdAndDate(UUID productId, LocalDate date);

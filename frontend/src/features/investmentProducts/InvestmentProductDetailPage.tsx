@@ -8,6 +8,7 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  IconButton,
   Link as MuiLink,
   Paper,
   Skeleton,
@@ -21,17 +22,22 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
+import DeleteIcon from '@mui/icons-material/Delete'
 import { useAccounts } from '../../api/accounts/accountsQueries'
 import { defaultErrorMessage } from '../../api/core/apiError'
 import { useInvestmentProduct } from '../../api/investments/investmentProductsQueries'
 import type { InvestmentSnapshot } from '../../api/investments/investmentSnapshots'
 import {
+  useDeleteInvestmentSnapshot,
   useInvestmentSnapshots,
   useRecordInvestmentSnapshot,
+  useUpdateInvestmentSnapshot,
 } from '../../api/investments/investmentSnapshotsQueries'
 import { useInvestmentValueSeries } from '../../api/investments/investmentValueSeriesQueries'
 import type { Transfer } from '../../api/transfers/transfers'
 import { useTransfers } from '../../api/transfers/transfersQueries'
+import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
+import { InlineEditActions } from '../../components/table/InlineEditActions'
 import { DataTableBody } from '../../components/table/DataTableBody'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { fadeInSx } from '../../components/feedback/fadeIn'
@@ -77,9 +83,15 @@ export function InvestmentProductDetailPage() {
     : null
   const tradesState = useQueryState(tradesQuery, setError)
   const recordSnapshot = useRecordInvestmentSnapshot()
+  const updateSnapshot = useUpdateInvestmentSnapshot()
+  const deleteSnapshot = useDeleteInvestmentSnapshot()
 
   const [snapshotForm, setSnapshotForm] = useState(() => ({ date: today(), balance: '' }))
   const [recording, setRecording] = useState(false)
+  const [editing, setEditing] = useState<SnapshotEdit | null>(null)
+  const [savingEdit, setSavingEdit] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<InvestmentSnapshot | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const [tradeDialog, setTradeDialog] = useState<TransferFormPreset | null>(null)
   // The dialog form remounts fresh for each Buy/Sell click.
   const [dialogKey, setDialogKey] = useState(0)
@@ -108,6 +120,41 @@ export function InvestmentProductDetailPage() {
       setError(defaultErrorMessage(err))
     } finally {
       setRecording(false)
+    }
+  }
+
+  async function handleSaveEdit() {
+    if (!product || !editing) return
+    const balance = Number(editing.balance)
+    if (editing.date === '' || editing.balance === '' || !(balance >= 0)) return
+    setError(null)
+    setSavingEdit(true)
+    try {
+      await updateSnapshot.mutateAsync({
+        productId: product.id,
+        snapshotId: editing.id,
+        date: editing.date,
+        balance,
+      })
+      setEditing(null)
+    } catch (err) {
+      setError(defaultErrorMessage(err, { 404: 'Snapshot not found.' }))
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
+  async function handleConfirmDelete() {
+    if (!product || !deleteTarget) return
+    setError(null)
+    setDeleting(true)
+    try {
+      await deleteSnapshot.mutateAsync({ productId: product.id, snapshotId: deleteTarget.id })
+    } catch (err) {
+      setError(defaultErrorMessage(err, { 404: 'Snapshot not found.' }))
+    } finally {
+      setDeleting(false)
+      setDeleteTarget(null)
     }
   }
 
@@ -284,6 +331,11 @@ export function InvestmentProductDetailPage() {
               snapshots={snapshots}
               state={snapshotsState}
               onRetry={snapshotsState.reload}
+              editing={editing}
+              onEditingChange={setEditing}
+              onSaveEdit={() => void handleSaveEdit()}
+              savingEdit={savingEdit}
+              onDelete={setDeleteTarget}
             />
           </Paper>
 
@@ -344,6 +396,16 @@ export function InvestmentProductDetailPage() {
         </Box>
       )}
 
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete snapshot?"
+        body={`Delete the ${deleteTarget?.date ?? ''} snapshot? The product's value falls back to its previous snapshot.`}
+        confirmLabel="Delete"
+        loading={deleting}
+        onConfirm={() => void handleConfirmDelete()}
+        onCancel={() => setDeleteTarget(null)}
+      />
+
       <Dialog
         open={tradeDialog !== null}
         onClose={() => setTradeDialog(null)}
@@ -373,14 +435,34 @@ export function InvestmentProductDetailPage() {
   )
 }
 
+interface SnapshotEdit {
+  id: string
+  date: string
+  balance: string
+}
+
 interface SnapshotHistoryProps {
   snapshots: InvestmentSnapshot[] | undefined
   state: LoadState
   onRetry: () => void
+  editing: SnapshotEdit | null
+  onEditingChange: (edit: SnapshotEdit | null) => void
+  onSaveEdit: () => void
+  savingEdit: boolean
+  onDelete: (snapshot: InvestmentSnapshot) => void
 }
 
-/** The product's snapshots, most recent first. */
-function SnapshotHistory({ snapshots, state, onRetry }: SnapshotHistoryProps) {
+/** The product's snapshots, most recent first, each editable (date and balance) or deletable. */
+function SnapshotHistory({
+  snapshots,
+  state,
+  onRetry,
+  editing,
+  onEditingChange,
+  onSaveEdit,
+  savingEdit,
+  onDelete,
+}: SnapshotHistoryProps) {
   return (
     <TableContainer>
       <Table size="small" aria-label="Snapshot history">
@@ -388,22 +470,82 @@ function SnapshotHistory({ snapshots, state, onRetry }: SnapshotHistoryProps) {
           <TableRow>
             <TableCell>Date</TableCell>
             <TableCell align="right">Balance</TableCell>
+            <TableCell align="right">Actions</TableCell>
           </TableRow>
         </TableHead>
-        <DataTableBody state={state} onRetry={onRetry} columns={2}>
+        <DataTableBody state={state} onRetry={onRetry} columns={3} actionsColumn>
           {snapshots?.length === 0 && (
             <TableRow>
-              <TableCell colSpan={2} align="center">
+              <TableCell colSpan={3} align="center">
                 <Typography color="text.secondary">No snapshots yet.</Typography>
               </TableCell>
             </TableRow>
           )}
-          {snapshots?.map((snapshot) => (
-            <TableRow key={snapshot.id}>
-              <TableCell>{snapshot.date}</TableCell>
-              <TableCell align="right">{snapshot.balance.toFixed(2)}</TableCell>
-            </TableRow>
-          ))}
+          {snapshots?.map((snapshot) => {
+            const edit = editing?.id === snapshot.id ? editing : null
+            return (
+              <TableRow key={snapshot.id}>
+                <TableCell>
+                  {edit ? (
+                    <TextField
+                      size="small"
+                      type="date"
+                      value={edit.date}
+                      onChange={(e) => onEditingChange({ ...edit, date: e.target.value })}
+                      slotProps={{ htmlInput: { 'aria-label': 'Edit snapshot date' } }}
+                    />
+                  ) : (
+                    snapshot.date
+                  )}
+                </TableCell>
+                <TableCell align="right">
+                  {edit ? (
+                    <TextField
+                      size="small"
+                      type="number"
+                      value={edit.balance}
+                      onChange={(e) => onEditingChange({ ...edit, balance: e.target.value })}
+                      slotProps={{
+                        htmlInput: {
+                          'aria-label': 'Edit snapshot balance',
+                          step: '0.01',
+                          min: '0',
+                        },
+                      }}
+                    />
+                  ) : (
+                    snapshot.balance.toFixed(2)
+                  )}
+                </TableCell>
+                <TableCell align="right">
+                  <InlineEditActions
+                    editing={edit !== null}
+                    onEdit={() =>
+                      onEditingChange({
+                        id: snapshot.id,
+                        date: snapshot.date,
+                        balance: String(snapshot.balance),
+                      })
+                    }
+                    onSave={onSaveEdit}
+                    onCancel={() => onEditingChange(null)}
+                    editLabel="Edit snapshot"
+                    saveLabel="Save snapshot"
+                    saving={savingEdit}
+                  />
+                  {!edit && (
+                    <IconButton
+                      size="small"
+                      aria-label="Delete snapshot"
+                      onClick={() => onDelete(snapshot)}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                </TableCell>
+              </TableRow>
+            )
+          })}
         </DataTableBody>
       </Table>
     </TableContainer>

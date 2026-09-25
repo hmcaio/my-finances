@@ -1,9 +1,12 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { API_KEY_ROOT } from '../core/queryClient'
 import {
+  deleteInvestmentSnapshot,
   getInvestmentSnapshots,
   recordInvestmentSnapshot,
+  updateInvestmentSnapshot,
   type RecordSnapshotRequest,
+  type UpdateSnapshotRequest,
 } from './investmentSnapshots'
 
 export const investmentSnapshotKeys = {
@@ -22,5 +25,23 @@ export function useRecordInvestmentSnapshot() {
   return useMutation({
     mutationFn: ({ productId, ...request }: RecordSnapshotRequest & { productId: string }) =>
       recordInvestmentSnapshot(productId, request),
+  })
+}
+
+export function useUpdateInvestmentSnapshot() {
+  return useMutation({
+    mutationFn: ({
+      productId,
+      snapshotId,
+      ...request
+    }: UpdateSnapshotRequest & { productId: string; snapshotId: string }) =>
+      updateInvestmentSnapshot(productId, snapshotId, request),
+  })
+}
+
+export function useDeleteInvestmentSnapshot() {
+  return useMutation({
+    mutationFn: ({ productId, snapshotId }: { productId: string; snapshotId: string }) =>
+      deleteInvestmentSnapshot(productId, snapshotId),
   })
 }

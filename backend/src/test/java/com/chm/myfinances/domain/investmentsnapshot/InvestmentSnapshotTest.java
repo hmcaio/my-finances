@@ -92,6 +92,25 @@ class InvestmentSnapshotTest {
   }
 
   @Test
+  void moveToChangesTheDate() {
+    InvestmentSnapshot snapshot =
+        InvestmentSnapshot.create(UUID.randomUUID(), PRODUCT_ID, DATE, BigDecimal.TEN);
+
+    snapshot.moveTo(DATE.minusDays(3));
+
+    assertThat(snapshot.getDate()).isEqualTo(DATE.minusDays(3));
+  }
+
+  @Test
+  void moveToRejectsANullDateAndKeepsTheOldOne() {
+    InvestmentSnapshot snapshot =
+        InvestmentSnapshot.create(UUID.randomUUID(), PRODUCT_ID, DATE, BigDecimal.TEN);
+
+    assertThatThrownBy(() -> snapshot.moveTo(null)).isInstanceOf(NullPointerException.class);
+    assertThat(snapshot.getDate()).isEqualTo(DATE);
+  }
+
+  @Test
   void reconstituteRebuildsFromPersistedState() {
     UUID id = UUID.randomUUID();
 

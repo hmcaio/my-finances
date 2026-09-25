@@ -29,6 +29,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - Upgrade: `docker-compose.prod.yml` adds the named volume `my-finances-logs-prod` (backend logs; `docker compose down -v` deletes it along with the database) and an optional `LOG_LEVEL` in `.env` (default `INFO`).
 - **F017 — Institutions** — a shared, editable list of the banks and brokers your accounts sit at, with a built-in "No institution" row that can be renamed but not deleted. Every account now has an institution, chosen (or created on the spot) on the account form and shown on the account screens. ([#26](https://github.com/hmcaio/my-finances/pull/26))
   - Upgrade: migration `V12` creates the institution list with a built-in "No institution" row, converts each account's institution text into it (surrounding whitespace trimmed, names that differ only by case merged into one), assigns accounts that had none to "No institution" and drops the old column. It runs automatically on startup and is not reversible. The account API's `institution` field is replaced by a required `institutionId`.
+- Investment snapshots can now be edited (date and balance) and deleted from the product's snapshot history, so a wrongly dated or mistaken entry no longer skews the latest value, net worth and allocation. Moving a snapshot onto a date that already has one, or an edit or delete that would leave a closed product with a non-zero latest snapshot, is refused. (closes [#59](https://github.com/hmcaio/my-finances/issues/59)) ([#63](https://github.com/hmcaio/my-finances/pull/63))
+  - Upgrade: no migration. The API gains `PUT` and `DELETE /api/investment-products/{id}/snapshots/{snapshotId}`.
 
 ### Changed
 

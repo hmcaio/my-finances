@@ -26,3 +26,6 @@
 - [x] Sell with "Sold entire position": allocation and account balance drop at once and the product can then be closed; sell without a resulting balance and confirm the product can't be closed. (Verified through the REST API against a running backend.)
 - [x] Add snapshots across several products/categories/sub-categories; confirm the allocation chart groups and sums correctly, drills into sub-categories, and totals match. (Not done in a browser: grouping and sums were verified through the REST API against a running backend, the drill-down by component tests.)
 - [x] Confirm the value series shows month-end values, contributions and units for a product with a few buys and sells. (Verified through the REST API against a running backend.)
+
+## Follow-up (issue #59)
+- [x] Edit (date, balance) and delete snapshots: `InvestmentSnapshotRepository.findById`/`deleteById`, `InvestmentSnapshot.moveTo`, `InvestmentSnapshotService.update`/`delete` with the date-taken and closed-product `409`s, `PUT`/`DELETE .../snapshots/{snapshotId}`, inline edit and confirmed delete in the snapshot history with `conflictMessage`s, MSW handlers and regenerated API types. Service tests written first against the fakes.
