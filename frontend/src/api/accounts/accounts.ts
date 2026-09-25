@@ -55,3 +55,13 @@ export const CLOSE_CONFLICT_MESSAGE =
 export async function closeAccount(id: string): Promise<Account> {
   return unwrap(apiClient.post<Account>(`/accounts/${id}/close`), CLOSE_CONFLICT_MESSAGE)
 }
+
+// A 409 here means the account is referenced by a transaction, transfer, recurring template or
+// investment product (ADR 0017): closing it is the only option left.
+export const DELETE_CONFLICT_MESSAGE =
+  'This account has history (transactions, transfers, recurring templates or investment products) and cannot be deleted - close it instead.'
+
+/** Hard-deletes an account that has no history (ADR 0017); 409 otherwise. */
+export async function deleteAccount(id: string): Promise<void> {
+  await unwrap(apiClient.delete<void>(`/accounts/${id}`), DELETE_CONFLICT_MESSAGE)
+}

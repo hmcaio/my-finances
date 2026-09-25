@@ -462,7 +462,7 @@ export interface paths {
         get: operations["get_3"];
         put?: never;
         post?: never;
-        delete?: never;
+        delete: operations["delete_8"];
         options?: never;
         head?: never;
         patch: operations["edit_3"];
@@ -2232,6 +2232,26 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["AccountResponse"];
                 };
+            };
+        };
+    };
+    delete_8: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

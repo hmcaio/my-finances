@@ -11,7 +11,7 @@ import {
   seedInvestmentAccount,
 } from '../../mocks/handlers/accounts'
 import { BUILT_IN_INSTITUTION_ID, seedInstitutions } from '../../mocks/handlers/institutions'
-import { CLOSE_CONFLICT_MESSAGE } from '../../api/accounts/accounts'
+import { CLOSE_CONFLICT_MESSAGE, DELETE_CONFLICT_MESSAGE } from '../../api/accounts/accounts'
 import { findRow, renderWithRouter } from '../../test/testUtils'
 import { AccountsPage } from './AccountsPage'
 
@@ -226,6 +226,51 @@ describe('AccountsPage', () => {
 
     // The backend sends no message text, so the client supplies one covering the 409 cases.
     expect(await screen.findByText(CLOSE_CONFLICT_MESSAGE)).toBeInTheDocument()
+    expect(screen.getByText(openAccount.name)).toBeInTheDocument()
+  })
+
+  it('deletes an account without history after confirming, warning about net worth', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    const closedAccount = seedAccounts.find((a) => a.closed)!
+    await screen.findByText(seedAccounts.find((a) => !a.closed)!.name)
+    await user.click(screen.getByRole('switch', { name: 'Show closed accounts' }))
+
+    const row = await findRow(closedAccount.name)
+    await user.click(row.getByRole('button', { name: 'Delete' }))
+
+    expect(await screen.findByText(/changes your past net worth/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Delete account' }))
+
+    await waitFor(() => expect(screen.queryByText(closedAccount.name)).not.toBeInTheDocument())
+  })
+
+  it('cancelling the delete dialog leaves the account untouched', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    const openAccount = seedAccounts.find((a) => !a.closed)!
+    await screen.findByText(openAccount.name)
+
+    const row = await findRow(openAccount.name)
+    await user.click(row.getByRole('button', { name: 'Delete' }))
+    await screen.findByText(/permanently removes/)
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    await waitFor(() => expect(screen.queryByText(/permanently removes/)).not.toBeInTheDocument())
+    expect(screen.getByText(openAccount.name)).toBeInTheDocument()
+  })
+
+  it('tells the user to close the account when it has history', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    const openAccount = seedAccounts.find((a) => !a.closed)!
+    await screen.findByText(openAccount.name)
+
+    const row = await findRow(openAccount.name)
+    await user.click(row.getByRole('button', { name: 'Delete' }))
+    await user.click(screen.getByRole('button', { name: 'Delete account' }))
+
+    expect(await screen.findByText(DELETE_CONFLICT_MESSAGE)).toBeInTheDocument()
     expect(screen.getByText(openAccount.name)).toBeInTheDocument()
   })
 

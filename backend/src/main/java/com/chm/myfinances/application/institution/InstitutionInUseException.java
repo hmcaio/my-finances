@@ -6,8 +6,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  * Thrown when deleting an {@code Institution} that an account still references. Closed accounts
- * count: accounts are never deleted, so the way out is re-pointing every account and deleting the
- * then-empty institution. Maps to 409.
+ * count: a closed account with history can't be deleted (ADR 0017), so the way out is re-pointing
+ * every account and deleting the then-empty institution. Maps to 409.
  */
 @ResponseStatus(HttpStatus.CONFLICT)
 public class InstitutionInUseException extends RuntimeException {

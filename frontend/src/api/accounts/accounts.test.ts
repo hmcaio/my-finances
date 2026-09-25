@@ -11,9 +11,11 @@ import {
 import { ApiError } from '../core/apiError'
 import {
   CLOSE_CONFLICT_MESSAGE,
+  DELETE_CONFLICT_MESSAGE,
   DUPLICATE_NAME_MESSAGE,
   closeAccount,
   createAccount,
+  deleteAccount,
   editAccount,
   getAccount,
   getAccounts,
@@ -110,6 +112,28 @@ describe('accounts API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
+  })
+
+  it('deleteAccount deletes an account without history', async () => {
+    await deleteAccount('acct-2')
+
+    const all = await getAccounts(true)
+    expect(all.map((a) => a.id)).not.toContain('acct-2')
+  })
+
+  it('deleteAccount maps a 409 to the close-it-instead message', async () => {
+    // acct-1 has seed history, so the default handler answers 409 without an override.
+    const error: unknown = await deleteAccount('acct-1').catch((err: unknown) => err)
+
+    expect(error).toBeInstanceOf(ApiError)
+    expect((error as ApiError).status).toBe(409)
+    expect((error as ApiError).message).toBe(DELETE_CONFLICT_MESSAGE)
+  })
+
+  it('deleteAccount surfaces a 404 for an unknown id', async () => {
+    const error: unknown = await deleteAccount('nope').catch((err: unknown) => err)
+
+    expect((error as ApiError).status).toBe(404)
   })
 
   it('createAccount maps a 409 to the duplicate-name message', async () => {

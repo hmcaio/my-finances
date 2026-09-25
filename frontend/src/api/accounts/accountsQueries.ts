@@ -3,6 +3,7 @@ import { API_KEY_ROOT } from '../core/queryClient'
 import {
   closeAccount,
   createAccount,
+  deleteAccount,
   editAccount,
   getAccount,
   getAccounts,
@@ -47,4 +48,8 @@ export function useEditAccount() {
 
 export function useCloseAccount() {
   return useMutation({ mutationFn: closeAccount })
+}
+
+export function useDeleteAccount() {
+  return useMutation({ mutationFn: deleteAccount })
 }
