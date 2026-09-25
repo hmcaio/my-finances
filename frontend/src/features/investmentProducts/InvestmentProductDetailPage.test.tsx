@@ -140,6 +140,120 @@ describe('InvestmentProductDetailPage', () => {
     expect(button).toBeDisabled()
   })
 
+  it('edits a snapshot date and balance in place', async () => {
+    const user = userEvent.setup()
+    let sent: unknown = null
+    server.use(
+      http.put('/api/investment-products/:id/snapshots/:snapshotId', async ({ request }) => {
+        sent = await request.clone().json()
+      }),
+    )
+    renderDetail()
+    await screen.findByRole('heading', { name: 'Bitcoin' })
+    const history = screen.getByRole('table', { name: 'Snapshot history' })
+    await within(history).findByText('800.00')
+
+    const row = within(history).getByText('2026-07-31').closest('tr')!
+    await user.click(within(row).getByRole('button', { name: 'Edit snapshot' }))
+    const date = within(row).getByLabelText('Edit snapshot date')
+    await user.clear(date)
+    await user.type(date, '2026-07-30')
+    const balance = within(row).getByLabelText('Edit snapshot balance')
+    await user.clear(balance)
+    await user.type(balance, '810')
+    await user.click(within(row).getByRole('button', { name: 'Save snapshot' }))
+
+    expect(await within(history).findByText('810.00')).toBeInTheDocument()
+    expect(within(history).getByText('2026-07-30')).toBeInTheDocument()
+    expect(within(history).queryByText('2026-07-31')).not.toBeInTheDocument()
+    expect(sent).toEqual({ date: '2026-07-30', balance: 810 })
+    expect(within(history).queryByLabelText('Edit snapshot date')).not.toBeInTheDocument()
+  })
+
+  it('cancelling an edit leaves the row unchanged', async () => {
+    const user = userEvent.setup()
+    renderDetail()
+    await screen.findByRole('heading', { name: 'Bitcoin' })
+    const history = screen.getByRole('table', { name: 'Snapshot history' })
+    const row = (await within(history).findByText('2026-07-31')).closest('tr')!
+
+    await user.click(within(row).getByRole('button', { name: 'Edit snapshot' }))
+    await user.click(within(row).getByRole('button', { name: 'Cancel' }))
+
+    expect(within(history).getByText('800.00')).toBeInTheDocument()
+    expect(within(history).queryByLabelText('Edit snapshot date')).not.toBeInTheDocument()
+  })
+
+  it('shows the conflict message when an edit is refused with 409 and keeps the row editable', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.put('/api/investment-products/:id/snapshots/:snapshotId', () =>
+        HttpResponse.json({}, { status: 409 }),
+      ),
+    )
+    renderDetail()
+    await screen.findByRole('heading', { name: 'Bitcoin' })
+    const history = screen.getByRole('table', { name: 'Snapshot history' })
+    const row = (await within(history).findByText('2026-07-31')).closest('tr')!
+
+    await user.click(within(row).getByRole('button', { name: 'Edit snapshot' }))
+    await user.click(within(row).getByRole('button', { name: 'Save snapshot' }))
+
+    expect(await screen.findByText(/another snapshot already has that date/)).toBeInTheDocument()
+    expect(within(row).getByLabelText('Edit snapshot date')).toBeInTheDocument()
+  })
+
+  it('deletes a snapshot after confirming and moves the current value back', async () => {
+    const user = userEvent.setup()
+    renderDetail()
+    await screen.findByRole('heading', { name: 'Bitcoin' })
+    const history = screen.getByRole('table', { name: 'Snapshot history' })
+    const row = (await within(history).findByText('2026-08-05')).closest('tr')!
+
+    await user.click(within(row).getByRole('button', { name: 'Delete snapshot' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Delete snapshot?' })
+    await user.click(within(dialog).getByRole('button', { name: 'Delete' }))
+
+    await waitFor(() => expect(within(history).queryByText('2026-08-05')).not.toBeInTheDocument())
+    expect(within(history).getByText('2026-07-31')).toBeInTheDocument()
+    expect(await screen.findByText('Latest snapshot 2026-07-31')).toBeInTheDocument()
+  })
+
+  it('does not delete when the confirmation is cancelled', async () => {
+    const user = userEvent.setup()
+    renderDetail()
+    await screen.findByRole('heading', { name: 'Bitcoin' })
+    const history = screen.getByRole('table', { name: 'Snapshot history' })
+    const row = (await within(history).findByText('2026-08-05')).closest('tr')!
+
+    await user.click(within(row).getByRole('button', { name: 'Delete snapshot' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Delete snapshot?' })
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(within(history).getByText('2026-08-05')).toBeInTheDocument()
+  })
+
+  it('shows the conflict message when a delete is refused with 409', async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.delete('/api/investment-products/:id/snapshots/:snapshotId', () =>
+        HttpResponse.json({}, { status: 409 }),
+      ),
+    )
+    renderDetail()
+    await screen.findByRole('heading', { name: 'Bitcoin' })
+    const history = screen.getByRole('table', { name: 'Snapshot history' })
+    const row = (await within(history).findByText('2026-08-05')).closest('tr')!
+
+    await user.click(within(row).getByRole('button', { name: 'Delete snapshot' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Delete snapshot?' })
+    await user.click(within(dialog).getByRole('button', { name: 'Delete' }))
+
+    expect(await screen.findByText(/latest snapshot would no longer be zero/)).toBeInTheDocument()
+    expect(within(history).getByText('2026-08-05')).toBeInTheDocument()
+  })
+
   it('opens the transfer form as a Buy for this product and closes it after saving', async () => {
     const user = userEvent.setup()
     renderDetail()
