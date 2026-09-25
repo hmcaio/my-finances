@@ -5,6 +5,8 @@ import {
   getBudgetReport,
   getBudgets,
   setBudgetCap,
+  stopBudget,
+  type StopBudgetRequest,
   type UpdateBudgetCapRequest,
 } from './budgets'
 
@@ -25,6 +27,13 @@ export function useBudgetReport(month: string) {
 
 export function useCreateBudget() {
   return useMutation({ mutationFn: createBudget })
+}
+
+/** Stops budgeting from a month onward; resume with `useSetBudgetCap`. */
+export function useStopBudget() {
+  return useMutation({
+    mutationFn: ({ id, ...request }: StopBudgetRequest & { id: string }) => stopBudget(id, request),
+  })
 }
 
 export function useSetBudgetCap() {

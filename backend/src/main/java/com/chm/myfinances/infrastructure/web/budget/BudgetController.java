@@ -69,6 +69,16 @@ public class BudgetController {
     return toResponse(budgetService.findById(id));
   }
 
+  /**
+   * Stops budgeting from {@code effectiveFrom} onward, keeping earlier months' caps (issue #61).
+   * Resume with {@code PATCH .../cap}.
+   */
+  @PostMapping("/{id}/stop")
+  public BudgetResponse stop(@PathVariable UUID id, @Valid @RequestBody StopBudgetRequest request) {
+    budgetService.stop(id, request.effectiveFrom());
+    return toResponse(budgetService.findById(id));
+  }
+
   /** Budget-vs-actual for every budgeted category, for {@code month} (F006 spec, PRD S5.6). */
   @GetMapping("/report")
   public List<BudgetReportLineResponse> report(

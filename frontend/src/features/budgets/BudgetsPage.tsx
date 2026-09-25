@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import {
   Box,
   Button,
+  IconButton,
   MenuItem,
   Paper,
   Select,
@@ -13,10 +14,17 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
+import StopCircleOutlinedIcon from '@mui/icons-material/StopCircleOutlined'
 import { useCategories } from '../../api/categories/categoriesQueries'
 import type { Budget } from '../../api/budgets/budgets'
-import { useBudgets, useCreateBudget, useSetBudgetCap } from '../../api/budgets/budgetsQueries'
+import {
+  useBudgets,
+  useCreateBudget,
+  useSetBudgetCap,
+  useStopBudget,
+} from '../../api/budgets/budgetsQueries'
 import { defaultErrorMessage } from '../../api/core/apiError'
+import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { InlineEditActions } from '../../components/table/InlineEditActions'
 import { DataTableBody } from '../../components/table/DataTableBody'
@@ -31,7 +39,9 @@ import { BudgetVsActualReport } from './BudgetVsActualReport'
  * over-cap visual indicator (bottom half). Editing a cap or adding a new budget always takes
  * effect from the current month forward (PRD S5.6's "effective going forward only") - there's no
  * effective-month picker on either form, matching plan.md's "which month it takes effect from is
- * implicit - now/current month forward".
+ * implicit - now/current month forward". A row can be stopped (issue #61, confirmed through a
+ * dialog): it then reads "Stopped" and its edit action becomes "Resume budget" (a normal cap
+ * edit); the add-budget picker still excludes it, since the category already has its budget row.
  */
 export function BudgetsPage() {
   const [error, setError] = useState<string | null>(null)
@@ -43,6 +53,7 @@ export function BudgetsPage() {
   const budgetsState = useQueryState(budgetsQuery, setError)
   const createMutation = useCreateBudget()
   const capMutation = useSetBudgetCap()
+  const stopMutation = useStopBudget()
 
   const [newCategoryId, setNewCategoryId] = useState('')
   const [newCap, setNewCap] = useState('')
@@ -51,6 +62,9 @@ export function BudgetsPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingCap, setEditingCap] = useState('')
   const [savingCap, setSavingCap] = useState(false)
+
+  const [stopTarget, setStopTarget] = useState<Budget | null>(null)
+  const [stopping, setStopping] = useState(false)
 
   const [reportMonth, setReportMonth] = useState(currentMonth())
 
@@ -108,6 +122,21 @@ export function BudgetsPage() {
     }
   }
 
+  async function handleStop() {
+    if (stopTarget === null) return
+    setError(null)
+    setStopping(true)
+    try {
+      await stopMutation.mutateAsync({ id: stopTarget.id, effectiveFrom: currentMonth() })
+      setStopTarget(null)
+    } catch (err) {
+      setError(defaultErrorMessage(err))
+      setStopTarget(null)
+    } finally {
+      setStopping(false)
+    }
+  }
+
   // One load state for the table plus the lookup list behind its name column: rows show only once
   // every name can be resolved. Retry clears the stale banner and reloads whatever failed.
   const tableState = combineLoadState(categoriesState, budgetsState)
@@ -162,6 +191,10 @@ export function BudgetsPage() {
                         slotProps={{ htmlInput: { step: '0.01', min: '0.01' } }}
                         autoFocus
                       />
+                    ) : budget.stopped ? (
+                      <Typography color="text.secondary" component="span">
+                        Stopped
+                      </Typography>
                     ) : budget.currentCap !== null ? (
                       budget.currentCap.toFixed(2)
                     ) : (
@@ -177,10 +210,19 @@ export function BudgetsPage() {
                       onEdit={() => startEditCap(budget)}
                       onSave={() => void saveEditCap(budget.id)}
                       onCancel={cancelEditCap}
-                      editLabel="Edit cap"
-                      saveLabel="Save cap"
+                      editLabel={budget.stopped ? 'Resume budget' : 'Edit cap'}
+                      saveLabel={budget.stopped ? 'Resume with this cap' : 'Save cap'}
                       saving={savingCap}
                     />
+                    {!budget.stopped && editingId !== budget.id && (
+                      <IconButton
+                        size="small"
+                        aria-label="Stop budget"
+                        onClick={() => setStopTarget(budget)}
+                      >
+                        <StopCircleOutlinedIcon fontSize="small" />
+                      </IconButton>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -188,6 +230,23 @@ export function BudgetsPage() {
           </Table>
         </TableContainer>
       </Paper>
+
+      <ConfirmDialog
+        open={stopTarget !== null}
+        title={`Stop budgeting ${stopTarget ? categoryName(stopTarget.categoryId) : ''}?`}
+        body={
+          <>
+            Budgeting stops from the current month: this category no longer appears in the
+            budget-vs-actual report from now on. Past months keep the cap they had. You can resume
+            it later from the row&apos;s &quot;Resume budget&quot; action; the months in between
+            stay without a budget.
+          </>
+        }
+        confirmLabel="Stop budget"
+        loading={stopping}
+        onConfirm={() => void handleStop()}
+        onCancel={() => setStopTarget(null)}
+      />
 
       <Paper variant="outlined" sx={{ p: 2, mb: 4, maxWidth: 560 }}>
         <Typography variant="subtitle1" gutterBottom>

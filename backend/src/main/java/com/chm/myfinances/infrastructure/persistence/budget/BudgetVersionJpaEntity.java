@@ -30,7 +30,8 @@ public class BudgetVersionJpaEntity extends AuditableEntity {
   @Column(name = "budget_id", nullable = false)
   private UUID budgetId;
 
-  @Column(name = "monthly_cap", nullable = false)
+  /** {@code null} on a tombstone version ("no budget from this month", issue #61, V16). */
+  @Column(name = "monthly_cap")
   private BigDecimal monthlyCap;
 
   @Column(name = "effective_from", nullable = false)

@@ -13,6 +13,9 @@ export interface Budget {
   categoryId: string
   currentCap: number | null
   currentCapEffectiveFrom: string | null
+  /** `true` when budgeting was stopped from a month up to the current one (issue #61): `currentCap`
+   * is then `null` and `currentCapEffectiveFrom` is the month it was stopped from. */
+  stopped: boolean
 }
 
 /** One row of the budget-vs-actual report (F006 spec's `GET /api/budgets/report`). `cap` is
@@ -25,6 +28,7 @@ export interface BudgetReportLine {
 
 export type CreateBudgetRequest = components['schemas']['CreateBudgetRequest']
 export type UpdateBudgetCapRequest = components['schemas']['UpdateBudgetCapRequest']
+export type StopBudgetRequest = components['schemas']['StopBudgetRequest']
 
 export const CREATE_CONFLICT_MESSAGE =
   'This category cannot be budgeted - it may already have a budget, or not be an expense category.'
@@ -50,6 +54,15 @@ export async function createBudget(request: CreateBudgetRequest): Promise<Budget
  */
 export async function setBudgetCap(id: string, request: UpdateBudgetCapRequest): Promise<Budget> {
   return unwrap(apiClient.patch<Budget>(`/budgets/${id}/cap`, request))
+}
+
+/**
+ * Stops budgeting from the given month onward (issue #61's `POST .../stop`); earlier months keep
+ * their cap and the budget is resumed with `setBudgetCap`. No `409` case - the only expected error
+ * is an unknown budget id (404).
+ */
+export async function stopBudget(id: string, request: StopBudgetRequest): Promise<Budget> {
+  return unwrap(apiClient.post<Budget>(`/budgets/${id}/stop`, request))
 }
 
 /** Budget-vs-actual for every budgeted category, for a given month (`YYYY-MM`, F006 spec). */

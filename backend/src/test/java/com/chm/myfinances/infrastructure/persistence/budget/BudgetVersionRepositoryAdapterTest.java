@@ -56,6 +56,29 @@ class BudgetVersionRepositoryAdapterTest {
   }
 
   @Test
+  void savesAndReloadsATombstoneWithANullCapThenResumesItInPlace() {
+    UUID id = UUID.randomUUID();
+    budgetVersionRepository.save(BudgetVersion.tombstone(id, budgetId, YearMonth.of(2026, 5)));
+
+    BudgetVersion reloaded =
+        budgetVersionRepository
+            .findByBudgetIdAndEffectiveFrom(budgetId, YearMonth.of(2026, 5))
+            .orElseThrow();
+    assertThat(reloaded.isTombstone()).isTrue();
+    assertThat(reloaded.getMonthlyCap()).isNull();
+
+    reloaded.updateCap(new BigDecimal("321.00"));
+    budgetVersionRepository.save(reloaded);
+
+    BudgetVersion resumed =
+        budgetVersionRepository
+            .findByBudgetIdAndEffectiveFrom(budgetId, YearMonth.of(2026, 5))
+            .orElseThrow();
+    assertThat(resumed.isTombstone()).isFalse();
+    assertThat(resumed.getMonthlyCap()).isEqualByComparingTo("321.00");
+  }
+
+  @Test
   void findByBudgetIdReturnsEveryVersionForThatBudget() {
     budgetVersionRepository.save(
         BudgetVersion.create(UUID.randomUUID(), budgetId, BigDecimal.TEN, YearMonth.of(2026, 1)));

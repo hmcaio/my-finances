@@ -35,19 +35,48 @@ public final class BudgetVersion {
     this.id = Objects.requireNonNull(id, "id must not be null");
     this.budgetId = Objects.requireNonNull(budgetId, "budgetId must not be null");
     this.effectiveFrom = Objects.requireNonNull(effectiveFrom, "effectiveFrom must not be null");
-    this.monthlyCap = requireValidCap(monthlyCap);
+    this.monthlyCap = monthlyCap == null ? null : requireValidCap(monthlyCap);
   }
 
   /** Creates a brand-new BudgetVersion. {@code id} must come from the {@code IdGenerator} port. */
   public static BudgetVersion create(
       UUID id, UUID budgetId, BigDecimal monthlyCap, YearMonth effectiveFrom) {
-    return new BudgetVersion(id, budgetId, monthlyCap, effectiveFrom);
+    return new BudgetVersion(
+        id,
+        budgetId,
+        Objects.requireNonNull(monthlyCap, "monthlyCap must not be null"),
+        effectiveFrom);
   }
 
-  /** Rebuilds a BudgetVersion from already-validated persisted state. */
+  /**
+   * Creates a tombstone version (issue #61): "no budget from {@code effectiveFrom} onward". It has
+   * a {@code null} cap and stays in the history like any other version, so earlier months keep
+   * their own cap and a later {@code setCap} resumes the budget as an ordinary new version.
+   */
+  public static BudgetVersion tombstone(UUID id, UUID budgetId, YearMonth effectiveFrom) {
+    return new BudgetVersion(id, budgetId, null, effectiveFrom);
+  }
+
+  /**
+   * Rebuilds a BudgetVersion from already-validated persisted state; a {@code null} cap is a
+   * tombstone.
+   */
   public static BudgetVersion reconstitute(
       UUID id, UUID budgetId, BigDecimal monthlyCap, YearMonth effectiveFrom) {
     return new BudgetVersion(id, budgetId, monthlyCap, effectiveFrom);
+  }
+
+  /** {@code true} when this version means "no budget from its month onward" (no cap). */
+  public boolean isTombstone() {
+    return monthlyCap == null;
+  }
+
+  /**
+   * Turns this version into a tombstone in place - the same-month correction {@link #updateCap}
+   * performs, for stopping the budget from the very month this version is effective.
+   */
+  public void stop() {
+    this.monthlyCap = null;
   }
 
   /**
@@ -90,6 +119,7 @@ public final class BudgetVersion {
     return budgetId;
   }
 
+  /** The cap, or {@code null} for a tombstone ({@link #isTombstone()}). */
   public BigDecimal getMonthlyCap() {
     return monthlyCap;
   }

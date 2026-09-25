@@ -8,7 +8,13 @@ import {
 import { server } from '../../mocks/server'
 import { renderHookWithQueryClient } from '../../test/renderWithQueryClient'
 import { CREATE_CONFLICT_MESSAGE } from './budgets'
-import { useBudgetReport, useBudgets, useCreateBudget, useSetBudgetCap } from './budgetsQueries'
+import {
+  useBudgetReport,
+  useBudgets,
+  useCreateBudget,
+  useSetBudgetCap,
+  useStopBudget,
+} from './budgetsQueries'
 
 describe('budgets hooks', () => {
   it('loads the budgets and the month report', async () => {
@@ -42,6 +48,27 @@ describe('budgets hooks', () => {
       effectiveFrom: '2026-09',
     })
     await waitFor(() => expect(result.current.list.data).toHaveLength(2))
+  })
+
+  it('refetches the budgets after a stop and again after a resume', async () => {
+    const { result } = renderHookWithQueryClient(() => ({
+      list: useBudgets(),
+      stop: useStopBudget(),
+      setCap: useSetBudgetCap(),
+    }))
+    await waitFor(() => expect(result.current.list.data).toBeDefined())
+
+    await result.current.stop.mutateAsync({ id: seedBudgets[0].id, effectiveFrom: '2026-09' })
+    await waitFor(() => expect(result.current.list.data?.[0].stopped).toBe(true))
+    expect(result.current.list.data?.[0].currentCap).toBeNull()
+
+    await result.current.setCap.mutateAsync({
+      id: seedBudgets[0].id,
+      monthlyCap: 900,
+      effectiveFrom: '2026-10',
+    })
+    await waitFor(() => expect(result.current.list.data?.[0].stopped).toBe(false))
+    expect(result.current.list.data?.[0].currentCap).toBe(900)
   })
 
   it('keeps the create conflict message on failure', async () => {

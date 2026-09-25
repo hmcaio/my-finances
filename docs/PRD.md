@@ -106,9 +106,10 @@ Represents money moving between two accounts you own — most commonly paying a 
 - `BudgetVersion`
   - `id`
   - `budget_id`
-  - `monthly_cap` (amount)
+  - `monthly_cap` (amount; `null` on a **tombstone** version, see below)
   - `effective_from` (the first month this cap applies to)
   - Editing the cap creates a **new version**, effective going forward only; it does not alter prior versions.
+  - **Stopping** a budget ("delete" without losing history) stores a **tombstone version**: a `BudgetVersion` with a `null` `monthly_cap`, meaning "no budget from `effective_from` onward". Earlier months keep their cap; months from the tombstone on have no budget (no line in the budget-vs-actual report); a later cap edit is a normal new version and **resumes** the budget, leaving the months in between unbudgeted. The budget row itself is never removed, so the category keeps its single budget (creating a second one is still rejected) and cannot be deleted while it exists. Rejected alternative: a nullable `ended_from` on `Budget`, which cannot represent stop-then-resume (the gap months would fall back to the old cap).
 - Single period type for all categories: calendar month, resets monthly.
 - "Actual" for a given month = sum of expense transactions in that category within the month, across all accounts.
 - "Budget" for a given month = the `monthly_cap` of whichever `BudgetVersion` was effective during that month — so past months' budget-vs-actual stays accurate even after the cap is later changed.
@@ -186,6 +187,7 @@ An `Account` (§5.4, of any type including `INVESTMENT`) points at exactly one i
 ### 6.4 Budgets
 - Set a monthly cap per expense category.
 - Edit a cap → creates a new version, effective going forward; prior months keep showing the cap that was actually in effect then.
+- Stop budgeting a category from the current month (a tombstone version, §5.6): prior months keep their cap and the category leaves the report from that month on. Resume it later by setting a cap again.
 - View budget-vs-actual for the current month (and prior months, using each month's effective cap) per category, across all accounts.
 - Visual indicator when actual exceeds cap (in-app only — no notifications/email, consistent with no-auth/local-only scope).
 

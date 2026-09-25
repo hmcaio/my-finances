@@ -111,7 +111,8 @@ class BudgetControllerTest {
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.categoryId").value(groceriesCategoryId.toString()))
         .andExpect(jsonPath("$.currentCap").value(500.00))
-        .andExpect(jsonPath("$.currentCapEffectiveFrom").value(currentMonth));
+        .andExpect(jsonPath("$.currentCapEffectiveFrom").value(currentMonth))
+        .andExpect(jsonPath("$.stopped").value(false));
   }
 
   @Test
@@ -205,6 +206,108 @@ class BudgetControllerTest {
         .andExpect(jsonPath("$[0].categoryId").value(groceriesCategoryId.toString()))
         .andExpect(jsonPath("$[0].cap").value(300.00))
         .andExpect(jsonPath("$[0].actual").value(40.00));
+  }
+
+  private String stopBody(String effectiveFrom) throws Exception {
+    return objectMapper.writeValueAsString(Map.of("effectiveFrom", effectiveFrom));
+  }
+
+  @Test
+  void stopFromThisMonthMarksTheBudgetStoppedAndKeepsHistoricalMonths() throws Exception {
+    String id = createBudget(groceriesCategoryId, "300.00", "2026-01");
+    persistExpenseTransaction(groceriesCategoryId, LocalDate.of(2026, 3, 5), "40.00");
+
+    mockMvc
+        .perform(
+            post("/api/budgets/" + id + "/stop")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(stopBody(YearMonthNow.currentMonth())))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.stopped").value(true))
+        .andExpect(jsonPath("$.currentCap").doesNotExist())
+        .andExpect(jsonPath("$.currentCapEffectiveFrom").value(YearMonthNow.currentMonth()));
+
+    mockMvc
+        .perform(get("/api/budgets"))
+        .andExpect(jsonPath("$[0].stopped").value(true))
+        .andExpect(jsonPath("$[0].currentCap").doesNotExist());
+    mockMvc
+        .perform(get("/api/budgets/report").param("month", "2026-03"))
+        .andExpect(jsonPath("$[0].cap").value(300.00))
+        .andExpect(jsonPath("$[0].actual").value(40.00));
+    mockMvc
+        .perform(get("/api/budgets/report").param("month", YearMonthNow.currentMonth()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$").isEmpty());
+  }
+
+  @Test
+  void stopFromAFutureMonthLeavesTheBudgetActiveNow() throws Exception {
+    String id = createBudget(groceriesCategoryId, "300.00", "2020-01");
+    String future = YearMonth.now().plusMonths(3).toString();
+
+    mockMvc
+        .perform(
+            post("/api/budgets/" + id + "/stop")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(stopBody(future)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.stopped").value(false))
+        .andExpect(jsonPath("$.currentCap").value(300.00));
+  }
+
+  @Test
+  void aStoppedBudgetIsResumedByACapEditAndStaysUnique() throws Exception {
+    String id = createBudget(groceriesCategoryId, "300.00", "2020-01");
+    mockMvc
+        .perform(
+            post("/api/budgets/" + id + "/stop")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(stopBody(YearMonthNow.currentMonth())))
+        .andExpect(status().isOk());
+
+    // Creating a second budget for the category is still a 409; the UI resumes through the cap.
+    mockMvc
+        .perform(
+            post("/api/budgets")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    createBudgetBody(groceriesCategoryId, "100.00", YearMonthNow.currentMonth())))
+        .andExpect(status().isConflict());
+
+    String resume =
+        objectMapper.writeValueAsString(
+            Map.of("monthlyCap", "450.00", "effectiveFrom", YearMonthNow.currentMonth()));
+    mockMvc
+        .perform(
+            patch("/api/budgets/" + id + "/cap")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(resume))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.stopped").value(false))
+        .andExpect(jsonPath("$.currentCap").value(450.00));
+  }
+
+  @Test
+  void stopOfUnknownBudgetReturns404() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/budgets/" + UUID.randomUUID() + "/stop")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(stopBody(YearMonthNow.currentMonth())))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void stopWithoutEffectiveFromReturns400() throws Exception {
+    String id = createBudget(groceriesCategoryId, "300.00", "2020-01");
+
+    mockMvc
+        .perform(
+            post("/api/budgets/" + id + "/stop")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+        .andExpect(status().isBadRequest());
   }
 
   /** Small helper so tests always compare against "now" the same way the controller does. */

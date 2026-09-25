@@ -109,4 +109,33 @@ public class BudgetService {
     log.info("Budget {}: new version effective {}", budget.getId(), effectiveFrom);
     return saved;
   }
+
+  /**
+   * Stops budgeting from {@code effectiveFrom} onward (issue #61): stores a tombstone version (no
+   * cap), replacing the version for that exact month if there is one, like {@link #setCap}. Earlier
+   * months keep their cap; a later {@link #setCap} resumes the budget. A no-op (returns the
+   * effective tombstone) when the budget is already stopped as of that month, so repeated stops
+   * never pile up redundant tombstones.
+   */
+  public BudgetVersion stop(UUID budgetId, YearMonth effectiveFrom) {
+    Budget budget = findById(budgetId);
+    Optional<BudgetVersion> effective =
+        BudgetVersion.resolveEffective(
+            budgetVersionRepository.findByBudgetId(budget.getId()), effectiveFrom);
+    if (effective.isPresent() && effective.get().isTombstone()) {
+      return effective.get();
+    }
+    Optional<BudgetVersion> existing =
+        budgetVersionRepository.findByBudgetIdAndEffectiveFrom(budget.getId(), effectiveFrom);
+    BudgetVersion tombstone;
+    if (existing.isPresent()) {
+      tombstone = existing.get();
+      tombstone.stop();
+    } else {
+      tombstone = BudgetVersion.tombstone(idGenerator.newId(), budget.getId(), effectiveFrom);
+    }
+    BudgetVersion saved = budgetVersionRepository.save(tombstone);
+    log.info("Budget {}: stopped effective {}", budget.getId(), effectiveFrom);
+    return saved;
+  }
 }

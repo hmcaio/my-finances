@@ -81,6 +81,93 @@ class BudgetVersionTest {
   }
 
   @Test
+  void tombstoneHasNoCapAndIsFlaggedAsStopped() {
+    UUID id = UUID.randomUUID();
+
+    BudgetVersion tombstone = BudgetVersion.tombstone(id, BUDGET_ID, YearMonth.of(2026, 5));
+
+    assertThat(tombstone.getId()).isEqualTo(id);
+    assertThat(tombstone.getBudgetId()).isEqualTo(BUDGET_ID);
+    assertThat(tombstone.getMonthlyCap()).isNull();
+    assertThat(tombstone.isTombstone()).isTrue();
+    assertThat(tombstone.getEffectiveFrom()).isEqualTo(YearMonth.of(2026, 5));
+  }
+
+  @Test
+  void aVersionWithACapIsNotATombstone() {
+    assertThat(version(YearMonth.of(2026, 1), "100.00").isTombstone()).isFalse();
+  }
+
+  @Test
+  void reconstituteAcceptsANullCapAsATombstone() {
+    BudgetVersion tombstone =
+        BudgetVersion.reconstitute(UUID.randomUUID(), BUDGET_ID, null, YearMonth.of(2026, 5));
+
+    assertThat(tombstone.isTombstone()).isTrue();
+  }
+
+  @Test
+  void createStillRejectsANullCap() {
+    // Only the tombstone factory / reconstitute may produce a null cap.
+    assertThatThrownBy(
+            () -> BudgetVersion.create(UUID.randomUUID(), BUDGET_ID, null, YearMonth.now()))
+        .isInstanceOf(NullPointerException.class);
+  }
+
+  @Test
+  void stopTurnsAnExistingVersionIntoATombstoneInPlace() {
+    BudgetVersion version = version(YearMonth.of(2026, 3), "500.00");
+
+    version.stop();
+
+    assertThat(version.isTombstone()).isTrue();
+    assertThat(version.getMonthlyCap()).isNull();
+    assertThat(version.getEffectiveFrom()).isEqualTo(YearMonth.of(2026, 3));
+  }
+
+  @Test
+  void updateCapOnATombstoneResumesTheBudget() {
+    BudgetVersion tombstone =
+        BudgetVersion.tombstone(UUID.randomUUID(), BUDGET_ID, YearMonth.now());
+
+    tombstone.updateCap(new BigDecimal("250.00"));
+
+    assertThat(tombstone.isTombstone()).isFalse();
+    assertThat(tombstone.getMonthlyCap()).isEqualByComparingTo("250.00");
+  }
+
+  @Test
+  void updateCapStillRejectsNull() {
+    BudgetVersion version = version(YearMonth.now(), "10.00");
+
+    assertThatThrownBy(() -> version.updateCap(null)).isInstanceOf(NullPointerException.class);
+  }
+
+  @Test
+  void resolveEffectiveReturnsTheTombstoneFromItsMonthOnAndTheCapBefore() {
+    BudgetVersion january = version(YearMonth.of(2026, 1), "100.00");
+    BudgetVersion tombstone =
+        BudgetVersion.tombstone(UUID.randomUUID(), BUDGET_ID, YearMonth.of(2026, 4));
+    List<BudgetVersion> versions = List.of(january, tombstone);
+
+    assertThat(BudgetVersion.resolveEffective(versions, YearMonth.of(2026, 3))).contains(january);
+    assertThat(BudgetVersion.resolveEffective(versions, YearMonth.of(2026, 4))).contains(tombstone);
+    assertThat(BudgetVersion.resolveEffective(versions, YearMonth.of(2026, 9))).contains(tombstone);
+  }
+
+  @Test
+  void resolveEffectiveAfterStopThenResumeLeavesTheGapAsATombstone() {
+    BudgetVersion january = version(YearMonth.of(2026, 1), "100.00");
+    BudgetVersion tombstone =
+        BudgetVersion.tombstone(UUID.randomUUID(), BUDGET_ID, YearMonth.of(2026, 4));
+    BudgetVersion resumed = version(YearMonth.of(2026, 8), "150.00");
+    List<BudgetVersion> versions = List.of(january, tombstone, resumed);
+
+    assertThat(BudgetVersion.resolveEffective(versions, YearMonth.of(2026, 6))).contains(tombstone);
+    assertThat(BudgetVersion.resolveEffective(versions, YearMonth.of(2026, 8))).contains(resumed);
+  }
+
+  @Test
   void updateCapReplacesTheCapInPlace() {
     BudgetVersion version =
         BudgetVersion.create(

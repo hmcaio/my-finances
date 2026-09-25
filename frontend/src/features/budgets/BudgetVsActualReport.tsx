@@ -38,7 +38,7 @@ export function BudgetVsActualReport({ month }: BudgetVsActualReportProps) {
       {report !== undefined && categories !== undefined && (
         <Box sx={fadeInSx}>
           {report.length === 0 && (
-            <Typography color="text.secondary">No budgeted categories yet.</Typography>
+            <Typography color="text.secondary">No active budgets for this month.</Typography>
           )}
           {report.map((line) => {
             const overCap = line.cap !== null && line.actual > line.cap
