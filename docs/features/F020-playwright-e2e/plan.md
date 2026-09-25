@@ -5,9 +5,9 @@
 One feature branch (`feature/f020-playwright-e2e`), one commit per phase.
 
 ## Phase 1 — Install and configure
-- [ ] Add `@playwright/test` (dev dependency) and the `e2e` script.
-- [ ] `playwright.config.ts`: `webServer` running the Vite dev server, three Chromium projects (`mobile` 390x844, `tablet` 768x1024, `desktop` 1280x800), HTML reporter, traces on first retry.
-- [ ] Exclude `e2e/` from Vitest and from `tsc` build output; add `e2e/tsconfig` if needed; ESLint covers the new folder.
+- [x] Add `@playwright/test` (dev dependency) and the `e2e` script.
+- [x] `playwright.config.ts`: `webServer` running the Vite dev server, three Chromium projects (`mobile` 390x844, `tablet` 768x1024, `desktop` 1280x800), HTML reporter, traces on first retry.
+- [x] Exclude `e2e/` from Vitest and from `tsc` build output; add `e2e/tsconfig` if needed; ESLint covers the new folder.
 
 ## Phase 2 — Mock layer and helpers
 - [ ] `e2e/support/mockApi.ts`: `page.route('**/api/**')` handler built from `src/mocks` fixtures; unmocked `/api` requests fail the test.

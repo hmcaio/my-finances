@@ -1,5 +1,5 @@
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 
 // https://vite.dev/config/
 // Imports `defineConfig` from `vitest/config` (a superset of Vite's own) rather than `vite`
@@ -8,6 +8,8 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   plugins: [react()],
   test: {
+    // Playwright specs (F020) run under `npm run e2e`, never under Vitest.
+    exclude: [...configDefaults.exclude, 'e2e/**'],
     environment: 'jsdom',
     // Share the jsdom environment and module graph across test files in a worker instead of
     // rebuilding them per file (~20s -> ~12s). Safe because every file's setup (src/test/setup.ts)
