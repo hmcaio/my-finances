@@ -17,8 +17,8 @@ One feature branch (`feature/f020-playwright-e2e`), one commit per phase.
 - [x] `e2e/smoke.spec.ts`: landing route loads, `Layout` present, no overflow, no console errors, on all three projects.
 
 ## Phase 4 — CI
-- [ ] `e2e` job in `.github/workflows/ci.yml`: install Chromium with cached browser dir, run `npm run e2e`, upload report and traces on failure.
-- [ ] Job runs on every push/PR like the existing jobs; does not gate image publishing differently from the current test jobs.
+- [x] `e2e` job in `.github/workflows/ci.yml`: install Chromium with cached browser dir, run `npm run e2e`, upload report and traces on failure.
+- [x] Job runs on every push/PR like the existing jobs; does not gate image publishing differently from the current test jobs.
 
 ## Phase 5 — Docs
 - [ ] `frontend/CLAUDE.md` section (run command, mock-by-route rule, geometry-only rule, helper location).
