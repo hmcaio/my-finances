@@ -139,6 +139,35 @@ class InvestmentSnapshotRepositoryAdapterTest {
   }
 
   @Test
+  void movingTheDateUpdatesTheSameRow() {
+    InvestmentSnapshot snapshot = snapshot(productId, LocalDate.of(2026, 3, 31), "100.00");
+    snapshotRepository.save(snapshot);
+    entityManager.flush();
+    entityManager.clear();
+
+    InvestmentSnapshot loaded = snapshotRepository.findById(snapshot.getId()).orElseThrow();
+    loaded.moveTo(LocalDate.of(2026, 3, 30));
+    snapshotRepository.save(loaded);
+    entityManager.flush();
+    entityManager.clear();
+
+    assertThat(snapshotRepository.findById(snapshot.getId()).orElseThrow().getDate())
+        .isEqualTo(LocalDate.of(2026, 3, 30));
+    assertThat(snapshotRepository.findByProductId(productId)).hasSize(1);
+  }
+
+  @Test
+  void deleteByIdRemovesTheRow() {
+    InvestmentSnapshot snapshot =
+        snapshotRepository.save(snapshot(productId, LocalDate.of(2026, 3, 31), "1.00"));
+
+    snapshotRepository.deleteById(snapshot.getId());
+    entityManager.flush();
+
+    assertThat(snapshotRepository.findById(snapshot.getId())).isEmpty();
+  }
+
+  @Test
   void aSecondSnapshotForTheSameProductAndDateViolatesTheUniqueConstraint() {
     snapshotRepository.save(snapshot(productId, LocalDate.of(2026, 3, 31), "100.00"));
     entityManager.flush();

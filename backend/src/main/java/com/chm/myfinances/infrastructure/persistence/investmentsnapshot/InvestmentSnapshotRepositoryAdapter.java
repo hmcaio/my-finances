@@ -29,6 +29,7 @@ public class InvestmentSnapshotRepositoryAdapter implements InvestmentSnapshotRe
             .findById(snapshot.getId())
             .map(
                 existing -> {
+                  existing.setDate(snapshot.getDate());
                   existing.setBalance(snapshot.getBalance());
                   return existing;
                 })
@@ -40,6 +41,16 @@ public class InvestmentSnapshotRepositoryAdapter implements InvestmentSnapshotRe
                         snapshot.getDate(),
                         snapshot.getBalance()));
     return toDomain(jpaRepository.save(entity));
+  }
+
+  @Override
+  public Optional<InvestmentSnapshot> findById(UUID id) {
+    return jpaRepository.findById(id).map(InvestmentSnapshotRepositoryAdapter::toDomain);
+  }
+
+  @Override
+  public void deleteById(UUID id) {
+    jpaRepository.deleteById(id);
   }
 
   @Override

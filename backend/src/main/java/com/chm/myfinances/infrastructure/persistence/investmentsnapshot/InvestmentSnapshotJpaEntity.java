@@ -29,7 +29,7 @@ public class InvestmentSnapshotJpaEntity extends AuditableEntity {
   @Column(name = "product_id", nullable = false, updatable = false)
   private UUID productId;
 
-  @Column(nullable = false, updatable = false)
+  @Column(nullable = false)
   private LocalDate date;
 
   @Column(nullable = false)

@@ -19,7 +19,7 @@ public final class InvestmentSnapshot {
 
   private final UUID id;
   private final UUID productId;
-  private final LocalDate date;
+  private LocalDate date;
   private BigDecimal balance;
 
   private InvestmentSnapshot(UUID id, UUID productId, LocalDate date, BigDecimal balance) {
@@ -44,6 +44,11 @@ public final class InvestmentSnapshot {
   /** Replaces the balance (a second entry for the same product and day). */
   public void replaceBalance(BigDecimal newBalance) {
     this.balance = requireValidBalance(newBalance);
+  }
+
+  /** Moves the snapshot to another date (a wrongly dated entry). */
+  public void moveTo(LocalDate newDate) {
+    this.date = Objects.requireNonNull(newDate, "date must not be null");
   }
 
   private static BigDecimal requireValidBalance(BigDecimal value) {
