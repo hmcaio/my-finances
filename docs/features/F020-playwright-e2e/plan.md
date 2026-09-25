@@ -14,7 +14,7 @@ One feature branch (`feature/f020-playwright-e2e`), one commit per phase.
 - [x] `expectNoHorizontalOverflow`, `expectNavMode` helpers, with a self-check spec (test first).
 
 ## Phase 3 — Smoke suite
-- [ ] `e2e/smoke.spec.ts`: landing route loads, `Layout` present, no overflow, no console errors, on all three projects.
+- [x] `e2e/smoke.spec.ts`: landing route loads, `Layout` present, no overflow, no console errors, on all three projects.
 
 ## Phase 4 — CI
 - [ ] `e2e` job in `.github/workflows/ci.yml`: install Chromium with cached browser dir, run `npm run e2e`, upload report and traces on failure.
