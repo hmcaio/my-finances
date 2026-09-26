@@ -18,7 +18,7 @@ One feature branch (`feature/f020-playwright-e2e`), one commit per phase.
 
 ## Phase 4 — CI
 - [x] `e2e` job in `.github/workflows/ci.yml`: install Chromium with cached browser dir, run `npm run e2e`, upload report and traces on failure.
-- [x] Job runs on every push/PR like the existing jobs; does not gate image publishing differently from the current test jobs.
+- [x] Job runs on every push/PR after `test-frontend` (`needs`), and `build-and-push` needs it, so a red e2e run blocks publishing images.
 
 ## Phase 5 — Docs
 - [x] `frontend/CLAUDE.md` section (run command, mock-by-route rule, geometry-only rule, helper location).

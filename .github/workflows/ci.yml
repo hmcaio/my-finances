@@ -129,8 +129,10 @@ jobs:
   e2e-frontend:
     name: Frontend e2e (Playwright)
     # Layout checks in Chromium at mobile/tablet/desktop widths (F020). Runs against the Vite dev
-    # server with every /api call mocked, so no backend or Postgres. Like the test jobs it runs on
-    # every push/PR; build-and-push deliberately does not `need` it (same gating as before F020).
+    # server with every /api call mocked, so no backend or Postgres. It waits for the unit tests
+    # (no point spending a browser run on a red build) and gates build-and-push. The frontend chain
+    # (~2 min + ~2 min) still finishes before the ~4 min backend job, so wall time is unchanged.
+    needs: test-frontend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -174,7 +176,7 @@ jobs:
 
   build-and-push:
     name: Build and push images
-    needs: [test-backend, test-frontend]
+    needs: [test-backend, test-frontend, e2e-frontend]
     runs-on: ubuntu-latest
     # Only publish on pushes to main and on vX.Y.Z tags - every push/PR runs the test jobs
     # above, but images are only built for deliberate, deployable versions.
