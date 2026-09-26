@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:17-alpine
+    image: postgres:17.11-alpine
     container_name: my-finances-postgres
     restart: unless-stopped
     environment:
@@ -46,7 +46,7 @@ services:
   # never leak into the Linux containers (and the bind mount stays fast).
   backend:
     profiles: [full]
-    image: eclipse-temurin:21-jdk-alpine
+    image: eclipse-temurin:21.0.12.1_1-jdk-alpine
     container_name: my-finances-backend
     working_dir: /workspace
     # dev-run.sh runs bootRun plus a background recompile on source change; DevTools (on the
@@ -55,6 +55,9 @@ services:
     environment:
       # dev profile binds 127.0.0.1 and points at localhost:5432 - neither works inside a container.
       SERVER_ADDRESS: 0.0.0.0
+      # The app's "today" (defaults, recurring catch-up) is the JVM's zone, while the browser uses
+      # its own local time - keep them equal by setting TZ in .env. Same variable as prod.
+      TZ: ${TZ:-UTC}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/myfinances
       # Optional remote debugger: publish 5005 below and attach an IDE "Remote JVM Debug" config.
       # JAVA_TOOL_OPTIONS: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
@@ -78,7 +81,7 @@ services:
 
   frontend:
     profiles: [full]
-    image: node:24-alpine
+    image: node:24.21.0-alpine
     container_name: my-finances-frontend
     working_dir: /app
     command: sh -c "npm ci --no-audit --no-fund && exec npm run dev -- --host 0.0.0.0"

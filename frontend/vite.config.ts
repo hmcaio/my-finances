@@ -21,6 +21,10 @@ export default defineConfig({
     // resets MSW handlers and RTL cleanup, and no test relies on module-level state. If a test
     // ever leaks state between files, drop this line (pool: 'vmThreads' does not work here).
     isolate: false,
+    // Fixed non-UTC zone (matches the backend's `-Duser.timezone` in build.gradle) so a UTC-vs-local
+    // bug fails in CI, which runs in UTC, as well as on a developer machine (issue #73). Individual
+    // tests still override it with `vi.stubEnv('TZ', ...)`.
+    env: { TZ: 'America/Sao_Paulo' },
     setupFiles: ['src/test/setup.ts'],
     reporters: ['default', ['html', { outputDir: 'test-results' }]],
     coverage: {

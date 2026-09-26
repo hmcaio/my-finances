@@ -49,19 +49,21 @@ CLAUDE.md                 Working guidance for AI coding agents (cross-stack; ba
 
 ## Getting started
 
-Local dev needs Docker (for Postgres) plus a JDK and Node toolchain for running the backend/frontend natively — see [backend/CLAUDE.md](backend/CLAUDE.md) and [frontend/CLAUDE.md](frontend/CLAUDE.md) for the exact, currently-accurate commands (build, lint, test, run). The short version:
+Local dev needs only Docker. The default is to run everything in containers with hot reload, so the toolchain versions are the pinned ones CI and production use:
 
 ```bash
-docker compose up -d      # start local Postgres (+ pgAdmin at localhost:5050)
-cd backend && ./gradlew bootRun    # API at localhost:8080
-cd frontend && npm install && npm run dev  # UI at localhost:5173
+docker compose --profile full up -d   # Postgres, pgAdmin (localhost:5050), API at localhost:8080, UI at localhost:5173
+docker compose --profile full down
 ```
 
-Or run everything in containers with hot reload, no JDK/Node needed (first start downloads dependencies; use this instead of the two native commands, not alongside them):
+The first start downloads Gradle and npm dependencies (a couple of minutes). Set `TZ` in `.env` (see `.env.example`) to your own time zone so the API's "today" matches your browser's.
+
+To run the apps natively instead (fastest loop, IDE debugging), you need a JDK 21 and the Node version in `frontend/.nvmrc` (`npm` refuses another major), and you must not run the `full` profile at the same time: both use ports 8080 and 5173. See [backend/CLAUDE.md](backend/CLAUDE.md) and [frontend/CLAUDE.md](frontend/CLAUDE.md) for the exact commands (build, lint, test, run). The short version:
 
 ```bash
-docker compose --profile full up -d   # Postgres, pgAdmin, API at localhost:8080, UI at localhost:5173
-docker compose --profile full down
+docker compose up -d      # start local Postgres only (+ pgAdmin at localhost:5050)
+cd backend && ./gradlew bootRun    # API at localhost:8080
+cd frontend && npm install && npm run dev  # UI at localhost:5173
 ```
 
 A production-shaped smoke test (Docker images end to end, no cloud involved) is also documented in `CLAUDE.md`.

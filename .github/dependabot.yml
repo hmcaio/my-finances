@@ -1,0 +1,26 @@
+# Bumps the pinned image tags and Actions (issue #73). Opens one PR per ecosystem update; a bump
+# that touches only one of several files pinning the same tool (e.g. postgres in both compose files
+# and the Testcontainers config) fails scripts/check-versions.sh in CI, so bump the siblings in the
+# same PR. npm and Gradle dependencies are deliberately not covered (lockfiles + noise).
+version: 2
+updates:
+  - package-ecosystem: docker
+    directory: /backend
+    target-branch: develop
+    schedule:
+      interval: monthly
+  - package-ecosystem: docker
+    directory: /frontend
+    target-branch: develop
+    schedule:
+      interval: monthly
+  - package-ecosystem: docker-compose
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: monthly
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: monthly
