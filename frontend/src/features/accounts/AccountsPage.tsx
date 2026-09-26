@@ -1,18 +1,15 @@
 import { useMemo, useState } from 'react'
 import {
   Box,
+  Button,
   Chip,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControlLabel,
   IconButton,
   Link as MuiLink,
-  Paper,
   Switch,
-  Table,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
   Typography,
 } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
@@ -29,13 +26,17 @@ import { defaultErrorMessage } from '../../api/core/apiError'
 import { useInstitutions } from '../../api/institutions/institutionsQueries'
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
+import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
 import { InlineEditActions } from '../../components/table/InlineEditActions'
-import { DataTableBody } from '../../components/table/DataTableBody'
+import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
+import { useIsMobile } from '../../hooks/useBreakpointBand'
 import { nameLookup } from '../../utils/nameLookup'
 import { ACCOUNT_TYPE_LABELS } from './accountTypes'
 import { InstitutionSelect } from '../institutions/InstitutionSelect'
 import { AccountCreateForm } from './AccountCreateForm'
+import { isAccountEditValid } from './accountEdit'
+import { AccountEditFields, AccountNameField } from './AccountEditFields'
 
 /**
  * Account list/management screen (F003 spec): table with name, institution, type, running
@@ -44,10 +45,15 @@ import { AccountCreateForm } from './AccountCreateForm'
  * an account exists, so they render as plain text, never an input, in this table); an add-account
  * form; a close action gated behind a non-reversible confirmation dialog; and a delete action,
  * allowed by the backend only for an account with no history (ADR 0017).
+ *
+ * Responsive (F021): the header's Add button opens the create form in a `ResponsiveDialog` at
+ * every size (there is no form panel below the table). The rename stays inline in the row on
+ * tablet/desktop; on mobile the card's Edit opens the same fields in a full-screen dialog.
  */
 export function AccountsPage() {
   const [includeClosed, setIncludeClosed] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const isMobile = useIsMobile()
   const accountsQuery = useAccounts(includeClosed)
   const accounts = accountsQuery.data
   const accountsState = useQueryState(accountsQuery, setError)
@@ -65,6 +71,8 @@ export function AccountsPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
   const [editingInstitutionId, setEditingInstitutionId] = useState<string | undefined>()
+  const [savingEdit, setSavingEdit] = useState(false)
+  const [addDialogOpen, setAddDialogOpen] = useState(false)
 
   const [closeTarget, setCloseTarget] = useState<Account | null>(null)
   const [closing, setClosing] = useState(false)
@@ -83,9 +91,15 @@ export function AccountsPage() {
     setEditingInstitutionId(undefined)
   }
 
-  async function saveEdit(id: string) {
-    if (!editingName.trim() || !editingInstitutionId) return
+  function closeAddDialog() {
+    setAddDialogOpen(false)
     setError(null)
+  }
+
+  async function saveEdit(id: string) {
+    if (!isAccountEditValid(editingName, editingInstitutionId) || !editingInstitutionId) return
+    setError(null)
+    setSavingEdit(true)
     try {
       await editMutation.mutateAsync({
         id,
@@ -95,6 +109,8 @@ export function AccountsPage() {
       cancelEdit()
     } catch (err) {
       setError(defaultErrorMessage(err))
+    } finally {
+      setSavingEdit(false)
     }
   }
 
@@ -135,11 +151,115 @@ export function AccountsPage() {
     tableState.reload()
   }
 
+  // On mobile the edit happens in a dialog opened from the card, so the card stays plain text.
+  const editDialogOpen = isMobile && editingId !== null
+
+  const columns: ResponsiveColumn<Account>[] = [
+    {
+      key: 'name',
+      header: 'Name',
+      role: 'primary',
+      render: (account) =>
+        editingId === account.id && !isMobile ? (
+          <AccountNameField
+            value={editingName}
+            onChange={setEditingName}
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void saveEdit(account.id)
+              if (e.key === 'Escape') cancelEdit()
+            }}
+          />
+        ) : (
+          <MuiLink component={RouterLink} to={`/accounts/${account.id}`} underline="hover">
+            {account.name}
+          </MuiLink>
+        ),
+    },
+    {
+      key: 'institution',
+      header: 'Institution',
+      role: 'secondary',
+      render: (account) =>
+        editingId === account.id && !isMobile ? (
+          <InstitutionSelect value={editingInstitutionId} onChange={setEditingInstitutionId} />
+        ) : (
+          institutionName(account.institutionId)
+        ),
+    },
+    {
+      key: 'type',
+      header: 'Type',
+      role: 'secondary',
+      tabletPriority: 'low',
+      render: (account) => ACCOUNT_TYPE_LABELS[account.type],
+    },
+    {
+      key: 'balance',
+      header: 'Balance',
+      align: 'right',
+      render: (account) => account.balance.toFixed(2),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (account) =>
+        account.closed ? (
+          <Chip label="Closed" size="small" />
+        ) : (
+          <Chip label="Open" size="small" color="success" />
+        ),
+    },
+  ]
+
+  function rowActions(account: Account) {
+    const editingInline = editingId === account.id && !isMobile
+    return (
+      <>
+        <InlineEditActions
+          editing={editingInline}
+          onEdit={() => startEdit(account)}
+          onSave={() => void saveEdit(account.id)}
+          onCancel={cancelEdit}
+          editLabel="Edit"
+        />
+        {!editingInline && (
+          <IconButton
+            size="small"
+            aria-label="Close"
+            disabled={account.closed}
+            onClick={() => setCloseTarget(account)}
+          >
+            <LockIcon fontSize="small" />
+          </IconButton>
+        )}
+        {!editingInline && (
+          <IconButton size="small" aria-label="Delete" onClick={() => setDeleteTarget(account)}>
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+        )}
+      </>
+    )
+  }
+
   return (
-    <Box sx={{ py: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Accounts
-      </Typography>
+    <Box sx={{ py: { xs: 2, sm: 4 } }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 2,
+          mb: 1,
+        }}
+      >
+        <Typography variant="h4" component="h1">
+          Accounts
+        </Typography>
+        <Button variant="contained" onClick={() => setAddDialogOpen(true)}>
+          Add account
+        </Button>
+      </Box>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         Checking, savings, cash, credit card, and investment accounts. Opening balance/date and type
         are fixed once an account is created - name and institution can still be corrected any time.
@@ -147,7 +267,11 @@ export function AccountsPage() {
         products.
       </Typography>
 
-      <ErrorAlert message={error} onDismiss={() => setError(null)} />
+      {/* While a dialog is open a save error shows inside it: this one sits behind it. */}
+      <ErrorAlert
+        message={addDialogOpen || editDialogOpen ? null : error}
+        onDismiss={() => setError(null)}
+      />
 
       <FormControlLabel
         control={
@@ -157,112 +281,59 @@ export function AccountsPage() {
         sx={{ mb: 2 }}
       />
 
-      <Paper variant="outlined" sx={{ mb: 3 }}>
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>Institution</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell align="right">Balance</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <DataTableBody state={tableState} onRetry={retry} columns={6} actionsColumn>
-              {accounts?.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    <Typography color="text.secondary">No accounts yet.</Typography>
-                  </TableCell>
-                </TableRow>
-              )}
-              {accounts?.map((account) => (
-                <TableRow key={account.id}>
-                  <TableCell>
-                    {editingId === account.id ? (
-                      <TextField
-                        size="small"
-                        label="Name"
-                        value={editingName}
-                        onChange={(e) => setEditingName(e.target.value)}
-                        autoFocus
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') void saveEdit(account.id)
-                          if (e.key === 'Escape') cancelEdit()
-                        }}
-                      />
-                    ) : (
-                      <MuiLink
-                        component={RouterLink}
-                        to={`/accounts/${account.id}`}
-                        underline="hover"
-                      >
-                        {account.name}
-                      </MuiLink>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {editingId === account.id ? (
-                      <InstitutionSelect
-                        value={editingInstitutionId}
-                        onChange={setEditingInstitutionId}
-                      />
-                    ) : (
-                      institutionName(account.institutionId)
-                    )}
-                  </TableCell>
-                  <TableCell>{ACCOUNT_TYPE_LABELS[account.type]}</TableCell>
-                  <TableCell align="right">{account.balance.toFixed(2)}</TableCell>
-                  <TableCell>
-                    {account.closed ? (
-                      <Chip label="Closed" size="small" />
-                    ) : (
-                      <Chip label="Open" size="small" color="success" />
-                    )}
-                  </TableCell>
-                  <TableCell align="right">
-                    <InlineEditActions
-                      editing={editingId === account.id}
-                      onEdit={() => startEdit(account)}
-                      onSave={() => void saveEdit(account.id)}
-                      onCancel={cancelEdit}
-                      editLabel="Edit"
-                    />
-                    {editingId !== account.id && (
-                      <IconButton
-                        size="small"
-                        aria-label="Close"
-                        disabled={account.closed}
-                        onClick={() => setCloseTarget(account)}
-                      >
-                        <LockIcon fontSize="small" />
-                      </IconButton>
-                    )}
-                    {editingId !== account.id && (
-                      <IconButton
-                        size="small"
-                        aria-label="Delete"
-                        onClick={() => setDeleteTarget(account)}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </DataTableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+      <Box sx={{ mb: 3 }}>
+        <ResponsiveTable
+          aria-label="Accounts"
+          columns={columns}
+          rows={accounts}
+          getRowKey={(account) => account.id}
+          state={tableState}
+          onRetry={retry}
+          actions={rowActions}
+          emptyMessage="No accounts yet."
+        />
+      </Box>
 
-      <Paper variant="outlined" sx={{ p: 2, maxWidth: 640 }}>
-        <Typography variant="subtitle1" gutterBottom>
-          Add account
-        </Typography>
-        <AccountCreateForm onError={setError} />
-      </Paper>
+      <ResponsiveDialog open={addDialogOpen} onClose={closeAddDialog} fullWidth maxWidth="sm">
+        <DialogTitle>Add account</DialogTitle>
+        <AccountCreateForm
+          dialog
+          banner={<ErrorAlert message={error} onDismiss={() => setError(null)} />}
+          onError={setError}
+          onCreated={() => setAddDialogOpen(false)}
+          onCancel={closeAddDialog}
+        />
+      </ResponsiveDialog>
+
+      <ResponsiveDialog open={editDialogOpen} onClose={savingEdit ? undefined : cancelEdit}>
+        <DialogTitle>Edit account</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 1 }}>
+            <ErrorAlert message={error} onDismiss={() => setError(null)} />
+            <FormGrid>
+              <AccountEditFields
+                name={editingName}
+                institutionId={editingInstitutionId}
+                onNameChange={setEditingName}
+                onInstitutionChange={setEditingInstitutionId}
+                onSubmit={() => editingId && void saveEdit(editingId)}
+              />
+            </FormGrid>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelEdit} disabled={savingEdit}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            disabled={savingEdit || !isAccountEditValid(editingName, editingInstitutionId)}
+            onClick={() => editingId && void saveEdit(editingId)}
+          >
+            Save changes
+          </Button>
+        </DialogActions>
+      </ResponsiveDialog>
 
       <ConfirmDialog
         open={closeTarget !== null}
