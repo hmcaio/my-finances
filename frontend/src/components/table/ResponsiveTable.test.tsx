@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { DialogContent, DialogTitle, TextField } from '@mui/material'
 import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
@@ -106,8 +106,17 @@ describe('ResponsiveTable', () => {
 
       await user.click(hide)
 
-      expect(screen.queryByText('main')).not.toBeInTheDocument()
       expect(screen.getAllByRole('button', { name: 'Show details' })).toHaveLength(2)
+      // Collapse animates out, then unmounts the content.
+      await waitFor(() => expect(screen.queryByText('main')).not.toBeInTheDocument())
+    })
+
+    it('keeps no details content in the DOM while collapsed', () => {
+      setViewportWidth(VIEWPORT.tablet)
+      renderTable()
+
+      expect(screen.queryByText('Notes', { selector: 'dt' })).not.toBeInTheDocument()
+      expect(screen.queryByText('main')).not.toBeInTheDocument()
     })
 
     it('keeps rows expanded independently', async () => {

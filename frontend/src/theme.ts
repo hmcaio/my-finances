@@ -25,6 +25,12 @@ export function getTheme(mode: PaletteMode): Theme {
       MuiIconButton: { styleOverrides: { root: COARSE_POINTER_TARGET } },
       MuiButton: { styleOverrides: { root: COARSE_POINTER_TARGET } },
       MuiListItemButton: { styleOverrides: { root: COARSE_POINTER_TARGET } },
+      // The expandable tablet row (`ResponsiveTable`) slides open with Collapse.
+      MuiCollapse: {
+        styleOverrides: {
+          root: { '@media (prefers-reduced-motion: reduce)': { transition: 'none' } },
+        },
+      },
       // MUI's pulse/wave animations ignore prefers-reduced-motion on their own.
       MuiSkeleton: {
         styleOverrides: {

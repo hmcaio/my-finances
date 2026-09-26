@@ -1,6 +1,7 @@
 import { Fragment, useId, useState, type ReactNode } from 'react'
 import {
   Box,
+  Collapse,
   IconButton,
   Paper,
   Table,
@@ -185,7 +186,7 @@ export function ResponsiveTable<T>({
                         size="small"
                         aria-label={open ? 'Hide details' : 'Show details'}
                         aria-expanded={open}
-                        aria-controls={open ? detailId : undefined}
+                        aria-controls={detailId}
                         onClick={() => toggle(key)}
                       >
                         {open ? (
@@ -203,10 +204,18 @@ export function ResponsiveTable<T>({
                   ))}
                   {actions && <TableCell align="right">{actions(row)}</TableCell>}
                 </TableRow>
-                {open && (
+                {expandable && (
                   <TableRow id={detailId}>
-                    <TableCell colSpan={bodyColumns}>
-                      <FieldList columns={hidden} row={row} />
+                    {/* Padding lives inside the Collapse so a closed row has no height or border. */}
+                    <TableCell
+                      colSpan={bodyColumns}
+                      sx={{ p: 0, borderBottom: open ? undefined : 'none' }}
+                    >
+                      <Collapse in={open} timeout="auto" unmountOnExit>
+                        <Box sx={{ px: 2, py: 1.5 }}>
+                          <FieldList columns={hidden} row={row} />
+                        </Box>
+                      </Collapse>
                     </TableCell>
                   </TableRow>
                 )}
