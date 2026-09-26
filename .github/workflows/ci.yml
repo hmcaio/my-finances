@@ -90,6 +90,12 @@ jobs:
       - run: npm run lint
         working-directory: frontend
 
+      - name: Type-check and build
+        # Vitest and ESLint don't run tsc, so a broken type (e.g. a duplicate operation id in the
+        # generated API schema) would otherwise only fail in the Docker image build on main/tags.
+        run: npm run build
+        working-directory: frontend
+
       - name: Run tests with coverage
         # Same pass/fail behaviour as `npm test` (no coverage thresholds are configured, so the
         # numbers never fail the job) - and it avoids running the suite twice. The report is
