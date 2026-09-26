@@ -8,8 +8,8 @@ Multiple PRs, each off `develop`, each shippable and each with its Playwright ch
 - [x] Test first: `Layout` shows the permanent drawer on desktop and a hamburger-opened temporary drawer below `lg`; drawer closes on route change; padding `p: 2` on mobile and `p: 3` otherwise; content `maxWidth` about 1600.
 - [x] Implement responsive `Layout`; group the settings items under a subheader in the nav.
 - [x] `theme.ts`: `@media (pointer: coarse)` 44px minimum for `MuiIconButton`, `MuiButton`, `MuiListItemButton`.
-- [ ] Playwright: nav-mode and no-overflow checks on the landing route at all three viewports.
-- [ ] CHANGELOG bullet.
+- [x] Playwright: nav-mode checks on the landing route at all three viewports (`e2e/shell.spec.ts`); the no-overflow check passes on tablet and desktop, and on mobile stays a `test.fail` in `smoke.spec.ts` because the dashboard's "Upcoming recurring bills" widget is 522px wide (min-content) in a 358px column. Fixed in PR 4 (Dashboard batch), which must delete that marker.
+- [x] CHANGELOG bullet.
 
 ## PR 2 — Shared primitives
 - [ ] `ResponsiveTable` (columns with roles and tablet priority, `renderCard` override; table on tablet/desktop, cards below `sm`; tables with 1–2 columns stay tables). Test first with `useMediaQuery` mocked.
