@@ -37,25 +37,24 @@ test.describe('transactions', () => {
     )
   })
 
-  test('adds through the header dialog on mobile, the inline form otherwise', async ({
-    page,
-  }, testInfo) => {
+  test('adds through the header dialog, full screen only on mobile', async ({ page }, testInfo) => {
     const mobile = testInfo.project.name === 'mobile'
     await page.goto('/transactions')
     await expect(page.getByText('Weekly groceries')).toBeVisible()
+    // No inline form panel at any size: the form only exists inside the dialog.
+    await expect(page.getByRole('spinbutton', { name: 'Amount' })).toHaveCount(0)
 
+    await page.getByRole('button', { name: 'Add transaction' }).click()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog.getByRole('spinbutton', { name: 'Amount' })).toBeVisible()
+    const box = await dialog.boundingBox()
+    const viewport = page.viewportSize()!
     if (mobile) {
-      await expect(page.getByRole('spinbutton', { name: 'Amount' })).toHaveCount(0)
-      await page.getByRole('button', { name: 'Add transaction' }).click()
-      const dialog = page.getByRole('dialog')
-      await expect(dialog.getByRole('spinbutton', { name: 'Amount' })).toBeVisible()
       // Full-screen: the dialog fills the viewport.
-      const box = await dialog.boundingBox()
-      expect(box?.width).toBeGreaterThanOrEqual(390)
-      await expectNoHorizontalOverflow(page)
+      expect(box?.width).toBeGreaterThanOrEqual(viewport.width)
     } else {
-      await expect(page.getByRole('button', { name: 'Add transaction' })).toHaveCount(0)
-      await expect(page.getByRole('spinbutton', { name: 'Amount' })).toBeVisible()
+      expect(box?.width).toBeLessThan(viewport.width)
     }
+    await expectNoHorizontalOverflow(page)
   })
 })

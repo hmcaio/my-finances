@@ -32,7 +32,6 @@ import { ResponsiveFilterBar } from '../../components/layout/ResponsiveFilterBar
 import { PaginationControls } from '../../components/table/PaginationControls'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
-import { useIsMobile } from '../../hooks/useBreakpointBand'
 import { nameLookup } from '../../utils/nameLookup'
 import { TransactionFormFields } from './TransactionFormFields'
 import {
@@ -50,12 +49,10 @@ const PAGE_SIZE = 20
  * method/description/additional notes) are identical for both, matching F004's
  * plain-in-place-edit semantics (no versioning).
  *
- * Responsive (F021): from `sm` up the form is the inline panel below the table, as it always was.
- * Below `sm` there is no inline panel: the header's Add button and each card's Edit open the same
- * fields (`TransactionFormFields`) in a full-screen dialog driven by the same state and mutations.
+ * Responsive (F021): at every size the header's Add button and each row's/card's Edit open the
+ * fields (`TransactionFormFields`) in a `ResponsiveDialog` (full screen below `sm`).
  */
 export function TransactionsPage() {
-  const isMobile = useIsMobile()
   const [page, setPage] = useState(0)
   const [filters, setFilters] = useState<TransactionFilter>({})
   const [error, setError] = useState<string | null>(null)
@@ -85,9 +82,7 @@ export function TransactionsPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState(emptyTransactionForm)
   const [saving, setSaving] = useState(false)
-  // Only meaningful below `sm`, where the form lives in a dialog instead of the inline panel.
   const [formDialogOpen, setFormDialogOpen] = useState(false)
-  const dialogOpen = isMobile && formDialogOpen
 
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -291,11 +286,9 @@ export function TransactionsPage() {
         <Typography variant="h4" component="h1">
           Transactions
         </Typography>
-        {isMobile && (
-          <Button variant="contained" onClick={startAdd}>
-            Add transaction
-          </Button>
-        )}
+        <Button variant="contained" onClick={startAdd}>
+          Add transaction
+        </Button>
       </Box>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         Every income and expense entry, filterable by date range, category, account, and payment
@@ -303,7 +296,7 @@ export function TransactionsPage() {
       </Typography>
 
       {/* While the dialog is open a save error shows inside it: this one sits behind it. */}
-      <ErrorAlert message={dialogOpen ? null : error} onDismiss={() => setError(null)} />
+      <ErrorAlert message={formDialogOpen ? null : error} onDismiss={() => setError(null)} />
 
       <ResponsiveFilterBar activeCount={activeFilterCount} onClear={clearFilters}>
         <TextField
@@ -385,30 +378,7 @@ export function TransactionsPage() {
 
       <PaginationControls pageInfo={pageInfo} onPageChange={setPage} sx={{ mt: 0, mb: 3 }} />
 
-      {!isMobile && (
-        <Paper variant="outlined" sx={{ p: 2, maxWidth: 720 }}>
-          <Typography variant="subtitle1" gutterBottom>
-            {editingId ? 'Edit transaction' : 'Add transaction'}
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            <TransactionFormFields
-              form={form}
-              onChange={updateForm}
-              categories={categories}
-              accounts={openAccounts}
-              paymentMethods={paymentMethods}
-            />
-            {submitButton}
-            {editingId && (
-              <Button onClick={cancelEdit} disabled={saving}>
-                Cancel
-              </Button>
-            )}
-          </Box>
-        </Paper>
-      )}
-
-      <ResponsiveDialog open={dialogOpen} onClose={saving ? undefined : cancelEdit}>
+      <ResponsiveDialog open={formDialogOpen} onClose={saving ? undefined : cancelEdit}>
         <DialogTitle>{editingId ? 'Edit transaction' : 'Add transaction'}</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>

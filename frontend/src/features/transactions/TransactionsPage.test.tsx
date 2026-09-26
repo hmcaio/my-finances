@@ -49,12 +49,13 @@ describe('TransactionsPage', () => {
     expect(screen.queryByText(expenseTransaction.description)).not.toBeInTheDocument()
   })
 
-  it('adds a new transaction with the create form', async () => {
+  it('adds a new transaction through the Add dialog', async () => {
     const user = userEvent.setup()
     renderWithQueryClient(<TransactionsPage />)
     await screen.findByText(seedGroceriesTransaction.description)
 
-    await user.type(screen.getByRole('spinbutton', { name: 'Amount' }), '15')
+    await user.click(screen.getByRole('button', { name: 'Add transaction' }))
+    await user.type(await screen.findByRole('spinbutton', { name: 'Amount' }), '15')
     await selectOption(user, 'Category', seedGroceriesCategory.name)
     const openAccount = seedAccounts.find((a) => !a.closed)!
     await selectOption(user, 'Account', openAccount.name)
@@ -71,7 +72,8 @@ describe('TransactionsPage', () => {
     await screen.findByText(seedGroceriesTransaction.description)
 
     const closedAccount = seedAccounts.find((a) => a.closed)!
-    await user.click(screen.getByRole('combobox', { name: 'Account' }))
+    await user.click(screen.getByRole('button', { name: 'Add transaction' }))
+    await user.click(await screen.findByRole('combobox', { name: 'Account' }))
 
     expect(screen.queryByRole('option', { name: closedAccount.name })).not.toBeInTheDocument()
   })
@@ -82,7 +84,8 @@ describe('TransactionsPage', () => {
     renderWithQueryClient(<TransactionsPage />)
     await screen.findByText(seedGroceriesTransaction.description)
 
-    await user.click(screen.getByRole('combobox', { name: 'Account' }))
+    await user.click(screen.getByRole('button', { name: 'Add transaction' }))
+    await user.click(await screen.findByRole('combobox', { name: 'Account' }))
 
     const openAccount = seedAccounts.find((a) => !a.closed)!
     expect(await screen.findByRole('option', { name: openAccount.name })).toBeInTheDocument()
@@ -129,7 +132,8 @@ describe('TransactionsPage', () => {
     renderWithQueryClient(<TransactionsPage />)
     await screen.findByText(seedGroceriesTransaction.description)
 
-    await user.type(screen.getByRole('spinbutton', { name: 'Amount' }), '15')
+    await user.click(screen.getByRole('button', { name: 'Add transaction' }))
+    await user.type(await screen.findByRole('spinbutton', { name: 'Amount' }), '15')
     await selectOption(user, 'Category', seedGroceriesCategory.name)
     const openAccount = seedAccounts.find((a) => !a.closed)!
     await selectOption(user, 'Account', openAccount.name)
@@ -206,8 +210,10 @@ describe('TransactionsPage local-time defaults', () => {
   })
 
   it('defaults the form date to the local date, not the UTC date', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     renderWithQueryClient(<TransactionsPage />)
 
+    await user.click(await screen.findByRole('button', { name: 'Add transaction' }))
     expect(await screen.findByLabelText('Date')).toHaveValue('2026-03-31')
   })
 })
@@ -265,11 +271,10 @@ describe('TransactionsPage responsive layout (F021)', () => {
       expect(screen.queryByText(target.description)).not.toBeInTheDocument()
     })
 
-    it('has no inline form; Add opens a full-screen dialog that creates a transaction', async () => {
+    it('Add opens a full-screen dialog that creates a transaction', async () => {
       const user = userEvent.setup()
       renderWithQueryClient(<TransactionsPage />)
       await findCard(target.description)
-      expect(screen.queryByRole('spinbutton', { name: 'Amount' })).not.toBeInTheDocument()
 
       await user.click(screen.getByRole('button', { name: 'Add transaction' }))
 
@@ -330,7 +335,7 @@ describe('TransactionsPage responsive layout (F021)', () => {
   describe('tablet', () => {
     beforeEach(() => setViewportWidth(VIEWPORT.tablet))
 
-    it('keeps the table without the payment method column, with inline filters and form', async () => {
+    it('keeps the table without the payment method column, with inline filters and the Add dialog', async () => {
       renderWithQueryClient(<TransactionsPage />)
 
       await screen.findByText(target.description)
@@ -341,14 +346,16 @@ describe('TransactionsPage responsive layout (F021)', () => {
       expect(screen.queryByRole('columnheader', { name: 'Payment Method' })).not.toBeInTheDocument()
       expect(screen.getByRole('combobox', { name: 'Category filter' })).toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'Filters' })).not.toBeInTheDocument()
-      expect(screen.getByRole('spinbutton', { name: 'Amount' })).toBeInTheDocument()
+      // No inline form panel: the form only exists inside the dialog.
+      expect(screen.queryByRole('spinbutton', { name: 'Amount' })).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Add transaction' })).toBeInTheDocument()
     })
   })
 
   describe('desktop', () => {
     beforeEach(() => setViewportWidth(VIEWPORT.desktop))
 
-    it('shows every column, inline filters and the inline form (no Add button, no dialog)', async () => {
+    it('shows every column and inline filters, with the form only inside the Add dialog', async () => {
       renderWithQueryClient(<TransactionsPage />)
 
       await screen.findByText(target.description)
@@ -362,21 +369,38 @@ describe('TransactionsPage responsive layout (F021)', () => {
       ]) {
         expect(screen.getByRole('columnheader', { name })).toBeInTheDocument()
       }
-      expect(screen.queryByRole('button', { name: 'Add transaction' })).not.toBeInTheDocument()
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-      expect(screen.getByRole('spinbutton', { name: 'Amount' })).toBeInTheDocument()
+      expect(screen.queryByRole('spinbutton', { name: 'Amount' })).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Add transaction' })).toBeInTheDocument()
     })
 
-    it('edits through the inline form below the table, as before', async () => {
+    it('Add opens a regular (not full-screen) dialog that creates a transaction', async () => {
+      const user = userEvent.setup()
+      renderWithQueryClient(<TransactionsPage />)
+      await screen.findByText(target.description)
+
+      await user.click(screen.getByRole('button', { name: 'Add transaction' }))
+
+      expect(await screen.findByRole('dialog')).not.toHaveClass('MuiDialog-paperFullScreen')
+      await fillAndSubmitAddForm(user)
+
+      expect(await screen.findByText('Coffee run')).toBeInTheDocument()
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    })
+
+    it('Edit opens the dialog prefilled', async () => {
       const user = userEvent.setup()
       renderWithQueryClient(<TransactionsPage />)
       const row = await findRow(target.description)
 
       await user.click(row.getByRole('button', { name: 'Edit' }))
 
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-      expect(screen.getByRole('textbox', { name: 'Description' })).toHaveValue(target.description)
-      expect(screen.getByRole('button', { name: 'Save changes' })).toBeInTheDocument()
+      const dialog = await screen.findByRole('dialog')
+      expect(dialog).not.toHaveClass('MuiDialog-paperFullScreen')
+      expect(within(dialog).getByRole('textbox', { name: 'Description' })).toHaveValue(
+        target.description,
+      )
+      expect(within(dialog).getByRole('button', { name: 'Save changes' })).toBeInTheDocument()
     })
   })
 })
