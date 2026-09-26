@@ -14,7 +14,7 @@ Multiple PRs, each off `develop`, each shippable and each with its Playwright ch
 ## PR 2 — Shared primitives
 - [ ] `ResponsiveTable` (columns with roles and tablet priority, `renderCard` override; table on tablet/desktop, cards below `sm`; tables with 1–2 columns stay tables). Test first with `useMediaQuery` mocked.
 - [x] `ResponsiveDialog` (`fullScreen` below `sm`, one-column form grid helper). Test first.
-- [ ] `ResponsiveFilterBar` (inline bar vs. "Filters" button with active-count badge). Test first.
+- [x] `ResponsiveFilterBar` (inline bar vs. "Filters" button with active-count badge). Test first.
 - [x] `PaginationControls` compact mode below `sm`. Test first.
 - [ ] Extract row-edit field components so inline editing and the mobile edit dialog share them (pattern documented for the migrations below).
 
