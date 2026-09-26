@@ -25,7 +25,7 @@ x-logging: &default-logging
 
 services:
   postgres:
-    image: postgres:17-alpine
+    image: postgres:17.11-alpine
     container_name: my-finances-postgres-prod
     restart: unless-stopped
     environment:
@@ -46,6 +46,9 @@ services:
     container_name: my-finances-backend-prod
     restart: unless-stopped
     environment:
+      # The JVM's default zone is the app's "today" (form defaults, recurring catch-up). Containers
+      # default to UTC while the browser uses local time, so set TZ in .env to your own zone.
+      TZ: ${TZ:-UTC}
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
       DB_NAME: ${POSTGRES_DB}

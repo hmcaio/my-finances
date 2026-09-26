@@ -22,6 +22,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check pinned tool versions agree across files
+        run: bash scripts/verify.sh versions
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -36,13 +39,11 @@ jobs:
         working-directory: backend
 
       - name: spotlessCheck + tests + coverage report
-        # `test` (fast tier) and `integrationTest` (Spring + Testcontainers tier) both run, and
-        # `--continue` keeps the second going when the first fails so one run reports everything.
-        # jacocoTestReport goes in the same invocation (it depends on both) rather than a later
-        # step: a later step would be skipped when tests fail, or re-run the tests. Report only -
-        # there are no coverage thresholds, so the numbers never fail the job.
-        run: ./gradlew spotlessCheck test integrationTest jacocoTestReport --continue --no-daemon
-        working-directory: backend
+        # scripts/verify.sh is the same entry point you run locally. It runs `test` (fast tier) and
+        # `integrationTest` (Spring + Testcontainers tier) with `--continue`, so one run reports
+        # everything, and jacocoTestReport in the same invocation (a later step would be skipped
+        # when tests fail, or re-run the tests). Report only - no coverage thresholds.
+        run: bash scripts/verify.sh backend
 
       - name: Upload test report
         # Also when tests fail - that is when the report is most useful. `ignore` because Gradle
@@ -80,28 +81,20 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version-file: frontend/.nvmrc
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
       - run: npm ci
         working-directory: frontend
 
-      - run: npm run lint
-        working-directory: frontend
-
-      - name: Type-check and build
-        # Vitest and ESLint don't run tsc, so a broken type (e.g. a duplicate operation id in the
-        # generated API schema) would otherwise only fail in the Docker image build on main/tags.
-        run: npm run build
-        working-directory: frontend
-
-      - name: Run tests with coverage
-        # Same pass/fail behaviour as `npm test` (no coverage thresholds are configured, so the
-        # numbers never fail the job) - and it avoids running the suite twice. The report is
-        # informational only; it is uploaded below for anyone who wants to browse it.
-        run: npm run test:coverage
-        working-directory: frontend
+      - name: Lint, format check, type-check and build, tests with coverage
+        # scripts/verify.sh is the same entry point you run locally; each check runs even if an
+        # earlier one fails. Type-check and build because Vitest and ESLint don't run tsc, so a
+        # broken type (e.g. a duplicate operation id in the generated API schema) would otherwise
+        # only fail in the Docker image build on main/tags. Coverage is informational only (no
+        # thresholds) and uploaded below.
+        run: bash scripts/verify.sh frontend
 
       - name: Upload test report
         # Vitest's HTML reporter output (configured in vite.config.ts). Unlike the coverage
@@ -139,7 +132,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version-file: frontend/.nvmrc
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
@@ -158,8 +151,7 @@ jobs:
         run: npx playwright install --with-deps chromium
         working-directory: frontend
 
-      - run: npm run e2e
-        working-directory: frontend
+      - run: bash scripts/verify.sh e2e
 
       - name: Upload Playwright report and traces
         # Only on failure: the HTML report (with traces from the retry) is what makes a layout

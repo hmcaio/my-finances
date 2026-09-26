@@ -19,11 +19,11 @@ import org.testcontainers.utility.DockerImageName;
 @TestConfiguration(proxyBeanMethods = false)
 public class TestcontainersConfiguration {
 
-  // Same postgres:17-alpine tag used by docker-compose.yml/docker-compose.prod.yml/CI, so the
+  // Same postgres:17.11-alpine tag used by docker-compose.yml/docker-compose.prod.yml/CI, so the
   // version under test always matches dev and prod.
   @Bean
   @ServiceConnection
   public PostgreSQLContainer postgresContainer() {
-    return new PostgreSQLContainer(DockerImageName.parse("postgres:17-alpine"));
+    return new PostgreSQLContainer(DockerImageName.parse("postgres:17.11-alpine"));
   }
 }

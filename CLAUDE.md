@@ -17,16 +17,19 @@ Local, single-user, no auth, bound to `localhost`, run on-demand rather than alw
 ## Commands
 
 ```
-docker compose up -d      # local Postgres (+ pgAdmin at http://localhost:5050); data persists in a named volume
+docker compose --profile full up -d   # default dev: whole stack in containers (backend :8080, frontend :5173) with hot reload; ADR 0018
+docker compose --profile full down
+docker compose up -d      # Postgres only (+ pgAdmin at http://localhost:5050), for running the apps natively; data persists in a named volume
 docker compose down
-docker compose --profile full up -d   # whole stack in containers (backend :8080, frontend :5173) with hot reload; ADR 0018
 ```
-The `full` profile and native `bootRun`/`npm run dev` both bind 8080/5173, so use one or the other. `docker compose --profile full down` stops the app containers too (plain `down` leaves them running).
+The `full` profile is the default dev path because its toolchain versions are the pinned ones CI and prod use; native `bootRun`/`npm run dev` is the fast-loop alternative. They both bind 8080/5173, so use one or the other. `docker compose --profile full down` stops the app containers too (plain `down` leaves them running).
 pgAdmin login, the pre-registered server, and the "editing `servers.json` needs `docker compose down -v`" caveat are commented in `docker-compose.yml`. Backend and frontend commands are in their own `CLAUDE.md` files.
 
 Production packaging (F014) is a wholly separate `docker-compose.prod.yml` (ADR 0006), not part of the dev loop. Local smoke test: build `ghcr.io/hmcaio/my-finances-{backend,frontend}:local` from `backend`/`frontend`, `cp .env.example .env` with `IMAGE_TAG=local`, then `docker compose -f docker-compose.prod.yml up -d` / `down -v`. Both compose files default to the same project name and both have a `postgres` service, so prod `up`/`down` replaces/removes the *dev* Postgres container (its data volume survives; `docker compose up -d` brings dev back).
 
-CI (`.github/workflows/ci.yml`) runs backend `spotlessCheck test integrationTest` and frontend `npm ci && npm run lint && npm test` on every push/PR, and builds+pushes both images to GHCR on `main` and `vX.Y.Z` tags.
+`scripts/verify.sh [versions|backend|frontend|e2e]` (default: the first three) is the one definition of the checks: CI's jobs call it, so a green local run means a green CI run. It runs every stage even if one fails; `frontend` needs `npm ci` done first, `backend` needs Docker running, `e2e` needs `npx playwright install chromium` once. Change a check in that script, not only in `ci.yml`.
+
+CI (`.github/workflows/ci.yml`) runs, through that script, backend `spotlessCheck test integrationTest jacocoTestReport` and frontend `lint`, `format:check`, `build` and `test:coverage` on every push/PR, and builds+pushes both images to GHCR on `main` and `vX.Y.Z` tags.
 
 ## Workflow
 
@@ -35,6 +38,9 @@ CI (`.github/workflows/ci.yml`) runs backend `spotlessCheck test integrationTest
 - `/implement-feature` builds a planned feature from `docs/features/FXXX`; `/audit-and-fix` handles cross-cutting audits and fixes (issue → branch → fix with tests → verify → docs).
 
 ## Cross-stack conventions
+
+- **A tool version is pinned in every file that names it, and `scripts/check-versions.sh` (CI's first backend step) fails if they disagree**: `postgres` (both compose files + `TestcontainersConfiguration`), Node (`frontend/.nvmrc` is the source; `frontend/Dockerfile`, the dev compose `frontend` service, CI's `setup-node` and `engines` follow it), `eclipse-temurin` JDK/JRE (`backend/Dockerfile` + dev compose `backend`). Images use full patch tags (Dependabot bumps them), never floating `:24-alpine`-style tags, so bump every sibling in the same PR. Use `./scripts/check-versions.sh` locally.
+- **Time zone is explicit**: the backend's "today" is the JVM default zone (`Clock.systemDefaultZone()`), set in containers from `TZ` (`.env`, default `UTC`); backend tests run with `-Duser.timezone=America/Sao_Paulo` (`build.gradle`) and frontend tests with `test.env.TZ` (`vite.config.ts`), so a UTC-vs-local bug fails in CI. A test that needs another zone overrides it (`vi.stubEnv('TZ', ...)`); don't rely on the machine's zone.
 
 - **Free-text fields are bounded at every layer**: a length check in the domain constructor/mutator (next to the non-blank check for mandatory fields), `@Size(max = ...)` next to `@NotBlank` on request DTOs, and a matching `varchar(n)` column (frontend description/notes inputs also set `maxLength`). All limits come from `domain/shared/TextFieldConstraints` — reuse its constants: `MAX_NAME_LENGTH` (100) for flat-taxonomy names (`Category`, `PaymentMethod`, `Account`, `Institution`, `InvestmentCategory`, `InvestmentSubcategory` and `InvestmentProduct`), `MAX_DESCRIPTION_LENGTH` (150, mandatory) / `MAX_ADDITIONAL_NOTES_LENGTH` (500, optional) for the description/notes pair on `Transaction`, `Transfer` and `RecurringTemplate`.
 - **Money columns are `numeric(19,2)`** (`transactions.amount`, `accounts.opening_balance`, `budget_versions.monthly_cap`, ...). Reuse that precision for any new amount, and back every amount/cap positivity rule at all three layers: DTO `@Positive`, domain constructor check, DB `CHECK`. Deliberate exceptions (F009): a trade's `transfers.quantity`/`unit_price` are `numeric(19,8)` (fractional units, sub-cent prices; its `taxes` stays `(19,2)`), and an `investment_snapshots.balance` is `>= 0`, not `> 0`, because `0` is a liquidated position; and `budget_versions.monthly_cap` is nullable (issue #61, `V16`) with `CHECK (monthly_cap IS NULL OR monthly_cap > 0)`, because `null` is a tombstone version meaning "budget stopped from this month" — the DTOs and `BudgetVersion.create` still demand a positive cap, so a `BudgetVersion.getMonthlyCap()` reader must branch on `isTombstone()` (the report omits such a budget; the export writes an empty cell).

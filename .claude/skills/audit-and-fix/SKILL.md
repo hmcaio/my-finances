@@ -43,7 +43,7 @@ One habit worth keeping on top of those: for a bug fix, temporarily restore the 
 
 ## 6. Verify
 
-Run everything the CI runs, and fix rather than skip failures:
+Run everything the CI runs, and fix rather than skip failures. `scripts/verify.sh` (repo root; stages `backend`, `frontend`, `versions`) runs exactly what CI runs, so use it for the final pass; the per-stack commands below are for faster iteration:
 
 - Backend (from `backend/`): `./gradlew spotlessApply` then `./gradlew spotlessCheck test integrationTest`. Use `spotlessApply` instead of hand-formatting Java — google-java-format rewraps javadoc.
 - Frontend (from `frontend/`): `npm run lint`, `npm run format:check`, `npm test`, `npm run build`. Run `npx prettier --write` only on files you touched; don't reformat pre-existing offenders you didn't change.
