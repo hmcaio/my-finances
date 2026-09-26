@@ -12,11 +12,12 @@ Multiple PRs, each off `develop`, each shippable and each with its Playwright ch
 - [x] CHANGELOG bullet.
 
 ## PR 2 — Shared primitives
-- [ ] `ResponsiveTable` (columns with roles and tablet priority, `renderCard` override; table on tablet/desktop, cards below `sm`; tables with 1–2 columns stay tables). Test first with `useMediaQuery` mocked.
+- [x] `ResponsiveTable` (columns with roles and tablet priority, `renderCard` override; table on tablet/desktop, cards below `sm`; tables with 1–2 columns stay tables). Test first with a faked `matchMedia` (`src/test/viewport.ts`); breakpoint logic lives in `useBreakpointBand` (`src/hooks`). Column count for the 1–2-column rule excludes the actions column.
 - [x] `ResponsiveDialog` (`fullScreen` below `sm`, one-column form grid helper). Test first.
 - [x] `ResponsiveFilterBar` (inline bar vs. "Filters" button with active-count badge). Test first.
 - [x] `PaginationControls` compact mode below `sm`. Test first.
 - [ ] Extract row-edit field components so inline editing and the mobile edit dialog share them (pattern documented for the migrations below).
+  - Open on purpose: PR 2 only documents the pattern (`frontend/CLAUDE.md`) and demonstrates it in `ResponsiveTable.test.tsx`; the real field components are extracted per page in the migrations (PR 3 onward), and this box is ticked when Transactions has done it.
 
 ## PR 3 — Pilot: Transactions
 - [ ] Migrate Transactions to all four primitives, with a `renderCard` override; the Add button opens `ResponsiveDialog`; mobile edit opens a full-screen dialog.
