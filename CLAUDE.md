@@ -19,7 +19,9 @@ Local, single-user, no auth, bound to `localhost`, run on-demand rather than alw
 ```
 docker compose up -d      # local Postgres (+ pgAdmin at http://localhost:5050); data persists in a named volume
 docker compose down
+docker compose --profile full up -d   # whole stack in containers (backend :8080, frontend :5173) with hot reload; ADR 0018
 ```
+The `full` profile and native `bootRun`/`npm run dev` both bind 8080/5173, so use one or the other. `docker compose --profile full down` stops the app containers too (plain `down` leaves them running).
 pgAdmin login, the pre-registered server, and the "editing `servers.json` needs `docker compose down -v`" caveat are commented in `docker-compose.yml`. Backend and frontend commands are in their own `CLAUDE.md` files.
 
 Production packaging (F014) is a wholly separate `docker-compose.prod.yml` (ADR 0006), not part of the dev loop. Local smoke test: build `ghcr.io/hmcaio/my-finances-{backend,frontend}:local` from `backend`/`frontend`, `cp .env.example .env` with `IMAGE_TAG=local`, then `docker compose -f docker-compose.prod.yml up -d` / `down -v`. Both compose files default to the same project name and both have a `postgres` service, so prod `up`/`down` replaces/removes the *dev* Postgres container (its data volume survives; `docker compose up -d` brings dev back).

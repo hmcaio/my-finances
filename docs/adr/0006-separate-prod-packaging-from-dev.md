@@ -1,6 +1,6 @@
 # 0006. Keep production Docker packaging separate from local dev tooling
 
-Status: Accepted
+Status: Accepted (dev-containers part partially superseded by [0018](0018-opt-in-full-stack-dev-compose-profile.md): the dev compose file now offers an opt-in `full` profile)
 Date: 2026-09-13
 
 ## Context

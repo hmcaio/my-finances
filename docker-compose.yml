@@ -38,9 +38,69 @@ services:
       postgres:
         condition: service_healthy
 
+  # --- Full-stack dev (ADR 0018). Opt-in: `docker compose --profile full up`. Plain
+  # `docker compose up -d` still starts only postgres + pgAdmin, so the native workflow
+  # (`./gradlew bootRun`, `npm run dev`) keeps working. Stop the native processes first (or don't
+  # use this profile): both publish 8080/5173. Source is bind-mounted for hot reload; build
+  # output, Gradle/npm caches and node_modules live in named volumes so the Windows host's copies
+  # never leak into the Linux containers (and the bind mount stays fast).
+  backend:
+    profiles: [full]
+    image: eclipse-temurin:21-jdk-alpine
+    container_name: my-finances-backend
+    working_dir: /workspace
+    # dev-run.sh runs bootRun plus a background recompile on source change; DevTools (on the
+    # bootRun classpath) restarts the app when the new classes land.
+    command: sh ./dev-run.sh
+    environment:
+      # dev profile binds 127.0.0.1 and points at localhost:5432 - neither works inside a container.
+      SERVER_ADDRESS: 0.0.0.0
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/myfinances
+      # Optional remote debugger: publish 5005 below and attach an IDE "Remote JVM Debug" config.
+      # JAVA_TOOL_OPTIONS: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+    ports:
+      # Host loopback only (PRD S7.1); the browser calls the API directly (VITE_API_BASE_URL).
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ./backend:/workspace
+      - my-finances-gradle-cache:/root/.gradle
+      - my-finances-backend-build:/workspace/build
+      - my-finances-backend-gradle-project:/workspace/.gradle
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8080/actuator/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 60s
+
+  frontend:
+    profiles: [full]
+    image: node:24-alpine
+    container_name: my-finances-frontend
+    working_dir: /app
+    command: sh -c "npm ci --no-audit --no-fund && exec npm run dev -- --host 0.0.0.0"
+    environment:
+      # Bind mounts from a Windows host don't deliver file-change events; see vite.config.ts.
+      VITE_USE_POLLING: "true"
+    ports:
+      - "127.0.0.1:5173:5173"
+    volumes:
+      - ./frontend:/app
+      - my-finances-frontend-node-modules:/app/node_modules
+    depends_on:
+      backend:
+        condition: service_healthy
+
 volumes:
   my-finances-postgres-data:
   my-finances-pgadmin-data:
+  my-finances-gradle-cache:
+  my-finances-backend-build:
+  my-finances-backend-gradle-project:
+  my-finances-frontend-node-modules:
 
 # Pre-registers the `postgres` server in pgAdmin (no password baked in - pgAdmin still prompts on
 # first connect). pgAdmin only imports this when its own volume is empty, so editing it later needs
