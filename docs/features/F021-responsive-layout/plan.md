@@ -16,13 +16,19 @@ Multiple PRs, each off `develop`, each shippable and each with its Playwright ch
 - [x] `ResponsiveDialog` (`fullScreen` below `sm`, one-column form grid helper). Test first.
 - [x] `ResponsiveFilterBar` (inline bar vs. "Filters" button with active-count badge). Test first.
 - [x] `PaginationControls` compact mode below `sm`. Test first.
-- [ ] Extract row-edit field components so inline editing and the mobile edit dialog share them (pattern documented for the migrations below).
-  - Open on purpose: PR 2 only documents the pattern (`frontend/CLAUDE.md`) and demonstrates it in `ResponsiveTable.test.tsx`; the real field components are extracted per page in the migrations (PR 3 onward), and this box is ticked when Transactions has done it.
+- [x] Extract row-edit field components so inline editing and the mobile edit dialog share them (pattern documented for the migrations below).
+  - PR 2 only documented the pattern (`frontend/CLAUDE.md`) and demonstrated it in `ResponsiveTable.test.tsx`; it is delivered by Transactions in PR 3 (`TransactionFormFields`). Each later page extracts its own.
 
 ## PR 3 — Pilot: Transactions
-- [ ] Migrate Transactions to all four primitives, with a `renderCard` override; the Add button opens `ResponsiveDialog`; mobile edit opens a full-screen dialog.
-- [ ] Playwright spec: no overflow, cards on mobile, table on tablet/desktop, filter button on mobile.
-- [ ] Adjust primitives if the pilot shows gaps (record the change here).
+- [x] Primitive change found by the pilot: on tablet, `ResponsiveTable` adds a leading chevron column so each row can expand its hidden (`tabletPriority: 'low'`) columns as label/value pairs (`aria-expanded`, details row spanning the table); no page code needed. Unit tests plus an e2e check on Transactions (tablet only).
+- [x] Migrate Transactions to all four primitives, with a `renderCard` override; Add and Edit open a `ResponsiveDialog` at every size (full screen below `sm`).
+  - Decision (revised after review): Transactions never had inline row editing, only one combined add/edit form panel below the table. The panel is removed at every size: an `Add transaction` button in the page header and each row's/card's Edit open the fields (`TransactionFormFields`) in a `ResponsiveDialog` driven by the same form state and mutations (regular dialog from `sm` up, full screen below). A save error shows inside the open dialog (the page banner sits behind it). Pages that already have true inline row editing keep it on tablet/desktop (decide per page in PR 4).
+  - Tablet hides only the Payment Method column (`tabletPriority: 'low'`); date, category, account, amount, description and actions stay. Cards (`renderCard`): description and signed, coloured amount on top, then `date · category`, then `account · payment method`, then Edit/Delete.
+  - Filters: `ResponsiveFilterBar` replaces the outlined "Filters" panel (its "Clear filters" now shows only while a filter is active). The old panel box and heading are gone on all sizes.
+  - `AccountTransactionList` (read-only embed in the account detail page) is not migrated: it has no actions and belongs to the Accounts batch of PR 4, where it can reuse the card layout.
+- [x] Playwright spec (`e2e/transactions.spec.ts`): no overflow, cards on mobile, table on tablet/desktop, filter button on mobile, add dialog full-screen on mobile only, and no inline form panel at any size.
+- [x] Adjust primitives if the pilot shows gaps (record the change here).
+  - No primitive changed; the pilot fit the existing APIs. Note for tests: jsdom without `setViewportWidth` counts as the tablet band (neither `down(sm)` nor `up(lg)` matches), so assertions on the full desktop table need `setViewportWidth(VIEWPORT.desktop)`.
 
 ## PR 4 — Remaining features (batches)
 Each batch: migrate pages, decide per-page details from the actual markup and record them under the batch, add Playwright checks, keep desktop behaviour unchanged.

@@ -14,4 +14,13 @@ describe('getTheme', () => {
       expect(root).not.toHaveProperty('minHeight')
     },
   )
+
+  it('turns the Collapse transition off under prefers-reduced-motion', () => {
+    const root = getTheme('light').components?.MuiCollapse?.styleOverrides?.root as Record<
+      string,
+      unknown
+    >
+
+    expect(root['@media (prefers-reduced-motion: reduce)']).toEqual({ transition: 'none' })
+  })
 })

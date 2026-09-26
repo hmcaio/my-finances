@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { DialogContent, DialogTitle, TextField } from '@mui/material'
 import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
@@ -75,6 +75,7 @@ describe('ResponsiveTable', () => {
     renderTable()
 
     expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual([
+      'Details',
       'Name',
       'Kind',
       'Balance',
@@ -82,6 +83,83 @@ describe('ResponsiveTable', () => {
     ])
     expect(screen.queryByText('main')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Edit Savings' })).toBeInTheDocument()
+  })
+
+  describe('expandable details on tablet', () => {
+    it('reveals the hidden columns of one row as label/value pairs and collapses again', async () => {
+      const user = userEvent.setup()
+      setViewportWidth(VIEWPORT.tablet)
+      renderTable()
+
+      const toggles = screen.getAllByRole('button', { name: 'Show details' })
+      expect(toggles).toHaveLength(2)
+      expect(toggles[0]).toHaveAttribute('aria-expanded', 'false')
+
+      await user.click(toggles[0])
+
+      expect(screen.getByText('Notes')).toBeInTheDocument()
+      expect(screen.getByText('main')).toBeInTheDocument()
+      expect(screen.queryByText('rainy day')).not.toBeInTheDocument()
+      const hide = screen.getByRole('button', { name: 'Hide details' })
+      expect(hide).toHaveAttribute('aria-expanded', 'true')
+      expect(hide).toHaveAttribute('aria-controls', screen.getByText('main').closest('tr')!.id)
+
+      await user.click(hide)
+
+      expect(screen.getAllByRole('button', { name: 'Show details' })).toHaveLength(2)
+      // Collapse animates out, then unmounts the content.
+      await waitFor(() => expect(screen.queryByText('main')).not.toBeInTheDocument())
+    })
+
+    it('keeps no details content in the DOM while collapsed', () => {
+      setViewportWidth(VIEWPORT.tablet)
+      renderTable()
+
+      expect(screen.queryByText('Notes', { selector: 'dt' })).not.toBeInTheDocument()
+      expect(screen.queryByText('main')).not.toBeInTheDocument()
+    })
+
+    it('keeps rows expanded independently', async () => {
+      const user = userEvent.setup()
+      setViewportWidth(VIEWPORT.tablet)
+      renderTable()
+
+      for (const toggle of screen.getAllByRole('button', { name: 'Show details' })) {
+        await user.click(toggle)
+      }
+
+      expect(screen.getByText('main')).toBeInTheDocument()
+      expect(screen.getByText('rainy day')).toBeInTheDocument()
+    })
+
+    it('has no expander when no column is hidden on tablet', () => {
+      setViewportWidth(VIEWPORT.tablet)
+      renderTable(
+        {},
+        COLUMNS.map((c) => ({ ...c, tabletPriority: 'high' as const })),
+      )
+
+      expect(screen.queryByRole('button', { name: 'Show details' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('columnheader', { name: 'Details' })).not.toBeInTheDocument()
+    })
+
+    it.each(DESKTOP_AND_MOBILE)('has no expander on %s', (_name, width) => {
+      setViewportWidth(width)
+      renderTable()
+
+      expect(screen.queryByRole('button', { name: 'Show details' })).not.toBeInTheDocument()
+    })
+
+    it('spans the whole row with the details cell', async () => {
+      const user = userEvent.setup()
+      setViewportWidth(VIEWPORT.tablet)
+      renderTable()
+
+      await user.click(screen.getAllByRole('button', { name: 'Show details' })[0])
+
+      // expander + Name + Kind + Balance + Actions
+      expect(screen.getByText('main').closest('td')).toHaveAttribute('colspan', '5')
+    })
   })
 
   it('renders cards on mobile: title, muted line, labelled fields, no hideOnCard, actions', () => {
