@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import {
   Box,
   Button,
   Checkbox,
+  DialogActions,
+  DialogContent,
   FormControlLabel,
   MenuItem,
   Select,
@@ -14,6 +16,7 @@ import { defaultErrorMessage } from '../../api/core/apiError'
 import { useInvestmentProducts } from '../../api/investments/investmentProductsQueries'
 import type { Transfer } from '../../api/transfers/transfers'
 import { useCreateTransfer, useEditTransfer } from '../../api/transfers/transfersQueries'
+import { FormGrid } from '../../components/feedback/ResponsiveDialog'
 import { useQueryState } from '../../hooks/queryState'
 import { today } from '../../utils/localDate'
 import {
@@ -121,6 +124,15 @@ interface TransferFormProps {
   onError: (message: string | null) => void
   /** Renders a Cancel button when given. */
   onCancel?: () => void
+  /**
+   * Lays the form out for a `ResponsiveDialog` (F021): fields in one-column-on-phone `FormGrid`s
+   * inside `DialogContent`, buttons in `DialogActions`; the caller supplies the dialog and its
+   * title. Off (default), the fields wrap in flex rows with the buttons below (the trade dialog of
+   * the investment product page).
+   */
+  dialog?: boolean
+  /** Dialog mode: shown above the fields (the caller's error banner), so a save error is visible. */
+  banner?: ReactNode
 }
 
 /**
@@ -141,6 +153,8 @@ export function TransferForm({
   onSaved,
   onError,
   onCancel,
+  dialog = false,
+  banner,
 }: TransferFormProps) {
   const [form, setForm] = useState(() => initialState(editing, preset))
   const [saving, setSaving] = useState(false)
@@ -330,146 +344,166 @@ export function TransferForm({
     }
   }
 
-  return (
-    <Box>
+  // Inline: wrapping flex rows, as before. Dialog: a one-column-on-phone grid, where the long
+  // fields carry `gridColumn: '1 / -1'` (`wide`).
+  const wide = dialog ? { gridColumn: '1 / -1' } : undefined
+  function fieldRow(children: ReactNode, columns = 2) {
+    return dialog ? (
+      <FormGrid columns={columns}>{children}</FormGrid>
+    ) : (
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        <TextField
-          label="Date"
-          type="date"
-          size="small"
-          value={form.date}
-          onChange={(e) => patch({ date: e.target.value })}
-          slotProps={{ inputLabel: { shrink: true } }}
-        />
-        <Select
-          size="small"
-          displayEmpty
-          value={form.fromAccountId}
-          onChange={(e) => setFromAccountId(e.target.value)}
-          aria-label="From Account"
-          sx={{ minWidth: 160 }}
-        >
-          <MenuItem value="" disabled>
-            From Account
-          </MenuItem>
-          {fromOptions.map((a) => (
-            <MenuItem key={a.id} value={a.id}>
-              {a.name}
-            </MenuItem>
-          ))}
-        </Select>
-        <Select
-          size="small"
-          displayEmpty
-          value={form.toAccountId}
-          onChange={(e) => setToAccountId(e.target.value)}
-          aria-label="To Account"
-          sx={{ minWidth: 160 }}
-        >
-          <MenuItem value="" disabled>
-            To Account
-          </MenuItem>
-          {toOptions.map((a) => (
-            <MenuItem key={a.id} value={a.id}>
-              {a.name}
-            </MenuItem>
-          ))}
-        </Select>
-        {direction !== null && (
+        {children}
+      </Box>
+    )
+  }
+
+  const body = (
+    <>
+      {fieldRow(
+        <>
+          <TextField
+            label="Date"
+            type="date"
+            size="small"
+            value={form.date}
+            onChange={(e) => patch({ date: e.target.value })}
+            slotProps={{ inputLabel: { shrink: true } }}
+          />
           <Select
             size="small"
             displayEmpty
-            value={
-              productOptions.some((p) => p.id === form.investmentProductId)
-                ? form.investmentProductId
-                : ''
-            }
-            onChange={(e) =>
-              patchTradeField({
-                investmentProductId: e.target.value,
-                resultingBalance: '',
-                resultingTouched: false,
-              })
-            }
-            aria-label="Product"
-            sx={{ minWidth: 180 }}
+            value={form.fromAccountId}
+            onChange={(e) => setFromAccountId(e.target.value)}
+            aria-label="From Account"
+            sx={{ minWidth: 160 }}
           >
             <MenuItem value="" disabled>
-              Product
+              From Account
             </MenuItem>
-            {productOptions.map((p) => (
-              <MenuItem key={p.id} value={p.id}>
-                {p.name}
+            {fromOptions.map((a) => (
+              <MenuItem key={a.id} value={a.id}>
+                {a.name}
               </MenuItem>
             ))}
           </Select>
-        )}
-        <TextField
-          label="Amount"
-          type="number"
-          size="small"
-          value={form.amount}
-          onChange={(e) => patch({ amount: e.target.value, amountOverridden: true })}
-          slotProps={{ htmlInput: { step: '0.01', min: '0.01' } }}
-        />
-        <TextField
-          label="Description"
-          size="small"
-          required
-          value={form.description}
-          onChange={(e) => patch({ description: e.target.value })}
-          slotProps={{ htmlInput: { maxLength: 150 } }}
-        />
-        <TextField
-          label="Additional Notes"
-          size="small"
-          value={form.additionalNotes}
-          onChange={(e) => patch({ additionalNotes: e.target.value })}
-          slotProps={{ htmlInput: { maxLength: 500 } }}
-        />
-      </Box>
+          <Select
+            size="small"
+            displayEmpty
+            value={form.toAccountId}
+            onChange={(e) => setToAccountId(e.target.value)}
+            aria-label="To Account"
+            sx={{ minWidth: 160 }}
+          >
+            <MenuItem value="" disabled>
+              To Account
+            </MenuItem>
+            {toOptions.map((a) => (
+              <MenuItem key={a.id} value={a.id}>
+                {a.name}
+              </MenuItem>
+            ))}
+          </Select>
+          {direction !== null && (
+            <Select
+              size="small"
+              displayEmpty
+              value={
+                productOptions.some((p) => p.id === form.investmentProductId)
+                  ? form.investmentProductId
+                  : ''
+              }
+              onChange={(e) =>
+                patchTradeField({
+                  investmentProductId: e.target.value,
+                  resultingBalance: '',
+                  resultingTouched: false,
+                })
+              }
+              aria-label="Product"
+              sx={{ minWidth: 180 }}
+            >
+              <MenuItem value="" disabled>
+                Product
+              </MenuItem>
+              {productOptions.map((p) => (
+                <MenuItem key={p.id} value={p.id}>
+                  {p.name}
+                </MenuItem>
+              ))}
+            </Select>
+          )}
+          <TextField
+            label="Amount"
+            type="number"
+            size="small"
+            value={form.amount}
+            onChange={(e) => patch({ amount: e.target.value, amountOverridden: true })}
+            slotProps={{ htmlInput: { step: '0.01', min: '0.01' } }}
+          />
+          <TextField
+            label="Description"
+            size="small"
+            required
+            value={form.description}
+            onChange={(e) => patch({ description: e.target.value })}
+            slotProps={{ htmlInput: { maxLength: 150 } }}
+            sx={wide}
+          />
+          <TextField
+            label="Additional Notes"
+            size="small"
+            value={form.additionalNotes}
+            onChange={(e) => patch({ additionalNotes: e.target.value })}
+            slotProps={{ htmlInput: { maxLength: 500 } }}
+            sx={wide}
+          />
+        </>,
+      )}
 
       {hasProduct && (
         <Box sx={{ mt: 2 }} role="group" aria-label="Trade details">
           <Typography variant="subtitle2" gutterBottom>
             Trade details (optional, record-only)
           </Typography>
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            <TextField
-              label="Quantity"
-              type="number"
-              size="small"
-              value={form.quantity}
-              onChange={(e) => patchTradeField({ quantity: e.target.value })}
-              slotProps={{ htmlInput: { step: 'any', min: '0' } }}
-            />
-            <TextField
-              label="Unit price"
-              type="number"
-              size="small"
-              value={form.unitPrice}
-              onChange={(e) => patchTradeField({ unitPrice: e.target.value })}
-              slotProps={{ htmlInput: { step: 'any', min: '0' } }}
-            />
-            <TextField
-              label="Taxes"
-              type="number"
-              size="small"
-              value={form.taxes}
-              onChange={(e) => patchTradeField({ taxes: e.target.value })}
-              slotProps={{ htmlInput: { step: '0.01', min: '0' } }}
-            />
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ alignSelf: 'center' }}
-              aria-live="polite"
-            >
-              {total === null
-                ? 'Enter quantity and unit price for a live total.'
-                : `Total ${total.toFixed(2)} (quantity x unit price ${direction === 'buy' ? '+' : '-'} taxes)`}
-            </Typography>
-          </Box>
+          {fieldRow(
+            <>
+              <TextField
+                label="Quantity"
+                type="number"
+                size="small"
+                value={form.quantity}
+                onChange={(e) => patchTradeField({ quantity: e.target.value })}
+                slotProps={{ htmlInput: { step: 'any', min: '0' } }}
+              />
+              <TextField
+                label="Unit price"
+                type="number"
+                size="small"
+                value={form.unitPrice}
+                onChange={(e) => patchTradeField({ unitPrice: e.target.value })}
+                slotProps={{ htmlInput: { step: 'any', min: '0' } }}
+              />
+              <TextField
+                label="Taxes"
+                type="number"
+                size="small"
+                value={form.taxes}
+                onChange={(e) => patchTradeField({ taxes: e.target.value })}
+                slotProps={{ htmlInput: { step: '0.01', min: '0' } }}
+              />
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ alignSelf: 'center', ...wide }}
+                aria-live="polite"
+              >
+                {total === null
+                  ? 'Enter quantity and unit price for a live total.'
+                  : `Total ${total.toFixed(2)} (quantity x unit price ${direction === 'buy' ? '+' : '-'} taxes)`}
+              </Typography>
+            </>,
+            3,
+          )}
           {showResulting ? (
             <Box sx={{ mt: 2, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
               <TextField
@@ -483,7 +517,7 @@ export function TransferForm({
                 }
                 helperText="The product's value after this trade: recorded as a snapshot on the transfer date. A suggestion - edit it to your broker's balance, or clear it to skip."
                 slotProps={{ htmlInput: { step: '0.01', min: '0' } }}
-                sx={{ minWidth: 260 }}
+                sx={dialog ? { minWidth: 0, width: 1 } : { minWidth: 260 }}
               />
               {direction === 'sell' && (
                 <FormControlLabel
@@ -504,20 +538,49 @@ export function TransferForm({
           )}
         </Box>
       )}
+    </>
+  )
+
+  const cancelButton =
+    editing || onCancel ? (
+      <Button onClick={onCancel} disabled={saving}>
+        Cancel
+      </Button>
+    ) : null
+  const submitButton = (
+    <Button
+      variant="contained"
+      disabled={saving || !isFormValid()}
+      onClick={() => void handleSubmit()}
+    >
+      {editing ? 'Save changes' : 'Add'}
+    </Button>
+  )
+
+  if (dialog) {
+    return (
+      <>
+        <DialogContent>
+          <Box sx={{ pt: 1 }}>
+            {banner}
+            {body}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          {cancelButton}
+          {submitButton}
+        </DialogActions>
+      </>
+    )
+  }
+
+  return (
+    <Box>
+      {body}
 
       <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
-        <Button
-          variant="contained"
-          disabled={saving || !isFormValid()}
-          onClick={() => void handleSubmit()}
-        >
-          {editing ? 'Save changes' : 'Add'}
-        </Button>
-        {(editing || onCancel) && (
-          <Button onClick={onCancel} disabled={saving}>
-            Cancel
-          </Button>
-        )}
+        {submitButton}
+        {cancelButton}
       </Box>
     </Box>
   )
