@@ -5,30 +5,8 @@ import { MemoryRouter } from 'react-router-dom'
 import { ThemeProvider } from '@mui/material/styles'
 import { getTheme } from '../../theme'
 import { ColorModeProvider } from '../../hooks/colorMode/ColorModeProvider'
+import { restoreViewport, setViewportWidth } from '../../test/viewport'
 import { Layout } from './Layout'
-
-const originalMatchMedia = window.matchMedia
-
-/**
- * jsdom has no layout, so `useMediaQuery` is driven by a fake viewport: `matchMedia` answers the
- * `min-width` / `max-width` queries MUI's `theme.breakpoints.up/down` produce against `width`.
- */
-function setViewportWidth(width: number) {
-  window.matchMedia = ((query: string) => {
-    const min = /min-width:\s*([\d.]+)px/.exec(query)
-    const max = /max-width:\s*([\d.]+)px/.exec(query)
-    const matches =
-      (min ? width >= Number(min[1]) : true) &&
-      (max ? width <= Number(max[1]) : true) &&
-      (min !== null || max !== null)
-    return {
-      matches,
-      media: query,
-      addEventListener: () => {},
-      removeEventListener: () => {},
-    }
-  }) as unknown as typeof window.matchMedia
-}
 
 function renderLayout() {
   return render(
@@ -46,7 +24,7 @@ function renderLayout() {
 
 describe('Layout', () => {
   afterEach(() => {
-    window.matchMedia = originalMatchMedia
+    restoreViewport()
   })
 
   it('shows a permanent drawer and no hamburger on desktop', () => {
