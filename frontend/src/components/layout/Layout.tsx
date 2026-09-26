@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState, type PropsWithChildren } from 'react'
+import { Fragment, useState, type PropsWithChildren } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   AppBar,
@@ -69,11 +69,10 @@ export function Layout({ children }: PropsWithChildren) {
   const theme = useTheme()
   const isDesktop = useMediaQuery(theme.breakpoints.up('lg'))
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
-  const [navOpen, setNavOpen] = useState(false)
-
-  useEffect(() => {
-    setNavOpen(false)
-  }, [pathname])
+  // The drawer is open only for the route it was opened on, so a navigation closes it without an
+  // effect that resets state.
+  const [openedAt, setOpenedAt] = useState<string | null>(null)
+  const navOpen = openedAt === pathname
 
   const nav = (
     <Fragment>
@@ -103,7 +102,7 @@ export function Layout({ children }: PropsWithChildren) {
             <IconButton
               color="inherit"
               edge="start"
-              onClick={() => setNavOpen(true)}
+              onClick={() => setOpenedAt(pathname)}
               aria-label="Open navigation"
               sx={{ mr: 1 }}
             >
@@ -138,7 +137,7 @@ export function Layout({ children }: PropsWithChildren) {
         <Drawer
           variant="temporary"
           open={navOpen}
-          onClose={() => setNavOpen(false)}
+          onClose={() => setOpenedAt(null)}
           sx={{ [`& .MuiDrawer-paper`]: { width: DRAWER_WIDTH, boxSizing: 'border-box' } }}
         >
           {nav}
