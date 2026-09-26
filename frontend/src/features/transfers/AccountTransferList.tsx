@@ -1,17 +1,10 @@
 import { useMemo, useState } from 'react'
-import {
-  Box,
-  Table,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Typography,
-} from '@mui/material'
+import { Box } from '@mui/material'
 import { useAccounts } from '../../api/accounts/accountsQueries'
+import type { Transfer } from '../../api/transfers/transfers'
 import { useTransfers } from '../../api/transfers/transfersQueries'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
-import { DataTableBody } from '../../components/table/DataTableBody'
+import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { PaginationControls } from '../../components/table/PaginationControls'
 import { nameLookup } from '../../utils/nameLookup'
@@ -29,6 +22,9 @@ interface AccountTransferListProps {
  * `/transfers` page (`TransfersPage`) - this is just that same list, scoped to `accountId` via the
  * same `GET /api/transfers?accountId=` query param (matching either side, PRD S6.9). Mirrors
  * F004's `AccountTransactionList` shape.
+ *
+ * Responsive (F021): a read-only `ResponsiveTable` - cards below `sm` (description on top, then
+ * date, then the labelled From/To/Amount), the full table from tablet up (all five columns fit).
  */
 export function AccountTransferList({ accountId }: AccountTransferListProps) {
   const [page, setPage] = useState(0)
@@ -53,41 +49,28 @@ export function AccountTransferList({ accountId }: AccountTransferListProps) {
     tableState.reload()
   }
 
+  const columns: ResponsiveColumn<Transfer>[] = [
+    { key: 'date', header: 'Date', role: 'secondary', render: (t) => t.date },
+    { key: 'from', header: 'From', render: (t) => accountName(t.fromAccountId) },
+    { key: 'to', header: 'To', render: (t) => accountName(t.toAccountId) },
+    { key: 'amount', header: 'Amount', align: 'right', render: (t) => t.amount.toFixed(2) },
+    { key: 'description', header: 'Description', role: 'primary', render: (t) => t.description },
+  ]
+
   return (
     <Box>
       <ErrorAlert message={error} onDismiss={() => setError(null)} />
 
-      <TableContainer>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Date</TableCell>
-              <TableCell>From</TableCell>
-              <TableCell>To</TableCell>
-              <TableCell align="right">Amount</TableCell>
-              <TableCell>Description</TableCell>
-            </TableRow>
-          </TableHead>
-          <DataTableBody state={tableState} onRetry={retry} columns={5}>
-            {transfers?.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} align="center">
-                  <Typography color="text.secondary">No transfers yet.</Typography>
-                </TableCell>
-              </TableRow>
-            )}
-            {transfers?.map((transfer) => (
-              <TableRow key={transfer.id}>
-                <TableCell>{transfer.date}</TableCell>
-                <TableCell>{accountName(transfer.fromAccountId)}</TableCell>
-                <TableCell>{accountName(transfer.toAccountId)}</TableCell>
-                <TableCell align="right">{transfer.amount.toFixed(2)}</TableCell>
-                <TableCell>{transfer.description}</TableCell>
-              </TableRow>
-            ))}
-          </DataTableBody>
-        </Table>
-      </TableContainer>
+      <ResponsiveTable
+        embedded
+        aria-label="Account transfers"
+        columns={columns}
+        rows={transfers}
+        getRowKey={(t) => t.id}
+        state={tableState}
+        onRetry={retry}
+        emptyMessage="No transfers yet."
+      />
 
       <PaginationControls pageInfo={pageInfo} onPageChange={setPage} />
     </Box>
