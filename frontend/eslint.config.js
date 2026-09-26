@@ -7,7 +7,16 @@ import pluginQuery from '@tanstack/eslint-plugin-query'
 import prettierConfig from 'eslint-config-prettier'
 
 export default tseslint.config(
-  { ignores: ['dist', 'src/api/generated', 'test-results', 'coverage', 'playwright-report', 'e2e-results'] },
+  {
+    ignores: [
+      'dist',
+      'src/api/generated',
+      'test-results',
+      'coverage',
+      'playwright-report',
+      'e2e-results',
+    ],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],
