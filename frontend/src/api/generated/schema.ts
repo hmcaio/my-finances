@@ -12,9 +12,9 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put: operations["update"];
+        put: operations["investmentSnapshot_update"];
         post?: never;
-        delete: operations["delete"];
+        delete: operations["investmentSnapshot_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -27,9 +27,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list"];
+        get: operations["transfer_list"];
         put?: never;
-        post: operations["create"];
+        post: operations["transfer_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -43,9 +43,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_1"];
+        get: operations["transaction_list"];
         put?: never;
-        post: operations["create_1"];
+        post: operations["transaction_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -59,9 +59,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_2"];
+        get: operations["recurringTemplate_list"];
         put?: never;
-        post: operations["create_2"];
+        post: operations["recurringTemplate_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -77,7 +77,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["stop"];
+        post: operations["recurringTemplate_stop"];
         delete?: never;
         options?: never;
         head?: never;
@@ -93,7 +93,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["reactivate"];
+        post: operations["recurringTemplate_reactivate"];
         delete?: never;
         options?: never;
         head?: never;
@@ -109,7 +109,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["confirm"];
+        post: operations["recurringTemplate_confirm"];
         delete?: never;
         options?: never;
         head?: never;
@@ -123,9 +123,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_3"];
+        get: operations["paymentMethod_list"];
         put?: never;
-        post: operations["create_3"];
+        post: operations["paymentMethod_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -141,7 +141,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["create_4"];
+        post: operations["investmentSubcategory_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -155,9 +155,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_4"];
+        get: operations["investmentProduct_list"];
         put?: never;
-        post: operations["create_5"];
+        post: operations["investmentProduct_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -171,9 +171,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_5"];
+        get: operations["investmentSnapshot_list"];
         put?: never;
-        post: operations["record"];
+        post: operations["investmentSnapshot_record"];
         delete?: never;
         options?: never;
         head?: never;
@@ -189,7 +189,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["close"];
+        post: operations["investmentProduct_close"];
         delete?: never;
         options?: never;
         head?: never;
@@ -203,9 +203,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_6"];
+        get: operations["investmentCategory_list"];
         put?: never;
-        post: operations["create_6"];
+        post: operations["investmentCategory_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -219,9 +219,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_7"];
+        get: operations["institution_list"];
         put?: never;
-        post: operations["create_7"];
+        post: operations["institution_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -235,9 +235,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_8"];
+        get: operations["category_list"];
         put?: never;
-        post: operations["create_8"];
+        post: operations["category_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -251,9 +251,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_9"];
+        get: operations["budget_list"];
         put?: never;
-        post: operations["create_9"];
+        post: operations["budget_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -269,7 +269,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["stop_1"];
+        post: operations["budget_stop"];
         delete?: never;
         options?: never;
         head?: never;
@@ -283,9 +283,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_10"];
+        get: operations["account_list"];
         put?: never;
-        post: operations["create_10"];
+        post: operations["account_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -301,7 +301,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["close_1"];
+        post: operations["account_close"];
         delete?: never;
         options?: never;
         head?: never;
@@ -315,13 +315,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get"];
+        get: operations["transfer_get"];
         put?: never;
         post?: never;
-        delete: operations["delete_1"];
+        delete: operations["transfer_delete"];
         options?: never;
         head?: never;
-        patch: operations["edit"];
+        patch: operations["transfer_edit"];
         trace?: never;
     };
     "/api/transactions/{id}": {
@@ -331,13 +331,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_1"];
+        get: operations["transaction_get"];
         put?: never;
         post?: never;
-        delete: operations["delete_2"];
+        delete: operations["transaction_delete"];
         options?: never;
         head?: never;
-        patch: operations["edit_1"];
+        patch: operations["transaction_edit"];
         trace?: never;
     };
     "/api/recurring-templates/{id}/cap": {
@@ -353,7 +353,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch: operations["setCap"];
+        patch: operations["recurringTemplate_setCap"];
         trace?: never;
     };
     "/api/payment-methods/{id}": {
@@ -366,10 +366,10 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete: operations["delete_3"];
+        delete: operations["paymentMethod_delete"];
         options?: never;
         head?: never;
-        patch: operations["rename"];
+        patch: operations["paymentMethod_rename"];
         trace?: never;
     };
     "/api/investment-subcategories/{id}": {
@@ -382,10 +382,10 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete: operations["delete_4"];
+        delete: operations["investmentSubcategory_delete"];
         options?: never;
         head?: never;
-        patch: operations["rename_1"];
+        patch: operations["investmentSubcategory_rename"];
         trace?: never;
     };
     "/api/investment-products/{id}": {
@@ -395,13 +395,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_2"];
+        get: operations["investmentProduct_get"];
         put?: never;
         post?: never;
-        delete: operations["delete_5"];
+        delete: operations["investmentProduct_delete"];
         options?: never;
         head?: never;
-        patch: operations["edit_2"];
+        patch: operations["investmentProduct_edit"];
         trace?: never;
     };
     "/api/investment-categories/{id}": {
@@ -414,10 +414,10 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete: operations["delete_6"];
+        delete: operations["investmentCategory_delete"];
         options?: never;
         head?: never;
-        patch: operations["rename_2"];
+        patch: operations["investmentCategory_rename"];
         trace?: never;
     };
     "/api/institutions/{id}": {
@@ -430,10 +430,10 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete: operations["delete_7"];
+        delete: operations["institution_delete"];
         options?: never;
         head?: never;
-        patch: operations["rename_3"];
+        patch: operations["institution_rename"];
         trace?: never;
     };
     "/api/categories/{id}": {
@@ -446,10 +446,10 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete: operations["delete_8"];
+        delete: operations["category_delete"];
         options?: never;
         head?: never;
-        patch: operations["rename_4"];
+        patch: operations["category_rename"];
         trace?: never;
     };
     "/api/budgets/{id}/cap": {
@@ -465,7 +465,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch: operations["setCap_1"];
+        patch: operations["budget_setCap"];
         trace?: never;
     };
     "/api/accounts/{id}": {
@@ -475,13 +475,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_3"];
+        get: operations["account_get"];
         put?: never;
         post?: never;
-        delete: operations["delete_8"];
+        delete: operations["account_delete"];
         options?: never;
         head?: never;
-        patch: operations["edit_3"];
+        patch: operations["account_edit"];
         trace?: never;
     };
     "/api/transactions/spend-by-category": {
@@ -491,7 +491,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["spendByCategory"];
+        get: operations["transaction_spendByCategory"];
         put?: never;
         post?: never;
         delete?: never;
@@ -507,7 +507,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["pending"];
+        get: operations["recurringTemplate_pending"];
         put?: never;
         post?: never;
         delete?: never;
@@ -523,7 +523,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["netWorth"];
+        get: operations["netWorth_netWorth"];
         put?: never;
         post?: never;
         delete?: never;
@@ -539,7 +539,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["netWorthTrend"];
+        get: operations["netWorth_netWorthTrend"];
         put?: never;
         post?: never;
         delete?: never;
@@ -555,7 +555,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["valueSeries"];
+        get: operations["investmentValueSeries_valueSeries"];
         put?: never;
         post?: never;
         delete?: never;
@@ -571,7 +571,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["allocation"];
+        get: operations["investmentAllocation_allocation"];
         put?: never;
         post?: never;
         delete?: never;
@@ -587,7 +587,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["health"];
+        get: operations["health_health"];
         put?: never;
         post?: never;
         delete?: never;
@@ -603,7 +603,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["export"];
+        get: operations["dataExport_export"];
         put?: never;
         post?: never;
         delete?: never;
@@ -619,7 +619,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["report"];
+        get: operations["budget_report"];
         put?: never;
         post?: never;
         delete?: never;
@@ -638,7 +638,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete: operations["dismiss"];
+        delete: operations["recurringTemplate_dismiss"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1054,7 +1054,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    update: {
+    investmentSnapshot_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -1081,7 +1081,7 @@ export interface operations {
             };
         };
     };
-    delete: {
+    investmentSnapshot_delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -1102,7 +1102,7 @@ export interface operations {
             };
         };
     };
-    list: {
+    transfer_list: {
         parameters: {
             query: {
                 dateFrom?: string;
@@ -1128,7 +1128,7 @@ export interface operations {
             };
         };
     };
-    create: {
+    transfer_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -1152,7 +1152,7 @@ export interface operations {
             };
         };
     };
-    list_1: {
+    transaction_list: {
         parameters: {
             query: {
                 dateFrom?: string;
@@ -1179,7 +1179,7 @@ export interface operations {
             };
         };
     };
-    create_1: {
+    transaction_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -1203,7 +1203,7 @@ export interface operations {
             };
         };
     };
-    list_2: {
+    recurringTemplate_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -1223,7 +1223,7 @@ export interface operations {
             };
         };
     };
-    create_2: {
+    recurringTemplate_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -1247,7 +1247,7 @@ export interface operations {
             };
         };
     };
-    stop: {
+    recurringTemplate_stop: {
         parameters: {
             query?: never;
             header?: never;
@@ -1269,7 +1269,7 @@ export interface operations {
             };
         };
     };
-    reactivate: {
+    recurringTemplate_reactivate: {
         parameters: {
             query?: never;
             header?: never;
@@ -1291,7 +1291,7 @@ export interface operations {
             };
         };
     };
-    confirm: {
+    recurringTemplate_confirm: {
         parameters: {
             query?: never;
             header?: never;
@@ -1317,7 +1317,7 @@ export interface operations {
             };
         };
     };
-    list_3: {
+    paymentMethod_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -1337,7 +1337,7 @@ export interface operations {
             };
         };
     };
-    create_3: {
+    paymentMethod_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -1361,7 +1361,7 @@ export interface operations {
             };
         };
     };
-    create_4: {
+    investmentSubcategory_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -1385,7 +1385,7 @@ export interface operations {
             };
         };
     };
-    list_4: {
+    investmentProduct_list: {
         parameters: {
             query?: {
                 accountId?: string;
@@ -1407,7 +1407,7 @@ export interface operations {
             };
         };
     };
-    create_5: {
+    investmentProduct_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -1431,7 +1431,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    investmentSnapshot_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -1453,7 +1453,7 @@ export interface operations {
             };
         };
     };
-    record: {
+    investmentSnapshot_record: {
         parameters: {
             query?: never;
             header?: never;
@@ -1479,7 +1479,7 @@ export interface operations {
             };
         };
     };
-    close: {
+    investmentProduct_close: {
         parameters: {
             query?: never;
             header?: never;
@@ -1501,7 +1501,7 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    investmentCategory_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -1521,7 +1521,7 @@ export interface operations {
             };
         };
     };
-    create_6: {
+    investmentCategory_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -1545,7 +1545,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    institution_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -1565,7 +1565,7 @@ export interface operations {
             };
         };
     };
-    create_7: {
+    institution_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -1589,7 +1589,7 @@ export interface operations {
             };
         };
     };
-    list_8: {
+    category_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -1609,7 +1609,7 @@ export interface operations {
             };
         };
     };
-    create_8: {
+    category_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -1633,7 +1633,7 @@ export interface operations {
             };
         };
     };
-    list_9: {
+    budget_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -1653,7 +1653,7 @@ export interface operations {
             };
         };
     };
-    create_9: {
+    budget_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -1677,7 +1677,7 @@ export interface operations {
             };
         };
     };
-    stop_1: {
+    budget_stop: {
         parameters: {
             query?: never;
             header?: never;
@@ -1703,7 +1703,7 @@ export interface operations {
             };
         };
     };
-    list_10: {
+    account_list: {
         parameters: {
             query?: {
                 includeClosed?: boolean;
@@ -1725,7 +1725,7 @@ export interface operations {
             };
         };
     };
-    create_10: {
+    account_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -1749,7 +1749,7 @@ export interface operations {
             };
         };
     };
-    close_1: {
+    account_close: {
         parameters: {
             query?: never;
             header?: never;
@@ -1771,7 +1771,7 @@ export interface operations {
             };
         };
     };
-    get: {
+    transfer_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1793,7 +1793,7 @@ export interface operations {
             };
         };
     };
-    delete_1: {
+    transfer_delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -1813,7 +1813,7 @@ export interface operations {
             };
         };
     };
-    edit: {
+    transfer_edit: {
         parameters: {
             query?: never;
             header?: never;
@@ -1839,7 +1839,7 @@ export interface operations {
             };
         };
     };
-    get_1: {
+    transaction_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1861,7 +1861,7 @@ export interface operations {
             };
         };
     };
-    delete_2: {
+    transaction_delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -1881,7 +1881,7 @@ export interface operations {
             };
         };
     };
-    edit_1: {
+    transaction_edit: {
         parameters: {
             query?: never;
             header?: never;
@@ -1907,7 +1907,7 @@ export interface operations {
             };
         };
     };
-    setCap: {
+    recurringTemplate_setCap: {
         parameters: {
             query?: never;
             header?: never;
@@ -1933,7 +1933,7 @@ export interface operations {
             };
         };
     };
-    delete_3: {
+    paymentMethod_delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -1953,7 +1953,7 @@ export interface operations {
             };
         };
     };
-    rename: {
+    paymentMethod_rename: {
         parameters: {
             query?: never;
             header?: never;
@@ -1979,7 +1979,7 @@ export interface operations {
             };
         };
     };
-    delete_4: {
+    investmentSubcategory_delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -1999,7 +1999,7 @@ export interface operations {
             };
         };
     };
-    rename_1: {
+    investmentSubcategory_rename: {
         parameters: {
             query?: never;
             header?: never;
@@ -2025,7 +2025,7 @@ export interface operations {
             };
         };
     };
-    get_2: {
+    investmentProduct_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2047,7 +2047,7 @@ export interface operations {
             };
         };
     };
-    delete_5: {
+    investmentProduct_delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -2067,7 +2067,7 @@ export interface operations {
             };
         };
     };
-    edit_2: {
+    investmentProduct_edit: {
         parameters: {
             query?: never;
             header?: never;
@@ -2093,7 +2093,7 @@ export interface operations {
             };
         };
     };
-    delete_6: {
+    investmentCategory_delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -2113,7 +2113,7 @@ export interface operations {
             };
         };
     };
-    rename_2: {
+    investmentCategory_rename: {
         parameters: {
             query?: never;
             header?: never;
@@ -2139,7 +2139,7 @@ export interface operations {
             };
         };
     };
-    delete_7: {
+    institution_delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -2159,7 +2159,7 @@ export interface operations {
             };
         };
     };
-    rename_3: {
+    institution_rename: {
         parameters: {
             query?: never;
             header?: never;
@@ -2185,7 +2185,7 @@ export interface operations {
             };
         };
     };
-    delete_8: {
+    category_delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -2205,7 +2205,7 @@ export interface operations {
             };
         };
     };
-    rename_4: {
+    category_rename: {
         parameters: {
             query?: never;
             header?: never;
@@ -2231,7 +2231,7 @@ export interface operations {
             };
         };
     };
-    setCap_1: {
+    budget_setCap: {
         parameters: {
             query?: never;
             header?: never;
@@ -2257,7 +2257,7 @@ export interface operations {
             };
         };
     };
-    get_3: {
+    account_get: {
         parameters: {
             query?: {
                 asOf?: string;
@@ -2281,7 +2281,7 @@ export interface operations {
             };
         };
     };
-    delete_8: {
+    account_delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -2301,7 +2301,7 @@ export interface operations {
             };
         };
     };
-    edit_3: {
+    account_edit: {
         parameters: {
             query?: never;
             header?: never;
@@ -2327,7 +2327,7 @@ export interface operations {
             };
         };
     };
-    spendByCategory: {
+    transaction_spendByCategory: {
         parameters: {
             query: {
                 month: string;
@@ -2349,7 +2349,7 @@ export interface operations {
             };
         };
     };
-    pending: {
+    recurringTemplate_pending: {
         parameters: {
             query?: never;
             header?: never;
@@ -2369,7 +2369,7 @@ export interface operations {
             };
         };
     };
-    netWorth: {
+    netWorth_netWorth: {
         parameters: {
             query?: {
                 asOf?: string;
@@ -2391,7 +2391,7 @@ export interface operations {
             };
         };
     };
-    netWorthTrend: {
+    netWorth_netWorthTrend: {
         parameters: {
             query?: {
                 from?: string;
@@ -2415,7 +2415,7 @@ export interface operations {
             };
         };
     };
-    valueSeries: {
+    investmentValueSeries_valueSeries: {
         parameters: {
             query?: {
                 from?: string;
@@ -2439,7 +2439,7 @@ export interface operations {
             };
         };
     };
-    allocation: {
+    investmentAllocation_allocation: {
         parameters: {
             query?: {
                 asOf?: string;
@@ -2462,7 +2462,7 @@ export interface operations {
             };
         };
     };
-    health: {
+    health_health: {
         parameters: {
             query?: never;
             header?: never;
@@ -2484,7 +2484,7 @@ export interface operations {
             };
         };
     };
-    export: {
+    dataExport_export: {
         parameters: {
             query?: {
                 dateFrom?: string;
@@ -2509,7 +2509,7 @@ export interface operations {
             };
         };
     };
-    report: {
+    budget_report: {
         parameters: {
             query: {
                 month: string;
@@ -2531,7 +2531,7 @@ export interface operations {
             };
         };
     };
-    dismiss: {
+    recurringTemplate_dismiss: {
         parameters: {
             query?: never;
             header?: never;
