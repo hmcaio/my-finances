@@ -66,6 +66,8 @@ cd backend && ./gradlew bootRun    # API at localhost:8080
 cd frontend && npm install && npm run dev  # UI at localhost:5173
 ```
 
+Before pushing, `scripts/verify.sh` runs the same checks CI does (pinned versions, backend spotless + tests, frontend lint, format, build, tests); it needs Docker running and `npm ci` done in `frontend/`.
+
 A production-shaped smoke test (Docker images end to end, no cloud involved) is also documented in `CLAUDE.md`.
 
 ## Project status

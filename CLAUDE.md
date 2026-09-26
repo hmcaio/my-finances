@@ -27,7 +27,9 @@ pgAdmin login, the pre-registered server, and the "editing `servers.json` needs 
 
 Production packaging (F014) is a wholly separate `docker-compose.prod.yml` (ADR 0006), not part of the dev loop. Local smoke test: build `ghcr.io/hmcaio/my-finances-{backend,frontend}:local` from `backend`/`frontend`, `cp .env.example .env` with `IMAGE_TAG=local`, then `docker compose -f docker-compose.prod.yml up -d` / `down -v`. Both compose files default to the same project name and both have a `postgres` service, so prod `up`/`down` replaces/removes the *dev* Postgres container (its data volume survives; `docker compose up -d` brings dev back).
 
-CI (`.github/workflows/ci.yml`) runs backend `spotlessCheck test integrationTest` and frontend `npm ci && npm run lint && npm test` on every push/PR, and builds+pushes both images to GHCR on `main` and `vX.Y.Z` tags.
+`scripts/verify.sh [versions|backend|frontend|e2e]` (default: the first three) is the one definition of the checks: CI's jobs call it, so a green local run means a green CI run. It runs every stage even if one fails; `frontend` needs `npm ci` done first, `backend` needs Docker running, `e2e` needs `npx playwright install chromium` once. Change a check in that script, not only in `ci.yml`.
+
+CI (`.github/workflows/ci.yml`) runs, through that script, backend `spotlessCheck test integrationTest jacocoTestReport` and frontend `lint`, `format:check`, `build` and `test:coverage` on every push/PR, and builds+pushes both images to GHCR on `main` and `vX.Y.Z` tags.
 
 ## Workflow
 
