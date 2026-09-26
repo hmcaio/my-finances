@@ -5,9 +5,9 @@
 Multiple PRs, each off `develop`, each shippable and each with its Playwright checks. Branch names: `feature/f021-<step>`. The CHANGELOG bullet (`**F021 — Responsive layout**`) is added in the first PR and edited as the rest land.
 
 ## PR 1 — Shell
-- [ ] Test first: `Layout` shows the permanent drawer on desktop and a hamburger-opened temporary drawer below `lg`; drawer closes on route change; padding `p: 2` on mobile and `p: 3` otherwise; content `maxWidth` about 1600.
-- [ ] Implement responsive `Layout`; group the settings items under a subheader in the nav.
-- [ ] `theme.ts`: `@media (pointer: coarse)` 44px minimum for `MuiIconButton`, `MuiButton`, `MuiListItemButton`.
+- [x] Test first: `Layout` shows the permanent drawer on desktop and a hamburger-opened temporary drawer below `lg`; drawer closes on route change; padding `p: 2` on mobile and `p: 3` otherwise; content `maxWidth` about 1600.
+- [x] Implement responsive `Layout`; group the settings items under a subheader in the nav.
+- [x] `theme.ts`: `@media (pointer: coarse)` 44px minimum for `MuiIconButton`, `MuiButton`, `MuiListItemButton`.
 - [ ] Playwright: nav-mode and no-overflow checks on the landing route at all three viewports.
 - [ ] CHANGELOG bullet.
 
