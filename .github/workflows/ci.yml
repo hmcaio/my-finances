@@ -126,9 +126,57 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+  e2e-frontend:
+    name: Frontend e2e (Playwright)
+    # Layout checks in Chromium at mobile/tablet/desktop widths (F020). Runs against the Vite dev
+    # server with every /api call mocked, so no backend or Postgres. It waits for the unit tests
+    # (no point spending a browser run on a red build) and gates build-and-push. The frontend chain
+    # (~2 min + ~2 min) still finishes before the ~4 min backend job, so wall time is unchanged.
+    needs: test-frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+        working-directory: frontend
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+
+      - name: Install Chromium
+        # --with-deps also installs the OS libraries (apt), which are not part of the cached
+        # browser directory; the browser download itself is skipped on a cache hit.
+        run: npx playwright install --with-deps chromium
+        working-directory: frontend
+
+      - run: npm run e2e
+        working-directory: frontend
+
+      - name: Upload Playwright report and traces
+        # Only on failure: the HTML report (with traces from the retry) is what makes a layout
+        # regression debuggable. `ignore` in case the run died before writing anything.
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report
+            frontend/e2e-results
+          if-no-files-found: ignore
+          retention-days: 14
+
   build-and-push:
     name: Build and push images
-    needs: [test-backend, test-frontend]
+    needs: [test-backend, test-frontend, e2e-frontend]
     runs-on: ubuntu-latest
     # Only publish on pushes to main and on vX.Y.Z tags - every push/PR runs the test jobs
     # above, but images are only built for deliberate, deployable versions.
