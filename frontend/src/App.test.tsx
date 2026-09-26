@@ -9,10 +9,11 @@ import App from './App'
 import { renderWithQueryClient } from './test/renderWithQueryClient'
 
 // jsdom does not implement `matchMedia`, and ColorModeProvider (rendered by App) reads it to pick
-// the initial theme - same stub as useColorMode.test.tsx.
+// the initial theme - same stub as useColorMode.test.tsx. `min-width` queries match so Layout
+// renders its desktop (permanent) drawer and the nav links are in the DOM without opening it.
 function stubMatchMedia() {
   window.matchMedia = ((query: string) => ({
-    matches: false,
+    matches: query.includes('min-width'),
     media: query,
     addEventListener: () => {},
     removeEventListener: () => {},
