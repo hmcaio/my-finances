@@ -57,6 +57,13 @@ cd backend && ./gradlew bootRun    # API at localhost:8080
 cd frontend && npm install && npm run dev  # UI at localhost:5173
 ```
 
+Or run everything in containers with hot reload, no JDK/Node needed (first start downloads dependencies; use this instead of the two native commands, not alongside them):
+
+```bash
+docker compose --profile full up -d   # Postgres, pgAdmin, API at localhost:8080, UI at localhost:5173
+docker compose --profile full down
+```
+
 A production-shaped smoke test (Docker images end to end, no cloud involved) is also documented in `CLAUDE.md`.
 
 ## Project status

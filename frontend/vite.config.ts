@@ -7,6 +7,11 @@ import { configDefaults, defineConfig } from 'vitest/config'
 // separate vitest.config.ts (F015 spec).
 export default defineConfig({
   plugins: [react()],
+  server: {
+    // Set by the `full` compose profile (ADR 0018): file-change events don't cross a Windows
+    // bind mount into the container, so HMR needs polling there. Native `npm run dev` is unaffected.
+    watch: process.env.VITE_USE_POLLING === 'true' ? { usePolling: true } : undefined,
+  },
   test: {
     // Playwright specs (F020) run under `npm run e2e`, never under Vitest.
     exclude: [...configDefaults.exclude, 'e2e/**'],
