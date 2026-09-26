@@ -24,6 +24,29 @@ test.describe('transactions', () => {
     )
   })
 
+  test('reaches the hidden payment method through a row expander on tablet only', async ({
+    page,
+  }, testInfo) => {
+    const tablet = testInfo.project.name === 'tablet'
+    await page.goto('/transactions')
+    await expect(page.getByText('Weekly groceries')).toBeVisible()
+
+    const toggles = page.getByRole('button', { name: 'Show details' })
+    if (!tablet) {
+      await expect(toggles).toHaveCount(0)
+    } else {
+      await expect(toggles.first()).toBeVisible()
+      const table = page.getByRole('table')
+      await expect(table.getByText('Debit Card')).toHaveCount(0)
+      await table
+        .getByRole('row', { name: /Weekly groceries/ })
+        .getByRole('button', { name: 'Show details' })
+        .click()
+      await expect(table.getByText('Debit Card')).toBeVisible()
+      await expectNoHorizontalOverflow(page)
+    }
+  })
+
   test('collapses the filters behind a button on mobile, inline otherwise', async ({
     page,
   }, testInfo) => {

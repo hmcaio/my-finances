@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react'
+import { Fragment, useId, useState, type ReactNode } from 'react'
 import {
   Box,
+  IconButton,
   Paper,
   Table,
   TableCell,
@@ -8,7 +9,11 @@ import {
   TableHead,
   TableRow,
   Typography,
+  type SxProps,
+  type Theme,
 } from '@mui/material'
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp'
 import type { LoadState } from '../../hooks/queryState'
 import { useBreakpointBand } from '../../hooks/useBreakpointBand'
 import { fadeInSx } from '../feedback/fadeIn'
@@ -27,7 +32,8 @@ export interface ResponsiveColumn<T> {
    * "header: value" line.
    */
   role?: 'primary' | 'secondary' | 'hideOnCard'
-  /** On tablet (`sm` to below `lg`) `low` columns are hidden to fit the table; default `high`. */
+  /** On tablet (`sm` to below `lg`) `low` columns are hidden to fit the table (a chevron on each
+   * row expands them as label/value pairs); default `high`. */
   tabletPriority?: 'high' | 'low'
   align?: 'left' | 'right' | 'center'
 }
@@ -74,6 +80,8 @@ export function ResponsiveTable<T>({
   'aria-label': ariaLabel,
 }: ResponsiveTableProps<T>) {
   const band = useBreakpointBand()
+  const idPrefix = useId()
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
   const asCards = band === 'mobile' && columns.length >= 3
 
   if (asCards && !state.loading && !state.loadError) {
@@ -115,8 +123,18 @@ export function ResponsiveTable<T>({
   }
 
   const visible = band === 'tablet' ? columns.filter((c) => c.tabletPriority !== 'low') : columns
+  const hidden = band === 'tablet' ? columns.filter((c) => c.tabletPriority === 'low') : []
+  const expandable = hidden.length > 0
   // Mobile card mode reaches here only while loading or failed: a single placeholder column.
-  const bodyColumns = asCards ? 1 : visible.length + (actions ? 1 : 0)
+  const bodyColumns = asCards ? 1 : visible.length + (actions ? 1 : 0) + (expandable ? 1 : 0)
+
+  function toggle(key: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      if (!next.delete(key)) next.add(key)
+      return next
+    })
+  }
 
   return (
     <TableContainer component={Paper} variant="outlined">
@@ -124,6 +142,13 @@ export function ResponsiveTable<T>({
         {!asCards && (
           <TableHead>
             <TableRow>
+              {expandable && (
+                <TableCell padding="checkbox">
+                  <Box component="span" sx={VISUALLY_HIDDEN}>
+                    Details
+                  </Box>
+                </TableCell>
+              )}
               {visible.map((column) => (
                 <TableCell key={column.key} align={column.align}>
                   {column.header}
@@ -147,16 +172,47 @@ export function ResponsiveTable<T>({
               </TableCell>
             </TableRow>
           )}
-          {rows?.map((row) => (
-            <TableRow key={getRowKey(row)}>
-              {visible.map((column) => (
-                <TableCell key={column.key} align={column.align}>
-                  {column.render(row)}
-                </TableCell>
-              ))}
-              {actions && <TableCell align="right">{actions(row)}</TableCell>}
-            </TableRow>
-          ))}
+          {rows?.map((row) => {
+            const key = getRowKey(row)
+            const open = expandable && expanded.has(key)
+            const detailId = `${idPrefix}-details-${key}`
+            return (
+              <Fragment key={key}>
+                <TableRow>
+                  {expandable && (
+                    <TableCell padding="checkbox">
+                      <IconButton
+                        size="small"
+                        aria-label={open ? 'Hide details' : 'Show details'}
+                        aria-expanded={open}
+                        aria-controls={open ? detailId : undefined}
+                        onClick={() => toggle(key)}
+                      >
+                        {open ? (
+                          <KeyboardArrowUpIcon fontSize="small" />
+                        ) : (
+                          <KeyboardArrowDownIcon fontSize="small" />
+                        )}
+                      </IconButton>
+                    </TableCell>
+                  )}
+                  {visible.map((column) => (
+                    <TableCell key={column.key} align={column.align}>
+                      {column.render(row)}
+                    </TableCell>
+                  ))}
+                  {actions && <TableCell align="right">{actions(row)}</TableCell>}
+                </TableRow>
+                {open && (
+                  <TableRow id={detailId}>
+                    <TableCell colSpan={bodyColumns}>
+                      <FieldList columns={hidden} row={row} />
+                    </TableCell>
+                  </TableRow>
+                )}
+              </Fragment>
+            )
+          })}
         </DataTableBody>
       </Table>
     </TableContainer>
@@ -198,35 +254,61 @@ function GenericCard<T>({
           {c.render(row)}
         </Typography>
       ))}
-      {fields.length > 0 && (
-        <Box
-          component="dl"
-          sx={{
-            m: 0,
-            mt: 1,
-            display: 'grid',
-            gridTemplateColumns: 'auto minmax(0, 1fr)',
-            columnGap: 2,
-            rowGap: 0.5,
-          }}
-        >
-          {fields.map((c) => (
-            <Box key={c.key} sx={{ display: 'contents' }}>
-              <Typography component="dt" variant="body2" color="text.secondary">
-                {c.header}
-              </Typography>
-              <Typography
-                component="dd"
-                variant="body2"
-                sx={{ m: 0, textAlign: 'right', overflowWrap: 'anywhere' }}
-              >
-                {c.render(row)}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
-      )}
+      {fields.length > 0 && <FieldList columns={fields} row={row} sx={{ mt: 1 }} />}
       {actions && <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>{actions}</Box>}
     </Paper>
+  )
+}
+
+/** Screen-reader-only text (MUI's `visuallyHidden` lives in `@mui/utils`, not a direct dependency). */
+const VISUALLY_HIDDEN = {
+  position: 'absolute',
+  // Pixel strings: in `sx`, a bare `1` means 100%, which made the clipped span as wide as the page.
+  width: '1px',
+  height: '1px',
+  overflow: 'hidden',
+  clip: 'rect(0 0 0 0)',
+  whiteSpace: 'nowrap',
+} as const
+
+/** "Header: value" pairs: the generic card's labelled fields and a tablet row's expanded details. */
+function FieldList<T>({
+  columns,
+  row,
+  sx,
+}: {
+  columns: ResponsiveColumn<T>[]
+  row: T
+  sx?: SxProps<Theme>
+}) {
+  return (
+    <Box
+      component="dl"
+      sx={[
+        {
+          m: 0,
+          display: 'grid',
+          gridTemplateColumns: 'auto minmax(0, 1fr)',
+          columnGap: 2,
+          rowGap: 0.5,
+        },
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
+    >
+      {columns.map((c) => (
+        <Box key={c.key} sx={{ display: 'contents' }}>
+          <Typography component="dt" variant="body2" color="text.secondary">
+            {c.header}
+          </Typography>
+          <Typography
+            component="dd"
+            variant="body2"
+            sx={{ m: 0, textAlign: 'right', overflowWrap: 'anywhere' }}
+          >
+            {c.render(row)}
+          </Typography>
+        </Box>
+      ))}
+    </Box>
   )
 }
