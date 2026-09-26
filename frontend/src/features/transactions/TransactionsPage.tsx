@@ -1,16 +1,14 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import {
   Box,
   Button,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   IconButton,
   MenuItem,
   Paper,
   Select,
-  Table,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   TextField,
   Typography,
 } from '@mui/material'
@@ -29,25 +27,19 @@ import {
 import { defaultErrorMessage } from '../../api/core/apiError'
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
-import { DataTableBody } from '../../components/table/DataTableBody'
-import { combineLoadState, useQueryState } from '../../hooks/queryState'
+import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
+import { ResponsiveFilterBar } from '../../components/layout/ResponsiveFilterBar'
 import { PaginationControls } from '../../components/table/PaginationControls'
-import { today } from '../../utils/localDate'
+import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
+import { combineLoadState, useQueryState } from '../../hooks/queryState'
+import { useIsMobile } from '../../hooks/useBreakpointBand'
 import { nameLookup } from '../../utils/nameLookup'
-
-/** A fresh form, built per use so its date is today's local date rather than the date the page
- * module was first loaded. */
-function emptyForm() {
-  return {
-    date: today(),
-    amount: '',
-    categoryId: '',
-    accountId: '',
-    paymentMethodId: '',
-    description: '',
-    additionalNotes: '',
-  }
-}
+import { TransactionFormFields } from './TransactionFormFields'
+import {
+  emptyTransactionForm,
+  isTransactionFormValid,
+  type TransactionFormValues,
+} from './transactionForm'
 
 const PAGE_SIZE = 20
 
@@ -57,8 +49,13 @@ const PAGE_SIZE = 20
  * between create and edit mode - the fields (date/amount/category/account/payment
  * method/description/additional notes) are identical for both, matching F004's
  * plain-in-place-edit semantics (no versioning).
+ *
+ * Responsive (F021): from `sm` up the form is the inline panel below the table, as it always was.
+ * Below `sm` there is no inline panel: the header's Add button and each card's Edit open the same
+ * fields (`TransactionFormFields`) in a full-screen dialog driven by the same state and mutations.
  */
 export function TransactionsPage() {
+  const isMobile = useIsMobile()
   const [page, setPage] = useState(0)
   const [filters, setFilters] = useState<TransactionFilter>({})
   const [error, setError] = useState<string | null>(null)
@@ -86,8 +83,11 @@ export function TransactionsPage() {
   const deleteMutation = useDeleteTransaction()
 
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [form, setForm] = useState(emptyForm)
+  const [form, setForm] = useState(emptyTransactionForm)
   const [saving, setSaving] = useState(false)
+  // Only meaningful below `sm`, where the form lives in a dialog instead of the inline panel.
+  const [formDialogOpen, setFormDialogOpen] = useState(false)
+  const dialogOpen = isMobile && formDialogOpen
 
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -96,6 +96,13 @@ export function TransactionsPage() {
     setFilters((prev) => ({ ...prev, ...patch }))
     setPage(0)
   }
+
+  function clearFilters() {
+    setFilters({})
+    setPage(0)
+  }
+
+  const activeFilterCount = Object.values(filters).filter(Boolean).length
 
   const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
   const accountName = useMemo(() => nameLookup(accounts ?? [], (a) => a.name), [accounts])
@@ -110,6 +117,16 @@ export function TransactionsPage() {
     [accounts],
   )
 
+  function updateForm(patch: Partial<TransactionFormValues>) {
+    setForm((prev) => ({ ...prev, ...patch }))
+  }
+
+  function startAdd() {
+    setEditingId(null)
+    setForm(emptyTransactionForm())
+    setFormDialogOpen(true)
+  }
+
   function startEdit(transaction: Transaction) {
     setEditingId(transaction.id)
     setForm({
@@ -121,26 +138,17 @@ export function TransactionsPage() {
       description: transaction.description,
       additionalNotes: transaction.additionalNotes ?? '',
     })
+    setFormDialogOpen(true)
   }
 
   function cancelEdit() {
     setEditingId(null)
-    setForm(emptyForm())
-  }
-
-  function isFormValid() {
-    return (
-      form.date !== '' &&
-      Number(form.amount) > 0 &&
-      form.categoryId !== '' &&
-      form.accountId !== '' &&
-      form.paymentMethodId !== '' &&
-      form.description.trim() !== ''
-    )
+    setForm(emptyTransactionForm())
+    setFormDialogOpen(false)
   }
 
   async function handleSubmit() {
-    if (!isFormValid()) return
+    if (!isTransactionFormValid(form)) return
     setError(null)
     setSaving(true)
     const request = {
@@ -193,255 +201,236 @@ export function TransactionsPage() {
     tableState.reload()
   }
 
+  const columns: ResponsiveColumn<Transaction>[] = [
+    { key: 'date', header: 'Date', render: (t) => t.date },
+    { key: 'category', header: 'Category', render: (t) => categoryName(t.categoryId) },
+    { key: 'account', header: 'Account', render: (t) => accountName(t.accountId) },
+    {
+      key: 'paymentMethod',
+      header: 'Payment Method',
+      render: (t) => paymentMethodName(t.paymentMethodId),
+      tabletPriority: 'low',
+    },
+    {
+      key: 'amount',
+      header: 'Amount',
+      align: 'right',
+      render: (t) => `${t.type === 'EXPENSE' ? '-' : '+'}${t.amount.toFixed(2)}`,
+    },
+    { key: 'description', header: 'Description', render: (t) => t.description },
+  ]
+
+  function rowActions(transaction: Transaction) {
+    return (
+      <>
+        <IconButton size="small" aria-label="Edit" onClick={() => startEdit(transaction)}>
+          <EditIcon fontSize="small" />
+        </IconButton>
+        <IconButton size="small" aria-label="Delete" onClick={() => setDeleteTarget(transaction)}>
+          <DeleteIcon fontSize="small" />
+        </IconButton>
+      </>
+    )
+  }
+
+  // The card is ordered for a phone: what and how much first, then when and where.
+  function renderCard(transaction: Transaction, actions: ReactNode) {
+    const expense = transaction.type === 'EXPENSE'
+    return (
+      <Paper variant="outlined" sx={{ p: 1.5 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
+          <Typography variant="subtitle1" component="div" sx={{ overflowWrap: 'anywhere' }}>
+            {transaction.description}
+          </Typography>
+          <Typography
+            variant="subtitle1"
+            component="div"
+            sx={{
+              flexShrink: 0,
+              fontWeight: 600,
+              color: expense ? 'error.main' : 'success.main',
+            }}
+          >
+            {expense ? '-' : '+'}
+            {transaction.amount.toFixed(2)}
+          </Typography>
+        </Box>
+        <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
+          {transaction.date} · {categoryName(transaction.categoryId)}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
+          {accountName(transaction.accountId)} · {paymentMethodName(transaction.paymentMethodId)}
+        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 0.5 }}>{actions}</Box>
+      </Paper>
+    )
+  }
+
+  const submitLabel = editingId ? 'Save changes' : 'Add'
+  const submitButton = (
+    <Button
+      variant="contained"
+      disabled={saving || !isTransactionFormValid(form)}
+      onClick={() => void handleSubmit()}
+    >
+      {submitLabel}
+    </Button>
+  )
+
   return (
-    <Box sx={{ py: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Transactions
-      </Typography>
+    <Box sx={{ py: { xs: 2, sm: 4 } }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 2,
+          mb: 1,
+        }}
+      >
+        <Typography variant="h4" component="h1">
+          Transactions
+        </Typography>
+        {isMobile && (
+          <Button variant="contained" onClick={startAdd}>
+            Add transaction
+          </Button>
+        )}
+      </Box>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         Every income and expense entry, filterable by date range, category, account, and payment
         method.
       </Typography>
 
-      <ErrorAlert message={error} onDismiss={() => setError(null)} />
+      {/* While the dialog is open a save error shows inside it: this one sits behind it. */}
+      <ErrorAlert message={dialogOpen ? null : error} onDismiss={() => setError(null)} />
 
-      <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
-        <Typography variant="subtitle2" gutterBottom>
-          Filters
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-          <TextField
-            label="From"
-            type="date"
-            size="small"
-            value={filters.dateFrom ?? ''}
-            onChange={(e) => updateFilter({ dateFrom: e.target.value || undefined })}
-            slotProps={{ inputLabel: { shrink: true } }}
-          />
-          <TextField
-            label="To"
-            type="date"
-            size="small"
-            value={filters.dateTo ?? ''}
-            onChange={(e) => updateFilter({ dateTo: e.target.value || undefined })}
-            slotProps={{ inputLabel: { shrink: true } }}
-          />
-          <Select
-            size="small"
-            displayEmpty
-            value={filters.categoryId ?? ''}
-            onChange={(e) => updateFilter({ categoryId: e.target.value || undefined })}
-            aria-label="Category filter"
-            sx={{ minWidth: 160 }}
-          >
-            <MenuItem value="">All categories</MenuItem>
-            {categories?.map((c) => (
-              <MenuItem key={c.id} value={c.id}>
-                {c.name}
-              </MenuItem>
-            ))}
-          </Select>
-          <Select
-            size="small"
-            displayEmpty
-            value={filters.accountId ?? ''}
-            onChange={(e) => updateFilter({ accountId: e.target.value || undefined })}
-            aria-label="Account filter"
-            sx={{ minWidth: 160 }}
-          >
-            <MenuItem value="">All accounts</MenuItem>
-            {accounts?.map((a) => (
-              <MenuItem key={a.id} value={a.id}>
-                {a.name}
-              </MenuItem>
-            ))}
-          </Select>
-          <Select
-            size="small"
-            displayEmpty
-            value={filters.paymentMethodId ?? ''}
-            onChange={(e) => updateFilter({ paymentMethodId: e.target.value || undefined })}
-            aria-label="Payment method filter"
-            sx={{ minWidth: 160 }}
-          >
-            <MenuItem value="">All payment methods</MenuItem>
-            {paymentMethods?.map((p) => (
-              <MenuItem key={p.id} value={p.id}>
-                {p.name}
-              </MenuItem>
-            ))}
-          </Select>
-          <Button
-            size="small"
-            onClick={() => {
-              setFilters({})
-              setPage(0)
-            }}
-          >
-            Clear filters
-          </Button>
-        </Box>
-      </Paper>
+      <ResponsiveFilterBar activeCount={activeFilterCount} onClear={clearFilters}>
+        <TextField
+          label="From"
+          type="date"
+          size="small"
+          value={filters.dateFrom ?? ''}
+          onChange={(e) => updateFilter({ dateFrom: e.target.value || undefined })}
+          slotProps={{ inputLabel: { shrink: true } }}
+        />
+        <TextField
+          label="To"
+          type="date"
+          size="small"
+          value={filters.dateTo ?? ''}
+          onChange={(e) => updateFilter({ dateTo: e.target.value || undefined })}
+          slotProps={{ inputLabel: { shrink: true } }}
+        />
+        <Select
+          size="small"
+          displayEmpty
+          value={filters.categoryId ?? ''}
+          onChange={(e) => updateFilter({ categoryId: e.target.value || undefined })}
+          aria-label="Category filter"
+          sx={{ minWidth: 160 }}
+        >
+          <MenuItem value="">All categories</MenuItem>
+          {categories?.map((c) => (
+            <MenuItem key={c.id} value={c.id}>
+              {c.name}
+            </MenuItem>
+          ))}
+        </Select>
+        <Select
+          size="small"
+          displayEmpty
+          value={filters.accountId ?? ''}
+          onChange={(e) => updateFilter({ accountId: e.target.value || undefined })}
+          aria-label="Account filter"
+          sx={{ minWidth: 160 }}
+        >
+          <MenuItem value="">All accounts</MenuItem>
+          {accounts?.map((a) => (
+            <MenuItem key={a.id} value={a.id}>
+              {a.name}
+            </MenuItem>
+          ))}
+        </Select>
+        <Select
+          size="small"
+          displayEmpty
+          value={filters.paymentMethodId ?? ''}
+          onChange={(e) => updateFilter({ paymentMethodId: e.target.value || undefined })}
+          aria-label="Payment method filter"
+          sx={{ minWidth: 160 }}
+        >
+          <MenuItem value="">All payment methods</MenuItem>
+          {paymentMethods?.map((p) => (
+            <MenuItem key={p.id} value={p.id}>
+              {p.name}
+            </MenuItem>
+          ))}
+        </Select>
+      </ResponsiveFilterBar>
 
-      <Paper variant="outlined" sx={{ mb: 2 }}>
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Date</TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell>Account</TableCell>
-                <TableCell>Payment Method</TableCell>
-                <TableCell align="right">Amount</TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <DataTableBody state={tableState} onRetry={retry} columns={7} actionsColumn>
-              {transactions?.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    <Typography color="text.secondary">No transactions found.</Typography>
-                  </TableCell>
-                </TableRow>
-              )}
-              {transactions?.map((transaction) => (
-                <TableRow key={transaction.id}>
-                  <TableCell>{transaction.date}</TableCell>
-                  <TableCell>{categoryName(transaction.categoryId)}</TableCell>
-                  <TableCell>{accountName(transaction.accountId)}</TableCell>
-                  <TableCell>{paymentMethodName(transaction.paymentMethodId)}</TableCell>
-                  <TableCell align="right">
-                    {transaction.type === 'EXPENSE' ? '-' : '+'}
-                    {transaction.amount.toFixed(2)}
-                  </TableCell>
-                  <TableCell>{transaction.description}</TableCell>
-                  <TableCell align="right">
-                    <IconButton
-                      size="small"
-                      aria-label="Edit"
-                      onClick={() => startEdit(transaction)}
-                    >
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      aria-label="Delete"
-                      onClick={() => setDeleteTarget(transaction)}
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </DataTableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+      <Box sx={{ mb: 2 }}>
+        <ResponsiveTable
+          aria-label="Transactions"
+          columns={columns}
+          rows={transactions}
+          getRowKey={(t) => t.id}
+          state={tableState}
+          onRetry={retry}
+          actions={rowActions}
+          renderCard={renderCard}
+          emptyMessage="No transactions found."
+        />
+      </Box>
 
       <PaginationControls pageInfo={pageInfo} onPageChange={setPage} sx={{ mt: 0, mb: 3 }} />
 
-      <Paper variant="outlined" sx={{ p: 2, maxWidth: 720 }}>
-        <Typography variant="subtitle1" gutterBottom>
-          {editingId ? 'Edit transaction' : 'Add transaction'}
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          <TextField
-            label="Date"
-            type="date"
-            size="small"
-            value={form.date}
-            onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
-            slotProps={{ inputLabel: { shrink: true } }}
-          />
-          <TextField
-            label="Amount"
-            type="number"
-            size="small"
-            value={form.amount}
-            onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value }))}
-            slotProps={{ htmlInput: { step: '0.01', min: '0.01' } }}
-          />
-          <Select
-            size="small"
-            displayEmpty
-            value={form.categoryId}
-            onChange={(e) => setForm((prev) => ({ ...prev, categoryId: e.target.value }))}
-            aria-label="Category"
-            sx={{ minWidth: 160 }}
-          >
-            <MenuItem value="" disabled>
-              Category
-            </MenuItem>
-            {categories?.map((c) => (
-              <MenuItem key={c.id} value={c.id}>
-                {c.name}
-              </MenuItem>
-            ))}
-          </Select>
-          <Select
-            size="small"
-            displayEmpty
-            value={form.accountId}
-            onChange={(e) => setForm((prev) => ({ ...prev, accountId: e.target.value }))}
-            aria-label="Account"
-            sx={{ minWidth: 160 }}
-          >
-            <MenuItem value="" disabled>
-              Account
-            </MenuItem>
-            {openAccounts.map((a) => (
-              <MenuItem key={a.id} value={a.id}>
-                {a.name}
-              </MenuItem>
-            ))}
-          </Select>
-          <Select
-            size="small"
-            displayEmpty
-            value={form.paymentMethodId}
-            onChange={(e) => setForm((prev) => ({ ...prev, paymentMethodId: e.target.value }))}
-            aria-label="Payment Method"
-            sx={{ minWidth: 160 }}
-          >
-            <MenuItem value="" disabled>
-              Payment Method
-            </MenuItem>
-            {paymentMethods?.map((p) => (
-              <MenuItem key={p.id} value={p.id}>
-                {p.name}
-              </MenuItem>
-            ))}
-          </Select>
-          <TextField
-            label="Description"
-            size="small"
-            required
-            value={form.description}
-            onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
-            slotProps={{ htmlInput: { maxLength: 150 } }}
-          />
-          <TextField
-            label="Additional Notes"
-            size="small"
-            value={form.additionalNotes}
-            onChange={(e) => setForm((prev) => ({ ...prev, additionalNotes: e.target.value }))}
-            slotProps={{ htmlInput: { maxLength: 500 } }}
-          />
-          <Button
-            variant="contained"
-            disabled={saving || !isFormValid()}
-            onClick={() => void handleSubmit()}
-          >
-            {editingId ? 'Save changes' : 'Add'}
+      {!isMobile && (
+        <Paper variant="outlined" sx={{ p: 2, maxWidth: 720 }}>
+          <Typography variant="subtitle1" gutterBottom>
+            {editingId ? 'Edit transaction' : 'Add transaction'}
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <TransactionFormFields
+              form={form}
+              onChange={updateForm}
+              categories={categories}
+              accounts={openAccounts}
+              paymentMethods={paymentMethods}
+            />
+            {submitButton}
+            {editingId && (
+              <Button onClick={cancelEdit} disabled={saving}>
+                Cancel
+              </Button>
+            )}
+          </Box>
+        </Paper>
+      )}
+
+      <ResponsiveDialog open={dialogOpen} onClose={saving ? undefined : cancelEdit}>
+        <DialogTitle>{editingId ? 'Edit transaction' : 'Add transaction'}</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 1 }}>
+            <ErrorAlert message={error} onDismiss={() => setError(null)} />
+            <FormGrid>
+              <TransactionFormFields
+                form={form}
+                onChange={updateForm}
+                categories={categories}
+                accounts={openAccounts}
+                paymentMethods={paymentMethods}
+              />
+            </FormGrid>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelEdit} disabled={saving}>
+            Cancel
           </Button>
-          {editingId && (
-            <Button onClick={cancelEdit} disabled={saving}>
-              Cancel
-            </Button>
-          )}
-        </Box>
-      </Paper>
+          {submitButton}
+        </DialogActions>
+      </ResponsiveDialog>
 
       <ConfirmDialog
         open={deleteTarget !== null}
