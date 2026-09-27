@@ -58,6 +58,8 @@ Use MUI `Skeleton`, not spinners or "Loading…" text. Gate every skeleton behin
 
 No chart library: `ValueSeriesChart`, `InvestmentAllocationChart` and `NetWorthTrendChart` are hand-drawn SVG. Their React Compiler lint rules bite in charts specifically: no reassigning a `let` after render (compute running offsets with `reduce`/`slice`) and no `useMemo` over values the compiler can't preserve (compute plainly).
 
+- A chart legend item that is a clickable MUI `Button` (`InvestmentAllocationChart`'s category drill-down) needs `whiteSpace: 'normal'` in its `sx` (F021): `Button` defaults to `white-space: nowrap`, so a long label forces the row wider than a phone screen even inside an otherwise-`flexWrap` container. A plain (non-`Button`) legend line doesn't have this problem.
+
 ## Testing
 
 - Vitest is configured entirely through `vite.config.ts`'s `test` key (`environment: 'jsdom'`, `setupFiles: ['src/test/setup.ts']`) — there is no `vitest.config.ts`. `globals` is off, so `src/test/setup.ts` calls React Testing Library's `cleanup()` itself.
