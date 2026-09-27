@@ -23,16 +23,7 @@ test.describe('smoke', () => {
     expect(problems).toEqual([])
   })
 
-  test('landing route has no horizontal overflow', async ({ page }, testInfo) => {
-    // Known today: below sm the dashboard grid's single `1fr` column stretches to the min-content
-    // width of the "Upcoming recurring bills" widget (522px vs. a 358px content box), so the page
-    // scrolls sideways at 390px. Dashboard content is fixed in F021 PR 4; `test.fail` turns red
-    // the moment the page fits, forcing whoever lands that to delete this block.
-    test.fail(
-      testInfo.project.name === 'mobile',
-      'Dashboard "Upcoming recurring bills" widget overflows below sm until F021 PR 4',
-    )
-
+  test('landing route has no horizontal overflow', async ({ page }) => {
     await page.goto('/')
     await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
     await page.waitForLoadState('networkidle')
