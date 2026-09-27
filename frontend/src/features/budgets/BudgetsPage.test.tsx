@@ -17,6 +17,7 @@ import {
 import { CREATE_CONFLICT_MESSAGE } from '../../api/budgets/budgets'
 import { findRow } from '../../test/testUtils'
 import { expectLoadStates } from '../../test/loadStates'
+import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
 import { BudgetsPage } from './BudgetsPage'
 import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
@@ -26,7 +27,18 @@ function settingsTable() {
   return within(screen.getByRole('table'))
 }
 
+/** The add-budget fields only exist inside the header's Add dialog. */
+async function openAddDialog(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(await screen.findByRole('button', { name: 'Add budget' }))
+  return screen.findByRole('dialog')
+}
+
 describe('BudgetsPage', () => {
+  // jsdom has no viewport, which MUI treats as the tablet band: no column is hidden there for this
+  // page, but pinning desktop keeps these tests unambiguous about which band they exercise.
+  beforeEach(() => setViewportWidth(VIEWPORT.desktop))
+  afterEach(restoreViewport)
+
   it('fetches the categories once for the page and its embedded report (shared query)', async () => {
     let categoryRequests = 0
     server.use(
@@ -64,9 +76,10 @@ describe('BudgetsPage', () => {
     const user = userEvent.setup()
     renderWithQueryClient(<BudgetsPage />)
     await findRow(seedGroceriesCategory.name, settingsTable())
+    const dialog = await openAddDialog(user)
 
     // Groceries is already budgeted and Salary is income - neither belongs here.
-    await user.click(screen.getByLabelText('Category'))
+    await user.click(within(dialog).getByLabelText('Category'))
     expect(
       screen.queryByRole('option', { name: seedGroceriesCategory.name }),
     ).not.toBeInTheDocument()
@@ -85,12 +98,16 @@ describe('BudgetsPage', () => {
     const user = userEvent.setup()
     renderWithQueryClient(<BudgetsPage />)
     await findRow(seedGroceriesCategory.name, settingsTable())
+    const dialog = await openAddDialog(user)
 
-    await user.click(screen.getByLabelText('Category'))
+    await user.click(within(dialog).getByLabelText('Category'))
     await user.click(await screen.findByRole('option', { name: 'Dining' }))
-    await user.type(screen.getByLabelText('Monthly cap'), '150')
-    await user.click(screen.getByRole('button', { name: 'Add' }))
+    await user.type(within(dialog).getByLabelText('Monthly cap'), '150')
+    await user.click(within(dialog).getByRole('button', { name: 'Add' }))
 
+    // The dialog (which hides the table from the accessibility tree while open) must close before
+    // a `getByRole('table')`-scoped query can find it again.
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(await settingsTable().findByText('Dining')).toBeInTheDocument()
   })
 
@@ -107,13 +124,15 @@ describe('BudgetsPage', () => {
     const user = userEvent.setup()
     renderWithQueryClient(<BudgetsPage />)
     await findRow(seedGroceriesCategory.name, settingsTable())
+    const dialog = await openAddDialog(user)
 
-    await user.click(screen.getByLabelText('Category'))
+    await user.click(within(dialog).getByLabelText('Category'))
     await user.click(await screen.findByRole('option', { name: 'Dining' }))
-    await user.type(screen.getByLabelText('Monthly cap'), '150')
-    await user.click(screen.getByRole('button', { name: 'Add' }))
+    await user.type(within(dialog).getByLabelText('Monthly cap'), '150')
+    await user.click(within(dialog).getByRole('button', { name: 'Add' }))
 
-    expect(await screen.findByText(CREATE_CONFLICT_MESSAGE)).toBeInTheDocument()
+    expect(await within(dialog).findByText(CREATE_CONFLICT_MESSAGE)).toBeInTheDocument()
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
   it('edits a budget cap inline', async () => {
@@ -153,7 +172,8 @@ describe('BudgetsPage', () => {
     expect(await screen.findByText('No active budgets for this month.')).toBeInTheDocument()
 
     // Its category already has a budget row: not offered for a duplicate.
-    await user.click(screen.getByLabelText('Category'))
+    const addDialog = await openAddDialog(user)
+    await user.click(within(addDialog).getByLabelText('Category'))
     expect(
       screen.queryByRole('option', { name: seedGroceriesCategory.name }),
     ).not.toBeInTheDocument()
@@ -257,5 +277,85 @@ describe('BudgetsPage local-time defaults', () => {
     renderWithQueryClient(<BudgetsPage />)
 
     expect(await screen.findByLabelText('Month')).toHaveValue('2026-03')
+  })
+})
+
+describe('BudgetsPage responsive layout (F021)', () => {
+  afterEach(restoreViewport)
+
+  async function findCard(name: string) {
+    const list = await screen.findByRole('list', { name: 'Budgets' })
+    await within(list).findByText(name)
+    const items = within(list).getAllByRole('listitem')
+    return within(items.find((item) => within(item).queryByText(name))!)
+  }
+
+  describe('mobile', () => {
+    beforeEach(() => setViewportWidth(VIEWPORT.mobile))
+
+    it('renders cards instead of a table, with the cap and effective-from date', async () => {
+      renderWithQueryClient(<BudgetsPage />)
+
+      const card = await findCard(seedGroceriesCategory.name)
+      expect(screen.queryByRole('table')).not.toBeInTheDocument()
+      expect(card.getByText(seedGroceriesBudget.currentCap!.toFixed(2))).toBeInTheDocument()
+      expect(card.getByText(seedGroceriesBudget.currentCapEffectiveFrom!)).toBeInTheDocument()
+      expect(card.getByRole('button', { name: 'Edit cap' })).toBeInTheDocument()
+      expect(card.getByRole('button', { name: 'Stop budget' })).toBeInTheDocument()
+    })
+
+    it('Add opens a full-screen dialog', async () => {
+      const user = userEvent.setup()
+      renderWithQueryClient(<BudgetsPage />)
+      await findCard(seedGroceriesCategory.name)
+
+      const dialog = await openAddDialog(user)
+
+      expect(dialog).toHaveClass('MuiDialog-paperFullScreen')
+    })
+
+    it('Edit cap opens a full-screen dialog instead of editing on the card', async () => {
+      const user = userEvent.setup()
+      renderWithQueryClient(<BudgetsPage />)
+      const card = await findCard(seedGroceriesCategory.name)
+
+      await user.click(card.getByRole('button', { name: 'Edit cap' }))
+
+      const dialog = await screen.findByRole('dialog')
+      expect(dialog).toHaveClass('MuiDialog-paperFullScreen')
+      const input = within(dialog).getByLabelText('Monthly cap')
+      expect(input).toHaveValue(seedGroceriesBudget.currentCap)
+      await user.clear(input)
+      await user.type(input, '900')
+      await user.click(within(dialog).getByRole('button', { name: 'Save cap' }))
+
+      expect(await screen.findByText('900.00')).toBeInTheDocument()
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    })
+  })
+
+  describe('tablet', () => {
+    beforeEach(() => setViewportWidth(VIEWPORT.tablet))
+
+    it('still edits the cap inline in the row, with no edit dialog', async () => {
+      const user = userEvent.setup()
+      renderWithQueryClient(<BudgetsPage />)
+      const row = await findRow(seedGroceriesCategory.name, settingsTable())
+
+      await user.click(row.getByRole('button', { name: 'Edit cap' }))
+
+      expect(row.getByLabelText('Monthly cap')).toHaveValue(seedGroceriesBudget.currentCap)
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    it('Add opens a regular (not full-screen) dialog', async () => {
+      const user = userEvent.setup()
+      renderWithQueryClient(<BudgetsPage />)
+      await findRow(seedGroceriesCategory.name, settingsTable())
+
+      const dialog = await openAddDialog(user)
+
+      expect(dialog).not.toHaveClass('MuiDialog-paperFullScreen')
+    })
   })
 })
