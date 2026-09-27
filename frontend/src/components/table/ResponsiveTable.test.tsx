@@ -70,6 +70,24 @@ describe('ResponsiveTable', () => {
     expect(screen.getByRole('button', { name: 'Edit Checking' })).toBeInTheDocument()
   })
 
+  it('draws its own outline by default and none when embedded in an outlined section', () => {
+    setViewportWidth(VIEWPORT.desktop)
+    const { container, rerender } = renderTable()
+    expect(container.querySelector('.MuiPaper-outlined')).not.toBeNull()
+
+    rerender(
+      <ResponsiveTable
+        columns={COLUMNS}
+        rows={ROWS}
+        getRowKey={(r) => r.id}
+        state={LOADED}
+        embedded
+      />,
+    )
+    expect(container.querySelector('.MuiPaper-outlined')).toBeNull()
+    expect(screen.getByRole('table')).toBeInTheDocument()
+  })
+
   it('hides low-priority columns on tablet but keeps the table and actions', () => {
     setViewportWidth(VIEWPORT.tablet)
     renderTable()

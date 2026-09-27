@@ -13,6 +13,9 @@ import { InvestmentProductsSection } from '../investmentProducts/InvestmentProdu
 import { AccountTransactionList } from '../transactions/AccountTransactionList'
 import { AccountTransferList } from '../transfers/AccountTransferList'
 
+/** Section padding: tighter on phones so the embedded lists keep their width (F021). */
+const SECTION_PADDING = { xs: 2, sm: 3 }
+
 /**
  * Account detail view (F003 spec): running balance plus account fields, plus F004's transaction
  * history and F005's transfer history, both embedded and pre-filtered to this account (F004 spec:
@@ -39,7 +42,7 @@ export function AccountDetailPage() {
   const showSkeleton = useDelayedFlag(loading)
 
   return (
-    <Box sx={{ py: 4 }}>
+    <Box sx={{ py: { xs: 2, sm: 4 } }}>
       <MuiLink component={RouterLink} to="/accounts" underline="hover">
         &larr; Back to accounts
       </MuiLink>
@@ -54,21 +57,23 @@ export function AccountDetailPage() {
 
       {account && institutions && (
         <Box sx={fadeInSx}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2, mb: 1 }}>
-            <Typography variant="h4" component="h1">
+          <Box
+            sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 2, mt: 2, mb: 1 }}
+          >
+            <Typography variant="h4" component="h1" sx={{ overflowWrap: 'anywhere' }}>
               {account.name}
             </Typography>
             {account.closed ? <Chip label="Closed" /> : <Chip label="Open" color="success" />}
           </Box>
-          <Typography color="text.secondary" sx={{ mb: 3 }}>
+          <Typography color="text.secondary" sx={{ mb: 3, overflowWrap: 'anywhere' }}>
             {institutionName(account.institutionId)} &middot; {ACCOUNT_TYPE_LABELS[account.type]}
           </Typography>
 
-          <Paper variant="outlined" sx={{ p: 3, mb: 3, maxWidth: 480 }}>
+          <Paper variant="outlined" sx={{ p: SECTION_PADDING, mb: 3, maxWidth: 480 }}>
             <Typography variant="overline" color="text.secondary">
               Running balance
             </Typography>
-            <Typography variant="h3" sx={{ mb: 2 }}>
+            <Typography variant="h3" sx={{ mb: 2, overflowWrap: 'anywhere' }}>
               {account.balance.toFixed(2)}
             </Typography>
             <Typography variant="body2" color="text.secondary">
@@ -82,14 +87,14 @@ export function AccountDetailPage() {
           {account.type === 'INVESTMENT' ? (
             // An investment account takes no transactions (money moves through transfers), so its
             // products are listed instead (F008 spec).
-            <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+            <Paper variant="outlined" sx={{ p: SECTION_PADDING, mb: 3 }}>
               <Typography variant="h6" gutterBottom>
                 Products
               </Typography>
               <InvestmentProductsSection accountId={account.id} accountClosed={account.closed} />
             </Paper>
           ) : (
-            <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+            <Paper variant="outlined" sx={{ p: SECTION_PADDING, mb: 3 }}>
               <Typography variant="h6" gutterBottom>
                 Transactions
               </Typography>
@@ -97,7 +102,7 @@ export function AccountDetailPage() {
             </Paper>
           )}
 
-          <Paper variant="outlined" sx={{ p: 3 }}>
+          <Paper variant="outlined" sx={{ p: SECTION_PADDING }}>
             <Typography variant="h6" gutterBottom>
               Transfers
             </Typography>
@@ -114,19 +119,23 @@ function AccountDetailSkeleton() {
   return (
     <Box role="status" aria-label="Loading account">
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2, mb: 1 }}>
-        <Skeleton variant="text" width={240} sx={{ typography: 'h4' }} />
+        <Skeleton variant="text" width={240} sx={{ typography: 'h4', maxWidth: '60%' }} />
         <Skeleton variant="rounded" width={60} height={32} />
       </Box>
       <Skeleton variant="text" width={200} sx={{ mb: 3 }} />
 
-      <Paper variant="outlined" sx={{ p: 3, mb: 3, maxWidth: 480 }}>
+      <Paper variant="outlined" sx={{ p: SECTION_PADDING, mb: 3, maxWidth: 480 }}>
         <Skeleton variant="text" width={110} sx={{ typography: 'overline' }} />
         <Skeleton variant="text" width={180} sx={{ typography: 'h3', mb: 2 }} />
         <Skeleton variant="text" width="80%" sx={{ typography: 'body2' }} />
       </Paper>
 
       {[0, 1].map((section) => (
-        <Paper key={section} variant="outlined" sx={{ p: 3, mb: section === 0 ? 3 : 0 }}>
+        <Paper
+          key={section}
+          variant="outlined"
+          sx={{ p: SECTION_PADDING, mb: section === 0 ? 3 : 0 }}
+        >
           <Skeleton variant="text" width={120} sx={{ typography: 'h6', mb: 1 }} />
           <Skeleton variant="rounded" height={160} />
         </Paper>

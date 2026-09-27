@@ -26,6 +26,8 @@ interface InstitutionSelectProps {
   onCreated?: (institution: Institution) => void
   label?: string
   disabled?: boolean
+  /** Fill the parent's width (a form grid cell) instead of the fixed inline width. */
+  fullWidth?: boolean
 }
 
 /**
@@ -43,11 +45,13 @@ export function InstitutionSelect({
   onCreated,
   label = 'Institution',
   disabled = false,
+  fullWidth = false,
 }: InstitutionSelectProps) {
   const institutionsQuery = useInstitutions()
   const institutions = institutionsQuery.data
   const { loading, loadError, reload } = useQueryState(institutionsQuery)
   const createMutation = useCreateInstitution()
+  const controlWidth = fullWidth ? '100%' : CONTROL_WIDTH
   const showSkeleton = useDelayedFlag(loading)
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
@@ -84,9 +88,9 @@ export function InstitutionSelect({
   if (!selected) {
     // Still loading (the skeleton is held back so a fast response never flashes it).
     return showSkeleton ? (
-      <Skeleton variant="rounded" width={CONTROL_WIDTH} height={40} />
+      <Skeleton variant="rounded" width={controlWidth} height={40} />
     ) : (
-      <Box sx={{ width: CONTROL_WIDTH, height: 40 }} />
+      <Box sx={{ width: controlWidth, height: 40 }} />
     )
   }
 
@@ -95,7 +99,7 @@ export function InstitutionSelect({
       size="small"
       disableClearable
       disabled={disabled || creating}
-      sx={{ width: CONTROL_WIDTH }}
+      sx={{ width: controlWidth }}
       options={options}
       value={selected}
       isOptionEqualToValue={(option, current) => option.id === current.id}

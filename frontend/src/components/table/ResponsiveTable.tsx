@@ -57,6 +57,9 @@ export interface ResponsiveTableProps<T> {
   renderCard?: (row: T, actions: ReactNode) => ReactNode
   /** Placeholder rows while the first fetch is in flight. */
   skeletonRows?: number
+  /** For a list inside a section that already has an outline (the account detail page): the table
+   * drops its own outlined frame so borders don't nest. Cards keep theirs. */
+  embedded?: boolean
   'aria-label'?: string
 }
 
@@ -78,6 +81,7 @@ export function ResponsiveTable<T>({
   emptyMessage = 'No items found.',
   renderCard,
   skeletonRows,
+  embedded = false,
   'aria-label': ariaLabel,
 }: ResponsiveTableProps<T>) {
   const band = useBreakpointBand()
@@ -138,7 +142,10 @@ export function ResponsiveTable<T>({
   }
 
   return (
-    <TableContainer component={Paper} variant="outlined">
+    <TableContainer
+      component={embedded ? 'div' : Paper}
+      {...(embedded ? {} : { variant: 'outlined' as const })}
+    >
       <Table size="small" aria-label={ariaLabel}>
         {!asCards && (
           <TableHead>

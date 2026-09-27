@@ -3,15 +3,10 @@ import {
   Box,
   Button,
   Chip,
+  DialogTitle,
   IconButton,
   MenuItem,
-  Paper,
   Select,
-  Table,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   TextField,
   Typography,
 } from '@mui/material'
@@ -24,7 +19,9 @@ import { useDeleteTransfer, useTransfers } from '../../api/transfers/transfersQu
 import { defaultErrorMessage } from '../../api/core/apiError'
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
-import { DataTableBody } from '../../components/table/DataTableBody'
+import { ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
+import { ResponsiveFilterBar } from '../../components/layout/ResponsiveFilterBar'
+import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { PaginationControls } from '../../components/table/PaginationControls'
 import { nameLookup } from '../../utils/nameLookup'
@@ -38,6 +35,9 @@ const PAGE_SIZE = 20
  * category/payment-method dimensions a Transfer doesn't have (PRD S5.5: never "categorized"). The
  * form is `TransferForm`, which also handles buys and sells of investment products (F009): a
  * tagged transfer shows a Buy/Sell chip with its product's name here.
+ *
+ * Responsive (F021): at every size the header's Add button and each row's/card's Edit open the
+ * form in a `ResponsiveDialog` (full screen below `sm`); there is no form panel below the table.
  */
 export function TransfersPage() {
   const [page, setPage] = useState(0)
@@ -59,7 +59,8 @@ export function TransfersPage() {
   const deleteMutation = useDeleteTransfer()
 
   const [editing, setEditing] = useState<Transfer | null>(null)
-  // Bumped after each save/cancel so the form remounts with fresh state (today's date, no leftovers).
+  const [formDialogOpen, setFormDialogOpen] = useState(false)
+  // Bumped on each open so the form mounts with fresh state (today's date, no leftovers).
   const [formKey, setFormKey] = useState(0)
 
   const [deleteTarget, setDeleteTarget] = useState<Transfer | null>(null)
@@ -70,17 +71,38 @@ export function TransfersPage() {
     setPage(0)
   }
 
+  function clearFilters() {
+    setFilters({})
+    setPage(0)
+  }
+
+  const activeFilterCount = Object.values(filters).filter(Boolean).length
+
   const accountName = useMemo(() => nameLookup(accounts ?? [], (a) => a.name), [accounts])
   const productsById = useMemo(() => new Map((products ?? []).map((p) => [p.id, p])), [products])
 
-  function resetForm() {
+  function startAdd() {
     setEditing(null)
     setFormKey((n) => n + 1)
+    setFormDialogOpen(true)
+  }
+
+  function startEdit(transfer: Transfer) {
+    setEditing(transfer)
+    setFormKey((n) => n + 1)
+    setFormDialogOpen(true)
+  }
+
+  function closeForm() {
+    setEditing(null)
+    setFormDialogOpen(false)
+    setError(null)
   }
 
   // The saved row shows up through the refetch that follows every successful write.
   function handleSaved() {
-    resetForm()
+    setEditing(null)
+    setFormDialogOpen(false)
   }
 
   async function confirmDelete() {
@@ -114,142 +136,129 @@ export function TransfersPage() {
     tableState.reload()
   }
 
+  const columns: ResponsiveColumn<Transfer>[] = [
+    { key: 'date', header: 'Date', role: 'secondary', render: (t) => t.date },
+    { key: 'from', header: 'From', render: (t) => accountName(t.fromAccountId) },
+    { key: 'to', header: 'To', render: (t) => accountName(t.toAccountId) },
+    { key: 'amount', header: 'Amount', align: 'right', render: (t) => t.amount.toFixed(2) },
+    {
+      key: 'description',
+      header: 'Description',
+      role: 'primary',
+      render: (t) => {
+        const trade = tradeLabel(t)
+        return (
+          <>
+            {t.description}
+            {trade && <Chip label={trade} size="small" sx={{ ml: 1 }} />}
+          </>
+        )
+      },
+    },
+  ]
+
+  function rowActions(transfer: Transfer) {
+    return (
+      <>
+        <IconButton size="small" aria-label="Edit" onClick={() => startEdit(transfer)}>
+          <EditIcon fontSize="small" />
+        </IconButton>
+        <IconButton size="small" aria-label="Delete" onClick={() => setDeleteTarget(transfer)}>
+          <DeleteIcon fontSize="small" />
+        </IconButton>
+      </>
+    )
+  }
+
   return (
-    <Box sx={{ py: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Transfers
-      </Typography>
+    <Box sx={{ py: { xs: 2, sm: 4 } }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 2,
+          mb: 1,
+        }}
+      >
+        <Typography variant="h4" component="h1">
+          Transfers
+        </Typography>
+        <Button variant="contained" onClick={startAdd}>
+          Add transfer
+        </Button>
+      </Box>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         Money moved between your own accounts - most commonly paying a credit card statement from
         checking, or buying into and selling out of an investment product. Transfers are never
         categorized and don't count toward budgets.
       </Typography>
 
-      <ErrorAlert message={error} onDismiss={() => setError(null)} />
+      {/* While the dialog is open a save error shows inside it: this one sits behind it. */}
+      <ErrorAlert message={formDialogOpen ? null : error} onDismiss={() => setError(null)} />
 
-      <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
-        <Typography variant="subtitle2" gutterBottom>
-          Filters
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-          <TextField
-            label="From"
-            type="date"
-            size="small"
-            value={filters.dateFrom ?? ''}
-            onChange={(e) => updateFilter({ dateFrom: e.target.value || undefined })}
-            slotProps={{ inputLabel: { shrink: true } }}
-          />
-          <TextField
-            label="To"
-            type="date"
-            size="small"
-            value={filters.dateTo ?? ''}
-            onChange={(e) => updateFilter({ dateTo: e.target.value || undefined })}
-            slotProps={{ inputLabel: { shrink: true } }}
-          />
-          <Select
-            size="small"
-            displayEmpty
-            value={filters.accountId ?? ''}
-            onChange={(e) => updateFilter({ accountId: e.target.value || undefined })}
-            aria-label="Account filter"
-            sx={{ minWidth: 160 }}
-          >
-            <MenuItem value="">All accounts</MenuItem>
-            {accounts?.map((a) => (
-              <MenuItem key={a.id} value={a.id}>
-                {a.name}
-              </MenuItem>
-            ))}
-          </Select>
-          <Button
-            size="small"
-            onClick={() => {
-              setFilters({})
-              setPage(0)
-            }}
-          >
-            Clear filters
-          </Button>
-        </Box>
-      </Paper>
+      <ResponsiveFilterBar activeCount={activeFilterCount} onClear={clearFilters}>
+        <TextField
+          label="From"
+          type="date"
+          size="small"
+          value={filters.dateFrom ?? ''}
+          onChange={(e) => updateFilter({ dateFrom: e.target.value || undefined })}
+          slotProps={{ inputLabel: { shrink: true } }}
+        />
+        <TextField
+          label="To"
+          type="date"
+          size="small"
+          value={filters.dateTo ?? ''}
+          onChange={(e) => updateFilter({ dateTo: e.target.value || undefined })}
+          slotProps={{ inputLabel: { shrink: true } }}
+        />
+        <Select
+          size="small"
+          displayEmpty
+          value={filters.accountId ?? ''}
+          onChange={(e) => updateFilter({ accountId: e.target.value || undefined })}
+          aria-label="Account filter"
+          sx={{ minWidth: 160 }}
+        >
+          <MenuItem value="">All accounts</MenuItem>
+          {accounts?.map((a) => (
+            <MenuItem key={a.id} value={a.id}>
+              {a.name}
+            </MenuItem>
+          ))}
+        </Select>
+      </ResponsiveFilterBar>
 
-      <Paper variant="outlined" sx={{ mb: 2 }}>
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Date</TableCell>
-                <TableCell>From</TableCell>
-                <TableCell>To</TableCell>
-                <TableCell align="right">Amount</TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <DataTableBody state={tableState} onRetry={retry} columns={6} actionsColumn>
-              {transfers?.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    <Typography color="text.secondary">No transfers found.</Typography>
-                  </TableCell>
-                </TableRow>
-              )}
-              {transfers?.map((transfer) => {
-                const trade = tradeLabel(transfer)
-                return (
-                  <TableRow key={transfer.id}>
-                    <TableCell>{transfer.date}</TableCell>
-                    <TableCell>{accountName(transfer.fromAccountId)}</TableCell>
-                    <TableCell>{accountName(transfer.toAccountId)}</TableCell>
-                    <TableCell align="right">{transfer.amount.toFixed(2)}</TableCell>
-                    <TableCell>
-                      {transfer.description}
-                      {trade && <Chip label={trade} size="small" sx={{ ml: 1 }} />}
-                    </TableCell>
-                    <TableCell align="right">
-                      <IconButton
-                        size="small"
-                        aria-label="Edit"
-                        onClick={() => {
-                          setEditing(transfer)
-                          setFormKey((n) => n + 1)
-                        }}
-                      >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        aria-label="Delete"
-                        onClick={() => setDeleteTarget(transfer)}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </DataTableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+      <Box sx={{ mb: 2 }}>
+        <ResponsiveTable
+          aria-label="Transfers"
+          columns={columns}
+          rows={transfers}
+          getRowKey={(t) => t.id}
+          state={tableState}
+          onRetry={retry}
+          actions={rowActions}
+          emptyMessage="No transfers found."
+        />
+      </Box>
 
       <PaginationControls pageInfo={pageInfo} onPageChange={setPage} sx={{ mt: 0, mb: 3 }} />
 
-      <Paper variant="outlined" sx={{ p: 2, maxWidth: 900 }}>
-        <Typography variant="subtitle1" gutterBottom>
-          {editing ? 'Edit transfer' : 'Add transfer'}
-        </Typography>
+      <ResponsiveDialog open={formDialogOpen} onClose={closeForm} fullWidth maxWidth="md">
+        <DialogTitle>{editing ? 'Edit transfer' : 'Add transfer'}</DialogTitle>
         <TransferForm
           key={formKey}
+          dialog
+          banner={<ErrorAlert message={error} onDismiss={() => setError(null)} />}
           accounts={accounts ?? []}
           editing={editing}
           onSaved={handleSaved}
           onError={setError}
-          onCancel={editing ? resetForm : undefined}
+          onCancel={closeForm}
         />
-      </Paper>
+      </ResponsiveDialog>
 
       <ConfirmDialog
         open={deleteTarget !== null}

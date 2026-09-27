@@ -1,8 +1,17 @@
-import { useState } from 'react'
-import { Box, Button, MenuItem, Select, TextField } from '@mui/material'
+import { useState, type ReactNode } from 'react'
+import {
+  Box,
+  Button,
+  DialogActions,
+  DialogContent,
+  MenuItem,
+  Select,
+  TextField,
+} from '@mui/material'
 import type { Account, AccountType } from '../../api/accounts/accounts'
 import { useCreateAccount } from '../../api/accounts/accountsQueries'
 import { defaultErrorMessage } from '../../api/core/apiError'
+import { FormGrid } from '../../components/feedback/ResponsiveDialog'
 import { today } from '../../utils/localDate'
 import { InstitutionSelect } from '../institutions/InstitutionSelect'
 import { ACCOUNT_TYPE_LABELS } from './accountTypes'
@@ -13,6 +22,16 @@ interface AccountCreateFormProps {
   /** Called with a message when creation fails, and with `null` when a new attempt starts. */
   onError: (message: string | null) => void
   submitLabel?: string
+  /**
+   * Lays the form out for a `ResponsiveDialog` (F021): the fields in a one-column-on-phone
+   * `FormGrid` inside `DialogContent`, the buttons in `DialogActions`. The caller supplies the
+   * dialog and its title. Off (default), the fields wrap in one row with the button after them.
+   */
+  dialog?: boolean
+  /** Dialog mode: shown above the fields (the caller's error banner), so a save error is visible. */
+  banner?: ReactNode
+  /** Dialog mode: renders a Cancel button. */
+  onCancel?: () => void
 }
 
 /**
@@ -25,6 +44,9 @@ export function AccountCreateForm({
   onCreated,
   onError,
   submitLabel = 'Add',
+  dialog = false,
+  banner,
+  onCancel,
 }: AccountCreateFormProps) {
   const [name, setName] = useState('')
   // `undefined` until InstitutionSelect reports its default (the built-in "No institution" row).
@@ -60,10 +82,16 @@ export function AccountCreateForm({
     }
   }
 
-  return (
-    <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-      <TextField label="Name" size="small" value={name} onChange={(e) => setName(e.target.value)} />
-      <InstitutionSelect value={institutionId} onChange={setInstitutionId} />
+  const fields = (
+    <>
+      <TextField
+        label="Name"
+        size="small"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        sx={dialog ? { gridColumn: '1 / -1' } : undefined}
+      />
+      <InstitutionSelect value={institutionId} onChange={setInstitutionId} fullWidth={dialog} />
       <Select
         size="small"
         value={type}
@@ -96,13 +124,43 @@ export function AccountCreateForm({
           />
         </>
       )}
-      <Button
-        variant="contained"
-        disabled={adding || !name.trim() || !institutionId}
-        onClick={() => void handleAdd()}
-      >
-        {submitLabel}
-      </Button>
+    </>
+  )
+  const submitButton = (
+    <Button
+      variant="contained"
+      disabled={adding || !name.trim() || !institutionId}
+      onClick={() => void handleAdd()}
+    >
+      {submitLabel}
+    </Button>
+  )
+
+  if (dialog) {
+    return (
+      <>
+        <DialogContent>
+          <Box sx={{ pt: 1 }}>
+            {banner}
+            <FormGrid>{fields}</FormGrid>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          {onCancel && (
+            <Button onClick={onCancel} disabled={adding}>
+              Cancel
+            </Button>
+          )}
+          {submitButton}
+        </DialogActions>
+      </>
+    )
+  }
+
+  return (
+    <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+      {fields}
+      {submitButton}
     </Box>
   )
 }

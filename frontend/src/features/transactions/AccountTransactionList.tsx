@@ -1,18 +1,11 @@
 import { useMemo, useState } from 'react'
-import {
-  Box,
-  Table,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Typography,
-} from '@mui/material'
+import { Box } from '@mui/material'
 import { useCategories } from '../../api/categories/categoriesQueries'
 import { usePaymentMethods } from '../../api/paymentMethods/paymentMethodsQueries'
+import type { Transaction } from '../../api/transactions/transactions'
 import { useTransactions } from '../../api/transactions/transactionsQueries'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
-import { DataTableBody } from '../../components/table/DataTableBody'
+import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { PaginationControls } from '../../components/table/PaginationControls'
 import { nameLookup } from '../../utils/nameLookup'
@@ -29,6 +22,9 @@ interface AccountTransactionListProps {
  * and the create/edit form live on the standalone `/transactions` page (`TransactionsPage`) - this
  * is just that same list, scoped to `accountId` via the same `GET /api/transactions?accountId=`
  * query param.
+ *
+ * Responsive (F021): a read-only `ResponsiveTable` - cards below `sm` (description on top, then
+ * date, then the labelled fields), the Payment Method column behind the row expander on tablet.
  */
 export function AccountTransactionList({ accountId }: AccountTransactionListProps) {
   const [page, setPage] = useState(0)
@@ -63,44 +59,38 @@ export function AccountTransactionList({ accountId }: AccountTransactionListProp
     tableState.reload()
   }
 
+  const columns: ResponsiveColumn<Transaction>[] = [
+    { key: 'date', header: 'Date', role: 'secondary', render: (t) => t.date },
+    { key: 'category', header: 'Category', render: (t) => categoryName(t.categoryId) },
+    {
+      key: 'paymentMethod',
+      header: 'Payment Method',
+      render: (t) => paymentMethodName(t.paymentMethodId),
+      tabletPriority: 'low',
+    },
+    {
+      key: 'amount',
+      header: 'Amount',
+      align: 'right',
+      render: (t) => `${t.type === 'EXPENSE' ? '-' : '+'}${t.amount.toFixed(2)}`,
+    },
+    { key: 'description', header: 'Description', role: 'primary', render: (t) => t.description },
+  ]
+
   return (
     <Box>
       <ErrorAlert message={error} onDismiss={() => setError(null)} />
 
-      <TableContainer>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Date</TableCell>
-              <TableCell>Category</TableCell>
-              <TableCell>Payment Method</TableCell>
-              <TableCell align="right">Amount</TableCell>
-              <TableCell>Description</TableCell>
-            </TableRow>
-          </TableHead>
-          <DataTableBody state={tableState} onRetry={retry} columns={5}>
-            {transactions?.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} align="center">
-                  <Typography color="text.secondary">No transactions yet.</Typography>
-                </TableCell>
-              </TableRow>
-            )}
-            {transactions?.map((transaction) => (
-              <TableRow key={transaction.id}>
-                <TableCell>{transaction.date}</TableCell>
-                <TableCell>{categoryName(transaction.categoryId)}</TableCell>
-                <TableCell>{paymentMethodName(transaction.paymentMethodId)}</TableCell>
-                <TableCell align="right">
-                  {transaction.type === 'EXPENSE' ? '-' : '+'}
-                  {transaction.amount.toFixed(2)}
-                </TableCell>
-                <TableCell>{transaction.description}</TableCell>
-              </TableRow>
-            ))}
-          </DataTableBody>
-        </Table>
-      </TableContainer>
+      <ResponsiveTable
+        embedded
+        aria-label="Account transactions"
+        columns={columns}
+        rows={transactions}
+        getRowKey={(t) => t.id}
+        state={tableState}
+        onRetry={retry}
+        emptyMessage="No transactions yet."
+      />
 
       <PaginationControls pageInfo={pageInfo} onPageChange={setPage} />
     </Box>
