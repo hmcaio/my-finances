@@ -1,5 +1,6 @@
 import { Box, Typography, useTheme } from '@mui/material'
 import type { ValueSeriesPoint } from '../../api/investments/investmentValueSeries'
+import { useIsMobile } from '../../hooks/useBreakpointBand'
 
 const WIDTH = 640
 const HEIGHT = 260
@@ -25,12 +26,19 @@ function niceStep(range: number, ticks: number): number {
  * value (a gap where there is no snapshot yet), the bars are that month's buys minus sells - up
  * for net buying, down for net selling - on the same money axis. Hand-drawn SVG, no chart
  * dependency; the raw numbers are in the table beside it, not derived here.
+ *
+ * Responsive (F021): the `<svg>` was already fluid-width (`width: '100%'`, `maxWidth`, `height:
+ * 'auto'`), so it never causes overflow on its own. Two narrow-screen fixes: month labels below
+ * `sm` thin out to every other month (first and last always shown) past six points, since 12
+ * un-rotated labels overlap at phone width; and the legend row below the chart gets `flexWrap` so
+ * its two captions stack instead of forcing width.
  */
 export function ValueSeriesChart({
   points,
   label = 'Value and contributions by month',
 }: ValueSeriesChartProps) {
   const theme = useTheme()
+  const isMobile = useIsMobile()
   const lineColor = theme.palette.primary.main
   const barColor = theme.palette.secondary.main
   const axisColor = theme.palette.text.secondary
@@ -116,15 +124,20 @@ export function ValueSeriesChart({
                   <title>{`${p.month}: contributed ${p.contributed.toFixed(2)}`}</title>
                 </rect>
               )}
-              <text
-                x={x(index)}
-                y={HEIGHT - MARGIN.bottom + 16}
-                textAnchor="middle"
-                fontSize="11"
-                fill={axisColor}
-              >
-                {p.month}
-              </text>
+              {(!isMobile ||
+                points.length <= 6 ||
+                index % 2 === 0 ||
+                index === points.length - 1) && (
+                <text
+                  x={x(index)}
+                  y={HEIGHT - MARGIN.bottom + 16}
+                  textAnchor="middle"
+                  fontSize="11"
+                  fill={axisColor}
+                >
+                  {p.month}
+                </text>
+              )}
             </g>
           )
         })}
@@ -140,7 +153,7 @@ export function ValueSeriesChart({
             ),
         )}
       </Box>
-      <Box sx={{ display: 'flex', gap: 3, mt: 1 }} aria-hidden="true">
+      <Box sx={{ display: 'flex', gap: 3, mt: 1, flexWrap: 'wrap' }} aria-hidden="true">
         <Typography variant="caption" sx={{ color: lineColor }}>
           &#9679; Value (month-end snapshot)
         </Typography>

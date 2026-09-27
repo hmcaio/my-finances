@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse } from 'msw'
@@ -9,6 +9,7 @@ import { seedInvestmentProducts } from '../../mocks/handlers/investmentProducts'
 import { seedBitcoinSnapshots } from '../../mocks/handlers/investmentSnapshots'
 import { seedBitcoinBuyTransfer, seedBitcoinSellTransfer } from '../../mocks/handlers/transfers'
 import { renderWithRouter, selectOption } from '../../test/testUtils'
+import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
 import { InvestmentProductDetailPage } from './InvestmentProductDetailPage'
 
 const bitcoin = seedInvestmentProducts.find((p) => p.id === 'iprod-btc')!
@@ -27,6 +28,11 @@ function renderDetail(id = 'iprod-btc') {
 }
 
 describe('InvestmentProductDetailPage', () => {
+  // jsdom has no viewport, which MUI treats as the tablet band: pin the desktop layout so the
+  // trades table's record-only columns (hidden on tablet behind the row expander) are visible.
+  beforeEach(() => setViewportWidth(VIEWPORT.desktop))
+  afterEach(restoreViewport)
+
   it('shows the product, its latest value and the needs-snapshot badge', async () => {
     renderDetail()
 
@@ -92,16 +98,23 @@ describe('InvestmentProductDetailPage', () => {
     )
     renderDetail()
     await screen.findByRole('heading', { name: 'Bitcoin' })
-
-    const group = screen.getByRole('group', { name: 'Record snapshot' })
-    await user.clear(within(group).getByLabelText('Snapshot date'))
-    await user.type(within(group).getByLabelText('Snapshot date'), '2026-09-01')
-    await user.type(within(group).getByRole('spinbutton', { name: 'Balance' }), '1234.5')
-    await user.click(within(group).getByRole('button', { name: 'Record snapshot' }))
-
+    // Grab the (still-visible-in-the-DOM) table before the dialog opens: role queries against it
+    // would otherwise fail while the dialog hides the rest of the page from the accessibility tree.
     const history = screen.getByRole('table', { name: 'Snapshot history' })
+
+    await user.click(screen.getByRole('button', { name: 'Record snapshot' }))
+    const dialog = within(await screen.findByRole('dialog', { name: 'Record snapshot' }))
+    await user.clear(dialog.getByLabelText('Snapshot date'))
+    await user.type(dialog.getByLabelText('Snapshot date'), '2026-09-01')
+    await user.type(dialog.getByRole('spinbutton', { name: 'Balance' }), '1234.5')
+    await user.click(dialog.getByRole('button', { name: 'Record snapshot' }))
+
     expect(await within(history).findByText('1234.50')).toBeInTheDocument()
     expect(sent).toEqual({ date: '2026-09-01', balance: 1234.5 })
+    // The dialog closes on success, restoring the page to the accessibility tree.
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Record snapshot' })).not.toBeInTheDocument(),
+    )
     // Newest first.
     expect(within(history).getAllByRole('row')[1]).toHaveTextContent('2026-09-01')
   })
@@ -113,14 +126,19 @@ describe('InvestmentProductDetailPage', () => {
     const history = screen.getByRole('table', { name: 'Snapshot history' })
     await within(history).findByText('800.00')
 
-    const group = screen.getByRole('group', { name: 'Record snapshot' })
-    await user.clear(within(group).getByLabelText('Snapshot date'))
-    await user.type(within(group).getByLabelText('Snapshot date'), seedBitcoinSnapshots[0].date)
-    await user.type(within(group).getByRole('spinbutton', { name: 'Balance' }), '950')
-    await user.click(within(group).getByRole('button', { name: 'Record snapshot' }))
+    await user.click(screen.getByRole('button', { name: 'Record snapshot' }))
+    const dialog = within(await screen.findByRole('dialog', { name: 'Record snapshot' }))
+    await user.clear(dialog.getByLabelText('Snapshot date'))
+    await user.type(dialog.getByLabelText('Snapshot date'), seedBitcoinSnapshots[0].date)
+    await user.type(dialog.getByRole('spinbutton', { name: 'Balance' }), '950')
+    await user.click(dialog.getByRole('button', { name: 'Record snapshot' }))
 
     expect(await within(history).findByText('950.00')).toBeInTheDocument()
     expect(within(history).queryByText('900.00')).not.toBeInTheDocument()
+    // The dialog closes on success, restoring the page to the accessibility tree.
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Record snapshot' })).not.toBeInTheDocument(),
+    )
     expect(within(history).getAllByRole('row')).toHaveLength(3)
   })
 
@@ -128,9 +146,10 @@ describe('InvestmentProductDetailPage', () => {
     const user = userEvent.setup()
     renderDetail()
     await screen.findByRole('heading', { name: 'Bitcoin' })
-    const group = screen.getByRole('group', { name: 'Record snapshot' })
-    const balance = within(group).getByRole('spinbutton', { name: 'Balance' })
-    const button = within(group).getByRole('button', { name: 'Record snapshot' })
+    await user.click(screen.getByRole('button', { name: 'Record snapshot' }))
+    const dialog = within(await screen.findByRole('dialog', { name: 'Record snapshot' }))
+    const balance = dialog.getByRole('spinbutton', { name: 'Balance' })
+    const button = dialog.getByRole('button', { name: 'Record snapshot' })
 
     expect(button).toBeDisabled()
     await user.type(balance, '0')
@@ -327,5 +346,89 @@ describe('InvestmentProductDetailPage', () => {
     renderDetail()
 
     expect(await screen.findByText(/Request failed with status 500/)).toBeInTheDocument()
+  })
+})
+
+describe('InvestmentProductDetailPage responsive layout (F021)', () => {
+  afterEach(restoreViewport)
+
+  describe('mobile', () => {
+    beforeEach(() => setViewportWidth(VIEWPORT.mobile))
+
+    it('renders the monthly-values and trades tables as cards, but keeps the two-column snapshot history a table', async () => {
+      renderDetail()
+      await screen.findByRole('heading', { name: 'Bitcoin' })
+
+      expect(screen.queryByRole('table', { name: 'Monthly values' })).not.toBeInTheDocument()
+      const monthly = await screen.findByRole('list', { name: 'Monthly values' })
+      expect(within(monthly).getByText('2026-08', { exact: false })).toBeInTheDocument()
+
+      expect(screen.queryByRole('table', { name: 'Trades' })).not.toBeInTheDocument()
+      const trades = await screen.findByRole('list', { name: 'Trades' })
+      expect(within(trades).getByText(seedBitcoinBuyTransfer.description)).toBeInTheDocument()
+
+      // Only two data columns (Date, Balance): stays a table even on mobile (F021's 1-2-column rule).
+      expect(await screen.findByRole('table', { name: 'Snapshot history' })).toBeInTheDocument()
+    })
+
+    it('Record snapshot opens a full-screen dialog', async () => {
+      const user = userEvent.setup()
+      renderDetail()
+      await screen.findByRole('heading', { name: 'Bitcoin' })
+
+      await user.click(screen.getByRole('button', { name: 'Record snapshot' }))
+
+      const dialog = await screen.findByRole('dialog', { name: 'Record snapshot' })
+      expect(dialog).toHaveClass('MuiDialog-paperFullScreen')
+    })
+
+    it('the Buy/Sell dialog is full screen', async () => {
+      const user = userEvent.setup()
+      renderDetail()
+      await screen.findByRole('heading', { name: 'Bitcoin' })
+
+      await user.click(screen.getByRole('button', { name: 'Buy' }))
+
+      const dialog = await screen.findByRole('dialog')
+      expect(dialog).toHaveClass('MuiDialog-paperFullScreen')
+    })
+  })
+
+  describe('tablet', () => {
+    beforeEach(() => setViewportWidth(VIEWPORT.tablet))
+
+    it('keeps the trades table without the record-only columns, reachable through the row expander', async () => {
+      const user = userEvent.setup()
+      renderDetail()
+      const trades = await screen.findByRole('table', { name: 'Trades' })
+
+      expect(within(trades).getByRole('columnheader', { name: 'Amount' })).toBeInTheDocument()
+      expect(
+        within(trades).queryByRole('columnheader', { name: 'Quantity' }),
+      ).not.toBeInTheDocument()
+      expect(
+        within(trades).queryByRole('columnheader', { name: 'Unit price' }),
+      ).not.toBeInTheDocument()
+      expect(within(trades).queryByRole('columnheader', { name: 'Taxes' })).not.toBeInTheDocument()
+
+      const row = (await within(trades).findByText(seedBitcoinBuyTransfer.description)).closest(
+        'tr',
+      )!
+      await user.click(within(row).getByRole('button', { name: 'Show details' }))
+      // The unit price (100000) only appears in the expanded trade details, unlike the quantity
+      // (0.01), which also shows up in the monthly-values table's Units column.
+      expect(await screen.findByText('100000')).toBeInTheDocument()
+    })
+
+    it('the Buy/Sell dialog opens without going full screen', async () => {
+      const user = userEvent.setup()
+      renderDetail()
+      await screen.findByRole('heading', { name: 'Bitcoin' })
+
+      await user.click(screen.getByRole('button', { name: 'Sell' }))
+
+      const dialog = await screen.findByRole('dialog')
+      expect(dialog).not.toHaveClass('MuiDialog-paperFullScreen')
+    })
   })
 })
