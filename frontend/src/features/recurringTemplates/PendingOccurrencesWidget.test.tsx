@@ -1,14 +1,22 @@
-import { describe, expect, it } from 'vitest'
-import { screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { seedGroceriesCategory } from '../../mocks/handlers/categories'
+import { seedCheckingAccount } from '../../mocks/handlers/accounts'
 import { seedDebitCardPaymentMethod, seedPaymentMethods } from '../../mocks/handlers/paymentMethods'
 import { seedRentPendingOccurrence } from '../../mocks/handlers/recurringTemplates'
 import { findRow } from '../../test/testUtils'
 import { expectLoadStates } from '../../test/loadStates'
+import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
 import { PendingOccurrencesWidget } from './PendingOccurrencesWidget'
 import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
 describe('PendingOccurrencesWidget', () => {
+  // jsdom has no viewport, which MUI treats as the tablet band (Category column hidden): these
+  // tests assert the full desktop table.
+  beforeEach(() => setViewportWidth(VIEWPORT.desktop))
+  afterEach(restoreViewport)
+
   it('renders the seeded pending occurrence with its template description and amount', async () => {
     renderWithQueryClient(<PendingOccurrencesWidget />)
 
@@ -66,5 +74,64 @@ describe('PendingOccurrencesWidget', () => {
     url: '/api/payment-methods',
     successBody: seedPaymentMethods,
     loadedText: 'Rent',
+  })
+})
+
+describe('PendingOccurrencesWidget responsive layout (F021)', () => {
+  afterEach(restoreViewport)
+
+  async function findCard(description: string) {
+    const list = await screen.findByRole('list', { name: 'Upcoming recurring bills' })
+    await within(list).findByText(description)
+    const items = within(list).getAllByRole('listitem')
+    return within(items.find((item) => within(item).queryByText(description))!)
+  }
+
+  describe('mobile', () => {
+    beforeEach(() => setViewportWidth(VIEWPORT.mobile))
+
+    it('renders cards instead of a table, with due date, category, account and amount', async () => {
+      renderWithQueryClient(<PendingOccurrencesWidget />)
+
+      const card = await findCard('Rent')
+      expect(screen.queryByRole('table')).not.toBeInTheDocument()
+      expect(
+        card.getByText(seedRentPendingOccurrence.dueDate, { exact: false }),
+      ).toBeInTheDocument()
+      expect(card.getByText(seedGroceriesCategory.name, { exact: false })).toBeInTheDocument()
+      expect(card.getByText(seedCheckingAccount.name)).toBeInTheDocument()
+      expect(card.getByText(seedRentPendingOccurrence.amount.toFixed(2))).toBeInTheDocument()
+      expect(card.getByRole('button', { name: 'Confirm occurrence' })).toBeInTheDocument()
+      expect(card.getByRole('button', { name: 'Dismiss occurrence' })).toBeInTheDocument()
+    })
+
+    it('Confirm opens a full-screen dialog prefilled from the occurrence', async () => {
+      const user = userEvent.setup()
+      renderWithQueryClient(<PendingOccurrencesWidget />)
+      const card = await findCard('Rent')
+
+      await user.click(card.getByRole('button', { name: 'Confirm occurrence' }))
+
+      const dialog = await screen.findByRole('dialog')
+      expect(dialog).toHaveClass('MuiDialog-paperFullScreen')
+      expect(within(dialog).getByLabelText('Amount')).toHaveValue(seedRentPendingOccurrence.amount)
+      expect(within(dialog).getByLabelText('Date')).toHaveValue(seedRentPendingOccurrence.dueDate)
+    })
+  })
+
+  describe('tablet', () => {
+    beforeEach(() => setViewportWidth(VIEWPORT.tablet))
+
+    it('keeps the table without the Category column, reachable through the row expander', async () => {
+      const user = userEvent.setup()
+      renderWithQueryClient(<PendingOccurrencesWidget />)
+
+      const row = await findRow('Rent')
+      expect(screen.getByRole('columnheader', { name: 'Amount' })).toBeInTheDocument()
+      expect(screen.queryByRole('columnheader', { name: 'Category' })).not.toBeInTheDocument()
+
+      await user.click(row.getByRole('button', { name: 'Show details' }))
+      expect(await screen.findByText(seedGroceriesCategory.name)).toBeInTheDocument()
+    })
   })
 })
