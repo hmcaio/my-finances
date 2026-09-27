@@ -77,6 +77,11 @@ function segmentPath(start: number, end: number): string {
  *
  * Both groupings are fetched up front - a category's total equals the sum of its sub-category rows
  * - so drilling in is instant. Hand-drawn SVG donut, no chart dependency.
+ *
+ * Responsive (F021): the fixed 200px donut plus its legend already sit in a `flexWrap` row, so the
+ * legend drops below the donut on a narrow phone rather than overflowing; the one real fix is a
+ * legend category button's `white-space: normal` override, since MUI's `Button` otherwise forces
+ * `nowrap` and a long category name would push the row wider than the screen.
  */
 export function InvestmentAllocationChart() {
   const categoryQuery = useInvestmentAllocation({ groupBy: 'CATEGORY' })
@@ -234,7 +239,14 @@ export function InvestmentAllocationChart() {
                   <Button
                     size="small"
                     color="inherit"
-                    sx={{ textTransform: 'none', justifyContent: 'flex-start' }}
+                    sx={{
+                      textTransform: 'none',
+                      justifyContent: 'flex-start',
+                      // MUI's Button defaults to `white-space: nowrap`, which would force this
+                      // row wider than a phone screen for a long category name (F021).
+                      whiteSpace: 'normal',
+                      textAlign: 'left',
+                    }}
                     aria-label={`${slice.label}: show sub-categories`}
                     onClick={() => setDrilledCategoryId(slice.categoryId)}
                   >
