@@ -1,21 +1,20 @@
+import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { Link, MemoryRouter } from 'react-router-dom'
 import { ThemeProvider } from '@mui/material/styles'
 import { getTheme } from '../../theme'
 import { ColorModeProvider } from '../../hooks/colorMode/ColorModeProvider'
 import { restoreViewport, setViewportWidth } from '../../test/viewport'
 import { Layout } from './Layout'
 
-function renderLayout() {
+function renderLayout({ pageContent }: { pageContent?: ReactNode } = {}) {
   return render(
     <MemoryRouter initialEntries={['/']}>
       <ThemeProvider theme={getTheme('light')}>
         <ColorModeProvider>
-          <Layout>
-            <p>page content</p>
-          </Layout>
+          <Layout>{pageContent ?? <p>page content</p>}</Layout>
         </ColorModeProvider>
       </ThemeProvider>
     </MemoryRouter>,
@@ -64,6 +63,26 @@ describe('Layout', () => {
     await waitFor(() =>
       expect(screen.queryByRole('link', { name: 'Accounts' })).not.toBeInTheDocument(),
     )
+  })
+
+  it('stays closed when in-page navigation returns to the pathname the drawer was opened from', async () => {
+    setViewportWidth(390)
+    const user = userEvent.setup()
+    renderLayout({ pageContent: <Link to="/">Go home</Link> })
+
+    // Opened while on "/" (the initial route), then navigated away via the drawer link — the
+    // drawer correctly closes because the pathname changed.
+    await user.click(screen.getByRole('button', { name: 'Open navigation' }))
+    await user.click(await screen.findByRole('link', { name: 'Accounts' }))
+    await waitFor(() =>
+      expect(screen.queryByRole('link', { name: 'Accounts' })).not.toBeInTheDocument(),
+    )
+
+    // Page-level navigation (not the hamburger) back to "/" — the exact pathname the drawer was
+    // last opened from. It must stay closed: nothing was clicked to open it.
+    await user.click(screen.getByRole('link', { name: 'Go home' }))
+
+    expect(screen.queryByRole('link', { name: 'Transactions' })).not.toBeInTheDocument()
   })
 
   it('keeps the dark-mode toggle reachable at every size', () => {
