@@ -1,17 +1,15 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import {
   Box,
   Button,
   Chip,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   IconButton,
   MenuItem,
   Paper,
   Select,
-  Table,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   TextField,
   Typography,
 } from '@mui/material'
@@ -29,12 +27,20 @@ import {
 } from '../../api/recurringTemplates/recurringTemplatesQueries'
 import { defaultErrorMessage } from '../../api/core/apiError'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
+import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
 import { InlineEditActions } from '../../components/table/InlineEditActions'
-import { DataTableBody } from '../../components/table/DataTableBody'
+import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
+import { useIsMobile } from '../../hooks/useBreakpointBand'
 import { currentMonth } from '../../utils/localDate'
 import { nameLookup } from '../../utils/nameLookup'
 import { PendingOccurrencesWidget } from './PendingOccurrencesWidget'
+import {
+  RecurringTemplateAmountField,
+  RecurringTemplateDayOfMonthField,
+  RecurringTemplateEditFields,
+} from './RecurringTemplateEditFields'
+import { isRecurringTemplateEditValid } from './recurringTemplateEdit'
 
 const EMPTY_CREATE_FORM = {
   categoryId: '',
@@ -47,12 +53,21 @@ const EMPTY_CREATE_FORM = {
 /**
  * Recurring templates settings screen (F007 spec): a list of templates (description, category,
  * account, current amount/day-of-month, active/inactive) with inline amount/day edit and a
- * stop/reactivate toggle, plus a create form - all following F006's `BudgetsPage` layout
+ * stop/reactivate toggle, plus a create dialog - all following F006's `BudgetsPage` layout
  * conventions. The "upcoming recurring bills" widget ({@link PendingOccurrencesWidget}) is
  * embedded below; F012's dashboard embeds the same component rather than duplicating it.
+ *
+ * Responsive (F021): the header's Add button opens the create fields in a `ResponsiveDialog` at
+ * every size (there is no form panel below the table). The amount/day-of-month edit stays inline in
+ * the row on tablet/desktop; on mobile the card's Edit opens the same fields
+ * (`RecurringTemplateEditFields`) in a full-screen dialog. Tablet hides only Category
+ * (`tabletPriority: 'low'`, behind the row expander) - Description already identifies the bill and
+ * Account/Amount/Day/Status are what's needed to manage it; Category matters more for the Budgets
+ * page's own report.
  */
 export function RecurringTemplatesPage() {
   const [error, setError] = useState<string | null>(null)
+  const isMobile = useIsMobile()
   const categoriesQuery = useCategories()
   const categories = categoriesQuery.data
   const categoriesState = useQueryState(categoriesQuery, setError)
@@ -69,6 +84,7 @@ export function RecurringTemplatesPage() {
 
   const [createForm, setCreateForm] = useState(EMPTY_CREATE_FORM)
   const [creating, setCreating] = useState(false)
+  const [addDialogOpen, setAddDialogOpen] = useState(false)
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editAmount, setEditAmount] = useState('')
@@ -91,10 +107,13 @@ export function RecurringTemplatesPage() {
       createForm.categoryId !== '' &&
       createForm.accountId !== '' &&
       createForm.description.trim() !== '' &&
-      Number(createForm.amount) > 0 &&
-      Number(createForm.dayOfMonth) >= 1 &&
-      Number(createForm.dayOfMonth) <= 31
+      isRecurringTemplateEditValid(createForm.amount, createForm.dayOfMonth)
     )
+  }
+
+  function closeAddDialog() {
+    setAddDialogOpen(false)
+    setError(null)
   }
 
   async function handleCreate() {
@@ -111,6 +130,7 @@ export function RecurringTemplatesPage() {
         effectiveFrom: currentMonth(),
       })
       setCreateForm(EMPTY_CREATE_FORM)
+      setAddDialogOpen(false)
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {
@@ -130,12 +150,8 @@ export function RecurringTemplatesPage() {
     setEditDayOfMonth('')
   }
 
-  function isEditCapValid() {
-    return Number(editAmount) > 0 && Number(editDayOfMonth) >= 1 && Number(editDayOfMonth) <= 31
-  }
-
   async function saveEditCap(id: string) {
-    if (!isEditCapValid()) return
+    if (!isRecurringTemplateEditValid(editAmount, editDayOfMonth)) return
     setError(null)
     setSavingCap(true)
     try {
@@ -174,182 +190,236 @@ export function RecurringTemplatesPage() {
     tableState.reload()
   }
 
+  // On mobile the edit happens in a dialog opened from the card, so the card stays plain text.
+  const editDialogOpen = isMobile && editingId !== null
+
+  const columns: ResponsiveColumn<RecurringTemplate>[] = [
+    { key: 'description', header: 'Description', render: (t) => t.description },
+    {
+      key: 'category',
+      header: 'Category',
+      tabletPriority: 'low',
+      render: (t) => categoryName(t.categoryId),
+    },
+    { key: 'account', header: 'Account', render: (t) => accountName(t.accountId) },
+    {
+      key: 'amount',
+      header: 'Amount',
+      align: 'right',
+      render: (t) =>
+        editingId === t.id && !isMobile ? (
+          <RecurringTemplateAmountField
+            value={editAmount}
+            onChange={setEditAmount}
+            autoFocus
+            sx={{ width: 110 }}
+          />
+        ) : t.currentAmount !== null ? (
+          t.currentAmount.toFixed(2)
+        ) : (
+          <Typography color="text.secondary" component="span">
+            No cap yet
+          </Typography>
+        ),
+    },
+    {
+      key: 'dayOfMonth',
+      header: 'Day of month',
+      align: 'right',
+      render: (t) =>
+        editingId === t.id && !isMobile ? (
+          <RecurringTemplateDayOfMonthField
+            value={editDayOfMonth}
+            onChange={setEditDayOfMonth}
+            sx={{ width: 80 }}
+          />
+        ) : (
+          (t.currentDayOfMonth ?? '—')
+        ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (t) => (
+        <Chip
+          size="small"
+          label={t.active ? 'Active' : 'Stopped'}
+          color={t.active ? 'success' : 'default'}
+        />
+      ),
+    },
+  ]
+
+  function rowActions(template: RecurringTemplate) {
+    const editingInline = editingId === template.id && !isMobile
+    return (
+      <>
+        <InlineEditActions
+          editing={editingInline}
+          onEdit={() => startEditCap(template)}
+          onSave={() => void saveEditCap(template.id)}
+          onCancel={cancelEditCap}
+          editLabel="Edit amount and day"
+          saveLabel="Save cap"
+          saving={savingCap}
+        />
+        {!editingInline && (
+          <IconButton
+            size="small"
+            aria-label={template.active ? 'Stop' : 'Reactivate'}
+            disabled={togglingId === template.id}
+            onClick={() => void toggleActive(template)}
+          >
+            {template.active ? <PauseIcon fontSize="small" /> : <PlayArrowIcon fontSize="small" />}
+          </IconButton>
+        )}
+      </>
+    )
+  }
+
+  // The card leads with what/how much, like Transactions: description and status up top, then
+  // category/account, then amount and day of month.
+  function renderCard(template: RecurringTemplate, actions: ReactNode) {
+    return (
+      <Paper variant="outlined" sx={{ p: 1.5 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
+          <Typography variant="subtitle1" component="div" sx={{ overflowWrap: 'anywhere' }}>
+            {template.description}
+          </Typography>
+          <Chip
+            size="small"
+            label={template.active ? 'Active' : 'Stopped'}
+            color={template.active ? 'success' : 'default'}
+          />
+        </Box>
+        <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
+          {categoryName(template.categoryId)} · {accountName(template.accountId)}
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {template.currentAmount !== null ? template.currentAmount.toFixed(2) : 'No cap yet'} · Day{' '}
+          {template.currentDayOfMonth ?? '—'}
+        </Typography>
+        {actions && (
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>{actions}</Box>
+        )}
+      </Paper>
+    )
+  }
+
   return (
-    <Box sx={{ py: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Recurring Templates
-      </Typography>
+    <Box sx={{ py: { xs: 2, sm: 4 } }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 2,
+          mb: 1,
+        }}
+      >
+        <Typography variant="h4" component="h1">
+          Recurring Templates
+        </Typography>
+        <Button variant="contained" onClick={() => setAddDialogOpen(true)}>
+          Add recurring template
+        </Button>
+      </Box>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         Versioned recurring bills/income. Editing the amount or day-of-month always takes effect
         from the current month forward - it never rewrites past pending or confirmed occurrences.
       </Typography>
 
-      <ErrorAlert message={error} onDismiss={() => setError(null)} />
+      {/* While a dialog is open a save error shows inside it: this one sits behind it. */}
+      <ErrorAlert
+        message={addDialogOpen || editDialogOpen ? null : error}
+        onDismiss={() => setError(null)}
+      />
 
-      <Paper variant="outlined" sx={{ mb: 3 }}>
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Description</TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell>Account</TableCell>
-                <TableCell align="right">Amount</TableCell>
-                <TableCell align="right">Day of month</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <DataTableBody state={tableState} onRetry={retry} columns={7} actionsColumn>
-              {templates?.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    <Typography color="text.secondary">No recurring templates yet.</Typography>
-                  </TableCell>
-                </TableRow>
-              )}
-              {templates?.map((template) => (
-                <TableRow key={template.id}>
-                  <TableCell>{template.description}</TableCell>
-                  <TableCell>{categoryName(template.categoryId)}</TableCell>
-                  <TableCell>{accountName(template.accountId)}</TableCell>
-                  <TableCell align="right">
-                    {editingId === template.id ? (
-                      <TextField
-                        size="small"
-                        type="number"
-                        label="Amount"
-                        value={editAmount}
-                        onChange={(e) => setEditAmount(e.target.value)}
-                        slotProps={{ htmlInput: { step: '0.01', min: '0.01' } }}
-                        autoFocus
-                        sx={{ width: 110 }}
-                      />
-                    ) : template.currentAmount !== null ? (
-                      template.currentAmount.toFixed(2)
-                    ) : (
-                      <Typography color="text.secondary" component="span">
-                        No cap yet
-                      </Typography>
-                    )}
-                  </TableCell>
-                  <TableCell align="right">
-                    {editingId === template.id ? (
-                      <TextField
-                        size="small"
-                        type="number"
-                        label="Day"
-                        value={editDayOfMonth}
-                        onChange={(e) => setEditDayOfMonth(e.target.value)}
-                        slotProps={{ htmlInput: { min: 1, max: 31 } }}
-                        sx={{ width: 80 }}
-                      />
-                    ) : (
-                      (template.currentDayOfMonth ?? '—')
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      size="small"
-                      label={template.active ? 'Active' : 'Stopped'}
-                      color={template.active ? 'success' : 'default'}
-                    />
-                  </TableCell>
-                  <TableCell align="right">
-                    <InlineEditActions
-                      editing={editingId === template.id}
-                      onEdit={() => startEditCap(template)}
-                      onSave={() => void saveEditCap(template.id)}
-                      onCancel={cancelEditCap}
-                      editLabel="Edit amount and day"
-                      saveLabel="Save cap"
-                      saving={savingCap}
-                    />
-                    {editingId !== template.id && (
-                      <IconButton
-                        size="small"
-                        aria-label={template.active ? 'Stop' : 'Reactivate'}
-                        disabled={togglingId === template.id}
-                        onClick={() => void toggleActive(template)}
-                      >
-                        {template.active ? (
-                          <PauseIcon fontSize="small" />
-                        ) : (
-                          <PlayArrowIcon fontSize="small" />
-                        )}
-                      </IconButton>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </DataTableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+      <Box sx={{ mb: 3 }}>
+        <ResponsiveTable
+          aria-label="Recurring templates"
+          columns={columns}
+          rows={templates}
+          getRowKey={(template) => template.id}
+          state={tableState}
+          onRetry={retry}
+          actions={rowActions}
+          renderCard={renderCard}
+          emptyMessage="No recurring templates yet."
+        />
+      </Box>
 
-      <Paper variant="outlined" sx={{ p: 2, mb: 4, maxWidth: 720 }}>
-        <Typography variant="subtitle1" gutterBottom>
-          Add recurring template
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          <Select
-            size="small"
-            displayEmpty
-            value={createForm.categoryId}
-            onChange={(e) => setCreateForm((prev) => ({ ...prev, categoryId: e.target.value }))}
-            aria-label="Category"
-            sx={{ minWidth: 160 }}
-          >
-            <MenuItem value="" disabled>
-              Category
-            </MenuItem>
-            {categories?.map((c) => (
-              <MenuItem key={c.id} value={c.id}>
-                {c.name}
-              </MenuItem>
-            ))}
-          </Select>
-          <Select
-            size="small"
-            displayEmpty
-            value={createForm.accountId}
-            onChange={(e) => setCreateForm((prev) => ({ ...prev, accountId: e.target.value }))}
-            aria-label="Account"
-            sx={{ minWidth: 160 }}
-          >
-            <MenuItem value="" disabled>
-              Account
-            </MenuItem>
-            {templateAccounts.map((a) => (
-              <MenuItem key={a.id} value={a.id}>
-                {a.name}
-              </MenuItem>
-            ))}
-          </Select>
-          <TextField
-            label="Description"
-            size="small"
-            value={createForm.description}
-            onChange={(e) => setCreateForm((prev) => ({ ...prev, description: e.target.value }))}
-            slotProps={{ htmlInput: { maxLength: 150 } }}
-          />
-          <TextField
-            label="Amount"
-            type="number"
-            size="small"
-            value={createForm.amount}
-            onChange={(e) => setCreateForm((prev) => ({ ...prev, amount: e.target.value }))}
-            slotProps={{ htmlInput: { step: '0.01', min: '0.01' } }}
-          />
-          <TextField
-            label="Day of month"
-            type="number"
-            size="small"
-            value={createForm.dayOfMonth}
-            onChange={(e) => setCreateForm((prev) => ({ ...prev, dayOfMonth: e.target.value }))}
-            slotProps={{ htmlInput: { min: 1, max: 31 } }}
-            sx={{ width: 130 }}
-          />
+      <ResponsiveDialog open={addDialogOpen} onClose={closeAddDialog}>
+        <DialogTitle>Add recurring template</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 1 }}>
+            <ErrorAlert message={error} onDismiss={() => setError(null)} />
+            <FormGrid>
+              <Select
+                size="small"
+                displayEmpty
+                value={createForm.categoryId}
+                onChange={(e) => setCreateForm((prev) => ({ ...prev, categoryId: e.target.value }))}
+                aria-label="Category"
+              >
+                <MenuItem value="" disabled>
+                  Category
+                </MenuItem>
+                {categories?.map((c) => (
+                  <MenuItem key={c.id} value={c.id}>
+                    {c.name}
+                  </MenuItem>
+                ))}
+              </Select>
+              <Select
+                size="small"
+                displayEmpty
+                value={createForm.accountId}
+                onChange={(e) => setCreateForm((prev) => ({ ...prev, accountId: e.target.value }))}
+                aria-label="Account"
+              >
+                <MenuItem value="" disabled>
+                  Account
+                </MenuItem>
+                {templateAccounts.map((a) => (
+                  <MenuItem key={a.id} value={a.id}>
+                    {a.name}
+                  </MenuItem>
+                ))}
+              </Select>
+              <TextField
+                label="Description"
+                size="small"
+                value={createForm.description}
+                onChange={(e) =>
+                  setCreateForm((prev) => ({ ...prev, description: e.target.value }))
+                }
+                slotProps={{ htmlInput: { maxLength: 150 } }}
+                sx={{ gridColumn: '1 / -1' }}
+              />
+              <TextField
+                label="Amount"
+                type="number"
+                size="small"
+                value={createForm.amount}
+                onChange={(e) => setCreateForm((prev) => ({ ...prev, amount: e.target.value }))}
+                slotProps={{ htmlInput: { step: '0.01', min: '0.01' } }}
+              />
+              <TextField
+                label="Day of month"
+                type="number"
+                size="small"
+                value={createForm.dayOfMonth}
+                onChange={(e) => setCreateForm((prev) => ({ ...prev, dayOfMonth: e.target.value }))}
+                slotProps={{ htmlInput: { min: 1, max: 31 } }}
+              />
+            </FormGrid>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeAddDialog} disabled={creating}>
+            Cancel
+          </Button>
           <Button
             variant="contained"
             disabled={creating || !isCreateFormValid()}
@@ -357,8 +427,37 @@ export function RecurringTemplatesPage() {
           >
             Add
           </Button>
-        </Box>
-      </Paper>
+        </DialogActions>
+      </ResponsiveDialog>
+
+      <ResponsiveDialog open={editDialogOpen} onClose={savingCap ? undefined : cancelEditCap}>
+        <DialogTitle>Edit amount and day</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 1 }}>
+            <ErrorAlert message={error} onDismiss={() => setError(null)} />
+            <FormGrid columns={1}>
+              <RecurringTemplateEditFields
+                amount={editAmount}
+                dayOfMonth={editDayOfMonth}
+                onAmountChange={setEditAmount}
+                onDayOfMonthChange={setEditDayOfMonth}
+              />
+            </FormGrid>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelEditCap} disabled={savingCap}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            disabled={savingCap || !isRecurringTemplateEditValid(editAmount, editDayOfMonth)}
+            onClick={() => editingId && void saveEditCap(editingId)}
+          >
+            Save cap
+          </Button>
+        </DialogActions>
+      </ResponsiveDialog>
 
       <PendingOccurrencesWidget />
     </Box>

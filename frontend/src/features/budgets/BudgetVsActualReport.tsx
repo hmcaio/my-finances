@@ -46,12 +46,22 @@ export function BudgetVsActualReport({ month }: BudgetVsActualReportProps) {
               line.cap !== null && line.cap > 0 ? Math.min(100, (line.actual / line.cap) * 100) : 0
             return (
               <Box key={line.categoryId} sx={{ mb: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                  <Typography variant="body2">{categoryName(line.categoryId)}</Typography>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    justifyContent: 'space-between',
+                    gap: 1,
+                    mb: 0.5,
+                  }}
+                >
+                  <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>
+                    {categoryName(line.categoryId)}
+                  </Typography>
                   <Typography
                     variant="body2"
                     color={overCap ? 'error' : 'text.secondary'}
-                    sx={{ fontWeight: overCap ? 'bold' : undefined }}
+                    sx={{ fontWeight: overCap ? 'bold' : undefined, overflowWrap: 'anywhere' }}
                   >
                     {line.actual.toFixed(2)} / {line.cap !== null ? line.cap.toFixed(2) : 'no cap'}
                     {overCap && ' — over budget'}

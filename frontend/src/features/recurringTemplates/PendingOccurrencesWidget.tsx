@@ -1,8 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import {
   Box,
   Button,
-  Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
@@ -10,11 +9,6 @@ import {
   MenuItem,
   Paper,
   Select,
-  Table,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   TextField,
   Typography,
 } from '@mui/material'
@@ -33,7 +27,8 @@ import {
 import { defaultErrorMessage } from '../../api/core/apiError'
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
-import { DataTableBody } from '../../components/table/DataTableBody'
+import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
+import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { nameLookup } from '../../utils/nameLookup'
 
@@ -47,6 +42,12 @@ import { nameLookup } from '../../utils/nameLookup'
  * Confirming opens a pre-filled, fully overridable form (PRD S5.7/S6.5): amount/date/account
  * default from the occurrence/template, and payment method - which the template has no default
  * for - is always required.
+ *
+ * Responsive (F021): this is a genuine data table (due date, description, category, account,
+ * amount, each row with confirm/dismiss actions) rather than a list-with-add-form, so it gets the
+ * same `ResponsiveTable` treatment as any 3+ column list (cards below `sm`); tablet hides only
+ * Category, matching the recurring-templates settings table's own choice. The confirm form moves
+ * into a `ResponsiveDialog` (full screen below `sm`) with its fields in a `FormGrid`.
  */
 export function PendingOccurrencesWidget() {
   const [error, setError] = useState<string | null>(null)
@@ -155,120 +156,158 @@ export function PendingOccurrencesWidget() {
     tableState.reload()
   }
 
+  const columns: ResponsiveColumn<PendingRecurringOccurrence>[] = [
+    { key: 'dueDate', header: 'Due date', render: (o) => o.dueDate },
+    {
+      key: 'description',
+      header: 'Description',
+      render: (o) => templateById(o.templateId)?.description ?? '—',
+    },
+    {
+      key: 'category',
+      header: 'Category',
+      tabletPriority: 'low',
+      render: (o) => {
+        const template = templateById(o.templateId)
+        return template ? categoryName(template.categoryId) : '—'
+      },
+    },
+    {
+      key: 'account',
+      header: 'Account',
+      render: (o) => {
+        const template = templateById(o.templateId)
+        return template ? accountName(template.accountId) : '—'
+      },
+    },
+    { key: 'amount', header: 'Amount', align: 'right', render: (o) => o.amount.toFixed(2) },
+  ]
+
+  function rowActions(occurrence: PendingRecurringOccurrence) {
+    return (
+      <>
+        <IconButton
+          size="small"
+          aria-label="Confirm occurrence"
+          onClick={() => openConfirm(occurrence)}
+        >
+          <CheckCircleIcon fontSize="small" />
+        </IconButton>
+        <IconButton
+          size="small"
+          aria-label="Dismiss occurrence"
+          onClick={() => setDismissTarget(occurrence)}
+        >
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </>
+    )
+  }
+
+  function renderCard(occurrence: PendingRecurringOccurrence, actions: ReactNode) {
+    const template = templateById(occurrence.templateId)
+    return (
+      <Paper variant="outlined" sx={{ p: 1.5 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
+          <Typography variant="subtitle1" component="div" sx={{ overflowWrap: 'anywhere' }}>
+            {template?.description ?? '—'}
+          </Typography>
+          <Typography variant="subtitle1" component="div" sx={{ flexShrink: 0, fontWeight: 600 }}>
+            {occurrence.amount.toFixed(2)}
+          </Typography>
+        </Box>
+        <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
+          {occurrence.dueDate} · {template ? categoryName(template.categoryId) : '—'}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
+          {template ? accountName(template.accountId) : '—'}
+        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 0.5 }}>{actions}</Box>
+      </Paper>
+    )
+  }
+
   return (
     <Box>
       <Typography variant="h5" component="h2" gutterBottom>
         Upcoming recurring bills
       </Typography>
 
-      <ErrorAlert message={error} onDismiss={() => setError(null)} />
+      <ErrorAlert
+        message={confirmTarget !== null ? null : error}
+        onDismiss={() => setError(null)}
+      />
 
-      <Paper variant="outlined">
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Due date</TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell>Account</TableCell>
-                <TableCell align="right">Amount</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <DataTableBody state={tableState} onRetry={retry} columns={6} actionsColumn>
-              {pending?.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    <Typography color="text.secondary">Nothing pending right now.</Typography>
-                  </TableCell>
-                </TableRow>
-              )}
-              {pending?.map((occurrence) => {
-                const template = templateById(occurrence.templateId)
-                return (
-                  <TableRow key={occurrence.id}>
-                    <TableCell>{occurrence.dueDate}</TableCell>
-                    <TableCell>{template?.description ?? '—'}</TableCell>
-                    <TableCell>{template ? categoryName(template.categoryId) : '—'}</TableCell>
-                    <TableCell>{template ? accountName(template.accountId) : '—'}</TableCell>
-                    <TableCell align="right">{occurrence.amount.toFixed(2)}</TableCell>
-                    <TableCell align="right">
-                      <IconButton
-                        size="small"
-                        aria-label="Confirm occurrence"
-                        onClick={() => openConfirm(occurrence)}
-                      >
-                        <CheckCircleIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        aria-label="Dismiss occurrence"
-                        onClick={() => setDismissTarget(occurrence)}
-                      >
-                        <CloseIcon fontSize="small" />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </DataTableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+      <ResponsiveTable
+        aria-label="Upcoming recurring bills"
+        columns={columns}
+        rows={pending}
+        getRowKey={(occurrence) => occurrence.id}
+        state={tableState}
+        onRetry={retry}
+        actions={rowActions}
+        renderCard={renderCard}
+        emptyMessage="Nothing pending right now."
+      />
 
-      <Dialog open={confirmTarget !== null} onClose={closeConfirm} fullWidth maxWidth="sm">
+      <ResponsiveDialog
+        open={confirmTarget !== null}
+        onClose={confirming ? undefined : closeConfirm}
+      >
         <DialogTitle>Confirm recurring occurrence</DialogTitle>
         <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-            <TextField
-              label="Amount"
-              type="number"
-              size="small"
-              value={confirmAmount}
-              onChange={(e) => setConfirmAmount(e.target.value)}
-              slotProps={{ htmlInput: { step: '0.01', min: '0.01' } }}
-            />
-            <TextField
-              label="Date"
-              type="date"
-              size="small"
-              value={confirmDate}
-              onChange={(e) => setConfirmDate(e.target.value)}
-              slotProps={{ inputLabel: { shrink: true } }}
-            />
-            <Select
-              size="small"
-              displayEmpty
-              value={confirmAccountId}
-              onChange={(e) => setConfirmAccountId(e.target.value)}
-              aria-label="Account"
-            >
-              <MenuItem value="" disabled>
-                Account
-              </MenuItem>
-              {accounts?.map((a) => (
-                <MenuItem key={a.id} value={a.id}>
-                  {a.name}
+          <Box sx={{ pt: 1 }}>
+            <ErrorAlert message={error} onDismiss={() => setError(null)} />
+            <FormGrid>
+              <TextField
+                label="Amount"
+                type="number"
+                size="small"
+                value={confirmAmount}
+                onChange={(e) => setConfirmAmount(e.target.value)}
+                slotProps={{ htmlInput: { step: '0.01', min: '0.01' } }}
+              />
+              <TextField
+                label="Date"
+                type="date"
+                size="small"
+                value={confirmDate}
+                onChange={(e) => setConfirmDate(e.target.value)}
+                slotProps={{ inputLabel: { shrink: true } }}
+              />
+              <Select
+                size="small"
+                displayEmpty
+                value={confirmAccountId}
+                onChange={(e) => setConfirmAccountId(e.target.value)}
+                aria-label="Account"
+              >
+                <MenuItem value="" disabled>
+                  Account
                 </MenuItem>
-              ))}
-            </Select>
-            <Select
-              size="small"
-              displayEmpty
-              value={confirmPaymentMethodId}
-              onChange={(e) => setConfirmPaymentMethodId(e.target.value)}
-              aria-label="Payment Method"
-            >
-              <MenuItem value="" disabled>
-                Payment Method
-              </MenuItem>
-              {paymentMethods?.map((p) => (
-                <MenuItem key={p.id} value={p.id}>
-                  {p.name}
+                {accounts?.map((a) => (
+                  <MenuItem key={a.id} value={a.id}>
+                    {a.name}
+                  </MenuItem>
+                ))}
+              </Select>
+              <Select
+                size="small"
+                displayEmpty
+                value={confirmPaymentMethodId}
+                onChange={(e) => setConfirmPaymentMethodId(e.target.value)}
+                aria-label="Payment Method"
+              >
+                <MenuItem value="" disabled>
+                  Payment Method
                 </MenuItem>
-              ))}
-            </Select>
+                {paymentMethods?.map((p) => (
+                  <MenuItem key={p.id} value={p.id}>
+                    {p.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormGrid>
           </Box>
         </DialogContent>
         <DialogActions>
@@ -283,7 +322,7 @@ export function PendingOccurrencesWidget() {
             Confirm
           </Button>
         </DialogActions>
-      </Dialog>
+      </ResponsiveDialog>
 
       <ConfirmDialog
         open={dismissTarget !== null}
