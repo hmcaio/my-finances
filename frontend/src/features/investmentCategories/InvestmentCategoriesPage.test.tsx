@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { screen, waitFor } from '@testing-library/react'
+import { afterEach, describe, expect, it } from 'vitest'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
@@ -21,6 +21,7 @@ import {
   DUPLICATE_NAME_MESSAGE as SUBCATEGORY_DUPLICATE_NAME_MESSAGE,
 } from '../../api/investments/investmentSubcategories'
 import { findRow } from '../../test/testUtils'
+import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
 import { InvestmentCategoriesPage } from './InvestmentCategoriesPage'
 import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
@@ -59,13 +60,15 @@ describe('InvestmentCategoriesPage', () => {
     expect(screen.queryByText('CDB')).not.toBeInTheDocument()
   })
 
-  it('adds a category', async () => {
+  it('adds a category through the header dialog', async () => {
     const user = userEvent.setup()
     renderWithQueryClient(<InvestmentCategoriesPage />)
     await screen.findByText(CRYPTO.name)
 
-    await user.type(screen.getByRole('textbox', { name: 'Category name' }), 'Real Estate')
     await user.click(screen.getByRole('button', { name: 'Add category' }))
+    const dialog = screen.getByRole('dialog')
+    await user.type(within(dialog).getByRole('textbox', { name: 'Category name' }), 'Real Estate')
+    await user.click(within(dialog).getByRole('button', { name: 'Add' }))
 
     expect(await screen.findByText('Real Estate')).toBeInTheDocument()
   })
@@ -170,8 +173,10 @@ describe('InvestmentCategoriesPage', () => {
     await user.click(screen.getByRole('button', { name: 'Add sub-category to Fixed Income' }))
     expect(await screen.findByText(SUBCATEGORY_DUPLICATE_NAME_MESSAGE)).toBeInTheDocument()
 
-    await user.type(screen.getByRole('textbox', { name: 'Category name' }), 'Crypto')
     await user.click(screen.getByRole('button', { name: 'Add category' }))
+    const dialog = screen.getByRole('dialog')
+    await user.type(within(dialog).getByRole('textbox', { name: 'Category name' }), 'Crypto')
+    await user.click(within(dialog).getByRole('button', { name: 'Add' }))
     expect(await screen.findByText(CATEGORY_DUPLICATE_NAME_MESSAGE)).toBeInTheDocument()
   })
 
@@ -212,5 +217,56 @@ describe('InvestmentCategoriesPage', () => {
     await user.click(screen.getByRole('button', { name: 'Retry' }))
 
     expect(await screen.findByText(CRYPTO.name)).toBeInTheDocument()
+  })
+})
+
+describe('InvestmentCategoriesPage responsive layout (F021)', () => {
+  afterEach(restoreViewport)
+
+  it('opens the add-category dialog full-screen on mobile', async () => {
+    setViewportWidth(VIEWPORT.mobile)
+    const user = userEvent.setup()
+    renderWithQueryClient(<InvestmentCategoriesPage />)
+    await screen.findByText(CRYPTO.name)
+
+    await user.click(screen.getByRole('button', { name: 'Add category' }))
+    const dialog = await screen.findByRole('dialog')
+
+    expect(dialog).toHaveClass('MuiDialog-paperFullScreen')
+  })
+
+  it('opens the add-category dialog as a regular (not full-screen) dialog on tablet', async () => {
+    setViewportWidth(VIEWPORT.tablet)
+    const user = userEvent.setup()
+    renderWithQueryClient(<InvestmentCategoriesPage />)
+    await screen.findByText(CRYPTO.name)
+
+    await user.click(screen.getByRole('button', { name: 'Add category' }))
+    const dialog = await screen.findByRole('dialog')
+
+    expect(dialog).not.toHaveClass('MuiDialog-paperFullScreen')
+  })
+
+  it('keeps the per-category add-sub-category form inline, not in a dialog, at every size', async () => {
+    setViewportWidth(VIEWPORT.mobile)
+    const user = userEvent.setup()
+    renderWithQueryClient(<InvestmentCategoriesPage />)
+    await expand(user, 'Fixed Income')
+
+    expect(screen.getByLabelText('New sub-category in Fixed Income')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('renames a category inline at every size (the table never becomes cards)', async () => {
+    setViewportWidth(VIEWPORT.mobile)
+    const user = userEvent.setup()
+    renderWithQueryClient(<InvestmentCategoriesPage />)
+    await screen.findByText(CRYPTO.name)
+
+    const row = await findRow('Crypto')
+    await user.click(row.getByRole('button', { name: 'Rename' }))
+
+    expect(row.getByRole('textbox', { name: 'Category name' })).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })
