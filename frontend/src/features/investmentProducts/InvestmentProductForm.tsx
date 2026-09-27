@@ -1,9 +1,18 @@
-import { useState } from 'react'
-import { Box, Button, MenuItem, Select, TextField } from '@mui/material'
+import { useState, type ReactNode } from 'react'
+import {
+  Box,
+  Button,
+  DialogActions,
+  DialogContent,
+  MenuItem,
+  Select,
+  TextField,
+} from '@mui/material'
 import {
   INVESTMENT_NAME_MAX_LENGTH,
   type InvestmentCategory,
 } from '../../api/investments/investmentCategories'
+import { FormGrid } from '../../components/feedback/ResponsiveDialog'
 
 /** What the form collects; an empty `subcategoryId` means "no sub-category". */
 export interface InvestmentProductFormValues {
@@ -20,6 +29,14 @@ interface InvestmentProductFormProps {
   submitting: boolean
   onSubmit: (values: InvestmentProductFormValues) => void
   onCancel?: () => void
+  /**
+   * Lays the form out for a `ResponsiveDialog` (F021): fields in a one-column-on-phone `FormGrid`
+   * inside `DialogContent`, buttons in `DialogActions`. Off (default), the fields wrap in one flex
+   * row with the buttons after them.
+   */
+  dialog?: boolean
+  /** Dialog mode: shown above the fields (the caller's error banner), so a save error is visible. */
+  banner?: ReactNode
 }
 
 /**
@@ -36,6 +53,8 @@ export function InvestmentProductForm({
   submitting,
   onSubmit,
   onCancel,
+  dialog = false,
+  banner,
 }: InvestmentProductFormProps) {
   const [name, setName] = useState(initial?.name ?? '')
   const [categoryId, setCategoryId] = useState(initial?.categoryId ?? '')
@@ -48,14 +67,15 @@ export function InvestmentProductForm({
     setSubcategoryId('')
   }
 
-  return (
-    <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+  const fields = (
+    <>
       <TextField
         label="Product name"
         size="small"
         value={name}
         onChange={(e) => setName(e.target.value)}
         slotProps={{ htmlInput: { maxLength: INVESTMENT_NAME_MAX_LENGTH } }}
+        sx={dialog ? { gridColumn: '1 / -1' } : undefined}
       />
       <Select
         size="small"
@@ -63,7 +83,7 @@ export function InvestmentProductForm({
         value={categoryId}
         onChange={(e) => changeCategory(e.target.value)}
         aria-label="Category"
-        sx={{ minWidth: 180 }}
+        sx={dialog ? undefined : { minWidth: 180 }}
       >
         <MenuItem value="" disabled>
           Category
@@ -81,7 +101,7 @@ export function InvestmentProductForm({
         onChange={(e) => setSubcategoryId(e.target.value)}
         disabled={!categoryId}
         aria-label="Sub-category"
-        sx={{ minWidth: 180 }}
+        sx={dialog ? undefined : { minWidth: 180 }}
       >
         <MenuItem value="">No sub-category</MenuItem>
         {subcategories.map((subcategory) => (
@@ -90,18 +110,45 @@ export function InvestmentProductForm({
           </MenuItem>
         ))}
       </Select>
-      <Button
-        variant="contained"
-        disabled={submitting || !name.trim() || !categoryId}
-        onClick={() => onSubmit({ name: name.trim(), categoryId, subcategoryId })}
-      >
-        {submitLabel}
-      </Button>
-      {onCancel && (
-        <Button disabled={submitting} onClick={onCancel}>
-          Cancel
-        </Button>
-      )}
+    </>
+  )
+  const submitButton = (
+    <Button
+      variant="contained"
+      disabled={submitting || !name.trim() || !categoryId}
+      onClick={() => onSubmit({ name: name.trim(), categoryId, subcategoryId })}
+    >
+      {submitLabel}
+    </Button>
+  )
+  const cancelButton = onCancel && (
+    <Button disabled={submitting} onClick={onCancel}>
+      Cancel
+    </Button>
+  )
+
+  if (dialog) {
+    return (
+      <>
+        <DialogContent>
+          <Box sx={{ pt: 1 }}>
+            {banner}
+            <FormGrid>{fields}</FormGrid>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          {cancelButton}
+          {submitButton}
+        </DialogActions>
+      </>
+    )
+  }
+
+  return (
+    <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+      {fields}
+      {submitButton}
+      {cancelButton}
     </Box>
   )
 }

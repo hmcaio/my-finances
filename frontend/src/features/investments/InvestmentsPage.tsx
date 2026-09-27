@@ -16,10 +16,17 @@ import { DataTableBody } from '../../components/table/DataTableBody'
 import { useQueryState } from '../../hooks/queryState'
 import { InvestmentAllocationChart } from './InvestmentAllocationChart'
 
+/** Tighter section padding on phones (F021), matching `AccountDetailPage`. */
+const SECTION_PADDING = { xs: 2, sm: 3 }
+
 /**
  * The Investments page (F009 spec): the allocation chart with its category -> sub-category
  * drill-down, and the investment accounts whose detail pages hold the products, snapshots and
  * trades.
+ *
+ * Responsive (F021): section padding tightens on phones; the page already stacks in one column at
+ * every size. The investment-accounts table has only two data columns (Account, Value), so per the
+ * 1-2-column rule it stays a plain table rather than becoming a `ResponsiveTable`.
  */
 export function InvestmentsPage() {
   const accountsQuery = useAccounts()
@@ -31,7 +38,7 @@ export function InvestmentsPage() {
   )
 
   return (
-    <Box sx={{ py: 4 }}>
+    <Box sx={{ py: { xs: 2, sm: 4 } }}>
       <Typography variant="h4" component="h1" gutterBottom>
         Investments
       </Typography>
@@ -40,14 +47,14 @@ export function InvestmentsPage() {
         product's page (or the Transfers page); its value only changes when you record a snapshot.
       </Typography>
 
-      <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+      <Paper variant="outlined" sx={{ p: SECTION_PADDING, mb: 3 }}>
         <Typography variant="h6" gutterBottom>
           Allocation
         </Typography>
         <InvestmentAllocationChart />
       </Paper>
 
-      <Paper variant="outlined" sx={{ p: 3 }}>
+      <Paper variant="outlined" sx={{ p: SECTION_PADDING }}>
         <Typography variant="h6" gutterBottom>
           Investment accounts
         </Typography>

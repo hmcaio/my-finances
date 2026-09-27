@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse } from 'msw'
@@ -16,6 +16,7 @@ import {
   SAVE_CONFLICT_MESSAGE,
 } from '../../api/investments/investmentProducts'
 import { findRow, renderWithRouter, selectOption } from '../../test/testUtils'
+import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
 import { InvestmentProductsSection } from './InvestmentProductsSection'
 
 function renderSection(accountClosed = false) {
@@ -45,7 +46,18 @@ function captureBody(method: 'post' | 'patch', path: string) {
   return sent
 }
 
+/** The add form only exists inside the header's dialog (F021: no panel below the table). */
+async function openAddDialog(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(await screen.findByRole('button', { name: 'Add product' }))
+  return screen.findByRole('dialog', { name: 'Add product' })
+}
+
 describe('InvestmentProductsSection', () => {
+  // jsdom has no viewport, which MUI treats as the tablet band: pin the desktop layout so every
+  // column (Sub-category included, hidden on tablet) is visible for the assertions below.
+  beforeEach(() => setViewportWidth(VIEWPORT.desktop))
+  afterEach(restoreViewport)
+
   it('lists the products with their category and sub-category names and status', async () => {
     renderSection()
 
@@ -97,26 +109,28 @@ describe('InvestmentProductsSection', () => {
     const user = userEvent.setup()
     renderSection()
     await screen.findByText('Bitcoin')
-    const form = within(screen.getByRole('group', { name: 'Add product' }))
+    const dialog = within(await openAddDialog(user))
 
     // No category yet: the sub-category select is disabled.
-    expect(form.getByRole('combobox', { name: 'Sub-category' })).toHaveAttribute(
+    expect(dialog.getByRole('combobox', { name: 'Sub-category' })).toHaveAttribute(
       'aria-disabled',
       'true',
     )
 
-    await selectOption(user, 'Category', 'Fixed Income', form)
-    await user.click(form.getByRole('combobox', { name: 'Sub-category' }))
+    await selectOption(user, 'Category', 'Fixed Income', dialog)
+    await user.click(dialog.getByRole('combobox', { name: 'Sub-category' }))
     expect(optionNames()).toEqual(['No sub-category', 'CDB', 'Tesouro Selic'])
     await user.click(screen.getByRole('option', { name: 'Tesouro Selic' }))
-    expect(form.getByRole('combobox', { name: 'Sub-category' })).toHaveTextContent('Tesouro Selic')
+    expect(dialog.getByRole('combobox', { name: 'Sub-category' })).toHaveTextContent(
+      'Tesouro Selic',
+    )
 
     // Changing the category drops the previous sub-category and offers the new one's.
-    await selectOption(user, 'Category', 'Variable Income', form)
-    expect(form.getByRole('combobox', { name: 'Sub-category' })).toHaveTextContent(
+    await selectOption(user, 'Category', 'Variable Income', dialog)
+    expect(dialog.getByRole('combobox', { name: 'Sub-category' })).toHaveTextContent(
       'No sub-category',
     )
-    await user.click(form.getByRole('combobox', { name: 'Sub-category' }))
+    await user.click(dialog.getByRole('combobox', { name: 'Sub-category' }))
     expect(optionNames()).toEqual(['No sub-category', 'ETFs'])
   })
 
@@ -125,12 +139,12 @@ describe('InvestmentProductsSection', () => {
     const sent = captureBody('post', '/api/investment-products')
     renderSection()
     await screen.findByText('Bitcoin')
-    const form = within(screen.getByRole('group', { name: 'Add product' }))
+    const dialog = within(await openAddDialog(user))
 
-    await user.type(form.getByRole('textbox', { name: 'Product name' }), 'CDB 110% Test')
-    await selectOption(user, 'Category', 'Fixed Income', form)
-    await selectOption(user, 'Sub-category', 'CDB', form)
-    await user.click(form.getByRole('button', { name: 'Add product' }))
+    await user.type(dialog.getByRole('textbox', { name: 'Product name' }), 'CDB 110% Test')
+    await selectOption(user, 'Category', 'Fixed Income', dialog)
+    await selectOption(user, 'Sub-category', 'CDB', dialog)
+    await user.click(dialog.getByRole('button', { name: 'Add product' }))
 
     await waitFor(() =>
       expect(sent.body).toEqual({
@@ -141,8 +155,10 @@ describe('InvestmentProductsSection', () => {
       }),
     )
     expect(await screen.findByText('CDB 110% Test')).toBeInTheDocument()
-    // The form is empty again for the next product.
-    expect(form.getByRole('textbox', { name: 'Product name' })).toHaveValue('')
+    // The dialog closes on success.
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Add product' })).not.toBeInTheDocument(),
+    )
   })
 
   it('saves a category-only product (Crypto) without a sub-category', async () => {
@@ -150,15 +166,15 @@ describe('InvestmentProductsSection', () => {
     const sent = captureBody('post', '/api/investment-products')
     renderSection()
     await screen.findByText('Bitcoin')
-    const form = within(screen.getByRole('group', { name: 'Add product' }))
+    const dialog = within(await openAddDialog(user))
 
-    await user.type(form.getByRole('textbox', { name: 'Product name' }), 'Ethereum')
-    await selectOption(user, 'Category', 'Crypto', form)
-    await user.click(form.getByRole('combobox', { name: 'Sub-category' }))
+    await user.type(dialog.getByRole('textbox', { name: 'Product name' }), 'Ethereum')
+    await selectOption(user, 'Category', 'Crypto', dialog)
+    await user.click(dialog.getByRole('combobox', { name: 'Sub-category' }))
     // Crypto has no sub-categories: the only option is "none".
     expect(optionNames()).toEqual(['No sub-category'])
     await user.keyboard('{Escape}')
-    await user.click(form.getByRole('button', { name: 'Add product' }))
+    await user.click(dialog.getByRole('button', { name: 'Add product' }))
 
     expect(await screen.findByText('Ethereum')).toBeInTheDocument()
     expect(sent.body).toEqual({
@@ -172,13 +188,13 @@ describe('InvestmentProductsSection', () => {
     const user = userEvent.setup()
     renderSection()
     await screen.findByText('Bitcoin')
-    const form = within(screen.getByRole('group', { name: 'Add product' }))
-    const add = form.getByRole('button', { name: 'Add product' })
+    const dialog = within(await openAddDialog(user))
+    const add = dialog.getByRole('button', { name: 'Add product' })
 
     expect(add).toBeDisabled()
-    await user.type(form.getByRole('textbox', { name: 'Product name' }), 'Ethereum')
+    await user.type(dialog.getByRole('textbox', { name: 'Product name' }), 'Ethereum')
     expect(add).toBeDisabled()
-    await selectOption(user, 'Category', 'Crypto', form)
+    await selectOption(user, 'Category', 'Crypto', dialog)
     expect(add).toBeEnabled()
   })
 
@@ -187,11 +203,11 @@ describe('InvestmentProductsSection', () => {
     const user = userEvent.setup()
     renderSection()
     await screen.findByText('Bitcoin')
-    const form = within(screen.getByRole('group', { name: 'Add product' }))
+    const dialog = within(await openAddDialog(user))
 
-    await user.type(form.getByRole('textbox', { name: 'Product name' }), 'Bitcoin')
-    await selectOption(user, 'Category', 'Crypto', form)
-    await user.click(form.getByRole('button', { name: 'Add product' }))
+    await user.type(dialog.getByRole('textbox', { name: 'Product name' }), 'Bitcoin')
+    await selectOption(user, 'Category', 'Crypto', dialog)
+    await user.click(dialog.getByRole('button', { name: 'Add product' }))
 
     expect(await screen.findByText(SAVE_CONFLICT_MESSAGE)).toBeInTheDocument()
   })
@@ -285,11 +301,11 @@ describe('InvestmentProductsSection', () => {
     expect(screen.getByText('Tesouro Selic 2029')).toBeInTheDocument()
   })
 
-  it('hides the add form and disables editing on a closed account', async () => {
+  it('hides the add button and disables editing on a closed account', async () => {
     renderSection(true)
     await screen.findByText('Bitcoin')
 
-    expect(screen.queryByRole('group', { name: 'Add product' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Add product' })).not.toBeInTheDocument()
     expect((await findRow('Bitcoin')).getByRole('button', { name: 'Edit' })).toBeDisabled()
   })
 
@@ -322,5 +338,73 @@ describe('InvestmentProductsSection', () => {
 
     expect((await screen.findAllByText(/Could not load data/)).length).toBeGreaterThan(0)
     expect(screen.queryByText('Bitcoin')).not.toBeInTheDocument()
+  })
+})
+
+describe('InvestmentProductsSection responsive layout (F021)', () => {
+  afterEach(restoreViewport)
+
+  async function findCard(name: string) {
+    const list = await screen.findByRole('list', { name: 'Investment products' })
+    await within(list).findByText(name)
+    const items = within(list).getAllByRole('listitem')
+    return within(items.find((item) => within(item).queryByText(name))!)
+  }
+
+  describe('mobile', () => {
+    beforeEach(() => setViewportWidth(VIEWPORT.mobile))
+
+    it('renders cards instead of a table, with category, sub-category and status', async () => {
+      renderSection()
+
+      const card = await findCard('Tesouro Selic 2029')
+      expect(screen.queryByRole('table')).not.toBeInTheDocument()
+      // "Tesouro Selic" alone would also match the product name (title), which starts with it.
+      expect(card.getByText('Fixed Income · Tesouro Selic')).toBeInTheDocument()
+      expect(card.getByText('Open')).toBeInTheDocument()
+      expect(card.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+      expect(card.getByRole('button', { name: 'Close' })).toBeInTheDocument()
+      expect(card.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
+    })
+
+    it('Add opens a full-screen dialog', async () => {
+      const user = userEvent.setup()
+      renderSection()
+      await findCard('Tesouro Selic 2029')
+
+      const dialog = await openAddDialog(user)
+
+      expect(dialog).toHaveClass('MuiDialog-paperFullScreen')
+    })
+
+    it('Edit opens a full-screen dialog prefilled with the current values', async () => {
+      const user = userEvent.setup()
+      renderSection()
+      const card = await findCard('Tesouro Selic 2029')
+
+      await user.click(card.getByRole('button', { name: 'Edit' }))
+
+      const dialog = await screen.findByRole('dialog', { name: 'Edit product' })
+      expect(dialog).toHaveClass('MuiDialog-paperFullScreen')
+      expect(within(dialog).getByRole('textbox', { name: 'Product name' })).toHaveValue(
+        'Tesouro Selic 2029',
+      )
+    })
+  })
+
+  describe('tablet', () => {
+    beforeEach(() => setViewportWidth(VIEWPORT.tablet))
+
+    it('keeps the table without the Sub-category column, reachable through the row expander', async () => {
+      const user = userEvent.setup()
+      renderSection()
+
+      const row = await findRow('Tesouro Selic 2029')
+      expect(screen.getByRole('columnheader', { name: 'Category' })).toBeInTheDocument()
+      expect(screen.queryByRole('columnheader', { name: 'Sub-category' })).not.toBeInTheDocument()
+
+      await user.click(row.getByRole('button', { name: 'Show details' }))
+      expect(await screen.findByText('Tesouro Selic')).toBeInTheDocument()
+    })
   })
 })
