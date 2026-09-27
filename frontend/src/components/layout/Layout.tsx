@@ -69,10 +69,14 @@ export function Layout({ children }: PropsWithChildren) {
   const theme = useTheme()
   const isDesktop = useMediaQuery(theme.breakpoints.up('lg'))
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
-  // The drawer is open only for the route it was opened on, so a navigation closes it without an
-  // effect that resets state.
-  const [openedAt, setOpenedAt] = useState<string | null>(null)
-  const navOpen = openedAt === pathname
+  // The drawer closes as soon as the pathname changes from whatever it was open on, without an
+  // effect: comparing against the *current* pathname (not a remembered one) means a later
+  // navigation back to that same pathname can't make it reopen by itself.
+  const [drawerState, setDrawerState] = useState({ pathname, open: false })
+  if (drawerState.pathname !== pathname) {
+    setDrawerState({ pathname, open: false })
+  }
+  const navOpen = drawerState.open
 
   const nav = (
     <Fragment>
@@ -102,7 +106,7 @@ export function Layout({ children }: PropsWithChildren) {
             <IconButton
               color="inherit"
               edge="start"
-              onClick={() => setOpenedAt(pathname)}
+              onClick={() => setDrawerState({ pathname, open: true })}
               aria-label="Open navigation"
               sx={{ mr: 1 }}
             >
@@ -137,7 +141,7 @@ export function Layout({ children }: PropsWithChildren) {
         <Drawer
           variant="temporary"
           open={navOpen}
-          onClose={() => setOpenedAt(null)}
+          onClose={() => setDrawerState({ pathname, open: false })}
           sx={{ [`& .MuiDrawer-paper`]: { width: DRAWER_WIDTH, boxSizing: 'border-box' } }}
         >
           {nav}
