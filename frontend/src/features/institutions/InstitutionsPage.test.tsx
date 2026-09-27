@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
@@ -13,6 +13,7 @@ import {
 } from '../../api/institutions/institutions'
 import { findRow } from '../../test/testUtils'
 import { describeSettingsPage } from '../../test/settingsPageContract'
+import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
 import { InstitutionsPage } from './InstitutionsPage'
 import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
@@ -26,6 +27,7 @@ describe('InstitutionsPage', () => {
     renameTarget: regular[0],
     deleteTarget: regular[1],
     newName: 'Inter',
+    addButtonLabel: 'Add institution',
     conflict: { message: CONFLICT_MESSAGE, handler: institutionDeleteConflictHandler },
     duplicateName: { message: DUPLICATE_NAME_MESSAGE, handler: institutionCreateConflictHandler },
     maxLength: INSTITUTION_NAME_MAX_LENGTH,
@@ -81,5 +83,46 @@ describe('InstitutionsPage', () => {
     expect(
       (await findRow('Zzz Sem instituicao')).queryByRole('button', { name: 'Delete' }),
     ).not.toBeInTheDocument()
+  })
+})
+
+describe('InstitutionsPage responsive layout (F021)', () => {
+  afterEach(restoreViewport)
+
+  it('opens the add dialog full-screen on mobile', async () => {
+    setViewportWidth(VIEWPORT.mobile)
+    const user = userEvent.setup()
+    renderWithQueryClient(<InstitutionsPage />)
+    await screen.findByText(builtIn.name)
+
+    await user.click(screen.getByRole('button', { name: 'Add institution' }))
+    const dialog = await screen.findByRole('dialog')
+
+    expect(dialog).toHaveClass('MuiDialog-paperFullScreen')
+  })
+
+  it('opens the add dialog as a regular (not full-screen) dialog on tablet', async () => {
+    setViewportWidth(VIEWPORT.tablet)
+    const user = userEvent.setup()
+    renderWithQueryClient(<InstitutionsPage />)
+    await screen.findByText(builtIn.name)
+
+    await user.click(screen.getByRole('button', { name: 'Add institution' }))
+    const dialog = await screen.findByRole('dialog')
+
+    expect(dialog).not.toHaveClass('MuiDialog-paperFullScreen')
+  })
+
+  it('keeps the built-in row renamed inline at every size (the table never becomes cards)', async () => {
+    setViewportWidth(VIEWPORT.mobile)
+    const user = userEvent.setup()
+    renderWithQueryClient(<InstitutionsPage />)
+    await screen.findByText(builtIn.name)
+
+    const row = await findRow(builtIn.name)
+    await user.click(row.getByRole('button', { name: 'Rename' }))
+
+    expect(row.getByRole('textbox')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })
