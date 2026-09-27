@@ -5,6 +5,7 @@
 Multiple PRs, each off `develop`, each shippable and each with its Playwright checks. Branch names: `feature/f021-<step>`. The CHANGELOG bullet (`**F021 — Responsive layout**`) is added in the first PR and edited as the rest land.
 
 ## PR 1 — Shell
+
 - [x] Test first: `Layout` shows the permanent drawer on desktop and a hamburger-opened temporary drawer below `lg`; drawer closes on route change; padding `p: 2` on mobile and `p: 3` otherwise; content `maxWidth` about 1600.
 - [x] Implement responsive `Layout`; group the settings items under a subheader in the nav.
 - [x] `theme.ts`: `@media (pointer: coarse)` 44px minimum for `MuiIconButton`, `MuiButton`, `MuiListItemButton`.
@@ -12,6 +13,7 @@ Multiple PRs, each off `develop`, each shippable and each with its Playwright ch
 - [x] CHANGELOG bullet.
 
 ## PR 2 — Shared primitives
+
 - [x] `ResponsiveTable` (columns with roles and tablet priority, `renderCard` override; table on tablet/desktop, cards below `sm`; tables with 1–2 columns stay tables). Test first with a faked `matchMedia` (`src/test/viewport.ts`); breakpoint logic lives in `useBreakpointBand` (`src/hooks`). Column count for the 1–2-column rule excludes the actions column.
 - [x] `ResponsiveDialog` (`fullScreen` below `sm`, one-column form grid helper). Test first.
 - [x] `ResponsiveFilterBar` (inline bar vs. "Filters" button with active-count badge). Test first.
@@ -20,6 +22,7 @@ Multiple PRs, each off `develop`, each shippable and each with its Playwright ch
   - PR 2 only documented the pattern (`frontend/CLAUDE.md`) and demonstrated it in `ResponsiveTable.test.tsx`; it is delivered by Transactions in PR 3 (`TransactionFormFields`). Each later page extracts its own.
 
 ## PR 3 — Pilot: Transactions
+
 - [x] Primitive change found by the pilot: on tablet, `ResponsiveTable` adds a leading chevron column so each row can expand its hidden (`tabletPriority: 'low'`) columns as label/value pairs (`aria-expanded`, details row spanning the table); no page code needed. Unit tests plus an e2e check on Transactions (tablet only).
 - [x] Migrate Transactions to all four primitives, with a `renderCard` override; Add and Edit open a `ResponsiveDialog` at every size (full screen below `sm`).
   - Decision (revised after review): Transactions never had inline row editing, only one combined add/edit form panel below the table. The panel is removed at every size: an `Add transaction` button in the page header and each row's/card's Edit open the fields (`TransactionFormFields`) in a `ResponsiveDialog` driven by the same form state and mutations (regular dialog from `sm` up, full screen below). A save error shows inside the open dialog (the page banner sits behind it). Pages that already have true inline row editing keep it on tablet/desktop (decide per page in PR 4).
@@ -31,7 +34,9 @@ Multiple PRs, each off `develop`, each shippable and each with its Playwright ch
   - No primitive changed; the pilot fit the existing APIs. Note for tests: jsdom without `setViewportWidth` counts as the tablet band (neither `down(sm)` nor `up(lg)` matches), so assertions on the full desktop table need `setViewportWidth(VIEWPORT.desktop)`.
 
 ## PR 4 — Remaining features (batches)
+
 Each batch: migrate pages, decide per-page details from the actual markup and record them under the batch, add Playwright checks, keep desktop behaviour unchanged.
+
 - [x] Accounts and transfers.
   - `AccountsPage` (`ResponsiveTable`, generic card): Name (link) is the card title, Institution and Type muted lines, then labelled Balance and Status. Tablet hides only Type (`tabletPriority: 'low'`, behind the row expander). The "Show closed accounts" switch is a single toggle, not a filter row, so it stays inline at every size (no `ResponsiveFilterBar`).
   - Accounts add: the "Add account" panel is removed; a header `Add account` button opens `AccountCreateForm` in a `ResponsiveDialog` (full screen below `sm`). `AccountCreateForm` gained a `dialog` mode (`FormGrid` in `DialogContent`, buttons in `DialogActions`, `banner` for the error, `onCancel`); its default inline layout is unchanged because the onboarding screen (Dashboard/Export/Onboarding batch) still uses it. `InstitutionSelect` gained `fullWidth` for grid cells.
@@ -53,15 +58,21 @@ Each batch: migrate pages, decide per-page details from the actual markup and re
   - `InvestmentAllocationChart`: the fixed 200px donut plus its legend already sit in a `flexWrap` row (the legend drops below the donut on a narrow phone rather than forcing width) - no layout restructuring needed. The one real fix: a category legend item renders as a MUI `Button` (so it's clickable to drill in), and `Button` defaults to `white-space: nowrap` - a long category name would push that row wider than a phone screen, so its `sx` now sets `whiteSpace: 'normal'` and `textAlign: 'left'`.
   - `InvestmentsPage`: section padding tightens to `p: 2` below `sm` (`SECTION_PADDING`) and `py: { xs: 2, sm: 4 }`, matching the pattern above; the page already stacks in one column at every size (allocation chart, then the accounts list). The investment-accounts table has only two data columns (Account, Value), so per the 1-2-column rule it stays a plain table rather than becoming a `ResponsiveTable`.
   - Playwright: `e2e/investments.spec.ts` (the overview page: allocation chart plus accounts list, no overflow, legend doesn't force width, accounts list stays a plain table) and `e2e/investment-product.spec.ts` (the products list on the investment account's detail page: cards vs. table, tablet row expander, add dialog full-screen only on mobile; and the product detail route: monthly-values/trades cards vs. tables, snapshot history stays a table, record-snapshot dialog and the Buy dialog full-screen only on mobile).
-- [ ] Settings pages (categories, investment categories, institutions, payment methods; keep 1–2 column tables as tables).
+- [x] Settings pages (categories, investment categories, institutions, payment methods; keep 1–2 column tables as tables).
+  - `CategoriesPage` (Name + Type, excluding actions = 2 data columns) and `PaymentMethodsPage`/`InstitutionsPage` (Name only = 1 data column): per the spec's 1–2-column rule all three stay plain tables at every size - no `ResponsiveTable`/cards. Add: each page's below-table "Add X" panel is removed; a header button (`Add category`/`Add payment method`/`Add institution`) opens the same field(s) in a `ResponsiveDialog` (full screen below `sm`) - `FormGrid` (default 2 columns, collapsing to 1 on phones) for Categories' Name+Type pair, `FormGrid columns={1}` for the single-field Payment methods/Institutions dialogs. Inline rename: decided to leave it inline at _every_ size, including on mobile - unlike `BudgetsPage`/`RecurringTemplatesPage` (whose tables become cards below `sm`, so the row's own presentation genuinely changes), these tables never reflow: the same `<TableCell>`-scoped text field renders at 390px as at 1280px, so a mobile edit dialog would add a second surface for no reduction in cramping. Institutions' built-in "No institution" row keeps its rename-but-not-delete behaviour completely unchanged - only the table's (non-)responsive presentation was touched.
+  - `InvestmentCategoriesPage` (two-level: an expandable categories table, each row opening onto its sub-categories): the categories table has the same 2 data columns as `CategoriesPage` (Name, Sub-categories count), so it also stays a plain table with inline rename unchanged at both levels, for the same reflow-based reasoning above. Only the page-level "Add category" panel converts to a header button + `ResponsiveDialog` (`FormGrid columns={1}`, one field), exactly like the other three pages. The per-category "add sub-category" row (shown inline once a category is expanded, labelled "New sub-category in {category}") is deliberately left untouched: it isn't a separate form panel like the others, it's already part of the expanded row, contextual to its category for free - moving it into a page-level dialog would require adding a category picker to recover context the row already gives, for a form that's just one `TextField` and a `Button` that already wraps at any width. Decided per-part, as the spec instructed.
+  - Primitive/test-infra change: `src/test/settingsPageContract.tsx` (`describeSettingsPage`/`describeSettingsPageOnly`, shared by Categories/Institutions/PaymentMethods' test files) assumed the add form's `Name` field and `Add` button were always on the page; since the field now only exists inside the add dialog, the contract gained a required `addButtonLabel` config (the header button's accessible name, e.g. `"Add category"`) and its "adds a new row", "surfaces the duplicate-name message" and "caps the name inputs" cases now open the dialog (and, for the maxLength case, close it again with Cancel before touching the row below - open dialog content is otherwise aria-hidden) before touching the `Name` field, scoped with `within(dialog)`. `InvestmentCategoriesPage` doesn't use this contract (per its own doc comment), so its two bespoke "adds a category"/duplicate-name tests were updated in place the same way.
+  - Playwright: `e2e/settings.spec.ts`, one `describe` per page - list-without-overflow, add-dialog full-screen-only-on-mobile, and (Categories/Institutions/InvestmentCategories) a light inline-rename/no-dialog check, since none of these pages has any card/table-mode split to verify.
 - [ ] Dashboard (fluid widget grid: 3, 2 and 1 columns), Export filters, Onboarding (outside `Layout`).
 
 ## PR 5 — Docs and ADR
+
 - [ ] `docs/adr/0017-responsive-layout-strategy.md` and its row in `docs/adr/README.md`.
 - [ ] `frontend/CLAUDE.md`: primitive-per-purpose guidance, no raw `useMediaQuery` in feature code, no hard-coded widths.
 - [ ] Root `README.md` "Project status" entry; tick this plan; PR link on the CHANGELOG bullet once the PRs exist.
 
 ## Verification
+
 - [ ] `npm run lint && npm test && npm run build && npm run e2e` green.
 - [ ] Every feature page has a Playwright spec passing at 390, 768 and 1280.
 - [ ] Manual, real browser at 360, 768 and 1280: no horizontal scroll on any page; nav, tables/cards, filters, dialogs and pagination behave per the spec; dark mode toggle reachable on all sizes.
