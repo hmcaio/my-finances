@@ -83,5 +83,5 @@ Each batch: migrate pages, decide per-page details from the actual markup and re
 
 - [x] `npm run lint && npm test && npm run build && npm run e2e` green (PR 5, docs-only change; no code touched so no new failure surface).
 - [x] Every feature page has a Playwright spec passing at 390, 768 and 1280 (one per batch: `shell`, `transactions`, `accounts`, `transfers`, `budgets`, `recurring`, `investments`, `investment-product`, `settings`, `dashboard`, `export`, `onboarding`, plus `smoke`/`support` from F020).
-- [ ] Manual, real browser at 360, 768 and 1280: no horizontal scroll on any page; nav, tables/cards, filters, dialogs and pagination behave per the spec; dark mode toggle reachable on all sizes.
-- [ ] Desktop diff review: only nav and padding differ from before.
+- [x] Manual, real browser at 360, 768 and 1280: no horizontal scroll on any page; nav, tables/cards, filters, dialogs and pagination behave per the spec; dark mode toggle reachable on all sizes. (Signed off by the user; not run by the agent - see PR 5's commit/PR body.)
+- [x] Desktop diff review: only nav and padding differ from before. (Signed off by the user; not run by the agent.)
