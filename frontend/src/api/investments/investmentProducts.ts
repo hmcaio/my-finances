@@ -3,24 +3,20 @@ import { unwrap } from '../core/apiError'
 import type { components } from '../generated/schema'
 
 /**
- * An investment product as returned by the API (PRD S5.8, F008): a holding inside an INVESTMENT
- * account, classified by a category and an optional sub-category. `hasHistory` (snapshots or
- * buy/sell transfers, F009) is what decides between delete and close.
+ * An investment product as returned by the API (PRD S5.8, F022 spec): pure taxonomy for an
+ * instrument, classified by a category and an optional sub-category, globally unique by name.
+ * `accountId`/`closedDate`/`hasHistory`/`needsSnapshot`/`latestSnapshot` moved to
+ * `InvestmentHolding` (F022/ADR 0020) - the same instrument at two brokers is one product with two
+ * holdings.
  */
 export interface InvestmentProduct {
   id: string
-  accountId: string
   investmentCategoryId: string
   /** `null` when the product is classified by category only (e.g. Crypto). */
   investmentSubcategoryId: string | null
   name: string
-  closedDate: string | null
-  closed: boolean
-  hasHistory: boolean
-  /** A trade is newer than the latest snapshot (F009): the value shown may be out of date. */
-  needsSnapshot: boolean
-  /** The most recent snapshot, `null` if none. */
-  latestSnapshot: { date: string; balance: number } | null
+  /** `null` when the product carries no remark. */
+  additionalNotes: string | null
 }
 
 export type CreateInvestmentProductRequest = components['schemas']['CreateInvestmentProductRequest']
@@ -28,25 +24,20 @@ export type UpdateInvestmentProductRequest = components['schemas']['UpdateInvest
 
 // The backend sends no message text, so every expected 409 needs its own wording here.
 export const SAVE_CONFLICT_MESSAGE =
-  'The product could not be saved: its name must be unique within the account, the account must be an open investment account, and the sub-category must belong to the chosen category, and a product with history cannot move to another account.'
-export const CLOSE_CONFLICT_MESSAGE =
-  'This product could not be closed: it is already closed, or its latest snapshot still has value. Record a zero snapshot (or sell the entire position) first.'
+  'The product could not be saved: its name must already be unique, the account must be an open investment account, and the sub-category must belong to the chosen category.'
 export const DELETE_CONFLICT_MESSAGE =
-  'This product has history (snapshots or trades) and cannot be deleted - close it instead.'
+  'This product still has a holding (even a closed, empty one) and cannot be deleted - remove its holdings first.'
 
-/** Fetches products, optionally only those of one account. */
-export async function getInvestmentProducts(accountId?: string): Promise<InvestmentProduct[]> {
-  return unwrap(
-    apiClient.get<InvestmentProduct[]>('/investment-products', {
-      params: accountId ? { accountId } : undefined,
-    }),
-  )
+/** Fetches every product (pure taxonomy - no longer filterable by account, F023 adds that). */
+export async function getInvestmentProducts(): Promise<InvestmentProduct[]> {
+  return unwrap(apiClient.get<InvestmentProduct[]>('/investment-products'))
 }
 
 export async function getInvestmentProduct(id: string): Promise<InvestmentProduct> {
   return unwrap(apiClient.get<InvestmentProduct>(`/investment-products/${id}`))
 }
 
+/** Creates the product and its first holding together (a two-write, `@Transactional` use case). */
 export async function createInvestmentProduct(
   request: CreateInvestmentProductRequest,
 ): Promise<InvestmentProduct> {
@@ -67,15 +58,7 @@ export async function editInvestmentProduct(
   )
 }
 
-/** Closes a product. Not reversible through the UI. */
-export async function closeInvestmentProduct(id: string): Promise<InvestmentProduct> {
-  return unwrap(
-    apiClient.post<InvestmentProduct>(`/investment-products/${id}/close`),
-    CLOSE_CONFLICT_MESSAGE,
-  )
-}
-
-/** Deletes a product; only succeeds with zero history (a 409 means close it instead). */
+/** Deletes a product; only succeeds with zero holdings (a 409 means remove them first). */
 export async function deleteInvestmentProduct(id: string): Promise<void> {
   await unwrap(apiClient.delete<void>(`/investment-products/${id}`), DELETE_CONFLICT_MESSAGE)
 }

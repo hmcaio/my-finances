@@ -38,9 +38,9 @@ describe('investment taxonomy and product hooks', () => {
     })
   })
 
-  it('lists products per account and loads one by id', async () => {
+  it('lists every product and loads one by id', async () => {
     const { result } = renderHookWithQueryClient(() => ({
-      list: useInvestmentProducts(seedInvestmentProducts[0].accountId),
+      list: useInvestmentProducts(),
       one: useInvestmentProduct('iprod-btc'),
     }))
 

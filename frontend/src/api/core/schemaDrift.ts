@@ -8,6 +8,7 @@ import type {
   InvestmentSubcategoryEntry,
 } from '../investments/investmentCategories'
 import type { AllocationRow } from '../investments/investmentAllocation'
+import type { InvestmentHolding } from '../investments/investmentHoldings'
 import type { InvestmentProduct } from '../investments/investmentProducts'
 import type { InvestmentSnapshot } from '../investments/investmentSnapshots'
 import type { InvestmentSubcategory } from '../investments/investmentSubcategories'
@@ -63,8 +64,11 @@ export type InvestmentSubcategoryEntryKeys = Assert<
 export type InvestmentProductKeys = Assert<
   SameKeys<InvestmentProduct, Schemas['InvestmentProductResponse']>
 >
-export type InvestmentProductLatestSnapshotKeys = Assert<
-  SameKeys<NonNullable<InvestmentProduct['latestSnapshot']>, Schemas['LatestSnapshotResponse']>
+export type InvestmentHoldingKeys = Assert<
+  SameKeys<InvestmentHolding, Schemas['InvestmentHoldingResponse']>
+>
+export type InvestmentHoldingLatestSnapshotKeys = Assert<
+  SameKeys<NonNullable<InvestmentHolding['latestSnapshot']>, Schemas['LatestSnapshotResponse']>
 >
 export type InvestmentSnapshotKeys = Assert<
   SameKeys<InvestmentSnapshot, Schemas['InvestmentSnapshotResponse']>

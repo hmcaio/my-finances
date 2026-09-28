@@ -1,7 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { API_KEY_ROOT } from '../core/queryClient'
 import {
-  closeInvestmentProduct,
   createInvestmentProduct,
   deleteInvestmentProduct,
   editInvestmentProduct,
@@ -12,16 +11,15 @@ import {
 
 export const investmentProductKeys = {
   all: [API_KEY_ROOT, 'investment-products'] as const,
-  list: (accountId?: string) => [...investmentProductKeys.all, 'list', { accountId }] as const,
+  list: () => [...investmentProductKeys.all, 'list'] as const,
   detail: (id: string) => [...investmentProductKeys.all, 'detail', id] as const,
 }
 
-/** Products of one INVESTMENT account, or every product when `accountId` is omitted. */
-export function useInvestmentProducts(accountId?: string, options: { enabled?: boolean } = {}) {
+/** Every product (pure taxonomy, F022 - no longer filterable by account). */
+export function useInvestmentProducts() {
   return useQuery({
-    queryKey: investmentProductKeys.list(accountId),
-    queryFn: () => getInvestmentProducts(accountId),
-    enabled: options.enabled,
+    queryKey: investmentProductKeys.list(),
+    queryFn: () => getInvestmentProducts(),
   })
 }
 
@@ -30,6 +28,7 @@ export function useInvestmentProduct(id: string | undefined) {
     queryKey: investmentProductKeys.detail(id ?? ''),
     queryFn: () =>
       id ? getInvestmentProduct(id) : Promise.reject(new Error('Missing product id.')),
+    enabled: id !== undefined,
   })
 }
 
@@ -42,10 +41,6 @@ export function useEditInvestmentProduct() {
     mutationFn: ({ id, ...request }: UpdateInvestmentProductRequest & { id: string }) =>
       editInvestmentProduct(id, request),
   })
-}
-
-export function useCloseInvestmentProduct() {
-  return useMutation({ mutationFn: closeInvestmentProduct })
 }
 
 export function useDeleteInvestmentProduct() {

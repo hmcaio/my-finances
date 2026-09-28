@@ -11,37 +11,41 @@ import {
 
 export const investmentSnapshotKeys = {
   all: [API_KEY_ROOT, 'investment-snapshots'] as const,
-  list: (productId: string) => [...investmentSnapshotKeys.all, 'list', productId] as const,
+  list: (holdingId: string) => [...investmentSnapshotKeys.all, 'list', holdingId] as const,
 }
 
-export function useInvestmentSnapshots(productId: string) {
+export function useInvestmentSnapshots(holdingId: string | undefined) {
   return useQuery({
-    queryKey: investmentSnapshotKeys.list(productId),
-    queryFn: () => getInvestmentSnapshots(productId),
+    queryKey: investmentSnapshotKeys.list(holdingId ?? ''),
+    queryFn: () =>
+      holdingId
+        ? getInvestmentSnapshots(holdingId)
+        : Promise.reject(new Error('Missing holding id.')),
+    enabled: holdingId !== undefined,
   })
 }
 
 export function useRecordInvestmentSnapshot() {
   return useMutation({
-    mutationFn: ({ productId, ...request }: RecordSnapshotRequest & { productId: string }) =>
-      recordInvestmentSnapshot(productId, request),
+    mutationFn: ({ holdingId, ...request }: RecordSnapshotRequest & { holdingId: string }) =>
+      recordInvestmentSnapshot(holdingId, request),
   })
 }
 
 export function useUpdateInvestmentSnapshot() {
   return useMutation({
     mutationFn: ({
-      productId,
+      holdingId,
       snapshotId,
       ...request
-    }: UpdateSnapshotRequest & { productId: string; snapshotId: string }) =>
-      updateInvestmentSnapshot(productId, snapshotId, request),
+    }: UpdateSnapshotRequest & { holdingId: string; snapshotId: string }) =>
+      updateInvestmentSnapshot(holdingId, snapshotId, request),
   })
 }
 
 export function useDeleteInvestmentSnapshot() {
   return useMutation({
-    mutationFn: ({ productId, snapshotId }: { productId: string; snapshotId: string }) =>
-      deleteInvestmentSnapshot(productId, snapshotId),
+    mutationFn: ({ holdingId, snapshotId }: { holdingId: string; snapshotId: string }) =>
+      deleteInvestmentSnapshot(holdingId, snapshotId),
   })
 }
