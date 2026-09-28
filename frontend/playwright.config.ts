@@ -22,7 +22,9 @@ export default defineConfig({
     // Relative base URL so the app calls same-origin `/api/...`, which the route mock intercepts.
     command: `npm run dev -- --port ${PORT} --strictPort`,
     url: `http://localhost:${PORT}`,
-    env: { VITE_API_BASE_URL: '/api' },
+    // `VITE_E2E` turns off the TanStack Query devtools toggle button (main.tsx): its fixed
+    // position can otherwise sit over a full-screen mobile dialog's own bottom-right button.
+    env: { VITE_API_BASE_URL: '/api', VITE_E2E: 'true' },
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
