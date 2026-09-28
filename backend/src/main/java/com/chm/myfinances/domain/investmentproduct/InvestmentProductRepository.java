@@ -17,30 +17,20 @@ public interface InvestmentProductRepository {
 
   List<InvestmentProduct> findAll();
 
-  List<InvestmentProduct> findByAccountId(UUID accountId);
-
   void deleteById(UUID id);
 
   boolean existsById(UUID id);
 
-  /** Whether a product already has this exact name inside the account (create guard). */
-  boolean existsByAccountIdAndName(UUID accountId, String name);
+  /**
+   * Whether a product already has this exact name (create guard, F022: name is globally unique).
+   */
+  boolean existsByName(String name);
 
   /**
-   * Whether a product other than {@code excludedId} inside the account has this exact name (edit
-   * guard, tolerant of a no-op edit).
+   * Whether a product other than {@code excludedId} has this exact name (edit guard, tolerant of a
+   * no-op edit).
    */
-  boolean existsByAccountIdAndNameAndIdNot(UUID accountId, String name, UUID excludedId);
-
-  /**
-   * Whether the account owns at least one product that isn't closed - backs {@code
-   * AccountService.close}'s rule that an {@code INVESTMENT} account can only be closed once all its
-   * products are (F008 spec).
-   */
-  boolean existsOpenByAccountId(UUID accountId);
-
-  /** Whether the account owns any product, open or closed - part of the account delete guard. */
-  boolean existsByAccountId(UUID accountId);
+  boolean existsByNameAndIdNot(String name, UUID excludedId);
 
   /** Whether any product is classified under this category - backs the category delete guard. */
   boolean existsByInvestmentCategoryId(UUID investmentCategoryId);

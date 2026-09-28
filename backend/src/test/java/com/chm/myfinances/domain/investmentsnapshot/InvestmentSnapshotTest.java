@@ -9,12 +9,12 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 /**
- * Domain-level unit tests for {@link InvestmentSnapshot} (PRD S5.8, F009 spec). Pure JUnit, written
- * before the class itself (ADR 0004).
+ * Domain-level unit tests for {@link InvestmentSnapshot}, rekeyed by holding (F022/ADR 0020). Pure
+ * JUnit, written before the class itself (ADR 0004).
  */
 class InvestmentSnapshotTest {
 
-  private static final UUID PRODUCT_ID = UUID.randomUUID();
+  private static final UUID HOLDING_ID = UUID.randomUUID();
   private static final LocalDate DATE = LocalDate.of(2026, 3, 31);
 
   @Test
@@ -22,10 +22,10 @@ class InvestmentSnapshotTest {
     UUID id = UUID.randomUUID();
 
     InvestmentSnapshot snapshot =
-        InvestmentSnapshot.create(id, PRODUCT_ID, DATE, new BigDecimal("1234.56"));
+        InvestmentSnapshot.create(id, HOLDING_ID, DATE, new BigDecimal("1234.56"));
 
     assertThat(snapshot.getId()).isEqualTo(id);
-    assertThat(snapshot.getProductId()).isEqualTo(PRODUCT_ID);
+    assertThat(snapshot.getHoldingId()).isEqualTo(HOLDING_ID);
     assertThat(snapshot.getDate()).isEqualTo(DATE);
     assertThat(snapshot.getBalance()).isEqualByComparingTo("1234.56");
   }
@@ -33,7 +33,7 @@ class InvestmentSnapshotTest {
   @Test
   void createAllowsAZeroBalanceForALiquidatedPosition() {
     InvestmentSnapshot snapshot =
-        InvestmentSnapshot.create(UUID.randomUUID(), PRODUCT_ID, DATE, BigDecimal.ZERO);
+        InvestmentSnapshot.create(UUID.randomUUID(), HOLDING_ID, DATE, BigDecimal.ZERO);
 
     assertThat(snapshot.getBalance()).isEqualByComparingTo("0");
   }
@@ -43,28 +43,28 @@ class InvestmentSnapshotTest {
     assertThatThrownBy(
             () ->
                 InvestmentSnapshot.create(
-                    UUID.randomUUID(), PRODUCT_ID, DATE, new BigDecimal("-0.01")))
+                    UUID.randomUUID(), HOLDING_ID, DATE, new BigDecimal("-0.01")))
         .isInstanceOf(IllegalArgumentException.class);
   }
 
   @Test
   void createRejectsNullFields() {
-    assertThatThrownBy(() -> InvestmentSnapshot.create(null, PRODUCT_ID, DATE, BigDecimal.ONE))
+    assertThatThrownBy(() -> InvestmentSnapshot.create(null, HOLDING_ID, DATE, BigDecimal.ONE))
         .isInstanceOf(NullPointerException.class);
     assertThatThrownBy(
             () -> InvestmentSnapshot.create(UUID.randomUUID(), null, DATE, BigDecimal.ONE))
         .isInstanceOf(NullPointerException.class);
     assertThatThrownBy(
-            () -> InvestmentSnapshot.create(UUID.randomUUID(), PRODUCT_ID, null, BigDecimal.ONE))
+            () -> InvestmentSnapshot.create(UUID.randomUUID(), HOLDING_ID, null, BigDecimal.ONE))
         .isInstanceOf(NullPointerException.class);
-    assertThatThrownBy(() -> InvestmentSnapshot.create(UUID.randomUUID(), PRODUCT_ID, DATE, null))
+    assertThatThrownBy(() -> InvestmentSnapshot.create(UUID.randomUUID(), HOLDING_ID, DATE, null))
         .isInstanceOf(NullPointerException.class);
   }
 
   @Test
   void replaceBalanceUpdatesTheBalance() {
     InvestmentSnapshot snapshot =
-        InvestmentSnapshot.create(UUID.randomUUID(), PRODUCT_ID, DATE, BigDecimal.TEN);
+        InvestmentSnapshot.create(UUID.randomUUID(), HOLDING_ID, DATE, BigDecimal.TEN);
 
     snapshot.replaceBalance(new BigDecimal("99.99"));
 
@@ -74,7 +74,7 @@ class InvestmentSnapshotTest {
   @Test
   void replaceBalanceAllowsZero() {
     InvestmentSnapshot snapshot =
-        InvestmentSnapshot.create(UUID.randomUUID(), PRODUCT_ID, DATE, BigDecimal.TEN);
+        InvestmentSnapshot.create(UUID.randomUUID(), HOLDING_ID, DATE, BigDecimal.TEN);
 
     snapshot.replaceBalance(BigDecimal.ZERO);
 
@@ -84,7 +84,7 @@ class InvestmentSnapshotTest {
   @Test
   void replaceBalanceRejectsANegativeBalanceAndKeepsTheOldOne() {
     InvestmentSnapshot snapshot =
-        InvestmentSnapshot.create(UUID.randomUUID(), PRODUCT_ID, DATE, BigDecimal.TEN);
+        InvestmentSnapshot.create(UUID.randomUUID(), HOLDING_ID, DATE, BigDecimal.TEN);
 
     assertThatThrownBy(() -> snapshot.replaceBalance(new BigDecimal("-1")))
         .isInstanceOf(IllegalArgumentException.class);
@@ -94,7 +94,7 @@ class InvestmentSnapshotTest {
   @Test
   void moveToChangesTheDate() {
     InvestmentSnapshot snapshot =
-        InvestmentSnapshot.create(UUID.randomUUID(), PRODUCT_ID, DATE, BigDecimal.TEN);
+        InvestmentSnapshot.create(UUID.randomUUID(), HOLDING_ID, DATE, BigDecimal.TEN);
 
     snapshot.moveTo(DATE.minusDays(3));
 
@@ -104,7 +104,7 @@ class InvestmentSnapshotTest {
   @Test
   void moveToRejectsANullDateAndKeepsTheOldOne() {
     InvestmentSnapshot snapshot =
-        InvestmentSnapshot.create(UUID.randomUUID(), PRODUCT_ID, DATE, BigDecimal.TEN);
+        InvestmentSnapshot.create(UUID.randomUUID(), HOLDING_ID, DATE, BigDecimal.TEN);
 
     assertThatThrownBy(() -> snapshot.moveTo(null)).isInstanceOf(NullPointerException.class);
     assertThat(snapshot.getDate()).isEqualTo(DATE);
@@ -115,10 +115,10 @@ class InvestmentSnapshotTest {
     UUID id = UUID.randomUUID();
 
     InvestmentSnapshot snapshot =
-        InvestmentSnapshot.reconstitute(id, PRODUCT_ID, DATE, new BigDecimal("5.00"));
+        InvestmentSnapshot.reconstitute(id, HOLDING_ID, DATE, new BigDecimal("5.00"));
 
     assertThat(snapshot.getId()).isEqualTo(id);
-    assertThat(snapshot.getProductId()).isEqualTo(PRODUCT_ID);
+    assertThat(snapshot.getHoldingId()).isEqualTo(HOLDING_ID);
     assertThat(snapshot.getDate()).isEqualTo(DATE);
     assertThat(snapshot.getBalance()).isEqualByComparingTo("5.00");
   }
