@@ -94,7 +94,7 @@ Built:
 - **F020** — Playwright e2e tooling (frontend only: layout checks in Chromium at mobile, tablet and desktop widths against the Vite dev server with every `/api` call mocked from the existing `src/mocks` fixtures; DOM and geometry assertions only, no screenshot baselines; a smoke spec and its own CI job; groundwork for F021)
 - **F021** — responsive layout (frontend only: a permanent sidebar on wide screens and a menu button opening a slide-in drawer on tablets/phones; a list with 3+ columns becomes cards below `sm` and hides low-priority columns behind a per-row chevron on tablet, `ResponsiveTable`; add/edit forms open in `ResponsiveDialog` — full screen on phones — instead of a panel below the list; `ResponsiveFilterBar` collapses filters behind a button with an active-count badge on phones; larger tap targets on touch devices; every page verified with the F020 Playwright suite; [ADR 0019](docs/adr/0019-responsive-layout-strategy.md))
 
-Documented and next up: **F018** (automated encrypted backups for the prod stack) — see [docs/features/](docs/features/) for the full breakdown, in build order, with each feature's spec and its dependencies on the others.
+Documented and next up: **F018** (automated encrypted backups for the prod stack), **F022** (investment holdings — many-to-many product/account link, prerequisite) and **F023** (investments page refactor: product list with filters, sub-category and by-account allocation charts) — see [docs/features/](docs/features/) for the full breakdown, in build order, with each feature's spec and its dependencies on the others.
 
 ## Workflow
 
