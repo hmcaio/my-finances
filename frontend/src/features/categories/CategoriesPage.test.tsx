@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse } from 'msw'
@@ -18,6 +18,7 @@ import {
 import { findRow } from '../../test/testUtils'
 import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 import { describeSettingsPage } from '../../test/settingsPageContract'
+import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
 import { CategoriesPage } from './CategoriesPage'
 
 const builtInExpense = seedCategories.find((c) => c.builtIn && c.type === 'EXPENSE')!
@@ -30,6 +31,7 @@ describe('CategoriesPage', () => {
     renameTarget: seedGroceriesCategory,
     deleteTarget: seedSalaryCategory,
     newName: 'Rent',
+    addButtonLabel: 'Add category',
     conflict: { message: CONFLICT_MESSAGE, handler: categoryDeleteConflictHandler },
     duplicateName: { message: DUPLICATE_NAME_MESSAGE, handler: categoryCreateConflictHandler },
     maxLength: CATEGORY_NAME_MAX_LENGTH,
@@ -136,5 +138,46 @@ describe('CategoriesPage', () => {
     expect(screen.queryByText(/Could not load data/)).not.toBeInTheDocument()
     // The banner from the failed attempt is cleared, not left showing after a successful retry.
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+})
+
+describe('CategoriesPage responsive layout (F021)', () => {
+  afterEach(restoreViewport)
+
+  it('opens the add dialog full-screen on mobile', async () => {
+    setViewportWidth(VIEWPORT.mobile)
+    const user = userEvent.setup()
+    renderWithQueryClient(<CategoriesPage />)
+    await screen.findByText(seedGroceriesCategory.name)
+
+    await user.click(screen.getByRole('button', { name: 'Add category' }))
+    const dialog = await screen.findByRole('dialog')
+
+    expect(dialog).toHaveClass('MuiDialog-paperFullScreen')
+  })
+
+  it('opens the add dialog as a regular (not full-screen) dialog on tablet', async () => {
+    setViewportWidth(VIEWPORT.tablet)
+    const user = userEvent.setup()
+    renderWithQueryClient(<CategoriesPage />)
+    await screen.findByText(seedGroceriesCategory.name)
+
+    await user.click(screen.getByRole('button', { name: 'Add category' }))
+    const dialog = await screen.findByRole('dialog')
+
+    expect(dialog).not.toHaveClass('MuiDialog-paperFullScreen')
+  })
+
+  it('keeps inline rename in the table row at every size (the table never becomes cards)', async () => {
+    setViewportWidth(VIEWPORT.mobile)
+    const user = userEvent.setup()
+    renderWithQueryClient(<CategoriesPage />)
+    await screen.findByText(seedGroceriesCategory.name)
+
+    const row = await findRow(seedGroceriesCategory.name)
+    await user.click(row.getByRole('button', { name: 'Rename' }))
+
+    expect(row.getByRole('textbox')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })

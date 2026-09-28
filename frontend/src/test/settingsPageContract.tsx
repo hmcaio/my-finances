@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { JsonBodyType, RequestHandler } from 'msw'
 import type { ReactElement } from 'react'
@@ -21,6 +21,12 @@ export interface SettingsPageContractConfig<Entity extends { id: string; name: s
   deleteTarget: Entity
   /** Name typed into the add form for the "adds a new row" case. */
   newName: string
+  /**
+   * Accessible name of the header button that opens the add dialog (F021: the add form moved off
+   * a below-table panel into a `ResponsiveDialog`, e.g. "Add category", "Add institution"). The
+   * dialog's own submit button is always the generic "Add".
+   */
+  addButtonLabel: string
   conflict: {
     /** The delete-conflict message (`CONFLICT_MESSAGE` in the entity's api client). */
     message: string
@@ -65,6 +71,7 @@ export function describeSettingsPage<Entity extends { id: string; name: string }
     renameTarget,
     deleteTarget,
     newName,
+    addButtonLabel,
     conflict,
     duplicateName,
     maxLength,
@@ -78,13 +85,15 @@ export function describeSettingsPage<Entity extends { id: string; name: string }
     }
   })
 
-  it('adds a new row', async () => {
+  it('adds a new row through the header dialog', async () => {
     const user = userEvent.setup()
     renderWithQueryClient(page)
     await screen.findByText(seedRows[0].name)
 
-    await user.type(screen.getByLabelText('Name'), newName)
-    await user.click(screen.getByRole('button', { name: 'Add' }))
+    await user.click(screen.getByRole('button', { name: addButtonLabel }))
+    const dialog = screen.getByRole('dialog')
+    await user.type(within(dialog).getByLabelText('Name'), newName)
+    await user.click(within(dialog).getByRole('button', { name: 'Add' }))
 
     expect(await screen.findByText(newName)).toBeInTheDocument()
   })
@@ -137,8 +146,10 @@ export function describeSettingsPage<Entity extends { id: string; name: string }
     renderWithQueryClient(page)
     await screen.findByText(seedRows[0].name)
 
-    await user.type(screen.getByLabelText('Name'), seedRows[0].name)
-    await user.click(screen.getByRole('button', { name: 'Add' }))
+    await user.click(screen.getByRole('button', { name: addButtonLabel }))
+    const dialog = screen.getByRole('dialog')
+    await user.type(within(dialog).getByLabelText('Name'), seedRows[0].name)
+    await user.click(within(dialog).getByRole('button', { name: 'Add' }))
 
     expect(await screen.findByText(duplicateName.message)).toBeInTheDocument()
   })
@@ -149,9 +160,13 @@ export function describeSettingsPage<Entity extends { id: string; name: string }
       renderWithQueryClient(page)
       await screen.findByText(seedRows[0].name)
 
-      expect(screen.getByLabelText('Name')).toHaveAttribute('maxlength', String(maxLength))
+      await user.click(screen.getByRole('button', { name: addButtonLabel }))
+      const dialog = screen.getByRole('dialog')
+      expect(within(dialog).getByLabelText('Name')).toHaveAttribute('maxlength', String(maxLength))
+      // Close the dialog before touching the row below: it's aria-hidden while the dialog is open.
+      await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 
-      // While a row is being edited its name is an input value, so hold on to the row first.
       const row = await findRow(seedRows[0].name)
       await user.click(row.getByRole('button', { name: 'Rename' }))
       expect(row.getByRole('textbox')).toHaveAttribute('maxlength', String(maxLength))

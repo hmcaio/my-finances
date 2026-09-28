@@ -3,6 +3,9 @@ import {
   Box,
   Button,
   Chip,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   IconButton,
   Paper,
   Table,
@@ -34,6 +37,7 @@ import {
 } from '../../api/investments/investmentSubcategoriesQueries'
 import { DataTableBody } from '../../components/table/DataTableBody'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
+import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
 import { InlineEditActions } from '../../components/table/InlineEditActions'
 import { useQueryState } from '../../hooks/queryState'
 
@@ -47,6 +51,19 @@ type Editing = { kind: 'category' | 'subcategory'; id: string } | null
  * sub-categories or products, a sub-category a product uses) surfaces the client's own 409 message,
  * since the backend sends no text. A sub-category's parent can't be changed, so there is no way to
  * move one. Renaming is always allowed.
+ *
+ * Responsive (F021): the categories table has only two data columns (Name, Sub-categories count;
+ * the actions column doesn't count), so per the spec's 1-2-column rule it stays a plain table at
+ * every size - no `ResponsiveTable`/cards, and inline rename at both levels stays inline (same
+ * reasoning as `CategoriesPage`/`InstitutionsPage`: the table never reflows, so there is no benefit
+ * to a mobile edit dialog). The page-level "Add category" panel is genuinely a separate form panel
+ * (like the other settings pages), so it moves into a header button + `ResponsiveDialog` (one
+ * column, full screen below `sm`). The per-category "add sub-category" row is different: it is not
+ * a separate panel but an inline part of the expanded row itself, always shown right next to the
+ * category it belongs to (its label already reads "New sub-category in {category}") - lifting it
+ * into a page-level dialog would need a category picker to recover context the row already gives
+ * for free, for a form that's just one text field plus a button that already wraps at any width. It
+ * is left exactly as it was.
  */
 export function InvestmentCategoriesPage() {
   const [error, setError] = useState<string | null>(null)
@@ -66,6 +83,7 @@ export function InvestmentCategoriesPage() {
 
   const [newCategoryName, setNewCategoryName] = useState('')
   const [addingCategory, setAddingCategory] = useState(false)
+  const [addDialogOpen, setAddDialogOpen] = useState(false)
   // One draft per category, so typing under one never leaks into another.
   const [newSubcategoryNames, setNewSubcategoryNames] = useState<Record<string, string>>({})
   const [addingSubcategoryTo, setAddingSubcategoryTo] = useState<string | null>(null)
@@ -89,6 +107,11 @@ export function InvestmentCategoriesPage() {
     setEditingName('')
   }
 
+  function closeAddDialog() {
+    setAddDialogOpen(false)
+    setError(null)
+  }
+
   async function handleAddCategory() {
     const name = newCategoryName.trim()
     if (!name) return
@@ -97,6 +120,7 @@ export function InvestmentCategoriesPage() {
     try {
       await createCategory.mutateAsync({ name })
       setNewCategoryName('')
+      setAddDialogOpen(false)
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {
@@ -187,17 +211,31 @@ export function InvestmentCategoriesPage() {
   }
 
   return (
-    <Box sx={{ py: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Investment categories
-      </Typography>
+    <Box sx={{ py: { xs: 2, sm: 4 } }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 2,
+          mb: 1,
+        }}
+      >
+        <Typography variant="h4" component="h1">
+          Investment categories
+        </Typography>
+        <Button variant="contained" onClick={() => setAddDialogOpen(true)}>
+          Add category
+        </Button>
+      </Box>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         The two-level taxonomy used to classify investment products: a category, and optionally a
         sub-category under it. Renaming is always allowed; a category or sub-category that products
         still use can&apos;t be deleted.
       </Typography>
 
-      <ErrorAlert message={error} onDismiss={() => setError(null)} />
+      {/* While the add dialog is open a save error shows inside it: this one sits behind it. */}
+      <ErrorAlert message={addDialogOpen ? null : error} onDismiss={() => setError(null)} />
 
       <Paper variant="outlined" sx={{ mb: 3 }}>
         <TableContainer>
@@ -351,30 +389,39 @@ export function InvestmentCategoriesPage() {
         </TableContainer>
       </Paper>
 
-      <Paper variant="outlined" sx={{ p: 2, maxWidth: 560 }}>
-        <Typography variant="subtitle1" gutterBottom>
-          Add category
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          <TextField
-            label="Category name"
-            size="small"
-            value={newCategoryName}
-            onChange={(e) => setNewCategoryName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') void handleAddCategory()
-            }}
-            slotProps={{ htmlInput: { maxLength: INVESTMENT_NAME_MAX_LENGTH } }}
-          />
+      <ResponsiveDialog open={addDialogOpen} onClose={closeAddDialog}>
+        <DialogTitle>Add category</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 1 }}>
+            <ErrorAlert message={error} onDismiss={() => setError(null)} />
+            <FormGrid columns={1}>
+              <TextField
+                label="Category name"
+                size="small"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void handleAddCategory()
+                }}
+                slotProps={{ htmlInput: { maxLength: INVESTMENT_NAME_MAX_LENGTH } }}
+                autoFocus
+              />
+            </FormGrid>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeAddDialog} disabled={addingCategory}>
+            Cancel
+          </Button>
           <Button
             variant="contained"
             disabled={addingCategory || !newCategoryName.trim()}
             onClick={() => void handleAddCategory()}
           >
-            Add category
+            Add
           </Button>
-        </Box>
-      </Paper>
+        </DialogActions>
+      </ResponsiveDialog>
     </Box>
   )
 }

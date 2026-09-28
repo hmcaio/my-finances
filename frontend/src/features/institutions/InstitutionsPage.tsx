@@ -2,6 +2,9 @@ import { useMemo, useState } from 'react'
 import {
   Box,
   Button,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   IconButton,
   Paper,
   Table,
@@ -22,6 +25,7 @@ import {
 } from '../../api/institutions/institutionsQueries'
 import { defaultErrorMessage } from '../../api/core/apiError'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
+import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
 import { InlineEditActions } from '../../components/table/InlineEditActions'
 import { DataTableBody } from '../../components/table/DataTableBody'
 import { useQueryState } from '../../hooks/queryState'
@@ -29,9 +33,16 @@ import { sortInstitutions } from './sortInstitutions'
 
 /**
  * Settings-style CRUD screen for institutions (F017 spec): table with name, inline rename,
- * add-new form, delete. Same pattern as PaymentMethodsPage. The built-in "No institution" row is
+ * add-new dialog, delete. Same pattern as PaymentMethodsPage. The built-in "No institution" row is
  * listed first, can be renamed like any other, and has no delete action (the backend would answer
- * 409 anyway).
+ * 409 anyway) - unchanged by this batch, only its responsive presentation is.
+ *
+ * Responsive (F021): Name is the only data column, so per the spec's 1-2-column rule this stays a
+ * plain table at every size. The header's Add button opens a single Name field in a
+ * `ResponsiveDialog` (one-column, full screen below `sm`) instead of the panel that used to sit
+ * below the table. Inline rename (including the built-in row's) stays inline at every size: the
+ * table never reflows into cards, so the row's own text field is already just as usable on a phone
+ * as on desktop.
  */
 export function InstitutionsPage() {
   const [error, setError] = useState<string | null>(null)
@@ -48,8 +59,14 @@ export function InstitutionsPage() {
 
   const [newName, setNewName] = useState('')
   const [adding, setAdding] = useState(false)
+  const [addDialogOpen, setAddDialogOpen] = useState(false)
 
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+
+  function closeAddDialog() {
+    setAddDialogOpen(false)
+    setError(null)
+  }
 
   async function handleAdd() {
     if (!newName.trim()) return
@@ -58,6 +75,7 @@ export function InstitutionsPage() {
     try {
       await createMutation.mutateAsync({ name: newName.trim() })
       setNewName('')
+      setAddDialogOpen(false)
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {
@@ -105,17 +123,31 @@ export function InstitutionsPage() {
   }
 
   return (
-    <Box sx={{ py: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Institutions
-      </Typography>
+    <Box sx={{ py: { xs: 2, sm: 4 } }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 2,
+          mb: 1,
+        }}
+      >
+        <Typography variant="h4" component="h1">
+          Institutions
+        </Typography>
+        <Button variant="contained" onClick={() => setAddDialogOpen(true)}>
+          Add institution
+        </Button>
+      </Box>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         The banks, brokers and card issuers your accounts sit at. Every account has one; use "No
         institution" for money that isn't at any (a cash wallet, for example). An institution can be
         deleted once no account uses it.
       </Typography>
 
-      <ErrorAlert message={error} onDismiss={() => setError(null)} />
+      {/* While the add dialog is open a save error shows inside it: this one sits behind it. */}
+      <ErrorAlert message={addDialogOpen ? null : error} onDismiss={() => setError(null)} />
 
       <Paper variant="outlined" sx={{ mb: 3 }}>
         <TableContainer>
@@ -179,21 +211,30 @@ export function InstitutionsPage() {
         </TableContainer>
       </Paper>
 
-      <Paper variant="outlined" sx={{ p: 2, maxWidth: 560 }}>
-        <Typography variant="subtitle1" gutterBottom>
-          Add institution
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          <TextField
-            label="Name"
-            size="small"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            slotProps={{ htmlInput: { maxLength: INSTITUTION_NAME_MAX_LENGTH } }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') void handleAdd()
-            }}
-          />
+      <ResponsiveDialog open={addDialogOpen} onClose={closeAddDialog}>
+        <DialogTitle>Add institution</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 1 }}>
+            <ErrorAlert message={error} onDismiss={() => setError(null)} />
+            <FormGrid columns={1}>
+              <TextField
+                label="Name"
+                size="small"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                slotProps={{ htmlInput: { maxLength: INSTITUTION_NAME_MAX_LENGTH } }}
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void handleAdd()
+                }}
+              />
+            </FormGrid>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeAddDialog} disabled={adding}>
+            Cancel
+          </Button>
           <Button
             variant="contained"
             disabled={adding || !newName.trim()}
@@ -201,8 +242,8 @@ export function InstitutionsPage() {
           >
             Add
           </Button>
-        </Box>
-      </Paper>
+        </DialogActions>
+      </ResponsiveDialog>
     </Box>
   )
 }
