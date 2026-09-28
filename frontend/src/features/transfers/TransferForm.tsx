@@ -13,6 +13,7 @@ import {
 } from '@mui/material'
 import type { Account } from '../../api/accounts/accounts'
 import { defaultErrorMessage } from '../../api/core/apiError'
+import { useInvestmentHoldingsByAccount } from '../../api/investments/investmentHoldingsQueries'
 import { useInvestmentProducts } from '../../api/investments/investmentProductsQueries'
 import type { Transfer } from '../../api/transfers/transfers'
 import { useCreateTransfer, useEditTransfer } from '../../api/transfers/transfersQueries'
@@ -177,17 +178,23 @@ export function TransferForm({
   )
 
   const investmentAccountId = investmentAccount?.id
-  const productsQuery = useInvestmentProducts(investmentAccountId, {
+  // A product's holding at this account is what's actually offered: a product with no holding here
+  // can't be traded (F022/ADR 0020 - holdings are created explicitly, never by a trade).
+  const holdingsQuery = useInvestmentHoldingsByAccount(investmentAccountId, {
     enabled: investmentAccountId !== undefined,
   })
+  useQueryState(holdingsQuery, onError)
+  const holdings = investmentAccountId ? holdingsQuery.data : undefined
+  const productsQuery = useInvestmentProducts()
   useQueryState(productsQuery, onError)
-  const products = investmentAccountId ? productsQuery.data : undefined
+  const products = productsQuery.data
+  const productName = (id: string) => products?.find((p) => p.id === id)?.name ?? ''
   const createMutation = useCreateTransfer()
   const editMutation = useEditTransfer()
-  const productOptions = (products ?? []).filter(
-    (p) => p.accountId === investmentAccountId && (!p.closed || p.id === form.investmentProductId),
+  const holdingOptions = (holdings ?? []).filter(
+    (h) => !h.closed || h.productId === form.investmentProductId,
   )
-  const selectedProduct = productOptions.find((p) => p.id === form.investmentProductId)
+  const selectedHolding = holdingOptions.find((h) => h.productId === form.investmentProductId)
   const hasProduct = direction !== null && form.investmentProductId !== ''
 
   const quantity = numberOrNull(form.quantity)
@@ -199,10 +206,10 @@ export function TransferForm({
   // The resulting balance shown: forced to 0 for a full sell, the user's own entry once they typed,
   // otherwise a suggestion from the prior latest snapshot and this trade's gross value.
   let suggestion = ''
-  if (direction && selectedProduct && amount > 0) {
+  if (direction && selectedHolding && amount > 0) {
     const gross = grossTradedValue(direction, amount, taxes, quantity, unitPrice)
     suggestion = String(
-      suggestedResultingBalance(direction, selectedProduct.latestSnapshot?.balance ?? 0, gross),
+      suggestedResultingBalance(direction, selectedHolding.latestSnapshot?.balance ?? 0, gross),
     )
   }
   const showResulting = hasProduct && editing === null
@@ -408,7 +415,7 @@ export function TransferForm({
               size="small"
               displayEmpty
               value={
-                productOptions.some((p) => p.id === form.investmentProductId)
+                holdingOptions.some((h) => h.productId === form.investmentProductId)
                   ? form.investmentProductId
                   : ''
               }
@@ -425,9 +432,9 @@ export function TransferForm({
               <MenuItem value="" disabled>
                 Product
               </MenuItem>
-              {productOptions.map((p) => (
-                <MenuItem key={p.id} value={p.id}>
-                  {p.name}
+              {holdingOptions.map((h) => (
+                <MenuItem key={h.id} value={h.productId}>
+                  {productName(h.productId)}
                 </MenuItem>
               ))}
             </Select>

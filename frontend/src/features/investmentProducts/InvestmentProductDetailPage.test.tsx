@@ -43,15 +43,19 @@ describe('InvestmentProductDetailPage', () => {
     expect(screen.getAllByText('900.00').length).toBeGreaterThan(0)
     expect(screen.getByRole('link', { name: /Back to account/ })).toHaveAttribute(
       'href',
-      `/accounts/${bitcoin.accountId}`,
+      `/accounts/${seedInvestmentAccount.id}`,
     )
   })
 
   it('lists the snapshot history, most recent first', async () => {
     renderDetail()
     const history = await screen.findByRole('table', { name: 'Snapshot history' })
+    // The snapshot query only starts once the holdings list resolves (one round trip after the
+    // table itself appears), so wait for real data before reading the rows.
+    await within(history).findByText(seedBitcoinSnapshots[0].date)
 
-    const dates = (await within(history).findAllByRole('row'))
+    const dates = within(history)
+      .getAllByRole('row')
       .slice(1)
       .map((row) => within(row).getAllByRole('cell')[0].textContent)
     expect(dates).toEqual(seedBitcoinSnapshots.map((s) => s.date))
@@ -91,7 +95,7 @@ describe('InvestmentProductDetailPage', () => {
     const user = userEvent.setup()
     let sent: unknown = null
     server.use(
-      http.post('/api/investment-products/:id/snapshots', async ({ request }) => {
+      http.post('/api/investment-holdings/:id/snapshots', async ({ request }) => {
         // Record the body, then fall through to the default (stateful) handler.
         sent = await request.clone().json()
       }),
@@ -163,7 +167,7 @@ describe('InvestmentProductDetailPage', () => {
     const user = userEvent.setup()
     let sent: unknown = null
     server.use(
-      http.put('/api/investment-products/:id/snapshots/:snapshotId', async ({ request }) => {
+      http.put('/api/investment-holdings/:id/snapshots/:snapshotId', async ({ request }) => {
         sent = await request.clone().json()
       }),
     )
@@ -206,7 +210,7 @@ describe('InvestmentProductDetailPage', () => {
   it('shows the conflict message when an edit is refused with 409 and keeps the row editable', async () => {
     const user = userEvent.setup()
     server.use(
-      http.put('/api/investment-products/:id/snapshots/:snapshotId', () =>
+      http.put('/api/investment-holdings/:id/snapshots/:snapshotId', () =>
         HttpResponse.json({}, { status: 409 }),
       ),
     )
@@ -256,7 +260,7 @@ describe('InvestmentProductDetailPage', () => {
   it('shows the conflict message when a delete is refused with 409', async () => {
     const user = userEvent.setup()
     server.use(
-      http.delete('/api/investment-products/:id/snapshots/:snapshotId', () =>
+      http.delete('/api/investment-holdings/:id/snapshots/:snapshotId', () =>
         HttpResponse.json({}, { status: 409 }),
       ),
     )

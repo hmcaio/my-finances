@@ -119,13 +119,15 @@ export function TransfersPage() {
     }
   }
 
-  /** "Buy"/"Sell" plus the product's name for a tagged transfer; direction is derived from the
-   * accounts (a transfer into the product's own account is a buy), never stored. */
+  /** "Buy"/"Sell" plus the product's name for a tagged transfer; direction is derived from which
+   * side is the INVESTMENT account (F022: a product no longer has one account of its own), never
+   * stored. */
   function tradeLabel(transfer: Transfer): string | null {
     if (!transfer.investmentProductId) return null
     const product = productsById.get(transfer.investmentProductId)
     if (!product) return null
-    return `${transfer.toAccountId === product.accountId ? 'Buy' : 'Sell'} ${product.name}`
+    const toAccount = accounts?.find((a) => a.id === transfer.toAccountId)
+    return `${toAccount?.type === 'INVESTMENT' ? 'Buy' : 'Sell'} ${product.name}`
   }
 
   // One load state for the table plus the lookup lists behind its name columns: rows show only
