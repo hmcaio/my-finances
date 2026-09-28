@@ -63,10 +63,10 @@ class TransferRepositoryAdapterTest {
             .save(
                 InvestmentProduct.create(
                     UUID.randomUUID(),
-                    brokerId,
                     investmentCategoryRepository.findAll().get(0).getId(),
                     null,
-                    "Product Transfer Repo Test"))
+                    "Product Transfer Repo Test",
+                    null))
             .getId();
   }
 
