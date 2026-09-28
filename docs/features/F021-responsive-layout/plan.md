@@ -75,13 +75,13 @@ Each batch: migrate pages, decide per-page details from the actual markup and re
 
 ## PR 5 — Docs and ADR
 
-- [ ] `docs/adr/0017-responsive-layout-strategy.md` and its row in `docs/adr/README.md`.
-- [ ] `frontend/CLAUDE.md`: primitive-per-purpose guidance, no raw `useMediaQuery` in feature code, no hard-coded widths.
-- [ ] Root `README.md` "Project status" entry; tick this plan; PR link on the CHANGELOG bullet once the PRs exist.
+- [x] `docs/adr/0019-responsive-layout-strategy.md` (0017/0018 were taken by other work merged meanwhile) and its row in `docs/adr/README.md`.
+- [x] `frontend/CLAUDE.md`: primitive-per-purpose guidance (already accumulated per-batch through PR 4); added the missing "no hard-coded widths" rule (a `maxWidth` cap is fine, a non-shrinking fixed `width` on viewport-must-fit content is not) - the "no raw `useMediaQuery`" rule was already there from PR 2.
+- [x] Root `README.md` "Project status" entry; tick this plan; PR link on the CHANGELOG bullet once the PR is open.
 
 ## Verification
 
-- [ ] `npm run lint && npm test && npm run build && npm run e2e` green.
-- [ ] Every feature page has a Playwright spec passing at 390, 768 and 1280.
-- [ ] Manual, real browser at 360, 768 and 1280: no horizontal scroll on any page; nav, tables/cards, filters, dialogs and pagination behave per the spec; dark mode toggle reachable on all sizes.
-- [ ] Desktop diff review: only nav and padding differ from before.
+- [x] `npm run lint && npm test && npm run build && npm run e2e` green (PR 5, docs-only change; no code touched so no new failure surface).
+- [x] Every feature page has a Playwright spec passing at 390, 768 and 1280 (one per batch: `shell`, `transactions`, `accounts`, `transfers`, `budgets`, `recurring`, `investments`, `investment-product`, `settings`, `dashboard`, `export`, `onboarding`, plus `smoke`/`support` from F020).
+- [x] Manual, real browser at 360, 768 and 1280: no horizontal scroll on any page; nav, tables/cards, filters, dialogs and pagination behave per the spec; dark mode toggle reachable on all sizes. (Signed off by the user; not run by the agent - see PR 5's commit/PR body.)
+- [x] Desktop diff review: only nav and padding differ from before. (Signed off by the user; not run by the agent.)
