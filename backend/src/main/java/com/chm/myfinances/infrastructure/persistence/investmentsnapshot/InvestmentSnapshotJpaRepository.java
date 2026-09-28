@@ -11,11 +11,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
  */
 interface InvestmentSnapshotJpaRepository extends JpaRepository<InvestmentSnapshotJpaEntity, UUID> {
 
-  Optional<InvestmentSnapshotJpaEntity> findByProductIdAndDate(UUID productId, LocalDate date);
+  Optional<InvestmentSnapshotJpaEntity> findByHoldingIdAndDate(UUID holdingId, LocalDate date);
 
-  List<InvestmentSnapshotJpaEntity> findByProductIdOrderByDateDesc(UUID productId);
+  List<InvestmentSnapshotJpaEntity> findByHoldingIdOrderByDateDesc(UUID holdingId);
 
   List<InvestmentSnapshotJpaEntity> findByDateLessThanEqual(LocalDate date);
 
-  boolean existsByProductId(UUID productId);
+  boolean existsByHoldingId(UUID holdingId);
 }

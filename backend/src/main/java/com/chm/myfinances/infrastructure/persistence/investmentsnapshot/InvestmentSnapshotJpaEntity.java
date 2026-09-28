@@ -13,9 +13,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * JPA mapping for the {@code investment_snapshots} table (F009 spec). {@code productId} is a plain
- * {@code UUID} column, not a JPA association - same standalone-aggregate style as the other
- * entities.
+ * JPA mapping for the {@code investment_snapshots} table, rekeyed by holding (F022 spec, ADR 0020).
+ * {@code holdingId} is a plain {@code UUID} column, not a JPA association - same
+ * standalone-aggregate style as the other entities.
  */
 @Entity
 @Table(name = "investment_snapshots")
@@ -26,8 +26,8 @@ public class InvestmentSnapshotJpaEntity extends AuditableEntity {
 
   @Id private UUID id;
 
-  @Column(name = "product_id", nullable = false, updatable = false)
-  private UUID productId;
+  @Column(name = "holding_id", nullable = false, updatable = false)
+  private UUID holdingId;
 
   @Column(nullable = false)
   private LocalDate date;
@@ -35,9 +35,9 @@ public class InvestmentSnapshotJpaEntity extends AuditableEntity {
   @Column(nullable = false)
   private BigDecimal balance;
 
-  public InvestmentSnapshotJpaEntity(UUID id, UUID productId, LocalDate date, BigDecimal balance) {
+  public InvestmentSnapshotJpaEntity(UUID id, UUID holdingId, LocalDate date, BigDecimal balance) {
     this.id = id;
-    this.productId = productId;
+    this.holdingId = holdingId;
     this.date = date;
     this.balance = balance;
   }
