@@ -1,13 +1,14 @@
 package com.chm.myfinances.application.transfer;
 
 import com.chm.myfinances.application.account.AccountNotFoundException;
-import com.chm.myfinances.application.investmentproduct.InvestmentProductNotFoundException;
+import com.chm.myfinances.application.investmentholding.InvestmentHoldingClosedException;
+import com.chm.myfinances.application.investmentholding.InvestmentHoldingNotFoundException;
 import com.chm.myfinances.application.investmentsnapshot.InvestmentSnapshotService;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
-import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
-import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
+import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
+import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.shared.IdGenerator;
 import com.chm.myfinances.domain.transfer.InvestmentTradeDetails;
 import com.chm.myfinances.domain.transfer.Transfer;
@@ -34,8 +35,10 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>F009 makes a transfer able to be a buy/sell (ADR 0012). On create and edit, {@link
  * #requireValidInvestmentShape}: an endpoint that is an {@code INVESTMENT} account requires {@code
- * investmentProductId} and the product must belong to that account; a product requires exactly one
- * {@code INVESTMENT} endpoint (two isn't modeled); the product must be open. Direction is derived
+ * investmentProductId}, and an open holding must already exist for {@code (investmentProductId,
+ * that account)} (F022/ADR 0020 - changed from an equality check on the product's own account to a
+ * holding existence check, since a product no longer belongs to a single account); a product
+ * requires exactly one {@code INVESTMENT} endpoint (two isn't modeled). Direction is derived
  * (destination {@code INVESTMENT} = buy, source = sell), never stored. {@code create} also takes an
  * optional {@code resultingBalance}: when present it writes the transfer and a snapshot dated the
  * transfer date in one transaction (the only multi-write use case here, hence the method-level
@@ -48,19 +51,19 @@ public class TransferService {
 
   private final TransferRepository transferRepository;
   private final AccountRepository accountRepository;
-  private final InvestmentProductRepository productRepository;
+  private final InvestmentHoldingRepository holdingRepository;
   private final InvestmentSnapshotService snapshotService;
   private final IdGenerator idGenerator;
 
   public TransferService(
       TransferRepository transferRepository,
       AccountRepository accountRepository,
-      InvestmentProductRepository productRepository,
+      InvestmentHoldingRepository holdingRepository,
       InvestmentSnapshotService snapshotService,
       IdGenerator idGenerator) {
     this.transferRepository = transferRepository;
     this.accountRepository = accountRepository;
-    this.productRepository = productRepository;
+    this.holdingRepository = holdingRepository;
     this.snapshotService = snapshotService;
     this.idGenerator = idGenerator;
   }
@@ -100,7 +103,8 @@ public class TransferService {
     requireDifferentAccounts(fromAccountId, toAccountId);
     Account fromAccount = requireOpenAccount(fromAccountId);
     Account toAccount = requireOpenAccount(toAccountId);
-    requireValidInvestmentShape(fromAccount, toAccount, investmentProductId);
+    InvestmentHolding holding =
+        requireValidInvestmentShape(fromAccount, toAccount, investmentProductId);
 
     Transfer transfer =
         Transfer.create(
@@ -115,10 +119,10 @@ public class TransferService {
             tradeDetails);
     Transfer saved = transferRepository.save(transfer);
     if (resultingBalance != null) {
-      snapshotService.record(investmentProductId, date, resultingBalance);
+      snapshotService.record(holding.getId(), date, resultingBalance);
       log.info(
-          "Recorded snapshot for investment product {} as part of transfer {}",
-          investmentProductId,
+          "Recorded snapshot for investment holding {} as part of transfer {}",
+          holding.getId(),
           saved.getId());
     }
     return saved;
@@ -211,10 +215,12 @@ public class TransferService {
   }
 
   /**
-   * The F009 investment rules (see the class javadoc), all 409 because they depend on persisted
-   * account/product state. An unknown product is a 404.
+   * The F009 investment rules (see the class javadoc), rewired onto holdings by F022. All 409
+   * except the holding lookup itself, which is 404 (a trade shouldn't silently create one). Returns
+   * the resolved holding ({@code null} for a plain transfer) so {@link #create} can record a
+   * resulting-balance snapshot against the right holding without a second lookup.
    */
-  private void requireValidInvestmentShape(
+  private InvestmentHolding requireValidInvestmentShape(
       Account fromAccount, Account toAccount, UUID investmentProductId) {
     boolean fromInvestment = fromAccount.getType() == AccountType.INVESTMENT;
     boolean toInvestment = toAccount.getType() == AccountType.INVESTMENT;
@@ -228,23 +234,23 @@ public class TransferService {
         throw new InvestmentTransferInvalidException(
             "a transfer with an investment account requires an investment product");
       }
-      return;
+      return null;
     }
-    InvestmentProduct product =
-        productRepository
-            .findById(investmentProductId)
-            .orElseThrow(() -> new InvestmentProductNotFoundException(investmentProductId));
     if (!hasInvestmentEndpoint) {
       throw new InvestmentTransferInvalidException(
           "an investment product requires an investment account on one side");
     }
     Account investmentAccount = fromInvestment ? fromAccount : toAccount;
-    if (!product.getAccountId().equals(investmentAccount.getId())) {
-      throw new InvestmentTransferInvalidException(
-          "the investment product does not belong to the investment account");
+    InvestmentHolding holding =
+        holdingRepository
+            .findByProductIdAndAccountId(investmentProductId, investmentAccount.getId())
+            .orElseThrow(
+                () ->
+                    new InvestmentHoldingNotFoundException(
+                        investmentProductId, investmentAccount.getId()));
+    if (holding.isClosed()) {
+      throw new InvestmentHoldingClosedException(holding.getId());
     }
-    if (product.isClosed()) {
-      throw new InvestmentProductClosedException(investmentProductId);
-    }
+    return holding;
   }
 }

@@ -5,13 +5,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * Thrown when editing a snapshot to a date on which the product already has another snapshot (one
- * per product per date, PRD S5.8). Maps to 409 - the user edits or deletes the other one first.
+ * Thrown when editing a snapshot to a date on which the holding already has another snapshot (one
+ * per holding per date, PRD S5.8, F022). Maps to 409 - the user edits or deletes the other one
+ * first.
  */
 @ResponseStatus(HttpStatus.CONFLICT)
 public class InvestmentSnapshotDateTakenException extends RuntimeException {
 
-  public InvestmentSnapshotDateTakenException(UUID productId) {
-    super("Investment product already has a snapshot on that date: " + productId);
+  public InvestmentSnapshotDateTakenException(UUID holdingId) {
+    super("Investment holding already has a snapshot on that date: " + holdingId);
   }
 }

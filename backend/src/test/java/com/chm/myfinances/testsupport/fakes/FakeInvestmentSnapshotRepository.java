@@ -10,8 +10,9 @@ import java.util.UUID;
 
 /**
  * In-memory test double for {@link InvestmentSnapshotRepository}, shared across application-layer
- * tests. Does not enforce the {@code UNIQUE (product_id, date)} constraint - the service upserts on
- * that pair and the real adapter test covers the constraint itself.
+ * tests. Rekeyed by holding (F022). Does not enforce the {@code UNIQUE (holding_id, date)}
+ * constraint - the service upserts on that pair and the real adapter test covers the constraint
+ * itself.
  */
 public final class FakeInvestmentSnapshotRepository extends InMemoryRepository<InvestmentSnapshot>
     implements InvestmentSnapshotRepository {
@@ -21,16 +22,16 @@ public final class FakeInvestmentSnapshotRepository extends InMemoryRepository<I
   }
 
   @Override
-  public Optional<InvestmentSnapshot> findByProductIdAndDate(UUID productId, LocalDate date) {
+  public Optional<InvestmentSnapshot> findByHoldingIdAndDate(UUID holdingId, LocalDate date) {
     return values().stream()
-        .filter(s -> s.getProductId().equals(productId) && s.getDate().equals(date))
+        .filter(s -> s.getHoldingId().equals(holdingId) && s.getDate().equals(date))
         .findFirst();
   }
 
   @Override
-  public List<InvestmentSnapshot> findByProductId(UUID productId) {
+  public List<InvestmentSnapshot> findByHoldingId(UUID holdingId) {
     return values().stream()
-        .filter(s -> s.getProductId().equals(productId))
+        .filter(s -> s.getHoldingId().equals(holdingId))
         .sorted(Comparator.comparing(InvestmentSnapshot::getDate).reversed())
         .toList();
   }
@@ -41,7 +42,7 @@ public final class FakeInvestmentSnapshotRepository extends InMemoryRepository<I
   }
 
   @Override
-  public boolean existsByProductId(UUID productId) {
-    return values().stream().anyMatch(s -> s.getProductId().equals(productId));
+  public boolean existsByHoldingId(UUID holdingId) {
+    return values().stream().anyMatch(s -> s.getHoldingId().equals(holdingId));
   }
 }

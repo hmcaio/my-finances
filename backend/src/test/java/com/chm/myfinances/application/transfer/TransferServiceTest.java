@@ -10,7 +10,7 @@ import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.domain.transfer.TransferFilter;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
-import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
 import com.chm.myfinances.testsupport.fakes.FakeTransferRepository;
 import com.chm.myfinances.testsupport.mothers.AccountMother;
@@ -32,8 +32,8 @@ class TransferServiceTest {
 
   private final FakeTransferRepository transferRepository = new FakeTransferRepository();
   private final FakeAccountRepository accountRepository = new FakeAccountRepository();
-  private final FakeInvestmentProductRepository productRepository =
-      new FakeInvestmentProductRepository();
+  private final FakeInvestmentHoldingRepository holdingRepository =
+      new FakeInvestmentHoldingRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
   private final TransferService service = serviceWith(idGenerator);
 
@@ -41,9 +41,9 @@ class TransferServiceTest {
     return new TransferService(
         transferRepository,
         accountRepository,
-        productRepository,
+        holdingRepository,
         new InvestmentSnapshotService(
-            new FakeInvestmentSnapshotRepository(), productRepository, generator),
+            new FakeInvestmentSnapshotRepository(), holdingRepository, generator),
         generator);
   }
 

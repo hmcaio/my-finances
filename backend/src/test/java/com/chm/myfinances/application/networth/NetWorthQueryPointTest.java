@@ -6,15 +6,15 @@ import com.chm.myfinances.application.account.AccountBalanceQuery;
 import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.category.CategoryType;
-import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
+import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
-import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
 import com.chm.myfinances.testsupport.fakes.FakeTransactionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeTransferRepository;
 import com.chm.myfinances.testsupport.mothers.AccountMother;
-import com.chm.myfinances.testsupport.mothers.InvestmentProductMother;
+import com.chm.myfinances.testsupport.mothers.InvestmentHoldingMother;
 import com.chm.myfinances.testsupport.mothers.TransactionMother;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -35,8 +35,8 @@ class NetWorthQueryPointTest {
   private final FakeAccountRepository accountRepository = new FakeAccountRepository();
   private final FakeTransactionRepository transactionRepository = new FakeTransactionRepository();
   private final FakeTransferRepository transferRepository = new FakeTransferRepository();
-  private final FakeInvestmentProductRepository productRepository =
-      new FakeInvestmentProductRepository();
+  private final FakeInvestmentHoldingRepository holdingRepository =
+      new FakeInvestmentHoldingRepository();
   private final FakeInvestmentSnapshotRepository snapshotRepository =
       new FakeInvestmentSnapshotRepository();
   private final NetWorthQuery query =
@@ -45,8 +45,8 @@ class NetWorthQueryPointTest {
           new AccountBalanceQuery(
               transactionRepository,
               transferRepository,
-              productRepository,
-              new LatestInvestmentSnapshotQuery(snapshotRepository)),
+              holdingRepository,
+              new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository)),
           transactionRepository,
           transferRepository,
           snapshotRepository,
@@ -57,15 +57,12 @@ class NetWorthQueryPointTest {
   }
 
   private void snapshot(Account investment, LocalDate date, String balance) {
-    InvestmentProduct product =
-        productRepository.save(
-            InvestmentProductMother.product()
-                .withAccountId(investment.getId())
-                .withName("Product " + UUID.randomUUID())
-                .build());
+    InvestmentHolding holding =
+        holdingRepository.save(
+            InvestmentHoldingMother.holding().withAccountId(investment.getId()).build());
     snapshotRepository.save(
         InvestmentSnapshot.create(
-            UUID.randomUUID(), product.getId(), date, new BigDecimal(balance)));
+            UUID.randomUUID(), holding.getId(), date, new BigDecimal(balance)));
   }
 
   private static BigDecimal bd(String value) {

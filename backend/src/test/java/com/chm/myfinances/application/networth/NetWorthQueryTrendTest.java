@@ -7,15 +7,15 @@ import com.chm.myfinances.application.account.AccountBalanceQuery;
 import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.category.CategoryType;
-import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
+import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
-import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
 import com.chm.myfinances.testsupport.fakes.FakeTransactionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeTransferRepository;
 import com.chm.myfinances.testsupport.mothers.AccountMother;
-import com.chm.myfinances.testsupport.mothers.InvestmentProductMother;
+import com.chm.myfinances.testsupport.mothers.InvestmentHoldingMother;
 import com.chm.myfinances.testsupport.mothers.TransactionMother;
 import com.chm.myfinances.testsupport.mothers.TransferMother;
 import java.math.BigDecimal;
@@ -39,8 +39,8 @@ class NetWorthQueryTrendTest {
   private final FakeAccountRepository accountRepository = new FakeAccountRepository();
   private final FakeTransactionRepository transactionRepository = new FakeTransactionRepository();
   private final FakeTransferRepository transferRepository = new FakeTransferRepository();
-  private final FakeInvestmentProductRepository productRepository =
-      new FakeInvestmentProductRepository();
+  private final FakeInvestmentHoldingRepository holdingRepository =
+      new FakeInvestmentHoldingRepository();
   private final FakeInvestmentSnapshotRepository snapshotRepository =
       new FakeInvestmentSnapshotRepository();
   private final NetWorthQuery query =
@@ -49,8 +49,8 @@ class NetWorthQueryTrendTest {
           new AccountBalanceQuery(
               transactionRepository,
               transferRepository,
-              productRepository,
-              new LatestInvestmentSnapshotQuery(snapshotRepository)),
+              holdingRepository,
+              new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository)),
           transactionRepository,
           transferRepository,
           snapshotRepository,
@@ -89,16 +89,16 @@ class NetWorthQueryTrendTest {
   }
 
   private void snapshot(LocalDate date, String balance) {
-    InvestmentProduct product =
-        productRepository.findAll().stream().findFirst().orElseGet(this::newProduct);
+    InvestmentHolding holding =
+        holdingRepository.findAll().stream().findFirst().orElseGet(this::newHolding);
     snapshotRepository.save(
         InvestmentSnapshot.create(
-            UUID.randomUUID(), product.getId(), date, new BigDecimal(balance)));
+            UUID.randomUUID(), holding.getId(), date, new BigDecimal(balance)));
   }
 
-  private InvestmentProduct newProduct() {
-    return productRepository.save(
-        InvestmentProductMother.product().withAccountId(broker.getId()).withName("Fund").build());
+  private InvestmentHolding newHolding() {
+    return holdingRepository.save(
+        InvestmentHoldingMother.holding().withAccountId(broker.getId()).build());
   }
 
   private static List<LocalDate> dates(List<NetWorthPoint> points) {

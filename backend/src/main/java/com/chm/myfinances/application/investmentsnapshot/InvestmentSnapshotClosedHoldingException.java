@@ -5,13 +5,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * Thrown when editing or deleting a snapshot would leave a closed product's latest snapshot
- * non-zero (PRD S5.8: a closed product never keeps counting a stale value). Maps to 409.
+ * Thrown when editing or deleting a snapshot would leave a closed holding's latest snapshot
+ * non-zero (PRD S5.8, F022: a closed holding never keeps counting a stale value). Maps to 409.
  */
 @ResponseStatus(HttpStatus.CONFLICT)
-public class InvestmentSnapshotClosedProductException extends RuntimeException {
+public class InvestmentSnapshotClosedHoldingException extends RuntimeException {
 
-  public InvestmentSnapshotClosedProductException(UUID productId) {
-    super("Change would leave a closed investment product with value: " + productId);
+  public InvestmentSnapshotClosedHoldingException(UUID holdingId) {
+    super("Change would leave a closed investment holding with value: " + holdingId);
   }
 }

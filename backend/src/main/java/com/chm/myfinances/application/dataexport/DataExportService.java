@@ -12,6 +12,8 @@ import com.chm.myfinances.domain.institution.Institution;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
+import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
+import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
@@ -83,6 +85,7 @@ public class DataExportService {
   private final InvestmentCategoryRepository investmentCategories;
   private final InvestmentSubcategoryRepository investmentSubcategories;
   private final InvestmentProductRepository investmentProducts;
+  private final InvestmentHoldingRepository investmentHoldings;
   private final InvestmentSnapshotRepository investmentSnapshots;
 
   public DataExportService(
@@ -99,6 +102,7 @@ public class DataExportService {
       InvestmentCategoryRepository investmentCategories,
       InvestmentSubcategoryRepository investmentSubcategories,
       InvestmentProductRepository investmentProducts,
+      InvestmentHoldingRepository investmentHoldings,
       InvestmentSnapshotRepository investmentSnapshots) {
     this.categories = categories;
     this.paymentMethods = paymentMethods;
@@ -113,10 +117,11 @@ public class DataExportService {
     this.investmentCategories = investmentCategories;
     this.investmentSubcategories = investmentSubcategories;
     this.investmentProducts = investmentProducts;
+    this.investmentHoldings = investmentHoldings;
     this.investmentSnapshots = investmentSnapshots;
   }
 
-  /** Writes the twelve CSVs, zipped, to {@code out} (which is left open for the caller). */
+  /** Writes the thirteen CSVs, zipped, to {@code out} (which is left open for the caller). */
   @Transactional(readOnly = true)
   public void export(ExportFilter filter, OutputStream out) throws IOException {
     if (filter.dateFrom() != null
@@ -137,6 +142,7 @@ public class DataExportService {
     writeInvestmentCategories(zip);
     writeInvestmentSubcategories(zip, names);
     writeInvestmentProducts(zip, names);
+    writeInvestmentHoldings(zip, names);
     writeInvestmentSnapshots(zip, filter, names);
     zip.finish();
     log.info(
@@ -165,6 +171,13 @@ public class DataExportService {
             InvestmentSubcategory::getName);
     final Map<UUID, String> investmentProduct =
         names(investmentProducts.findAll(), InvestmentProduct::getId, InvestmentProduct::getName);
+    final Map<UUID, InvestmentHolding> investmentHoldingById = byId(investmentHoldings.findAll());
+  }
+
+  private static Map<UUID, InvestmentHolding> byId(List<InvestmentHolding> holdings) {
+    Map<UUID, InvestmentHolding> map = new HashMap<>();
+    holdings.forEach(h -> map.put(h.getId(), h));
+    return map;
   }
 
   private static <T> Map<UUID, String> names(
@@ -465,27 +478,56 @@ public class DataExportService {
             zip,
             "investment_products.csv",
             "id",
-            "account_id",
-            "account_name",
             "investment_category_id",
             "investment_category_name",
             "investment_subcategory_id",
             "investment_subcategory_name",
             "name",
-            "closed_date");
+            "additional_notes");
     for (InvestmentProduct p :
         sorted(
             investmentProducts.findAll(), InvestmentProduct::getName, InvestmentProduct::getId)) {
       csv.row(
           p.getId(),
-          p.getAccountId(),
-          nameOf(n.account, p.getAccountId()),
           p.getInvestmentCategoryId(),
           nameOf(n.investmentCategory, p.getInvestmentCategoryId()),
           p.getInvestmentSubcategoryId(),
           nameOf(n.investmentSubcategory, p.getInvestmentSubcategoryId()),
           p.getName(),
-          p.getClosedDate());
+          p.getAdditionalNotes());
+    }
+    end(zip, csv);
+  }
+
+  /**
+   * {@code InvestmentHolding} (F022, ADR 0020): the many-to-many link a product/account pair now
+   * goes through, in place of the old {@code investment_products.account_id}/{@code closed_date}.
+   */
+  private void writeInvestmentHoldings(ZipOutputStream zip, Lookups n) throws IOException {
+    CsvWriter csv =
+        begin(
+            zip,
+            "investment_holdings.csv",
+            "id",
+            "investment_product_id",
+            "investment_product_name",
+            "account_id",
+            "account_name",
+            "closed_date",
+            "additional_notes");
+    for (InvestmentHolding h :
+        sorted(
+            investmentHoldings.findAll(),
+            h -> nameOf(n.investmentProduct, h.getProductId()),
+            InvestmentHolding::getId)) {
+      csv.row(
+          h.getId(),
+          h.getProductId(),
+          nameOf(n.investmentProduct, h.getProductId()),
+          h.getAccountId(),
+          nameOf(n.account, h.getAccountId()),
+          h.getClosedDate(),
+          h.getAdditionalNotes());
     }
     end(zip, csv);
   }
@@ -497,8 +539,9 @@ public class DataExportService {
             zip,
             "investment_snapshots.csv",
             "id",
-            "investment_product_id",
+            "investment_holding_id",
             "investment_product_name",
+            "account_name",
             "date",
             "balance");
     for (InvestmentSnapshot s :
@@ -510,10 +553,12 @@ public class DataExportService {
           || (f.dateTo() != null && s.getDate().isAfter(f.dateTo()))) {
         continue;
       }
+      InvestmentHolding holding = n.investmentHoldingById.get(s.getHoldingId());
       csv.row(
           s.getId(),
-          s.getProductId(),
-          nameOf(n.investmentProduct, s.getProductId()),
+          s.getHoldingId(),
+          holding == null ? "" : nameOf(n.investmentProduct, holding.getProductId()),
+          holding == null ? "" : nameOf(n.account, holding.getAccountId()),
           s.getDate(),
           s.getBalance());
     }

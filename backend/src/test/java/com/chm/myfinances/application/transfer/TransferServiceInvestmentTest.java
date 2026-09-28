@@ -3,19 +3,23 @@ package com.chm.myfinances.application.transfer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.chm.myfinances.application.investmentproduct.InvestmentProductNotFoundException;
+import com.chm.myfinances.application.investmentholding.InvestmentHoldingClosedException;
+import com.chm.myfinances.application.investmentholding.InvestmentHoldingNotFoundException;
 import com.chm.myfinances.application.investmentsnapshot.InvestmentSnapshotService;
 import com.chm.myfinances.domain.account.Account;
+import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.transfer.InvestmentTradeDetails;
 import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
 import com.chm.myfinances.testsupport.fakes.FakeTransferRepository;
 import com.chm.myfinances.testsupport.mothers.AccountMother;
+import com.chm.myfinances.testsupport.mothers.InvestmentHoldingMother;
 import com.chm.myfinances.testsupport.mothers.InvestmentProductMother;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -25,11 +29,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Application-layer tests for {@link TransferService}'s investment rules (F009 spec), written first
- * (ADR 0004): a buy/sell is a transfer between a cash account and an {@code INVESTMENT} account,
- * tagged with a product that belongs to that account and is open. Every case depends on persisted
- * state, so each is its own 409 exception. Applied on create and edit; an optional {@code
- * resultingBalance} on create also writes a snapshot.
+ * Application-layer tests for {@link TransferService}'s investment rules (F009 spec, rewired onto
+ * holdings by F022/ADR 0020), written first (ADR 0004): a buy/sell is a transfer between a cash
+ * account and an {@code INVESTMENT} account, tagged with a product for which an open holding must
+ * already exist in that account (holdings are created explicitly - a trade never creates one).
+ * Every case depends on persisted state, so each is its own 404/409 exception. Applied on create
+ * and edit; an optional {@code resultingBalance} on create also writes a snapshot.
  */
 class TransferServiceInvestmentTest {
 
@@ -39,6 +44,8 @@ class TransferServiceInvestmentTest {
   private final FakeAccountRepository accountRepository = new FakeAccountRepository();
   private final FakeInvestmentProductRepository productRepository =
       new FakeInvestmentProductRepository();
+  private final FakeInvestmentHoldingRepository holdingRepository =
+      new FakeInvestmentHoldingRepository();
   private final FakeInvestmentSnapshotRepository snapshotRepository =
       new FakeInvestmentSnapshotRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
@@ -46,8 +53,8 @@ class TransferServiceInvestmentTest {
       new TransferService(
           transferRepository,
           accountRepository,
-          productRepository,
-          new InvestmentSnapshotService(snapshotRepository, productRepository, idGenerator),
+          holdingRepository,
+          new InvestmentSnapshotService(snapshotRepository, holdingRepository, idGenerator),
           idGenerator);
 
   private Account checking;
@@ -55,6 +62,7 @@ class TransferServiceInvestmentTest {
   private Account broker;
   private Account otherBroker;
   private InvestmentProduct product;
+  private InvestmentHolding holding;
   private InvestmentProduct otherBrokerProduct;
 
   @BeforeEach
@@ -64,15 +72,16 @@ class TransferServiceInvestmentTest {
     broker = accountRepository.save(AccountMother.investment().build());
     otherBroker =
         accountRepository.save(AccountMother.investment().withName("Other broker").build());
-    product =
-        productRepository.save(
-            InvestmentProductMother.product().withAccountId(broker.getId()).build());
-    otherBrokerProduct =
-        productRepository.save(
-            InvestmentProductMother.product()
-                .withAccountId(otherBroker.getId())
-                .withName("Foreign")
+    product = productRepository.save(InvestmentProductMother.product().build());
+    holding =
+        holdingRepository.save(
+            InvestmentHoldingMother.holding()
+                .withProductId(product.getId())
+                .withAccountId(broker.getId())
                 .build());
+    otherBrokerProduct =
+        productRepository.save(InvestmentProductMother.product().withName("Foreign").build());
+    // otherBrokerProduct has no holding anywhere - used to test the "no holding" 404.
   }
 
   private Transfer buy(
@@ -151,9 +160,9 @@ class TransferServiceInvestmentTest {
   }
 
   @Test
-  void createRejectsAProductThatDoesNotBelongToTheInvestmentAccount() {
+  void createRejectsAProductWithNoHoldingInThatAccount() {
     assertThatThrownBy(() -> buy(otherBrokerProduct.getId(), null, null))
-        .isInstanceOf(InvestmentTransferInvalidException.class);
+        .isInstanceOf(InvestmentHoldingNotFoundException.class);
     assertThat(transferRepository.findAll()).isEmpty();
   }
 
@@ -205,18 +214,18 @@ class TransferServiceInvestmentTest {
   }
 
   @Test
-  void createRejectsAClosedProduct() {
-    product.close(LocalDate.of(2026, 3, 1));
-    productRepository.save(product);
+  void createRejectsAClosedHolding() {
+    holding.close(LocalDate.of(2026, 3, 1));
+    holdingRepository.save(holding);
 
     assertThatThrownBy(() -> buy(product.getId(), null, null))
-        .isInstanceOf(InvestmentProductClosedException.class);
+        .isInstanceOf(InvestmentHoldingClosedException.class);
   }
 
   @Test
   void createRejectsAnUnknownProduct() {
     assertThatThrownBy(() -> buy(UUID.randomUUID(), null, null))
-        .isInstanceOf(InvestmentProductNotFoundException.class);
+        .isInstanceOf(InvestmentHoldingNotFoundException.class);
   }
 
   @Test
@@ -258,13 +267,13 @@ class TransferServiceInvestmentTest {
   }
 
   @Test
-  void editRejectsAProductThatDoesNotBelongToTheInvestmentAccount() {
+  void editRejectsAProductWithNoHoldingInThatAccount() {
     Transfer created = plainTransfer();
 
     assertThatThrownBy(
             () ->
                 editTo(created, checking.getId(), broker.getId(), otherBrokerProduct.getId(), null))
-        .isInstanceOf(InvestmentTransferInvalidException.class);
+        .isInstanceOf(InvestmentHoldingNotFoundException.class);
   }
 
   @Test
@@ -286,14 +295,14 @@ class TransferServiceInvestmentTest {
   }
 
   @Test
-  void editRejectsAClosedProduct() {
+  void editRejectsAClosedHolding() {
     Transfer created = buy(product.getId(), null, null);
-    product.close(LocalDate.of(2026, 3, 20));
-    productRepository.save(product);
+    holding.close(LocalDate.of(2026, 3, 20));
+    holdingRepository.save(holding);
 
     assertThatThrownBy(
             () -> editTo(created, checking.getId(), broker.getId(), product.getId(), null))
-        .isInstanceOf(InvestmentProductClosedException.class);
+        .isInstanceOf(InvestmentHoldingClosedException.class);
   }
 
   @Test
@@ -308,11 +317,11 @@ class TransferServiceInvestmentTest {
   @Test
   void editNeverTouchesSnapshots() {
     Transfer created = buy(product.getId(), null, new BigDecimal("1000.00"));
-    List<InvestmentSnapshot> before = snapshotRepository.findByProductId(product.getId());
+    List<InvestmentSnapshot> before = snapshotRepository.findByHoldingId(holding.getId());
 
     editTo(created, checking.getId(), broker.getId(), product.getId(), null);
 
-    assertThat(snapshotRepository.findByProductId(product.getId()))
+    assertThat(snapshotRepository.findByHoldingId(holding.getId()))
         .hasSameSizeAs(before)
         .first()
         .satisfies(s -> assertThat(s.getBalance()).isEqualByComparingTo("1000.00"));
@@ -324,7 +333,7 @@ class TransferServiceInvestmentTest {
   void resultingBalanceWritesTheTransferAndASnapshotDatedTheTransferDate() {
     Transfer created = buy(product.getId(), null, new BigDecimal("2500.00"));
 
-    List<InvestmentSnapshot> snapshots = snapshotRepository.findByProductId(product.getId());
+    List<InvestmentSnapshot> snapshots = snapshotRepository.findByHoldingId(holding.getId());
     assertThat(transferRepository.findById(created.getId())).isPresent();
     assertThat(snapshots).hasSize(1);
     assertThat(snapshots.get(0).getDate()).isEqualTo(DATE);
@@ -335,11 +344,11 @@ class TransferServiceInvestmentTest {
   void resultingBalanceReplacesASameDaySnapshot() {
     snapshotRepository.save(
         InvestmentSnapshot.create(
-            UUID.randomUUID(), product.getId(), DATE, new BigDecimal("10.00")));
+            UUID.randomUUID(), holding.getId(), DATE, new BigDecimal("10.00")));
 
     buy(product.getId(), null, new BigDecimal("2500.00"));
 
-    List<InvestmentSnapshot> snapshots = snapshotRepository.findByProductId(product.getId());
+    List<InvestmentSnapshot> snapshots = snapshotRepository.findByHoldingId(holding.getId());
     assertThat(snapshots).hasSize(1);
     assertThat(snapshots.get(0).getBalance()).isEqualByComparingTo("2500.00");
   }
@@ -357,7 +366,7 @@ class TransferServiceInvestmentTest {
         null,
         BigDecimal.ZERO);
 
-    List<InvestmentSnapshot> snapshots = snapshotRepository.findByProductId(product.getId());
+    List<InvestmentSnapshot> snapshots = snapshotRepository.findByHoldingId(holding.getId());
     assertThat(snapshots).hasSize(1);
     assertThat(snapshots.get(0).getBalance()).isEqualByComparingTo("0");
   }
@@ -372,7 +381,7 @@ class TransferServiceInvestmentTest {
   @Test
   void aRejectedTradeWritesNoSnapshot() {
     assertThatThrownBy(() -> buy(otherBrokerProduct.getId(), null, new BigDecimal("1.00")))
-        .isInstanceOf(InvestmentTransferInvalidException.class);
+        .isInstanceOf(InvestmentHoldingNotFoundException.class);
 
     assertThat(snapshotRepository.findAll()).isEmpty();
   }
@@ -393,5 +402,38 @@ class TransferServiceInvestmentTest {
                     BigDecimal.TEN))
         .isInstanceOf(IllegalArgumentException.class);
     assertThat(transferRepository.findAll()).isEmpty();
+  }
+
+  // --- multi-holding (F022) ---------------------------------------------------------------------
+
+  @Test
+  void theSameProductCanBeTradedIndependentlyAtTwoHoldings() {
+    InvestmentHolding otherHolding =
+        holdingRepository.save(
+            InvestmentHoldingMother.holding()
+                .withProductId(product.getId())
+                .withAccountId(otherBroker.getId())
+                .build());
+
+    Transfer atBroker = buy(product.getId(), null, new BigDecimal("1000.00"));
+    Transfer atOtherBroker =
+        service.create(
+            DATE,
+            checking.getId(),
+            otherBroker.getId(),
+            new BigDecimal("500.00"),
+            "Buy elsewhere",
+            null,
+            product.getId(),
+            null,
+            new BigDecimal("500.00"));
+
+    assertThat(snapshotRepository.findByHoldingId(holding.getId()))
+        .singleElement()
+        .satisfies(s -> assertThat(s.getBalance()).isEqualByComparingTo("1000.00"));
+    assertThat(snapshotRepository.findByHoldingId(otherHolding.getId()))
+        .singleElement()
+        .satisfies(s -> assertThat(s.getBalance()).isEqualByComparingTo("500.00"));
+    assertThat(atBroker.getId()).isNotEqualTo(atOtherBroker.getId());
   }
 }

@@ -5,16 +5,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.category.CategoryType;
-import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
+import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transfer.Transfer;
-import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
 import com.chm.myfinances.testsupport.fakes.FakeTransactionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeTransferRepository;
 import com.chm.myfinances.testsupport.mothers.AccountMother;
-import com.chm.myfinances.testsupport.mothers.InvestmentProductMother;
+import com.chm.myfinances.testsupport.mothers.InvestmentHoldingMother;
 import com.chm.myfinances.testsupport.mothers.TransactionMother;
 import com.chm.myfinances.testsupport.mothers.TransferMother;
 import java.math.BigDecimal;
@@ -35,26 +35,27 @@ class AccountBalanceQueryTest {
 
   private final FakeTransactionRepository transactionRepository = new FakeTransactionRepository();
   private final FakeTransferRepository transferRepository = new FakeTransferRepository();
-  private final FakeInvestmentProductRepository productRepository =
-      new FakeInvestmentProductRepository();
+  private final FakeInvestmentHoldingRepository holdingRepository =
+      new FakeInvestmentHoldingRepository();
   private final FakeInvestmentSnapshotRepository snapshotRepository =
       new FakeInvestmentSnapshotRepository();
   private final AccountBalanceQuery query =
       new AccountBalanceQuery(
           transactionRepository,
           transferRepository,
-          productRepository,
-          new LatestInvestmentSnapshotQuery(snapshotRepository));
+          holdingRepository,
+          new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository));
 
-  private InvestmentProduct productIn(Account investment, String name) {
-    return productRepository.save(
-        InvestmentProductMother.product().withAccountId(investment.getId()).withName(name).build());
+  /** A holding of a brand-new product in {@code investment} (F022: value lives on the holding). */
+  private InvestmentHolding holdingIn(Account investment, String name) {
+    return holdingRepository.save(
+        InvestmentHoldingMother.holding().withAccountId(investment.getId()).build());
   }
 
-  private void snapshot(InvestmentProduct product, LocalDate date, String balance) {
+  private void snapshot(InvestmentHolding holding, LocalDate date, String balance) {
     snapshotRepository.save(
         InvestmentSnapshot.create(
-            UUID.randomUUID(), product.getId(), date, new BigDecimal(balance)));
+            UUID.randomUUID(), holding.getId(), date, new BigDecimal(balance)));
   }
 
   private static Transaction transactionOn(
@@ -284,7 +285,7 @@ class AccountBalanceQueryTest {
     // No snapshots yet, and the account has no opening balance to start from. Transfers pointing
     // at it don't contribute - only snapshots do.
     Account investment = AccountMother.investment().build();
-    productIn(investment, "Tesouro Selic");
+    holdingIn(investment, "Tesouro Selic");
     transferRepository.save(
         transferOn(
             LocalDate.of(2026, 2, 1),
@@ -300,8 +301,8 @@ class AccountBalanceQueryTest {
   @Test
   void balanceAsOfOnAnInvestmentAccountSumsItsProductsLatestSnapshots() {
     Account investment = AccountMother.investment().build();
-    InvestmentProduct selic = productIn(investment, "Tesouro Selic");
-    InvestmentProduct fund = productIn(investment, "Fund");
+    InvestmentHolding selic = holdingIn(investment, "Tesouro Selic");
+    InvestmentHolding fund = holdingIn(investment, "Fund");
     snapshot(selic, LocalDate.of(2026, 1, 31), "1000.00");
     snapshot(selic, LocalDate.of(2026, 2, 28), "1100.00");
     snapshot(fund, LocalDate.of(2026, 1, 31), "250.50");
@@ -316,8 +317,8 @@ class AccountBalanceQueryTest {
   void balanceAsOfOnAnInvestmentAccountIgnoresSnapshotsAfterTheDateAndOtherAccountsProducts() {
     Account investment = AccountMother.investment().build();
     Account otherInvestment = AccountMother.investment().withName("Other broker").build();
-    InvestmentProduct selic = productIn(investment, "Tesouro Selic");
-    InvestmentProduct foreign = productIn(otherInvestment, "Foreign");
+    InvestmentHolding selic = holdingIn(investment, "Tesouro Selic");
+    InvestmentHolding foreign = holdingIn(otherInvestment, "Foreign");
     snapshot(selic, LocalDate.of(2026, 1, 31), "1000.00");
     snapshot(selic, LocalDate.of(2026, 3, 31), "9999.00");
     snapshot(foreign, LocalDate.of(2026, 1, 31), "777.00");
@@ -330,7 +331,7 @@ class AccountBalanceQueryTest {
   @Test
   void balanceAsOfOnAnInvestmentAccountCountsAZeroedProductAsNothing() {
     Account investment = AccountMother.investment().build();
-    InvestmentProduct sold = productIn(investment, "Sold");
+    InvestmentHolding sold = holdingIn(investment, "Sold");
     snapshot(sold, LocalDate.of(2026, 1, 31), "500.00");
     snapshot(sold, LocalDate.of(2026, 2, 28), "0.00");
 
@@ -347,7 +348,7 @@ class AccountBalanceQueryTest {
             .withOpeningBalanceDate(LocalDate.of(2026, 1, 1))
             .build();
     Account investment = AccountMother.investment().build();
-    InvestmentProduct selic = productIn(investment, "Tesouro Selic");
+    InvestmentHolding selic = holdingIn(investment, "Tesouro Selic");
     snapshot(selic, LocalDate.of(2026, 1, 31), "1000.00");
     transferRepository.save(
         TransferMother.transfer()
@@ -355,7 +356,7 @@ class AccountBalanceQueryTest {
             .withFromAccountId(investment.getId())
             .withToAccountId(checking.getId())
             .withAmount(new BigDecimal("400.00"))
-            .withInvestmentProductId(selic.getId())
+            .withInvestmentProductId(selic.getProductId())
             .build());
 
     assertThat(query.balanceAsOf(checking, LocalDate.of(2026, 2, 28)))

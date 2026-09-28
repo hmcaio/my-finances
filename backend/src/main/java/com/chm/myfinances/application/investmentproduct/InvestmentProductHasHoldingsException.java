@@ -5,13 +5,15 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * Thrown when deleting an {@code InvestmentProduct} that has snapshots or buy/sell transfers (PRD
- * S5.8 delete-safety rule; F009 supplies the history). Maps to 409, directing the user to close it.
+ * Thrown when deleting an {@code InvestmentProduct} that still has at least one holding, even a
+ * closed and empty one (F022 spec: a product can only be hard-deleted with zero holdings, not zero
+ * history - a holding follows its own, stricter zero-history rule). Maps to 409, directing the user
+ * to remove its holdings first.
  */
 @ResponseStatus(HttpStatus.CONFLICT)
-public class InvestmentProductHasHistoryException extends RuntimeException {
+public class InvestmentProductHasHoldingsException extends RuntimeException {
 
-  public InvestmentProductHasHistoryException(UUID id) {
-    super("Investment product has history and cannot be deleted, close it instead: " + id);
+  public InvestmentProductHasHoldingsException(UUID id) {
+    super("Investment product still has holdings and cannot be deleted: " + id);
   }
 }

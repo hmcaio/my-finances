@@ -4,12 +4,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.application.investmentproduct.InvestmentProductNotFoundException;
+import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.transfer.InvestmentTradeDetails;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
 import com.chm.myfinances.testsupport.fakes.FakeTransferRepository;
+import com.chm.myfinances.testsupport.mothers.InvestmentHoldingMother;
 import com.chm.myfinances.testsupport.mothers.InvestmentProductMother;
 import com.chm.myfinances.testsupport.mothers.TransferMother;
 import java.math.BigDecimal;
@@ -17,15 +20,18 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneOffset;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Tests for {@link InvestmentValueSeriesQuery} (F009 spec), written first (ADR 0004): per product
- * and month-end (the current month at today) the latest snapshot value, the month's contributions
- * (buys minus sells, cash moved) and the running units. Raw data only.
+ * Tests for {@link InvestmentValueSeriesQuery} (F009 spec, rewired onto holdings by F022/ADR 0020):
+ * per product and month-end (the current month at today) the sum of its holdings' latest snapshot
+ * values, the month's contributions (buys minus sells, cash moved) and the running units. Raw data
+ * only.
  */
 class InvestmentValueSeriesQueryTest {
 
@@ -33,6 +39,8 @@ class InvestmentValueSeriesQueryTest {
 
   private final FakeInvestmentProductRepository productRepository =
       new FakeInvestmentProductRepository();
+  private final FakeInvestmentHoldingRepository holdingRepository =
+      new FakeInvestmentHoldingRepository();
   private final FakeInvestmentSnapshotRepository snapshotRepository =
       new FakeInvestmentSnapshotRepository();
   private final FakeTransferRepository transferRepository = new FakeTransferRepository();
@@ -40,23 +48,38 @@ class InvestmentValueSeriesQueryTest {
       Clock.fixed(TODAY.atStartOfDay().toInstant(ZoneOffset.UTC), ZoneOffset.UTC);
   private final InvestmentValueSeriesQuery query =
       new InvestmentValueSeriesQuery(
-          productRepository, snapshotRepository, transferRepository, clock);
+          productRepository, holdingRepository, snapshotRepository, transferRepository, clock);
 
   private final UUID brokerId = UUID.randomUUID();
   private final UUID checkingId = UUID.randomUUID();
+  private final Map<UUID, InvestmentHolding> holdingByProduct = new HashMap<>();
   private InvestmentProduct product;
 
   @BeforeEach
   void setUp() {
-    product =
-        productRepository.save(
-            InvestmentProductMother.product().withAccountId(brokerId).withName("Fund").build());
+    product = newProduct("Fund");
+  }
+
+  private InvestmentProduct newProduct(String name) {
+    InvestmentProduct created =
+        productRepository.save(InvestmentProductMother.product().withName(name).build());
+    holdingByProduct.put(
+        created.getId(),
+        holdingRepository.save(
+            InvestmentHoldingMother.holding()
+                .withProductId(created.getId())
+                .withAccountId(brokerId)
+                .build()));
+    return created;
   }
 
   private void snapshot(InvestmentProduct target, LocalDate date, String balance) {
     snapshotRepository.save(
         InvestmentSnapshot.create(
-            UUID.randomUUID(), target.getId(), date, new BigDecimal(balance)));
+            UUID.randomUUID(),
+            holdingByProduct.get(target.getId()).getId(),
+            date,
+            new BigDecimal(balance)));
   }
 
   private void buy(InvestmentProduct target, LocalDate date, String amount, String quantity) {
@@ -153,9 +176,7 @@ class InvestmentValueSeriesQueryTest {
 
   @Test
   void contributedIgnoresOtherProductsAndTradesOutsideTheMonth() {
-    InvestmentProduct other =
-        productRepository.save(
-            InvestmentProductMother.product().withAccountId(brokerId).withName("Other").build());
+    InvestmentProduct other = newProduct("Other");
     buy(other, LocalDate.of(2026, 3, 5), "777.00", null);
     buy(product, LocalDate.of(2026, 2, 28), "10.00", null);
     buy(product, LocalDate.of(2026, 4, 1), "20.00", null);
@@ -204,9 +225,7 @@ class InvestmentValueSeriesQueryTest {
 
   @Test
   void withoutAProductIdThereIsOneSeriesPerProduct() {
-    InvestmentProduct other =
-        productRepository.save(
-            InvestmentProductMother.product().withAccountId(brokerId).withName("Other").build());
+    InvestmentProduct other = newProduct("Other");
     snapshot(other, LocalDate.of(2026, 3, 31), "42.00");
 
     List<ProductSeries> series = query.series(YearMonth.of(2026, 3), YearMonth.of(2026, 3), null);
@@ -251,5 +270,23 @@ class InvestmentValueSeriesQueryTest {
   void anExcessiveRangeIsRejected() {
     assertThatThrownBy(() -> query.series(YearMonth.of(1990, 1), YearMonth.of(2026, 1), null))
         .isInstanceOf(InvalidValueSeriesRangeException.class);
+  }
+
+  @Test
+  void aProductHeldAtTwoAccountsSumsBothHoldingsAtEveryPoint() {
+    InvestmentHolding secondHolding =
+        holdingRepository.save(
+            InvestmentHoldingMother.holding().withProductId(product.getId()).build());
+    snapshot(product, LocalDate.of(2026, 2, 28), "100.00");
+    snapshotRepository.save(
+        InvestmentSnapshot.create(
+            UUID.randomUUID(),
+            secondHolding.getId(),
+            LocalDate.of(2026, 2, 28),
+            new BigDecimal("50.00")));
+
+    List<SeriesPoint> points = points(YearMonth.of(2026, 2), YearMonth.of(2026, 2));
+
+    assertThat(points.get(0).value()).isEqualByComparingTo("150.00");
   }
 }
