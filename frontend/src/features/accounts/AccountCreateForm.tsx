@@ -25,7 +25,10 @@ interface AccountCreateFormProps {
   /**
    * Lays the form out for a `ResponsiveDialog` (F021): the fields in a one-column-on-phone
    * `FormGrid` inside `DialogContent`, the buttons in `DialogActions`. The caller supplies the
-   * dialog and its title. Off (default), the fields wrap in one row with the button after them.
+   * dialog and its title. Off (default, the onboarding screen's only remaining inline caller -
+   * the account list's Add button uses dialog mode), the same `FormGrid` renders directly on the
+   * page with the submit button below it, so the full-page flow also stacks to one column below
+   * `sm` instead of just wrapping.
    */
   dialog?: boolean
   /** Dialog mode: shown above the fields (the caller's error banner), so a save error is visible. */
@@ -89,9 +92,9 @@ export function AccountCreateForm({
         size="small"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        sx={dialog ? { gridColumn: '1 / -1' } : undefined}
+        sx={{ gridColumn: '1 / -1' }}
       />
-      <InstitutionSelect value={institutionId} onChange={setInstitutionId} fullWidth={dialog} />
+      <InstitutionSelect value={institutionId} onChange={setInstitutionId} fullWidth />
       <Select
         size="small"
         value={type}
@@ -158,8 +161,15 @@ export function AccountCreateForm({
   }
 
   return (
-    <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-      {fields}
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+        alignItems: { xs: 'stretch', sm: 'flex-start' },
+      }}
+    >
+      <FormGrid>{fields}</FormGrid>
       {submitButton}
     </Box>
   )

@@ -8,6 +8,7 @@ import { seedCategories } from '../../mocks/handlers/categories'
 import { exportBadRangeHandler } from '../../mocks/handlers/export'
 import { REVERSED_RANGE_MESSAGE } from '../../api/export/export'
 import { selectOption } from '../../test/testUtils'
+import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
 import { ExportPage } from './ExportPage'
 import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
@@ -107,5 +108,25 @@ describe('ExportPage', () => {
     await user.click(screen.getByRole('button', { name: 'Clear filters' }))
 
     expect(screen.getByLabelText('From')).toHaveValue('')
+  })
+})
+
+describe('ExportPage responsive layout (F021)', () => {
+  afterEach(restoreViewport)
+
+  it('collapses the filters behind a button with an active-count badge on mobile', async () => {
+    setViewportWidth(VIEWPORT.mobile)
+    const user = userEvent.setup()
+    renderWithQueryClient(<ExportPage />)
+    await screen.findByRole('button', { name: 'Download' })
+    expect(screen.queryByLabelText('From')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Filters' }))
+    await user.type(screen.getByLabelText('From'), '2026-01-01')
+    await user.click(screen.getByRole('button', { name: 'Done' }))
+
+    expect(await screen.findByRole('button', { name: 'Filters, 1 active' })).toBeInTheDocument()
+    // The Download action lives outside the sheet, so closing it never hides it.
+    expect(screen.getByRole('button', { name: 'Download' })).toBeInTheDocument()
   })
 })

@@ -79,6 +79,7 @@ No chart library: `ValueSeriesChart`, `InvestmentAllocationChart` and `NetWorthT
 - **Geometry and DOM only.** No `toHaveScreenshot` or pixel baselines (flaky across Windows/Linux). Use `expectNoHorizontalOverflow(page)` and `expectNavMode(page, 'permanent' | 'temporary')` from `e2e/support/`; they have their own self-check in `e2e/support.spec.ts`.
 - **`Layout` switches nav at `lg` (1200px)**: permanent drawer at or above it, hamburger-opened temporary drawer (`Open navigation`) below. The temporary drawer's links are not in the DOM while closed, so a jsdom test that renders `Layout` (e.g. `App.test.tsx`) must stub `matchMedia` to match `min-width` queries, or open the drawer first; in e2e, click the hamburger before looking for nav links on mobile/tablet.
 - A helper glob like `**/api/**` would also match Vite's `/src/api/*.ts` modules, which is why `mockApi` matches on `pathname.startsWith('/api/')`.
+- **The TanStack Query devtools toggle button is off under Playwright** (`VITE_E2E=true` in `playwright.config.ts`'s dev server, checked in `main.tsx` alongside `import.meta.env.DEV`): its fixed position can otherwise sit on top of a full-screen mobile dialog's own bottom-right button (e.g. a `ResponsiveFilterBar` sheet's "Done") and intercept the click. `npm run dev`/Vitest are unaffected - they don't set `VITE_E2E`.
 
 ## Logging
 
