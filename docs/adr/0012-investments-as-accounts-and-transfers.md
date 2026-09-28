@@ -1,6 +1,6 @@
 # 0012. Model investment accounts as accounts and buys/sells as transfers
 
-Status: Accepted
+Status: Accepted (amended by [0020](0020-investment-holdings-many-to-many.md))
 Date: 2026-09-20
 
 ## Context
