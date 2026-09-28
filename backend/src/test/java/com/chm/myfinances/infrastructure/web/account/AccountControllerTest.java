@@ -11,6 +11,7 @@ import com.chm.myfinances.domain.institution.Institution;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
+import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import com.chm.myfinances.domain.transfer.TransferRepository;
@@ -49,6 +50,7 @@ class AccountControllerTest {
   @Autowired private InstitutionRepository institutionRepository;
   @Autowired private InvestmentCategoryRepository investmentCategoryRepository;
   @Autowired private InvestmentProductRepository investmentProductRepository;
+  @Autowired private InvestmentHoldingRepository investmentHoldingRepository;
   @Autowired private TransferRepository transferRepository;
 
   /** Sentinel: leave the institutionId field out of the request body entirely. */
@@ -543,7 +545,7 @@ class AccountControllerTest {
   }
 
   @Test
-  void closingAnInvestmentAccountWithAnOpenProductIsRejectedUntilTheProductIsClosed()
+  void closingAnInvestmentAccountWithAnOpenHoldingIsRejectedUntilTheHoldingIsClosed()
       throws Exception {
     String accountId = createInvestmentAccount("XP Close Test");
     UUID categoryId =
@@ -554,17 +556,22 @@ class AccountControllerTest {
         investmentProductRepository
             .save(
                 InvestmentProductMother.product()
-                    .withAccountId(UUID.fromString(accountId))
                     .withInvestmentCategoryId(categoryId)
                     .withInvestmentSubcategoryId(null)
                     .withName("Bitcoin Test")
                     .build())
             .getId();
+    UUID holdingId =
+        investmentHoldingRepository
+            .save(
+                com.chm.myfinances.domain.investmentholding.InvestmentHolding.create(
+                    UUID.randomUUID(), productId, UUID.fromString(accountId), null))
+            .getId();
 
     mockMvc.perform(post("/api/accounts/" + accountId + "/close")).andExpect(status().isConflict());
 
     mockMvc
-        .perform(post("/api/investment-products/" + productId + "/close"))
+        .perform(post("/api/investment-holdings/" + holdingId + "/close"))
         .andExpect(status().isOk());
     mockMvc
         .perform(post("/api/accounts/" + accountId + "/close"))

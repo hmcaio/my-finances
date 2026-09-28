@@ -1,16 +1,9 @@
 package com.chm.myfinances.infrastructure.web.investmentproduct;
 
 import com.chm.myfinances.application.investmentproduct.InvestmentProductService;
-import com.chm.myfinances.application.investmentsnapshot.InvestmentSnapshotFreshnessQuery;
-import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
-import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import jakarta.validation.Valid;
-import java.time.Clock;
-import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -20,49 +13,28 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * REST API for {@code InvestmentProduct} (F008 spec). A plain list (an account holds a handful of
- * products), optionally filtered by {@code ?accountId=}.
+ * REST API for {@code InvestmentProduct} (F008 spec, restructured to pure taxonomy by F022/ADR
+ * 0020). A plain list of every product - {@code ?accountId=} is gone, no longer meaningful on the
+ * product (F023 adds real filtering). Close/snapshot actions moved to {@code
+ * InvestmentHoldingController}.
  */
 @RestController
 @RequestMapping("/api/investment-products")
 public class InvestmentProductController {
 
   private final InvestmentProductService productService;
-  private final LatestInvestmentSnapshotQuery latestSnapshotQuery;
-  private final InvestmentSnapshotFreshnessQuery freshnessQuery;
-  private final Clock clock;
 
-  public InvestmentProductController(
-      InvestmentProductService productService,
-      LatestInvestmentSnapshotQuery latestSnapshotQuery,
-      InvestmentSnapshotFreshnessQuery freshnessQuery,
-      Clock clock) {
+  public InvestmentProductController(InvestmentProductService productService) {
     this.productService = productService;
-    this.latestSnapshotQuery = latestSnapshotQuery;
-    this.freshnessQuery = freshnessQuery;
-    this.clock = clock;
   }
 
   @GetMapping
-  public List<InvestmentProductResponse> list(
-      @RequestParam(name = "accountId", required = false) UUID accountId) {
-    // One snapshot scan and one trade scan for the whole list, not one per product.
-    Map<UUID, InvestmentSnapshot> latest = latestSnapshotQuery.latestByProduct();
-    Set<UUID> stale = freshnessQuery.staleProductIds(LocalDate.now(clock));
-    return productService.findAll(accountId).stream()
-        .map(
-            product ->
-                InvestmentProductResponse.from(
-                    product,
-                    productService.hasHistory(product.getId()),
-                    stale.contains(product.getId()),
-                    latest.get(product.getId())))
-        .toList();
+  public List<InvestmentProductResponse> list() {
+    return productService.findAll().stream().map(InvestmentProductResponse::from).toList();
   }
 
   @PostMapping
@@ -74,7 +46,8 @@ public class InvestmentProductController {
             request.accountId(),
             request.investmentCategoryId(),
             request.investmentSubcategoryId(),
-            request.name()));
+            request.name(),
+            request.additionalNotes()));
   }
 
   @GetMapping("/{id}")
@@ -88,21 +61,15 @@ public class InvestmentProductController {
     return toResponse(
         productService.edit(
             id,
-            request.accountId(),
             request.investmentCategoryId(),
             request.investmentSubcategoryId(),
-            request.name()));
-  }
-
-  /** {@code 409} while the latest snapshot is non-zero (F009): record a zero snapshot first. */
-  @PostMapping("/{id}/close")
-  public InvestmentProductResponse close(@PathVariable UUID id) {
-    return toResponse(productService.close(id));
+            request.name(),
+            request.additionalNotes()));
   }
 
   /**
-   * {@code 409} when the product has history (a snapshot or a tagged transfer, F009): the user
-   * closes it instead.
+   * {@code 409} while the product still has at least one holding, even a closed and empty one
+   * (F022): the user removes its holdings first.
    */
   @DeleteMapping("/{id}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -111,10 +78,6 @@ public class InvestmentProductController {
   }
 
   private InvestmentProductResponse toResponse(InvestmentProduct product) {
-    return InvestmentProductResponse.from(
-        product,
-        productService.hasHistory(product.getId()),
-        freshnessQuery.needsSnapshot(product.getId(), LocalDate.now(clock)),
-        latestSnapshotQuery.latestOf(product.getId()).orElse(null));
+    return InvestmentProductResponse.from(product);
   }
 }
