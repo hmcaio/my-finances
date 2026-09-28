@@ -27,16 +27,23 @@ function Section({ title, children }: PropsWithChildren<{ title: string }>) {
  */
 export function DashboardPage() {
   return (
-    <Box sx={{ py: 4 }}>
+    <Box sx={{ py: { xs: 2, sm: 4 } }}>
       <Typography variant="h4" component="h1" gutterBottom>
         Dashboard
       </Typography>
 
+      {/* Fluid widget grid (F021 spec): 1 column below `sm`, 2 from `sm` to `lg`, 3 from `lg` up -
+          matching the tablet/desktop bands `useBreakpointBand` reports. The two wide sections
+          (Net worth, Pending occurrences) span every column at both multi-column widths. */}
       <Box
         sx={{
           display: 'grid',
           gap: 3,
-          gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' },
+          gridTemplateColumns: {
+            xs: '1fr',
+            sm: 'repeat(2, minmax(0, 1fr))',
+            lg: 'repeat(3, minmax(0, 1fr))',
+          },
         }}
       >
         <Section title="Spend by category">
@@ -61,7 +68,7 @@ export function DashboardPage() {
           </Paper>
         </Section>
 
-        <Box sx={{ gridColumn: { md: '1 / -1' } }}>
+        <Box sx={{ gridColumn: { sm: '1 / -1' } }}>
           <Section title="Net worth">
             <Paper variant="outlined" sx={{ p: 2 }}>
               <NetWorthTrendChart />
@@ -69,7 +76,7 @@ export function DashboardPage() {
           </Section>
         </Box>
 
-        <Box sx={{ gridColumn: { md: '1 / -1' } }}>
+        <Box sx={{ gridColumn: { sm: '1 / -1' } }}>
           <PendingOccurrencesWidget />
         </Box>
       </Box>
