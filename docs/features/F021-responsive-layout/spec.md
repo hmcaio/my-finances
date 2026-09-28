@@ -51,7 +51,7 @@ e2e/<area>.spec.ts                            per-page geometry checks (F020 hel
 - `npm run lint && npm test && npm run build && npm run e2e` green.
 
 ## Docs
-- ADR 0017 (responsive strategy: MUI breakpoints, cards vs. tables, shared primitives, geometry assertions instead of screenshots) and its row in `docs/adr/README.md`.
+- ADR 0019 (responsive strategy: MUI breakpoints, cards vs. tables, shared primitives, geometry assertions instead of screenshots) and its row in `docs/adr/README.md`.
 - `frontend/CLAUDE.md`: which primitive to use for what, no raw `useMediaQuery` in feature code, no hard-coded widths.
 - `docs/features/README.md` row; root `README.md` "Project status" entry once built.
 - `CHANGELOG.md` `[Unreleased]`: one bullet, `**F021 — Responsive layout** — <summary>`, added in the first PR and edited as later PRs land. No `Upgrade:` line.

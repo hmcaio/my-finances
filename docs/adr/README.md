@@ -22,6 +22,7 @@ One file per decision, numbered sequentially, never renumbered or edited to chan
 | [0016](0016-tanstack-query-client-cache.md) | Client-side query cache with TanStack Query and coarse invalidation; no server cache until measured | Accepted |
 | [0017](0017-delete-accounts-with-no-history.md) | Allow hard-deleting an account that has no history | Accepted |
 | [0018](0018-opt-in-full-stack-dev-compose-profile.md) | Opt-in `full` compose profile runs the whole stack in dev | Accepted |
+| [0019](0019-responsive-layout-strategy.md) | Responsive layout: MUI breakpoints, cards over tables, shared primitives, geometry-only e2e | Accepted |
 
 Template:
 ```
