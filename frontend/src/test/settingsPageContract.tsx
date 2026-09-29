@@ -86,7 +86,7 @@ export function describeSettingsPage<Entity extends { id: string; name: string }
   })
 
   it('adds a new row through the header dialog', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(page)
     await screen.findByText(seedRows[0].name)
 
@@ -99,7 +99,7 @@ export function describeSettingsPage<Entity extends { id: string; name: string }
   })
 
   it('renames a row inline', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(page)
     await screen.findByText(renameTarget.name)
     const renamed = `${renameTarget.name} (renamed)`
@@ -116,7 +116,7 @@ export function describeSettingsPage<Entity extends { id: string; name: string }
   })
 
   it('deletes a row', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(page)
     await screen.findByText(deleteTarget.name)
 
@@ -128,7 +128,7 @@ export function describeSettingsPage<Entity extends { id: string; name: string }
 
   it('surfaces the 409 conflict message when delete fails', async () => {
     server.use(conflict.handler)
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(page)
     await screen.findByText(deleteTarget.name)
 
@@ -142,7 +142,7 @@ export function describeSettingsPage<Entity extends { id: string; name: string }
 
   it('surfaces the duplicate-name message when adding fails', async () => {
     server.use(duplicateName.handler)
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(page)
     await screen.findByText(seedRows[0].name)
 
@@ -156,7 +156,7 @@ export function describeSettingsPage<Entity extends { id: string; name: string }
 
   if (maxLength !== undefined) {
     it('caps the name inputs at the backend length limit', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithQueryClient(page)
       await screen.findByText(seedRows[0].name)
 

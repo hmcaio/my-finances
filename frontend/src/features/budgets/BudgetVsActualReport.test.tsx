@@ -23,7 +23,7 @@ describe('BudgetVsActualReport', () => {
         return HttpResponse.json([])
       }),
     )
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<WithCapEditor />)
     expect(await screen.findByText('No active budgets for this month.')).toBeInTheDocument()
 

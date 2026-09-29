@@ -27,7 +27,7 @@ describe('InvestmentProductsListSection', () => {
   })
 
   it('the status filter set to All shows every product, each with its own status', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithRouter(<InvestmentProductsListSection />)
     await within(table()).findByText('Bitcoin')
 
@@ -42,7 +42,7 @@ describe('InvestmentProductsListSection', () => {
     // The default `/api/accounts` mock excludes the seeded INVESTMENT account for other pages'
     // isolation (its own doc comment); this page needs it in the Account filter's options.
     server.use(accountsWithInvestmentHandler)
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithRouter(<InvestmentProductsListSection />)
     await within(table()).findByText('Bitcoin')
 
@@ -54,7 +54,7 @@ describe('InvestmentProductsListSection', () => {
   })
 
   it('filters by name, case-insensitive', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithRouter(<InvestmentProductsListSection />)
     await within(table()).findByText('Bitcoin')
 

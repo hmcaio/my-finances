@@ -45,7 +45,7 @@ describe('InvestmentCategoriesPage', () => {
   })
 
   it('expands a category to show its sub-categories and collapses it again', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<InvestmentCategoriesPage />)
 
     await expand(user, 'Fixed Income')
@@ -61,7 +61,7 @@ describe('InvestmentCategoriesPage', () => {
   })
 
   it('adds a category through the header dialog', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<InvestmentCategoriesPage />)
     await screen.findByText(CRYPTO.name)
 
@@ -74,7 +74,7 @@ describe('InvestmentCategoriesPage', () => {
   })
 
   it('adds a sub-category under its category', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<InvestmentCategoriesPage />)
     await expand(user, 'Fixed Income')
 
@@ -87,7 +87,7 @@ describe('InvestmentCategoriesPage', () => {
   })
 
   it('renames a category inline', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<InvestmentCategoriesPage />)
     await screen.findByText(CRYPTO.name)
 
@@ -103,7 +103,7 @@ describe('InvestmentCategoriesPage', () => {
   })
 
   it('renames a sub-category inline', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<InvestmentCategoriesPage />)
     await expand(user, 'Fixed Income')
 
@@ -119,7 +119,7 @@ describe('InvestmentCategoriesPage', () => {
   })
 
   it('deletes a category', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<InvestmentCategoriesPage />)
     await screen.findByText(CRYPTO.name)
 
@@ -129,7 +129,7 @@ describe('InvestmentCategoriesPage', () => {
   })
 
   it('deletes a sub-category', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<InvestmentCategoriesPage />)
     await expand(user, 'Fixed Income')
 
@@ -141,7 +141,7 @@ describe('InvestmentCategoriesPage', () => {
 
   it('surfaces the category 409 message and keeps the row when delete is refused', async () => {
     server.use(investmentCategoryDeleteConflictHandler)
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<InvestmentCategoriesPage />)
     await screen.findByText(FIXED.name)
 
@@ -153,7 +153,7 @@ describe('InvestmentCategoriesPage', () => {
 
   it('surfaces the sub-category 409 message and keeps the row when delete is refused', async () => {
     server.use(investmentSubcategoryDeleteConflictHandler)
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<InvestmentCategoriesPage />)
     await expand(user, 'Fixed Income')
 
@@ -165,7 +165,7 @@ describe('InvestmentCategoriesPage', () => {
 
   it('surfaces the duplicate-name 409 on add for both levels', async () => {
     server.use(investmentCategoryCreateConflictHandler, investmentSubcategoryCreateConflictHandler)
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<InvestmentCategoriesPage />)
     await expand(user, 'Fixed Income')
 
@@ -181,7 +181,7 @@ describe('InvestmentCategoriesPage', () => {
   })
 
   it('keeps a sub-category draft per category', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<InvestmentCategoriesPage />)
     await expand(user, 'Fixed Income')
     await expand(user, 'Variable Income')
@@ -209,7 +209,7 @@ describe('InvestmentCategoriesPage', () => {
     server.use(
       http.get('/api/investment-categories', () => new HttpResponse(null, { status: 500 })),
     )
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<InvestmentCategoriesPage />)
 
     expect(await screen.findByText(/Could not load data/)).toBeInTheDocument()
@@ -223,33 +223,9 @@ describe('InvestmentCategoriesPage', () => {
 describe('InvestmentCategoriesPage responsive layout (F021)', () => {
   afterEach(restoreViewport)
 
-  it('opens the add-category dialog full-screen on mobile', async () => {
-    setViewportWidth(VIEWPORT.mobile)
-    const user = userEvent.setup()
-    renderWithQueryClient(<InvestmentCategoriesPage />)
-    await screen.findByText(CRYPTO.name)
-
-    await user.click(screen.getByRole('button', { name: 'Add category' }))
-    const dialog = await screen.findByRole('dialog')
-
-    expect(dialog).toHaveClass('MuiDialog-paperFullScreen')
-  })
-
-  it('opens the add-category dialog as a regular (not full-screen) dialog on tablet', async () => {
-    setViewportWidth(VIEWPORT.tablet)
-    const user = userEvent.setup()
-    renderWithQueryClient(<InvestmentCategoriesPage />)
-    await screen.findByText(CRYPTO.name)
-
-    await user.click(screen.getByRole('button', { name: 'Add category' }))
-    const dialog = await screen.findByRole('dialog')
-
-    expect(dialog).not.toHaveClass('MuiDialog-paperFullScreen')
-  })
-
   it('keeps the per-category add-sub-category form inline, not in a dialog, at every size', async () => {
     setViewportWidth(VIEWPORT.mobile)
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<InvestmentCategoriesPage />)
     await expand(user, 'Fixed Income')
 
@@ -259,7 +235,7 @@ describe('InvestmentCategoriesPage responsive layout (F021)', () => {
 
   it('renames a category inline at every size (the table never becomes cards)', async () => {
     setViewportWidth(VIEWPORT.mobile)
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<InvestmentCategoriesPage />)
     await screen.findByText(CRYPTO.name)
 

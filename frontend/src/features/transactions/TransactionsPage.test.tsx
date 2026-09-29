@@ -36,7 +36,7 @@ describe('TransactionsPage', () => {
   })
 
   it('filters by category', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<TransactionsPage />)
     await screen.findByText(seedGroceriesTransaction.description)
 
@@ -50,7 +50,7 @@ describe('TransactionsPage', () => {
   })
 
   it('adds a new transaction through the Add dialog', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<TransactionsPage />)
     await screen.findByText(seedGroceriesTransaction.description)
 
@@ -67,7 +67,7 @@ describe('TransactionsPage', () => {
   })
 
   it('excludes closed accounts from the create/edit form account dropdown', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<TransactionsPage />)
     await screen.findByText(seedGroceriesTransaction.description)
 
@@ -80,7 +80,7 @@ describe('TransactionsPage', () => {
 
   it('never offers an investment account in the form account dropdown', async () => {
     server.use(accountsWithInvestmentHandler)
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<TransactionsPage />)
     await screen.findByText(seedGroceriesTransaction.description)
 
@@ -95,7 +95,7 @@ describe('TransactionsPage', () => {
   })
 
   it('edits a transaction', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<TransactionsPage />)
     const target = seedGroceriesTransaction
     await screen.findByText(target.description)
@@ -113,7 +113,7 @@ describe('TransactionsPage', () => {
   })
 
   it('deletes a transaction after confirming the dialog', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<TransactionsPage />)
     const target = seedGroceriesTransaction
     await screen.findByText(target.description)
@@ -128,7 +128,7 @@ describe('TransactionsPage', () => {
 
   it('surfaces the closed-account conflict message on create', async () => {
     server.use(transactionClosedAccountConflictHandler)
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<TransactionsPage />)
     await screen.findByText(seedGroceriesTransaction.description)
 
@@ -153,7 +153,7 @@ describe('TransactionsPage', () => {
       failOnce('/api/accounts'),
       failOnce('/api/payment-methods'),
     )
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<TransactionsPage />)
     await screen.findAllByRole('alert')
 
@@ -255,7 +255,7 @@ describe('TransactionsPage responsive layout (F021)', () => {
     })
 
     it('collapses the filters behind a button with an active-count badge', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithQueryClient(<TransactionsPage />)
       await findCard(target.description)
       expect(screen.queryByRole('combobox', { name: 'Category filter' })).not.toBeInTheDocument()
@@ -272,7 +272,7 @@ describe('TransactionsPage responsive layout (F021)', () => {
     })
 
     it('Add opens a full-screen dialog that creates a transaction', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithQueryClient(<TransactionsPage />)
       await findCard(target.description)
 
@@ -287,7 +287,7 @@ describe('TransactionsPage responsive layout (F021)', () => {
 
     it('shows a save error inside the dialog, which stays open', async () => {
       server.use(transactionClosedAccountConflictHandler)
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithQueryClient(<TransactionsPage />)
       await findCard(target.description)
 
@@ -299,7 +299,7 @@ describe('TransactionsPage responsive layout (F021)', () => {
     })
 
     it('Edit opens the dialog prefilled and saves through the same mutation', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithQueryClient(<TransactionsPage />)
       const card = await findCard(target.description)
 
@@ -319,7 +319,7 @@ describe('TransactionsPage responsive layout (F021)', () => {
     })
 
     it('Cancel closes the dialog without saving', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithQueryClient(<TransactionsPage />)
       const card = await findCard(target.description)
       await user.click(card.getByRole('button', { name: 'Edit' }))
@@ -375,7 +375,7 @@ describe('TransactionsPage responsive layout (F021)', () => {
     })
 
     it('Add opens a regular (not full-screen) dialog that creates a transaction', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithQueryClient(<TransactionsPage />)
       await screen.findByText(target.description)
 
@@ -389,7 +389,7 @@ describe('TransactionsPage responsive layout (F021)', () => {
     })
 
     it('Edit opens the dialog prefilled', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithQueryClient(<TransactionsPage />)
       const row = await findRow(target.description)
 

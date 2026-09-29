@@ -46,7 +46,7 @@ describe('AccountTransactionList responsive layout (F021)', () => {
 
   it('keeps a table on tablet with Payment Method behind the row expander', async () => {
     setViewportWidth(VIEWPORT.tablet)
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<AccountTransactionList accountId={target.accountId} />)
 
     await screen.findByText(target.description)

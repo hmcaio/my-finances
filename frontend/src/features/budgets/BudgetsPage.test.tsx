@@ -73,7 +73,7 @@ describe('BudgetsPage', () => {
   })
 
   it('offers only unbudgeted expense categories in the add-budget picker', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<BudgetsPage />)
     await findRow(seedGroceriesCategory.name, settingsTable())
     const dialog = await openAddDialog(user)
@@ -95,7 +95,7 @@ describe('BudgetsPage', () => {
         ]),
       ),
     )
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<BudgetsPage />)
     await findRow(seedGroceriesCategory.name, settingsTable())
     const dialog = await openAddDialog(user)
@@ -121,7 +121,7 @@ describe('BudgetsPage', () => {
       ),
       budgetCreateConflictHandler,
     )
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<BudgetsPage />)
     await findRow(seedGroceriesCategory.name, settingsTable())
     const dialog = await openAddDialog(user)
@@ -136,7 +136,7 @@ describe('BudgetsPage', () => {
   })
 
   it('edits a budget cap inline', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<BudgetsPage />)
     const row = await findRow(seedGroceriesCategory.name, settingsTable())
     await waitFor(() =>
@@ -155,7 +155,7 @@ describe('BudgetsPage', () => {
   it('stops a budget after confirming, keeping past months and hiding it from the picker', async () => {
     // Once stopped the backend omits the line from the current month's report.
     server.use(http.get('/api/budgets/report', () => HttpResponse.json([])))
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<BudgetsPage />)
     const row = await findRow(seedGroceriesCategory.name, settingsTable())
 
@@ -180,7 +180,7 @@ describe('BudgetsPage', () => {
   })
 
   it('does nothing when the stop confirmation is cancelled', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<BudgetsPage />)
     const row = await findRow(seedGroceriesCategory.name, settingsTable())
 
@@ -195,7 +195,7 @@ describe('BudgetsPage', () => {
 
   it('shows an error banner when stopping fails', async () => {
     server.use(http.post('/api/budgets/:id/stop', () => new HttpResponse(null, { status: 404 })))
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<BudgetsPage />)
     const row = await findRow(seedGroceriesCategory.name, settingsTable())
 
@@ -209,7 +209,7 @@ describe('BudgetsPage', () => {
   })
 
   it('resumes a stopped budget through the cap edit', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<BudgetsPage />)
     const row = await findRow(seedGroceriesCategory.name, settingsTable())
     await user.click(row.getByRole('button', { name: 'Stop budget' }))
@@ -305,7 +305,7 @@ describe('BudgetsPage responsive layout (F021)', () => {
     })
 
     it('Add opens a full-screen dialog', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithQueryClient(<BudgetsPage />)
       await findCard(seedGroceriesCategory.name)
 
@@ -315,7 +315,7 @@ describe('BudgetsPage responsive layout (F021)', () => {
     })
 
     it('Edit cap opens a full-screen dialog instead of editing on the card', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithQueryClient(<BudgetsPage />)
       const card = await findCard(seedGroceriesCategory.name)
 
@@ -338,7 +338,7 @@ describe('BudgetsPage responsive layout (F021)', () => {
     beforeEach(() => setViewportWidth(VIEWPORT.tablet))
 
     it('still edits the cap inline in the row, with no edit dialog', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithQueryClient(<BudgetsPage />)
       const row = await findRow(seedGroceriesCategory.name, settingsTable())
 
@@ -349,7 +349,7 @@ describe('BudgetsPage responsive layout (F021)', () => {
     })
 
     it('Add opens a regular (not full-screen) dialog', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithQueryClient(<BudgetsPage />)
       await findRow(seedGroceriesCategory.name, settingsTable())
 

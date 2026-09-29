@@ -5,7 +5,7 @@ import { LoadFailedNotice } from './LoadFailedNotice'
 
 describe('LoadFailedNotice', () => {
   it('renders the message and calls onRetry when Retry is clicked', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onRetry = vi.fn()
     render(<LoadFailedNotice message="Network error" onRetry={onRetry} />)
 

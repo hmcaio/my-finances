@@ -64,7 +64,7 @@ describe('CategoriesPage', () => {
   })
 
   it('renames a built-in row, which stays first and still has no delete action', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<CategoriesPage />)
     await screen.findByText(builtInIncome.name)
 
@@ -129,7 +129,7 @@ describe('CategoriesPage', () => {
     server.use(
       http.get('/api/categories', () => new HttpResponse(null, { status: 500 }), { once: true }),
     )
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<CategoriesPage />)
 
     await user.click(await screen.findByRole('button', { name: 'Retry' }))
@@ -144,33 +144,9 @@ describe('CategoriesPage', () => {
 describe('CategoriesPage responsive layout (F021)', () => {
   afterEach(restoreViewport)
 
-  it('opens the add dialog full-screen on mobile', async () => {
-    setViewportWidth(VIEWPORT.mobile)
-    const user = userEvent.setup()
-    renderWithQueryClient(<CategoriesPage />)
-    await screen.findByText(seedGroceriesCategory.name)
-
-    await user.click(screen.getByRole('button', { name: 'Add category' }))
-    const dialog = await screen.findByRole('dialog')
-
-    expect(dialog).toHaveClass('MuiDialog-paperFullScreen')
-  })
-
-  it('opens the add dialog as a regular (not full-screen) dialog on tablet', async () => {
-    setViewportWidth(VIEWPORT.tablet)
-    const user = userEvent.setup()
-    renderWithQueryClient(<CategoriesPage />)
-    await screen.findByText(seedGroceriesCategory.name)
-
-    await user.click(screen.getByRole('button', { name: 'Add category' }))
-    const dialog = await screen.findByRole('dialog')
-
-    expect(dialog).not.toHaveClass('MuiDialog-paperFullScreen')
-  })
-
   it('keeps inline rename in the table row at every size (the table never becomes cards)', async () => {
     setViewportWidth(VIEWPORT.mobile)
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<CategoriesPage />)
     await screen.findByText(seedGroceriesCategory.name)
 

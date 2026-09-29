@@ -21,7 +21,7 @@ describe('ConfirmDialog', () => {
   })
 
   it('renders title/body and calls the right handlers', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onConfirm = vi.fn()
     const onCancel = vi.fn()
     render(

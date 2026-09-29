@@ -5,7 +5,7 @@ import { InlineEditActions } from './InlineEditActions'
 
 describe('InlineEditActions', () => {
   it('shows the edit button and calls onEdit when not editing', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onEdit = vi.fn()
     render(
       <InlineEditActions
@@ -24,7 +24,7 @@ describe('InlineEditActions', () => {
   })
 
   it('shows save/cancel with the given labels and calls the right handlers while editing', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onSave = vi.fn()
     const onCancel = vi.fn()
     render(

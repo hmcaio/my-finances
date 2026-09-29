@@ -8,6 +8,7 @@ import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.transfer.InvestmentTradeDetails;
+import com.chm.myfinances.testsupport.TestClocks;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
@@ -19,7 +20,6 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,8 +44,7 @@ class InvestmentValueSeriesQueryTest {
   private final FakeInvestmentSnapshotRepository snapshotRepository =
       new FakeInvestmentSnapshotRepository();
   private final FakeTransferRepository transferRepository = new FakeTransferRepository();
-  private final Clock clock =
-      Clock.fixed(TODAY.atStartOfDay().toInstant(ZoneOffset.UTC), ZoneOffset.UTC);
+  private final Clock clock = TestClocks.fixedAtStartOf(TODAY);
   private final InvestmentValueSeriesQuery query =
       new InvestmentValueSeriesQuery(
           productRepository, holdingRepository, snapshotRepository, transferRepository, clock);

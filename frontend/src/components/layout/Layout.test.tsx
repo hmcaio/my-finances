@@ -41,7 +41,7 @@ describe('Layout', () => {
     ['just below lg', 1199],
   ])('hides the nav behind a hamburger on %s', async (_name, width) => {
     setViewportWidth(width)
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderLayout()
 
     expect(document.querySelector('.MuiDrawer-docked')).not.toBeInTheDocument()
@@ -54,7 +54,7 @@ describe('Layout', () => {
 
   it('closes the temporary drawer when a nav link is followed', async () => {
     setViewportWidth(390)
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderLayout()
     await user.click(screen.getByRole('button', { name: 'Open navigation' }))
 
@@ -67,7 +67,7 @@ describe('Layout', () => {
 
   it('stays closed when in-page navigation returns to the pathname the drawer was opened from', async () => {
     setViewportWidth(390)
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderLayout({ pageContent: <Link to="/">Go home</Link> })
 
     // Opened while on "/" (the initial route), then navigated away via the drawer link — the

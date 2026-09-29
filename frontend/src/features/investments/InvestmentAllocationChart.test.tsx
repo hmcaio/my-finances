@@ -50,7 +50,7 @@ describe('InvestmentAllocationChart', () => {
   })
 
   it('drills from a category into its sub-categories, summing to the category total', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<InvestmentAllocationChart />)
     await screen.findByRole('img', { name: 'Allocation by category' })
 
@@ -71,7 +71,7 @@ describe('InvestmentAllocationChart', () => {
   })
 
   it('goes back to all categories', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<InvestmentAllocationChart />)
     await screen.findByRole('img', { name: 'Allocation by category' })
     await user.click(screen.getByRole('button', { name: 'Fixed Income: show sub-categories' }))
@@ -84,7 +84,7 @@ describe('InvestmentAllocationChart', () => {
   })
 
   it('labels the slice of products without a sub-category', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     server.use(
       http.get('/api/investments/allocation', ({ request }) => {
         const bySub = new URL(request.url).searchParams.get('groupBy') === 'SUBCATEGORY'

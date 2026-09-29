@@ -44,7 +44,7 @@ async function pickBuy(user: ReturnType<typeof userEvent.setup>, product = 'Bitc
 
 describe('TransferForm buys and sells', () => {
   it('shows a product select with only the open products once an investment account is picked', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderForm()
     expect(screen.queryByRole('combobox', { name: 'Product' })).not.toBeInTheDocument()
 
@@ -59,7 +59,7 @@ describe('TransferForm buys and sells', () => {
   })
 
   it('does not let an investment account sit on both sides', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderForm({
       accounts: [...accounts, { ...seedInvestmentAccount, id: 'acct-inv-2', name: 'Other broker' }],
     })
@@ -72,7 +72,7 @@ describe('TransferForm buys and sells', () => {
   })
 
   it('prefills the amount with the live total of a buy and keeps a manual override', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderForm()
     await pickBuy(user)
 
@@ -93,7 +93,7 @@ describe('TransferForm buys and sells', () => {
   })
 
   it('subtracts taxes from the total of a sell', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderForm()
     await selectOption(user, 'From Account', BROKER)
     await selectOption(user, 'To Account', CHECKING)
@@ -107,7 +107,7 @@ describe('TransferForm buys and sells', () => {
   })
 
   it('suggests a resulting balance from the latest snapshot plus the gross traded value', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderForm()
     await pickBuy(user)
 
@@ -120,7 +120,7 @@ describe('TransferForm buys and sells', () => {
   })
 
   it('creates a buy with the product, trade details and the edited resulting balance', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const capture = captureCreate()
     const onSaved = renderForm()
     await pickBuy(user)
@@ -147,7 +147,7 @@ describe('TransferForm buys and sells', () => {
   })
 
   it('sends no resulting balance when the field is cleared', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const capture = captureCreate()
     const onSaved = renderForm()
     await pickBuy(user)
@@ -163,7 +163,7 @@ describe('TransferForm buys and sells', () => {
   })
 
   it('"Sold entire position" sends a resulting balance of 0 and locks the field', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const capture = captureCreate()
     const onSaved = renderForm()
     await selectOption(user, 'From Account', BROKER)
@@ -187,7 +187,7 @@ describe('TransferForm buys and sells', () => {
   })
 
   it('offers "Sold entire position" only on a sell', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderForm()
     await pickBuy(user)
 
@@ -195,7 +195,7 @@ describe('TransferForm buys and sells', () => {
   })
 
   it('requires a product for an investment account and quantity with unit price together', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderForm()
     await selectOption(user, 'From Account', CHECKING)
     await selectOption(user, 'To Account', BROKER)
@@ -212,7 +212,7 @@ describe('TransferForm buys and sells', () => {
   })
 
   it('surfaces the conflict message when the backend rejects the trade', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     server.use(http.post('/api/transfers', () => HttpResponse.json({}, { status: 409 })))
     const onError = vi.fn()
     renderForm({ onError })
@@ -258,7 +258,7 @@ describe('TransferForm buys and sells', () => {
   })
 
   it('edits a trade without offering the snapshot fields and sends no resulting balance', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     let sent: Record<string, unknown> | null = null
     server.use(
       http.patch('/api/transfers/:id', async ({ request }) => {
@@ -284,7 +284,7 @@ describe('TransferForm buys and sells', () => {
   })
 
   it('leaves a plain transfer without any trade fields', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const capture = captureCreate()
     const onSaved = renderForm()
     await selectOption(user, 'From Account', CHECKING)

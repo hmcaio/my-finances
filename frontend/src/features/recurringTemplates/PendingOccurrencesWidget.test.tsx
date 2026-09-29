@@ -26,7 +26,7 @@ describe('PendingOccurrencesWidget', () => {
   })
 
   it('confirms an occurrence with a payment method and removes it from the list', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<PendingOccurrencesWidget />)
     const row = await findRow('Rent')
 
@@ -39,7 +39,7 @@ describe('PendingOccurrencesWidget', () => {
   })
 
   it('confirms an occurrence with an overridden amount', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<PendingOccurrencesWidget />)
     const row = await findRow('Rent')
 
@@ -55,7 +55,7 @@ describe('PendingOccurrencesWidget', () => {
   })
 
   it('dismisses an occurrence without creating a transaction', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<PendingOccurrencesWidget />)
     const row = await findRow('Rent')
 
@@ -106,7 +106,7 @@ describe('PendingOccurrencesWidget responsive layout (F021)', () => {
     })
 
     it('Confirm opens a full-screen dialog prefilled from the occurrence', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithQueryClient(<PendingOccurrencesWidget />)
       const card = await findCard('Rent')
 
@@ -123,7 +123,7 @@ describe('PendingOccurrencesWidget responsive layout (F021)', () => {
     beforeEach(() => setViewportWidth(VIEWPORT.tablet))
 
     it('keeps the table without the Category column, reachable through the row expander', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithQueryClient(<PendingOccurrencesWidget />)
 
       const row = await findRow('Rent')

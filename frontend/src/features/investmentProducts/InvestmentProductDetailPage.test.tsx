@@ -92,7 +92,7 @@ describe('InvestmentProductDetailPage', () => {
   })
 
   it('records a snapshot and adds it to the history', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     let sent: unknown = null
     server.use(
       http.post('/api/investment-holdings/:id/snapshots', async ({ request }) => {
@@ -124,7 +124,7 @@ describe('InvestmentProductDetailPage', () => {
   })
 
   it('a same-day snapshot replaces the earlier row instead of adding one', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderDetail()
     await screen.findByRole('heading', { name: 'Bitcoin' })
     const history = screen.getByRole('table', { name: 'Snapshot history' })
@@ -147,7 +147,7 @@ describe('InvestmentProductDetailPage', () => {
   })
 
   it('accepts a zero balance (a liquidated position) and rejects a negative one', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderDetail()
     await screen.findByRole('heading', { name: 'Bitcoin' })
     await user.click(screen.getByRole('button', { name: 'Record snapshot' }))
@@ -164,7 +164,7 @@ describe('InvestmentProductDetailPage', () => {
   })
 
   it('edits a snapshot date and balance in place', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     let sent: unknown = null
     server.use(
       http.put('/api/investment-holdings/:id/snapshots/:snapshotId', async ({ request }) => {
@@ -194,7 +194,7 @@ describe('InvestmentProductDetailPage', () => {
   })
 
   it('cancelling an edit leaves the row unchanged', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderDetail()
     await screen.findByRole('heading', { name: 'Bitcoin' })
     const history = screen.getByRole('table', { name: 'Snapshot history' })
@@ -208,7 +208,7 @@ describe('InvestmentProductDetailPage', () => {
   })
 
   it('shows the conflict message when an edit is refused with 409 and keeps the row editable', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     server.use(
       http.put('/api/investment-holdings/:id/snapshots/:snapshotId', () =>
         HttpResponse.json({}, { status: 409 }),
@@ -227,7 +227,7 @@ describe('InvestmentProductDetailPage', () => {
   })
 
   it('deletes a snapshot after confirming and moves the current value back', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderDetail()
     await screen.findByRole('heading', { name: 'Bitcoin' })
     const history = screen.getByRole('table', { name: 'Snapshot history' })
@@ -243,7 +243,7 @@ describe('InvestmentProductDetailPage', () => {
   })
 
   it('does not delete when the confirmation is cancelled', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderDetail()
     await screen.findByRole('heading', { name: 'Bitcoin' })
     const history = screen.getByRole('table', { name: 'Snapshot history' })
@@ -258,7 +258,7 @@ describe('InvestmentProductDetailPage', () => {
   })
 
   it('shows the conflict message when a delete is refused with 409', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     server.use(
       http.delete('/api/investment-holdings/:id/snapshots/:snapshotId', () =>
         HttpResponse.json({}, { status: 409 }),
@@ -278,7 +278,7 @@ describe('InvestmentProductDetailPage', () => {
   })
 
   it('opens the transfer form as a Buy for this product and closes it after saving', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderDetail()
     await screen.findByRole('heading', { name: 'Bitcoin' })
 
@@ -300,7 +300,7 @@ describe('InvestmentProductDetailPage', () => {
   })
 
   it('opens the Sell form with the investment account as the source', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderDetail()
     await screen.findByRole('heading', { name: 'Bitcoin' })
 
@@ -376,7 +376,7 @@ describe('InvestmentProductDetailPage responsive layout (F021)', () => {
     })
 
     it('Record snapshot opens a full-screen dialog', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderDetail()
       await screen.findByRole('heading', { name: 'Bitcoin' })
 
@@ -387,7 +387,7 @@ describe('InvestmentProductDetailPage responsive layout (F021)', () => {
     })
 
     it('the Buy/Sell dialog is full screen', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderDetail()
       await screen.findByRole('heading', { name: 'Bitcoin' })
 
@@ -402,7 +402,7 @@ describe('InvestmentProductDetailPage responsive layout (F021)', () => {
     beforeEach(() => setViewportWidth(VIEWPORT.tablet))
 
     it('keeps the trades table without the record-only columns, reachable through the row expander', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderDetail()
       const trades = await screen.findByRole('table', { name: 'Trades' })
 
@@ -425,7 +425,7 @@ describe('InvestmentProductDetailPage responsive layout (F021)', () => {
     })
 
     it('the Buy/Sell dialog opens without going full screen', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderDetail()
       await screen.findByRole('heading', { name: 'Bitcoin' })
 
