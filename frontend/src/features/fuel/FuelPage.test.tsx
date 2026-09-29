@@ -63,17 +63,18 @@ describe('FuelPage', () => {
     ).toBeInTheDocument()
   })
 
-  it('lists fuel history for the selected vehicle only, with computed ratios', async () => {
+  it('lists fuel history for the selected vehicle only, with computed ratios, newest fill first', async () => {
     useCategoriesWithFuel()
     server.use(
       http.get('/api/vehicles/:id/fuel-history', ({ params }) => {
         if (params.id !== seedCivicVehicle.id) return HttpResponse.json([])
         return HttpResponse.json([
-          fuelTransaction({ id: 'fuel-1', date: '2026-01-01' }),
+          fuelTransaction({ id: 'fuel-1', date: '2026-01-01', odometer: 1000 }),
           fuelTransaction({
             id: 'fuel-2',
             date: '2026-01-20',
             kmSinceLastFill: 400,
+            odometer: 1400,
             kmPerLiter: 10,
             amountPerKm: 0.5,
             litersPerKm: 0.1,
@@ -86,6 +87,13 @@ describe('FuelPage', () => {
     const table = await screen.findByRole('table', { name: 'Fuel history' })
     expect(await within(table).findAllByText('Gasolina')).toHaveLength(2)
     expect(within(table).getByText('10.00')).toBeInTheDocument()
+    expect(within(table).getByText('400.0')).toBeInTheDocument()
+    expect(within(table).getByText('1400.0')).toBeInTheDocument()
+
+    // Newest fill (2026-01-20) renders before the older one (2026-01-01).
+    const rows = within(table).getAllByRole('row')
+    expect(within(rows[1]).getByText('2026-01-20')).toBeInTheDocument()
+    expect(within(rows[2]).getByText('2026-01-01')).toBeInTheDocument()
   })
 
   it('draws a separate price-per-liter line per fuel type used, with a legend', async () => {

@@ -49,6 +49,14 @@ export function FuelPage() {
 
   const tableState = combineLoadState(vehiclesState, historyState)
 
+  const historyNewestFirst = useMemo(
+    () =>
+      history
+        ? [...history].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
+        : history,
+    [history],
+  )
+
   function addFuelTransaction() {
     navigate('/transactions', { state: { presetCategoryId: fuelCategory?.id } })
   }
@@ -122,6 +130,18 @@ export function FuelPage() {
       key: 'amountPerKm',
       header: 'Spend/km',
       render: (t) => t.amountPerKm?.toFixed(2) ?? '—',
+      tabletPriority: 'low',
+    },
+    {
+      key: 'kmSinceLastFill',
+      header: 'Km Since Last Fill',
+      render: (t) => t.kmSinceLastFill?.toFixed(1) ?? '—',
+      tabletPriority: 'low',
+    },
+    {
+      key: 'odometer',
+      header: 'Odometer',
+      render: (t) => t.odometer?.toFixed(1) ?? '—',
       tabletPriority: 'low',
     },
   ]
@@ -220,7 +240,7 @@ export function FuelPage() {
           <ResponsiveTable
             aria-label="Fuel history"
             columns={columns}
-            rows={history}
+            rows={historyNewestFirst}
             getRowKey={(t) => t.id}
             state={tableState}
             onRetry={retry}
