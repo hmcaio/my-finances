@@ -11,6 +11,8 @@ import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
+import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
+import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
@@ -30,10 +32,12 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.web.context.WebApplicationContext;
 
 /**
- * REST-layer tests for the F009 additions to {@link TransferController}: buys/sells as tagged
- * transfers with record-only trade details (including an 8-decimal quantity/price round trip), the
- * optional {@code resultingBalance} snapshot, the {@code 400}/{@code 409} split between request
- * shape and persisted-state rules, and the {@code investmentProductId} list filter.
+ * REST-layer tests for the F009 additions to {@link TransferController}, rewired onto holdings by
+ * F022/ADR 0020: buys/sells as tagged transfers with record-only trade details (including an
+ * 8-decimal quantity/price round trip), the optional {@code resultingBalance} snapshot, the {@code
+ * 400}/{@code 409}/{@code 404} split between request shape, closed-holding and missing-holding
+ * rules, and the {@code investmentProductId} list filter. Snapshot/close/needsSnapshot now live on
+ * the holding endpoints.
  */
 @WebIntegrationTest
 class TransferControllerInvestmentTest {
@@ -43,6 +47,7 @@ class TransferControllerInvestmentTest {
   @Autowired private InstitutionRepository institutionRepository;
   @Autowired private InvestmentCategoryRepository categoryRepository;
   @Autowired private InvestmentProductRepository productRepository;
+  @Autowired private InvestmentHoldingRepository holdingRepository;
 
   private MockMvc mockMvc;
   private UUID checkingId;
@@ -50,6 +55,7 @@ class TransferControllerInvestmentTest {
   private UUID brokerId;
   private UUID otherBrokerId;
   private UUID productId;
+  private UUID holdingId;
   private UUID otherBrokerProductId;
   private UUID categoryId;
 
@@ -64,17 +70,25 @@ class TransferControllerInvestmentTest {
         categoryRepository
             .save(InvestmentCategory.create(UUID.randomUUID(), "Category Trade Web Test"))
             .getId();
-    productId = product(brokerId, "Product Trade Web Test");
-    otherBrokerProductId = product(otherBrokerId, "Other Product Trade Web Test");
+    productId = product("Product Trade Web Test");
+    holdingId = holding(productId, brokerId);
+    otherBrokerProductId = product("Other Product Trade Web Test");
+    holding(otherBrokerProductId, otherBrokerId);
   }
 
   private UUID account(String name, AccountType type) {
     return TestFixtures.account(accountRepository, institutionRepository, name, type).getId();
   }
 
-  private UUID product(UUID accountId, String name) {
+  private UUID product(String name) {
     return productRepository
-        .save(InvestmentProduct.create(UUID.randomUUID(), accountId, categoryId, null, name))
+        .save(InvestmentProduct.create(UUID.randomUUID(), categoryId, null, name, null))
+        .getId();
+  }
+
+  private UUID holding(UUID productId, UUID accountId) {
+    return holdingRepository
+        .save(InvestmentHolding.create(UUID.randomUUID(), productId, accountId, null))
         .getId();
   }
 
@@ -186,20 +200,20 @@ class TransferControllerInvestmentTest {
         .andExpect(status().isCreated());
 
     mockMvc
-        .perform(get("/api/investment-products/" + productId + "/snapshots"))
+        .perform(get("/api/investment-holdings/" + holdingId + "/snapshots"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(1))
         .andExpect(jsonPath("$[0].date").value("2026-03-15"))
         .andExpect(jsonPath("$[0].balance").value(1000.00));
     mockMvc
-        .perform(get("/api/investment-products/" + productId))
+        .perform(get("/api/investment-holdings/" + holdingId))
         .andExpect(jsonPath("$.needsSnapshot").value(false));
   }
 
   @Test
   void resultingBalanceReplacesASameDaySnapshotAndZeroRecordsAFullSell() throws Exception {
     mockMvc.perform(
-        post("/api/investment-products/" + productId + "/snapshots")
+        post("/api/investment-holdings/" + holdingId + "/snapshots")
             .contentType(MediaType.APPLICATION_JSON)
             .content(JsonSupport.toJson(Map.of("date", "2026-03-15", "balance", "50.00"))));
 
@@ -211,25 +225,25 @@ class TransferControllerInvestmentTest {
         .andExpect(status().isCreated());
 
     mockMvc
-        .perform(get("/api/investment-products/" + productId + "/snapshots"))
+        .perform(get("/api/investment-holdings/" + holdingId + "/snapshots"))
         .andExpect(jsonPath("$.length()").value(1))
         .andExpect(jsonPath("$[0].balance").value(0));
-    // The position is now empty, so the product can be closed.
+    // The position is now empty, so the holding can be closed.
     mockMvc
-        .perform(post("/api/investment-products/" + productId + "/close"))
+        .perform(post("/api/investment-holdings/" + holdingId + "/close"))
         .andExpect(status().isOk());
   }
 
   @Test
-  void aBuyWithoutAResultingBalanceLeavesTheProductNeedingASnapshot() throws Exception {
+  void aBuyWithoutAResultingBalanceLeavesTheHoldingNeedingASnapshot() throws Exception {
     create(body(checkingId, brokerId, trade("investmentProductId", productId.toString())))
         .andExpect(status().isCreated());
 
     mockMvc
-        .perform(get("/api/investment-products/" + productId))
+        .perform(get("/api/investment-holdings/" + holdingId))
         .andExpect(jsonPath("$.needsSnapshot").value(true));
     mockMvc
-        .perform(get("/api/investment-products/" + productId + "/snapshots"))
+        .perform(get("/api/investment-holdings/" + holdingId + "/snapshots"))
         .andExpect(jsonPath("$.length()").value(0));
   }
 
@@ -302,13 +316,13 @@ class TransferControllerInvestmentTest {
   }
 
   @Test
-  void aProductOfAnotherInvestmentAccountIsRejectedWith409() throws Exception {
+  void aProductWithNoHoldingInThatAccountIsRejectedWith404() throws Exception {
     create(
             body(
                 checkingId,
                 brokerId,
                 trade("investmentProductId", otherBrokerProductId.toString())))
-        .andExpect(status().isConflict());
+        .andExpect(status().isNotFound());
   }
 
   @Test
@@ -324,9 +338,9 @@ class TransferControllerInvestmentTest {
   }
 
   @Test
-  void aClosedProductIsRejectedWith409AndAnUnknownOneWith404() throws Exception {
+  void aClosedHoldingIsRejectedWith409AndAnUnknownProductWith404() throws Exception {
     mockMvc
-        .perform(post("/api/investment-products/" + productId + "/close"))
+        .perform(post("/api/investment-holdings/" + holdingId + "/close"))
         .andExpect(status().isOk());
 
     create(body(checkingId, brokerId, trade("investmentProductId", productId.toString())))
@@ -367,7 +381,7 @@ class TransferControllerInvestmentTest {
         .andExpect(jsonPath("$.unitPrice").value(400.00));
 
     mockMvc
-        .perform(get("/api/investment-products/" + productId + "/snapshots"))
+        .perform(get("/api/investment-holdings/" + holdingId + "/snapshots"))
         .andExpect(jsonPath("$.length()").value(1))
         .andExpect(jsonPath("$[0].balance").value(1000.00));
   }
@@ -385,7 +399,7 @@ class TransferControllerInvestmentTest {
                 checkingId,
                 brokerId,
                 trade("investmentProductId", otherBrokerProductId.toString())))
-        .andExpect(status().isConflict());
+        .andExpect(status().isNotFound());
     edit(id, body(checkingId, savingsId, trade("investmentProductId", productId.toString())))
         .andExpect(status().isConflict());
   }
@@ -413,23 +427,23 @@ class TransferControllerInvestmentTest {
   }
 
   @Test
-  void aTradeMakesTheProductNeedASnapshotUntilOneIsRecordedOnOrAfterTheTradeDate()
+  void aTradeMakesTheHoldingNeedASnapshotUntilOneIsRecordedOnOrAfterTheTradeDate()
       throws Exception {
     create(body(checkingId, brokerId, trade("investmentProductId", productId.toString())))
         .andExpect(status().isCreated());
     mockMvc
-        .perform(get("/api/investment-products/" + productId))
+        .perform(get("/api/investment-holdings/" + holdingId))
         .andExpect(jsonPath("$.needsSnapshot").value(true));
 
     mockMvc.perform(
-        post("/api/investment-products/" + productId + "/snapshots")
+        post("/api/investment-holdings/" + holdingId + "/snapshots")
             .contentType(MediaType.APPLICATION_JSON)
             .content(
                 JsonSupport.toJson(
                     Map.of("date", LocalDate.of(2026, 3, 16).toString(), "balance", "1005.00"))));
 
     mockMvc
-        .perform(get("/api/investment-products/" + productId))
+        .perform(get("/api/investment-holdings/" + holdingId))
         .andExpect(jsonPath("$.needsSnapshot").value(false));
   }
 }

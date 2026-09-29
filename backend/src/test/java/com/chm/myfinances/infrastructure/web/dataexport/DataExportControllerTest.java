@@ -58,6 +58,7 @@ class DataExportControllerTest {
           "investment_categories.csv",
           "investment_subcategories.csv",
           "investment_products.csv",
+          "investment_holdings.csv",
           "investment_snapshots.csv");
 
   @Autowired private WebApplicationContext webApplicationContext;
@@ -130,7 +131,7 @@ class DataExportControllerTest {
   }
 
   @Test
-  void fullExportContainsAllTwelveFilesWithDenormalizedNamesAndSafeText() throws Exception {
+  void fullExportContainsAllThirteenFilesWithDenormalizedNamesAndSafeText() throws Exception {
     Map<String, String> files = exportFiles();
 
     assertThat(new ArrayList<>(files.keySet())).isEqualTo(FILES);

@@ -9,6 +9,7 @@ import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.Institution;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
+import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
@@ -21,6 +22,7 @@ import com.chm.myfinances.testsupport.fakes.FakeBudgetVersionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeCategoryRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInstitutionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentCategoryRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSubcategoryRepository;
@@ -72,6 +74,7 @@ class DataExportServiceTest {
           "investment_categories.csv",
           "investment_subcategories.csv",
           "investment_products.csv",
+          "investment_holdings.csv",
           "investment_snapshots.csv");
 
   private final FakeCategoryRepository categories = new FakeCategoryRepository();
@@ -91,6 +94,8 @@ class DataExportServiceTest {
       new FakeInvestmentSubcategoryRepository();
   private final FakeInvestmentProductRepository investmentProducts =
       new FakeInvestmentProductRepository();
+  private final FakeInvestmentHoldingRepository investmentHoldings =
+      new FakeInvestmentHoldingRepository();
   private final FakeInvestmentSnapshotRepository investmentSnapshots =
       new FakeInvestmentSnapshotRepository();
 
@@ -109,6 +114,7 @@ class DataExportServiceTest {
           investmentCategories,
           investmentSubcategories,
           investmentProducts,
+          investmentHoldings,
           investmentSnapshots);
 
   private final UUID inst = UUID.randomUUID();
@@ -191,12 +197,19 @@ class DataExportServiceTest {
 
     investmentCategories.save(InvestmentCategory.create(invCat, "Fixed Income"));
     investmentSubcategories.save(InvestmentSubcategory.create(invSub, invCat, "Treasury"));
-    investmentProducts.save(InvestmentProduct.create(fund, broker, invCat, invSub, "Selic 2029"));
-    investmentProducts.save(InvestmentProduct.create(bond, broker, invCat, null, "Pension"));
-    snapshot(fund, "2026-01-31", "100.00");
-    snapshot(fund, "2026-02-28", "110.00");
-    snapshot(bond, "2026-03-31", "50.00");
+    investmentProducts.save(InvestmentProduct.create(fund, invCat, invSub, "Selic 2029", null));
+    investmentProducts.save(InvestmentProduct.create(bond, invCat, null, "Pension", null));
+    fundHolding = UUID.randomUUID();
+    bondHolding = UUID.randomUUID();
+    investmentHoldings.save(InvestmentHolding.create(fundHolding, fund, broker, null));
+    investmentHoldings.save(InvestmentHolding.create(bondHolding, bond, broker, null));
+    snapshot(fundHolding, "2026-01-31", "100.00");
+    snapshot(fundHolding, "2026-02-28", "110.00");
+    snapshot(bondHolding, "2026-03-31", "50.00");
   }
+
+  private UUID fundHolding;
+  private UUID bondHolding;
 
   private void transaction(String description, UUID category, UUID account, String date) {
     transactions.save(
@@ -235,10 +248,10 @@ class DataExportServiceTest {
             .build());
   }
 
-  private void snapshot(UUID product, String date, String balance) {
+  private void snapshot(UUID holdingId, String date, String balance) {
     investmentSnapshots.save(
         InvestmentSnapshot.create(
-            UUID.randomUUID(), product, LocalDate.parse(date), new BigDecimal(balance)));
+            UUID.randomUUID(), holdingId, LocalDate.parse(date), new BigDecimal(balance)));
   }
 
   private Map<String, List<Map<String, String>>> export(ExportFilter filter) throws IOException {
@@ -273,7 +286,7 @@ class DataExportServiceTest {
   }
 
   @Test
-  void noFilterExportsAllTwelveFilesInFull() throws IOException {
+  void noFilterExportsAllThirteenFilesInFull() throws IOException {
     var files = export(ExportFilter.none());
 
     assertThat(files.keySet()).containsExactlyElementsOf(FILES);
@@ -288,11 +301,12 @@ class DataExportServiceTest {
     assertThat(files.get("investment_categories.csv")).hasSize(1);
     assertThat(files.get("investment_subcategories.csv")).hasSize(1);
     assertThat(files.get("investment_products.csv")).hasSize(2);
+    assertThat(files.get("investment_holdings.csv")).hasSize(2);
     assertThat(files.get("investment_snapshots.csv")).hasSize(3);
   }
 
   @Test
-  void emptyDatabaseStillYieldsTwelveHeaderOnlyFiles() throws IOException {
+  void emptyDatabaseStillYieldsThirteenHeaderOnlyFiles() throws IOException {
     DataExportService empty =
         new DataExportService(
             new FakeCategoryRepository(),
@@ -308,6 +322,7 @@ class DataExportServiceTest {
             new FakeInvestmentCategoryRepository(),
             new FakeInvestmentSubcategoryRepository(),
             new FakeInvestmentProductRepository(),
+            new FakeInvestmentHoldingRepository(),
             new FakeInvestmentSnapshotRepository());
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     empty.export(ExportFilter.none(), out);
@@ -398,11 +413,22 @@ class DataExportServiceTest {
     assertThat(withSub.orElseThrow().get("investment_category_name")).isEqualTo("Fixed Income");
     assertThat(withSub.get().get("investment_subcategory_id")).isEqualTo(invSub.toString());
     assertThat(withSub.get().get("investment_subcategory_name")).isEqualTo("Treasury");
-    assertThat(withSub.get().get("account_name")).isEqualTo("Broker");
 
     var without = products.stream().filter(r -> r.get("name").equals("Pension")).findFirst();
     assertThat(without.orElseThrow().get("investment_subcategory_id")).isEmpty();
     assertThat(without.get().get("investment_subcategory_name")).isEmpty();
+  }
+
+  @Test
+  void holdingsCarryTheProductAndAccountNames() throws IOException {
+    var holdings = export(ExportFilter.none()).get("investment_holdings.csv");
+
+    var fundRow =
+        holdings.stream()
+            .filter(r -> r.get("investment_product_name").equals("Selic 2029"))
+            .findFirst();
+    assertThat(fundRow.orElseThrow().get("account_name")).isEqualTo("Broker");
+    assertThat(fundRow.get().get("closed_date")).isEmpty();
   }
 
   @Test
@@ -428,12 +454,13 @@ class DataExportServiceTest {
   }
 
   @Test
-  void snapshotsCarryTheProductName() throws IOException {
+  void snapshotsCarryTheProductAndAccountNames() throws IOException {
     var snapshots = export(ExportFilter.none()).get("investment_snapshots.csv");
 
     assertThat(snapshots)
         .extracting(r -> r.get("investment_product_name"))
         .containsExactlyInAnyOrder("Selic 2029", "Selic 2029", "Pension");
+    assertThat(snapshots).allSatisfy(r -> assertThat(r.get("account_name")).isEqualTo("Broker"));
   }
 
   @Test
@@ -546,5 +573,6 @@ class DataExportServiceTest {
     assertThat(files.get("investment_categories.csv")).hasSize(1);
     assertThat(files.get("investment_subcategories.csv")).hasSize(1);
     assertThat(files.get("investment_products.csv")).hasSize(2);
+    assertThat(files.get("investment_holdings.csv")).hasSize(2);
   }
 }

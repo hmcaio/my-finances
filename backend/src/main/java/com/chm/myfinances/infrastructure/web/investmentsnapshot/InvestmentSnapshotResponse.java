@@ -5,12 +5,12 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
-/** API representation of an {@link InvestmentSnapshot} (F009 spec). */
+/** API representation of an {@link InvestmentSnapshot}, rekeyed by holding (F009/F022 spec). */
 public record InvestmentSnapshotResponse(
-    UUID id, UUID productId, LocalDate date, BigDecimal balance) {
+    UUID id, UUID holdingId, LocalDate date, BigDecimal balance) {
 
   public static InvestmentSnapshotResponse from(InvestmentSnapshot snapshot) {
     return new InvestmentSnapshotResponse(
-        snapshot.getId(), snapshot.getProductId(), snapshot.getDate(), snapshot.getBalance());
+        snapshot.getId(), snapshot.getHoldingId(), snapshot.getDate(), snapshot.getBalance());
   }
 }

@@ -18,11 +18,12 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * REST API for {@code InvestmentSnapshot} (F009 spec), nested under the product. A plain list (a
- * snapshot per product per manual entry, most recent first).
+ * REST API for {@code InvestmentSnapshot} (F009 spec), nested under the holding (moved from the
+ * product by F022/ADR 0020). A plain list (a snapshot per holding per manual entry, most recent
+ * first).
  */
 @RestController
-@RequestMapping("/api/investment-products/{productId}/snapshots")
+@RequestMapping("/api/investment-holdings/{holdingId}/snapshots")
 public class InvestmentSnapshotController {
 
   private final InvestmentSnapshotService snapshotService;
@@ -32,8 +33,8 @@ public class InvestmentSnapshotController {
   }
 
   @GetMapping
-  public List<InvestmentSnapshotResponse> list(@PathVariable UUID productId) {
-    return snapshotService.findByProduct(productId).stream()
+  public List<InvestmentSnapshotResponse> list(@PathVariable UUID holdingId) {
+    return snapshotService.findByHolding(holdingId).stream()
         .map(InvestmentSnapshotResponse::from)
         .toList();
   }
@@ -41,25 +42,25 @@ public class InvestmentSnapshotController {
   /** {@code 201} when a snapshot was created, {@code 200} when it replaced the same-day one. */
   @PostMapping
   public ResponseEntity<InvestmentSnapshotResponse> record(
-      @PathVariable UUID productId, @Valid @RequestBody RecordSnapshotRequest request) {
+      @PathVariable UUID holdingId, @Valid @RequestBody RecordSnapshotRequest request) {
     RecordedSnapshot recorded =
-        snapshotService.record(productId, request.date(), request.balance());
+        snapshotService.record(holdingId, request.date(), request.balance());
     return ResponseEntity.status(recorded.created() ? HttpStatus.CREATED : HttpStatus.OK)
         .body(InvestmentSnapshotResponse.from(recorded.snapshot()));
   }
 
   @PutMapping("/{snapshotId}")
   public InvestmentSnapshotResponse update(
-      @PathVariable UUID productId,
+      @PathVariable UUID holdingId,
       @PathVariable UUID snapshotId,
       @Valid @RequestBody UpdateSnapshotRequest request) {
     return InvestmentSnapshotResponse.from(
-        snapshotService.update(productId, snapshotId, request.date(), request.balance()));
+        snapshotService.update(holdingId, snapshotId, request.date(), request.balance()));
   }
 
   @DeleteMapping("/{snapshotId}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
-  public void delete(@PathVariable UUID productId, @PathVariable UUID snapshotId) {
-    snapshotService.delete(productId, snapshotId);
+  public void delete(@PathVariable UUID holdingId, @PathVariable UUID snapshotId) {
+    snapshotService.delete(holdingId, snapshotId);
   }
 }

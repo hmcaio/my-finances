@@ -7,7 +7,7 @@ import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.account.AccountUsageChecker;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
-import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
+import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.shared.IdGenerator;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -25,8 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>{@link #delete} hard-deletes only an account with no history (ADR 0017); otherwise it is only
  * closed. An {@code INVESTMENT} account (F008, ADR 0012) is created without opening balance/date
- * and can only be closed once all its products are ({@link
- * InvestmentAccountHasOpenProductsException}, 409).
+ * and can only be closed once all its holdings are (F022/ADR 0020 moved this from product to
+ * holding; {@link InvestmentAccountHasOpenHoldingsException}, 409).
  *
  * <p>Create/edit reject a duplicate name (409, {@link AccountNameAlreadyExistsException}) - exact
  * match, case-sensitive, backed by {@code accounts.name UNIQUE} ({@code
@@ -40,7 +40,7 @@ public class AccountService {
 
   private final AccountRepository accountRepository;
   private final InstitutionRepository institutionRepository;
-  private final InvestmentProductRepository investmentProductRepository;
+  private final InvestmentHoldingRepository investmentHoldingRepository;
   private final IdGenerator idGenerator;
   private final AccountClosedNotifier accountClosedNotifier;
   private final AccountUsageChecker accountUsageChecker;
@@ -49,14 +49,14 @@ public class AccountService {
   public AccountService(
       AccountRepository accountRepository,
       InstitutionRepository institutionRepository,
-      InvestmentProductRepository investmentProductRepository,
+      InvestmentHoldingRepository investmentHoldingRepository,
       IdGenerator idGenerator,
       AccountClosedNotifier accountClosedNotifier,
       AccountUsageChecker accountUsageChecker,
       Clock clock) {
     this.accountRepository = accountRepository;
     this.institutionRepository = institutionRepository;
-    this.investmentProductRepository = investmentProductRepository;
+    this.investmentHoldingRepository = investmentHoldingRepository;
     this.idGenerator = idGenerator;
     this.accountClosedNotifier = accountClosedNotifier;
     this.accountUsageChecker = accountUsageChecker;
@@ -135,8 +135,8 @@ public class AccountService {
       throw new AccountAlreadyClosedException(id);
     }
     if (account.getType() == AccountType.INVESTMENT
-        && investmentProductRepository.existsOpenByAccountId(id)) {
-      throw new InvestmentAccountHasOpenProductsException(id);
+        && investmentHoldingRepository.existsOpenByAccountId(id)) {
+      throw new InvestmentAccountHasOpenHoldingsException(id);
     }
     account.close(LocalDate.now(clock));
     Account saved = accountRepository.save(account);

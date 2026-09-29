@@ -1,6 +1,5 @@
 package com.chm.myfinances.infrastructure.persistence.investmentproduct;
 
-import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -9,15 +8,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
  */
 interface InvestmentProductJpaRepository extends JpaRepository<InvestmentProductJpaEntity, UUID> {
 
-  List<InvestmentProductJpaEntity> findByAccountId(UUID accountId);
+  boolean existsByName(String name);
 
-  boolean existsByAccountIdAndName(UUID accountId, String name);
-
-  boolean existsByAccountIdAndNameAndIdNot(UUID accountId, String name, UUID id);
-
-  boolean existsByAccountIdAndClosedDateIsNull(UUID accountId);
-
-  boolean existsByAccountId(UUID accountId);
+  boolean existsByNameAndIdNot(String name, UUID id);
 
   boolean existsByInvestmentCategoryId(UUID investmentCategoryId);
 

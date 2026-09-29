@@ -4,8 +4,8 @@ import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapsho
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.category.CategoryType;
-import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
-import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
+import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
+import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
@@ -21,25 +21,26 @@ import org.springframework.stereotype.Service;
  * Computes an account's running balance as of a given date (F003 spec, extended by F004 and F005):
  * {@code openingBalance} plus every transaction and transfer posted to the account up to {@code
  * asOfDate}, each signed by {@link #signedContribution}/{@link #transferContribution} (PRD S5.3,
- * S5.4, S5.5). An {@code INVESTMENT} account is the exception (F009, ADR 0012): the sum of its
- * products' latest snapshots.
+ * S5.4, S5.5). An {@code INVESTMENT} account is the exception (F009, ADR 0012, rewired onto
+ * holdings by F022/ADR 0020): the sum of the latest snapshots of the holdings pointing at this
+ * account.
  */
 @Service
 public class AccountBalanceQuery {
 
   private final TransactionRepository transactionRepository;
   private final TransferRepository transferRepository;
-  private final InvestmentProductRepository productRepository;
+  private final InvestmentHoldingRepository holdingRepository;
   private final LatestInvestmentSnapshotQuery latestSnapshotQuery;
 
   public AccountBalanceQuery(
       TransactionRepository transactionRepository,
       TransferRepository transferRepository,
-      InvestmentProductRepository productRepository,
+      InvestmentHoldingRepository holdingRepository,
       LatestInvestmentSnapshotQuery latestSnapshotQuery) {
     this.transactionRepository = transactionRepository;
     this.transferRepository = transferRepository;
-    this.productRepository = productRepository;
+    this.holdingRepository = holdingRepository;
     this.latestSnapshotQuery = latestSnapshotQuery;
   }
 
@@ -61,14 +62,15 @@ public class AccountBalanceQuery {
 
   /**
    * An {@code INVESTMENT} account has no opening balance and transactions/transfers on it don't
-   * contribute (ADR 0012): its balance is the sum of its products' latest snapshots as of the date
-   * (F009). A product with no snapshot by then contributes nothing.
+   * contribute (ADR 0012): its balance is the sum of the latest snapshots of the holdings pointing
+   * at it as of the date (F009, rewired onto holdings by F022). A holding with no snapshot by then
+   * contributes nothing.
    */
   private BigDecimal investmentBalanceAsOf(Account account, LocalDate asOfDate) {
-    Map<UUID, InvestmentSnapshot> latest = latestSnapshotQuery.latestByProduct(asOfDate);
+    Map<UUID, InvestmentSnapshot> latest = latestSnapshotQuery.latestByHolding(asOfDate);
     BigDecimal balance = BigDecimal.ZERO.setScale(2);
-    for (InvestmentProduct product : productRepository.findByAccountId(account.getId())) {
-      InvestmentSnapshot snapshot = latest.get(product.getId());
+    for (InvestmentHolding holding : holdingRepository.findByAccountId(account.getId())) {
+      InvestmentSnapshot snapshot = latest.get(holding.getId());
       if (snapshot != null) {
         balance = balance.add(snapshot.getBalance());
       }

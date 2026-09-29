@@ -1,50 +1,37 @@
 import { http, HttpResponse } from 'msw'
+import type { InvestmentHolding } from '../../api/investments/investmentHoldings'
 import type { InvestmentProduct } from '../../api/investments/investmentProducts'
-import { seedInvestmentAccount } from './accounts'
+import { investmentHoldingsStore } from './investmentHoldings'
 import { createStore } from '../store'
 
 /**
- * Seed data returned by the default `GET /api/investment-products` handler below, all inside the
- * seeded INVESTMENT account. "Tesouro Selic 2029" has no history (deletable), "Bitcoin" has some
- * (`hasHistory`, so close-only), is classified by category only and `needsSnapshot` (a buy newer
- * than its latest snapshot, see `seedBitcoinBuyTransfer`), and "Old CDB" is closed.
+ * Seed data returned by the default `GET /api/investment-products` handler below (F022 spec: pure
+ * taxonomy). "Tesouro Selic 2029" has a holding with no history (deletable), "Bitcoin" has a
+ * holding with some (`hasHistory`, close-only) and `needsSnapshot` (a buy newer than its latest
+ * snapshot, see `seedBitcoinBuyTransfer`), and "Old CDB" has a closed holding - see
+ * `seedInvestmentHoldings` in `investmentHoldings.ts` for the per-account details.
  */
 export const seedInvestmentProducts: InvestmentProduct[] = [
   {
     id: 'iprod-selic',
-    accountId: seedInvestmentAccount.id,
     investmentCategoryId: 'icat-fixed',
     investmentSubcategoryId: 'isub-selic',
     name: 'Tesouro Selic 2029',
-    closedDate: null,
-    closed: false,
-    hasHistory: false,
-    needsSnapshot: false,
-    latestSnapshot: null,
+    additionalNotes: null,
   },
   {
     id: 'iprod-btc',
-    accountId: seedInvestmentAccount.id,
     investmentCategoryId: 'icat-crypto',
     investmentSubcategoryId: null,
     name: 'Bitcoin',
-    closedDate: null,
-    closed: false,
-    hasHistory: true,
-    needsSnapshot: true,
-    latestSnapshot: { date: '2026-08-05', balance: 900 },
+    additionalNotes: null,
   },
   {
     id: 'iprod-old',
-    accountId: seedInvestmentAccount.id,
     investmentCategoryId: 'icat-fixed',
     investmentSubcategoryId: 'isub-cdb',
     name: 'Old CDB',
-    closedDate: '2026-03-01',
-    closed: true,
-    hasHistory: false,
-    needsSnapshot: false,
-    latestSnapshot: null,
+    additionalNotes: null,
   },
 ]
 
@@ -55,24 +42,20 @@ interface ProductRequestBody {
   investmentCategoryId: string
   investmentSubcategoryId?: string | null
   name: string
+  additionalNotes?: string | null
 }
 
-/** Shared with the snapshot handlers, which move a product's latest snapshot. */
+/** Shared with the snapshot/holding handlers. */
 export const investmentProductsStore = createStore(seedInvestmentProducts)
 const products = investmentProductsStore
 
 /**
- * Default success-path handlers for the investment products endpoints (F008's REST API), backed
- * by an in-memory store restored after each test (see `categories.ts`).
+ * Default success-path handlers for the investment products endpoints (F022 spec: pure taxonomy),
+ * backed by an in-memory store restored after each test (see `categories.ts`). Create is a
+ * two-write use case like the real backend: it also creates the product's first holding.
  */
 export const investmentProductsHandlers = [
-  http.get(PRODUCTS_URL, ({ request }) => {
-    const accountId = new URL(request.url).searchParams.get('accountId')
-    const rows = accountId
-      ? products.list().filter((p) => p.accountId === accountId)
-      : products.list()
-    return HttpResponse.json(rows)
-  }),
+  http.get(PRODUCTS_URL, () => HttpResponse.json(products.list())),
 
   http.get(`${PRODUCTS_URL}/:id`, ({ params }) => {
     const product = products.find(params.id as string)
@@ -84,16 +67,23 @@ export const investmentProductsHandlers = [
     const body = (await request.json()) as ProductRequestBody
     const created = products.add({
       id: products.nextId('iprod'),
-      accountId: body.accountId,
       investmentCategoryId: body.investmentCategoryId,
       investmentSubcategoryId: body.investmentSubcategoryId ?? null,
       name: body.name,
+      additionalNotes: body.additionalNotes ?? null,
+    })
+    const holding: InvestmentHolding = {
+      id: investmentHoldingsStore.nextId('iholding'),
+      productId: created.id,
+      accountId: body.accountId,
       closedDate: null,
       closed: false,
+      additionalNotes: null,
       hasHistory: false,
       needsSnapshot: false,
       latestSnapshot: null,
-    })
+    }
+    investmentHoldingsStore.add(holding)
     return HttpResponse.json(created, { status: 201 })
   }),
 
@@ -101,25 +91,20 @@ export const investmentProductsHandlers = [
     const body = (await request.json()) as ProductRequestBody
     const updated = products.replace(params.id as string, (row) => ({
       ...row,
-      accountId: body.accountId,
       investmentCategoryId: body.investmentCategoryId,
       investmentSubcategoryId: body.investmentSubcategoryId ?? null,
       name: body.name,
+      additionalNotes: body.additionalNotes ?? null,
     }))
     return updated ? HttpResponse.json(updated) : new HttpResponse(null, { status: 404 })
   }),
 
-  http.post(`${PRODUCTS_URL}/:id/close`, ({ params }) => {
-    const closed = products.replace(params.id as string, (row) => ({
-      ...row,
-      closedDate: '2026-09-15',
-      closed: true,
-    }))
-    return closed ? HttpResponse.json(closed) : new HttpResponse(null, { status: 404 })
-  }),
-
   http.delete(`${PRODUCTS_URL}/:id`, ({ params }) => {
-    products.remove(params.id as string)
+    const id = params.id as string
+    if (investmentHoldingsStore.list().some((h) => h.productId === id)) {
+      return new HttpResponse(null, { status: 409 })
+    }
+    products.remove(id)
     return new HttpResponse(null, { status: 204 })
   }),
 ]
@@ -129,14 +114,10 @@ export const investmentProductsHandlers = [
  * bodies are placeholders and what the UI shows comes from the client's own `conflictMessage`.
  */
 export const investmentProductDeleteConflictHandler = http.delete(`${PRODUCTS_URL}/:id`, () =>
-  HttpResponse.json({ message: 'Product has history' }, { status: 409 }),
+  HttpResponse.json({ message: 'Product still has a holding' }, { status: 409 }),
 )
 
-export const investmentProductCloseConflictHandler = http.post(`${PRODUCTS_URL}/:id/close`, () =>
-  HttpResponse.json({ message: 'Already closed' }, { status: 409 }),
-)
-
-/** Duplicate name in the account, a non-investment account, or a mismatched sub-category. */
+/** Duplicate name, a non-investment account, or a mismatched sub-category. */
 export const investmentProductCreateConflictHandler = http.post(PRODUCTS_URL, () =>
   HttpResponse.json({ message: 'Conflict' }, { status: 409 }),
 )

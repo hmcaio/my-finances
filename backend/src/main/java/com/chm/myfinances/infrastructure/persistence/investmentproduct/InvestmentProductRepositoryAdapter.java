@@ -28,22 +28,20 @@ public class InvestmentProductRepositoryAdapter implements InvestmentProductRepo
             .findById(product.getId())
             .map(
                 existing -> {
-                  existing.setAccountId(product.getAccountId());
                   existing.setInvestmentCategoryId(product.getInvestmentCategoryId());
                   existing.setInvestmentSubcategoryId(product.getInvestmentSubcategoryId());
                   existing.setName(product.getName());
-                  existing.setClosedDate(product.getClosedDate());
+                  existing.setAdditionalNotes(product.getAdditionalNotes());
                   return existing;
                 })
             .orElseGet(
                 () ->
                     new InvestmentProductJpaEntity(
                         product.getId(),
-                        product.getAccountId(),
                         product.getInvestmentCategoryId(),
                         product.getInvestmentSubcategoryId(),
                         product.getName(),
-                        product.getClosedDate()));
+                        product.getAdditionalNotes()));
     return toDomain(jpaRepository.save(entity));
   }
 
@@ -60,13 +58,6 @@ public class InvestmentProductRepositoryAdapter implements InvestmentProductRepo
   }
 
   @Override
-  public List<InvestmentProduct> findByAccountId(UUID accountId) {
-    return jpaRepository.findByAccountId(accountId).stream()
-        .map(InvestmentProductRepositoryAdapter::toDomain)
-        .toList();
-  }
-
-  @Override
   public void deleteById(UUID id) {
     jpaRepository.deleteById(id);
   }
@@ -77,23 +68,13 @@ public class InvestmentProductRepositoryAdapter implements InvestmentProductRepo
   }
 
   @Override
-  public boolean existsByAccountIdAndName(UUID accountId, String name) {
-    return jpaRepository.existsByAccountIdAndName(accountId, name);
+  public boolean existsByName(String name) {
+    return jpaRepository.existsByName(name);
   }
 
   @Override
-  public boolean existsByAccountIdAndNameAndIdNot(UUID accountId, String name, UUID excludedId) {
-    return jpaRepository.existsByAccountIdAndNameAndIdNot(accountId, name, excludedId);
-  }
-
-  @Override
-  public boolean existsOpenByAccountId(UUID accountId) {
-    return jpaRepository.existsByAccountIdAndClosedDateIsNull(accountId);
-  }
-
-  @Override
-  public boolean existsByAccountId(UUID accountId) {
-    return jpaRepository.existsByAccountId(accountId);
+  public boolean existsByNameAndIdNot(String name, UUID excludedId) {
+    return jpaRepository.existsByNameAndIdNot(name, excludedId);
   }
 
   @Override
@@ -109,10 +90,9 @@ public class InvestmentProductRepositoryAdapter implements InvestmentProductRepo
   private static InvestmentProduct toDomain(InvestmentProductJpaEntity entity) {
     return InvestmentProduct.reconstitute(
         entity.getId(),
-        entity.getAccountId(),
         entity.getInvestmentCategoryId(),
         entity.getInvestmentSubcategoryId(),
         entity.getName(),
-        entity.getClosedDate());
+        entity.getAdditionalNotes());
   }
 }

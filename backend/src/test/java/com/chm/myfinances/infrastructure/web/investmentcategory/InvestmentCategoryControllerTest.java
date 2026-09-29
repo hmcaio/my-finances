@@ -7,9 +7,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.chm.myfinances.domain.account.AccountRepository;
-import com.chm.myfinances.domain.account.AccountType;
-import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
@@ -17,7 +14,6 @@ import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategoryRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import com.chm.myfinances.testsupport.mothers.InvestmentProductMother;
-import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import com.chm.myfinances.testsupport.web.JsonSupport;
 import com.chm.myfinances.testsupport.web.MockMvcSupport;
 import com.chm.myfinances.testsupport.web.WebIntegrationTest;
@@ -49,8 +45,6 @@ class InvestmentCategoryControllerTest {
   @Autowired private InvestmentCategoryRepository categoryRepository;
   @Autowired private InvestmentSubcategoryRepository subcategoryRepository;
   @Autowired private InvestmentProductRepository productRepository;
-  @Autowired private AccountRepository accountRepository;
-  @Autowired private InstitutionRepository institutionRepository;
 
   private final ObjectMapper objectMapper = JsonSupport.MAPPER;
 
@@ -210,16 +204,8 @@ class InvestmentCategoryControllerTest {
   void deleteIsRejectedWith409WhileAProductUsesIt() throws Exception {
     UUID categoryId =
         categoryRepository.save(InvestmentCategory.create(UUID.randomUUID(), "Used Test")).getId();
-    UUID accountId =
-        TestFixtures.account(
-                accountRepository,
-                institutionRepository,
-                "Broker Category Test",
-                AccountType.INVESTMENT)
-            .getId();
     productRepository.save(
         InvestmentProductMother.product()
-            .withAccountId(accountId)
             .withInvestmentCategoryId(categoryId)
             .withInvestmentSubcategoryId(null)
             .withName("Bitcoin Test")

@@ -12,6 +12,8 @@ import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
+import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
+import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
@@ -45,6 +47,7 @@ class InvestmentReportControllerTest {
   @Autowired private InvestmentCategoryRepository categoryRepository;
   @Autowired private InvestmentSubcategoryRepository subcategoryRepository;
   @Autowired private InvestmentProductRepository productRepository;
+  @Autowired private InvestmentHoldingRepository holdingRepository;
 
   private MockMvc mockMvc;
   private UUID checkingId;
@@ -52,7 +55,9 @@ class InvestmentReportControllerTest {
   private UUID reportCategoryId;
   private UUID reportSubcategoryId;
   private UUID cdbProductId;
+  private UUID cdbHoldingId;
   private UUID bareProductId;
+  private UUID bareHoldingId;
 
   @BeforeEach
   void setUp() {
@@ -82,21 +87,29 @@ class InvestmentReportControllerTest {
                     UUID.randomUUID(), reportCategoryId, "Alloc Sub Report Test"))
             .getId();
     cdbProductId = product("CDB Report Test", reportSubcategoryId);
+    cdbHoldingId = holdingOf(cdbProductId);
     bareProductId = product("Bare Report Test", null);
+    bareHoldingId = holdingOf(bareProductId);
   }
 
   private UUID product(String name, UUID subcategoryId) {
     return productRepository
         .save(
             InvestmentProduct.create(
-                UUID.randomUUID(), brokerId, reportCategoryId, subcategoryId, name))
+                UUID.randomUUID(), reportCategoryId, subcategoryId, name, null))
         .getId();
   }
 
-  private void snapshot(UUID productId, String date, String balance) throws Exception {
+  private UUID holdingOf(UUID productId) {
+    return holdingRepository
+        .save(InvestmentHolding.create(UUID.randomUUID(), productId, brokerId, null))
+        .getId();
+  }
+
+  private void snapshot(UUID holdingId, String date, String balance) throws Exception {
     mockMvc
         .perform(
-            post("/api/investment-products/" + productId + "/snapshots")
+            post("/api/investment-holdings/" + holdingId + "/snapshots")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(JsonSupport.toJson(Map.of("date", date, "balance", balance))))
         .andExpect(status().is2xxSuccessful());
@@ -130,9 +143,9 @@ class InvestmentReportControllerTest {
 
   @Test
   void allocationByCategoryDefaultsToCategoryAndSumsTheLatestSnapshots() throws Exception {
-    snapshot(cdbProductId, "2026-01-31", "100.00");
-    snapshot(cdbProductId, "2026-02-28", "150.00");
-    snapshot(bareProductId, "2026-02-28", "25.50");
+    snapshot(cdbHoldingId, "2026-01-31", "100.00");
+    snapshot(cdbHoldingId, "2026-02-28", "150.00");
+    snapshot(bareHoldingId, "2026-02-28", "25.50");
 
     mockMvc
         .perform(get("/api/investments/allocation").param("asOf", "2026-03-31"))
@@ -146,8 +159,8 @@ class InvestmentReportControllerTest {
 
   @Test
   void allocationBySubcategoryHasANullSliceForProductsWithoutOne() throws Exception {
-    snapshot(cdbProductId, "2026-02-28", "150.00");
-    snapshot(bareProductId, "2026-02-28", "25.50");
+    snapshot(cdbHoldingId, "2026-02-28", "150.00");
+    snapshot(bareHoldingId, "2026-02-28", "25.50");
 
     mockMvc
         .perform(
@@ -163,7 +176,7 @@ class InvestmentReportControllerTest {
 
   @Test
   void allocationRespectsAsOfAndFlagsAStaleProduct() throws Exception {
-    snapshot(cdbProductId, "2026-02-28", "150.00");
+    snapshot(cdbHoldingId, "2026-02-28", "150.00");
     trade(checkingId, brokerId, cdbProductId, "2026-03-10", "10.00", null);
 
     mockMvc
@@ -189,8 +202,8 @@ class InvestmentReportControllerTest {
 
   @Test
   void valueSeriesReturnsMonthEndValuesContributionsAndUnitsForAProduct() throws Exception {
-    snapshot(cdbProductId, "2026-01-31", "1000.00");
-    snapshot(cdbProductId, "2026-02-28", "1500.00");
+    snapshot(cdbHoldingId, "2026-01-31", "1000.00");
+    snapshot(cdbHoldingId, "2026-02-28", "1500.00");
     trade(checkingId, brokerId, cdbProductId, "2026-01-10", "1000.00", "10");
     trade(checkingId, brokerId, cdbProductId, "2026-02-10", "400.00", "4");
     trade(brokerId, checkingId, cdbProductId, "2026-02-20", "150.00", "1.5");

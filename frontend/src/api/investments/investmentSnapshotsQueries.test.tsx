@@ -6,7 +6,7 @@ import { seedBitcoinSeries } from '../../mocks/handlers/investmentValueSeries'
 import { seedBitcoinBuyTransfer } from '../../mocks/handlers/transfers'
 import { renderHookWithQueryClient } from '../../test/renderWithQueryClient'
 import { useInvestmentAllocation } from './investmentAllocationQueries'
-import { useInvestmentProduct } from './investmentProductsQueries'
+import { useInvestmentHolding } from './investmentHoldingsQueries'
 import {
   useDeleteInvestmentSnapshot,
   useInvestmentSnapshots,
@@ -19,7 +19,7 @@ import { useCreateTransfer, useTransfers } from '../transfers/transfersQueries'
 describe('investment reads', () => {
   it('loads snapshots, allocation and value series', async () => {
     const { result } = renderHookWithQueryClient(() => ({
-      snapshots: useInvestmentSnapshots('iprod-btc'),
+      snapshots: useInvestmentSnapshots('iholding-btc'),
       allocation: useInvestmentAllocation({ groupBy: 'CATEGORY' }),
       series: useInvestmentValueSeries({ productId: 'iprod-btc' }),
     }))
@@ -29,56 +29,56 @@ describe('investment reads', () => {
     await waitFor(() => expect(result.current.series.data).toEqual([seedBitcoinSeries]))
   })
 
-  it('refreshes the product and the snapshot list after a snapshot is recorded', async () => {
+  it('refreshes the holding and the snapshot list after a snapshot is recorded', async () => {
     const { result } = renderHookWithQueryClient(() => ({
-      product: useInvestmentProduct('iprod-btc'),
-      snapshots: useInvestmentSnapshots('iprod-btc'),
+      holding: useInvestmentHolding('iholding-btc'),
+      snapshots: useInvestmentSnapshots('iholding-btc'),
       record: useRecordInvestmentSnapshot(),
     }))
-    await waitFor(() => expect(result.current.product.data?.latestSnapshot?.balance).toBe(900))
+    await waitFor(() => expect(result.current.holding.data?.latestSnapshot?.balance).toBe(900))
 
     await result.current.record.mutateAsync({
-      productId: 'iprod-btc',
+      holdingId: 'iholding-btc',
       date: '2026-09-01',
       balance: 1234.5,
     })
 
-    await waitFor(() => expect(result.current.product.data?.latestSnapshot?.balance).toBe(1234.5))
+    await waitFor(() => expect(result.current.holding.data?.latestSnapshot?.balance).toBe(1234.5))
     await waitFor(() => expect(result.current.snapshots.data?.[0].date).toBe('2026-09-01'))
   })
 })
 
 describe('snapshot edit and delete hooks', () => {
-  it('refreshes the product and the snapshot list after an edit', async () => {
+  it('refreshes the holding and the snapshot list after an edit', async () => {
     const { result } = renderHookWithQueryClient(() => ({
-      product: useInvestmentProduct('iprod-btc'),
-      snapshots: useInvestmentSnapshots('iprod-btc'),
+      holding: useInvestmentHolding('iholding-btc'),
+      snapshots: useInvestmentSnapshots('iholding-btc'),
       update: useUpdateInvestmentSnapshot(),
     }))
-    await waitFor(() => expect(result.current.product.data?.latestSnapshot?.balance).toBe(900))
+    await waitFor(() => expect(result.current.holding.data?.latestSnapshot?.balance).toBe(900))
 
     await result.current.update.mutateAsync({
-      productId: 'iprod-btc',
+      holdingId: 'iholding-btc',
       snapshotId: 'isnap-2',
       date: '2026-08-06',
       balance: 950,
     })
 
-    await waitFor(() => expect(result.current.product.data?.latestSnapshot?.balance).toBe(950))
+    await waitFor(() => expect(result.current.holding.data?.latestSnapshot?.balance).toBe(950))
     await waitFor(() => expect(result.current.snapshots.data?.[0].date).toBe('2026-08-06'))
   })
 
-  it('refreshes the product and the snapshot list after a delete', async () => {
+  it('refreshes the holding and the snapshot list after a delete', async () => {
     const { result } = renderHookWithQueryClient(() => ({
-      product: useInvestmentProduct('iprod-btc'),
-      snapshots: useInvestmentSnapshots('iprod-btc'),
+      holding: useInvestmentHolding('iholding-btc'),
+      snapshots: useInvestmentSnapshots('iholding-btc'),
       remove: useDeleteInvestmentSnapshot(),
     }))
-    await waitFor(() => expect(result.current.product.data?.latestSnapshot?.balance).toBe(900))
+    await waitFor(() => expect(result.current.holding.data?.latestSnapshot?.balance).toBe(900))
 
-    await result.current.remove.mutateAsync({ productId: 'iprod-btc', snapshotId: 'isnap-2' })
+    await result.current.remove.mutateAsync({ holdingId: 'iholding-btc', snapshotId: 'isnap-2' })
 
-    await waitFor(() => expect(result.current.product.data?.latestSnapshot?.balance).toBe(800))
+    await waitFor(() => expect(result.current.holding.data?.latestSnapshot?.balance).toBe(800))
     await waitFor(() => expect(result.current.snapshots.data).toHaveLength(1))
   })
 })

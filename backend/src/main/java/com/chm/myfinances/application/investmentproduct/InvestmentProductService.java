@@ -1,78 +1,87 @@
 package com.chm.myfinances.application.investmentproduct;
 
-import com.chm.myfinances.application.account.AccountNotFoundException;
 import com.chm.myfinances.application.investmentcategory.InvestmentCategoryNotFoundException;
-import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
+import com.chm.myfinances.application.investmentholding.InvestmentHoldingService;
 import com.chm.myfinances.application.investmentsubcategory.InvestmentSubcategoryNotFoundException;
-import com.chm.myfinances.domain.account.Account;
-import com.chm.myfinances.domain.account.AccountRepository;
-import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
-import com.chm.myfinances.domain.investmentproduct.HasInvestmentHistoryChecker;
+import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategoryRepository;
 import com.chm.myfinances.domain.shared.IdGenerator;
-import java.time.Clock;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Use cases for {@link InvestmentProduct}: create/edit/close/delete and the reads (F008 spec). New
- * ids come from the {@link IdGenerator} port (ADR 0005).
+ * Use cases for {@link InvestmentProduct}: create/edit/delete and the reads (F008 spec,
+ * restructured to pure taxonomy by F022/ADR 0020). New ids come from the {@link IdGenerator} port
+ * (ADR 0005).
  *
- * <p>Create and edit (PATCH is a full replace, so it can reclassify or move a product) verify, in
- * order: the account exists (404) and is an open {@code INVESTMENT} account (409, {@link
- * InvestmentAccountRequiredException}); the category exists (404); the sub-category, when given,
- * exists (404) and belongs to that category (409, {@link InvestmentSubcategoryMismatchException});
- * and the name is unique within the account (409). Nothing here is multi-write, so nothing is
- * {@code @Transactional}. Delete is only allowed at zero history, as reported by the {@link
- * HasInvestmentHistoryChecker} port (F009 supplies the real answer); otherwise the user closes the
- * product instead.
+ * <p>Create and edit (PATCH is a full replace, so it can reclassify a product) verify, in order:
+ * the category exists (404); the sub-category, when given, exists (404) and belongs to that
+ * category (409, {@link InvestmentSubcategoryMismatchException}); and the name is globally unique
+ * (409, F022). {@link #create} is a two-write {@code @Transactional} use case (backend CLAUDE.md
+ * "Transactions" rule): the product, then its first holding via {@link InvestmentHoldingService} -
+ * a failure between the two must not leave a holding-less product or an orphaned holding. There is
+ * no {@code close()} here any more; holdings close, not products (F022). {@link #delete} is only
+ * allowed while the product has zero holdings (not zero history - even a closed, empty holding
+ * still counts), via {@link InvestmentHoldingRepository#existsByProductId}; otherwise the user
+ * removes its holdings first.
  */
 @Service
 public class InvestmentProductService {
 
   private final InvestmentProductRepository productRepository;
-  private final AccountRepository accountRepository;
   private final InvestmentCategoryRepository categoryRepository;
   private final InvestmentSubcategoryRepository subcategoryRepository;
-  private final HasInvestmentHistoryChecker historyChecker;
-  private final LatestInvestmentSnapshotQuery latestSnapshotQuery;
+  private final InvestmentHoldingRepository holdingRepository;
+  private final InvestmentHoldingService holdingService;
   private final IdGenerator idGenerator;
-  private final Clock clock;
 
   public InvestmentProductService(
       InvestmentProductRepository productRepository,
-      AccountRepository accountRepository,
       InvestmentCategoryRepository categoryRepository,
       InvestmentSubcategoryRepository subcategoryRepository,
-      HasInvestmentHistoryChecker historyChecker,
-      LatestInvestmentSnapshotQuery latestSnapshotQuery,
-      IdGenerator idGenerator,
-      Clock clock) {
+      InvestmentHoldingRepository holdingRepository,
+      InvestmentHoldingService holdingService,
+      IdGenerator idGenerator) {
     this.productRepository = productRepository;
-    this.accountRepository = accountRepository;
     this.categoryRepository = categoryRepository;
     this.subcategoryRepository = subcategoryRepository;
-    this.historyChecker = historyChecker;
-    this.latestSnapshotQuery = latestSnapshotQuery;
+    this.holdingRepository = holdingRepository;
+    this.holdingService = holdingService;
     this.idGenerator = idGenerator;
-    this.clock = clock;
   }
 
+  /**
+   * Creates the product and its first holding in {@code accountId} together. {@code
+   * InvestmentHoldingService.create} runs its own account/product validation (404/409); if it
+   * fails, the whole transaction - including the product insert - rolls back.
+   */
+  @Transactional
   public InvestmentProduct create(
-      UUID accountId, UUID investmentCategoryId, UUID investmentSubcategoryId, String name) {
-    requireValidReferences(accountId, investmentCategoryId, investmentSubcategoryId);
-    if (productRepository.existsByAccountIdAndName(accountId, name)) {
+      UUID accountId,
+      UUID investmentCategoryId,
+      UUID investmentSubcategoryId,
+      String name,
+      String additionalNotes) {
+    requireValidCategoryReferences(investmentCategoryId, investmentSubcategoryId);
+    if (productRepository.existsByName(name)) {
       throw new InvestmentProductNameAlreadyExistsException(name);
     }
-    return productRepository.save(
-        InvestmentProduct.create(
-            idGenerator.newId(), accountId, investmentCategoryId, investmentSubcategoryId, name));
+    InvestmentProduct product =
+        productRepository.save(
+            InvestmentProduct.create(
+                idGenerator.newId(),
+                investmentCategoryId,
+                investmentSubcategoryId,
+                name,
+                additionalNotes));
+    holdingService.create(product.getId(), accountId, null);
+    return product;
   }
 
   public InvestmentProduct findById(UUID id) {
@@ -81,74 +90,39 @@ public class InvestmentProductService {
         .orElseThrow(() -> new InvestmentProductNotFoundException(id));
   }
 
-  /** Lists products, optionally only those of one account ({@code null} means all). */
-  public List<InvestmentProduct> findAll(UUID accountId) {
-    return accountId == null
-        ? productRepository.findAll()
-        : productRepository.findByAccountId(accountId);
+  public List<InvestmentProduct> findAll() {
+    return productRepository.findAll();
   }
 
   public InvestmentProduct edit(
       UUID id,
-      UUID accountId,
       UUID investmentCategoryId,
       UUID investmentSubcategoryId,
-      String name) {
+      String name,
+      String additionalNotes) {
     InvestmentProduct product = findById(id);
-    requireValidReferences(accountId, investmentCategoryId, investmentSubcategoryId);
-    if (!accountId.equals(product.getAccountId()) && historyChecker.hasHistory(id)) {
-      throw new InvestmentProductMoveBlockedException(id);
-    }
-    if (productRepository.existsByAccountIdAndNameAndIdNot(accountId, name, id)) {
+    requireValidCategoryReferences(investmentCategoryId, investmentSubcategoryId);
+    if (productRepository.existsByNameAndIdNot(name, id)) {
       throw new InvestmentProductNameAlreadyExistsException(name);
     }
-    product.edit(accountId, investmentCategoryId, investmentSubcategoryId, name);
+    product.edit(investmentCategoryId, investmentSubcategoryId, name, additionalNotes);
     return productRepository.save(product);
   }
 
   /**
-   * Closes a product. One write, so no {@code @Transactional}. A product can only be closed while
-   * its latest snapshot is {@code 0} or absent (F009, {@link InvestmentProductNotEmptyException}),
-   * so a closed product never keeps counting a stale value.
+   * Hard-deletes a product only while it has zero holdings (F022 spec) - even a closed, empty
+   * holding still counts and must be removed first.
    */
-  public InvestmentProduct close(UUID id) {
-    InvestmentProduct product = findById(id);
-    if (product.isClosed()) {
-      throw new InvestmentProductAlreadyClosedException(id);
-    }
-    if (latestSnapshotQuery
-        .latestOf(id)
-        .filter(snapshot -> snapshot.getBalance().signum() != 0)
-        .isPresent()) {
-      throw new InvestmentProductNotEmptyException(id);
-    }
-    product.close(LocalDate.now(clock));
-    return productRepository.save(product);
-  }
-
   public void delete(UUID id) {
     findById(id);
-    if (historyChecker.hasHistory(id)) {
-      throw new InvestmentProductHasHistoryException(id);
+    if (holdingRepository.existsByProductId(id)) {
+      throw new InvestmentProductHasHoldingsException(id);
     }
     productRepository.deleteById(id);
   }
 
-  /** Whether the product has history - drives the detail response's {@code hasHistory} flag. */
-  public boolean hasHistory(UUID id) {
-    findById(id);
-    return historyChecker.hasHistory(id);
-  }
-
-  private void requireValidReferences(
-      UUID accountId, UUID investmentCategoryId, UUID investmentSubcategoryId) {
-    Account account =
-        accountRepository
-            .findById(accountId)
-            .orElseThrow(() -> new AccountNotFoundException(accountId));
-    if (account.getType() != AccountType.INVESTMENT || account.isClosed()) {
-      throw new InvestmentAccountRequiredException(accountId);
-    }
+  private void requireValidCategoryReferences(
+      UUID investmentCategoryId, UUID investmentSubcategoryId) {
     if (!categoryRepository.existsById(investmentCategoryId)) {
       throw new InvestmentCategoryNotFoundException(investmentCategoryId);
     }

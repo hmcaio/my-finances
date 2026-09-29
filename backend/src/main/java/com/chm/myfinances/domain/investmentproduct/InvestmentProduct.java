@@ -1,103 +1,82 @@
 package com.chm.myfinances.domain.investmentproduct;
 
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
-import java.time.LocalDate;
 import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Investment product aggregate (PRD S5.8, F008 spec): a holding tracked inside an {@code
- * INVESTMENT} account (a Tesouro Selic bond, a fund, an ETF, ...), classified by a category and an
- * optional sub-category. Its value comes from snapshots and its trades from transfers, both F009.
+ * Investment product aggregate (PRD S5.8, F022 spec, ADR 0020): pure taxonomy for an instrument (a
+ * Tesouro Selic bond, a fund, an ETF, ...), classified by a category and an optional sub-category,
+ * globally unique by name. It no longer belongs to a single account - {@code InvestmentHolding} is
+ * the many-to-many link to the {@code INVESTMENT} account(s) it's held in, and carries the
+ * account-specific {@code closedDate}. A product's value comes from its holdings' snapshots and its
+ * trades from transfers (F009).
  *
- * <p>References are held by id only - this class doesn't import the account or taxonomy packages.
- * That the account is an open {@code INVESTMENT} account, that the category exists and that the
- * sub-category belongs to it are checked in {@code InvestmentProductService}. {@code close()} sets
- * {@code closedDate} once; hard-deleting a product is a separate, history-guarded use case.
+ * <p>References are held by id only - this class doesn't import the taxonomy package. That the
+ * category exists and the sub-category belongs to it are checked in {@code
+ * InvestmentProductService}.
  */
 public final class InvestmentProduct {
 
   private final UUID id;
-  private UUID accountId;
   private UUID investmentCategoryId;
   private UUID investmentSubcategoryId;
   private String name;
-  private LocalDate closedDate;
+  private String additionalNotes;
 
   private InvestmentProduct(
       UUID id,
-      UUID accountId,
       UUID investmentCategoryId,
       UUID investmentSubcategoryId,
       String name,
-      LocalDate closedDate) {
+      String additionalNotes) {
     this.id = Objects.requireNonNull(id, "id must not be null");
-    this.accountId = Objects.requireNonNull(accountId, "accountId must not be null");
     this.investmentCategoryId =
         Objects.requireNonNull(investmentCategoryId, "investmentCategoryId must not be null");
     this.investmentSubcategoryId = investmentSubcategoryId;
     this.name = requireValidName(name);
-    this.closedDate = closedDate;
+    this.additionalNotes = requireValidNotes(additionalNotes);
   }
 
-  /** Creates a brand-new, open product. {@code id} must come from the {@code IdGenerator} port. */
+  /** Creates a brand-new product. {@code id} must come from the {@code IdGenerator} port. */
   public static InvestmentProduct create(
       UUID id,
-      UUID accountId,
       UUID investmentCategoryId,
       UUID investmentSubcategoryId,
-      String name) {
+      String name,
+      String additionalNotes) {
     return new InvestmentProduct(
-        id, accountId, investmentCategoryId, investmentSubcategoryId, name, null);
+        id, investmentCategoryId, investmentSubcategoryId, name, additionalNotes);
   }
 
   /** Rebuilds a product from already-validated persisted state. */
   public static InvestmentProduct reconstitute(
       UUID id,
-      UUID accountId,
       UUID investmentCategoryId,
       UUID investmentSubcategoryId,
       String name,
-      LocalDate closedDate) {
+      String additionalNotes) {
     return new InvestmentProduct(
-        id, accountId, investmentCategoryId, investmentSubcategoryId, name, closedDate);
+        id, investmentCategoryId, investmentSubcategoryId, name, additionalNotes);
   }
 
   /**
-   * Full-replace edit (PATCH, F008 spec): every editable field at once. All values are validated
-   * before any is assigned, so a rejected edit leaves the product untouched. A closed product can
-   * still be edited - closing blocks new activity, not a metadata correction.
+   * Full-replace edit (PATCH): every editable field at once. All values are validated before any is
+   * assigned, so a rejected edit leaves the product untouched.
    */
   public void edit(
-      UUID newAccountId,
       UUID newInvestmentCategoryId,
       UUID newInvestmentSubcategoryId,
-      String newName) {
-    UUID validAccountId = Objects.requireNonNull(newAccountId, "accountId must not be null");
+      String newName,
+      String newAdditionalNotes) {
     UUID validCategoryId =
         Objects.requireNonNull(newInvestmentCategoryId, "investmentCategoryId must not be null");
     String validName = requireValidName(newName);
-    this.accountId = validAccountId;
+    String validNotes = requireValidNotes(newAdditionalNotes);
     this.investmentCategoryId = validCategoryId;
     this.investmentSubcategoryId = newInvestmentSubcategoryId;
     this.name = validName;
-  }
-
-  /**
-   * Sets {@code closedDate}. Closing an already-closed product is rejected - {@code closedDate} is
-   * set once, same as {@code Account.close()}. Takes the date as a parameter rather than reading
-   * {@code LocalDate.now()} itself, for the same framework-free reason as {@code Account.close()}
-   * (ADR 0004/0005) - "today" comes from {@code InvestmentProductService}'s injected {@code Clock}.
-   */
-  public void close(LocalDate closedDate) {
-    if (isClosed()) {
-      throw new IllegalStateException("Investment product is already closed: " + id);
-    }
-    this.closedDate = Objects.requireNonNull(closedDate, "closedDate must not be null");
-  }
-
-  public boolean isClosed() {
-    return closedDate != null;
+    this.additionalNotes = validNotes;
   }
 
   private static String requireValidName(String value) {
@@ -111,12 +90,18 @@ public final class InvestmentProduct {
     return value;
   }
 
-  public UUID getId() {
-    return id;
+  private static String requireValidNotes(String value) {
+    if (value != null && value.length() > TextFieldConstraints.MAX_ADDITIONAL_NOTES_LENGTH) {
+      throw new IllegalArgumentException(
+          "additionalNotes must not exceed "
+              + TextFieldConstraints.MAX_ADDITIONAL_NOTES_LENGTH
+              + " characters");
+    }
+    return value;
   }
 
-  public UUID getAccountId() {
-    return accountId;
+  public UUID getId() {
+    return id;
   }
 
   public UUID getInvestmentCategoryId() {
@@ -132,7 +117,8 @@ public final class InvestmentProduct {
     return name;
   }
 
-  public LocalDate getClosedDate() {
-    return closedDate;
+  /** {@code null} when the product carries no remark. */
+  public String getAdditionalNotes() {
+    return additionalNotes;
   }
 }

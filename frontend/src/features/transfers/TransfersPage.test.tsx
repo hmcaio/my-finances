@@ -195,6 +195,7 @@ describe('TransfersPage trades', () => {
 
   it('labels a tagged transfer Buy or Sell with its product name', async () => {
     server.use(
+      accountsWithInvestmentHandler,
       http.get('/api/transfers', () =>
         HttpResponse.json({
           content: [seedBitcoinSellTransfer, seedBitcoinBuyTransfer],
@@ -242,6 +243,7 @@ describe('TransfersPage responsive layout (F021)', () => {
 
     it('shows the Buy/Sell chip on a tagged transfer card', async () => {
       server.use(
+        accountsWithInvestmentHandler,
         http.get('/api/transfers', () =>
           HttpResponse.json({
             content: [seedBitcoinBuyTransfer],

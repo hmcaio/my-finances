@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/api/investment-products/{productId}/snapshots/{snapshotId}": {
+    "/api/investment-holdings/{holdingId}/snapshots/{snapshotId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -164,7 +164,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/investment-products/{productId}/snapshots": {
+    "/api/investment-holdings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["investmentHolding_list"];
+        put?: never;
+        post: operations["investmentHolding_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/investment-holdings/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["investmentHolding_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/investment-holdings/{holdingId}/snapshots": {
         parameters: {
             query?: never;
             header?: never;
@@ -174,22 +206,6 @@ export interface paths {
         get: operations["investmentSnapshot_list"];
         put?: never;
         post: operations["investmentSnapshot_record"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/investment-products/{id}/close": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["investmentProduct_close"];
         delete?: never;
         options?: never;
         head?: never;
@@ -402,6 +418,22 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["investmentProduct_edit"];
+        trace?: never;
+    };
+    "/api/investment-holdings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["investmentHolding_get"];
+        put?: never;
+        post?: never;
+        delete: operations["investmentHolding_delete"];
+        options?: never;
+        head?: never;
+        patch: operations["investmentHolding_edit"];
         trace?: never;
     };
     "/api/investment-categories/{id}": {
@@ -657,7 +689,7 @@ export interface components {
             /** Format: uuid */
             id?: string;
             /** Format: uuid */
-            productId?: string;
+            holdingId?: string;
             /** Format: date */
             date?: string;
             balance?: number;
@@ -793,20 +825,36 @@ export interface components {
             /** Format: uuid */
             investmentSubcategoryId?: string;
             name: string;
+            additionalNotes?: string;
         };
         InvestmentProductResponse: {
             /** Format: uuid */
             id?: string;
             /** Format: uuid */
-            accountId?: string;
-            /** Format: uuid */
             investmentCategoryId?: string;
             /** Format: uuid */
             investmentSubcategoryId?: string;
             name?: string;
+            additionalNotes?: string;
+        };
+        CreateInvestmentHoldingRequest: {
+            /** Format: uuid */
+            productId: string;
+            /** Format: uuid */
+            accountId: string;
+            additionalNotes?: string;
+        };
+        InvestmentHoldingResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            productId?: string;
+            /** Format: uuid */
+            accountId?: string;
             /** Format: date */
             closedDate?: string;
             closed?: boolean;
+            additionalNotes?: string;
             hasHistory?: boolean;
             needsSnapshot?: boolean;
             latestSnapshot?: components["schemas"]["LatestSnapshotResponse"];
@@ -944,12 +992,14 @@ export interface components {
         };
         UpdateInvestmentProductRequest: {
             /** Format: uuid */
-            accountId: string;
-            /** Format: uuid */
             investmentCategoryId: string;
             /** Format: uuid */
             investmentSubcategoryId?: string;
             name: string;
+            additionalNotes?: string;
+        };
+        UpdateInvestmentHoldingRequest: {
+            additionalNotes?: string;
         };
         UpdateInvestmentCategoryRequest: {
             name: string;
@@ -1059,7 +1109,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                productId: string;
+                holdingId: string;
                 snapshotId: string;
             };
             cookie?: never;
@@ -1086,7 +1136,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                productId: string;
+                holdingId: string;
                 snapshotId: string;
             };
             cookie?: never;
@@ -1387,9 +1437,7 @@ export interface operations {
     };
     investmentProduct_list: {
         parameters: {
-            query?: {
-                accountId?: string;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
@@ -1431,12 +1479,81 @@ export interface operations {
             };
         };
     };
+    investmentHolding_list: {
+        parameters: {
+            query?: {
+                productId?: string;
+                accountId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvestmentHoldingResponse"][];
+                };
+            };
+        };
+    };
+    investmentHolding_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateInvestmentHoldingRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvestmentHoldingResponse"];
+                };
+            };
+        };
+    };
+    investmentHolding_close: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvestmentHoldingResponse"];
+                };
+            };
+        };
+    };
     investmentSnapshot_list: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                productId: string;
+                holdingId: string;
             };
             cookie?: never;
         };
@@ -1458,7 +1575,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                productId: string;
+                holdingId: string;
             };
             cookie?: never;
         };
@@ -1475,28 +1592,6 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["InvestmentSnapshotResponse"];
-                };
-            };
-        };
-    };
-    investmentProduct_close: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["InvestmentProductResponse"];
                 };
             };
         };
@@ -2089,6 +2184,74 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["InvestmentProductResponse"];
+                };
+            };
+        };
+    };
+    investmentHolding_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvestmentHoldingResponse"];
+                };
+            };
+        };
+    };
+    investmentHolding_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    investmentHolding_edit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateInvestmentHoldingRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvestmentHoldingResponse"];
                 };
             };
         };

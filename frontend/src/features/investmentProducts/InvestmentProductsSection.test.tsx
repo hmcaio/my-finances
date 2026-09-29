@@ -4,17 +4,9 @@ import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import { seedInvestmentAccount } from '../../mocks/handlers/accounts'
-import {
-  investmentProductCloseConflictHandler,
-  investmentProductCreateConflictHandler,
-  investmentProductDeleteConflictHandler,
-  seedInvestmentProducts,
-} from '../../mocks/handlers/investmentProducts'
-import {
-  CLOSE_CONFLICT_MESSAGE,
-  DELETE_CONFLICT_MESSAGE,
-  SAVE_CONFLICT_MESSAGE,
-} from '../../api/investments/investmentProducts'
+import { seedInvestmentHoldings } from '../../mocks/handlers/investmentHoldings'
+import { investmentProductCreateConflictHandler } from '../../mocks/handlers/investmentProducts'
+import { SAVE_CONFLICT_MESSAGE } from '../../api/investments/investmentProducts'
 import { findRow, renderWithRouter, selectOption } from '../../test/testUtils'
 import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
 import { InvestmentProductsSection } from './InvestmentProductsSection'
@@ -52,18 +44,23 @@ async function openAddDialog(user: ReturnType<typeof userEvent.setup>) {
   return screen.findByRole('dialog', { name: 'Add product' })
 }
 
+/**
+ * The section lists holdings in this account (F022/ADR 0020) - read-only (product name, category,
+ * sub-category, latest value, status), linking out to the product's own page for management. Only
+ * product creation (which creates the first holding too) still happens here.
+ */
 describe('InvestmentProductsSection', () => {
   // jsdom has no viewport, which MUI treats as the tablet band: pin the desktop layout so every
   // column (Sub-category included, hidden on tablet) is visible for the assertions below.
   beforeEach(() => setViewportWidth(VIEWPORT.desktop))
   afterEach(restoreViewport)
 
-  it('lists the products with their category and sub-category names and status', async () => {
+  it('lists the holdings with their category and sub-category names and status', async () => {
     renderSection()
 
-    for (const product of seedInvestmentProducts) {
-      expect(await screen.findByText(product.name)).toBeInTheDocument()
-    }
+    expect(await screen.findByText('Tesouro Selic 2029')).toBeInTheDocument()
+    expect(screen.getByText('Bitcoin')).toBeInTheDocument()
+    expect(screen.getByText('Old CDB')).toBeInTheDocument()
     const selic = await findRow('Tesouro Selic 2029')
     expect(selic.getByText('Fixed Income')).toBeInTheDocument()
     expect(selic.getByText('Tesouro Selic')).toBeInTheDocument()
@@ -75,7 +72,7 @@ describe('InvestmentProductsSection', () => {
     expect((await findRow('Old CDB')).getByText('Closed')).toBeInTheDocument()
   })
 
-  it('links each product to its detail page, shows the latest value and flags a stale product', async () => {
+  it('links each product to its detail page, shows the latest value and flags a stale holding', async () => {
     renderSection()
     await screen.findByText('Bitcoin')
 
@@ -89,20 +86,6 @@ describe('InvestmentProductsSection', () => {
     expect(bitcoin.getByText('Needs snapshot')).toBeInTheDocument()
     const selic = await findRow('Tesouro Selic 2029')
     expect(selic.queryByText('Needs snapshot')).not.toBeInTheDocument()
-  })
-
-  it('offers delete only while the product has no history', async () => {
-    renderSection()
-    await screen.findByText('Bitcoin')
-
-    expect(
-      (await findRow('Tesouro Selic 2029')).getByRole('button', { name: 'Delete' }),
-    ).toBeInTheDocument()
-    // Bitcoin has history: closing is the only way out.
-    expect(
-      (await findRow('Bitcoin')).queryByRole('button', { name: 'Delete' }),
-    ).not.toBeInTheDocument()
-    expect((await findRow('Bitcoin')).getByRole('button', { name: 'Close' })).toBeEnabled()
   })
 
   it('follows the chosen category in the sub-category select and resets it on change', async () => {
@@ -134,7 +117,7 @@ describe('InvestmentProductsSection', () => {
     expect(optionNames()).toEqual(['No sub-category', 'ETFs'])
   })
 
-  it('adds a product with a sub-category and sends the ids', async () => {
+  it('adds a product with a sub-category, creating its first holding in this account', async () => {
     const user = userEvent.setup()
     const sent = captureBody('post', '/api/investment-products')
     renderSection()
@@ -212,105 +195,15 @@ describe('InvestmentProductsSection', () => {
     expect(await screen.findByText(SAVE_CONFLICT_MESSAGE)).toBeInTheDocument()
   })
 
-  it('edits a product in a dialog prefilled with its current values', async () => {
-    const user = userEvent.setup()
-    const sent = captureBody('patch', '/api/investment-products/:id')
-    renderSection()
-    await screen.findByText('Bitcoin')
-
-    await user.click((await findRow('Tesouro Selic 2029')).getByRole('button', { name: 'Edit' }))
-    const dialog = within(await screen.findByRole('dialog', { name: 'Edit product' }))
-    expect(dialog.getByRole('textbox', { name: 'Product name' })).toHaveValue('Tesouro Selic 2029')
-    expect(dialog.getByRole('combobox', { name: 'Category' })).toHaveTextContent('Fixed Income')
-    expect(dialog.getByRole('combobox', { name: 'Sub-category' })).toHaveTextContent(
-      'Tesouro Selic',
-    )
-
-    const name = dialog.getByRole('textbox', { name: 'Product name' })
-    await user.clear(name)
-    await user.type(name, 'Tesouro Selic 2031')
-    await selectOption(user, 'Sub-category', 'CDB', dialog)
-    await user.click(dialog.getByRole('button', { name: 'Save' }))
-
-    await waitFor(() =>
-      expect(sent.body).toMatchObject({
-        accountId: seedInvestmentAccount.id,
-        investmentCategoryId: 'icat-fixed',
-        investmentSubcategoryId: 'isub-cdb',
-        name: 'Tesouro Selic 2031',
-      }),
-    )
-    expect(await screen.findByText('Tesouro Selic 2031')).toBeInTheDocument()
-    await waitFor(() =>
-      expect(screen.queryByRole('dialog', { name: 'Edit product' })).not.toBeInTheDocument(),
-    )
-  })
-
-  it('closes a product after confirmation', async () => {
-    const user = userEvent.setup()
-    renderSection()
-    await screen.findByText('Bitcoin')
-
-    await user.click((await findRow('Tesouro Selic 2029')).getByRole('button', { name: 'Close' }))
-    await user.click(await screen.findByRole('button', { name: 'Close product' }))
-
-    await waitFor(async () =>
-      expect((await findRow('Tesouro Selic 2029')).getByText('Closed')).toBeInTheDocument(),
-    )
-    // The dialog is still fading out (and hiding the page from the accessibility tree) for a moment.
-    await waitFor(async () =>
-      expect(
-        (await findRow('Tesouro Selic 2029')).getByRole('button', { name: 'Close' }),
-      ).toBeDisabled(),
-    )
-  })
-
-  it('surfaces the close-refused message (already closed or still has value) when closing is refused', async () => {
-    server.use(investmentProductCloseConflictHandler)
-    const user = userEvent.setup()
-    renderSection()
-    await screen.findByText('Bitcoin')
-
-    await user.click((await findRow('Bitcoin')).getByRole('button', { name: 'Close' }))
-    await user.click(await screen.findByRole('button', { name: 'Close product' }))
-
-    expect(await screen.findByText(CLOSE_CONFLICT_MESSAGE)).toBeInTheDocument()
-  })
-
-  it('deletes a product without history after confirmation', async () => {
-    const user = userEvent.setup()
-    renderSection()
-    await screen.findByText('Bitcoin')
-
-    await user.click((await findRow('Tesouro Selic 2029')).getByRole('button', { name: 'Delete' }))
-    await user.click(await screen.findByRole('button', { name: 'Delete product' }))
-
-    await waitFor(() => expect(screen.queryByText('Tesouro Selic 2029')).not.toBeInTheDocument())
-  })
-
-  it('surfaces the close-instead message and keeps the row when delete is refused', async () => {
-    server.use(investmentProductDeleteConflictHandler)
-    const user = userEvent.setup()
-    renderSection()
-    await screen.findByText('Bitcoin')
-
-    await user.click((await findRow('Tesouro Selic 2029')).getByRole('button', { name: 'Delete' }))
-    await user.click(await screen.findByRole('button', { name: 'Delete product' }))
-
-    expect(await screen.findByText(DELETE_CONFLICT_MESSAGE)).toBeInTheDocument()
-    expect(screen.getByText('Tesouro Selic 2029')).toBeInTheDocument()
-  })
-
-  it('hides the add button and disables editing on a closed account', async () => {
+  it('hides the add button on a closed account', async () => {
     renderSection(true)
     await screen.findByText('Bitcoin')
 
     expect(screen.queryByRole('button', { name: 'Add product' })).not.toBeInTheDocument()
-    expect((await findRow('Bitcoin')).getByRole('button', { name: 'Edit' })).toBeDisabled()
   })
 
-  it('shows an empty state for an account without products', async () => {
-    server.use(http.get('/api/investment-products', () => HttpResponse.json([])))
+  it('shows an empty state for an account without holdings', async () => {
+    server.use(http.get('/api/investment-holdings', () => HttpResponse.json([])))
     renderSection()
 
     expect(await screen.findByText('No products yet.')).toBeInTheDocument()
@@ -318,9 +211,9 @@ describe('InvestmentProductsSection', () => {
 
   it('shows a loading skeleton only when the first fetch is slow, then the rows', async () => {
     server.use(
-      http.get('/api/investment-products', async () => {
+      http.get('/api/investment-holdings', async () => {
         await delay(400)
-        return HttpResponse.json(seedInvestmentProducts)
+        return HttpResponse.json(seedInvestmentHoldings)
       }),
     )
     renderSection()
@@ -345,7 +238,7 @@ describe('InvestmentProductsSection responsive layout (F021)', () => {
   afterEach(restoreViewport)
 
   async function findCard(name: string) {
-    const list = await screen.findByRole('list', { name: 'Investment products' })
+    const list = await screen.findByRole('list', { name: 'Investment holdings' })
     await within(list).findByText(name)
     const items = within(list).getAllByRole('listitem')
     return within(items.find((item) => within(item).queryByText(name))!)
@@ -362,9 +255,6 @@ describe('InvestmentProductsSection responsive layout (F021)', () => {
       // "Tesouro Selic" alone would also match the product name (title), which starts with it.
       expect(card.getByText('Fixed Income · Tesouro Selic')).toBeInTheDocument()
       expect(card.getByText('Open')).toBeInTheDocument()
-      expect(card.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
-      expect(card.getByRole('button', { name: 'Close' })).toBeInTheDocument()
-      expect(card.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
     })
 
     it('Add opens a full-screen dialog', async () => {
@@ -375,20 +265,6 @@ describe('InvestmentProductsSection responsive layout (F021)', () => {
       const dialog = await openAddDialog(user)
 
       expect(dialog).toHaveClass('MuiDialog-paperFullScreen')
-    })
-
-    it('Edit opens a full-screen dialog prefilled with the current values', async () => {
-      const user = userEvent.setup()
-      renderSection()
-      const card = await findCard('Tesouro Selic 2029')
-
-      await user.click(card.getByRole('button', { name: 'Edit' }))
-
-      const dialog = await screen.findByRole('dialog', { name: 'Edit product' })
-      expect(dialog).toHaveClass('MuiDialog-paperFullScreen')
-      expect(within(dialog).getByRole('textbox', { name: 'Product name' })).toHaveValue(
-        'Tesouro Selic 2029',
-      )
     })
   })
 

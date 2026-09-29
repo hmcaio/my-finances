@@ -37,7 +37,7 @@ public class InvestmentSnapshotRepositoryAdapter implements InvestmentSnapshotRe
                 () ->
                     new InvestmentSnapshotJpaEntity(
                         snapshot.getId(),
-                        snapshot.getProductId(),
+                        snapshot.getHoldingId(),
                         snapshot.getDate(),
                         snapshot.getBalance()));
     return toDomain(jpaRepository.save(entity));
@@ -54,15 +54,15 @@ public class InvestmentSnapshotRepositoryAdapter implements InvestmentSnapshotRe
   }
 
   @Override
-  public Optional<InvestmentSnapshot> findByProductIdAndDate(UUID productId, LocalDate date) {
+  public Optional<InvestmentSnapshot> findByHoldingIdAndDate(UUID holdingId, LocalDate date) {
     return jpaRepository
-        .findByProductIdAndDate(productId, date)
+        .findByHoldingIdAndDate(holdingId, date)
         .map(InvestmentSnapshotRepositoryAdapter::toDomain);
   }
 
   @Override
-  public List<InvestmentSnapshot> findByProductId(UUID productId) {
-    return jpaRepository.findByProductIdOrderByDateDesc(productId).stream()
+  public List<InvestmentSnapshot> findByHoldingId(UUID holdingId) {
+    return jpaRepository.findByHoldingIdOrderByDateDesc(holdingId).stream()
         .map(InvestmentSnapshotRepositoryAdapter::toDomain)
         .toList();
   }
@@ -82,12 +82,12 @@ public class InvestmentSnapshotRepositoryAdapter implements InvestmentSnapshotRe
   }
 
   @Override
-  public boolean existsByProductId(UUID productId) {
-    return jpaRepository.existsByProductId(productId);
+  public boolean existsByHoldingId(UUID holdingId) {
+    return jpaRepository.existsByHoldingId(holdingId);
   }
 
   private static InvestmentSnapshot toDomain(InvestmentSnapshotJpaEntity entity) {
     return InvestmentSnapshot.reconstitute(
-        entity.getId(), entity.getProductId(), entity.getDate(), entity.getBalance());
+        entity.getId(), entity.getHoldingId(), entity.getDate(), entity.getBalance());
   }
 }

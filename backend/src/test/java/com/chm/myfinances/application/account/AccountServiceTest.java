@@ -10,14 +10,14 @@ import com.chm.myfinances.domain.account.AccountClosedNotifier;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.institution.Institution;
-import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
+import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.testsupport.LogCapture;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
 import com.chm.myfinances.testsupport.fakes.FakeAccountUsageChecker;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeInstitutionRepository;
-import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
-import com.chm.myfinances.testsupport.mothers.InvestmentProductMother;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
+import com.chm.myfinances.testsupport.mothers.InvestmentHoldingMother;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -35,8 +35,8 @@ class AccountServiceTest {
 
   private final FakeAccountRepository repository = new FakeAccountRepository();
   private final FakeInstitutionRepository institutionRepository = new FakeInstitutionRepository();
-  private final FakeInvestmentProductRepository investmentProductRepository =
-      new FakeInvestmentProductRepository();
+  private final FakeInvestmentHoldingRepository investmentHoldingRepository =
+      new FakeInvestmentHoldingRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
   private final FakeAccountClosedNotifier notifier = new FakeAccountClosedNotifier();
   private final FakeAccountUsageChecker usageChecker = new FakeAccountUsageChecker();
@@ -48,7 +48,7 @@ class AccountServiceTest {
       new AccountService(
           repository,
           institutionRepository,
-          investmentProductRepository,
+          investmentHoldingRepository,
           idGenerator,
           notifier,
           usageChecker,
@@ -61,7 +61,7 @@ class AccountServiceTest {
         new AccountService(
             repository,
             institutionRepository,
-            investmentProductRepository,
+            investmentHoldingRepository,
             new FakeIdGenerator(nextId),
             notifier,
             usageChecker,
@@ -350,47 +350,44 @@ class AccountServiceTest {
   }
 
   @Test
-  void closeOfAnInvestmentAccountIsRejectedWhileAProductIsOpen() {
+  void closeOfAnInvestmentAccountIsRejectedWhileAHoldingIsOpen() {
     Account investment =
         service.create("XP Test", institutionId, AccountType.INVESTMENT, null, null);
-    addProductTo(investment.getId());
+    addHoldingTo(investment.getId());
 
     assertThatThrownBy(() -> service.close(investment.getId()))
-        .isInstanceOf(InvestmentAccountHasOpenProductsException.class);
+        .isInstanceOf(InvestmentAccountHasOpenHoldingsException.class);
 
     assertThat(service.findById(investment.getId()).isClosed()).isFalse();
     assertThat(notifier.notifiedAccountIds).isEmpty();
   }
 
   @Test
-  void closeOfAnInvestmentAccountSucceedsOnceItsProductsAreClosedOrThereAreNone() {
-    Account withProducts =
+  void closeOfAnInvestmentAccountSucceedsOnceItsHoldingsAreClosedOrThereAreNone() {
+    Account withHoldings =
         service.create("XP Test", institutionId, AccountType.INVESTMENT, null, null);
-    InvestmentProduct product = addProductTo(withProducts.getId());
-    product.close(LocalDate.now());
+    InvestmentHolding holding = addHoldingTo(withHoldings.getId());
+    holding.close(LocalDate.now());
+    investmentHoldingRepository.save(holding);
     Account empty = service.create("Nu Test", institutionId, AccountType.INVESTMENT, null, null);
 
-    assertThat(service.close(withProducts.getId()).isClosed()).isTrue();
+    assertThat(service.close(withHoldings.getId()).isClosed()).isTrue();
     assertThat(service.close(empty.getId()).isClosed()).isTrue();
   }
 
   @Test
-  void openProductsOnAnotherAccountDoNotBlockClosingANonInvestmentAccount() {
+  void openHoldingsOnAnotherAccountDoNotBlockClosingANonInvestmentAccount() {
     Account checking =
         service.create(
             "Checking", institutionId, AccountType.CHECKING, BigDecimal.ZERO, LocalDate.now());
-    addProductTo(UUID.randomUUID());
+    addHoldingTo(UUID.randomUUID());
 
     assertThat(service.close(checking.getId()).isClosed()).isTrue();
   }
 
-  private InvestmentProduct addProductTo(UUID accountId) {
-    return investmentProductRepository.save(
-        InvestmentProductMother.product()
-            .withAccountId(accountId)
-            .withInvestmentSubcategoryId(null)
-            .withName("Product Test")
-            .build());
+  private InvestmentHolding addHoldingTo(UUID accountId) {
+    return investmentHoldingRepository.save(
+        InvestmentHoldingMother.holding().withAccountId(accountId).build());
   }
 
   private static final class FakeAccountClosedNotifier implements AccountClosedNotifier {

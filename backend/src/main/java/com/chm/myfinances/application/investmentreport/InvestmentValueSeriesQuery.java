@@ -1,6 +1,8 @@
 package com.chm.myfinances.application.investmentreport;
 
 import com.chm.myfinances.application.investmentproduct.InvestmentProductNotFoundException;
+import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
+import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
@@ -14,17 +16,22 @@ import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 /**
- * The monthly per-product value series (F009 spec, PRD S6.6): for each product and each month in
- * the range, the value, the month's contributions and the running units - see {@link SeriesPoint}.
- * The point in time of a month is its last day, except the current month, which is evaluated at
- * today; months after the current one are not included. Direction of a trade is derived, as
- * everywhere (ADR 0012): a transfer into the product's own account is a buy, out of it a sell.
- * Computed on read from raw data; nothing is derived from quantity or price.
+ * The monthly per-product value series (F009 spec, PRD S6.6, rewired onto holdings by F022/ADR
+ * 0020): for each product and each month in the range, the value, the month's contributions and the
+ * running units - see {@link SeriesPoint}. A product's value at a point is the sum of its holdings'
+ * own latest snapshots as of that point (a product can be held at more than one account, each with
+ * independent snapshot history). The point in time of a month is its last day, except the current
+ * month, which is evaluated at today; months after the current one are not included. Direction of a
+ * trade is derived, as everywhere (ADR 0012): a transfer into one of the product's holding accounts
+ * is a buy, out of one is a sell. Computed on read from raw data; nothing is derived from quantity
+ * or price.
  */
 @Service
 public class InvestmentValueSeriesQuery {
@@ -33,16 +40,19 @@ public class InvestmentValueSeriesQuery {
   static final int MAX_MONTHS = 120;
 
   private final InvestmentProductRepository productRepository;
+  private final InvestmentHoldingRepository holdingRepository;
   private final InvestmentSnapshotRepository snapshotRepository;
   private final TransferRepository transferRepository;
   private final Clock clock;
 
   public InvestmentValueSeriesQuery(
       InvestmentProductRepository productRepository,
+      InvestmentHoldingRepository holdingRepository,
       InvestmentSnapshotRepository snapshotRepository,
       TransferRepository transferRepository,
       Clock clock) {
     this.productRepository = productRepository;
+    this.holdingRepository = holdingRepository;
     this.snapshotRepository = snapshotRepository;
     this.transferRepository = transferRepository;
     this.clock = clock;
@@ -78,7 +88,13 @@ public class InvestmentValueSeriesQuery {
 
   private ProductSeries seriesOf(
       InvestmentProduct product, YearMonth from, YearMonth last, LocalDate today) {
-    List<InvestmentSnapshot> snapshots = snapshotRepository.findByProductId(product.getId());
+    List<InvestmentHolding> holdings = holdingRepository.findByProductId(product.getId());
+    Set<UUID> holdingAccountIds = new HashSet<>();
+    List<List<InvestmentSnapshot>> snapshotsByHolding = new ArrayList<>();
+    for (InvestmentHolding holding : holdings) {
+      holdingAccountIds.add(holding.getAccountId());
+      snapshotsByHolding.add(snapshotRepository.findByHoldingId(holding.getId()));
+    }
     List<Transfer> trades = transferRepository.findByInvestmentProductId(product.getId());
     boolean hasQuantities = trades.stream().anyMatch(t -> t.getTradeDetails().quantity() != null);
 
@@ -87,12 +103,18 @@ public class InvestmentValueSeriesQuery {
       LocalDate monthStart = month.atDay(1);
       LocalDate point = month.atEndOfMonth().isAfter(today) ? today : month.atEndOfMonth();
 
-      BigDecimal value =
-          snapshots.stream() // most recent first
-              .filter(s -> !s.getDate().isAfter(point))
-              .findFirst()
-              .map(InvestmentSnapshot::getBalance)
-              .orElse(null);
+      BigDecimal value = null;
+      for (List<InvestmentSnapshot> holdingSnapshots : snapshotsByHolding) {
+        BigDecimal holdingValue =
+            holdingSnapshots.stream() // most recent first
+                .filter(s -> !s.getDate().isAfter(point))
+                .findFirst()
+                .map(InvestmentSnapshot::getBalance)
+                .orElse(null);
+        if (holdingValue != null) {
+          value = (value == null ? BigDecimal.ZERO : value).add(holdingValue);
+        }
+      }
 
       BigDecimal contributed = BigDecimal.ZERO;
       BigDecimal units = BigDecimal.ZERO;
@@ -100,7 +122,7 @@ public class InvestmentValueSeriesQuery {
         if (trade.getDate().isAfter(point)) {
           continue;
         }
-        boolean buy = trade.getToAccountId().equals(product.getAccountId());
+        boolean buy = holdingAccountIds.contains(trade.getToAccountId());
         if (!trade.getDate().isBefore(monthStart)) {
           contributed =
               buy ? contributed.add(trade.getAmount()) : contributed.subtract(trade.getAmount());

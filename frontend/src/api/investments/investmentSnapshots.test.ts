@@ -11,40 +11,40 @@ import {
 import { ApiError } from '../core/apiError'
 
 describe('investment snapshots API client', () => {
-  it('getInvestmentSnapshots returns the product history, most recent first', async () => {
-    await expect(getInvestmentSnapshots('iprod-btc')).resolves.toEqual(seedBitcoinSnapshots)
+  it('getInvestmentSnapshots returns the holding history, most recent first', async () => {
+    await expect(getInvestmentSnapshots('iholding-btc')).resolves.toEqual(seedBitcoinSnapshots)
   })
 
-  it('getInvestmentSnapshots of a product with none returns an empty list', async () => {
-    await expect(getInvestmentSnapshots('iprod-selic')).resolves.toEqual([])
+  it('getInvestmentSnapshots of a holding with none returns an empty list', async () => {
+    await expect(getInvestmentSnapshots('iholding-selic')).resolves.toEqual([])
   })
 
-  it('recordInvestmentSnapshot posts date and balance to the product and returns the snapshot', async () => {
+  it('recordInvestmentSnapshot posts date and balance to the holding and returns the snapshot', async () => {
     let sentBody: unknown = null
     let sentUrl = ''
     server.use(
-      http.post('/api/investment-products/:productId/snapshots', async ({ request }) => {
+      http.post('/api/investment-holdings/:holdingId/snapshots', async ({ request }) => {
         sentBody = await request.json()
         sentUrl = new URL(request.url).pathname
         return HttpResponse.json(
-          { id: 'isnap-x', productId: 'iprod-selic', date: '2026-09-01', balance: 0 },
+          { id: 'isnap-x', holdingId: 'iholding-selic', date: '2026-09-01', balance: 0 },
           { status: 201 },
         )
       }),
     )
 
-    const snapshot = await recordInvestmentSnapshot('iprod-selic', {
+    const snapshot = await recordInvestmentSnapshot('iholding-selic', {
       date: '2026-09-01',
       balance: 0,
     })
 
-    expect(sentUrl).toBe('/api/investment-products/iprod-selic/snapshots')
+    expect(sentUrl).toBe('/api/investment-holdings/iholding-selic/snapshots')
     expect(sentBody).toEqual({ date: '2026-09-01', balance: 0 })
-    expect(snapshot).toMatchObject({ productId: 'iprod-selic', date: '2026-09-01', balance: 0 })
+    expect(snapshot).toMatchObject({ holdingId: 'iholding-selic', date: '2026-09-01', balance: 0 })
   })
 
   it('recordInvestmentSnapshot on an existing date returns the replaced snapshot', async () => {
-    const snapshot = await recordInvestmentSnapshot('iprod-btc', {
+    const snapshot = await recordInvestmentSnapshot('iholding-btc', {
       date: seedBitcoinSnapshots[0].date,
       balance: 950,
     })
@@ -56,30 +56,30 @@ describe('investment snapshots API client', () => {
     let sentBody: unknown = null
     let sentUrl = ''
     server.use(
-      http.put('/api/investment-products/:productId/snapshots/:snapshotId', async ({ request }) => {
+      http.put('/api/investment-holdings/:holdingId/snapshots/:snapshotId', async ({ request }) => {
         sentBody = await request.clone().json()
         sentUrl = new URL(request.url).pathname
       }),
     )
 
-    const snapshot = await updateInvestmentSnapshot('iprod-btc', 'isnap-1', {
+    const snapshot = await updateInvestmentSnapshot('iholding-btc', 'isnap-1', {
       date: '2026-07-30',
       balance: 0,
     })
 
-    expect(sentUrl).toBe('/api/investment-products/iprod-btc/snapshots/isnap-1')
+    expect(sentUrl).toBe('/api/investment-holdings/iholding-btc/snapshots/isnap-1')
     expect(sentBody).toEqual({ date: '2026-07-30', balance: 0 })
     expect(snapshot).toMatchObject({ id: 'isnap-1', date: '2026-07-30', balance: 0 })
   })
 
   it('updateInvestmentSnapshot maps a 409 to the conflict message', async () => {
     server.use(
-      http.put('/api/investment-products/:productId/snapshots/:snapshotId', () =>
+      http.put('/api/investment-holdings/:holdingId/snapshots/:snapshotId', () =>
         HttpResponse.json({}, { status: 409 }),
       ),
     )
 
-    const error = await updateInvestmentSnapshot('iprod-btc', 'isnap-1', {
+    const error = await updateInvestmentSnapshot('iholding-btc', 'isnap-1', {
       date: '2026-08-05',
       balance: 1,
     }).catch((e: unknown) => e)
@@ -90,18 +90,18 @@ describe('investment snapshots API client', () => {
   })
 
   it('deleteInvestmentSnapshot deletes the snapshot', async () => {
-    await expect(deleteInvestmentSnapshot('iprod-btc', 'isnap-2')).resolves.toBeUndefined()
-    await expect(getInvestmentSnapshots('iprod-btc')).resolves.toEqual([seedBitcoinSnapshots[1]])
+    await expect(deleteInvestmentSnapshot('iholding-btc', 'isnap-2')).resolves.toBeUndefined()
+    await expect(getInvestmentSnapshots('iholding-btc')).resolves.toEqual([seedBitcoinSnapshots[1]])
   })
 
   it('deleteInvestmentSnapshot maps a 409 to the conflict message', async () => {
     server.use(
-      http.delete('/api/investment-products/:productId/snapshots/:snapshotId', () =>
+      http.delete('/api/investment-holdings/:holdingId/snapshots/:snapshotId', () =>
         HttpResponse.json({}, { status: 409 }),
       ),
     )
 
-    const error = await deleteInvestmentSnapshot('iprod-btc', 'isnap-2').catch((e: unknown) => e)
+    const error = await deleteInvestmentSnapshot('iholding-btc', 'isnap-2').catch((e: unknown) => e)
 
     expect((error as ApiError).status).toBe(409)
     expect((error as ApiError).message).toMatch(/latest snapshot would no longer be zero/)

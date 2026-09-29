@@ -11,6 +11,8 @@ import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
+import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
+import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
@@ -51,6 +53,7 @@ class TransferServiceTransactionalTest {
   @Autowired private InstitutionRepository institutionRepository;
   @Autowired private InvestmentCategoryRepository categoryRepository;
   @Autowired private InvestmentProductRepository productRepository;
+  @Autowired private InvestmentHoldingRepository holdingRepository;
 
   @MockitoSpyBean private InvestmentSnapshotRepository snapshotRepository;
 
@@ -72,10 +75,12 @@ class TransferServiceTransactionalTest {
         productRepository.save(
             InvestmentProduct.create(
                 UUID.randomUUID(),
-                broker.getId(),
                 categoryRepository.findAll().get(0).getId(),
                 null,
-                "Product Trade Rollback Test"));
+                "Product Trade Rollback Test",
+                null));
+    holdingRepository.save(
+        InvestmentHolding.create(UUID.randomUUID(), product.getId(), broker.getId(), null));
     willThrow(new RuntimeException("simulated failure writing the snapshot"))
         .given(snapshotRepository)
         .save(any(InvestmentSnapshot.class));

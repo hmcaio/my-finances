@@ -24,10 +24,10 @@ test.describe('investment products (account detail)', () => {
     await page.goto('/accounts/acct-inv')
     await expect(page.getByText('Bitcoin')).toBeVisible()
 
-    await expect(page.getByRole('table', { name: 'Investment products' })).toHaveCount(
+    await expect(page.getByRole('table', { name: 'Investment holdings' })).toHaveCount(
       mobile ? 0 : 1,
     )
-    await expect(page.getByRole('list', { name: 'Investment products' })).toHaveCount(
+    await expect(page.getByRole('list', { name: 'Investment holdings' })).toHaveCount(
       mobile ? 1 : 0,
     )
     if (tablet) {

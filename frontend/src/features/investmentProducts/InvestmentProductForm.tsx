@@ -19,6 +19,7 @@ export interface InvestmentProductFormValues {
   name: string
   categoryId: string
   subcategoryId: string
+  additionalNotes: string
 }
 
 interface InvestmentProductFormProps {
@@ -59,6 +60,7 @@ export function InvestmentProductForm({
   const [name, setName] = useState(initial?.name ?? '')
   const [categoryId, setCategoryId] = useState(initial?.categoryId ?? '')
   const [subcategoryId, setSubcategoryId] = useState(initial?.subcategoryId ?? '')
+  const [additionalNotes, setAdditionalNotes] = useState(initial?.additionalNotes ?? '')
 
   const subcategories = categories.find((c) => c.id === categoryId)?.subcategories ?? []
 
@@ -110,13 +112,29 @@ export function InvestmentProductForm({
           </MenuItem>
         ))}
       </Select>
+      <TextField
+        label="Additional notes"
+        size="small"
+        multiline
+        value={additionalNotes}
+        onChange={(e) => setAdditionalNotes(e.target.value)}
+        slotProps={{ htmlInput: { maxLength: 500 } }}
+        sx={dialog ? { gridColumn: '1 / -1' } : undefined}
+      />
     </>
   )
   const submitButton = (
     <Button
       variant="contained"
       disabled={submitting || !name.trim() || !categoryId}
-      onClick={() => onSubmit({ name: name.trim(), categoryId, subcategoryId })}
+      onClick={() =>
+        onSubmit({
+          name: name.trim(),
+          categoryId,
+          subcategoryId,
+          additionalNotes: additionalNotes.trim(),
+        })
+      }
     >
       {submitLabel}
     </Button>

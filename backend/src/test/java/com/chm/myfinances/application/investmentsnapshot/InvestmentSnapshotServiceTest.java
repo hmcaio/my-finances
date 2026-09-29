@@ -3,13 +3,13 @@ package com.chm.myfinances.application.investmentsnapshot;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.chm.myfinances.application.investmentproduct.InvestmentProductNotFoundException;
-import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
+import com.chm.myfinances.application.investmentholding.InvestmentHoldingNotFoundException;
+import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
-import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
-import com.chm.myfinances.testsupport.mothers.InvestmentProductMother;
+import com.chm.myfinances.testsupport.mothers.InvestmentHoldingMother;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -20,23 +20,24 @@ import org.junit.jupiter.api.Test;
 /**
  * Application-layer tests for {@link InvestmentSnapshotService}, written first (ADR 0004) against
  * hand-written fakes - plain JUnit, no Spring context. Covers F009 spec's upsert on {@code
- * (productId, date)}: create, same-day replace, unknown product.
+ * (holdingId, date)} (rekeyed from {@code productId} by F022/ADR 0020): create, same-day replace,
+ * unknown holding.
  */
 class InvestmentSnapshotServiceTest {
 
   private final FakeInvestmentSnapshotRepository snapshotRepository =
       new FakeInvestmentSnapshotRepository();
-  private final FakeInvestmentProductRepository productRepository =
-      new FakeInvestmentProductRepository();
+  private final FakeInvestmentHoldingRepository holdingRepository =
+      new FakeInvestmentHoldingRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
   private final InvestmentSnapshotService service =
-      new InvestmentSnapshotService(snapshotRepository, productRepository, idGenerator);
+      new InvestmentSnapshotService(snapshotRepository, holdingRepository, idGenerator);
 
-  private InvestmentProduct product;
+  private InvestmentHolding holding;
 
   @BeforeEach
   void setUp() {
-    product = productRepository.save(InvestmentProductMother.product().build());
+    holding = holdingRepository.save(InvestmentHoldingMother.holding().build());
   }
 
   @Test
@@ -44,14 +45,14 @@ class InvestmentSnapshotServiceTest {
     UUID nextId = UUID.randomUUID();
     InvestmentSnapshotService service =
         new InvestmentSnapshotService(
-            snapshotRepository, productRepository, new FakeIdGenerator(nextId));
+            snapshotRepository, holdingRepository, new FakeIdGenerator(nextId));
 
     RecordedSnapshot recorded =
-        service.record(product.getId(), LocalDate.of(2026, 3, 31), new BigDecimal("1234.56"));
+        service.record(holding.getId(), LocalDate.of(2026, 3, 31), new BigDecimal("1234.56"));
 
     assertThat(recorded.created()).isTrue();
     assertThat(recorded.snapshot().getId()).isEqualTo(nextId);
-    assertThat(recorded.snapshot().getProductId()).isEqualTo(product.getId());
+    assertThat(recorded.snapshot().getHoldingId()).isEqualTo(holding.getId());
     assertThat(recorded.snapshot().getDate()).isEqualTo(LocalDate.of(2026, 3, 31));
     assertThat(recorded.snapshot().getBalance()).isEqualByComparingTo("1234.56");
     assertThat(snapshotRepository.findById(nextId)).isPresent();
@@ -60,51 +61,51 @@ class InvestmentSnapshotServiceTest {
   @Test
   void recordOnTheSameDayReplacesTheBalanceInsteadOfAddingARow() {
     LocalDate date = LocalDate.of(2026, 3, 31);
-    RecordedSnapshot first = service.record(product.getId(), date, new BigDecimal("100.00"));
+    RecordedSnapshot first = service.record(holding.getId(), date, new BigDecimal("100.00"));
 
-    RecordedSnapshot second = service.record(product.getId(), date, new BigDecimal("120.00"));
+    RecordedSnapshot second = service.record(holding.getId(), date, new BigDecimal("120.00"));
 
     assertThat(second.created()).isFalse();
     assertThat(second.snapshot().getId()).isEqualTo(first.snapshot().getId());
     assertThat(second.snapshot().getBalance()).isEqualByComparingTo("120.00");
-    assertThat(snapshotRepository.findByProductId(product.getId())).hasSize(1);
-    assertThat(snapshotRepository.findByProductId(product.getId()).get(0).getBalance())
+    assertThat(snapshotRepository.findByHoldingId(holding.getId())).hasSize(1);
+    assertThat(snapshotRepository.findByHoldingId(holding.getId()).get(0).getBalance())
         .isEqualByComparingTo("120.00");
   }
 
   @Test
   void recordOnADifferentDayAddsARow() {
-    service.record(product.getId(), LocalDate.of(2026, 3, 30), new BigDecimal("100.00"));
+    service.record(holding.getId(), LocalDate.of(2026, 3, 30), new BigDecimal("100.00"));
 
     RecordedSnapshot second =
-        service.record(product.getId(), LocalDate.of(2026, 3, 31), new BigDecimal("110.00"));
+        service.record(holding.getId(), LocalDate.of(2026, 3, 31), new BigDecimal("110.00"));
 
     assertThat(second.created()).isTrue();
-    assertThat(snapshotRepository.findByProductId(product.getId())).hasSize(2);
+    assertThat(snapshotRepository.findByHoldingId(holding.getId())).hasSize(2);
   }
 
   @Test
   void recordAllowsAZeroBalance() {
     RecordedSnapshot recorded =
-        service.record(product.getId(), LocalDate.of(2026, 3, 31), BigDecimal.ZERO);
+        service.record(holding.getId(), LocalDate.of(2026, 3, 31), BigDecimal.ZERO);
 
     assertThat(recorded.snapshot().getBalance()).isEqualByComparingTo("0");
   }
 
   @Test
-  void recordRejectsAnUnknownProduct() {
+  void recordRejectsAnUnknownHolding() {
     assertThatThrownBy(() -> service.record(UUID.randomUUID(), LocalDate.now(), BigDecimal.TEN))
-        .isInstanceOf(InvestmentProductNotFoundException.class);
+        .isInstanceOf(InvestmentHoldingNotFoundException.class);
     assertThat(snapshotRepository.findAll()).isEmpty();
   }
 
   @Test
-  void findByProductListsSnapshotsMostRecentFirst() {
-    service.record(product.getId(), LocalDate.of(2026, 1, 31), new BigDecimal("100.00"));
-    service.record(product.getId(), LocalDate.of(2026, 3, 31), new BigDecimal("300.00"));
-    service.record(product.getId(), LocalDate.of(2026, 2, 28), new BigDecimal("200.00"));
+  void findByHoldingListsSnapshotsMostRecentFirst() {
+    service.record(holding.getId(), LocalDate.of(2026, 1, 31), new BigDecimal("100.00"));
+    service.record(holding.getId(), LocalDate.of(2026, 3, 31), new BigDecimal("300.00"));
+    service.record(holding.getId(), LocalDate.of(2026, 2, 28), new BigDecimal("200.00"));
 
-    List<InvestmentSnapshot> snapshots = service.findByProduct(product.getId());
+    List<InvestmentSnapshot> snapshots = service.findByHolding(holding.getId());
 
     assertThat(snapshots)
         .extracting(InvestmentSnapshot::getDate)
@@ -113,21 +114,21 @@ class InvestmentSnapshotServiceTest {
   }
 
   @Test
-  void findByProductRejectsAnUnknownProduct() {
-    assertThatThrownBy(() -> service.findByProduct(UUID.randomUUID()))
-        .isInstanceOf(InvestmentProductNotFoundException.class);
+  void findByHoldingRejectsAnUnknownHolding() {
+    assertThatThrownBy(() -> service.findByHolding(UUID.randomUUID()))
+        .isInstanceOf(InvestmentHoldingNotFoundException.class);
   }
 
   // ---- update / delete (issue #59) ----
 
   private InvestmentSnapshot recordSnapshot(LocalDate date, String balance) {
-    return service.record(product.getId(), date, new BigDecimal(balance)).snapshot();
+    return service.record(holding.getId(), date, new BigDecimal(balance)).snapshot();
   }
 
-  private InvestmentProduct closedProduct() {
-    InvestmentProduct closed = InvestmentProductMother.product().build();
+  private InvestmentHolding closedHolding() {
+    InvestmentHolding closed = InvestmentHoldingMother.holding().build();
     closed.close(LocalDate.of(2026, 4, 30));
-    return productRepository.save(closed);
+    return holdingRepository.save(closed);
   }
 
   @Test
@@ -136,12 +137,12 @@ class InvestmentSnapshotServiceTest {
 
     InvestmentSnapshot updated =
         service.update(
-            product.getId(), snapshot.getId(), LocalDate.of(2026, 3, 30), new BigDecimal("90.00"));
+            holding.getId(), snapshot.getId(), LocalDate.of(2026, 3, 30), new BigDecimal("90.00"));
 
     assertThat(updated.getId()).isEqualTo(snapshot.getId());
     assertThat(updated.getDate()).isEqualTo(LocalDate.of(2026, 3, 30));
     assertThat(updated.getBalance()).isEqualByComparingTo("90.00");
-    assertThat(snapshotRepository.findByProductId(product.getId())).hasSize(1);
+    assertThat(snapshotRepository.findByHoldingId(holding.getId())).hasSize(1);
   }
 
   @Test
@@ -150,7 +151,7 @@ class InvestmentSnapshotServiceTest {
 
     InvestmentSnapshot updated =
         service.update(
-            product.getId(), snapshot.getId(), LocalDate.of(2026, 3, 31), new BigDecimal("1.00"));
+            holding.getId(), snapshot.getId(), LocalDate.of(2026, 3, 31), new BigDecimal("1.00"));
 
     assertThat(updated.getBalance()).isEqualByComparingTo("1.00");
   }
@@ -163,7 +164,7 @@ class InvestmentSnapshotServiceTest {
     assertThatThrownBy(
             () ->
                 service.update(
-                    product.getId(),
+                    holding.getId(),
                     snapshot.getId(),
                     LocalDate.of(2026, 3, 30),
                     new BigDecimal("1.00")))
@@ -175,47 +176,47 @@ class InvestmentSnapshotServiceTest {
   }
 
   @Test
-  void updateAllowsTheSameDateAsASnapshotOfAnotherProduct() {
-    InvestmentProduct other = productRepository.save(InvestmentProductMother.product().build());
+  void updateAllowsTheSameDateAsASnapshotOfAnotherHolding() {
+    InvestmentHolding other = holdingRepository.save(InvestmentHoldingMother.holding().build());
     service.record(other.getId(), LocalDate.of(2026, 3, 30), BigDecimal.TEN);
     InvestmentSnapshot snapshot = recordSnapshot(LocalDate.of(2026, 3, 31), "100.00");
 
     InvestmentSnapshot updated =
         service.update(
-            product.getId(), snapshot.getId(), LocalDate.of(2026, 3, 30), BigDecimal.ONE);
+            holding.getId(), snapshot.getId(), LocalDate.of(2026, 3, 30), BigDecimal.ONE);
 
     assertThat(updated.getDate()).isEqualTo(LocalDate.of(2026, 3, 30));
   }
 
   @Test
-  void updateRejectsAnUnknownSnapshotOrOneOfAnotherProduct() {
-    InvestmentProduct other = productRepository.save(InvestmentProductMother.product().build());
+  void updateRejectsAnUnknownSnapshotOrOneOfAnotherHolding() {
+    InvestmentHolding other = holdingRepository.save(InvestmentHoldingMother.holding().build());
     InvestmentSnapshot ofOther =
         service.record(other.getId(), LocalDate.of(2026, 3, 31), BigDecimal.TEN).snapshot();
 
     assertThatThrownBy(
             () ->
-                service.update(product.getId(), UUID.randomUUID(), LocalDate.now(), BigDecimal.ONE))
+                service.update(holding.getId(), UUID.randomUUID(), LocalDate.now(), BigDecimal.ONE))
         .isInstanceOf(InvestmentSnapshotNotFoundException.class);
     assertThatThrownBy(
-            () -> service.update(product.getId(), ofOther.getId(), LocalDate.now(), BigDecimal.ONE))
+            () -> service.update(holding.getId(), ofOther.getId(), LocalDate.now(), BigDecimal.ONE))
         .isInstanceOf(InvestmentSnapshotNotFoundException.class);
     assertThat(snapshotRepository.findById(ofOther.getId()).orElseThrow().getBalance())
         .isEqualByComparingTo("10");
   }
 
   @Test
-  void updateRejectsAnUnknownProduct() {
+  void updateRejectsAnUnknownHolding() {
     assertThatThrownBy(
             () ->
                 service.update(
                     UUID.randomUUID(), UUID.randomUUID(), LocalDate.now(), BigDecimal.ONE))
-        .isInstanceOf(InvestmentProductNotFoundException.class);
+        .isInstanceOf(InvestmentHoldingNotFoundException.class);
   }
 
   @Test
-  void updateOfAClosedProductIsRejectedWhenItWouldLeaveANonZeroLatestSnapshot() {
-    InvestmentProduct closed = closedProduct();
+  void updateOfAClosedHoldingIsRejectedWhenItWouldLeaveANonZeroLatestSnapshot() {
+    InvestmentHolding closed = closedHolding();
     service.record(closed.getId(), LocalDate.of(2026, 3, 31), new BigDecimal("100.00"));
     InvestmentSnapshot zero =
         service.record(closed.getId(), LocalDate.of(2026, 4, 30), BigDecimal.ZERO).snapshot();
@@ -224,21 +225,21 @@ class InvestmentSnapshotServiceTest {
             () ->
                 service.update(
                     closed.getId(), zero.getId(), LocalDate.of(2026, 4, 30), new BigDecimal("5")))
-        .isInstanceOf(InvestmentSnapshotClosedProductException.class);
+        .isInstanceOf(InvestmentSnapshotClosedHoldingException.class);
     // moving the zero snapshot before the non-zero one makes the non-zero one the latest
     assertThatThrownBy(
             () ->
                 service.update(
                     closed.getId(), zero.getId(), LocalDate.of(2026, 3, 1), BigDecimal.ZERO))
-        .isInstanceOf(InvestmentSnapshotClosedProductException.class);
+        .isInstanceOf(InvestmentSnapshotClosedHoldingException.class);
     InvestmentSnapshot stored = snapshotRepository.findById(zero.getId()).orElseThrow();
     assertThat(stored.getBalance()).isEqualByComparingTo("0");
     assertThat(stored.getDate()).isEqualTo(LocalDate.of(2026, 4, 30));
   }
 
   @Test
-  void updateOfAClosedProductIsAllowedWhenTheLatestSnapshotStaysZero() {
-    InvestmentProduct closed = closedProduct();
+  void updateOfAClosedHoldingIsAllowedWhenTheLatestSnapshotStaysZero() {
+    InvestmentHolding closed = closedHolding();
     InvestmentSnapshot old =
         service
             .record(closed.getId(), LocalDate.of(2026, 3, 31), new BigDecimal("100.00"))
@@ -257,47 +258,47 @@ class InvestmentSnapshotServiceTest {
     InvestmentSnapshot keep = recordSnapshot(LocalDate.of(2026, 3, 30), "50.00");
     InvestmentSnapshot gone = recordSnapshot(LocalDate.of(2026, 3, 31), "100.00");
 
-    service.delete(product.getId(), gone.getId());
+    service.delete(holding.getId(), gone.getId());
 
-    assertThat(snapshotRepository.findByProductId(product.getId()))
+    assertThat(snapshotRepository.findByHoldingId(holding.getId()))
         .extracting(InvestmentSnapshot::getId)
         .containsExactly(keep.getId());
   }
 
   @Test
-  void deleteRejectsAnUnknownSnapshotOrOneOfAnotherProduct() {
-    InvestmentProduct other = productRepository.save(InvestmentProductMother.product().build());
+  void deleteRejectsAnUnknownSnapshotOrOneOfAnotherHolding() {
+    InvestmentHolding other = holdingRepository.save(InvestmentHoldingMother.holding().build());
     InvestmentSnapshot ofOther =
         service.record(other.getId(), LocalDate.of(2026, 3, 31), BigDecimal.TEN).snapshot();
 
-    assertThatThrownBy(() -> service.delete(product.getId(), UUID.randomUUID()))
+    assertThatThrownBy(() -> service.delete(holding.getId(), UUID.randomUUID()))
         .isInstanceOf(InvestmentSnapshotNotFoundException.class);
-    assertThatThrownBy(() -> service.delete(product.getId(), ofOther.getId()))
+    assertThatThrownBy(() -> service.delete(holding.getId(), ofOther.getId()))
         .isInstanceOf(InvestmentSnapshotNotFoundException.class);
     assertThat(snapshotRepository.findById(ofOther.getId())).isPresent();
   }
 
   @Test
-  void deleteRejectsAnUnknownProduct() {
+  void deleteRejectsAnUnknownHolding() {
     assertThatThrownBy(() -> service.delete(UUID.randomUUID(), UUID.randomUUID()))
-        .isInstanceOf(InvestmentProductNotFoundException.class);
+        .isInstanceOf(InvestmentHoldingNotFoundException.class);
   }
 
   @Test
-  void deleteOfAClosedProductIsRejectedWhenTheRemainingLatestSnapshotIsNonZero() {
-    InvestmentProduct closed = closedProduct();
+  void deleteOfAClosedHoldingIsRejectedWhenTheRemainingLatestSnapshotIsNonZero() {
+    InvestmentHolding closed = closedHolding();
     service.record(closed.getId(), LocalDate.of(2026, 3, 31), new BigDecimal("100.00"));
     InvestmentSnapshot zero =
         service.record(closed.getId(), LocalDate.of(2026, 4, 30), BigDecimal.ZERO).snapshot();
 
     assertThatThrownBy(() -> service.delete(closed.getId(), zero.getId()))
-        .isInstanceOf(InvestmentSnapshotClosedProductException.class);
+        .isInstanceOf(InvestmentSnapshotClosedHoldingException.class);
     assertThat(snapshotRepository.findById(zero.getId())).isPresent();
   }
 
   @Test
-  void deleteOfAClosedProductIsAllowedWhenTheRemainingLatestIsZeroOrNone() {
-    InvestmentProduct closed = closedProduct();
+  void deleteOfAClosedHoldingIsAllowedWhenTheRemainingLatestIsZeroOrNone() {
+    InvestmentHolding closed = closedHolding();
     InvestmentSnapshot old =
         service
             .record(closed.getId(), LocalDate.of(2026, 3, 31), new BigDecimal("100.00"))
@@ -308,6 +309,6 @@ class InvestmentSnapshotServiceTest {
     service.delete(closed.getId(), old.getId());
     service.delete(closed.getId(), zero.getId());
 
-    assertThat(snapshotRepository.findByProductId(closed.getId())).isEmpty();
+    assertThat(snapshotRepository.findByHoldingId(closed.getId())).isEmpty();
   }
 }

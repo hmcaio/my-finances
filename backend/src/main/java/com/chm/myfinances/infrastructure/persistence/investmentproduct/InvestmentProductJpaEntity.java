@@ -6,16 +6,15 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import java.time.LocalDate;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * JPA mapping for the {@code investment_products} table (F008 spec). References to the account and
- * the taxonomy are plain id columns; the foreign keys (including the composite one tying the
- * sub-category to the category) live in the migration.
+ * JPA mapping for the {@code investment_products} table (F022 spec, ADR 0020): pure taxonomy, no
+ * account/closed-date columns. References to the taxonomy are plain id columns; the foreign keys
+ * (including the composite one tying the sub-category to the category) live in the migration.
  */
 @Entity
 @Table(name = "investment_products")
@@ -26,9 +25,6 @@ public class InvestmentProductJpaEntity extends AuditableEntity {
 
   @Id private UUID id;
 
-  @Column(name = "account_id", nullable = false)
-  private UUID accountId;
-
   @Column(name = "investment_category_id", nullable = false)
   private UUID investmentCategoryId;
 
@@ -38,21 +34,19 @@ public class InvestmentProductJpaEntity extends AuditableEntity {
   @Column(nullable = false, length = TextFieldConstraints.MAX_NAME_LENGTH)
   private String name;
 
-  @Column(name = "closed_date")
-  private LocalDate closedDate;
+  @Column(name = "additional_notes", length = TextFieldConstraints.MAX_ADDITIONAL_NOTES_LENGTH)
+  private String additionalNotes;
 
   public InvestmentProductJpaEntity(
       UUID id,
-      UUID accountId,
       UUID investmentCategoryId,
       UUID investmentSubcategoryId,
       String name,
-      LocalDate closedDate) {
+      String additionalNotes) {
     this.id = id;
-    this.accountId = accountId;
     this.investmentCategoryId = investmentCategoryId;
     this.investmentSubcategoryId = investmentSubcategoryId;
     this.name = name;
-    this.closedDate = closedDate;
+    this.additionalNotes = additionalNotes;
   }
 }

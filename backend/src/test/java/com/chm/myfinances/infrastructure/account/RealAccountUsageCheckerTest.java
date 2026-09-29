@@ -12,6 +12,8 @@ import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
+import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
+import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
@@ -48,6 +50,7 @@ class RealAccountUsageCheckerTest {
   @Autowired private RecurringTemplateRepository recurringTemplateRepository;
   @Autowired private InvestmentCategoryRepository investmentCategoryRepository;
   @Autowired private InvestmentProductRepository investmentProductRepository;
+  @Autowired private InvestmentHoldingRepository investmentHoldingRepository;
 
   private Account account;
   private Account other;
@@ -127,7 +130,7 @@ class RealAccountUsageCheckerTest {
   }
 
   @Test
-  void aClosedInvestmentProductStillMakesTheAccountUsed() {
+  void aClosedInvestmentHoldingStillMakesTheAccountUsed() {
     Account broker =
         TestFixtures.account(
             accountRepository, institutionRepository, "Usage Broker", AccountType.INVESTMENT);
@@ -135,14 +138,16 @@ class RealAccountUsageCheckerTest {
         investmentCategoryRepository.save(
             InvestmentCategory.create(UUID.randomUUID(), "Usage Invest Test"));
     InvestmentProduct product =
-        InvestmentProductMother.product()
-            .withAccountId(broker.getId())
-            .withInvestmentCategoryId(category.getId())
-            .withInvestmentSubcategoryId(null)
-            .withName("Usage Product Test")
-            .build();
-    product.close(LocalDate.of(2026, 1, 31));
-    investmentProductRepository.save(product);
+        investmentProductRepository.save(
+            InvestmentProductMother.product()
+                .withInvestmentCategoryId(category.getId())
+                .withInvestmentSubcategoryId(null)
+                .withName("Usage Product Test")
+                .build());
+    InvestmentHolding holding =
+        InvestmentHolding.create(UUID.randomUUID(), product.getId(), broker.getId(), null);
+    holding.close(LocalDate.of(2026, 1, 31));
+    investmentHoldingRepository.save(holding);
 
     assertThat(checker.isUsed(broker.getId())).isTrue();
     assertThat(checker.isUsed(account.getId())).isFalse();

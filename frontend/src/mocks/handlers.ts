@@ -6,6 +6,7 @@ import { healthHandlers } from './handlers/health'
 import { institutionsHandlers } from './handlers/institutions'
 import { investmentCategoriesHandlers } from './handlers/investmentCategories'
 import { investmentAllocationHandlers } from './handlers/investmentAllocation'
+import { investmentHoldingsHandlers } from './handlers/investmentHoldings'
 import { investmentProductsHandlers } from './handlers/investmentProducts'
 import { investmentSnapshotsHandlers } from './handlers/investmentSnapshots'
 import { investmentSubcategoriesHandlers } from './handlers/investmentSubcategories'
@@ -33,6 +34,7 @@ export const handlers = [
   ...institutionsHandlers,
   ...investmentCategoriesHandlers,
   ...investmentAllocationHandlers,
+  ...investmentHoldingsHandlers,
   ...investmentProductsHandlers,
   ...investmentSnapshotsHandlers,
   ...investmentValueSeriesHandlers,

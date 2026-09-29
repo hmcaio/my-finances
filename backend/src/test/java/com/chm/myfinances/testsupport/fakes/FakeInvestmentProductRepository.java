@@ -2,13 +2,12 @@ package com.chm.myfinances.testsupport.fakes;
 
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
-import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
 /**
  * In-memory test double for {@link InvestmentProductRepository}, shared across application-service
- * tests (same spirit as {@link FakeIdGenerator}).
+ * tests (same spirit as {@link FakeIdGenerator}). F022: pure taxonomy, name globally unique.
  */
 public final class FakeInvestmentProductRepository extends InMemoryRepository<InvestmentProduct>
     implements InvestmentProductRepository {
@@ -18,34 +17,14 @@ public final class FakeInvestmentProductRepository extends InMemoryRepository<In
   }
 
   @Override
-  public List<InvestmentProduct> findByAccountId(UUID accountId) {
-    return values().stream().filter(p -> p.getAccountId().equals(accountId)).toList();
+  public boolean existsByName(String name) {
+    return values().stream().anyMatch(p -> p.getName().equals(name));
   }
 
   @Override
-  public boolean existsByAccountIdAndName(UUID accountId, String name) {
+  public boolean existsByNameAndIdNot(String name, UUID excludedId) {
     return values().stream()
-        .anyMatch(p -> p.getAccountId().equals(accountId) && p.getName().equals(name));
-  }
-
-  @Override
-  public boolean existsByAccountIdAndNameAndIdNot(UUID accountId, String name, UUID excludedId) {
-    return values().stream()
-        .anyMatch(
-            p ->
-                p.getAccountId().equals(accountId)
-                    && p.getName().equals(name)
-                    && !p.getId().equals(excludedId));
-  }
-
-  @Override
-  public boolean existsByAccountId(UUID accountId) {
-    return values().stream().anyMatch(p -> p.getAccountId().equals(accountId));
-  }
-
-  @Override
-  public boolean existsOpenByAccountId(UUID accountId) {
-    return values().stream().anyMatch(p -> p.getAccountId().equals(accountId) && !p.isClosed());
+        .anyMatch(p -> p.getName().equals(name) && !p.getId().equals(excludedId));
   }
 
   @Override

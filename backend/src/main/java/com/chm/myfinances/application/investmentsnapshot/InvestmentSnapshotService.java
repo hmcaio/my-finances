@@ -1,8 +1,8 @@
 package com.chm.myfinances.application.investmentsnapshot;
 
-import com.chm.myfinances.application.investmentproduct.InvestmentProductNotFoundException;
-import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
-import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
+import com.chm.myfinances.application.investmentholding.InvestmentHoldingNotFoundException;
+import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
+import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshotRepository;
 import com.chm.myfinances.domain.shared.IdGenerator;
@@ -15,10 +15,11 @@ import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
 
 /**
- * Use cases for {@link InvestmentSnapshot} (F009 spec): {@link #record} upserts on {@code
- * (productId, date)} - one snapshot per product per day - and {@link #findByProduct} lists a
- * product's history, most recent first. {@link #update} and {@link #delete} fix a wrongly dated or
- * mistaken entry (issue #59). New ids come from the {@link IdGenerator} port (ADR 0005).
+ * Use cases for {@link InvestmentSnapshot} (F009 spec, rekeyed by holding for F022/ADR 0020):
+ * {@link #record} upserts on {@code (holdingId, date)} - one snapshot per holding per day - and
+ * {@link #findByHolding} lists a holding's history, most recent first. {@link #update} and {@link
+ * #delete} fix a wrongly dated or mistaken entry (issue #59). New ids come from the {@link
+ * IdGenerator} port (ADR 0005).
  *
  * <p>{@code record} is a single write, so it isn't {@code @Transactional} itself; {@code
  * TransferService.create} calls it from inside its own transaction when a trade carries a resulting
@@ -28,27 +29,27 @@ import org.springframework.stereotype.Service;
 public class InvestmentSnapshotService {
 
   private final InvestmentSnapshotRepository snapshotRepository;
-  private final InvestmentProductRepository productRepository;
+  private final InvestmentHoldingRepository holdingRepository;
   private final IdGenerator idGenerator;
 
   public InvestmentSnapshotService(
       InvestmentSnapshotRepository snapshotRepository,
-      InvestmentProductRepository productRepository,
+      InvestmentHoldingRepository holdingRepository,
       IdGenerator idGenerator) {
     this.snapshotRepository = snapshotRepository;
-    this.productRepository = productRepository;
+    this.holdingRepository = holdingRepository;
     this.idGenerator = idGenerator;
   }
 
   /**
-   * Records the product's value on {@code date}, replacing the balance of an existing same-day
-   * snapshot. The product must exist (404); a closed product may still get a snapshot (a {@code 0}
+   * Records the holding's value on {@code date}, replacing the balance of an existing same-day
+   * snapshot. The holding must exist (404); a closed holding may still get a snapshot (a {@code 0}
    * correction, say).
    */
-  public RecordedSnapshot record(UUID productId, LocalDate date, BigDecimal balance) {
-    requireProduct(productId);
+  public RecordedSnapshot record(UUID holdingId, LocalDate date, BigDecimal balance) {
+    requireHolding(holdingId);
     return snapshotRepository
-        .findByProductIdAndDate(productId, date)
+        .findByHoldingIdAndDate(holdingId, date)
         .map(
             existing -> {
               existing.replaceBalance(balance);
@@ -58,38 +59,38 @@ public class InvestmentSnapshotService {
             () ->
                 new RecordedSnapshot(
                     snapshotRepository.save(
-                        InvestmentSnapshot.create(idGenerator.newId(), productId, date, balance)),
+                        InvestmentSnapshot.create(idGenerator.newId(), holdingId, date, balance)),
                     true));
   }
 
-  /** The product's snapshots, most recent date first. 404 for an unknown product. */
-  public List<InvestmentSnapshot> findByProduct(UUID productId) {
-    requireProduct(productId);
-    return snapshotRepository.findByProductId(productId);
+  /** The holding's snapshots, most recent date first. 404 for an unknown holding. */
+  public List<InvestmentSnapshot> findByHolding(UUID holdingId) {
+    requireHolding(holdingId);
+    return snapshotRepository.findByHoldingId(holdingId);
   }
 
   /**
-   * Edits a snapshot's date and balance. 404 for an unknown product or a snapshot that isn't that
-   * product's; 409 when the new date already holds another snapshot of the product, or when the
-   * product is closed and the edit would leave its latest snapshot non-zero (PRD S5.8). One write,
+   * Edits a snapshot's date and balance. 404 for an unknown holding or a snapshot that isn't that
+   * holding's; 409 when the new date already holds another snapshot of the holding, or when the
+   * holding is closed and the edit would leave its latest snapshot non-zero (PRD S5.8). One write,
    * so not {@code @Transactional}.
    */
   public InvestmentSnapshot update(
-      UUID productId, UUID snapshotId, LocalDate date, BigDecimal balance) {
-    InvestmentProduct product = requireProduct(productId);
-    InvestmentSnapshot snapshot = requireSnapshotOf(productId, snapshotId);
+      UUID holdingId, UUID snapshotId, LocalDate date, BigDecimal balance) {
+    InvestmentHolding holding = requireHolding(holdingId);
+    InvestmentSnapshot snapshot = requireSnapshotOf(holdingId, snapshotId);
     snapshotRepository
-        .findByProductIdAndDate(productId, date)
+        .findByHoldingIdAndDate(holdingId, date)
         .filter(other -> !other.getId().equals(snapshotId))
         .ifPresent(
             other -> {
-              throw new InvestmentSnapshotDateTakenException(productId);
+              throw new InvestmentSnapshotDateTakenException(holdingId);
             });
-    if (product.isClosed()) {
+    if (holding.isClosed()) {
       requireLatestIsZeroOrAbsent(
-          productId,
+          holdingId,
           Stream.concat(
-              otherSnapshots(productId, snapshotId), Stream.of(new DatedBalance(date, balance))));
+              otherSnapshots(holdingId, snapshotId), Stream.of(new DatedBalance(date, balance))));
     }
     snapshot.moveTo(date);
     snapshot.replaceBalance(balance);
@@ -97,48 +98,48 @@ public class InvestmentSnapshotService {
   }
 
   /**
-   * Deletes a snapshot. 404 as for {@link #update}; 409 when the product is closed and the
+   * Deletes a snapshot. 404 as for {@link #update}; 409 when the holding is closed and the
    * remaining latest snapshot would be non-zero. A trade's resulting-balance snapshot has no link
    * to its transfer, so the trade is untouched.
    */
-  public void delete(UUID productId, UUID snapshotId) {
-    InvestmentProduct product = requireProduct(productId);
-    requireSnapshotOf(productId, snapshotId);
-    if (product.isClosed()) {
-      requireLatestIsZeroOrAbsent(productId, otherSnapshots(productId, snapshotId));
+  public void delete(UUID holdingId, UUID snapshotId) {
+    InvestmentHolding holding = requireHolding(holdingId);
+    requireSnapshotOf(holdingId, snapshotId);
+    if (holding.isClosed()) {
+      requireLatestIsZeroOrAbsent(holdingId, otherSnapshots(holdingId, snapshotId));
     }
     snapshotRepository.deleteById(snapshotId);
   }
 
   private record DatedBalance(LocalDate date, BigDecimal balance) {}
 
-  private Stream<DatedBalance> otherSnapshots(UUID productId, UUID excludedSnapshotId) {
-    return snapshotRepository.findByProductId(productId).stream()
+  private Stream<DatedBalance> otherSnapshots(UUID holdingId, UUID excludedSnapshotId) {
+    return snapshotRepository.findByHoldingId(holdingId).stream()
         .filter(s -> !s.getId().equals(excludedSnapshotId))
         .map(s -> new DatedBalance(s.getDate(), s.getBalance()));
   }
 
-  private void requireLatestIsZeroOrAbsent(UUID productId, Stream<DatedBalance> resulting) {
+  private void requireLatestIsZeroOrAbsent(UUID holdingId, Stream<DatedBalance> resulting) {
     boolean nonZeroLatest =
         resulting
             .max(Comparator.comparing(DatedBalance::date))
             .filter(latest -> latest.balance().signum() != 0)
             .isPresent();
     if (nonZeroLatest) {
-      throw new InvestmentSnapshotClosedProductException(productId);
+      throw new InvestmentSnapshotClosedHoldingException(holdingId);
     }
   }
 
-  private InvestmentSnapshot requireSnapshotOf(UUID productId, UUID snapshotId) {
+  private InvestmentSnapshot requireSnapshotOf(UUID holdingId, UUID snapshotId) {
     return snapshotRepository
         .findById(snapshotId)
-        .filter(s -> s.getProductId().equals(productId))
+        .filter(s -> s.getHoldingId().equals(holdingId))
         .orElseThrow(() -> new InvestmentSnapshotNotFoundException(snapshotId));
   }
 
-  private InvestmentProduct requireProduct(UUID productId) {
-    return productRepository
-        .findById(productId)
-        .orElseThrow(() -> new InvestmentProductNotFoundException(productId));
+  private InvestmentHolding requireHolding(UUID holdingId) {
+    return holdingRepository
+        .findById(holdingId)
+        .orElseThrow(() -> new InvestmentHoldingNotFoundException(holdingId));
   }
 }

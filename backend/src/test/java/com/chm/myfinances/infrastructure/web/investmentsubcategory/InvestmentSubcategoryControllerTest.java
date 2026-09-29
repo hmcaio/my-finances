@@ -6,15 +6,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.chm.myfinances.domain.account.AccountRepository;
-import com.chm.myfinances.domain.account.AccountType;
-import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import com.chm.myfinances.testsupport.mothers.InvestmentProductMother;
-import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import com.chm.myfinances.testsupport.web.JsonSupport;
 import com.chm.myfinances.testsupport.web.MockMvcSupport;
 import com.chm.myfinances.testsupport.web.WebIntegrationTest;
@@ -43,8 +39,6 @@ class InvestmentSubcategoryControllerTest {
   @Autowired private WebApplicationContext webApplicationContext;
   @Autowired private InvestmentCategoryRepository categoryRepository;
   @Autowired private InvestmentProductRepository productRepository;
-  @Autowired private AccountRepository accountRepository;
-  @Autowired private InstitutionRepository institutionRepository;
 
   private final ObjectMapper objectMapper = JsonSupport.MAPPER;
 
@@ -212,16 +206,8 @@ class InvestmentSubcategoryControllerTest {
   @Test
   void deleteIsRejectedWith409WhileAProductUsesIt() throws Exception {
     String id = createSubcategory(categoryId, "Used Test");
-    UUID accountId =
-        TestFixtures.account(
-                accountRepository,
-                institutionRepository,
-                "Broker Subcategory Test",
-                AccountType.INVESTMENT)
-            .getId();
     productRepository.save(
         InvestmentProductMother.product()
-            .withAccountId(accountId)
             .withInvestmentCategoryId(categoryId)
             .withInvestmentSubcategoryId(UUID.fromString(id))
             .withName("CDB Product Test")

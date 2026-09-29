@@ -6,27 +6,32 @@ import static org.assertj.core.api.Assertions.tuple;
 import com.chm.myfinances.application.investmentsnapshot.InvestmentSnapshotFreshnessQuery;
 import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
+import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentCategoryRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSubcategoryRepository;
 import com.chm.myfinances.testsupport.fakes.FakeTransferRepository;
+import com.chm.myfinances.testsupport.mothers.InvestmentHoldingMother;
 import com.chm.myfinances.testsupport.mothers.InvestmentProductMother;
 import com.chm.myfinances.testsupport.mothers.TransferMother;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 /**
- * Tests for {@link InvestmentAllocationQuery} (F009 spec), written first (ADR 0004): latest
- * snapshot per product as of a date, grouped by category or by category then sub-category. Products
- * with a {@code 0} or missing snapshot add nothing to a total; a group's {@code needsSnapshot} is
- * true when any of its products is stale.
+ * Tests for {@link InvestmentAllocationQuery} (F009 spec, rewired onto holdings by F022/ADR 0020):
+ * a product's value is the sum of its holdings' latest snapshots, grouped by category or by
+ * category then sub-category. Products with a {@code 0} or missing total add nothing to a group's
+ * total; a group's {@code needsSnapshot} is true when any of its products has a stale holding.
  */
 class InvestmentAllocationQueryTest {
 
@@ -34,6 +39,8 @@ class InvestmentAllocationQueryTest {
 
   private final FakeInvestmentProductRepository productRepository =
       new FakeInvestmentProductRepository();
+  private final FakeInvestmentHoldingRepository holdingRepository =
+      new FakeInvestmentHoldingRepository();
   private final FakeInvestmentCategoryRepository categoryRepository =
       new FakeInvestmentCategoryRepository();
   private final FakeInvestmentSubcategoryRepository subcategoryRepository =
@@ -42,14 +49,17 @@ class InvestmentAllocationQueryTest {
       new FakeInvestmentSnapshotRepository();
   private final FakeTransferRepository transferRepository = new FakeTransferRepository();
   private final LatestInvestmentSnapshotQuery latestQuery =
-      new LatestInvestmentSnapshotQuery(snapshotRepository);
+      new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository);
   private final InvestmentAllocationQuery query =
       new InvestmentAllocationQuery(
           productRepository,
+          holdingRepository,
           categoryRepository,
           subcategoryRepository,
           latestQuery,
-          new InvestmentSnapshotFreshnessQuery(latestQuery, transferRepository));
+          new InvestmentSnapshotFreshnessQuery(latestQuery, transferRepository, holdingRepository));
+
+  private final Map<UUID, InvestmentHolding> holdingByProduct = new HashMap<>();
 
   private final UUID fixedIncome = category("Fixed Income");
   private final UUID variableIncome = category("Variable Income");
@@ -69,23 +79,44 @@ class InvestmentAllocationQueryTest {
   }
 
   private InvestmentProduct product(String name, UUID categoryId, UUID subcategoryId) {
-    return productRepository.save(
-        InvestmentProductMother.product()
-            .withName(name)
-            .withInvestmentCategoryId(categoryId)
-            .withInvestmentSubcategoryId(subcategoryId)
-            .build());
+    InvestmentProduct product =
+        productRepository.save(
+            InvestmentProductMother.product()
+                .withName(name)
+                .withInvestmentCategoryId(categoryId)
+                .withInvestmentSubcategoryId(subcategoryId)
+                .build());
+    holdingByProduct.put(
+        product.getId(),
+        holdingRepository.save(
+            InvestmentHoldingMother.holding().withProductId(product.getId()).build()));
+    return product;
+  }
+
+  /** A second holding of the same product, at a different account - for multi-holding coverage. */
+  private InvestmentHolding secondHoldingOf(InvestmentProduct product) {
+    return holdingRepository.save(
+        InvestmentHoldingMother.holding().withProductId(product.getId()).build());
   }
 
   private void snapshot(InvestmentProduct product, LocalDate date, String balance) {
+    snapshot(holdingByProduct.get(product.getId()), date, balance);
+  }
+
+  private void snapshot(InvestmentHolding holding, LocalDate date, String balance) {
     snapshotRepository.save(
         InvestmentSnapshot.create(
-            UUID.randomUUID(), product.getId(), date, new BigDecimal(balance)));
+            UUID.randomUUID(), holding.getId(), date, new BigDecimal(balance)));
   }
 
   private void trade(InvestmentProduct product, LocalDate date) {
+    InvestmentHolding holding = holdingByProduct.get(product.getId());
     transferRepository.save(
-        TransferMother.transfer().withDate(date).withInvestmentProductId(product.getId()).build());
+        TransferMother.transfer()
+            .withDate(date)
+            .withToAccountId(holding.getAccountId())
+            .withInvestmentProductId(product.getId())
+            .build());
   }
 
   @Test
@@ -225,5 +256,18 @@ class InvestmentAllocationQueryTest {
     assertThat(rows).hasSize(1);
     assertThat(rows.get(0).totalValue()).isEqualByComparingTo("0");
     assertThat(rows.get(0).needsSnapshot()).isTrue();
+  }
+
+  @Test
+  void aProductHeldAtTwoAccountsSumsBothHoldingsIntoOneGroupTotal() {
+    InvestmentProduct product = product("Selic Multi", fixedIncome, selicSub);
+    InvestmentHolding secondHolding = secondHoldingOf(product);
+    snapshot(product, LocalDate.of(2026, 6, 1), "100.00");
+    snapshot(secondHolding, LocalDate.of(2026, 6, 1), "50.00");
+
+    List<AllocationRow> rows = query.allocation(ASOF, AllocationGrouping.CATEGORY);
+
+    assertThat(rows).hasSize(1);
+    assertThat(rows.get(0).totalValue()).isEqualByComparingTo("150.00");
   }
 }
