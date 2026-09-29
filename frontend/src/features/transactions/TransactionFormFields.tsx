@@ -3,15 +3,8 @@ import type { Account } from '../../api/accounts/accounts'
 import type { Category } from '../../api/categories/categories'
 import type { PaymentMethod } from '../../api/paymentMethods/paymentMethods'
 import type { Vehicle } from '../../api/vehicles/vehicles'
+import { FUEL_TYPES, fuelTypeLabel } from '../../utils/fuelType'
 import type { TransactionFormValues } from './transactionForm'
-
-/** Fixed fuel type set (F024 spec, ADR 0021) - no custom/user-editable fuel types. */
-const FUEL_TYPES: Array<{ value: string; label: string }> = [
-  { value: 'ETANOL', label: 'Etanol' },
-  { value: 'ETANOL_ADITIVADO', label: 'Etanol Aditivado' },
-  { value: 'GASOLINA', label: 'Gasolina' },
-  { value: 'GASOLINA_ADITIVADA', label: 'Gasolina Aditivada' },
-]
 
 /** Every field F024 added, empty/cleared. */
 const EMPTY_FUEL_FIELDS = {
@@ -177,8 +170,8 @@ export function TransactionFormFields({
               Fuel Type
             </MenuItem>
             {FUEL_TYPES.map((f) => (
-              <MenuItem key={f.value} value={f.value}>
-                {f.label}
+              <MenuItem key={f} value={f}>
+                {fuelTypeLabel(f)}
               </MenuItem>
             ))}
           </Select>
