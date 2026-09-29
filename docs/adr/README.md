@@ -25,6 +25,7 @@ One file per decision, numbered sequentially, never renumbered or edited to chan
 | [0019](0019-responsive-layout-strategy.md) | Responsive layout: MUI breakpoints, cards over tables, shared primitives, geometry-only e2e | Accepted |
 | [0020](0020-investment-holdings-many-to-many.md) | Model investment products and accounts as many-to-many holdings, not a 1:1 link | Accepted |
 | [0021](0021-fuel-details-on-transaction.md) | Record fuel purchases as Transaction + optional FuelDetails, gated by a dedicated category flag | Accepted |
+| [0022](0022-audit-log-explicit-port-same-transaction.md) | Record an audit log through an explicit application-layer port, in the same transaction as the change | Accepted |
 
 Template:
 ```

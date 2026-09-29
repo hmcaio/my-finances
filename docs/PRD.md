@@ -187,6 +187,18 @@ An `Account` (§5.4, of any type including `INVESTMENT`) points at exactly one i
 
 `amount` (§5.3) stays the cash that actually moved; it is not cross-validated against `liters × price_per_liter`, since receipts round each to different precision. Derived, computed on read and never stored: km per liter = `km_since_last_fill / liters`; amount per km = `amount / km_since_last_fill`; liters per km = `liters / km_since_last_fill`. All three are `null` when `km_since_last_fill` is absent.
 
+### 5.12 Audit Log Entry
+An append-only record of one committed change (ADR 0022). Not part of net worth or any report.
+- `id`
+- `occurred_at` (timestamp, from the application clock)
+- `entity_type`, `entity_id` (no foreign key — a deleted entity's entries remain) and `entity_label` (a snapshot of the entity's name or description at the time, so a deleted entity is still readable)
+- `action`: `CREATE`, `UPDATE`, `DELETE`, `CLOSE`, `REOPEN`, `STOPPED` (a budget stopped from a month on) or `GENERATED` (recurring catch-up summary)
+- `origin`: `USER` or `SYSTEM` (lazy recurring generation and cascades such as closing an account deactivating its templates). There is no actor: the app has no authentication (§3).
+- `changes`: field → `{from, to}` diff
+- `request_id`: ties together the entries one click produced
+
+Versioned entities (§5.6, §5.7) log as an `UPDATE` on the logical entity, diffed between the previous and the new version. An update that changes nothing is not logged. Entries are written in the same transaction as the change, are never edited or deleted, and are not part of the data export (§6.9).
+
 ## 6. Functional Requirements
 
 ### 6.1 Transactions
@@ -260,6 +272,11 @@ An `Account` (§5.4, of any type including `INVESTMENT`) points at exactly one i
 - Recording a fuel purchase is an ordinary transaction (§6.1) with the fuel category (§5.11) selected: the form then also asks for vehicle, fuel type, liters, price per liter, an optional km since the last fill and an optional odometer reading. Changing the category away from the fuel category on an existing fuel transaction is rejected until its fuel details are cleared.
 - Per-vehicle fuel history: a filtered transaction list for a selected vehicle, plus three time-series charts scoped to that vehicle — price per liter (one line per fuel type), km per liter, and amount spent per km — plotted per fill, with no date aggregation.
 
+### 6.12 Activity Log
+- A read-only Activity page lists every logged change, newest first, grouped by day in the viewer's local time zone, filterable by date range, entity type, action and origin. Each entry expands to its field-by-field before/after diff.
+- Logged: every committed create, update, delete, close, reopen and stop on every entity; recurring catch-up as one summary entry per template per run (`SYSTEM`); side effects of a change as their own `SYSTEM` entries. Not logged: reads, navigation, rejected requests, updates that change nothing.
+- The log starts when the feature is deployed; earlier history is not reconstructed. The log cannot be edited or cleared from the app, and there is no undo from it.
+
 ## 7. Technical Design
 
 ### 7.1 Stack
@@ -297,6 +314,7 @@ These are low-level choices left to implementation rather than product decisions
 - Monthly value series grouped by investment category or sub-category (today the series is per product).
 - Manual physical assets (real estate, vehicles) in net worth.
 - Allocation by institution: how much is held at each institution (account balances, `INVESTMENT` accounts included, grouped by `institution_id`; the built-in "No institution" row is just another slice; how credit card balances net against an institution is decided when it is built), as a dashboard pie chart. The data model (§5.10) already supports it as a single grouping over accounts; the query and widget are a later feature.
+- Undo/revert from the audit log (§5.12), retention of old entries, and entity-scoped history links from account or transaction pages.
 - Loan account type with amortization schedules (beyond the current checking/savings/cash/credit-card/investment types).
 - Interest/fee accrual modeling on credit card liabilities.
 - Manual bank statement reconciliation (mark an account balance as matched against a real statement as of a date).
