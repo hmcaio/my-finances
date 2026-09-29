@@ -128,7 +128,9 @@ class InvestmentProductControllerTest {
         .andExpect(jsonPath("$.investmentCategoryId").value(fixedIncomeId.toString()))
         .andExpect(jsonPath("$.investmentSubcategoryId").value(cdbId.toString()))
         .andExpect(jsonPath("$.name").value("CDB 110% Test"))
-        .andExpect(jsonPath("$.additionalNotes").value("matures 2030"));
+        .andExpect(jsonPath("$.additionalNotes").value("matures 2030"))
+        // F023: derived, not stored - false because the first holding is open.
+        .andExpect(jsonPath("$.closed").value(false));
   }
 
   @Test
@@ -259,15 +261,117 @@ class InvestmentProductControllerTest {
   }
 
   @Test
-  void listReturnsEveryProductWithNoAccountFilter() throws Exception {
+  void listReturnsAPagedModelOfEveryOpenProductByDefault() throws Exception {
     String atXp = createProduct(accountId, cryptoId, null, "Bitcoin Test");
     String atNu = createProduct(otherAccountId, cryptoId, null, "Ethereum Test");
 
     mockMvc
         .perform(get("/api/investment-products"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[?(@.id=='" + atXp + "')]").exists())
-        .andExpect(jsonPath("$[?(@.id=='" + atNu + "')]").exists());
+        .andExpect(jsonPath("$.content[?(@.id=='" + atXp + "')]").exists())
+        .andExpect(jsonPath("$.content[?(@.id=='" + atNu + "')]").exists())
+        .andExpect(jsonPath("$.page.size").value(20))
+        .andExpect(jsonPath("$.page.totalElements").value(2));
+  }
+
+  @Test
+  void listFiltersByCategorySubcategoryAndName() throws Exception {
+    String cdb = createProduct(accountId, fixedIncomeId, cdbId, "CDB List Test");
+    createProduct(accountId, cryptoId, null, "Bitcoin List Test");
+
+    mockMvc
+        .perform(get("/api/investment-products").param("categoryId", fixedIncomeId.toString()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[?(@.id=='" + cdb + "')]").exists())
+        .andExpect(jsonPath("$.content.length()").value(1));
+
+    mockMvc
+        .perform(get("/api/investment-products").param("subcategoryId", cdbId.toString()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[?(@.id=='" + cdb + "')]").exists())
+        .andExpect(jsonPath("$.content.length()").value(1));
+
+    mockMvc
+        .perform(get("/api/investment-products").param("name", "cdb list"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[?(@.id=='" + cdb + "')]").exists())
+        .andExpect(jsonPath("$.content.length()").value(1));
+  }
+
+  @Test
+  void listFiltersByAccountMeaningHasAHoldingThere() throws Exception {
+    String atXp = createProduct(accountId, cryptoId, null, "At XP List Test");
+    createProduct(otherAccountId, cryptoId, null, "At NU List Test");
+
+    mockMvc
+        .perform(get("/api/investment-products").param("accountId", accountId.toString()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[?(@.id=='" + atXp + "')]").exists())
+        .andExpect(jsonPath("$.content.length()").value(1));
+  }
+
+  @Test
+  void listFiltersByStatusAndDefaultsToOpen() throws Exception {
+    String open = createProduct(accountId, cryptoId, null, "Open Status List Test");
+    String closed = createProduct(otherAccountId, cryptoId, null, "Closed Status List Test");
+    MvcResult holdingsResult =
+        mockMvc
+            .perform(get("/api/investment-holdings").param("productId", closed))
+            .andExpect(status().isOk())
+            .andReturn();
+    String closedHoldingId =
+        objectMapper
+            .readTree(holdingsResult.getResponse().getContentAsString())
+            .get(0)
+            .get("id")
+            .asText();
+    mockMvc
+        .perform(post("/api/investment-holdings/" + closedHoldingId + "/close"))
+        .andExpect(status().is2xxSuccessful());
+
+    mockMvc
+        .perform(get("/api/investment-products").param("name", "Status List Test"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[?(@.id=='" + open + "')]").exists())
+        .andExpect(jsonPath("$.content.length()").value(1))
+        .andExpect(jsonPath("$.content[0].closed").value(false));
+
+    mockMvc
+        .perform(
+            get("/api/investment-products")
+                .param("name", "Status List Test")
+                .param("status", "CLOSED"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[?(@.id=='" + closed + "')]").exists())
+        .andExpect(jsonPath("$.content.length()").value(1))
+        .andExpect(jsonPath("$.content[0].closed").value(true));
+
+    mockMvc
+        .perform(
+            get("/api/investment-products")
+                .param("name", "Status List Test")
+                .param("status", "ALL"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content.length()").value(2));
+  }
+
+  @Test
+  void listPaginates() throws Exception {
+    createProduct(accountId, cryptoId, null, "Page A List Test");
+    createProduct(accountId, cryptoId, null, "Page B List Test");
+    createProduct(accountId, cryptoId, null, "Page C List Test");
+
+    mockMvc
+        .perform(
+            get("/api/investment-products")
+                .param("name", "Page")
+                .param("status", "ALL")
+                .param("page", "0")
+                .param("size", "2"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content.length()").value(2))
+        .andExpect(jsonPath("$.page.totalElements").value(3))
+        .andExpect(jsonPath("$.page.totalPages").value(2));
   }
 
   @Test

@@ -1,10 +1,15 @@
 package com.chm.myfinances.infrastructure.web.investmentproduct;
 
+import com.chm.myfinances.application.investmentproduct.InvestmentProductFilter;
 import com.chm.myfinances.application.investmentproduct.InvestmentProductService;
+import com.chm.myfinances.application.investmentproduct.InvestmentProductStatus;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import jakarta.validation.Valid;
-import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.web.PagedModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,14 +18,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
  * REST API for {@code InvestmentProduct} (F008 spec, restructured to pure taxonomy by F022/ADR
- * 0020). A plain list of every product - {@code ?accountId=} is gone, no longer meaningful on the
- * product (F023 adds real filtering). Close/snapshot actions moved to {@code
- * InvestmentHoldingController}.
+ * 0020). Close/snapshot actions moved to {@code InvestmentHoldingController}.
  */
 @RestController
 @RequestMapping("/api/investment-products")
@@ -32,9 +36,26 @@ public class InvestmentProductController {
     this.productService = productService;
   }
 
+  /**
+   * Filtered, paginated list - {@code GET /api/investment-products?categoryId=&subcategoryId=&
+   * accountId=&name=&status=&page=&size=}. Defaults to 20 per page, name ascending. {@code status}
+   * defaults to {@code OPEN} (F023 spec's "Decisions": derived from the product's holdings, not
+   * stored). Returns {@link PagedModel}, matching {@code TransactionController}'s list shape
+   * (backend {@code CLAUDE.md}'s "List endpoints" convention) - a breaking shape change from F022's
+   * plain list, fine pre-1.0/local app.
+   */
   @GetMapping
-  public List<InvestmentProductResponse> list() {
-    return productService.findAll().stream().map(InvestmentProductResponse::from).toList();
+  public PagedModel<InvestmentProductResponse> list(
+      @RequestParam(required = false) UUID categoryId,
+      @RequestParam(required = false) UUID subcategoryId,
+      @RequestParam(required = false) UUID accountId,
+      @RequestParam(required = false) String name,
+      @RequestParam(required = false, defaultValue = "OPEN") InvestmentProductStatus status,
+      @PageableDefault(size = 20) Pageable pageable) {
+    InvestmentProductFilter filter =
+        new InvestmentProductFilter(categoryId, subcategoryId, accountId, name, status);
+    Page<InvestmentProduct> page = productService.findAll(filter, pageable);
+    return new PagedModel<>(page.map(this::toResponse));
   }
 
   @PostMapping
@@ -78,6 +99,6 @@ public class InvestmentProductController {
   }
 
   private InvestmentProductResponse toResponse(InvestmentProduct product) {
-    return InvestmentProductResponse.from(product);
+    return InvestmentProductResponse.from(product, productService.isClosed(product.getId()));
   }
 }
