@@ -29,7 +29,7 @@ describe('ResponsiveFilterBar', () => {
   it('offers Clear inline only while a filter is active', async () => {
     setViewportWidth(1280)
     const onClear = vi.fn()
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const { rerender } = renderBar({ activeCount: 0, onClear })
     expect(screen.queryByRole('button', { name: 'Clear filters' })).not.toBeInTheDocument()
 
@@ -60,7 +60,7 @@ describe('ResponsiveFilterBar', () => {
 
   it('opens a full-screen sheet with the controls, and Done closes it', async () => {
     setViewportWidth(390)
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderBar({ activeCount: 0 })
 
     await user.click(screen.getByRole('button', { name: 'Filters' }))
@@ -75,7 +75,7 @@ describe('ResponsiveFilterBar', () => {
   it('Clear in the sheet calls onClear and is disabled when nothing is active', async () => {
     setViewportWidth(390)
     const onClear = vi.fn()
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const { rerender } = renderBar({ activeCount: 0, onClear })
 
     await user.click(screen.getByRole('button', { name: 'Filters' }))

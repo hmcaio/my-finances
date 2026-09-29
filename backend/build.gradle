@@ -93,7 +93,7 @@ tasks.withType(Test).configureEach {
     systemProperty 'logging.file.name', ''
     // Pinned non-UTC zone (CI runs in UTC, dev machines don't), so a UTC-vs-local bug fails here
     // too instead of only on someone's laptop in the evening (issue #73). A JVM arg, not a system
-    // property, so it applies before anything caches the default zone. Frontend: src/test/globalSetup.ts.
+    // property, so it applies before anything caches the default zone. Frontend: `test.env.TZ` in vite.config.ts.
     jvmArgs '-Duser.timezone=America/Sao_Paulo'
 }
 

@@ -54,7 +54,7 @@ describe('RecurringTemplatesPage', () => {
 
   it('never offers an investment account in the create form account dropdown', async () => {
     server.use(accountsWithInvestmentHandler)
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<RecurringTemplatesPage />)
     await findRow(seedRentRecurringTemplate.description, templatesTable())
     const dialog = await openAddDialog(user)
@@ -69,7 +69,7 @@ describe('RecurringTemplatesPage', () => {
   })
 
   it('adds a new recurring template', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<RecurringTemplatesPage />)
     await findRow(seedRentRecurringTemplate.description, templatesTable())
     const dialog = await openAddDialog(user)
@@ -92,7 +92,7 @@ describe('RecurringTemplatesPage', () => {
   })
 
   it('edits a template amount and day of month inline', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<RecurringTemplatesPage />)
     const row = await findRow(seedRentRecurringTemplate.description, templatesTable())
 
@@ -116,7 +116,7 @@ describe('RecurringTemplatesPage', () => {
         return HttpResponse.json([seedRentPendingOccurrence])
       }),
     )
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<RecurringTemplatesPage />)
     await findRow(seedRentRecurringTemplate.description, templatesTable())
     await waitFor(() => expect(pendingCallCount).toBe(1))
@@ -150,7 +150,7 @@ describe('RecurringTemplatesPage', () => {
         return HttpResponse.json([{ ...seedRentPendingOccurrence, amount }])
       }),
     )
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<RecurringTemplatesPage />)
     const row = await findRow(seedRentRecurringTemplate.description, templatesTable())
     expect(await pendingWidgetTable().findByText('1500.00')).toBeInTheDocument()
@@ -165,7 +165,7 @@ describe('RecurringTemplatesPage', () => {
   })
 
   it('stops an active template', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<RecurringTemplatesPage />)
     const row = await findRow(seedRentRecurringTemplate.description, templatesTable())
 
@@ -259,7 +259,7 @@ describe('RecurringTemplatesPage responsive layout (F021)', () => {
     })
 
     it('Add opens a full-screen dialog', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithQueryClient(<RecurringTemplatesPage />)
       await findCard(seedRentRecurringTemplate.description)
 
@@ -269,7 +269,7 @@ describe('RecurringTemplatesPage responsive layout (F021)', () => {
     })
 
     it('Edit opens a full-screen dialog with the amount and day of month', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithQueryClient(<RecurringTemplatesPage />)
       const card = await findCard(seedRentRecurringTemplate.description)
 
@@ -293,7 +293,7 @@ describe('RecurringTemplatesPage responsive layout (F021)', () => {
     beforeEach(() => setViewportWidth(VIEWPORT.tablet))
 
     it('keeps the table without the Category column, reachable through the row expander', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithQueryClient(<RecurringTemplatesPage />)
 
       const row = await findRow(seedRentRecurringTemplate.description, templatesTable())
@@ -306,7 +306,7 @@ describe('RecurringTemplatesPage responsive layout (F021)', () => {
     })
 
     it('still edits amount/day inline in the row, with no edit dialog', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithQueryClient(<RecurringTemplatesPage />)
       const row = await findRow(seedRentRecurringTemplate.description, templatesTable())
 

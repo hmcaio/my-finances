@@ -26,8 +26,7 @@ describe('App', () => {
 
   it('renders the nav on the dashboard and navigates to another page on a link click', async () => {
     stubMatchMedia()
-    // The default `GET /api/health` handler already answers UP - no override needed.
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<App />)
 
     expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
@@ -42,7 +41,7 @@ describe('App', () => {
 
   it('routes the Export nav link to the data export page', async () => {
     stubMatchMedia()
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<App />)
     await screen.findByRole('heading', { name: 'Dashboard' })
 
@@ -82,7 +81,7 @@ describe('App', () => {
           return new HttpResponse(null, { status: 204 })
         }),
       )
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithQueryClient(<App />)
 
       const row = await findRow(only.name)
@@ -102,7 +101,7 @@ describe('App', () => {
           created = true
         }),
       )
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithQueryClient(<App />)
 
       await screen.findByRole('heading', { name: /welcome/i })
@@ -119,7 +118,7 @@ describe('App', () => {
       server.use(
         http.get('/api/accounts', () => new HttpResponse(null, { status: 500 }), { once: true }),
       )
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithQueryClient(<App />)
 
       expect(await screen.findByText(/Could not load data/)).toBeInTheDocument()

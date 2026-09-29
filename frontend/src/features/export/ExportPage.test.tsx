@@ -35,7 +35,7 @@ describe('ExportPage', () => {
         })
       }),
     )
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<ExportPage />)
 
     await user.click(screen.getByRole('button', { name: 'Download' }))
@@ -55,7 +55,7 @@ describe('ExportPage', () => {
         })
       }),
     )
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<ExportPage />)
     const account = seedAccounts[0]
     const category = seedCategories[0]
@@ -77,7 +77,7 @@ describe('ExportPage', () => {
   })
 
   it('rejects a reversed date range without calling the backend', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<ExportPage />)
 
     await user.type(screen.getByLabelText('From'), '2026-03-01')
@@ -90,7 +90,7 @@ describe('ExportPage', () => {
 
   it('shows the error when the backend refuses', async () => {
     server.use(exportBadRangeHandler)
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<ExportPage />)
 
     await user.click(screen.getByRole('button', { name: 'Download' }))
@@ -101,7 +101,7 @@ describe('ExportPage', () => {
   })
 
   it('clears the filters', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<ExportPage />)
     await user.type(screen.getByLabelText('From'), '2026-01-01')
 
@@ -116,7 +116,7 @@ describe('ExportPage responsive layout (F021)', () => {
 
   it('collapses the filters behind a button with an active-count badge on mobile', async () => {
     setViewportWidth(VIEWPORT.mobile)
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<ExportPage />)
     await screen.findByRole('button', { name: 'Download' })
     expect(screen.queryByLabelText('From')).not.toBeInTheDocument()

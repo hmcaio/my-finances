@@ -67,7 +67,7 @@ describe('AccountsPage', () => {
   })
 
   it('shows closed accounts once the toggle is switched on', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderPage()
     const openAccount = seedAccounts.find((a) => !a.closed)!
     const closedAccount = seedAccounts.find((a) => a.closed)!
@@ -79,7 +79,7 @@ describe('AccountsPage', () => {
   })
 
   it('adds a new account with the create form', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderPage()
     await screen.findByText(seedAccounts.find((a) => !a.closed)!.name)
     await openAddDialog(user)
@@ -111,7 +111,7 @@ describe('AccountsPage', () => {
   })
 
   it('preselects "No institution" in the add form and sends its id', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const sent = captureCreateBody()
     renderPage()
     await screen.findByText(seedAccounts.find((a) => !a.closed)!.name)
@@ -136,7 +136,7 @@ describe('AccountsPage', () => {
   })
 
   it('adds an account at the institution picked in the add form', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const sent = captureCreateBody()
     renderPage()
     await openAddDialog(user)
@@ -152,7 +152,7 @@ describe('AccountsPage', () => {
   })
 
   it('creates an institution inline from the add form and assigns it to the new account', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const sent = captureCreateBody()
     renderPage()
     await openAddDialog(user)
@@ -173,7 +173,7 @@ describe('AccountsPage', () => {
   })
 
   it('edits an account name and institution inline', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderPage()
     const openAccount = seedAccounts.find((a) => !a.closed)!
     await screen.findByText(openAccount.name)
@@ -195,7 +195,7 @@ describe('AccountsPage', () => {
   })
 
   it('does not offer a type/opening-balance input when editing - only name/institution', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderPage()
     const openAccount = seedAccounts.find((a) => !a.closed)!
     await screen.findByText(openAccount.name)
@@ -210,7 +210,7 @@ describe('AccountsPage', () => {
   })
 
   it('closes an account after confirming the dialog', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderPage()
     const openAccount = seedAccounts.find((a) => !a.closed)!
     await screen.findByText(openAccount.name)
@@ -225,7 +225,7 @@ describe('AccountsPage', () => {
   })
 
   it('cancelling the close dialog leaves the account untouched', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderPage()
     const openAccount = seedAccounts.find((a) => !a.closed)!
     await screen.findByText(openAccount.name)
@@ -241,7 +241,7 @@ describe('AccountsPage', () => {
 
   it('surfaces an error message when closing fails', async () => {
     server.use(accountAlreadyClosedConflictHandler)
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderPage()
     const openAccount = seedAccounts.find((a) => !a.closed)!
     await screen.findByText(openAccount.name)
@@ -256,7 +256,7 @@ describe('AccountsPage', () => {
   })
 
   it('deletes an account without history after confirming, warning about net worth', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderPage()
     const closedAccount = seedAccounts.find((a) => a.closed)!
     await screen.findByText(seedAccounts.find((a) => !a.closed)!.name)
@@ -272,7 +272,7 @@ describe('AccountsPage', () => {
   })
 
   it('cancelling the delete dialog leaves the account untouched', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderPage()
     const openAccount = seedAccounts.find((a) => !a.closed)!
     await screen.findByText(openAccount.name)
@@ -287,7 +287,7 @@ describe('AccountsPage', () => {
   })
 
   it('tells the user to close the account when it has history', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderPage()
     const openAccount = seedAccounts.find((a) => !a.closed)!
     await screen.findByText(openAccount.name)
@@ -301,7 +301,7 @@ describe('AccountsPage', () => {
   })
 
   it('shows the opening balance fields for every type except Investment', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderPage()
     await screen.findByText(seedAccounts.find((a) => !a.closed)!.name)
     await openAddDialog(user)
@@ -322,7 +322,7 @@ describe('AccountsPage', () => {
   })
 
   it('creates an investment account without opening balance or date', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const sent = captureCreateBody()
     renderPage()
     await screen.findByText(seedAccounts.find((a) => !a.closed)!.name)
@@ -344,7 +344,7 @@ describe('AccountsPage', () => {
   })
 
   it('still sends the opening balance and date for a non-investment account', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const sent = captureCreateBody()
     renderPage()
     await screen.findByText(seedAccounts.find((a) => !a.closed)!.name)
@@ -430,7 +430,7 @@ describe('AccountsPage responsive layout (F021)', () => {
     })
 
     it('Add opens a full-screen dialog that creates an account', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderPage()
       await findCard(target.name)
 
@@ -447,7 +447,7 @@ describe('AccountsPage responsive layout (F021)', () => {
 
     it('shows a create error inside the open dialog', async () => {
       server.use(accountCreateConflictHandler)
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderPage()
       await findCard(target.name)
 
@@ -461,7 +461,7 @@ describe('AccountsPage responsive layout (F021)', () => {
     })
 
     it('Edit opens a full-screen dialog with the name and institution, and saves them', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderPage()
       const card = await findCard(target.name)
 
@@ -489,7 +489,7 @@ describe('AccountsPage responsive layout (F021)', () => {
     })
 
     it('does not save an empty name from the edit dialog', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderPage()
       const card = await findCard(target.name)
       await user.click(card.getByRole('button', { name: 'Edit' }))
@@ -502,7 +502,7 @@ describe('AccountsPage responsive layout (F021)', () => {
 
     it('shows an edit error inside the dialog, which stays open', async () => {
       server.use(accountEditConflictHandler)
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderPage()
       const card = await findCard(target.name)
       await user.click(card.getByRole('button', { name: 'Edit' }))
@@ -515,7 +515,7 @@ describe('AccountsPage responsive layout (F021)', () => {
     })
 
     it('Cancel closes the edit dialog without saving', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderPage()
       const card = await findCard(target.name)
       await user.click(card.getByRole('button', { name: 'Edit' }))
@@ -528,7 +528,7 @@ describe('AccountsPage responsive layout (F021)', () => {
     })
 
     it('keeps the delete confirmation on the card', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderPage()
       const card = await findCard(target.name)
 
@@ -542,7 +542,7 @@ describe('AccountsPage responsive layout (F021)', () => {
     beforeEach(() => setViewportWidth(VIEWPORT.tablet))
 
     it('keeps the table without the Type column, reachable through the row expander', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderPage()
 
       const row = await findRow(target.name)
@@ -555,7 +555,7 @@ describe('AccountsPage responsive layout (F021)', () => {
     })
 
     it('still renames inline in the row, with no edit dialog', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderPage()
       const row = await findRow(target.name)
 
@@ -566,7 +566,7 @@ describe('AccountsPage responsive layout (F021)', () => {
     })
 
     it('Add opens a regular (not full-screen) dialog', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderPage()
       await findRow(target.name)
 

@@ -60,7 +60,7 @@ export function expectLoadStates({
 
   it('shows a "Could not load data" notice on failure, and Retry reloads successfully', async () => {
     server.use(http.get(url, () => new HttpResponse(null, { status: 500 }), { once: true }))
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderPage()
 
     expect((await screen.findAllByText(/Could not load data/)).length).toBeGreaterThan(0)

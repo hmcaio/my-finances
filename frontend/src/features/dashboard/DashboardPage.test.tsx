@@ -45,7 +45,7 @@ describe('DashboardPage', () => {
   })
 
   it('refreshes the transaction-dependent widgets after confirming a pending occurrence', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     let spendRequests = 0
     server.use(
       http.get('/api/transactions/spend-by-category', () => {
@@ -72,7 +72,7 @@ describe('DashboardPage', () => {
   })
 
   it('removes a dismissed occurrence without refetching the other widgets', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     let spendRequests = 0
     server.use(
       http.get('/api/transactions/spend-by-category', () => {

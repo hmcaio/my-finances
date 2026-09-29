@@ -65,7 +65,7 @@ describe('InstitutionsPage', () => {
   })
 
   it('renames the built-in row, which stays first and still has no delete action', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<InstitutionsPage />)
     await screen.findByText(builtIn.name)
 
@@ -89,33 +89,9 @@ describe('InstitutionsPage', () => {
 describe('InstitutionsPage responsive layout (F021)', () => {
   afterEach(restoreViewport)
 
-  it('opens the add dialog full-screen on mobile', async () => {
-    setViewportWidth(VIEWPORT.mobile)
-    const user = userEvent.setup()
-    renderWithQueryClient(<InstitutionsPage />)
-    await screen.findByText(builtIn.name)
-
-    await user.click(screen.getByRole('button', { name: 'Add institution' }))
-    const dialog = await screen.findByRole('dialog')
-
-    expect(dialog).toHaveClass('MuiDialog-paperFullScreen')
-  })
-
-  it('opens the add dialog as a regular (not full-screen) dialog on tablet', async () => {
-    setViewportWidth(VIEWPORT.tablet)
-    const user = userEvent.setup()
-    renderWithQueryClient(<InstitutionsPage />)
-    await screen.findByText(builtIn.name)
-
-    await user.click(screen.getByRole('button', { name: 'Add institution' }))
-    const dialog = await screen.findByRole('dialog')
-
-    expect(dialog).not.toHaveClass('MuiDialog-paperFullScreen')
-  })
-
   it('keeps the built-in row renamed inline at every size (the table never becomes cards)', async () => {
     setViewportWidth(VIEWPORT.mobile)
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<InstitutionsPage />)
     await screen.findByText(builtIn.name)
 

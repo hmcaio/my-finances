@@ -36,7 +36,7 @@ describe('OnboardingPage', () => {
       }),
     )
     const onCompleted = vi.fn()
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<OnboardingPage onCompleted={onCompleted} />)
 
     await screen.findByRole('combobox', { name: 'Institution' })
@@ -57,7 +57,7 @@ describe('OnboardingPage', () => {
   it('shows the error and stays on the form when creation fails', async () => {
     server.use(accountCreateConflictHandler)
     const onCompleted = vi.fn()
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<OnboardingPage onCompleted={onCompleted} />)
 
     await screen.findByRole('combobox', { name: 'Institution' })

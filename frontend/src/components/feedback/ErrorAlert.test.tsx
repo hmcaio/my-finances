@@ -11,7 +11,7 @@ describe('ErrorAlert', () => {
   })
 
   it('renders the message and calls onDismiss when closed', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onDismiss = vi.fn()
     render(<ErrorAlert message="Something broke" onDismiss={onDismiss} />)
 

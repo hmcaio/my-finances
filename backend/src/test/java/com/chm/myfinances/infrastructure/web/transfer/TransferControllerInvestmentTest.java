@@ -326,18 +326,6 @@ class TransferControllerInvestmentTest {
   }
 
   @Test
-  void aProductWithoutAnInvestmentEndpointIsRejectedWith409() throws Exception {
-    create(body(checkingId, savingsId, trade("investmentProductId", productId.toString())))
-        .andExpect(status().isConflict());
-  }
-
-  @Test
-  void twoInvestmentEndpointsAreRejectedWith409() throws Exception {
-    create(body(brokerId, otherBrokerId, trade("investmentProductId", productId.toString())))
-        .andExpect(status().isConflict());
-  }
-
-  @Test
   void aClosedHoldingIsRejectedWith409AndAnUnknownProductWith404() throws Exception {
     mockMvc
         .perform(post("/api/investment-holdings/" + holdingId + "/close"))

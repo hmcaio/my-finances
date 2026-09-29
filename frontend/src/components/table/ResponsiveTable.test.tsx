@@ -105,7 +105,7 @@ describe('ResponsiveTable', () => {
 
   describe('expandable details on tablet', () => {
     it('reveals the hidden columns of one row as label/value pairs and collapses again', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       setViewportWidth(VIEWPORT.tablet)
       renderTable()
 
@@ -138,7 +138,7 @@ describe('ResponsiveTable', () => {
     })
 
     it('keeps rows expanded independently', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       setViewportWidth(VIEWPORT.tablet)
       renderTable()
 
@@ -169,7 +169,7 @@ describe('ResponsiveTable', () => {
     })
 
     it('spans the whole row with the details cell', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       setViewportWidth(VIEWPORT.tablet)
       renderTable()
 
@@ -259,7 +259,7 @@ describe('ResponsiveTable', () => {
       setViewportWidth(w)
       const reload = vi.fn()
       const onRetry = vi.fn()
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderTable({
         rows: undefined,
         state: { loading: false, loadError: 'boom', reload },
@@ -276,7 +276,7 @@ describe('ResponsiveTable', () => {
   it('falls back to state.reload when no onRetry is given', async () => {
     setViewportWidth(VIEWPORT.mobile)
     const reload = vi.fn()
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderTable({ rows: undefined, state: { loading: false, loadError: 'boom', reload } })
 
     await user.click(screen.getByRole('button', { name: 'Retry' }))
@@ -346,7 +346,7 @@ describe('shared row-edit fields (pattern example)', () => {
 
   it('desktop: the field renders inline in the table row', async () => {
     setViewportWidth(VIEWPORT.desktop)
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<EditableTable mobile={false} />)
 
     await user.click(screen.getByRole('button', { name: 'Edit Checking' }))
@@ -355,7 +355,7 @@ describe('shared row-edit fields (pattern example)', () => {
 
   it('mobile: the same field renders in a full-screen dialog', async () => {
     setViewportWidth(VIEWPORT.mobile)
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<EditableTable mobile />)
 
     await user.click(screen.getByRole('button', { name: 'Edit Checking' }))

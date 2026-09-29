@@ -35,7 +35,7 @@ describe('InvestmentsPage', () => {
   })
 
   it('switches to the Products tab and shows the global product list', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithRouter(<InvestmentsPage />)
     await screen.findByRole('img', { name: 'Allocation by category' })
 

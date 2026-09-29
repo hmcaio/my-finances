@@ -28,7 +28,7 @@ describe('PaginationControls', () => {
   })
 
   it('calls onPageChange with a functional updater on Previous/Next', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onPageChange = vi.fn()
     render(
       <PaginationControls pageInfo={{ number: 1, totalPages: 3 }} onPageChange={onPageChange} />,
@@ -47,7 +47,7 @@ describe('PaginationControls', () => {
 
     it('keeps Previous, Next and the page label, and pages through the same updater', async () => {
       setViewportWidth(390)
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       const onPageChange = vi.fn()
       render(
         <PaginationControls pageInfo={{ number: 1, totalPages: 3 }} onPageChange={onPageChange} />,

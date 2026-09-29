@@ -21,15 +21,13 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
  * Shared harness for "testing a migration against pre-existing data" (backend {@code CLAUDE.md}):
  * run Flyway by hand into a throwaway schema of the shared Testcontainers Postgres, insert rows
  * that predate the migration under test, migrate one version further, then assert. Extracted from
- * four near-identical classes (issue #31, B8): {@code BuiltInCategoriesMigrationTest}, {@code
- * InstitutionBackfillMigrationTest}, {@code InvestmentTaxonomyMigrationTest}, {@code
- * PendingOccurrenceCycleUniquenessMigrationTest}.
+ * near-identical classes (issue #31, B8); every migration test now extends it.
  *
  * <p>Each subclass still declares its own {@code @SpringBootTest @Import(
  * TestcontainersConfiguration.class)} (deliberately not the {@link DatabaseIntegrationTest}
  * meta-annotation: a migration test must not roll back like an ordinary DB test — it drops its
  * whole throwaway schema instead) and passes its own distinct schema name to the constructor here,
- * so the four classes never collide when Gradle runs them against the same container.
+ * so the classes never collide when Gradle runs them against the same container.
  */
 public abstract class AbstractMigrationTest {
 

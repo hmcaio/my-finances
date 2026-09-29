@@ -89,7 +89,7 @@ describe('InvestmentProductsSection', () => {
   })
 
   it('follows the chosen category in the sub-category select and resets it on change', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderSection()
     await screen.findByText('Bitcoin')
     const dialog = within(await openAddDialog(user))
@@ -118,7 +118,7 @@ describe('InvestmentProductsSection', () => {
   })
 
   it('adds a product with a sub-category, creating its first holding in this account', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const sent = captureBody('post', '/api/investment-products')
     renderSection()
     await screen.findByText('Bitcoin')
@@ -145,7 +145,7 @@ describe('InvestmentProductsSection', () => {
   })
 
   it('saves a category-only product (Crypto) without a sub-category', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const sent = captureBody('post', '/api/investment-products')
     renderSection()
     await screen.findByText('Bitcoin')
@@ -168,7 +168,7 @@ describe('InvestmentProductsSection', () => {
   })
 
   it('keeps Add disabled until a name and a category are given', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderSection()
     await screen.findByText('Bitcoin')
     const dialog = within(await openAddDialog(user))
@@ -183,7 +183,7 @@ describe('InvestmentProductsSection', () => {
 
   it('surfaces the save-conflict message when creating a product is refused', async () => {
     server.use(investmentProductCreateConflictHandler)
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderSection()
     await screen.findByText('Bitcoin')
     const dialog = within(await openAddDialog(user))
@@ -258,7 +258,7 @@ describe('InvestmentProductsSection responsive layout (F021)', () => {
     })
 
     it('Add opens a full-screen dialog', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderSection()
       await findCard('Tesouro Selic 2029')
 
@@ -272,7 +272,7 @@ describe('InvestmentProductsSection responsive layout (F021)', () => {
     beforeEach(() => setViewportWidth(VIEWPORT.tablet))
 
     it('keeps the table without the Sub-category column, reachable through the row expander', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderSection()
 
       const row = await findRow('Tesouro Selic 2029')

@@ -19,7 +19,7 @@ export const STALE_TIME = {
   default: 30_000,
   /** Reference data: categories, payment methods, institutions, investment taxonomy. */
   reference: 5 * MINUTE,
-  /** Reads with a side effect or time dependence (pending occurrences, health check). */
+  /** Reads with a side effect or time dependence (pending occurrences). */
   none: 0,
 } as const
 

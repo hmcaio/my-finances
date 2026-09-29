@@ -8,6 +8,7 @@ import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
+import com.chm.myfinances.testsupport.TestClocks;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
@@ -17,9 +18,7 @@ import com.chm.myfinances.testsupport.mothers.AccountMother;
 import com.chm.myfinances.testsupport.mothers.InvestmentHoldingMother;
 import com.chm.myfinances.testsupport.mothers.TransactionMother;
 import java.math.BigDecimal;
-import java.time.Clock;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -50,7 +49,7 @@ class NetWorthQueryPointTest {
           transactionRepository,
           transferRepository,
           snapshotRepository,
-          Clock.fixed(TODAY.atStartOfDay().toInstant(ZoneOffset.UTC), ZoneOffset.UTC));
+          TestClocks.fixedAtStartOf(TODAY));
 
   private Account save(AccountMother mother) {
     return accountRepository.save(mother.build());
