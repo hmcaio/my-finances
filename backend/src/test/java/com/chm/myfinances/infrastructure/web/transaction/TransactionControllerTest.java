@@ -10,11 +10,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
+import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
+import com.chm.myfinances.domain.vehicle.Vehicle;
+import com.chm.myfinances.domain.vehicle.VehicleRepository;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import com.chm.myfinances.testsupport.mothers.TestInstitutions;
 import com.chm.myfinances.testsupport.web.JsonSupport;
@@ -23,6 +26,7 @@ import com.chm.myfinances.testsupport.web.WebIntegrationTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,6 +50,7 @@ class TransactionControllerTest {
   @Autowired private CategoryRepository categoryRepository;
   @Autowired private AccountRepository accountRepository;
   @Autowired private PaymentMethodRepository paymentMethodRepository;
+  @Autowired private VehicleRepository vehicleRepository;
 
   private final ObjectMapper objectMapper = JsonSupport.MAPPER;
 
@@ -53,11 +58,13 @@ class TransactionControllerTest {
 
   private UUID expenseCategoryId;
   private UUID incomeCategoryId;
+  private UUID fuelCategoryId;
   private UUID accountId;
   private UUID otherAccountId;
   private UUID closedAccountId;
   private UUID paymentMethodId;
   private UUID otherPaymentMethodId;
+  private UUID vehicleId;
 
   @BeforeEach
   void setUp() {
@@ -67,6 +74,14 @@ class TransactionControllerTest {
         TestFixtures.category(categoryRepository, "Groceries Test", CategoryType.EXPENSE).getId();
     incomeCategoryId =
         TestFixtures.category(categoryRepository, "Salary Test", CategoryType.INCOME).getId();
+    // V18 seeds exactly one fuel category (adopt-or-insert "Fuel") - never assume none exists.
+    fuelCategoryId =
+        categoryRepository.findAll().stream()
+            .filter(Category::isFuelCategory)
+            .findFirst()
+            .orElseThrow()
+            .getId();
+    vehicleId = vehicleRepository.save(Vehicle.create(UUID.randomUUID(), "Civic Test")).getId();
     accountId =
         TestFixtures.checkingAccount(accountRepository, institutionRepository, "Checking").getId();
     otherAccountId =
@@ -505,5 +520,220 @@ class TransactionControllerTest {
     mockMvc
         .perform(get("/api/transactions/spend-by-category").param("month", "nope"))
         .andExpect(status().isBadRequest());
+  }
+
+  // F024 (ADR 0021): fuel fields on create/edit, and the computed ratios in the response.
+
+  private Map<String, Object> fuelFields(UUID vehicleId) {
+    Map<String, Object> fields = new HashMap<>();
+    fields.put("vehicleId", vehicleId.toString());
+    fields.put("fuelType", "GASOLINA");
+    fields.put("liters", "40.500");
+    fields.put("pricePerLiter", "5.799");
+    return fields;
+  }
+
+  @Test
+  void createWithFuelCategoryAndFuelFieldsReturnsFuelFieldsAndNullRatiosOnFirstFill()
+      throws Exception {
+    Map<String, Object> body = new HashMap<>();
+    body.put("date", "2026-03-15");
+    body.put("amount", "234.85");
+    body.put("categoryId", fuelCategoryId.toString());
+    body.put("accountId", accountId.toString());
+    body.put("paymentMethodId", paymentMethodId.toString());
+    body.put("description", "Fill up");
+    body.putAll(fuelFields(vehicleId));
+
+    mockMvc
+        .perform(
+            post("/api/transactions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.vehicleId").value(vehicleId.toString()))
+        .andExpect(jsonPath("$.fuelType").value("GASOLINA"))
+        .andExpect(jsonPath("$.liters").value(40.5))
+        .andExpect(jsonPath("$.pricePerLiter").value(5.799))
+        .andExpect(jsonPath("$.kmSinceLastFill").doesNotExist())
+        .andExpect(jsonPath("$.kmPerLiter").doesNotExist())
+        .andExpect(jsonPath("$.amountPerKm").doesNotExist())
+        .andExpect(jsonPath("$.litersPerKm").doesNotExist());
+  }
+
+  @Test
+  void createWithKmSinceLastFillReturnsComputedRatios() throws Exception {
+    Map<String, Object> body = new HashMap<>();
+    body.put("date", "2026-03-15");
+    body.put("amount", "200.00");
+    body.put("categoryId", fuelCategoryId.toString());
+    body.put("accountId", accountId.toString());
+    body.put("paymentMethodId", paymentMethodId.toString());
+    body.put("description", "Fill up");
+    body.putAll(fuelFields(vehicleId));
+    body.put("liters", "40");
+    body.put("kmSinceLastFill", "400.0");
+
+    mockMvc
+        .perform(
+            post("/api/transactions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.kmPerLiter").value(10.0))
+        .andExpect(jsonPath("$.amountPerKm").value(0.5))
+        .andExpect(jsonPath("$.litersPerKm").value(0.1));
+  }
+
+  @Test
+  void createRejectsFuelCategoryWithoutFuelFieldsWith400() throws Exception {
+    String body =
+        createTransactionBody("2026-03-15", "10.00", fuelCategoryId, accountId, "No fuel fields");
+
+    mockMvc
+        .perform(post("/api/transactions").contentType(MediaType.APPLICATION_JSON).content(body))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void createRejectsNonFuelCategoryWithFuelFieldsWith400() throws Exception {
+    Map<String, Object> body = new HashMap<>();
+    body.put("date", "2026-03-15");
+    body.put("amount", "10.00");
+    body.put("categoryId", expenseCategoryId.toString());
+    body.put("accountId", accountId.toString());
+    body.put("paymentMethodId", paymentMethodId.toString());
+    body.put("description", "Not fuel category");
+    body.putAll(fuelFields(vehicleId));
+
+    mockMvc
+        .perform(
+            post("/api/transactions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void createRejectsPartialFuelFieldsWith400() throws Exception {
+    Map<String, Object> body = new HashMap<>();
+    body.put("date", "2026-03-15");
+    body.put("amount", "10.00");
+    body.put("categoryId", fuelCategoryId.toString());
+    body.put("accountId", accountId.toString());
+    body.put("paymentMethodId", paymentMethodId.toString());
+    body.put("description", "Partial fuel fields");
+    body.put("vehicleId", vehicleId.toString());
+    // fuelType/liters/pricePerLiter deliberately missing.
+
+    mockMvc
+        .perform(
+            post("/api/transactions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void createRejectsAnUnknownVehicleIdWith404() throws Exception {
+    Map<String, Object> body = new HashMap<>();
+    body.put("date", "2026-03-15");
+    body.put("amount", "10.00");
+    body.put("categoryId", fuelCategoryId.toString());
+    body.put("accountId", accountId.toString());
+    body.put("paymentMethodId", paymentMethodId.toString());
+    body.put("description", "Unknown vehicle");
+    body.putAll(fuelFields(UUID.randomUUID()));
+
+    mockMvc
+        .perform(
+            post("/api/transactions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void editRejectsMovingAFuelTransactionsCategoryAwayWithoutClearingFuelFieldsWith400()
+      throws Exception {
+    Map<String, Object> createBody = new HashMap<>();
+    createBody.put("date", "2026-03-15");
+    createBody.put("amount", "200.00");
+    createBody.put("categoryId", fuelCategoryId.toString());
+    createBody.put("accountId", accountId.toString());
+    createBody.put("paymentMethodId", paymentMethodId.toString());
+    createBody.put("description", "Fill up");
+    createBody.putAll(fuelFields(vehicleId));
+    MvcResult createResult =
+        mockMvc
+            .perform(
+                post("/api/transactions")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(createBody)))
+            .andExpect(status().isCreated())
+            .andReturn();
+    String id = JsonSupport.idOf(createResult);
+
+    Map<String, Object> patchBody = new HashMap<>();
+    patchBody.put("date", "2026-03-15");
+    patchBody.put("amount", "200.00");
+    patchBody.put("categoryId", expenseCategoryId.toString());
+    patchBody.put("accountId", accountId.toString());
+    patchBody.put("paymentMethodId", paymentMethodId.toString());
+    patchBody.put("description", "Moved away without clearing fuel fields");
+    patchBody.putAll(fuelFields(vehicleId));
+
+    mockMvc
+        .perform(
+            patch("/api/transactions/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(patchBody)))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void editMovingAFuelTransactionsCategoryAwayAfterClearingFuelFieldsSucceeds() throws Exception {
+    Map<String, Object> createBody = new HashMap<>();
+    createBody.put("date", "2026-03-15");
+    createBody.put("amount", "200.00");
+    createBody.put("categoryId", fuelCategoryId.toString());
+    createBody.put("accountId", accountId.toString());
+    createBody.put("paymentMethodId", paymentMethodId.toString());
+    createBody.put("description", "Fill up");
+    createBody.putAll(fuelFields(vehicleId));
+    MvcResult createResult =
+        mockMvc
+            .perform(
+                post("/api/transactions")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(createBody)))
+            .andExpect(status().isCreated())
+            .andReturn();
+    String id = JsonSupport.idOf(createResult);
+
+    String patchBody =
+        objectMapper.writeValueAsString(
+            Map.of(
+                "date",
+                "2026-03-15",
+                "amount",
+                "200.00",
+                "categoryId",
+                expenseCategoryId.toString(),
+                "accountId",
+                accountId.toString(),
+                "paymentMethodId",
+                paymentMethodId.toString(),
+                "description",
+                "Fuel fields cleared"));
+
+    mockMvc
+        .perform(
+            patch("/api/transactions/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(patchBody))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.categoryId").value(expenseCategoryId.toString()))
+        .andExpect(jsonPath("$.vehicleId").doesNotExist());
   }
 }
