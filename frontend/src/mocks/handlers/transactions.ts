@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw'
 import type {
   CategorySpend,
+  FuelType,
   Transaction,
   TransactionType,
 } from '../../api/transactions/transactions'
@@ -13,6 +14,20 @@ import { createStore } from '../store'
  * expense, `cat-2` income - see `categories.ts`) so filter tests have something to discriminate
  * on. Exported so tests can assert against it directly (F015 spec's F002 backfill pattern).
  */
+/** A transaction with no fuel details (every field F024 added, all `null`) - the shape every
+ * non-fuel seed/created row shares. */
+const NO_FUEL_DETAILS = {
+  vehicleId: null,
+  fuelType: null,
+  liters: null,
+  pricePerLiter: null,
+  kmSinceLastFill: null,
+  odometer: null,
+  kmPerLiter: null,
+  amountPerKm: null,
+  litersPerKm: null,
+} as const
+
 export const seedTransactions: Transaction[] = [
   {
     id: 'txn-1',
@@ -25,6 +40,7 @@ export const seedTransactions: Transaction[] = [
     recurringTemplateVersionId: null,
     description: 'Weekly groceries',
     additionalNotes: null,
+    ...NO_FUEL_DETAILS,
   },
   {
     id: 'txn-2',
@@ -37,6 +53,7 @@ export const seedTransactions: Transaction[] = [
     recurringTemplateVersionId: null,
     description: 'Monthly salary deposit',
     additionalNotes: 'Direct deposit from employer',
+    ...NO_FUEL_DETAILS,
   },
 ]
 
@@ -61,10 +78,37 @@ interface TransactionRequestBody {
   paymentMethodId: string
   description: string
   additionalNotes?: string
+  vehicleId?: string
+  fuelType?: FuelType
+  liters?: number
+  pricePerLiter?: number
+  kmSinceLastFill?: number
+  odometer?: number
 }
 
 function typeForCategory(categoryId: string): TransactionType {
   return seedCategories.find((category) => category.id === categoryId)?.type ?? 'EXPENSE'
+}
+
+/**
+ * The fuel fields + computed ratios for a request body (F024): mirrors `FuelRatiosQuery` - every
+ * ratio `null` unless `kmSinceLastFill` is given, everything `null` when there's no `vehicleId`.
+ */
+function fuelFieldsFrom(body: TransactionRequestBody) {
+  if (!body.vehicleId) return NO_FUEL_DETAILS
+  const km = body.kmSinceLastFill
+  const liters = body.liters ?? 0
+  return {
+    vehicleId: body.vehicleId,
+    fuelType: body.fuelType ?? null,
+    liters: body.liters ?? null,
+    pricePerLiter: body.pricePerLiter ?? null,
+    kmSinceLastFill: km ?? null,
+    odometer: body.odometer ?? null,
+    kmPerLiter: km ? km / liters : null,
+    amountPerKm: km ? body.amount / km : null,
+    litersPerKm: km ? liters / km : null,
+  }
 }
 
 const transactions = createStore(seedTransactions)
@@ -132,6 +176,7 @@ export const transactionsHandlers = [
       recurringTemplateVersionId: null,
       description: body.description,
       additionalNotes: body.additionalNotes ?? null,
+      ...fuelFieldsFrom(body),
     })
     return HttpResponse.json(created, { status: 201 })
   }),
@@ -149,6 +194,7 @@ export const transactionsHandlers = [
       recurringTemplateVersionId: null,
       description: body.description,
       additionalNotes: body.additionalNotes ?? null,
+      ...fuelFieldsFrom(body),
     }))
     return updated ? HttpResponse.json(updated) : new HttpResponse(null, { status: 404 })
   }),
@@ -156,6 +202,21 @@ export const transactionsHandlers = [
   http.delete(`${TRANSACTIONS_URL}/:id`, ({ params }) => {
     transactions.remove(params.id as string)
     return new HttpResponse(null, { status: 204 })
+  }),
+
+  // F024: GET /api/vehicles/:id/fuel-history - registered here (not `vehicles.ts`) since it
+  // returns Transaction-shaped rows filtered from this file's own store.
+  http.get('/api/vehicles/:id/fuel-history', ({ request, params }) => {
+    const url = new URL(request.url)
+    const from = url.searchParams.get('from')
+    const to = url.searchParams.get('to')
+    const rows = transactions
+      .list()
+      .filter((t) => t.vehicleId === params.id)
+      .filter((t) => !from || t.date >= from)
+      .filter((t) => !to || t.date <= to)
+      .sort((a, b) => (a.date < b.date ? -1 : 1))
+    return HttpResponse.json(rows)
   }),
 ]
 

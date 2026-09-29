@@ -7,12 +7,16 @@ export type CategoryType = 'INCOME' | 'EXPENSE'
 /**
  * A Category as returned by the API (PRD S5.1). `builtIn` marks the one fallback row per type
  * ("Other Expense" / "Other Income" by default) - it can be renamed but never deleted.
+ * `fuelCategory` (F024, ADR 0021) marks the single dedicated fuel category - a Transaction carries
+ * fuel details if and only if its category is this one; both rename and delete are blocked while
+ * it's set (independent of `builtIn`).
  */
 export interface Category {
   id: string
   name: string
   type: CategoryType
   builtIn: boolean
+  fuelCategory: boolean
 }
 
 export type CreateCategoryRequest = components['schemas']['CreateCategoryRequest']

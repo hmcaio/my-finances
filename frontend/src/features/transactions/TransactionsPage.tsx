@@ -1,4 +1,5 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import {
   Box,
   Button,
@@ -24,6 +25,7 @@ import {
   useEditTransaction,
   useTransactions,
 } from '../../api/transactions/transactionsQueries'
+import { useVehicles } from '../../api/vehicles/vehiclesQueries'
 import { defaultErrorMessage } from '../../api/core/apiError'
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
@@ -56,6 +58,8 @@ export function TransactionsPage() {
   const [page, setPage] = useState(0)
   const [filters, setFilters] = useState<TransactionFilter>({})
   const [error, setError] = useState<string | null>(null)
+  const location = useLocation()
+  const navigate = useNavigate()
 
   const categoriesQuery = useCategories()
   const categories = categoriesQuery.data
@@ -66,6 +70,8 @@ export function TransactionsPage() {
   const paymentMethodsQuery = usePaymentMethods()
   const paymentMethods = paymentMethodsQuery.data
   const paymentMethodsState = useQueryState(paymentMethodsQuery, setError)
+  const vehiclesQuery = useVehicles()
+  const vehicles = vehiclesQuery.data
   const transactionsQuery = useTransactions(filters, page, PAGE_SIZE)
   const transactions = transactionsQuery.data?.content
   const pageInfo = transactionsQuery.data
@@ -79,10 +85,17 @@ export function TransactionsPage() {
   const editMutation = useEditTransaction()
   const deleteMutation = useDeleteTransaction()
 
+  // F024: the Fuel page's "add fuel transaction" action arrives here with the fuel category
+  // pre-selected via navigation state, so the dialog opens straight into an add form for it - read
+  // once, in the initial-state lazy initializers below, rather than in an effect (setting state
+  // synchronously inside an effect triggers a cascading render, React Compiler's lint rule).
+  const initialPresetCategoryId = (location.state as { presetCategoryId?: string } | null)
+    ?.presetCategoryId
+
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [form, setForm] = useState(emptyTransactionForm)
+  const [form, setForm] = useState(() => emptyTransactionForm(initialPresetCategoryId ?? ''))
   const [saving, setSaving] = useState(false)
-  const [formDialogOpen, setFormDialogOpen] = useState(false)
+  const [formDialogOpen, setFormDialogOpen] = useState(() => Boolean(initialPresetCategoryId))
 
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -116,9 +129,9 @@ export function TransactionsPage() {
     setForm((prev) => ({ ...prev, ...patch }))
   }
 
-  function startAdd() {
+  function startAdd(presetCategoryId = '') {
     setEditingId(null)
-    setForm(emptyTransactionForm())
+    setForm(emptyTransactionForm(presetCategoryId))
     setFormDialogOpen(true)
   }
 
@@ -132,6 +145,13 @@ export function TransactionsPage() {
       paymentMethodId: transaction.paymentMethodId,
       description: transaction.description,
       additionalNotes: transaction.additionalNotes ?? '',
+      vehicleId: transaction.vehicleId ?? '',
+      fuelType: transaction.fuelType ?? '',
+      liters: transaction.liters !== null ? String(transaction.liters) : '',
+      pricePerLiter: transaction.pricePerLiter !== null ? String(transaction.pricePerLiter) : '',
+      kmSinceLastFill:
+        transaction.kmSinceLastFill !== null ? String(transaction.kmSinceLastFill) : '',
+      odometer: transaction.odometer !== null ? String(transaction.odometer) : '',
     })
     setFormDialogOpen(true)
   }
@@ -142,8 +162,22 @@ export function TransactionsPage() {
     setFormDialogOpen(false)
   }
 
+  // Clears the navigation state right after consuming it, so a later back-navigation to this page
+  // doesn't reopen the dialog. `navigate` itself (no `setState`) is a legitimate effect - only the
+  // initial React state above needs to be synchronous.
+  useEffect(() => {
+    if (initialPresetCategoryId) {
+      navigate(location.pathname, { replace: true, state: null })
+    }
+    // Runs once on mount only: the whole point is to consume the location state this page
+    // mounted with, not to react to `navigate`'s own update of it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const isFuelCategorySelected = categories?.find((c) => c.id === form.categoryId)?.fuelCategory
+
   async function handleSubmit() {
-    if (!isTransactionFormValid(form)) return
+    if (!isTransactionFormValid(form, categories)) return
     setError(null)
     setSaving(true)
     const request = {
@@ -154,6 +188,17 @@ export function TransactionsPage() {
       paymentMethodId: form.paymentMethodId,
       description: form.description.trim(),
       additionalNotes: form.additionalNotes.trim() || undefined,
+      ...(isFuelCategorySelected
+        ? {
+            vehicleId: form.vehicleId,
+            fuelType: form.fuelType as
+              'ETANOL' | 'ETANOL_ADITIVADO' | 'GASOLINA' | 'GASOLINA_ADITIVADA',
+            liters: Number(form.liters),
+            pricePerLiter: Number(form.pricePerLiter),
+            kmSinceLastFill: form.kmSinceLastFill ? Number(form.kmSinceLastFill) : undefined,
+            odometer: form.odometer ? Number(form.odometer) : undefined,
+          }
+        : {}),
     }
     try {
       if (editingId) {
@@ -265,7 +310,7 @@ export function TransactionsPage() {
   const submitButton = (
     <Button
       variant="contained"
-      disabled={saving || !isTransactionFormValid(form)}
+      disabled={saving || !isTransactionFormValid(form, categories)}
       onClick={() => void handleSubmit()}
     >
       {submitLabel}
@@ -286,7 +331,7 @@ export function TransactionsPage() {
         <Typography variant="h4" component="h1">
           Transactions
         </Typography>
-        <Button variant="contained" onClick={startAdd}>
+        <Button variant="contained" onClick={() => startAdd()}>
           Add transaction
         </Button>
       </Box>
@@ -390,6 +435,7 @@ export function TransactionsPage() {
                 categories={categories}
                 accounts={openAccounts}
                 paymentMethods={paymentMethods}
+                vehicles={vehicles}
               />
             </FormGrid>
           </Box>

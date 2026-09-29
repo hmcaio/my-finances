@@ -4,8 +4,17 @@ import type { components } from '../generated/schema'
 
 export type TransactionType = 'INCOME' | 'EXPENSE'
 
-/** A Transaction as returned by the API (PRD S5.3). `type` is derived server-side from the
- * category, never client input. */
+export type FuelType = components['schemas']['CreateTransactionRequest']['fuelType']
+
+/**
+ * A Transaction as returned by the API (PRD S5.3). `type` is derived server-side from the
+ * category, never client input.
+ *
+ * <p>The fuel fields (F024, ADR 0021) are `null` for an ordinary transaction and present exactly
+ * when the transaction's category is the dedicated fuel category; `kmPerLiter`/`amountPerKm`/
+ * `litersPerKm` are computed on read (`FuelRatiosQuery`), `null` when `kmSinceLastFill` is absent
+ * (a vehicle's first recorded fill).
+ */
 export interface Transaction {
   id: string
   date: string
@@ -17,6 +26,15 @@ export interface Transaction {
   recurringTemplateVersionId: string | null
   description: string
   additionalNotes: string | null
+  vehicleId: string | null
+  fuelType: FuelType | null
+  liters: number | null
+  pricePerLiter: number | null
+  kmSinceLastFill: number | null
+  odometer: number | null
+  kmPerLiter: number | null
+  amountPerKm: number | null
+  litersPerKm: number | null
 }
 
 export type CreateTransactionRequest = components['schemas']['CreateTransactionRequest']

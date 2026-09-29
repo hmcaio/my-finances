@@ -3,7 +3,7 @@ import type { Category } from '../../api/categories/categories'
 import { sortCategories } from './sortCategories'
 
 function category(name: string, type: Category['type'], builtIn = false): Category {
-  return { id: name, name, type, builtIn }
+  return { id: name, name, type, builtIn, fuelCategory: false }
 }
 
 describe('sortCategories', () => {

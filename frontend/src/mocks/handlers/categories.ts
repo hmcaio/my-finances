@@ -7,10 +7,10 @@ import { createStore } from '../store'
  * assert against it directly instead of duplicating the fixture (F015 spec's F002 backfill).
  */
 export const seedCategories: Category[] = [
-  { id: 'cat-1', name: 'Groceries', type: 'EXPENSE', builtIn: false },
-  { id: 'cat-2', name: 'Salary', type: 'INCOME', builtIn: false },
-  { id: 'cat-3', name: 'Other Expense', type: 'EXPENSE', builtIn: true },
-  { id: 'cat-4', name: 'Other Income', type: 'INCOME', builtIn: true },
+  { id: 'cat-1', name: 'Groceries', type: 'EXPENSE', builtIn: false, fuelCategory: false },
+  { id: 'cat-2', name: 'Salary', type: 'INCOME', builtIn: false, fuelCategory: false },
+  { id: 'cat-3', name: 'Other Expense', type: 'EXPENSE', builtIn: true, fuelCategory: false },
+  { id: 'cat-4', name: 'Other Income', type: 'INCOME', builtIn: true, fuelCategory: false },
 ]
 
 /**
@@ -20,6 +20,21 @@ export const seedCategories: Category[] = [
  */
 export const seedGroceriesCategory = seedCategories.find((c) => c.name === 'Groceries')!
 export const seedSalaryCategory = seedCategories.find((c) => c.name === 'Salary')!
+
+/**
+ * The dedicated fuel category (F024, ADR 0021, mirrors `V18`'s seeded "Fuel" EXPENSE category) -
+ * deliberately NOT part of {@link seedCategories}, so every pre-existing test that asserts on the
+ * exact category list/count is unaffected. A Fuel-page/Vehicle/Transaction-form test that needs it
+ * overrides the categories handler with `server.use(http.get('/api/categories', () =>
+ * HttpResponse.json([...seedCategories, seedFuelCategory])))`.
+ */
+export const seedFuelCategory: Category = {
+  id: 'cat-fuel',
+  name: 'Fuel',
+  type: 'EXPENSE',
+  builtIn: false,
+  fuelCategory: true,
+}
 
 const CATEGORIES_URL = '/api/categories'
 
@@ -45,6 +60,7 @@ export const categoriesHandlers = [
       name: body.name,
       type: body.type ?? 'EXPENSE',
       builtIn: false,
+      fuelCategory: false,
     })
     return HttpResponse.json(created, { status: 201 })
   }),

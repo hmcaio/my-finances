@@ -15,6 +15,7 @@ import { paymentMethodsHandlers } from './handlers/paymentMethods'
 import { recurringTemplatesHandlers } from './handlers/recurringTemplates'
 import { transactionsHandlers } from './handlers/transactions'
 import { transfersHandlers } from './handlers/transfers'
+import { vehiclesHandlers } from './handlers/vehicles'
 
 /**
  * Combined MSW request handlers for every aggregate (F015 spec). Each aggregate owns one file
@@ -42,4 +43,5 @@ export const handlers = [
   ...recurringTemplatesHandlers,
   ...transactionsHandlers,
   ...transfersHandlers,
+  ...vehiclesHandlers,
 ]
