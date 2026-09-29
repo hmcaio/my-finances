@@ -3,7 +3,7 @@
 **Depends on**: F001, F003, F008, F009, F015, F019, F020, F021, F022.
 
 ## Backend
-- [ ] Write tests for the allocation `groupBy=ACCOUNT` grouping (sum by account, stale flag, omission rule), then implement.
+- [x] Write tests for the allocation `groupBy=ACCOUNT` grouping (sum by account, stale flag, omission rule), then implement.
 - [ ] Write tests for the paginated/filtered product list query (each filter alone and combined, default status `OPEN`, derived status correctness), then implement; wire the controller to `PagedModel`.
 - [ ] Controller tests for the extended allocation endpoint and the new list query params; regenerate `frontend/src/api/generated/schema.ts`.
 

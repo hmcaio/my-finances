@@ -191,6 +191,30 @@ class InvestmentReportControllerTest {
   }
 
   @Test
+  void allocationByAccountSumsHoldingsIntoTheirAccountWithNoCategoryFields() throws Exception {
+    snapshot(cdbHoldingId, "2026-02-28", "150.00");
+    snapshot(bareHoldingId, "2026-02-28", "25.50");
+
+    mockMvc
+        .perform(
+            get("/api/investments/allocation")
+                .param("asOf", "2026-03-31")
+                .param("groupBy", "ACCOUNT"))
+        .andExpect(status().isOk())
+        .andExpect(
+            jsonPath("$[?(@.accountId == '" + brokerId + "')].accountName")
+                .value(hasItem("Broker Report Test")))
+        .andExpect(
+            jsonPath("$[?(@.accountId == '" + brokerId + "')].totalValue").value(hasItem(175.50)))
+        .andExpect(
+            jsonPath("$[?(@.accountId == '" + brokerId + "')].categoryId")
+                .value(contains((Object) null)))
+        .andExpect(
+            jsonPath("$[?(@.accountId == '" + brokerId + "')].categoryName")
+                .value(contains((Object) null)));
+  }
+
+  @Test
   void allocationRejectsAnUnknownGroupByOrBadDateWith400() throws Exception {
     mockMvc
         .perform(get("/api/investments/allocation").param("groupBy", "INSTITUTION"))
