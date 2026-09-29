@@ -22,7 +22,8 @@ Designed for solo use today, with a data model that can extend to household/mult
 - No bank/card auto-sync — manual entry / CSV import only, and CSV import is a stretch goal, not required for v1.
 - No multi-currency support — single currency only.
 - No *computed* investment math: a buy/sell records its quantity, unit price and taxes as plain data (§5.5), but nothing is derived from them — no cost-basis tracking, no live or computed prices, no automatic gain/loss calculation. Investment values are always manually entered as snapshots (§5.8).
-- No manual physical assets (real estate, vehicles) in net worth.
+- No manual physical assets (real estate, vehicles) in net worth — the `Vehicle` entity introduced for fuel-transaction tracking (§5.11) is a plain label for grouping fuel purchases, not a valued asset counted in net worth.
+- No user-editable fuel types — Etanol, Etanol Aditivado, Gasolina and Gasolina Aditivada are a fixed list (§5.11); adding others (e.g. electric) is a future direction (§9).
 - No authentication — app is single-user and bound to localhost only, not exposed to LAN or internet.
 - No automatic bank statement reconciliation/matching — account balances are whatever the logged transactions and transfers compute to; there is no import-and-match step.
 - No interest/fee accrual modeling on credit card liabilities — the balance owed only reflects logged expenses and payment transfers, not statement interest or fees.
@@ -167,6 +168,25 @@ A time series for the net worth trend chart is computed either by evaluating thi
 
 An `Account` (§5.4, of any type including `INVESTMENT`) points at exactly one institution, so the same institution can group a checking account, a credit card and a brokerage account, and every account always has a value to group by. An institution that any account (open or closed) references can't be deleted — only renamed; re-pointing those accounts to another institution frees it. This is what makes "how much do I have at Nubank" answerable as a single grouping over §5.4 (see §9).
 
+### 5.11 Vehicle & Fuel Details
+
+**Vehicle**
+- `id`
+- `name` (e.g. "Civic", "Wife's Corolla") — unique, flat and user-editable, same pattern as categories (§5.1). A vehicle referenced by any fuel transaction (below) can't be deleted — only renamed.
+
+**Fuel category**
+- Exactly one `Category` (§5.1) carries `fuel_category` (true), a flag independent of `built_in`: a `Transaction`'s fuel details (below) may be present only when its category is this one, and must be present when it is. Like `built_in`, it can't be created by the user and is set once by the schema migration — but unlike `built_in`, this category can't be renamed either, since the flag's identity has to stay structurally trustworthy for the invariant it enforces ([ADR 0021](../adr/0021-fuel-details-on-transaction.md)).
+
+**Fuel details** (optional, on `Transaction`, §5.3)
+- `vehicle_id`
+- `fuel_type`: `ETANOL` | `ETANOL_ADITIVADO` | `GASOLINA` | `GASOLINA_ADITIVADA` — fixed list, not user-editable (§3)
+- `liters`
+- `price_per_liter`
+- `km_since_last_fill` (optional — absent for a vehicle's first recorded fill, since there's nothing to diff against)
+- `odometer` (optional, purely informational — never used to derive `km_since_last_fill` or any ratio)
+
+`amount` (§5.3) stays the cash that actually moved; it is not cross-validated against `liters × price_per_liter`, since receipts round each to different precision. Derived, computed on read and never stored: km per liter = `km_since_last_fill / liters`; amount per km = `amount / km_since_last_fill`; liters per km = `liters / km_since_last_fill`. All three are `null` when `km_since_last_fill` is absent.
+
 ## 6. Functional Requirements
 
 ### 6.1 Transactions
@@ -228,11 +248,17 @@ An `Account` (§5.4, of any type including `INVESTMENT`) points at exactly one i
   - Category: `transactions.csv`, `budgets.csv`, `recurring_templates.csv`.
   - Purely reference files with no date/account/category dimension of their own (`categories.csv`, `payment_methods.csv`, `institutions.csv`, `accounts.csv`, `investment_categories.csv`, `investment_subcategories.csv`, `investment_products.csv`) are always exported in full, since rows in the filtered files reference them by id and would be meaningless without them.
 - No filter selected = full export of everything, unfiltered.
+- `transactions.csv` also carries `vehicle_id`/`vehicle_name`, `fuel_type`, `liters`, `price_per_liter`, `km_since_last_fill` and `odometer` (§5.11), empty for non-fuel rows.
 
 ### 6.10 Institutions
 - CRUD on institutions (name), from a settings screen next to categories and payment methods.
 - An account (of any type, including `INVESTMENT`) always has an institution: it picks one from that list (defaulting to the seeded "No institution" row) and can change it; typing a new name in the picker creates the institution inline.
 - "No institution" can be renamed but not deleted. Deleting any other institution referenced by an account (open or closed) is blocked; renaming is always allowed.
+
+### 6.11 Fuel Tracking
+- CRUD on vehicles (name), from a settings screen next to categories, payment methods and institutions. A vehicle referenced by any fuel transaction can't be deleted; renaming is always allowed.
+- Recording a fuel purchase is an ordinary transaction (§6.1) with the fuel category (§5.11) selected: the form then also asks for vehicle, fuel type, liters, price per liter, an optional km since the last fill and an optional odometer reading. Changing the category away from the fuel category on an existing fuel transaction is rejected until its fuel details are cleared.
+- Per-vehicle fuel history: a filtered transaction list for a selected vehicle, plus three time-series charts scoped to that vehicle — price per liter (one line per fuel type), km per liter, and amount spent per km — plotted per fill, with no date aggregation.
 
 ## 7. Technical Design
 
@@ -274,5 +300,7 @@ These are low-level choices left to implementation rather than product decisions
 - Loan account type with amortization schedules (beyond the current checking/savings/cash/credit-card/investment types).
 - Interest/fee accrual modeling on credit card liabilities.
 - Manual bank statement reconciliation (mark an account balance as matched against a real statement as of a date).
+- User-editable/custom fuel types (e.g. for electric vehicles) — the fuel type list is fixed for v1 (§5.11).
+- Auto-computing `km_since_last_fill` from consecutive odometer readings, or validating `amount` against `liters × price_per_liter` — both are recorded independently and trusted as entered (§5.11).
 - Remote/LAN access with authentication.
 - Notifications (email/push) for budget overages or pending recurring bills.
