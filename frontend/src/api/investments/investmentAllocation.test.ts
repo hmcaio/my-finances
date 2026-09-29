@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import {
+  seedAllocationByAccount,
   seedAllocationByCategory,
   seedAllocationBySubcategory,
 } from '../../mocks/handlers/investmentAllocation'
@@ -25,6 +26,21 @@ describe('investment allocation API client', () => {
 
     expect(sent).toEqual({ groupBy: 'SUBCATEGORY', asOf: '2026-06-30' })
     expect(rows).toEqual(seedAllocationBySubcategory)
+  })
+
+  it('fetches the ACCOUNT grouping, with category fields null and account fields populated', async () => {
+    const rows = await getInvestmentAllocation({ groupBy: 'ACCOUNT' })
+
+    expect(rows).toEqual(seedAllocationByAccount)
+    expect(rows[0].categoryId).toBeNull()
+    expect(rows[0].accountName).toBe(seedAllocationByAccount[0].accountName)
+  })
+
+  it('the ACCOUNT total matches the CATEGORY total (same portfolio)', () => {
+    const categoryTotal = seedAllocationByCategory.reduce((sum, row) => sum + row.totalValue, 0)
+    const accountTotal = seedAllocationByAccount.reduce((sum, row) => sum + row.totalValue, 0)
+
+    expect(accountTotal).toBe(categoryTotal)
   })
 
   it('sub-category rows sum to their category total in the seed data', () => {

@@ -57,7 +57,7 @@ Use MUI `Skeleton`, not spinners or "Loading…" text. Gate every skeleton behin
 
 ## Charts
 
-No chart library: `ValueSeriesChart`, `InvestmentAllocationChart` and `NetWorthTrendChart` are hand-drawn SVG. Their React Compiler lint rules bite in charts specifically: no reassigning a `let` after render (compute running offsets with `reduce`/`slice`) and no `useMemo` over values the compiler can't preserve (compute plainly).
+No chart library: `ValueSeriesChart`, `InvestmentAllocationChart`, `NetWorthTrendChart` and (F023) the flat donuts `InvestmentSubcategoryAllocationChart`/`InvestmentAccountAllocationChart` are hand-drawn SVG. Their React Compiler lint rules bite in charts specifically: no reassigning a `let` after render (compute running offsets with `reduce`/`slice`) and no `useMemo` over values the compiler can't preserve (compute plainly). A new donut that doesn't need `InvestmentAllocationChart`'s drill-down reuses `features/investments/donutGeometry.ts` (the pure SVG-arc math) and `FlatAllocationDonutChart` (the shared flat donut+legend rendering) rather than a third hand-rolled copy - `InvestmentAllocationChart` itself keeps its own copy since it predates this split and its drill-down behavior/tests must stay untouched.
 
 - A chart legend item that is a clickable MUI `Button` (`InvestmentAllocationChart`'s category drill-down) needs `whiteSpace: 'normal'` in its `sx` (F021): `Button` defaults to `white-space: nowrap`, so a long label forces the row wider than a phone screen even inside an otherwise-`flexWrap` container. A plain (non-`Button`) legend line doesn't have this problem.
 

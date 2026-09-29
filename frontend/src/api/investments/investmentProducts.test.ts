@@ -17,11 +17,55 @@ import {
   editInvestmentProduct,
   getInvestmentProduct,
   getInvestmentProducts,
+  getInvestmentProductsPage,
 } from './investmentProducts'
 
 describe('investment products API client', () => {
-  it('getInvestmentProducts returns every product', async () => {
-    await expect(getInvestmentProducts()).resolves.toEqual(seedInvestmentProducts)
+  it('getInvestmentProducts returns every product regardless of status', async () => {
+    const result = await getInvestmentProducts()
+
+    expect(result).toHaveLength(seedInvestmentProducts.length)
+    expect(result).toEqual(expect.arrayContaining(seedInvestmentProducts))
+  })
+
+  it('getInvestmentProductsPage defaults to status OPEN and page 0/size 20', async () => {
+    const page = await getInvestmentProductsPage()
+
+    expect(page.content.map((p) => p.id)).not.toContain('iprod-old')
+    expect(page.page).toEqual({ size: 20, number: 0, totalElements: 2, totalPages: 1 })
+  })
+
+  it('getInvestmentProductsPage filters by status ALL and paginates', async () => {
+    const page = await getInvestmentProductsPage({ status: 'ALL' }, 0, 2)
+
+    expect(page.content).toHaveLength(2)
+    expect(page.page.totalElements).toBe(3)
+    expect(page.page.totalPages).toBe(2)
+  })
+
+  it('getInvestmentProductsPage filters by category, sub-category, name and account', async () => {
+    const byCategory = await getInvestmentProductsPage({
+      categoryId: 'icat-crypto',
+      status: 'ALL',
+    })
+    expect(byCategory.content.map((p) => p.id)).toEqual(['iprod-btc'])
+
+    const bySubcategory = await getInvestmentProductsPage({
+      subcategoryId: 'isub-cdb',
+      status: 'ALL',
+    })
+    expect(bySubcategory.content.map((p) => p.id)).toEqual(['iprod-old'])
+
+    const byName = await getInvestmentProductsPage({ name: 'bitcoin', status: 'ALL' })
+    expect(byName.content.map((p) => p.id)).toEqual(['iprod-btc'])
+
+    const byAccount = await getInvestmentProductsPage({
+      accountId: seedInvestmentAccount.id,
+      status: 'ALL',
+    })
+    expect(byAccount.content.map((p) => p.id).sort()).toEqual(
+      ['iprod-btc', 'iprod-old', 'iprod-selic'].sort(),
+    )
   })
 
   it('getInvestmentProduct returns one product', async () => {

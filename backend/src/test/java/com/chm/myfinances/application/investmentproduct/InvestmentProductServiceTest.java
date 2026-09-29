@@ -23,9 +23,13 @@ import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSubcategoryRepository;
 import com.chm.myfinances.testsupport.mothers.AccountMother;
 import java.time.Clock;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 /**
  * Application-layer tests for {@link InvestmentProductService}, written first (ADR 0004) against
@@ -285,5 +289,221 @@ class InvestmentProductServiceTest {
   void deleteOfUnknownIdThrowsNotFound() {
     assertThatThrownBy(() -> service.delete(UUID.randomUUID()))
         .isInstanceOf(InvestmentProductNotFoundException.class);
+  }
+
+  // --- F023: paginated/filtered global product list ---
+
+  @Test
+  void isClosedIsFalseWhileAnyHoldingIsOpen() {
+    InvestmentProduct product =
+        service.create(xpAccountId, cryptoId, null, "Open Closed Test", null);
+
+    assertThat(service.isClosed(product.getId())).isFalse();
+  }
+
+  @Test
+  void isClosedIsTrueWhenEveryHoldingIsClosedOrThereAreNone() {
+    InvestmentProduct allClosed =
+        service.create(xpAccountId, cryptoId, null, "All Closed Is Closed Test", null);
+    closeOnlyHolding(allClosed);
+    assertThat(service.isClosed(allClosed.getId())).isTrue();
+
+    InvestmentProduct zeroHoldings =
+        service.create(xpAccountId, cryptoId, null, "Zero Holdings Is Closed Test", null);
+    holdingRepository.deleteById(
+        holdingRepository.findByProductId(zeroHoldings.getId()).get(0).getId());
+    assertThat(service.isClosed(zeroHoldings.getId())).isTrue();
+  }
+
+  private void closeOnlyHolding(InvestmentProduct product) {
+    InvestmentHolding holding = holdingRepository.findByProductId(product.getId()).get(0);
+    holding.close(LocalDate.now());
+    holdingRepository.save(holding);
+  }
+
+  @Test
+  void findAllWithFilterDefaultsToOpenStatusWhenStatusIsNull() {
+    InvestmentProduct open = service.create(xpAccountId, cryptoId, null, "Open Default Test", null);
+    InvestmentProduct closed =
+        service.create(nuAccountId, cryptoId, null, "Closed Default Test", null);
+    closeOnlyHolding(closed);
+
+    Page<InvestmentProduct> page =
+        service.findAll(
+            new InvestmentProductFilter(null, null, null, null, null), Pageable.unpaged());
+
+    assertThat(page.getContent())
+        .extracting(InvestmentProduct::getId)
+        .containsExactly(open.getId());
+  }
+
+  @Test
+  void findAllFiltersByCategoryAlone() {
+    InvestmentProduct fixedIncomeProduct =
+        service.create(xpAccountId, fixedIncomeId, cdbId, "CDB Category Test", null);
+    service.create(xpAccountId, cryptoId, null, "Bitcoin Category Test", null);
+
+    Page<InvestmentProduct> page =
+        service.findAll(
+            new InvestmentProductFilter(
+                fixedIncomeId, null, null, null, InvestmentProductStatus.ALL),
+            Pageable.unpaged());
+
+    assertThat(page.getContent())
+        .extracting(InvestmentProduct::getId)
+        .containsExactly(fixedIncomeProduct.getId());
+  }
+
+  @Test
+  void findAllFiltersBySubcategoryAlone() {
+    InvestmentProduct withSub =
+        service.create(xpAccountId, fixedIncomeId, cdbId, "CDB Sub Test", null);
+    service.create(xpAccountId, fixedIncomeId, null, "Bare Sub Test", null);
+
+    Page<InvestmentProduct> page =
+        service.findAll(
+            new InvestmentProductFilter(null, cdbId, null, null, InvestmentProductStatus.ALL),
+            Pageable.unpaged());
+
+    assertThat(page.getContent())
+        .extracting(InvestmentProduct::getId)
+        .containsExactly(withSub.getId());
+  }
+
+  @Test
+  void findAllFiltersByAccountAloneMeaningHasAHoldingThere() {
+    InvestmentProduct atXp = service.create(xpAccountId, cryptoId, null, "At XP Test", null);
+    InvestmentProduct atNu = service.create(nuAccountId, cryptoId, null, "At NU Test", null);
+
+    Page<InvestmentProduct> page =
+        service.findAll(
+            new InvestmentProductFilter(null, null, nuAccountId, null, InvestmentProductStatus.ALL),
+            Pageable.unpaged());
+
+    assertThat(page.getContent())
+        .extracting(InvestmentProduct::getId)
+        .containsExactly(atNu.getId());
+    assertThat(page.getContent()).extracting(InvestmentProduct::getId).doesNotContain(atXp.getId());
+  }
+
+  @Test
+  void findAllFiltersByNameContainsCaseInsensitive() {
+    InvestmentProduct match = service.create(xpAccountId, cryptoId, null, "Bitcoin Test", null);
+    service.create(xpAccountId, cryptoId, null, "Ethereum Test", null);
+
+    Page<InvestmentProduct> page =
+        service.findAll(
+            new InvestmentProductFilter(null, null, null, "bITcoin", InvestmentProductStatus.ALL),
+            Pageable.unpaged());
+
+    assertThat(page.getContent())
+        .extracting(InvestmentProduct::getId)
+        .containsExactly(match.getId());
+  }
+
+  @Test
+  void findAllStatusClosedListsProductsWhereEveryHoldingIsClosedOrThereAreNone() {
+    InvestmentProduct allClosed =
+        service.create(xpAccountId, cryptoId, null, "All Closed Test", null);
+    closeOnlyHolding(allClosed);
+    service.create(xpAccountId, cryptoId, null, "Still Open Test", null);
+    InvestmentProduct zeroHoldings =
+        service.create(xpAccountId, cryptoId, null, "Zero Holdings Test", null);
+    holdingRepository.deleteById(
+        holdingRepository.findByProductId(zeroHoldings.getId()).get(0).getId());
+
+    Page<InvestmentProduct> page =
+        service.findAll(
+            new InvestmentProductFilter(null, null, null, null, InvestmentProductStatus.CLOSED),
+            Pageable.unpaged());
+
+    assertThat(page.getContent())
+        .extracting(InvestmentProduct::getId)
+        .containsExactlyInAnyOrder(allClosed.getId(), zeroHoldings.getId());
+  }
+
+  @Test
+  void findAllStatusAllListsEveryProductRegardlessOfHoldingState() {
+    InvestmentProduct open = service.create(xpAccountId, cryptoId, null, "Open All Test", null);
+    InvestmentProduct closed = service.create(nuAccountId, cryptoId, null, "Closed All Test", null);
+    closeOnlyHolding(closed);
+
+    Page<InvestmentProduct> page =
+        service.findAll(
+            new InvestmentProductFilter(null, null, null, null, InvestmentProductStatus.ALL),
+            Pageable.unpaged());
+
+    assertThat(page.getContent())
+        .extracting(InvestmentProduct::getId)
+        .containsExactlyInAnyOrder(open.getId(), closed.getId());
+  }
+
+  @Test
+  void findAllCombinesEveryFilterDimensionWithAnd() {
+    InvestmentProduct matches =
+        service.create(xpAccountId, fixedIncomeId, cdbId, "CDB Combined Test", null);
+    service.create(nuAccountId, fixedIncomeId, cdbId, "CDB Combined Other Account Test", null);
+    service.create(xpAccountId, cryptoId, null, "Bitcoin Combined Test", null);
+
+    Page<InvestmentProduct> page =
+        service.findAll(
+            new InvestmentProductFilter(
+                fixedIncomeId, cdbId, xpAccountId, "combined", InvestmentProductStatus.ALL),
+            Pageable.unpaged());
+
+    assertThat(page.getContent())
+        .extracting(InvestmentProduct::getId)
+        .containsExactly(matches.getId());
+  }
+
+  @Test
+  void aProductHeldAtTwoAccountsAppearsExactlyOnceInTheUnfilteredListAndUnderBothAccountFilters() {
+    InvestmentProduct product =
+        service.create(xpAccountId, cryptoId, null, "Multi-holding Test", null);
+    holdingService.create(product.getId(), nuAccountId, null);
+
+    Page<InvestmentProduct> all =
+        service.findAll(
+            new InvestmentProductFilter(null, null, null, null, InvestmentProductStatus.ALL),
+            Pageable.unpaged());
+    assertThat(all.getContent()).filteredOn(p -> p.getId().equals(product.getId())).hasSize(1);
+
+    Page<InvestmentProduct> atXp =
+        service.findAll(
+            new InvestmentProductFilter(null, null, xpAccountId, null, InvestmentProductStatus.ALL),
+            Pageable.unpaged());
+    Page<InvestmentProduct> atNu =
+        service.findAll(
+            new InvestmentProductFilter(null, null, nuAccountId, null, InvestmentProductStatus.ALL),
+            Pageable.unpaged());
+    assertThat(atXp.getContent()).extracting(InvestmentProduct::getId).contains(product.getId());
+    assertThat(atNu.getContent()).extracting(InvestmentProduct::getId).contains(product.getId());
+  }
+
+  @Test
+  void findAllPaginatesTheFilteredResultsSortedByName() {
+    service.create(xpAccountId, cryptoId, null, "Alpha Page Test", null);
+    service.create(xpAccountId, cryptoId, null, "Bravo Page Test", null);
+    service.create(xpAccountId, cryptoId, null, "Charlie Page Test", null);
+
+    Page<InvestmentProduct> firstPage =
+        service.findAll(
+            new InvestmentProductFilter(null, null, null, "Page Test", InvestmentProductStatus.ALL),
+            PageRequest.of(0, 2));
+
+    assertThat(firstPage.getTotalElements()).isEqualTo(3);
+    assertThat(firstPage.getTotalPages()).isEqualTo(2);
+    assertThat(firstPage.getContent())
+        .extracting(InvestmentProduct::getName)
+        .containsExactly("Alpha Page Test", "Bravo Page Test");
+
+    Page<InvestmentProduct> secondPage =
+        service.findAll(
+            new InvestmentProductFilter(null, null, null, "Page Test", InvestmentProductStatus.ALL),
+            PageRequest.of(1, 2));
+
+    assertThat(secondPage.getContent())
+        .extracting(InvestmentProduct::getName)
+        .containsExactly("Charlie Page Test");
   }
 }

@@ -4,14 +4,19 @@ import com.chm.myfinances.application.investmentcategory.InvestmentCategoryNotFo
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingService;
 import com.chm.myfinances.application.investmentsubcategory.InvestmentSubcategoryNotFoundException;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
+import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategoryRepository;
 import com.chm.myfinances.domain.shared.IdGenerator;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -92,6 +97,74 @@ public class InvestmentProductService {
 
   public List<InvestmentProduct> findAll() {
     return productRepository.findAll();
+  }
+
+  /**
+   * Filtered, paginated global product list (F023 spec's {@code GET /api/investment-products} query
+   * params). Every filter dimension is applied in memory - a local, single-user app has few enough
+   * products that this needs no DB-level query, the same "computed on read" style as {@link
+   * com.chm.myfinances.application.investmentreport.InvestmentAllocationQuery} - and {@code
+   * accountId}/{@code status} both read through {@link #holdingRepository}, since neither is a
+   * column on {@link InvestmentProduct} any more (F022/ADR 0020). Sorted by name
+   * (case-insensitive); the caller's {@link Pageable} only drives paging, not sorting.
+   */
+  public Page<InvestmentProduct> findAll(InvestmentProductFilter filter, Pageable pageable) {
+    List<InvestmentProduct> filtered =
+        productRepository.findAll().stream()
+            .filter(
+                p ->
+                    filter.categoryId() == null
+                        || p.getInvestmentCategoryId().equals(filter.categoryId()))
+            .filter(
+                p ->
+                    filter.subcategoryId() == null
+                        || filter.subcategoryId().equals(p.getInvestmentSubcategoryId()))
+            .filter(
+                p ->
+                    filter.name() == null
+                        || p.getName().toLowerCase().contains(filter.name().toLowerCase()))
+            .filter(p -> matchesAccountAndStatus(p, filter))
+            .sorted(Comparator.comparing(InvestmentProduct::getName, String.CASE_INSENSITIVE_ORDER))
+            .toList();
+    return paginate(filtered, pageable);
+  }
+
+  private boolean matchesAccountAndStatus(
+      InvestmentProduct product, InvestmentProductFilter filter) {
+    List<InvestmentHolding> holdings = holdingRepository.findByProductId(product.getId());
+    if (filter.accountId() != null
+        && holdings.stream().noneMatch(h -> h.getAccountId().equals(filter.accountId()))) {
+      return false;
+    }
+    return switch (filter.status()) {
+      case ALL -> true;
+      case OPEN -> anyOpen(holdings);
+      case CLOSED -> !anyOpen(holdings);
+    };
+  }
+
+  /**
+   * Whether every one of the product's holdings is closed, or it has none at all - F023's derived,
+   * not-stored per-row product status shown by the global product list ({@link
+   * InvestmentProductResponse}'s {@code closed} field), the exact complement of {@link
+   * InvestmentProductStatus#OPEN}'s "at least one holding is open".
+   */
+  public boolean isClosed(UUID productId) {
+    return !anyOpen(holdingRepository.findByProductId(productId));
+  }
+
+  private static boolean anyOpen(List<InvestmentHolding> holdings) {
+    return holdings.stream().anyMatch(h -> !h.isClosed());
+  }
+
+  private static <T> Page<T> paginate(List<T> content, Pageable pageable) {
+    if (pageable.isUnpaged()) {
+      return new PageImpl<>(content);
+    }
+    int start = (int) pageable.getOffset();
+    int end = Math.min(start + pageable.getPageSize(), content.size());
+    List<T> pageContent = start >= content.size() ? List.of() : content.subList(start, end);
+    return new PageImpl<>(pageContent, pageable, content.size());
   }
 
   public InvestmentProduct edit(

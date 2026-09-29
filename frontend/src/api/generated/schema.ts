@@ -836,6 +836,7 @@ export interface components {
             investmentSubcategoryId?: string;
             name?: string;
             additionalNotes?: string;
+            closed?: boolean;
         };
         CreateInvestmentHoldingRequest: {
             /** Format: uuid */
@@ -1086,8 +1087,15 @@ export interface components {
             /** Format: uuid */
             subcategoryId?: string;
             subcategoryName?: string;
+            /** Format: uuid */
+            accountId?: string;
+            accountName?: string;
             totalValue?: number;
             needsSnapshot?: boolean;
+        };
+        PagedModelInvestmentProductResponse: {
+            content?: components["schemas"]["InvestmentProductResponse"][];
+            page?: components["schemas"]["PageMetadata"];
         };
         BudgetReportLineResponse: {
             /** Format: uuid */
@@ -1437,7 +1445,14 @@ export interface operations {
     };
     investmentProduct_list: {
         parameters: {
-            query?: never;
+            query: {
+                categoryId?: string;
+                subcategoryId?: string;
+                accountId?: string;
+                name?: string;
+                status?: "OPEN" | "CLOSED" | "ALL";
+                pageable: components["schemas"]["Pageable"];
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1450,7 +1465,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["InvestmentProductResponse"][];
+                    "*/*": components["schemas"]["PagedModelInvestmentProductResponse"];
                 };
             };
         };
@@ -2606,7 +2621,7 @@ export interface operations {
         parameters: {
             query?: {
                 asOf?: string;
-                groupBy?: "CATEGORY" | "SUBCATEGORY";
+                groupBy?: "CATEGORY" | "SUBCATEGORY" | "ACCOUNT";
             };
             header?: never;
             path?: never;

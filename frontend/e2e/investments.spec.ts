@@ -44,4 +44,71 @@ test.describe('investments', () => {
     // cards, at every viewport.
     await expect(page.getByRole('table', { name: 'Investment accounts' })).toBeVisible()
   })
+
+  // F023: the three-chart row (category, kept; sub-category and account, new) above the
+  // Accounts/Products tabs.
+  test('shows all three allocation charts without horizontal overflow', async ({ page }) => {
+    await mockApi(page, [accountsWithInvestmentHandler])
+    await page.goto('/investments')
+
+    await expect(page.getByRole('img', { name: 'Allocation by category' })).toBeVisible()
+    await expect(page.getByRole('img', { name: 'Allocation by sub-category' })).toBeVisible()
+    await expect(page.getByRole('img', { name: 'Allocation by account' })).toBeVisible()
+    await page.waitForLoadState('networkidle')
+
+    await expectNoHorizontalOverflow(page)
+  })
+
+  test('the three-chart row stacks to one column below desktop and sits side by side at desktop width', async ({
+    page,
+  }, testInfo) => {
+    await mockApi(page, [accountsWithInvestmentHandler])
+    await page.goto('/investments')
+    const category = page.getByRole('img', { name: 'Allocation by category' })
+    const account = page.getByRole('img', { name: 'Allocation by account' })
+    await expect(category).toBeVisible()
+    await expect(account).toBeVisible()
+
+    const categoryBox = await category.boundingBox()
+    const accountBox = await account.boundingBox()
+    if (testInfo.project.name === 'desktop') {
+      // Three across (the grid switches at `lg`, 1200px - `Layout`'s own nav breakpoint): the
+      // account chart sits to the right of the category chart, roughly on the same row.
+      expect(accountBox!.x).toBeGreaterThan(categoryBox!.x)
+      expect(Math.abs(accountBox!.y - categoryBox!.y)).toBeLessThan(20)
+    } else {
+      // Mobile and tablet both stack to one column: the account chart is below the category one.
+      expect(accountBox!.y).toBeGreaterThan(categoryBox!.y)
+    }
+  })
+
+  test('switches to the Products tab and lists a product, without horizontal overflow', async ({
+    page,
+  }) => {
+    await mockApi(page, [accountsWithInvestmentHandler])
+    await page.goto('/investments')
+    await expect(page.getByRole('img', { name: 'Allocation by category' })).toBeVisible()
+
+    await page.getByRole('tab', { name: 'Products' }).click()
+
+    const table = page.getByRole('table', { name: 'Investment products' })
+    const cards = page.getByRole('list', { name: 'Investment products' })
+    await expect(table.or(cards)).toBeVisible()
+    await expect(page.getByText('Bitcoin')).toBeVisible()
+    // "Old CDB"'s only holding is closed, so it's excluded under the default Open status filter.
+    await expect(page.getByText('Old CDB')).toHaveCount(0)
+    await page.waitForLoadState('networkidle')
+
+    await expectNoHorizontalOverflow(page)
+  })
+
+  test('a product name in the Products tab links to its detail page', async ({ page }) => {
+    await mockApi(page, [accountsWithInvestmentHandler])
+    await page.goto('/investments')
+    await page.getByRole('tab', { name: 'Products' }).click()
+
+    const link = page.getByRole('link', { name: 'Bitcoin' })
+    await expect(link).toBeVisible()
+    await expect(link).toHaveAttribute('href', '/investment-products/iprod-btc')
+  })
 })

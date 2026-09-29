@@ -2,6 +2,8 @@ package com.chm.myfinances.application.investmentreport;
 
 import com.chm.myfinances.application.investmentsnapshot.InvestmentSnapshotFreshnessQuery;
 import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
+import com.chm.myfinances.domain.account.Account;
+import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
@@ -35,6 +37,10 @@ import org.springframework.stereotype.Service;
  * <p>Grouping uses each product's <em>current</em> category/sub-category, so reclassifying a
  * product regroups its past allocation (ADR 0012). Category totals equal the sum of their
  * sub-category rows by construction.
+ *
+ * <p>{@link AllocationGrouping#ACCOUNT} (F023) sums holdings directly into their account, with no
+ * product roll-up: each holding's own latest snapshot is added to its account's total, since value
+ * is per holding, not per product (a product held at two accounts contributes to both).
  */
 @Service
 public class InvestmentAllocationQuery {
@@ -43,6 +49,7 @@ public class InvestmentAllocationQuery {
   private final InvestmentHoldingRepository holdingRepository;
   private final InvestmentCategoryRepository categoryRepository;
   private final InvestmentSubcategoryRepository subcategoryRepository;
+  private final AccountRepository accountRepository;
   private final LatestInvestmentSnapshotQuery latestSnapshotQuery;
   private final InvestmentSnapshotFreshnessQuery freshnessQuery;
 
@@ -51,18 +58,69 @@ public class InvestmentAllocationQuery {
       InvestmentHoldingRepository holdingRepository,
       InvestmentCategoryRepository categoryRepository,
       InvestmentSubcategoryRepository subcategoryRepository,
+      AccountRepository accountRepository,
       LatestInvestmentSnapshotQuery latestSnapshotQuery,
       InvestmentSnapshotFreshnessQuery freshnessQuery) {
     this.productRepository = productRepository;
     this.holdingRepository = holdingRepository;
     this.categoryRepository = categoryRepository;
     this.subcategoryRepository = subcategoryRepository;
+    this.accountRepository = accountRepository;
     this.latestSnapshotQuery = latestSnapshotQuery;
     this.freshnessQuery = freshnessQuery;
   }
 
-  /** Slices ordered by category name, then sub-category name (the null slice last). */
+  /**
+   * Slices ordered by category name, then sub-category name (the null slice last); {@code ACCOUNT}
+   * slices are ordered by account name.
+   */
   public List<AllocationRow> allocation(LocalDate asOfDate, AllocationGrouping grouping) {
+    if (grouping == AllocationGrouping.ACCOUNT) {
+      return allocationByAccount(asOfDate);
+    }
+    return allocationByCategory(asOfDate, grouping);
+  }
+
+  private List<AllocationRow> allocationByAccount(LocalDate asOfDate) {
+    Map<UUID, InvestmentSnapshot> latestByHolding = latestSnapshotQuery.latestByHolding(asOfDate);
+    Set<UUID> staleHoldings = freshnessQuery.staleHoldingIds(asOfDate);
+    Map<UUID, String> accountNames =
+        accountRepository.findAll().stream()
+            .collect(Collectors.toMap(Account::getId, Account::getName));
+
+    Map<UUID, Accumulator> groups = new LinkedHashMap<>();
+    for (InvestmentHolding holding : holdingRepository.findAll()) {
+      InvestmentSnapshot snapshot = latestByHolding.get(holding.getId());
+      BigDecimal value = snapshot != null ? snapshot.getBalance() : BigDecimal.ZERO;
+      boolean isStale = staleHoldings.contains(holding.getId());
+      if (value.signum() == 0 && !isStale) {
+        continue;
+      }
+      Accumulator accumulator =
+          groups.computeIfAbsent(holding.getAccountId(), k -> new Accumulator());
+      accumulator.total = accumulator.total.add(value);
+      accumulator.needsSnapshot |= isStale;
+    }
+
+    Comparator<AllocationRow> order = Comparator.comparing(AllocationRow::accountName);
+    return groups.entrySet().stream()
+        .map(
+            entry ->
+                new AllocationRow(
+                    null,
+                    null,
+                    null,
+                    null,
+                    entry.getKey(),
+                    accountNames.get(entry.getKey()),
+                    entry.getValue().total,
+                    entry.getValue().needsSnapshot))
+        .sorted(order)
+        .toList();
+  }
+
+  private List<AllocationRow> allocationByCategory(
+      LocalDate asOfDate, AllocationGrouping grouping) {
     Map<UUID, InvestmentSnapshot> latestByHolding = latestSnapshotQuery.latestByHolding(asOfDate);
     Set<UUID> staleHoldings = freshnessQuery.staleHoldingIds(asOfDate);
     Map<UUID, String> categoryNames =
@@ -114,6 +172,8 @@ public class InvestmentAllocationQuery {
                     entry.getKey().subcategoryId() == null
                         ? null
                         : subcategoryNames.get(entry.getKey().subcategoryId()),
+                    null,
+                    null,
                     entry.getValue().total,
                     entry.getValue().needsSnapshot))
         .sorted(order)

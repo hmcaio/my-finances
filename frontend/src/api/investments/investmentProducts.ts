@@ -7,7 +7,7 @@ import type { components } from '../generated/schema'
  * instrument, classified by a category and an optional sub-category, globally unique by name.
  * `accountId`/`closedDate`/`hasHistory`/`needsSnapshot`/`latestSnapshot` moved to
  * `InvestmentHolding` (F022/ADR 0020) - the same instrument at two brokers is one product with two
- * holdings.
+ * holdings. `closed` is F023's derived, not-stored status: every holding closed, or none at all.
  */
 export interface InvestmentProduct {
   id: string
@@ -17,10 +17,37 @@ export interface InvestmentProduct {
   name: string
   /** `null` when the product carries no remark. */
   additionalNotes: string | null
+  closed: boolean
 }
 
 export type CreateInvestmentProductRequest = components['schemas']['CreateInvestmentProductRequest']
 export type UpdateInvestmentProductRequest = components['schemas']['UpdateInvestmentProductRequest']
+
+/** Derived, not stored - the same pattern as a holding's `needsSnapshot` (F023 spec). */
+export type InvestmentProductStatus = 'OPEN' | 'CLOSED' | 'ALL'
+
+/** Optional filter dimensions for the global product list (F023 spec's list query params). */
+export interface InvestmentProductFilter {
+  categoryId?: string
+  subcategoryId?: string
+  /** Has a holding there (open or closed), not "opened by". */
+  accountId?: string
+  /** Contains, case-insensitive. */
+  name?: string
+  /** Defaults to `OPEN` on the backend. */
+  status?: InvestmentProductStatus
+}
+
+/** One page of products - mirrors the backend's `PagedModel` envelope (F023 spec). */
+export interface InvestmentProductPage {
+  content: InvestmentProduct[]
+  page: {
+    size: number
+    number: number
+    totalElements: number
+    totalPages: number
+  }
+}
 
 // The backend sends no message text, so every expected 409 needs its own wording here.
 export const SAVE_CONFLICT_MESSAGE =
@@ -28,9 +55,39 @@ export const SAVE_CONFLICT_MESSAGE =
 export const DELETE_CONFLICT_MESSAGE =
   'This product still has a holding (even a closed, empty one) and cannot be deleted - remove its holdings first.'
 
-/** Fetches every product (pure taxonomy - no longer filterable by account, F023 adds that). */
+/**
+ * Fetches a filtered, paginated page of products (F023 spec: the list endpoint became paginated,
+ * a breaking shape change - fine pre-1.0/local app). `page` is 0-indexed; `page`/`size` default to
+ * the backend's own defaults (0, 20) when omitted.
+ */
+export async function getInvestmentProductsPage(
+  filter: InvestmentProductFilter = {},
+  page?: number,
+  size?: number,
+): Promise<InvestmentProductPage> {
+  return unwrap(
+    apiClient.get<InvestmentProductPage>('/investment-products', {
+      params: { ...filter, page, size },
+    }),
+  )
+}
+
+/**
+ * Fetches every product regardless of status, across every page (pure taxonomy; used by callers
+ * that resolve a product's name for a holding/trade that could reference a closed product, not the
+ * new filtered/paginated Products list - F022's plain, unfiltered list is now paginated server-side,
+ * so this loops pages to preserve the "every product" behavior those callers rely on).
+ */
 export async function getInvestmentProducts(): Promise<InvestmentProduct[]> {
-  return unwrap(apiClient.get<InvestmentProduct[]>('/investment-products'))
+  const all: InvestmentProduct[] = []
+  let page = 0
+  for (;;) {
+    const result = await getInvestmentProductsPage({ status: 'ALL' }, page, 100)
+    all.push(...result.content)
+    if (page + 1 >= result.page.totalPages) break
+    page += 1
+  }
+  return all
 }
 
 export async function getInvestmentProduct(id: string): Promise<InvestmentProduct> {
