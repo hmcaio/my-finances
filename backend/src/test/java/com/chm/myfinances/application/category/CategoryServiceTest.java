@@ -131,7 +131,8 @@ class CategoryServiceTest {
   void deleteRejectsABuiltInCategory() {
     Category builtIn =
         repository.save(
-            Category.reconstitute(UUID.randomUUID(), "Other Expense", CategoryType.EXPENSE, true));
+            Category.reconstitute(
+                UUID.randomUUID(), "Other Expense", CategoryType.EXPENSE, true, false));
 
     assertThatThrownBy(() -> service.delete(builtIn.getId()))
         .isInstanceOf(BuiltInCategoryException.class);
@@ -142,7 +143,8 @@ class CategoryServiceTest {
   void deleteOfABuiltInCategoryReportsBuiltInBeforeInUse() {
     Category builtIn =
         repository.save(
-            Category.reconstitute(UUID.randomUUID(), "Other Income", CategoryType.INCOME, true));
+            Category.reconstitute(
+                UUID.randomUUID(), "Other Income", CategoryType.INCOME, true, false));
     budgetRepository.save(BudgetMother.budget().withCategoryId(builtIn.getId()).build());
 
     assertThatThrownBy(() -> service.delete(builtIn.getId()))
@@ -153,12 +155,38 @@ class CategoryServiceTest {
   void renameIsAllowedOnABuiltInCategory() {
     Category builtIn =
         repository.save(
-            Category.reconstitute(UUID.randomUUID(), "Other Expense", CategoryType.EXPENSE, true));
+            Category.reconstitute(
+                UUID.randomUUID(), "Other Expense", CategoryType.EXPENSE, true, false));
 
     Category renamed = service.rename(builtIn.getId(), "Diversos");
 
     assertThat(renamed.getName()).isEqualTo("Diversos");
     assertThat(renamed.isBuiltIn()).isTrue();
+  }
+
+  // F024 (ADR 0021): the fuel_category flag independently blocks both delete and rename, unlike
+  // built_in (which only blocks delete).
+
+  @Test
+  void deleteRejectsTheFuelCategory() {
+    Category fuelCategory =
+        repository.save(
+            Category.reconstitute(UUID.randomUUID(), "Fuel", CategoryType.EXPENSE, false, true));
+
+    assertThatThrownBy(() -> service.delete(fuelCategory.getId()))
+        .isInstanceOf(FuelCategoryException.class);
+    assertThat(repository.findById(fuelCategory.getId())).isPresent();
+  }
+
+  @Test
+  void renameRejectsTheFuelCategory() {
+    Category fuelCategory =
+        repository.save(
+            Category.reconstitute(UUID.randomUUID(), "Fuel", CategoryType.EXPENSE, false, true));
+
+    assertThatThrownBy(() -> service.rename(fuelCategory.getId(), "Gas"))
+        .isInstanceOf(FuelCategoryException.class);
+    assertThat(repository.findById(fuelCategory.getId()).orElseThrow().getName()).isEqualTo("Fuel");
   }
 
   @Test

@@ -28,8 +28,10 @@ import org.springframework.stereotype.Service;
  * V10__db_constraint_hardening.sql}), added in the same audit.
  *
  * <p>Delete, in order: unknown id (404), a built-in category (409, {@link
- * BuiltInCategoryException}), a category something still references (409, {@link
- * CategoryInUseException}).
+ * BuiltInCategoryException}), the fuel category (409, {@link FuelCategoryException} - F024,
+ * independent of {@code built_in}), a category something still references (409, {@link
+ * CategoryInUseException}). Rename rejects the fuel category the same way, before the
+ * duplicate-name check - unlike a built-in category, which stays freely renamable.
  */
 @Service
 public class CategoryService {
@@ -68,6 +70,9 @@ public class CategoryService {
   public Category rename(UUID id, String newName) {
     Category category =
         categoryRepository.findById(id).orElseThrow(() -> new CategoryNotFoundException(id));
+    if (category.isFuelCategory()) {
+      throw new FuelCategoryException(id);
+    }
     if (categoryRepository.existsByNameAndIdNot(newName, id)) {
       throw new CategoryNameAlreadyExistsException(newName);
     }
@@ -80,6 +85,9 @@ public class CategoryService {
         categoryRepository.findById(id).orElseThrow(() -> new CategoryNotFoundException(id));
     if (category.isBuiltIn()) {
       throw new BuiltInCategoryException(id);
+    }
+    if (category.isFuelCategory()) {
+      throw new FuelCategoryException(id);
     }
     if (transactionRepository.existsByCategoryId(id)
         || budgetRepository.existsByCategoryId(id)
