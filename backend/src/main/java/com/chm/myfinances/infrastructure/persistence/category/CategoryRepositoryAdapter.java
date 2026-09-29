@@ -70,6 +70,10 @@ public class CategoryRepositoryAdapter implements CategoryRepository {
 
   private static Category toDomain(CategoryJpaEntity entity) {
     return Category.reconstitute(
-        entity.getId(), entity.getName(), entity.getType(), entity.isBuiltIn());
+        entity.getId(),
+        entity.getName(),
+        entity.getType(),
+        entity.isBuiltIn(),
+        entity.isFuelCategory());
   }
 }
