@@ -3,6 +3,7 @@ package com.chm.myfinances.application.transaction;
 import com.chm.myfinances.application.account.AccountNotFoundException;
 import com.chm.myfinances.application.category.CategoryNotFoundException;
 import com.chm.myfinances.application.paymentmethod.PaymentMethodNotFoundException;
+import com.chm.myfinances.application.vehicle.VehicleNotFoundException;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
@@ -10,11 +11,14 @@ import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.shared.IdGenerator;
+import com.chm.myfinances.domain.transaction.FuelDetails;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionFilter;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
+import com.chm.myfinances.domain.vehicle.VehicleRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,11 +30,20 @@ import org.springframework.stereotype.Service;
  * category's own (immutable, F002) type - never accepted as caller input - so it can never drift
  * from the category it's denormalized from.
  *
- * <p>Coordinates across three other aggregates' repository ports (category, account, payment
- * method) to validate foreign references exist and, for account, is open - this is ordinary
+ * <p>Coordinates across four other aggregates' repository ports (category, account, payment method,
+ * vehicle) to validate foreign references exist and, for account, is open - this is ordinary
  * application-layer orchestration (ADR 0004), not a domain-layer dependency: {@code
  * domain/transaction} itself never imports {@code domain.account}/{@code domain.category} beyond
- * the shared {@code CategoryType} enum.
+ * the shared {@code CategoryType} enum, and never imports {@code domain.vehicle} at all.
+ *
+ * <p>F024 (ADR 0021) adds the fuel invariant, enforced here (not in {@code Transaction} itself,
+ * since it crosses into the {@code Category} aggregate) on every create/edit path: {@code
+ * fuelDetails} is present if and only if the target category is the dedicated fuel category ({@link
+ * FuelDetailsCategoryMismatchException}, 400 - a self-contained request-shape error, not a
+ * state-dependent one); when present, {@code fuelDetails.vehicleId} must reference an existing
+ * {@code Vehicle} (404). Applies uniformly to every {@code create}/{@code edit} overload, including
+ * the one {@code RecurringTemplateService} uses - a recurring template assigned the fuel category
+ * would need its own fuel-aware confirm flow to ever satisfy this, which is out of scope for F024.
  */
 @Service
 public class TransactionService {
@@ -39,6 +52,7 @@ public class TransactionService {
   private final CategoryRepository categoryRepository;
   private final AccountRepository accountRepository;
   private final PaymentMethodRepository paymentMethodRepository;
+  private final VehicleRepository vehicleRepository;
   private final IdGenerator idGenerator;
 
   public TransactionService(
@@ -46,11 +60,13 @@ public class TransactionService {
       CategoryRepository categoryRepository,
       AccountRepository accountRepository,
       PaymentMethodRepository paymentMethodRepository,
+      VehicleRepository vehicleRepository,
       IdGenerator idGenerator) {
     this.transactionRepository = transactionRepository;
     this.categoryRepository = categoryRepository;
     this.accountRepository = accountRepository;
     this.paymentMethodRepository = paymentMethodRepository;
+    this.vehicleRepository = vehicleRepository;
     this.idGenerator = idGenerator;
   }
 
@@ -71,7 +87,8 @@ public class TransactionService {
    * transaction originating from a confirmed F007 {@code PendingRecurringOccurrence} - {@code
    * recurringTemplateVersionId} links it back to the specific {@code RecurringTemplateVersion} that
    * generated it (F007 spec's confirm flow, PRD S5.7). {@code RecurringTemplateService} calls this
-   * overload instead of duplicating category/account/payment-method validation.
+   * overload instead of duplicating category/account/payment-method validation. Never carries fuel
+   * details.
    */
   public Transaction create(
       LocalDate date,
@@ -82,9 +99,36 @@ public class TransactionService {
       UUID recurringTemplateVersionId,
       String description,
       String additionalNotes) {
+    return create(
+        date,
+        amount,
+        categoryId,
+        accountId,
+        paymentMethodId,
+        recurringTemplateVersionId,
+        description,
+        additionalNotes,
+        null);
+  }
+
+  /**
+   * Full create, accepting optional {@code fuelDetails} (F024) - the overload {@code
+   * TransactionController} calls.
+   */
+  public Transaction create(
+      LocalDate date,
+      BigDecimal amount,
+      UUID categoryId,
+      UUID accountId,
+      UUID paymentMethodId,
+      UUID recurringTemplateVersionId,
+      String description,
+      String additionalNotes,
+      FuelDetails fuelDetails) {
     Category category = requireCategory(categoryId);
     Account account = requireOpenAccount(accountId);
     requirePaymentMethod(paymentMethodId);
+    requireValidFuelShape(category, fuelDetails);
 
     Transaction transaction =
         Transaction.create(
@@ -97,7 +141,8 @@ public class TransactionService {
             paymentMethodId,
             recurringTemplateVersionId,
             description,
-            additionalNotes);
+            additionalNotes,
+            fuelDetails);
     return transactionRepository.save(transaction);
   }
 
@@ -111,6 +156,15 @@ public class TransactionService {
     return transactionRepository.findAll(filter, pageable);
   }
 
+  /**
+   * Every fuel-purchase transaction for {@code vehicleId} within {@code from}/{@code to} (either
+   * may be {@code null} - unbounded), ordered by date - backs the Fuel page's per-vehicle history
+   * endpoint (F024 spec).
+   */
+  public List<Transaction> findFuelHistory(UUID vehicleId, LocalDate from, LocalDate to) {
+    return transactionRepository.findByVehicleId(vehicleId, from, to);
+  }
+
   public Transaction edit(
       UUID id,
       LocalDate date,
@@ -120,10 +174,34 @@ public class TransactionService {
       UUID paymentMethodId,
       String description,
       String additionalNotes) {
+    return edit(
+        id,
+        date,
+        amount,
+        categoryId,
+        accountId,
+        paymentMethodId,
+        description,
+        additionalNotes,
+        null);
+  }
+
+  /** Full-replace edit including {@code fuelDetails} (F024) - the overload the controller calls. */
+  public Transaction edit(
+      UUID id,
+      LocalDate date,
+      BigDecimal amount,
+      UUID categoryId,
+      UUID accountId,
+      UUID paymentMethodId,
+      String description,
+      String additionalNotes,
+      FuelDetails fuelDetails) {
     Transaction transaction = findById(id);
     Category category = requireCategory(categoryId);
     Account account = requireOpenAccount(accountId);
     requirePaymentMethod(paymentMethodId);
+    requireValidFuelShape(category, fuelDetails);
 
     transaction.edit(
         date,
@@ -133,7 +211,8 @@ public class TransactionService {
         account.getId(),
         paymentMethodId,
         description,
-        additionalNotes);
+        additionalNotes,
+        fuelDetails);
     return transactionRepository.save(transaction);
   }
 
@@ -174,5 +253,20 @@ public class TransactionService {
     }
     account.requireOpen();
     return account;
+  }
+
+  /**
+   * The F024 fuel invariant (see class javadoc): {@code fuelDetails} present iff {@code category}
+   * is the fuel category, and when present its {@code vehicleId} must resolve to an existing {@code
+   * Vehicle}.
+   */
+  private void requireValidFuelShape(Category category, FuelDetails fuelDetails) {
+    boolean hasFuelDetails = fuelDetails != null;
+    if (category.isFuelCategory() != hasFuelDetails) {
+      throw new FuelDetailsCategoryMismatchException();
+    }
+    if (hasFuelDetails && !vehicleRepository.existsById(fuelDetails.vehicleId())) {
+      throw new VehicleNotFoundException(fuelDetails.vehicleId());
+    }
   }
 }

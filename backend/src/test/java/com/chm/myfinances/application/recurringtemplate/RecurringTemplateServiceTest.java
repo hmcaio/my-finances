@@ -25,6 +25,7 @@ import com.chm.myfinances.testsupport.fakes.FakePendingRecurringOccurrenceReposi
 import com.chm.myfinances.testsupport.fakes.FakeRecurringTemplateRepository;
 import com.chm.myfinances.testsupport.fakes.FakeRecurringTemplateVersionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeTransactionRepository;
+import com.chm.myfinances.testsupport.fakes.FakeVehicleRepository;
 import com.chm.myfinances.testsupport.mothers.AccountMother;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -58,6 +59,7 @@ class RecurringTemplateServiceTest {
   private final FakePaymentMethodRepository paymentMethodRepository =
       new FakePaymentMethodRepository();
   private final FakeTransactionRepository transactionRepository = new FakeTransactionRepository();
+  private final FakeVehicleRepository vehicleRepository = new FakeVehicleRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
   private final TransactionService transactionService =
       new TransactionService(
@@ -65,6 +67,7 @@ class RecurringTemplateServiceTest {
           categoryRepository,
           accountRepository,
           paymentMethodRepository,
+          vehicleRepository,
           idGenerator);
   private final RecurringOccurrenceCatchUpService catchUpService =
       new RecurringOccurrenceCatchUpService(
