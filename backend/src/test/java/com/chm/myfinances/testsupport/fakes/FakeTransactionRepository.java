@@ -84,4 +84,21 @@ public final class FakeTransactionRepository extends InMemoryRepository<Transact
   public boolean existsByPaymentMethodId(UUID paymentMethodId) {
     return values().stream().anyMatch(t -> t.getPaymentMethodId().equals(paymentMethodId));
   }
+
+  @Override
+  public boolean existsByFuelDetailsVehicleId(UUID vehicleId) {
+    return values().stream()
+        .anyMatch(
+            t -> t.getFuelDetails() != null && t.getFuelDetails().vehicleId().equals(vehicleId));
+  }
+
+  @Override
+  public List<Transaction> findByVehicleId(UUID vehicleId, LocalDate from, LocalDate to) {
+    return values().stream()
+        .filter(t -> t.getFuelDetails() != null && t.getFuelDetails().vehicleId().equals(vehicleId))
+        .filter(t -> from == null || !t.getDate().isBefore(from))
+        .filter(t -> to == null || !t.getDate().isAfter(to))
+        .sorted(Comparator.comparing(Transaction::getDate))
+        .toList();
+  }
 }

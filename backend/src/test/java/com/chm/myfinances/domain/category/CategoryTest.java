@@ -103,8 +103,9 @@ class CategoryTest {
   void reconstitutePreservesTheBuiltInFlag() {
     UUID id = UUID.randomUUID();
 
-    Category builtIn = Category.reconstitute(id, "Other Expense", CategoryType.EXPENSE, true);
-    Category ordinary = Category.reconstitute(id, "Groceries", CategoryType.EXPENSE, false);
+    Category builtIn =
+        Category.reconstitute(id, "Other Expense", CategoryType.EXPENSE, true, false);
+    Category ordinary = Category.reconstitute(id, "Groceries", CategoryType.EXPENSE, false, false);
 
     assertThat(builtIn.isBuiltIn()).isTrue();
     assertThat(ordinary.isBuiltIn()).isFalse();
@@ -113,12 +114,43 @@ class CategoryTest {
   @Test
   void renameIsAllowedOnABuiltInCategoryAndKeepsTheFlagAndType() {
     Category category =
-        Category.reconstitute(UUID.randomUUID(), "Other Income", CategoryType.INCOME, true);
+        Category.reconstitute(UUID.randomUUID(), "Other Income", CategoryType.INCOME, true, false);
 
     category.rename("Sem categoria");
 
     assertThat(category.getName()).isEqualTo("Sem categoria");
     assertThat(category.isBuiltIn()).isTrue();
     assertThat(category.getType()).isEqualTo(CategoryType.INCOME);
+  }
+
+  // F024 (ADR 0021): a second, independent flag - at most one row, immutable after creation like
+  // builtIn. Whether rename/delete are blocked while it's set is a CategoryService concern (it's
+  // a cross-cutting, state-dependent business rule); this class only carries the flag.
+
+  @Test
+  void createAlwaysYieldsANonFuelCategory() {
+    Category category = Category.create(UUID.randomUUID(), "Groceries", CategoryType.EXPENSE);
+
+    assertThat(category.isFuelCategory()).isFalse();
+  }
+
+  @Test
+  void reconstitutePreservesTheFuelCategoryFlag() {
+    UUID id = UUID.randomUUID();
+
+    Category fuel = Category.reconstitute(id, "Fuel", CategoryType.EXPENSE, false, true);
+    Category ordinary = Category.reconstitute(id, "Groceries", CategoryType.EXPENSE, false, false);
+
+    assertThat(fuel.isFuelCategory()).isTrue();
+    assertThat(ordinary.isFuelCategory()).isFalse();
+  }
+
+  @Test
+  void builtInAndFuelCategoryFlagsAreIndependent() {
+    Category category =
+        Category.reconstitute(UUID.randomUUID(), "Fuel", CategoryType.EXPENSE, true, true);
+
+    assertThat(category.isBuiltIn()).isTrue();
+    assertThat(category.isFuelCategory()).isTrue();
   }
 }

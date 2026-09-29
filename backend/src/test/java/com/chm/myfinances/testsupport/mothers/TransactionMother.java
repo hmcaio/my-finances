@@ -1,6 +1,7 @@
 package com.chm.myfinances.testsupport.mothers;
 
 import com.chm.myfinances.domain.category.CategoryType;
+import com.chm.myfinances.domain.transaction.FuelDetails;
 import com.chm.myfinances.domain.transaction.Transaction;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -24,6 +25,7 @@ public final class TransactionMother {
   private UUID recurringTemplateVersionId = null;
   private String description = "Groceries";
   private String additionalNotes = null;
+  private FuelDetails fuelDetails = null;
 
   private TransactionMother() {}
 
@@ -85,6 +87,11 @@ public final class TransactionMother {
     return this;
   }
 
+  public TransactionMother withFuelDetails(FuelDetails fuelDetails) {
+    this.fuelDetails = fuelDetails;
+    return this;
+  }
+
   public Transaction build() {
     return Transaction.create(
         id,
@@ -96,6 +103,7 @@ public final class TransactionMother {
         paymentMethodId,
         recurringTemplateVersionId,
         description,
-        additionalNotes);
+        additionalNotes,
+        fuelDetails);
   }
 }

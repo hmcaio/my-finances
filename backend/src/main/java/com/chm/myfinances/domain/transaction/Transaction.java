@@ -32,6 +32,13 @@ import java.util.UUID;
  * fields, sharing the {@link TextFieldConstraints} convention used for taxonomy "name" fields
  * (F002/F003): a length check here, a matching {@code @Size} on the request DTOs, and a matching
  * {@code varchar(n)} column.
+ *
+ * <p>F024 (ADR 0021) makes a transaction able to carry fuel-purchase details: {@link
+ * #getFuelDetails()} is {@code null} for an ordinary transaction and non-null exactly when the
+ * transaction records a fuel purchase. Nothing here enforces that it lines up with the category
+ * being the dedicated fuel category - that cross-aggregate invariant is an application-layer
+ * concern ({@code TransactionService}), since this package never imports {@code domain.category}
+ * beyond the shared {@link CategoryType} enum, and never imports {@code domain.vehicle} at all.
  */
 public final class Transaction {
 
@@ -45,6 +52,7 @@ public final class Transaction {
   private final UUID recurringTemplateVersionId;
   private String description;
   private String additionalNotes;
+  private FuelDetails fuelDetails;
 
   private Transaction(
       UUID id,
@@ -56,7 +64,8 @@ public final class Transaction {
       UUID paymentMethodId,
       UUID recurringTemplateVersionId,
       String description,
-      String additionalNotes) {
+      String additionalNotes,
+      FuelDetails fuelDetails) {
     this.id = Objects.requireNonNull(id, "id must not be null");
     this.date = Objects.requireNonNull(date, "date must not be null");
     this.amount = requireValidAmount(amount);
@@ -68,9 +77,13 @@ public final class Transaction {
     this.recurringTemplateVersionId = recurringTemplateVersionId;
     this.description = requireValidDescription(description);
     this.additionalNotes = requireValidAdditionalNotes(additionalNotes);
+    this.fuelDetails = fuelDetails;
   }
 
-  /** Creates a brand-new Transaction. {@code id} must come from the {@code IdGenerator} port. */
+  /**
+   * Creates a brand-new Transaction with no fuel details. {@code id} must come from the {@code
+   * IdGenerator} port.
+   */
   public static Transaction create(
       UUID id,
       LocalDate date,
@@ -82,6 +95,36 @@ public final class Transaction {
       UUID recurringTemplateVersionId,
       String description,
       String additionalNotes) {
+    return create(
+        id,
+        date,
+        amount,
+        categoryId,
+        type,
+        accountId,
+        paymentMethodId,
+        recurringTemplateVersionId,
+        description,
+        additionalNotes,
+        null);
+  }
+
+  /**
+   * Creates a brand-new Transaction, optionally carrying fuel-purchase details (F024). {@code
+   * fuelDetails} may be {@code null} (not a fuel purchase).
+   */
+  public static Transaction create(
+      UUID id,
+      LocalDate date,
+      BigDecimal amount,
+      UUID categoryId,
+      CategoryType type,
+      UUID accountId,
+      UUID paymentMethodId,
+      UUID recurringTemplateVersionId,
+      String description,
+      String additionalNotes,
+      FuelDetails fuelDetails) {
     return new Transaction(
         id,
         date,
@@ -92,7 +135,8 @@ public final class Transaction {
         paymentMethodId,
         recurringTemplateVersionId,
         description,
-        additionalNotes);
+        additionalNotes,
+        fuelDetails);
   }
 
   /** Rebuilds a Transaction from already-validated persisted state. */
@@ -106,7 +150,8 @@ public final class Transaction {
       UUID paymentMethodId,
       UUID recurringTemplateVersionId,
       String description,
-      String additionalNotes) {
+      String additionalNotes,
+      FuelDetails fuelDetails) {
     return new Transaction(
         id,
         date,
@@ -117,13 +162,15 @@ public final class Transaction {
         paymentMethodId,
         recurringTemplateVersionId,
         description,
-        additionalNotes);
+        additionalNotes,
+        fuelDetails);
   }
 
   /**
    * Plain in-place edit of every field except {@code id} and {@code recurringTemplateVersionId}
-   * (F004 spec). {@code categoryId}/{@code type} are updated together - the caller (application
-   * layer) re-derives {@code type} from whatever category is being assigned, same as at creation.
+   * (F004 spec), clearing any fuel details. {@code categoryId}/{@code type} are updated together -
+   * the caller (application layer) re-derives {@code type} from whatever category is being
+   * assigned, same as at creation.
    */
   public void edit(
       LocalDate date,
@@ -134,6 +181,33 @@ public final class Transaction {
       UUID paymentMethodId,
       String description,
       String additionalNotes) {
+    edit(
+        date,
+        amount,
+        categoryId,
+        type,
+        accountId,
+        paymentMethodId,
+        description,
+        additionalNotes,
+        null);
+  }
+
+  /**
+   * Full-replace edit including fuel details (F024) - same "every field required, this one
+   * optional" shape as {@code Transfer.edit}. Passing {@code null} for {@code fuelDetails} clears
+   * any previously recorded fuel purchase.
+   */
+  public void edit(
+      LocalDate date,
+      BigDecimal amount,
+      UUID categoryId,
+      CategoryType type,
+      UUID accountId,
+      UUID paymentMethodId,
+      String description,
+      String additionalNotes,
+      FuelDetails fuelDetails) {
     this.date = Objects.requireNonNull(date, "date must not be null");
     this.amount = requireValidAmount(amount);
     this.categoryId = Objects.requireNonNull(categoryId, "categoryId must not be null");
@@ -143,6 +217,7 @@ public final class Transaction {
         Objects.requireNonNull(paymentMethodId, "paymentMethodId must not be null");
     this.description = requireValidDescription(description);
     this.additionalNotes = requireValidAdditionalNotes(additionalNotes);
+    this.fuelDetails = fuelDetails;
   }
 
   private static BigDecimal requireValidAmount(BigDecimal value) {
@@ -214,5 +289,10 @@ public final class Transaction {
 
   public String getAdditionalNotes() {
     return additionalNotes;
+  }
+
+  /** Fuel-purchase details (F024), or {@code null} for an ordinary (non-fuel) transaction. */
+  public FuelDetails getFuelDetails() {
+    return fuelDetails;
   }
 }
