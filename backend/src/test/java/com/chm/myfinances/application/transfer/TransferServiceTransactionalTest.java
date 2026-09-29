@@ -5,31 +5,25 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.willThrow;
 
-import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
-import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
-import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshotRepository;
 import com.chm.myfinances.domain.transfer.TransferFilter;
 import com.chm.myfinances.domain.transfer.TransferRepository;
+import com.chm.myfinances.testsupport.AbstractTransactionalBoundaryTest;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 /**
  * End-to-end proof (real Spring context + Testcontainers Postgres, ADR 0010) that {@link
@@ -42,10 +36,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
  * account/product fixtures stay behind (no delete port), so they get unique names; the transfer is
  * the very thing expected to be rolled back, so nothing else needs cleaning up.
  */
-@Tag("integration")
-@SpringBootTest
-@Import(TestcontainersConfiguration.class)
-class TransferServiceTransactionalTest {
+class TransferServiceTransactionalTest extends AbstractTransactionalBoundaryTest {
 
   @Autowired private TransferService transferService;
   @Autowired private TransferRepository transferRepository;
@@ -53,9 +44,6 @@ class TransferServiceTransactionalTest {
   @Autowired private InstitutionRepository institutionRepository;
   @Autowired private InvestmentCategoryRepository categoryRepository;
   @Autowired private InvestmentProductRepository productRepository;
-  @Autowired private InvestmentHoldingRepository holdingRepository;
-
-  @MockitoSpyBean private InvestmentSnapshotRepository snapshotRepository;
 
   @Test
   void createRollsBackTheTransferWhenTheResultingBalanceSnapshotFails() {

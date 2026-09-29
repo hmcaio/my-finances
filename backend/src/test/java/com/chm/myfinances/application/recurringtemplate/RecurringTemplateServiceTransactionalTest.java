@@ -6,7 +6,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.reset;
 
-import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.category.CategoryRepository;
@@ -14,23 +13,18 @@ import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrence;
-import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrenceRepository;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateRepository;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersion;
-import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersionRepository;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
+import com.chm.myfinances.testsupport.AbstractTransactionalBoundaryTest;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.UUID;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 /**
  * End-to-end proof (real Spring context + Testcontainers Postgres, ADR 0010) that {@link
@@ -58,10 +52,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
  * deleteById}/{@code deleteByTemplateId} it did NOT stub to throw (stubbing the other one would
  * make cleanup itself fail).
  */
-@Tag("integration")
-@SpringBootTest
-@Import(TestcontainersConfiguration.class)
-class RecurringTemplateServiceTransactionalTest {
+class RecurringTemplateServiceTransactionalTest extends AbstractTransactionalBoundaryTest {
 
   @Autowired private InstitutionRepository institutionRepository;
   @Autowired private RecurringTemplateService service;
@@ -70,9 +61,6 @@ class RecurringTemplateServiceTransactionalTest {
   @Autowired private PaymentMethodRepository paymentMethodRepository;
   @Autowired private RecurringTemplateRepository templateRepository;
   @Autowired private TransactionRepository transactionRepository;
-
-  @MockitoSpyBean private PendingRecurringOccurrenceRepository pendingRepository;
-  @MockitoSpyBean private RecurringTemplateVersionRepository versionRepository;
 
   @Test
   void createRollsBackTheTemplateWhenSavingItsFirstVersionFails() {

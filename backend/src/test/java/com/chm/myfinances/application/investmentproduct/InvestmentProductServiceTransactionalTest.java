@@ -5,21 +5,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.willThrow;
 
-import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
-import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
+import com.chm.myfinances.testsupport.AbstractTransactionalBoundaryTest;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 /**
  * End-to-end proof (real Spring context + Testcontainers Postgres, ADR 0010) that {@link
@@ -32,18 +27,13 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
  * account fixture stays behind (no delete port), so it gets a unique name; the product is the very
  * thing expected to be rolled back, so nothing else needs cleaning up.
  */
-@Tag("integration")
-@SpringBootTest
-@Import(TestcontainersConfiguration.class)
-class InvestmentProductServiceTransactionalTest {
+class InvestmentProductServiceTransactionalTest extends AbstractTransactionalBoundaryTest {
 
   @Autowired private InvestmentProductService productService;
   @Autowired private InvestmentProductRepository productRepository;
   @Autowired private AccountRepository accountRepository;
   @Autowired private InstitutionRepository institutionRepository;
   @Autowired private InvestmentCategoryRepository categoryRepository;
-
-  @MockitoSpyBean private InvestmentHoldingRepository holdingRepository;
 
   @Test
   void createRollsBackTheProductWhenTheFirstHoldingWriteFails() {

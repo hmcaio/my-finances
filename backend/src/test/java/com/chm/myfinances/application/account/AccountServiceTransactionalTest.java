@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.reset;
 
-import com.chm.myfinances.TestcontainersConfiguration;
 import com.chm.myfinances.application.recurringtemplate.RecurringTemplateService;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountType;
@@ -13,22 +12,17 @@ import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrence;
-import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrenceRepository;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersion;
-import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersionRepository;
+import com.chm.myfinances.testsupport.AbstractTransactionalBoundaryTest;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import com.chm.myfinances.testsupport.mothers.TestInstitutions;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.UUID;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 /**
  * End-to-end proof (real Spring context + Testcontainers Postgres, ADR 0010) that {@link
@@ -46,18 +40,12 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
  * in place (no delete port exists for any of them); the {@link PendingRecurringOccurrence} row is
  * cleaned up manually since this class opts out of the rollback-per-test convention.
  */
-@Tag("integration")
-@SpringBootTest
-@Import(TestcontainersConfiguration.class)
-class AccountServiceTransactionalTest {
+class AccountServiceTransactionalTest extends AbstractTransactionalBoundaryTest {
 
   @Autowired private InstitutionRepository institutionRepository;
   @Autowired private AccountService accountService;
   @Autowired private RecurringTemplateService recurringTemplateService;
   @Autowired private CategoryRepository categoryRepository;
-  @Autowired private RecurringTemplateVersionRepository versionRepository;
-
-  @MockitoSpyBean private PendingRecurringOccurrenceRepository pendingRepository;
 
   @Test
   void closeRollsBackWhenDeactivatingADependentTemplateFails() {
