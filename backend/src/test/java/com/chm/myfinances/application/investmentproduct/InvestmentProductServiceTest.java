@@ -457,6 +457,30 @@ class InvestmentProductServiceTest {
   }
 
   @Test
+  void aProductHeldAtTwoAccountsAppearsExactlyOnceInTheUnfilteredListAndUnderBothAccountFilters() {
+    InvestmentProduct product =
+        service.create(xpAccountId, cryptoId, null, "Multi-holding Test", null);
+    holdingService.create(product.getId(), nuAccountId, null);
+
+    Page<InvestmentProduct> all =
+        service.findAll(
+            new InvestmentProductFilter(null, null, null, null, InvestmentProductStatus.ALL),
+            Pageable.unpaged());
+    assertThat(all.getContent()).filteredOn(p -> p.getId().equals(product.getId())).hasSize(1);
+
+    Page<InvestmentProduct> atXp =
+        service.findAll(
+            new InvestmentProductFilter(null, null, xpAccountId, null, InvestmentProductStatus.ALL),
+            Pageable.unpaged());
+    Page<InvestmentProduct> atNu =
+        service.findAll(
+            new InvestmentProductFilter(null, null, nuAccountId, null, InvestmentProductStatus.ALL),
+            Pageable.unpaged());
+    assertThat(atXp.getContent()).extracting(InvestmentProduct::getId).contains(product.getId());
+    assertThat(atNu.getContent()).extracting(InvestmentProduct::getId).contains(product.getId());
+  }
+
+  @Test
   void findAllPaginatesTheFilteredResultsSortedByName() {
     service.create(xpAccountId, cryptoId, null, "Alpha Page Test", null);
     service.create(xpAccountId, cryptoId, null, "Bravo Page Test", null);
