@@ -88,6 +88,29 @@ describe('FuelPage', () => {
     expect(within(table).getByText('10.00')).toBeInTheDocument()
   })
 
+  it('draws a separate price-per-liter line per fuel type used, with a legend', async () => {
+    useCategoriesWithFuel()
+    server.use(
+      http.get('/api/vehicles/:id/fuel-history', ({ params }) => {
+        if (params.id !== seedCivicVehicle.id) return HttpResponse.json([])
+        return HttpResponse.json([
+          fuelTransaction({ id: 'fuel-etanol', date: '2026-01-01', fuelType: 'ETANOL' }),
+          fuelTransaction({ id: 'fuel-gasolina', date: '2026-01-10', fuelType: 'GASOLINA' }),
+        ])
+      }),
+    )
+    renderWithRouter(<FuelPage />)
+
+    const priceChart = await screen.findByRole('img', { name: 'Price per liter by fuel type' })
+    // One <path> per series (Etanol, Gasolina) drawing the line, plus the legend caption for
+    // each - scoped to the chart's own Paper section, since the list below also says "Etanol"/
+    // "Gasolina" in its Fuel Type column.
+    expect(priceChart.querySelectorAll('path')).toHaveLength(2)
+    const chartSection = priceChart.closest('.MuiPaper-root') as HTMLElement
+    expect(within(chartSection).getByText(/Etanol/)).toBeInTheDocument()
+    expect(within(chartSection).getByText(/Gasolina/)).toBeInTheDocument()
+  })
+
   it("switches vehicles and refetches that vehicle's history", async () => {
     useCategoriesWithFuel()
     server.use(
