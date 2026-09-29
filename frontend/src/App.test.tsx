@@ -26,7 +26,6 @@ describe('App', () => {
 
   it('renders the nav on the dashboard and navigates to another page on a link click', async () => {
     stubMatchMedia()
-    // The default `GET /api/health` handler already answers UP - no override needed.
     const user = userEvent.setup()
     renderWithQueryClient(<App />)
 

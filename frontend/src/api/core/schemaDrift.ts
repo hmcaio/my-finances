@@ -34,9 +34,8 @@ import type { Transfer, TransferPage } from '../transfers/transfers'
  * generated `T | undefined` to `T` (and add `| null`). If a check fails, regenerate the schema
  * (`npm run generate-api-types`) and update the interface.
  *
- * Deliberately not covered: `HealthResponse` (the health endpoint isn't in the OpenAPI schema),
- * `TransactionFilter`/`TransferFilter` (query params, not a response schema) and the request types
- * (already aliases of the generated ones).
+ * Deliberately not covered: `TransactionFilter`/`TransferFilter` (query params, not a response
+ * schema) and the request types (already aliases of the generated ones).
  */
 
 type Assert<T extends true> = T
