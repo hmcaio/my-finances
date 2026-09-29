@@ -9,7 +9,7 @@ import type {
 } from '../investments/investmentCategories'
 import type { AllocationRow } from '../investments/investmentAllocation'
 import type { InvestmentHolding } from '../investments/investmentHoldings'
-import type { InvestmentProduct } from '../investments/investmentProducts'
+import type { InvestmentProduct, InvestmentProductPage } from '../investments/investmentProducts'
 import type { InvestmentSnapshot } from '../investments/investmentSnapshots'
 import type { InvestmentSubcategory } from '../investments/investmentSubcategories'
 import type { ProductValueSeries, ValueSeriesPoint } from '../investments/investmentValueSeries'
@@ -63,6 +63,9 @@ export type InvestmentSubcategoryEntryKeys = Assert<
 >
 export type InvestmentProductKeys = Assert<
   SameKeys<InvestmentProduct, Schemas['InvestmentProductResponse']>
+>
+export type InvestmentProductPageKeys = Assert<
+  SameKeys<InvestmentProductPage, Schemas['PagedModelInvestmentProductResponse']>
 >
 export type InvestmentHoldingKeys = Assert<
   SameKeys<InvestmentHolding, Schemas['InvestmentHoldingResponse']>

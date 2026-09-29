@@ -6,10 +6,11 @@ import { createStore } from '../store'
 
 /**
  * Seed data returned by the default `GET /api/investment-products` handler below (F022 spec: pure
- * taxonomy). "Tesouro Selic 2029" has a holding with no history (deletable), "Bitcoin" has a
- * holding with some (`hasHistory`, close-only) and `needsSnapshot` (a buy newer than its latest
- * snapshot, see `seedBitcoinBuyTransfer`), and "Old CDB" has a closed holding - see
- * `seedInvestmentHoldings` in `investmentHoldings.ts` for the per-account details.
+ * taxonomy; `closed` added by F023). "Tesouro Selic 2029" has a holding with no history
+ * (deletable), "Bitcoin" has a holding with some (`hasHistory`, close-only) and `needsSnapshot` (a
+ * buy newer than its latest snapshot, see `seedBitcoinBuyTransfer`), and "Old CDB" has a closed
+ * holding (so it's the only one of the three with `closed: true`) - see `seedInvestmentHoldings` in
+ * `investmentHoldings.ts` for the per-account details.
  */
 export const seedInvestmentProducts: InvestmentProduct[] = [
   {
@@ -18,6 +19,7 @@ export const seedInvestmentProducts: InvestmentProduct[] = [
     investmentSubcategoryId: 'isub-selic',
     name: 'Tesouro Selic 2029',
     additionalNotes: null,
+    closed: false,
   },
   {
     id: 'iprod-btc',
@@ -25,6 +27,7 @@ export const seedInvestmentProducts: InvestmentProduct[] = [
     investmentSubcategoryId: null,
     name: 'Bitcoin',
     additionalNotes: null,
+    closed: false,
   },
   {
     id: 'iprod-old',
@@ -32,6 +35,7 @@ export const seedInvestmentProducts: InvestmentProduct[] = [
     investmentSubcategoryId: 'isub-cdb',
     name: 'Old CDB',
     additionalNotes: null,
+    closed: true,
   },
 ]
 
@@ -50,17 +54,69 @@ export const investmentProductsStore = createStore(seedInvestmentProducts)
 const products = investmentProductsStore
 
 /**
- * Default success-path handlers for the investment products endpoints (F022 spec: pure taxonomy),
- * backed by an in-memory store restored after each test (see `categories.ts`). Create is a
- * two-write use case like the real backend: it also creates the product's first holding.
+ * `closed` (F023) is derived from the product's holdings, never trusted from the stored row - a
+ * holding can close/reopen through other handlers (`investmentHoldings.ts`), so it's recomputed on
+ * every response, the same "computed on read" the real backend does.
+ */
+function withClosed(product: InvestmentProduct): InvestmentProduct {
+  const holdings = investmentHoldingsStore.list().filter((h) => h.productId === product.id)
+  const closed = holdings.length === 0 || holdings.every((h) => h.closed)
+  return { ...product, closed }
+}
+
+/**
+ * Default success-path handlers for the investment products endpoints (F022 spec: pure taxonomy;
+ * F023 added filtering/pagination and the derived `closed` field), backed by an in-memory store
+ * restored after each test (see `categories.ts`). Create is a two-write use case like the real
+ * backend: it also creates the product's first holding. Applies the same filter dimensions and
+ * pagination defaults (page 0, size 20) as the real backend, so `InvestmentProductsListSection`'s
+ * filter/pagination UI has real behavior to test against without a database.
  */
 export const investmentProductsHandlers = [
-  http.get(PRODUCTS_URL, () => HttpResponse.json(products.list())),
+  http.get(PRODUCTS_URL, ({ request }) => {
+    const url = new URL(request.url)
+    const categoryId = url.searchParams.get('categoryId')
+    const subcategoryId = url.searchParams.get('subcategoryId')
+    const accountId = url.searchParams.get('accountId')
+    const name = url.searchParams.get('name')
+    const status = url.searchParams.get('status') ?? 'OPEN'
+    const page = Number(url.searchParams.get('page') ?? '0')
+    const size = Number(url.searchParams.get('size') ?? '20')
+
+    const filtered = products
+      .list()
+      .map(withClosed)
+      .filter((p) => !categoryId || p.investmentCategoryId === categoryId)
+      .filter((p) => !subcategoryId || p.investmentSubcategoryId === subcategoryId)
+      .filter(
+        (p) =>
+          !accountId ||
+          investmentHoldingsStore
+            .list()
+            .some((h) => h.productId === p.id && h.accountId === accountId),
+      )
+      .filter((p) => !name || p.name.toLowerCase().includes(name.toLowerCase()))
+      .filter((p) => status === 'ALL' || (status === 'CLOSED' ? p.closed : !p.closed))
+      .sort((a, b) => a.name.localeCompare(b.name))
+
+    const start = page * size
+    const content = filtered.slice(start, start + size)
+
+    return HttpResponse.json({
+      content,
+      page: {
+        size,
+        number: page,
+        totalElements: filtered.length,
+        totalPages: Math.max(1, Math.ceil(filtered.length / size)),
+      },
+    })
+  }),
 
   http.get(`${PRODUCTS_URL}/:id`, ({ params }) => {
     const product = products.find(params.id as string)
     if (!product) return new HttpResponse(null, { status: 404 })
-    return HttpResponse.json(product)
+    return HttpResponse.json(withClosed(product))
   }),
 
   http.post(PRODUCTS_URL, async ({ request }) => {
@@ -71,6 +127,7 @@ export const investmentProductsHandlers = [
       investmentSubcategoryId: body.investmentSubcategoryId ?? null,
       name: body.name,
       additionalNotes: body.additionalNotes ?? null,
+      closed: false,
     })
     const holding: InvestmentHolding = {
       id: investmentHoldingsStore.nextId('iholding'),
@@ -84,7 +141,7 @@ export const investmentProductsHandlers = [
       latestSnapshot: null,
     }
     investmentHoldingsStore.add(holding)
-    return HttpResponse.json(created, { status: 201 })
+    return HttpResponse.json(withClosed(created), { status: 201 })
   }),
 
   http.patch(`${PRODUCTS_URL}/:id`, async ({ request, params }) => {
@@ -96,7 +153,9 @@ export const investmentProductsHandlers = [
       name: body.name,
       additionalNotes: body.additionalNotes ?? null,
     }))
-    return updated ? HttpResponse.json(updated) : new HttpResponse(null, { status: 404 })
+    return updated
+      ? HttpResponse.json(withClosed(updated))
+      : new HttpResponse(null, { status: 404 })
   }),
 
   http.delete(`${PRODUCTS_URL}/:id`, ({ params }) => {

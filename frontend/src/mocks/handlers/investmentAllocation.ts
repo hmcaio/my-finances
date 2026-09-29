@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw'
 import type { AllocationRow } from '../../api/investments/investmentAllocation'
+import { seedInvestmentAccount } from './accounts'
 
 /**
  * Seed rows of `GET /api/investments/allocation?groupBy=CATEGORY`: Fixed Income (stale - a trade
@@ -11,6 +12,8 @@ export const seedAllocationByCategory: AllocationRow[] = [
     categoryName: 'Crypto',
     subcategoryId: null,
     subcategoryName: null,
+    accountId: null,
+    accountName: null,
     totalValue: 900,
     needsSnapshot: false,
   },
@@ -19,6 +22,8 @@ export const seedAllocationByCategory: AllocationRow[] = [
     categoryName: 'Fixed Income',
     subcategoryId: null,
     subcategoryName: null,
+    accountId: null,
+    accountName: null,
     totalValue: 3000,
     needsSnapshot: true,
   },
@@ -34,6 +39,8 @@ export const seedAllocationBySubcategory: AllocationRow[] = [
     categoryName: 'Crypto',
     subcategoryId: null,
     subcategoryName: null,
+    accountId: null,
+    accountName: null,
     totalValue: 900,
     needsSnapshot: false,
   },
@@ -42,6 +49,8 @@ export const seedAllocationBySubcategory: AllocationRow[] = [
     categoryName: 'Fixed Income',
     subcategoryId: 'isub-cdb',
     subcategoryName: 'CDB',
+    accountId: null,
+    accountName: null,
     totalValue: 1000,
     needsSnapshot: true,
   },
@@ -50,16 +59,35 @@ export const seedAllocationBySubcategory: AllocationRow[] = [
     categoryName: 'Fixed Income',
     subcategoryId: 'isub-selic',
     subcategoryName: 'Tesouro Selic',
+    accountId: null,
+    accountName: null,
     totalValue: 2000,
     needsSnapshot: false,
+  },
+]
+
+/**
+ * The same portfolio with `groupBy=ACCOUNT` (F023): every holding lives in the one seeded
+ * INVESTMENT account, so its total is the same 3900 the category/sub-category rows sum to.
+ */
+export const seedAllocationByAccount: AllocationRow[] = [
+  {
+    categoryId: null,
+    categoryName: null,
+    subcategoryId: null,
+    subcategoryName: null,
+    accountId: seedInvestmentAccount.id,
+    accountName: seedInvestmentAccount.name,
+    totalValue: 3900,
+    needsSnapshot: true,
   },
 ]
 
 export const investmentAllocationHandlers = [
   http.get('/api/investments/allocation', ({ request }) => {
     const groupBy = new URL(request.url).searchParams.get('groupBy') ?? 'CATEGORY'
-    return HttpResponse.json(
-      groupBy === 'SUBCATEGORY' ? seedAllocationBySubcategory : seedAllocationByCategory,
-    )
+    if (groupBy === 'SUBCATEGORY') return HttpResponse.json(seedAllocationBySubcategory)
+    if (groupBy === 'ACCOUNT') return HttpResponse.json(seedAllocationByAccount)
+    return HttpResponse.json(seedAllocationByCategory)
   }),
 ]

@@ -5,13 +5,13 @@
 ## Backend
 - [x] Write tests for the allocation `groupBy=ACCOUNT` grouping (sum by account, stale flag, omission rule), then implement.
 - [x] Write tests for the paginated/filtered product list query (each filter alone and combined, default status `OPEN`, derived status correctness), then implement; wire the controller to `PagedModel`.
-- [ ] Controller tests for the extended allocation endpoint and the new list query params; regenerate `frontend/src/api/generated/schema.ts`.
+- [x] Controller tests for the extended allocation endpoint and the new list query params; regenerate `frontend/src/api/generated/schema.ts`.
 
 ## Frontend
-- [ ] `InvestmentSubcategoryAllocationChart` (flat, %-of-total, no drill-down) and `InvestmentAccountAllocationChart`; lay out the three-chart row on `InvestmentsPage`.
-- [ ] Add the "Accounts"/"Products" tabs; move today's accounts table under "Accounts" unchanged.
-- [ ] New products list under "Products": `ResponsiveTable` + `ResponsiveFilterBar` + `PaginationControls`, filters wired to the new query params, row click → product detail page.
-- [ ] `src/api/investmentAllocation.ts`/`investmentProducts.ts` updates + MSW handlers.
+- [x] `InvestmentSubcategoryAllocationChart` (flat, %-of-total, no drill-down) and `InvestmentAccountAllocationChart`; lay out the three-chart row on `InvestmentsPage`.
+- [x] Add the "Accounts"/"Products" tabs; move today's accounts table under "Accounts" unchanged.
+- [x] New products list under "Products": `ResponsiveTable` + `ResponsiveFilterBar` + `PaginationControls`, filters wired to the new query params, row click → product detail page.
+- [x] `src/api/investments/investmentAllocation.ts`/`investmentProducts.ts` updates + MSW handlers.
 - [ ] Playwright geometry checks for the new three-chart row and tabs at mobile/tablet/desktop widths.
 
 ## Verification

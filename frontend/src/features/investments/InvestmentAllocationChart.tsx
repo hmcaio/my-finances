@@ -103,7 +103,9 @@ export function InvestmentAllocationChart() {
         : (byCategory ?? [])
     return rows.map((row, index) => ({
       key: `${row.categoryId}/${row.subcategoryId ?? ''}`,
-      label: drilledCategory ? (row.subcategoryName ?? 'No sub-category') : row.categoryName,
+      label: drilledCategory
+        ? (row.subcategoryName ?? 'No sub-category')
+        : (row.categoryName ?? ''),
       value: row.totalValue,
       needsSnapshot: row.needsSnapshot,
       color: SLICE_COLORS[index % SLICE_COLORS.length],
