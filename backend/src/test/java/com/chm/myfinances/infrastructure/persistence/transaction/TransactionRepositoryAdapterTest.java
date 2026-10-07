@@ -285,4 +285,67 @@ class TransactionRepositoryAdapterTest {
 
     assertThat(page.getTotalElements()).isGreaterThanOrEqualTo(2);
   }
+
+  @Test
+  void sumAmountByCategoryAndDateRangeSumsOnlyMatchingCategoryWithinRange() {
+    transactionRepository.save(newTransaction(LocalDate.of(2026, 2, 1), new BigDecimal("10.00")));
+    transactionRepository.save(newTransaction(LocalDate.of(2026, 2, 28), new BigDecimal("5.00")));
+    // Out of range, wrong category, and no transactions at all for a fresh category - all must
+    // not contribute to the sum.
+    transactionRepository.save(newTransaction(LocalDate.of(2026, 3, 1), new BigDecimal("99.00")));
+    transactionRepository.save(
+        newTransaction(
+            LocalDate.of(2026, 2, 15),
+            new BigDecimal("77.00"),
+            otherCategoryId,
+            CategoryType.INCOME,
+            accountId,
+            paymentMethodId));
+
+    assertThat(
+            transactionRepository.sumAmountByCategoryAndDateRange(
+                categoryId, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 2, 28)))
+        .isEqualByComparingTo("15.00");
+    assertThat(
+            transactionRepository.sumAmountByCategoryAndDateRange(
+                persistCategory("Untouched Category", CategoryType.EXPENSE).getId(),
+                LocalDate.of(2026, 2, 1),
+                LocalDate.of(2026, 2, 28)))
+        .isEqualByComparingTo(BigDecimal.ZERO);
+  }
+
+  @Test
+  void sumExpenseAmountByCategoryForDateRangeGroupsByCategoryAndExcludesIncome() {
+    UUID expenseCategory2 = persistCategory("Transport Test", CategoryType.EXPENSE).getId();
+    transactionRepository.save(newTransaction(LocalDate.of(2026, 4, 1), new BigDecimal("10.00")));
+    transactionRepository.save(newTransaction(LocalDate.of(2026, 4, 2), new BigDecimal("3.50")));
+    transactionRepository.save(
+        newTransaction(
+            LocalDate.of(2026, 4, 3),
+            new BigDecimal("20.00"),
+            expenseCategory2,
+            CategoryType.EXPENSE,
+            accountId,
+            paymentMethodId));
+    transactionRepository.save(
+        newTransaction(
+            LocalDate.of(2026, 4, 4),
+            new BigDecimal("500.00"),
+            otherCategoryId,
+            CategoryType.INCOME,
+            accountId,
+            paymentMethodId));
+    // Outside the range - must not affect the totals.
+    transactionRepository.save(newTransaction(LocalDate.of(2026, 5, 1), new BigDecimal("999.00")));
+
+    var totals =
+        transactionRepository.sumExpenseAmountByCategoryForDateRange(
+            LocalDate.of(2026, 4, 1), LocalDate.of(2026, 4, 30));
+
+    // Scale-tolerant (isEqualByComparingTo), since SUM(numeric) in Postgres may not come back at
+    // exactly the same scale as the stored column - containsEntry's Map.equals would be brittle.
+    assertThat(totals).hasSize(2).doesNotContainKey(otherCategoryId);
+    assertThat(totals.get(categoryId)).isEqualByComparingTo("13.50");
+    assertThat(totals.get(expenseCategory2)).isEqualByComparingTo("20.00");
+  }
 }

@@ -78,7 +78,7 @@ services:
     container_name: my-finances-frontend-prod
     restart: unless-stopped
     ports:
-      - "${FRONTEND_PORT:-8081}:80"
+      - "127.0.0.1:${FRONTEND_PORT:-8081}:80"
     logging: *default-logging
     depends_on:
       backend:

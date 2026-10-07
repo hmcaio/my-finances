@@ -1,12 +1,16 @@
 package com.chm.myfinances.testsupport.fakes;
 
+import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionFilter;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -100,5 +104,26 @@ public final class FakeTransactionRepository extends InMemoryRepository<Transact
         .filter(t -> to == null || !t.getDate().isAfter(to))
         .sorted(Comparator.comparing(Transaction::getDate))
         .toList();
+  }
+
+  @Override
+  public BigDecimal sumAmountByCategoryAndDateRange(UUID categoryId, LocalDate from, LocalDate to) {
+    return values().stream()
+        .filter(t -> t.getCategoryId().equals(categoryId))
+        .filter(t -> !t.getDate().isBefore(from) && !t.getDate().isAfter(to))
+        .map(Transaction::getAmount)
+        .reduce(BigDecimal.ZERO, BigDecimal::add);
+  }
+
+  @Override
+  public Map<UUID, BigDecimal> sumExpenseAmountByCategoryForDateRange(
+      LocalDate from, LocalDate to) {
+    return values().stream()
+        .filter(t -> t.getType() == CategoryType.EXPENSE)
+        .filter(t -> !t.getDate().isBefore(from) && !t.getDate().isAfter(to))
+        .collect(
+            Collectors.groupingBy(
+                Transaction::getCategoryId,
+                Collectors.reducing(BigDecimal.ZERO, Transaction::getAmount, BigDecimal::add)));
   }
 }

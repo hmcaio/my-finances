@@ -208,6 +208,7 @@ export function FuelPage() {
               formatValue={(v) => v.toFixed(2)}
               axisColor={theme.palette.text.secondary}
               gridColor={theme.palette.divider}
+              zeroBaseline={false}
             />
           </Paper>
 
@@ -221,6 +222,7 @@ export function FuelPage() {
               formatValue={(v) => v.toFixed(1)}
               axisColor={theme.palette.text.secondary}
               gridColor={theme.palette.divider}
+              zeroBaseline={false}
             />
           </Paper>
 
@@ -234,6 +236,7 @@ export function FuelPage() {
               formatValue={(v) => v.toFixed(2)}
               axisColor={theme.palette.text.secondary}
               gridColor={theme.palette.divider}
+              zeroBaseline={false}
             />
           </Paper>
 
