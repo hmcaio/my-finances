@@ -3,8 +3,6 @@ package com.chm.myfinances.application.budget;
 import com.chm.myfinances.domain.budget.Budget;
 import com.chm.myfinances.domain.budget.BudgetRepository;
 import com.chm.myfinances.domain.budget.BudgetVersion;
-import com.chm.myfinances.domain.transaction.Transaction;
-import com.chm.myfinances.domain.transaction.TransactionFilter;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -12,17 +10,17 @@ import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 /**
  * Computes budget-vs-actual for every budgeted category for a given month (F006 spec's {@code GET
  * /api/budgets/report?month=YYYY-MM}, PRD S5.6): {@code cap} is whichever {@link BudgetVersion}
- * {@link BudgetCapQuery} resolves as effective for that month, {@code actual} is summed from F004's
- * {@link TransactionRepository} across all accounts for that category/month. Same application-layer
- * "query object for a computed-not-stored value" convention as F003's {@code AccountBalanceQuery}
- * and this feature's own {@link BudgetCapQuery}.
+ * {@link BudgetCapQuery} resolves as effective for that month, {@code actual} is summed at the
+ * persistence layer by F004's {@link TransactionRepository#sumAmountByCategoryAndDateRange} across
+ * all accounts for that category/month - one aggregate query per budget rather than loading every
+ * matching transaction into memory. Same application-layer "query object for a computed-not-stored
+ * value" convention as F003's {@code AccountBalanceQuery} and this feature's own {@code
+ * BudgetCapQuery}.
  */
 @Service
 public class BudgetReportQuery {
@@ -63,17 +61,11 @@ public class BudgetReportQuery {
   /**
    * Sums every transaction in {@code categoryId} within {@code month}, across all accounts (PRD
    * S5.6: "actual for a given month = sum of expense transactions in that category within the
-   * month, across all accounts"). Reuses F004's existing {@code TransactionRepository.findAll} with
-   * an unpaged {@link Pageable} rather than adding a new port method - {@link TransactionFilter}
-   * already has every dimension this needs (category + date range).
+   * month, across all accounts").
    */
   private BigDecimal sumActualExpenses(UUID categoryId, YearMonth month) {
     LocalDate from = month.atDay(1);
     LocalDate to = month.atEndOfMonth();
-    TransactionFilter filter = new TransactionFilter(from, to, categoryId, null, null);
-    Page<Transaction> transactions = transactionRepository.findAll(filter, Pageable.unpaged());
-    return transactions.getContent().stream()
-        .map(Transaction::getAmount)
-        .reduce(BigDecimal.ZERO, BigDecimal::add);
+    return transactionRepository.sumAmountByCategoryAndDateRange(categoryId, from, to);
   }
 }

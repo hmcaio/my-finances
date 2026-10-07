@@ -1,5 +1,6 @@
 package com.chm.myfinances.infrastructure.persistence.transaction;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -34,4 +35,19 @@ interface TransactionJpaRepository
   boolean existsByAccountId(UUID accountId);
 
   boolean existsByVehicleId(UUID vehicleId);
+
+  @Query(
+      "select coalesce(sum(t.amount), 0) from TransactionJpaEntity t "
+          + "where t.categoryId = :categoryId and t.date >= :from and t.date <= :to")
+  BigDecimal sumAmountByCategoryAndDateRange(
+      @Param("categoryId") UUID categoryId,
+      @Param("from") LocalDate from,
+      @Param("to") LocalDate to);
+
+  @Query(
+      "select t.categoryId as categoryId, sum(t.amount) as total from TransactionJpaEntity t "
+          + "where t.type = com.chm.myfinances.domain.category.CategoryType.EXPENSE "
+          + "and t.date >= :from and t.date <= :to group by t.categoryId")
+  List<CategoryTotalProjection> sumExpenseAmountByCategoryForDateRange(
+      @Param("from") LocalDate from, @Param("to") LocalDate to);
 }

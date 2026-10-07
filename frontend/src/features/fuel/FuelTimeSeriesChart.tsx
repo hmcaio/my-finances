@@ -47,6 +47,10 @@ interface FuelTimeSeriesChartProps {
    * convention as `NetWorthTrendChart`/`ValueSeriesChart`). */
   axisColor: string
   gridColor: string
+  /** Forces 0 into the axis range (default `true`). A ratio series that is never negative (km/L,
+   * spend/km, price/liter) sets this `false` so the axis tracks its actual range instead of always
+   * including a baseline it can never reach, which otherwise flattens its real variation. */
+  zeroBaseline?: boolean
 }
 
 /**
@@ -62,6 +66,7 @@ export function FuelTimeSeriesChart({
   emptyMessage = 'No data for this vehicle yet.',
   axisColor,
   gridColor,
+  zeroBaseline = true,
 }: FuelTimeSeriesChartProps) {
   const nonEmptySeries = series.filter((s) => s.points.length > 0)
   const allPoints = nonEmptySeries.flatMap((s) => s.points)
@@ -71,8 +76,9 @@ export function FuelTimeSeriesChart({
   }
 
   const values = allPoints.map((p) => p.value)
-  const max = Math.max(0, ...values)
-  const min = Math.min(0, ...values)
+  const baseline = zeroBaseline ? [0] : []
+  const max = Math.max(...baseline, ...values)
+  const min = Math.min(...baseline, ...values)
   const step = niceStep(max - min || 1, 4)
   const top = Math.ceil(max / step) * step
   const bottom = Math.floor(min / step) * step
@@ -158,9 +164,9 @@ export function FuelTimeSeriesChart({
           return (
             <g key={s.label}>
               <path d={path} fill="none" stroke={s.color} strokeWidth={2} />
-              {sorted.map((p) => (
+              {sorted.map((p, index) => (
                 <circle
-                  key={`${s.label}-${p.date}`}
+                  key={`${s.label}-${p.date}-${index}`}
                   cx={x(p.date)}
                   cy={y(p.value)}
                   r={3.5}

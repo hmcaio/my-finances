@@ -12,6 +12,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 /**
@@ -24,6 +25,12 @@ import org.springframework.stereotype.Service;
  * <p>{@code record} is a single write, so it isn't {@code @Transactional} itself; {@code
  * TransferService.create} calls it from inside its own transaction when a trade carries a resulting
  * balance, and joins that one.
+ *
+ * <p>{@code record}'s find-then-insert on {@code (holdingId, date)} has a TOCTOU gap: two
+ * concurrent calls for the same holding and date can both see "absent" and both attempt an insert,
+ * tripping the DB's {@code uq_investment_snapshots_holding_date} constraint on the loser. That's
+ * caught and translated to the same 409 {@link InvestmentSnapshotDateTakenException} {@link
+ * #update} throws for the equivalent case, rather than a generic 500 (issue #94).
  */
 @Service
 public class InvestmentSnapshotService {
@@ -55,12 +62,18 @@ public class InvestmentSnapshotService {
               existing.replaceBalance(balance);
               return new RecordedSnapshot(snapshotRepository.save(existing), false);
             })
-        .orElseGet(
-            () ->
-                new RecordedSnapshot(
-                    snapshotRepository.save(
-                        InvestmentSnapshot.create(idGenerator.newId(), holdingId, date, balance)),
-                    true));
+        .orElseGet(() -> insertSnapshot(holdingId, date, balance));
+  }
+
+  private RecordedSnapshot insertSnapshot(UUID holdingId, LocalDate date, BigDecimal balance) {
+    try {
+      return new RecordedSnapshot(
+          snapshotRepository.save(
+              InvestmentSnapshot.create(idGenerator.newId(), holdingId, date, balance)),
+          true);
+    } catch (DataIntegrityViolationException e) {
+      throw new InvestmentSnapshotDateTakenException(holdingId);
+    }
   }
 
   /** The holding's snapshots, most recent date first. 404 for an unknown holding. */

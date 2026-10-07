@@ -5,11 +5,14 @@ import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionFilter;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
 import jakarta.persistence.criteria.Predicate;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -153,6 +156,20 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
     return jpaRepository.findAll(spec, Sort.by(Sort.Direction.ASC, "date")).stream()
         .map(TransactionRepositoryAdapter::toDomain)
         .toList();
+  }
+
+  @Override
+  public BigDecimal sumAmountByCategoryAndDateRange(UUID categoryId, LocalDate from, LocalDate to) {
+    return jpaRepository.sumAmountByCategoryAndDateRange(categoryId, from, to);
+  }
+
+  @Override
+  public Map<UUID, BigDecimal> sumExpenseAmountByCategoryForDateRange(
+      LocalDate from, LocalDate to) {
+    return jpaRepository.sumExpenseAmountByCategoryForDateRange(from, to).stream()
+        .collect(
+            Collectors.toMap(
+                CategoryTotalProjection::getCategoryId, CategoryTotalProjection::getTotal));
   }
 
   private static Specification<TransactionJpaEntity> toSpecification(TransactionFilter filter) {

@@ -1,7 +1,9 @@
 package com.chm.myfinances.domain.transaction;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -67,4 +69,19 @@ public interface TransactionRepository {
    * ascending - backs the Fuel page's per-vehicle history/chart endpoint (F024 spec).
    */
   List<Transaction> findByVehicleId(UUID vehicleId, LocalDate from, LocalDate to);
+
+  /**
+   * Sum of every transaction's amount in {@code categoryId} within {@code from}..{@code to}
+   * inclusive, across all accounts - {@code BigDecimal.ZERO} if there are none. Aggregated at the
+   * persistence layer (F006's {@code BudgetReportQuery}) instead of loading every matching
+   * transaction into memory just to reduce them.
+   */
+  BigDecimal sumAmountByCategoryAndDateRange(UUID categoryId, LocalDate from, LocalDate to);
+
+  /**
+   * Sum of every {@code EXPENSE} transaction's amount per category within {@code from}..{@code to}
+   * inclusive, across all accounts - backs F012's {@code MonthlySpendByCategoryQuery}. A category
+   * with no expense in range is simply absent, not mapped to zero.
+   */
+  Map<UUID, BigDecimal> sumExpenseAmountByCategoryForDateRange(LocalDate from, LocalDate to);
 }
