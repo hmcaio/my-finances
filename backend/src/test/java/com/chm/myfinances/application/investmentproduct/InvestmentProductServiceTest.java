@@ -19,6 +19,7 @@ import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentCategoryRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentSegmentRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSubcategoryRepository;
 import com.chm.myfinances.testsupport.mothers.AccountMother;
@@ -46,6 +47,8 @@ class InvestmentProductServiceTest {
       new FakeInvestmentCategoryRepository();
   private final FakeInvestmentSubcategoryRepository subcategoryRepository =
       new FakeInvestmentSubcategoryRepository();
+  private final FakeInvestmentSegmentRepository segmentRepository =
+      new FakeInvestmentSegmentRepository();
   private final FakeInvestmentHoldingRepository holdingRepository =
       new FakeInvestmentHoldingRepository();
   private final FakeHasHoldingHistoryChecker holdingHistoryChecker =
@@ -69,6 +72,7 @@ class InvestmentProductServiceTest {
           productRepository,
           categoryRepository,
           subcategoryRepository,
+          segmentRepository,
           holdingRepository,
           holdingService,
           idGenerator);
@@ -101,6 +105,7 @@ class InvestmentProductServiceTest {
             productRepository,
             categoryRepository,
             subcategoryRepository,
+            segmentRepository,
             holdingRepository,
             holdingService,
             singleUseIdGenerator);
@@ -505,5 +510,76 @@ class InvestmentProductServiceTest {
     assertThat(secondPage.getContent())
         .extracting(InvestmentProduct::getName)
         .containsExactly("Charlie Page Test");
+  }
+
+  // --- F026: optional ticker/segmentId ---
+
+  @Test
+  void createCarriesAnOptionalTickerAndSegmentId() {
+    UUID segmentId =
+        segmentRepository
+            .save(com.chm.myfinances.domain.investmentsegment.InvestmentSegment.create(
+                UUID.randomUUID(), "Shoppings Test"))
+            .getId();
+
+    InvestmentProduct created =
+        service.create(
+            xpAccountId, fixedIncomeId, cdbId, "KNRI11 Test", null, "KNRI11", segmentId);
+
+    assertThat(created.getTicker()).isEqualTo("KNRI11");
+    assertThat(created.getSegmentId()).isEqualTo(segmentId);
+  }
+
+  @Test
+  void createRejectsAnUnknownSegmentId() {
+    assertThatThrownBy(
+            () ->
+                service.create(
+                    xpAccountId,
+                    fixedIncomeId,
+                    cdbId,
+                    "KNRI11 Test",
+                    null,
+                    "KNRI11",
+                    UUID.randomUUID()))
+        .isInstanceOf(
+            com.chm.myfinances.application.investmentsegment.InvestmentSegmentNotFoundException
+                .class);
+    assertThat(productRepository.existsByName("KNRI11 Test")).isFalse();
+  }
+
+  @Test
+  void editReplacesTickerAndSegmentId() {
+    UUID segmentId =
+        segmentRepository
+            .save(com.chm.myfinances.domain.investmentsegment.InvestmentSegment.create(
+                UUID.randomUUID(), "Logistica Test"))
+            .getId();
+    InvestmentProduct created = service.create(xpAccountId, fixedIncomeId, cdbId, "HGLG11 Test", null);
+
+    InvestmentProduct edited =
+        service.edit(created.getId(), fixedIncomeId, cdbId, "HGLG11 Test", null, "HGLG11", segmentId);
+
+    assertThat(edited.getTicker()).isEqualTo("HGLG11");
+    assertThat(edited.getSegmentId()).isEqualTo(segmentId);
+  }
+
+  @Test
+  void editRejectsAnUnknownSegmentId() {
+    InvestmentProduct created = service.create(xpAccountId, fixedIncomeId, cdbId, "HGLG11 Test", null);
+
+    assertThatThrownBy(
+            () ->
+                service.edit(
+                    created.getId(),
+                    fixedIncomeId,
+                    cdbId,
+                    "HGLG11 Test",
+                    null,
+                    "HGLG11",
+                    UUID.randomUUID()))
+        .isInstanceOf(
+            com.chm.myfinances.application.investmentsegment.InvestmentSegmentNotFoundException
+                .class);
   }
 }

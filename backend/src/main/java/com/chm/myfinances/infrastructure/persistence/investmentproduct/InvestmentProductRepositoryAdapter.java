@@ -32,6 +32,8 @@ public class InvestmentProductRepositoryAdapter implements InvestmentProductRepo
                   existing.setInvestmentSubcategoryId(product.getInvestmentSubcategoryId());
                   existing.setName(product.getName());
                   existing.setAdditionalNotes(product.getAdditionalNotes());
+                  existing.setTicker(product.getTicker());
+                  existing.setSegmentId(product.getSegmentId());
                   return existing;
                 })
             .orElseGet(
@@ -41,7 +43,9 @@ public class InvestmentProductRepositoryAdapter implements InvestmentProductRepo
                         product.getInvestmentCategoryId(),
                         product.getInvestmentSubcategoryId(),
                         product.getName(),
-                        product.getAdditionalNotes()));
+                        product.getAdditionalNotes(),
+                        product.getTicker(),
+                        product.getSegmentId()));
     return toDomain(jpaRepository.save(entity));
   }
 
@@ -87,12 +91,19 @@ public class InvestmentProductRepositoryAdapter implements InvestmentProductRepo
     return jpaRepository.existsByInvestmentSubcategoryId(investmentSubcategoryId);
   }
 
+  @Override
+  public boolean existsBySegmentId(UUID segmentId) {
+    return jpaRepository.existsBySegmentId(segmentId);
+  }
+
   private static InvestmentProduct toDomain(InvestmentProductJpaEntity entity) {
     return InvestmentProduct.reconstitute(
         entity.getId(),
         entity.getInvestmentCategoryId(),
         entity.getInvestmentSubcategoryId(),
         entity.getName(),
-        entity.getAdditionalNotes());
+        entity.getAdditionalNotes(),
+        entity.getTicker(),
+        entity.getSegmentId());
   }
 }

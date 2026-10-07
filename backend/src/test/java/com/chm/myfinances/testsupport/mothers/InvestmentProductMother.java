@@ -17,6 +17,8 @@ public final class InvestmentProductMother {
   private UUID investmentSubcategoryId = UUID.randomUUID();
   private String name = "Tesouro Selic 2029";
   private String additionalNotes;
+  private String ticker;
+  private UUID segmentId;
 
   private InvestmentProductMother() {}
 
@@ -49,8 +51,20 @@ public final class InvestmentProductMother {
     return this;
   }
 
+  /** F026 (ADR 0023). */
+  public InvestmentProductMother withTicker(String ticker) {
+    this.ticker = ticker;
+    return this;
+  }
+
+  /** F026 (ADR 0023). */
+  public InvestmentProductMother withSegmentId(UUID segmentId) {
+    this.segmentId = segmentId;
+    return this;
+  }
+
   public InvestmentProduct build() {
     return InvestmentProduct.create(
-        id, investmentCategoryId, investmentSubcategoryId, name, additionalNotes);
+        id, investmentCategoryId, investmentSubcategoryId, name, additionalNotes, ticker, segmentId);
   }
 }

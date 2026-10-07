@@ -2,12 +2,14 @@ package com.chm.myfinances.application.investmentproduct;
 
 import com.chm.myfinances.application.investmentcategory.InvestmentCategoryNotFoundException;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingService;
+import com.chm.myfinances.application.investmentsegment.InvestmentSegmentNotFoundException;
 import com.chm.myfinances.application.investmentsubcategory.InvestmentSubcategoryNotFoundException;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
+import com.chm.myfinances.domain.investmentsegment.InvestmentSegmentRepository;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategoryRepository;
 import com.chm.myfinances.domain.shared.IdGenerator;
@@ -42,6 +44,7 @@ public class InvestmentProductService {
   private final InvestmentProductRepository productRepository;
   private final InvestmentCategoryRepository categoryRepository;
   private final InvestmentSubcategoryRepository subcategoryRepository;
+  private final InvestmentSegmentRepository segmentRepository;
   private final InvestmentHoldingRepository holdingRepository;
   private final InvestmentHoldingService holdingService;
   private final IdGenerator idGenerator;
@@ -50,21 +53,24 @@ public class InvestmentProductService {
       InvestmentProductRepository productRepository,
       InvestmentCategoryRepository categoryRepository,
       InvestmentSubcategoryRepository subcategoryRepository,
+      InvestmentSegmentRepository segmentRepository,
       InvestmentHoldingRepository holdingRepository,
       InvestmentHoldingService holdingService,
       IdGenerator idGenerator) {
     this.productRepository = productRepository;
     this.categoryRepository = categoryRepository;
     this.subcategoryRepository = subcategoryRepository;
+    this.segmentRepository = segmentRepository;
     this.holdingRepository = holdingRepository;
     this.holdingService = holdingService;
     this.idGenerator = idGenerator;
   }
 
   /**
-   * Creates the product and its first holding in {@code accountId} together. {@code
-   * InvestmentHoldingService.create} runs its own account/product validation (404/409); if it
-   * fails, the whole transaction - including the product insert - rolls back.
+   * Creates the product (with no ticker/segment) and its first holding in {@code accountId}
+   * together. See the 7-argument overload (F026) for the full behavior; other callers (and most
+   * existing tests) that never set a ticker/segment keep using this shorter form, same "short
+   * overload delegates with nulls" convention as {@code Transaction.create}/{@code Transfer.create}.
    */
   @Transactional
   public InvestmentProduct create(
@@ -73,7 +79,28 @@ public class InvestmentProductService {
       UUID investmentSubcategoryId,
       String name,
       String additionalNotes) {
+    return create(accountId, investmentCategoryId, investmentSubcategoryId, name, additionalNotes, null, null);
+  }
+
+  /**
+   * Creates the product and its first holding in {@code accountId} together. {@code
+   * InvestmentHoldingService.create} runs its own account/product validation (404/409); if it
+   * fails, the whole transaction - including the product insert - rolls back.
+   *
+   * <p>{@code ticker}/{@code segmentId} (F026) are both optional; an unknown {@code segmentId} is
+   * {@code 404}. The overload the controller calls.
+   */
+  @Transactional
+  public InvestmentProduct create(
+      UUID accountId,
+      UUID investmentCategoryId,
+      UUID investmentSubcategoryId,
+      String name,
+      String additionalNotes,
+      String ticker,
+      UUID segmentId) {
     requireValidCategoryReferences(investmentCategoryId, investmentSubcategoryId);
+    requireValidSegmentReference(segmentId);
     if (productRepository.existsByName(name)) {
       throw new InvestmentProductNameAlreadyExistsException(name);
     }
@@ -84,7 +111,9 @@ public class InvestmentProductService {
                 investmentCategoryId,
                 investmentSubcategoryId,
                 name,
-                additionalNotes));
+                additionalNotes,
+                ticker,
+                segmentId));
     holdingService.create(product.getId(), accountId, null);
     return product;
   }
@@ -167,18 +196,38 @@ public class InvestmentProductService {
     return new PageImpl<>(pageContent, pageable, content.size());
   }
 
+  /**
+   * Full-replace edit (with no ticker/segment). See the 7-argument overload (F026) for the full
+   * behavior; other callers keep using this shorter form.
+   */
   public InvestmentProduct edit(
       UUID id,
       UUID investmentCategoryId,
       UUID investmentSubcategoryId,
       String name,
       String additionalNotes) {
+    return edit(id, investmentCategoryId, investmentSubcategoryId, name, additionalNotes, null, null);
+  }
+
+  /**
+   * Full-replace edit including {@code ticker}/{@code segmentId} (F026) - the overload the
+   * controller calls.
+   */
+  public InvestmentProduct edit(
+      UUID id,
+      UUID investmentCategoryId,
+      UUID investmentSubcategoryId,
+      String name,
+      String additionalNotes,
+      String ticker,
+      UUID segmentId) {
     InvestmentProduct product = findById(id);
     requireValidCategoryReferences(investmentCategoryId, investmentSubcategoryId);
+    requireValidSegmentReference(segmentId);
     if (productRepository.existsByNameAndIdNot(name, id)) {
       throw new InvestmentProductNameAlreadyExistsException(name);
     }
-    product.edit(investmentCategoryId, investmentSubcategoryId, name, additionalNotes);
+    product.edit(investmentCategoryId, investmentSubcategoryId, name, additionalNotes, ticker, segmentId);
     return productRepository.save(product);
   }
 
@@ -208,6 +257,13 @@ public class InvestmentProductService {
       if (!subcategory.getInvestmentCategoryId().equals(investmentCategoryId)) {
         throw new InvestmentSubcategoryMismatchException(investmentSubcategoryId);
       }
+    }
+  }
+
+  /** F026: an unknown {@code segmentId} is a 404. {@code null} (no segment) is always valid. */
+  private void requireValidSegmentReference(UUID segmentId) {
+    if (segmentId != null && !segmentRepository.existsById(segmentId)) {
+      throw new InvestmentSegmentNotFoundException(segmentId);
     }
   }
 }
