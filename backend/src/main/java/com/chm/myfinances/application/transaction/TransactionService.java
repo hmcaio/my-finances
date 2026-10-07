@@ -42,8 +42,10 @@ import org.springframework.stereotype.Service;
  * FuelDetailsCategoryMismatchException}, 400 - a self-contained request-shape error, not a
  * state-dependent one); when present, {@code fuelDetails.vehicleId} must reference an existing
  * {@code Vehicle} (404). Applies uniformly to every {@code create}/{@code edit} overload, including
- * the one {@code RecurringTemplateService} uses - a recurring template assigned the fuel category
- * would need its own fuel-aware confirm flow to ever satisfy this, which is out of scope for F024.
+ * the one {@code RecurringTemplateService} uses to confirm a pending occurrence - which is why
+ * {@code RecurringTemplateService.requireCategory} rejects the fuel category up front (409, issue
+ * #92): a template has nowhere to carry a fill-up's per-occurrence details, so it could never
+ * satisfy this invariant at confirm time.
  */
 @Service
 public class TransactionService {

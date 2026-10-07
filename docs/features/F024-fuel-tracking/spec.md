@@ -22,6 +22,7 @@ See [ADR 0021](../../adr/0021-fuel-details-on-transaction.md) for the full ratio
 - **`kmSinceLastFill` and `odometer` are both optional** — the former has no value to diff against on a vehicle's first fill, the latter is purely informational and may not always be read/entered.
 - **Editing a fuel transaction's category away from the fuel category is rejected** until `FuelDetails` is cleared first — no silent data loss.
 - **Charts always scoped to one selected vehicle** — km-based ratios are meaningless mixed across vehicles.
+- **A `RecurringTemplate` (F007) can't target the fuel category** (issue #92) — a fill-up's per-occurrence details have no templatable field, so `RecurringTemplateService` rejects it at creation (409), the same way it already rejects an `INVESTMENT` account.
 
 ## Backend
 

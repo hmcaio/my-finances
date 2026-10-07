@@ -6,6 +6,7 @@ import com.chm.myfinances.application.transaction.TransactionService;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
+import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrence;
 import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrenceRepository;
@@ -88,7 +89,12 @@ public class RecurringTemplateService {
    * Creates a RecurringTemplate for {@code categoryId}/{@code accountId} plus its first {@link
    * RecurringTemplateVersion} (F007 spec). Rejects an unknown category/account (404) and a closed
    * account (409) - a template can't be created to post against an account that can't accept new
-   * activity, same reasoning F004/F005 apply at transaction/transfer creation.
+   * activity, same reasoning F004/F005 apply at transaction/transfer creation. Also rejects an
+   * {@code INVESTMENT} account and the fuel category (409, F024): both have no templatable "amount
+   * only" shape - an investment trade needs a product via a transfer, a fuel purchase needs its
+   * per-fill details (vehicle, liters, price, odometer) that a template has nowhere to carry - so
+   * confirming a pending occurrence against either would otherwise fail later, confusingly, instead
+   * of here where the mistake was actually made.
    *
    * <p>{@code @Transactional} since it's two writes (template + its first version) that must commit
    * or roll back together - a failure between them would otherwise leave a template with zero
@@ -319,8 +325,12 @@ public class RecurringTemplateService {
   }
 
   private void requireCategory(UUID categoryId) {
-    if (!categoryRepository.existsById(categoryId)) {
-      throw new CategoryNotFoundException(categoryId);
+    Category category =
+        categoryRepository
+            .findById(categoryId)
+            .orElseThrow(() -> new CategoryNotFoundException(categoryId));
+    if (category.isFuelCategory()) {
+      throw new FuelCategoryNotAllowedException(categoryId);
     }
   }
 

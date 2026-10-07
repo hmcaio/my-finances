@@ -3,7 +3,11 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
-import { seedGroceriesCategory } from '../../mocks/handlers/categories'
+import {
+  seedCategories,
+  seedFuelCategory,
+  seedGroceriesCategory,
+} from '../../mocks/handlers/categories'
 import {
   accountsWithInvestmentHandler,
   seedAccounts,
@@ -66,6 +70,23 @@ describe('RecurringTemplatesPage', () => {
     expect(
       screen.queryByRole('option', { name: seedInvestmentAccount.name }),
     ).not.toBeInTheDocument()
+  })
+
+  it('never offers the fuel category in the create form category dropdown (issue #92)', async () => {
+    server.use(
+      http.get('/api/categories', () => HttpResponse.json([...seedCategories, seedFuelCategory])),
+    )
+    const user = userEvent.setup({ delay: null })
+    renderWithQueryClient(<RecurringTemplatesPage />)
+    await findRow(seedRentRecurringTemplate.description, templatesTable())
+    const dialog = await openAddDialog(user)
+
+    await user.click(within(dialog).getByRole('combobox', { name: 'Category' }))
+
+    expect(
+      await screen.findByRole('option', { name: seedGroceriesCategory.name }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: seedFuelCategory.name })).not.toBeInTheDocument()
   })
 
   it('adds a new recurring template', async () => {
