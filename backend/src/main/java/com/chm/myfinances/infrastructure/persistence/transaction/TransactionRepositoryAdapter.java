@@ -1,5 +1,6 @@
 package com.chm.myfinances.infrastructure.persistence.transaction;
 
+import com.chm.myfinances.domain.transaction.FuelDetails;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionFilter;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
@@ -11,6 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
@@ -43,22 +45,41 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
                   existing.setPaymentMethodId(transaction.getPaymentMethodId());
                   existing.setDescription(transaction.getDescription());
                   existing.setAdditionalNotes(transaction.getAdditionalNotes());
+                  applyFuelDetails(existing, transaction.getFuelDetails());
                   return existing;
                 })
-            .orElseGet(
-                () ->
-                    new TransactionJpaEntity(
-                        transaction.getId(),
-                        transaction.getDate(),
-                        transaction.getAmount(),
-                        transaction.getCategoryId(),
-                        transaction.getType(),
-                        transaction.getAccountId(),
-                        transaction.getPaymentMethodId(),
-                        transaction.getRecurringTemplateVersionId(),
-                        transaction.getDescription(),
-                        transaction.getAdditionalNotes()));
+            .orElseGet(() -> newEntity(transaction));
     return toDomain(jpaRepository.save(entity));
+  }
+
+  private static TransactionJpaEntity newEntity(Transaction transaction) {
+    FuelDetails fuel = transaction.getFuelDetails();
+    return new TransactionJpaEntity(
+        transaction.getId(),
+        transaction.getDate(),
+        transaction.getAmount(),
+        transaction.getCategoryId(),
+        transaction.getType(),
+        transaction.getAccountId(),
+        transaction.getPaymentMethodId(),
+        transaction.getRecurringTemplateVersionId(),
+        transaction.getDescription(),
+        transaction.getAdditionalNotes(),
+        fuel == null ? null : fuel.vehicleId(),
+        fuel == null ? null : fuel.fuelType(),
+        fuel == null ? null : fuel.liters(),
+        fuel == null ? null : fuel.pricePerLiter(),
+        fuel == null ? null : fuel.kmSinceLastFill(),
+        fuel == null ? null : fuel.odometer());
+  }
+
+  private static void applyFuelDetails(TransactionJpaEntity entity, FuelDetails fuel) {
+    entity.setVehicleId(fuel == null ? null : fuel.vehicleId());
+    entity.setFuelType(fuel == null ? null : fuel.fuelType());
+    entity.setLiters(fuel == null ? null : fuel.liters());
+    entity.setPricePerLiter(fuel == null ? null : fuel.pricePerLiter());
+    entity.setKmSinceLastFill(fuel == null ? null : fuel.kmSinceLastFill());
+    entity.setOdometer(fuel == null ? null : fuel.odometer());
   }
 
   @Override
@@ -110,6 +131,30 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
     return jpaRepository.existsByAccountId(accountId);
   }
 
+  @Override
+  public boolean existsByFuelDetailsVehicleId(UUID vehicleId) {
+    return jpaRepository.existsByVehicleId(vehicleId);
+  }
+
+  @Override
+  public List<Transaction> findByVehicleId(UUID vehicleId, LocalDate from, LocalDate to) {
+    Specification<TransactionJpaEntity> spec =
+        (root, query, criteriaBuilder) -> {
+          List<Predicate> predicates = new ArrayList<>();
+          predicates.add(criteriaBuilder.equal(root.get("vehicleId"), vehicleId));
+          if (from != null) {
+            predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("date"), from));
+          }
+          if (to != null) {
+            predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("date"), to));
+          }
+          return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+    return jpaRepository.findAll(spec, Sort.by(Sort.Direction.ASC, "date")).stream()
+        .map(TransactionRepositoryAdapter::toDomain)
+        .toList();
+  }
+
   private static Specification<TransactionJpaEntity> toSpecification(TransactionFilter filter) {
     return (root, query, criteriaBuilder) -> {
       List<Predicate> predicates = new ArrayList<>();
@@ -134,6 +179,16 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
   }
 
   private static Transaction toDomain(TransactionJpaEntity entity) {
+    FuelDetails fuelDetails =
+        entity.getVehicleId() == null
+            ? null
+            : new FuelDetails(
+                entity.getVehicleId(),
+                entity.getFuelType(),
+                entity.getLiters(),
+                entity.getPricePerLiter(),
+                entity.getKmSinceLastFill(),
+                entity.getOdometer());
     return Transaction.reconstitute(
         entity.getId(),
         entity.getDate(),
@@ -144,6 +199,7 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
         entity.getPaymentMethodId(),
         entity.getRecurringTemplateVersionId(),
         entity.getDescription(),
-        entity.getAdditionalNotes());
+        entity.getAdditionalNotes(),
+        fuelDetails);
   }
 }

@@ -91,7 +91,7 @@ describe('BudgetsPage', () => {
       http.get('/api/categories', () =>
         HttpResponse.json([
           ...seedCategories,
-          { id: 'cat-5', name: 'Dining', type: 'EXPENSE', builtIn: false },
+          { id: 'cat-5', name: 'Dining', type: 'EXPENSE', builtIn: false, fuelCategory: false },
         ]),
       ),
     )
@@ -116,7 +116,7 @@ describe('BudgetsPage', () => {
       http.get('/api/categories', () =>
         HttpResponse.json([
           ...seedCategories,
-          { id: 'cat-5', name: 'Dining', type: 'EXPENSE', builtIn: false },
+          { id: 'cat-5', name: 'Dining', type: 'EXPENSE', builtIn: false, fuelCategory: false },
         ]),
       ),
       budgetCreateConflictHandler,

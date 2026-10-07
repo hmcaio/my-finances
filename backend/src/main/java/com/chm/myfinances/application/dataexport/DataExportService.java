@@ -26,6 +26,7 @@ import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateRepository;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersion;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersionRepository;
+import com.chm.myfinances.domain.transaction.FuelDetails;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionFilter;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
@@ -33,6 +34,8 @@ import com.chm.myfinances.domain.transfer.InvestmentTradeDetails;
 import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.domain.transfer.TransferFilter;
 import com.chm.myfinances.domain.transfer.TransferRepository;
+import com.chm.myfinances.domain.vehicle.Vehicle;
+import com.chm.myfinances.domain.vehicle.VehicleRepository;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.time.YearMonth;
@@ -87,6 +90,7 @@ public class DataExportService {
   private final InvestmentProductRepository investmentProducts;
   private final InvestmentHoldingRepository investmentHoldings;
   private final InvestmentSnapshotRepository investmentSnapshots;
+  private final VehicleRepository vehicles;
 
   public DataExportService(
       CategoryRepository categories,
@@ -103,7 +107,8 @@ public class DataExportService {
       InvestmentSubcategoryRepository investmentSubcategories,
       InvestmentProductRepository investmentProducts,
       InvestmentHoldingRepository investmentHoldings,
-      InvestmentSnapshotRepository investmentSnapshots) {
+      InvestmentSnapshotRepository investmentSnapshots,
+      VehicleRepository vehicles) {
     this.categories = categories;
     this.paymentMethods = paymentMethods;
     this.institutions = institutions;
@@ -119,6 +124,7 @@ public class DataExportService {
     this.investmentProducts = investmentProducts;
     this.investmentHoldings = investmentHoldings;
     this.investmentSnapshots = investmentSnapshots;
+    this.vehicles = vehicles;
   }
 
   /** Writes the thirteen CSVs, zipped, to {@code out} (which is left open for the caller). */
@@ -172,6 +178,7 @@ public class DataExportService {
     final Map<UUID, String> investmentProduct =
         names(investmentProducts.findAll(), InvestmentProduct::getId, InvestmentProduct::getName);
     final Map<UUID, InvestmentHolding> investmentHoldingById = byId(investmentHoldings.findAll());
+    final Map<UUID, String> vehicle = names(vehicles.findAll(), Vehicle::getId, Vehicle::getName);
   }
 
   private static Map<UUID, InvestmentHolding> byId(List<InvestmentHolding> holdings) {
@@ -276,7 +283,14 @@ public class DataExportService {
             "payment_method_name",
             "recurring_template_version_id",
             "description",
-            "additional_notes");
+            "additional_notes",
+            "vehicle_id",
+            "vehicle_name",
+            "fuel_type",
+            "liters",
+            "price_per_liter",
+            "km_since_last_fill",
+            "odometer");
     TransactionFilter filter =
         new TransactionFilter(f.dateFrom(), f.dateTo(), f.categoryId(), f.accountId(), null);
     List<Transaction> rows =
@@ -285,6 +299,8 @@ public class DataExportService {
             Transaction::getDate,
             Transaction::getId);
     for (Transaction t : rows) {
+      // F024 (ADR 0021): the fuel columns are empty for a non-fuel transaction (fuelDetails null).
+      FuelDetails fuel = t.getFuelDetails();
       csv.row(
           t.getId(),
           t.getDate(),
@@ -298,7 +314,14 @@ public class DataExportService {
           nameOf(n.paymentMethod, t.getPaymentMethodId()),
           t.getRecurringTemplateVersionId(),
           t.getDescription(),
-          t.getAdditionalNotes());
+          t.getAdditionalNotes(),
+          fuel == null ? null : fuel.vehicleId(),
+          fuel == null ? "" : nameOf(n.vehicle, fuel.vehicleId()),
+          fuel == null ? null : fuel.fuelType(),
+          fuel == null ? null : fuel.liters(),
+          fuel == null ? null : fuel.pricePerLiter(),
+          fuel == null ? null : fuel.kmSinceLastFill(),
+          fuel == null ? null : fuel.odometer());
     }
     end(zip, csv);
   }

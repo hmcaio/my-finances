@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react'
 import { screen, within, type RenderResult } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, type InitialEntry } from 'react-router-dom'
 import { renderWithQueryClient } from './renderWithQueryClient'
 
 /**
@@ -36,11 +36,13 @@ export async function selectOption(
 /**
  * Renders `ui` inside a `MemoryRouter` (and a fresh `QueryClient`, see `renderWithQueryClient`), for a page/component that calls router hooks or renders
  * a `Link` outside of `App`'s own `BrowserRouter`. Pass `initialEntries` for a page that reads
- * its route params (e.g. `AccountDetailPage`'s `:id`).
+ * its route params (e.g. `AccountDetailPage`'s `:id`) - a plain path string, or `{ pathname,
+ * state }` to simulate arriving via `navigate(path, { state })` (F024's Fuel-page-to-Transactions
+ * hand-off).
  */
 export function renderWithRouter(
   ui: ReactElement,
-  options?: { initialEntries?: string[] },
+  options?: { initialEntries?: InitialEntry[] },
 ): RenderResult {
   return renderWithQueryClient(
     <MemoryRouter initialEntries={options?.initialEntries}>{ui}</MemoryRouter>,

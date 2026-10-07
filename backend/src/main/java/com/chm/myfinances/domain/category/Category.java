@@ -18,6 +18,15 @@ import java.util.UUID;
  * deleted (the delete rule lives in the application service). The flag is read-only from the
  * application's point of view - {@link #create} always yields a non-built-in category, and only
  * {@link #reconstitute} can carry the flag in from the migration's rows.
+ *
+ * <p>{@link #isFuelCategory()} (F024, ADR 0021) is a second, independent flag — at most one row
+ * carries it (DB partial unique index, {@code V18}) — deliberately not unified with {@code
+ * builtIn}, which means something else ("system default, protected from deletion, freely
+ * renamable"). Unlike {@code builtIn}, the fuel category is structurally load-bearing for the
+ * {@code Transaction.fuelDetails} invariant, so both delete <b>and</b> rename are blocked while it
+ * is set — enforced in {@code CategoryService}, same layer as the {@code builtIn} delete guard, not
+ * here: this class only carries the flag. Same read-only shape as {@code builtIn} - {@link #create}
+ * always yields {@code false}, only {@link #reconstitute} can carry it in.
  */
 public final class Category {
 
@@ -25,25 +34,28 @@ public final class Category {
   private String name;
   private final CategoryType type;
   private final boolean builtIn;
+  private final boolean fuelCategory;
 
-  private Category(UUID id, String name, CategoryType type, boolean builtIn) {
+  private Category(UUID id, String name, CategoryType type, boolean builtIn, boolean fuelCategory) {
     this.id = Objects.requireNonNull(id, "id must not be null");
     this.name = requireNonBlank(name);
     this.type = Objects.requireNonNull(type, "type must not be null");
     this.builtIn = builtIn;
+    this.fuelCategory = fuelCategory;
   }
 
   /**
-   * Creates a brand-new, non-built-in Category. {@code id} must come from the {@code IdGenerator}
-   * port.
+   * Creates a brand-new, non-built-in, non-fuel Category. {@code id} must come from the {@code
+   * IdGenerator} port.
    */
   public static Category create(UUID id, String name, CategoryType type) {
-    return new Category(id, name, type, false);
+    return new Category(id, name, type, false, false);
   }
 
   /** Rebuilds a Category from already-validated persisted state. */
-  public static Category reconstitute(UUID id, String name, CategoryType type, boolean builtIn) {
-    return new Category(id, name, type, builtIn);
+  public static Category reconstitute(
+      UUID id, String name, CategoryType type, boolean builtIn, boolean fuelCategory) {
+    return new Category(id, name, type, builtIn, fuelCategory);
   }
 
   /** Renames the category, including a built-in one. */
@@ -76,5 +88,13 @@ public final class Category {
 
   public boolean isBuiltIn() {
     return builtIn;
+  }
+
+  /**
+   * Whether this is the single dedicated fuel category (F024, ADR 0021): a {@code Transaction}
+   * carries {@code FuelDetails} if and only if its category is this one.
+   */
+  public boolean isFuelCategory() {
+    return fuelCategory;
   }
 }

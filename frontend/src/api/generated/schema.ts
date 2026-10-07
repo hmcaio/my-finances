@@ -20,6 +20,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/vehicles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["vehicle_list"];
+        put?: never;
+        post: operations["vehicle_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/transfers": {
         parameters: {
             query?: never;
@@ -324,6 +340,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/vehicles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["vehicle_delete"];
+        options?: never;
+        head?: never;
+        patch: operations["vehicle_rename"];
+        trace?: never;
+    };
     "/api/transfers/{id}": {
         parameters: {
             query?: never;
@@ -516,6 +548,22 @@ export interface paths {
         patch: operations["account_edit"];
         trace?: never;
     };
+    "/api/vehicles/{id}/fuel-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["vehicle_fuelHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/transactions/spend-by-category": {
         parameters: {
             query?: never;
@@ -694,6 +742,14 @@ export interface components {
             date?: string;
             balance?: number;
         };
+        CreateVehicleRequest: {
+            name: string;
+        };
+        VehicleResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+        };
         CreateTransferRequest: {
             /** Format: date */
             date: string;
@@ -741,6 +797,14 @@ export interface components {
             paymentMethodId: string;
             description: string;
             additionalNotes?: string;
+            /** Format: uuid */
+            vehicleId?: string;
+            /** @enum {string} */
+            fuelType?: "ETANOL" | "ETANOL_ADITIVADO" | "GASOLINA" | "GASOLINA_ADITIVADA";
+            liters?: number;
+            pricePerLiter?: number;
+            kmSinceLastFill?: number;
+            odometer?: number;
         };
         TransactionResponse: {
             /** Format: uuid */
@@ -760,6 +824,17 @@ export interface components {
             recurringTemplateVersionId?: string;
             description?: string;
             additionalNotes?: string;
+            /** Format: uuid */
+            vehicleId?: string;
+            /** @enum {string} */
+            fuelType?: "ETANOL" | "ETANOL_ADITIVADO" | "GASOLINA" | "GASOLINA_ADITIVADA";
+            liters?: number;
+            pricePerLiter?: number;
+            kmSinceLastFill?: number;
+            odometer?: number;
+            kmPerLiter?: number;
+            amountPerKm?: number;
+            litersPerKm?: number;
         };
         CreateRecurringTemplateRequest: {
             /** Format: uuid */
@@ -905,6 +980,7 @@ export interface components {
             /** @enum {string} */
             type?: "INCOME" | "EXPENSE";
             builtIn?: boolean;
+            fuelCategory?: boolean;
         };
         CreateBudgetRequest: {
             /** Format: uuid */
@@ -950,6 +1026,9 @@ export interface components {
             closed?: boolean;
             balance?: number;
         };
+        UpdateVehicleRequest: {
+            name: string;
+        };
         UpdateTransferRequest: {
             /** Format: date */
             date: string;
@@ -978,6 +1057,14 @@ export interface components {
             paymentMethodId: string;
             description: string;
             additionalNotes?: string;
+            /** Format: uuid */
+            vehicleId?: string;
+            /** @enum {string} */
+            fuelType?: "ETANOL" | "ETANOL_ADITIVADO" | "GASOLINA" | "GASOLINA_ADITIVADA";
+            liters?: number;
+            pricePerLiter?: number;
+            kmSinceLastFill?: number;
+            odometer?: number;
         };
         UpdateRecurringTemplateCapRequest: {
             amount: number;
@@ -1157,6 +1244,50 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    vehicle_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["VehicleResponse"][];
+                };
+            };
+        };
+    };
+    vehicle_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateVehicleRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["VehicleResponse"];
+                };
             };
         };
     };
@@ -1881,6 +2012,52 @@ export interface operations {
             };
         };
     };
+    vehicle_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    vehicle_rename: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateVehicleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["VehicleResponse"];
+                };
+            };
+        };
+    };
     transfer_get: {
         parameters: {
             query?: never;
@@ -2501,6 +2678,31 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AccountResponse"];
+                };
+            };
+        };
+    };
+    vehicle_fuelHistory: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TransactionResponse"][];
                 };
             };
         };

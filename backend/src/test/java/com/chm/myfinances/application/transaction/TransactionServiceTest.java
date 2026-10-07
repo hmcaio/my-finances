@@ -6,20 +6,26 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.chm.myfinances.application.account.AccountNotFoundException;
 import com.chm.myfinances.application.category.CategoryNotFoundException;
 import com.chm.myfinances.application.paymentmethod.PaymentMethodNotFoundException;
+import com.chm.myfinances.application.vehicle.VehicleNotFoundException;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
+import com.chm.myfinances.domain.transaction.FuelDetails;
+import com.chm.myfinances.domain.transaction.FuelType;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionFilter;
+import com.chm.myfinances.domain.vehicle.Vehicle;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
 import com.chm.myfinances.testsupport.fakes.FakeCategoryRepository;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakePaymentMethodRepository;
 import com.chm.myfinances.testsupport.fakes.FakeTransactionRepository;
+import com.chm.myfinances.testsupport.fakes.FakeVehicleRepository;
 import com.chm.myfinances.testsupport.mothers.AccountMother;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,6 +43,7 @@ class TransactionServiceTest {
   private final FakeAccountRepository accountRepository = new FakeAccountRepository();
   private final FakePaymentMethodRepository paymentMethodRepository =
       new FakePaymentMethodRepository();
+  private final FakeVehicleRepository vehicleRepository = new FakeVehicleRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
   private final TransactionService service =
       new TransactionService(
@@ -44,13 +51,16 @@ class TransactionServiceTest {
           categoryRepository,
           accountRepository,
           paymentMethodRepository,
+          vehicleRepository,
           idGenerator);
 
   private Category expenseCategory;
   private Category incomeCategory;
+  private Category fuelCategory;
   private Account openAccount;
   private Account closedAccount;
   private PaymentMethod paymentMethod;
+  private Vehicle vehicle;
 
   @BeforeEach
   void setUp() {
@@ -59,12 +69,16 @@ class TransactionServiceTest {
             Category.create(UUID.randomUUID(), "Groceries", CategoryType.EXPENSE));
     incomeCategory =
         categoryRepository.save(Category.create(UUID.randomUUID(), "Salary", CategoryType.INCOME));
+    fuelCategory =
+        categoryRepository.save(
+            Category.reconstitute(UUID.randomUUID(), "Fuel", CategoryType.EXPENSE, false, true));
     openAccount = accountRepository.save(AccountMother.checking().build());
     closedAccount = accountRepository.save(AccountMother.checking().withName("Old").build());
     closedAccount.close(LocalDate.now());
     accountRepository.save(closedAccount);
     paymentMethod =
         paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), "Debit Card"));
+    vehicle = vehicleRepository.save(Vehicle.create(UUID.randomUUID(), "Civic"));
   }
 
   @Test
@@ -76,6 +90,7 @@ class TransactionServiceTest {
             categoryRepository,
             accountRepository,
             paymentMethodRepository,
+            vehicleRepository,
             new FakeIdGenerator(nextId));
 
     Transaction created =
@@ -378,5 +393,237 @@ class TransactionServiceTest {
     assertThat(page.getContent())
         .extracting(Transaction::getCategoryId)
         .containsExactly(expenseCategory.getId());
+  }
+
+  // F024 (ADR 0021): the fuel invariant - fuelDetails present iff the category is the fuel
+  // category - on both create and edit, plus the vehicle existence check.
+
+  private FuelDetails fuelDetails() {
+    return new FuelDetails(
+        vehicle.getId(),
+        FuelType.GASOLINA,
+        new BigDecimal("40.5"),
+        new BigDecimal("5.79"),
+        null,
+        null);
+  }
+
+  @Test
+  void createWithFuelCategoryAndFuelDetailsSucceeds() {
+    Transaction created =
+        service.create(
+            LocalDate.now(),
+            BigDecimal.TEN,
+            fuelCategory.getId(),
+            openAccount.getId(),
+            paymentMethod.getId(),
+            null,
+            "Fill up",
+            null,
+            fuelDetails());
+
+    assertThat(created.getFuelDetails()).isEqualTo(fuelDetails());
+  }
+
+  @Test
+  void createRejectsFuelCategoryWithoutFuelDetails() {
+    assertThatThrownBy(
+            () ->
+                service.create(
+                    LocalDate.now(),
+                    BigDecimal.TEN,
+                    fuelCategory.getId(),
+                    openAccount.getId(),
+                    paymentMethod.getId(),
+                    null,
+                    "Fill up",
+                    null,
+                    null))
+        .isInstanceOf(FuelDetailsCategoryMismatchException.class);
+  }
+
+  @Test
+  void createRejectsNonFuelCategoryWithFuelDetails() {
+    assertThatThrownBy(
+            () ->
+                service.create(
+                    LocalDate.now(),
+                    BigDecimal.TEN,
+                    expenseCategory.getId(),
+                    openAccount.getId(),
+                    paymentMethod.getId(),
+                    null,
+                    "Groceries",
+                    null,
+                    fuelDetails()))
+        .isInstanceOf(FuelDetailsCategoryMismatchException.class);
+  }
+
+  @Test
+  void createRejectsAnUnknownVehicleId() {
+    FuelDetails unknownVehicle =
+        new FuelDetails(
+            UUID.randomUUID(), FuelType.GASOLINA, BigDecimal.TEN, BigDecimal.ONE, null, null);
+
+    assertThatThrownBy(
+            () ->
+                service.create(
+                    LocalDate.now(),
+                    BigDecimal.TEN,
+                    fuelCategory.getId(),
+                    openAccount.getId(),
+                    paymentMethod.getId(),
+                    null,
+                    "Fill up",
+                    null,
+                    unknownVehicle))
+        .isInstanceOf(VehicleNotFoundException.class);
+  }
+
+  @Test
+  void plainCreateOverloadsAreRejectedWhenTargetingTheFuelCategory() {
+    // The 7-arg and 8-arg overloads (RecurringTemplateService's call path) never carry
+    // fuelDetails, so targeting the fuel category through them is a mismatch too - the invariant
+    // applies uniformly.
+    assertThatThrownBy(
+            () ->
+                service.create(
+                    LocalDate.now(),
+                    BigDecimal.TEN,
+                    fuelCategory.getId(),
+                    openAccount.getId(),
+                    paymentMethod.getId(),
+                    "Fill up",
+                    null))
+        .isInstanceOf(FuelDetailsCategoryMismatchException.class);
+  }
+
+  @Test
+  void editWithFuelCategoryAndFuelDetailsSucceeds() {
+    Transaction created =
+        service.create(
+            LocalDate.now(),
+            BigDecimal.TEN,
+            expenseCategory.getId(),
+            openAccount.getId(),
+            paymentMethod.getId(),
+            "Groceries",
+            null);
+
+    Transaction edited =
+        service.edit(
+            created.getId(),
+            LocalDate.now(),
+            BigDecimal.TEN,
+            fuelCategory.getId(),
+            openAccount.getId(),
+            paymentMethod.getId(),
+            "Fill up",
+            null,
+            fuelDetails());
+
+    assertThat(edited.getFuelDetails()).isEqualTo(fuelDetails());
+  }
+
+  @Test
+  void editRejectsMovingAFuelTransactionsCategoryAwayWithoutClearingFuelDetails() {
+    Transaction created =
+        service.create(
+            LocalDate.now(),
+            BigDecimal.TEN,
+            fuelCategory.getId(),
+            openAccount.getId(),
+            paymentMethod.getId(),
+            null,
+            "Fill up",
+            null,
+            fuelDetails());
+
+    assertThatThrownBy(
+            () ->
+                service.edit(
+                    created.getId(),
+                    LocalDate.now(),
+                    BigDecimal.TEN,
+                    expenseCategory.getId(),
+                    openAccount.getId(),
+                    paymentMethod.getId(),
+                    "Groceries",
+                    null,
+                    fuelDetails()))
+        .isInstanceOf(FuelDetailsCategoryMismatchException.class);
+    // Rejected before any write: the transaction still has its original category and fuelDetails.
+    assertThat(service.findById(created.getId()).getCategoryId()).isEqualTo(fuelCategory.getId());
+  }
+
+  @Test
+  void editMovingAFuelTransactionsCategoryAwayAfterClearingFuelDetailsSucceeds() {
+    Transaction created =
+        service.create(
+            LocalDate.now(),
+            BigDecimal.TEN,
+            fuelCategory.getId(),
+            openAccount.getId(),
+            paymentMethod.getId(),
+            null,
+            "Fill up",
+            null,
+            fuelDetails());
+
+    Transaction edited =
+        service.edit(
+            created.getId(),
+            LocalDate.now(),
+            BigDecimal.TEN,
+            expenseCategory.getId(),
+            openAccount.getId(),
+            paymentMethod.getId(),
+            "Groceries",
+            null);
+
+    assertThat(edited.getCategoryId()).isEqualTo(expenseCategory.getId());
+    assertThat(edited.getFuelDetails()).isNull();
+  }
+
+  @Test
+  void findFuelHistoryReturnsOnlyThatVehiclesFuelTransactionsOrderedByDate() {
+    Vehicle otherVehicle = vehicleRepository.save(Vehicle.create(UUID.randomUUID(), "Corolla"));
+    service.create(
+        LocalDate.of(2026, 2, 1),
+        BigDecimal.TEN,
+        fuelCategory.getId(),
+        openAccount.getId(),
+        paymentMethod.getId(),
+        null,
+        "Fill up 2",
+        null,
+        fuelDetails());
+    service.create(
+        LocalDate.of(2026, 1, 1),
+        BigDecimal.TEN,
+        fuelCategory.getId(),
+        openAccount.getId(),
+        paymentMethod.getId(),
+        null,
+        "Fill up 1",
+        null,
+        fuelDetails());
+    service.create(
+        LocalDate.now(),
+        BigDecimal.TEN,
+        fuelCategory.getId(),
+        openAccount.getId(),
+        paymentMethod.getId(),
+        null,
+        "Other vehicle fill up",
+        null,
+        new FuelDetails(
+            otherVehicle.getId(), FuelType.ETANOL, BigDecimal.TEN, BigDecimal.ONE, null, null));
+
+    List<Transaction> history = service.findFuelHistory(vehicle.getId(), null, null);
+
+    assertThat(history).hasSize(2);
+    assertThat(history.get(0).getDate()).isEqualTo(LocalDate.of(2026, 1, 1));
+    assertThat(history.get(1).getDate()).isEqualTo(LocalDate.of(2026, 2, 1));
   }
 }

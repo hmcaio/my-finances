@@ -484,4 +484,122 @@ class TransactionTest {
                     null))
         .isInstanceOf(IllegalArgumentException.class);
   }
+
+  // F024 (ADR 0021): Transaction gains optional fuelDetails, carried through create/edit
+  // unchanged otherwise - no cross-check here against the category being the fuel category
+  // (an application-layer concern, since this domain package never imports domain.category
+  // beyond CategoryType, and never imports domain.vehicle at all).
+
+  @Test
+  void createWithoutFuelDetailsLeavesItNull() {
+    Transaction transaction =
+        Transaction.create(
+            UUID.randomUUID(),
+            LocalDate.now(),
+            BigDecimal.TEN,
+            CATEGORY_ID,
+            CategoryType.EXPENSE,
+            ACCOUNT_ID,
+            PAYMENT_METHOD_ID,
+            null,
+            "Groceries",
+            null);
+
+    assertThat(transaction.getFuelDetails()).isNull();
+  }
+
+  @Test
+  void createWithFuelDetailsCarriesThemThrough() {
+    FuelDetails fuelDetails =
+        new FuelDetails(
+            UUID.randomUUID(),
+            FuelType.GASOLINA,
+            new BigDecimal("40.500"),
+            new BigDecimal("5.799"),
+            null,
+            null);
+
+    Transaction transaction =
+        Transaction.create(
+            UUID.randomUUID(),
+            LocalDate.now(),
+            BigDecimal.TEN,
+            CATEGORY_ID,
+            CategoryType.EXPENSE,
+            ACCOUNT_ID,
+            PAYMENT_METHOD_ID,
+            null,
+            "Fuel",
+            null,
+            fuelDetails);
+
+    assertThat(transaction.getFuelDetails()).isEqualTo(fuelDetails);
+    // Every other field is exactly as it would be without fuel details.
+    assertThat(transaction.getDescription()).isEqualTo("Fuel");
+    assertThat(transaction.getAmount()).isEqualByComparingTo(BigDecimal.TEN);
+  }
+
+  @Test
+  void editWithoutFuelDetailsClearsAnyPreviouslyRecordedOnes() {
+    FuelDetails fuelDetails =
+        new FuelDetails(
+            UUID.randomUUID(), FuelType.ETANOL, BigDecimal.TEN, BigDecimal.ONE, null, null);
+    Transaction transaction =
+        Transaction.create(
+            UUID.randomUUID(),
+            LocalDate.now(),
+            BigDecimal.TEN,
+            CATEGORY_ID,
+            CategoryType.EXPENSE,
+            ACCOUNT_ID,
+            PAYMENT_METHOD_ID,
+            null,
+            "Fuel",
+            null,
+            fuelDetails);
+
+    transaction.edit(
+        LocalDate.now(),
+        BigDecimal.TEN,
+        CATEGORY_ID,
+        CategoryType.EXPENSE,
+        ACCOUNT_ID,
+        PAYMENT_METHOD_ID,
+        "Groceries",
+        null);
+
+    assertThat(transaction.getFuelDetails()).isNull();
+  }
+
+  @Test
+  void editWithFuelDetailsReplacesAnyPreviousOnes() {
+    UUID vehicleId = UUID.randomUUID();
+    Transaction transaction =
+        Transaction.create(
+            UUID.randomUUID(),
+            LocalDate.now(),
+            BigDecimal.TEN,
+            CATEGORY_ID,
+            CategoryType.EXPENSE,
+            ACCOUNT_ID,
+            PAYMENT_METHOD_ID,
+            null,
+            "Groceries",
+            null);
+    FuelDetails fuelDetails =
+        new FuelDetails(vehicleId, FuelType.ETANOL, BigDecimal.TEN, BigDecimal.ONE, null, null);
+
+    transaction.edit(
+        LocalDate.now(),
+        BigDecimal.TEN,
+        CATEGORY_ID,
+        CategoryType.EXPENSE,
+        ACCOUNT_ID,
+        PAYMENT_METHOD_ID,
+        "Fuel",
+        null,
+        fuelDetails);
+
+    assertThat(transaction.getFuelDetails()).isEqualTo(fuelDetails);
+  }
 }

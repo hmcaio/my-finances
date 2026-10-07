@@ -22,7 +22,8 @@ import lombok.Setter;
  *
  * <p>{@code builtIn} is read-only from the application's point of view: the only constructor always
  * writes {@code false}, there is no setter, and the column is {@code updatable = false}. The {@code
- * true} rows are set by {@code V14__builtin_categories.sql}.
+ * true} rows are set by {@code V14__builtin_categories.sql}. Same shape for {@code fuelCategory}
+ * (F024, ADR 0021), set by {@code V18}.
  */
 @Entity
 @Table(name = "categories")
@@ -43,11 +44,15 @@ public class CategoryJpaEntity extends AuditableEntity {
   @Column(name = "built_in", nullable = false, updatable = false)
   private boolean builtIn;
 
-  /** For a brand-new row; never built-in. */
+  @Column(name = "fuel_category", nullable = false, updatable = false)
+  private boolean fuelCategory;
+
+  /** For a brand-new row; never built-in, never the fuel category. */
   public CategoryJpaEntity(UUID id, String name, CategoryType type) {
     this.id = id;
     this.name = name;
     this.type = type;
     this.builtIn = false;
+    this.fuelCategory = false;
   }
 }

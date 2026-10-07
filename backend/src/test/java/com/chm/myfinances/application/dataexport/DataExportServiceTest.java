@@ -15,7 +15,10 @@ import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
+import com.chm.myfinances.domain.transaction.FuelDetails;
+import com.chm.myfinances.domain.transaction.FuelType;
 import com.chm.myfinances.domain.transfer.InvestmentTradeDetails;
+import com.chm.myfinances.domain.vehicle.Vehicle;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
 import com.chm.myfinances.testsupport.fakes.FakeBudgetRepository;
 import com.chm.myfinances.testsupport.fakes.FakeBudgetVersionRepository;
@@ -31,6 +34,7 @@ import com.chm.myfinances.testsupport.fakes.FakeRecurringTemplateRepository;
 import com.chm.myfinances.testsupport.fakes.FakeRecurringTemplateVersionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeTransactionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeTransferRepository;
+import com.chm.myfinances.testsupport.fakes.FakeVehicleRepository;
 import com.chm.myfinances.testsupport.mothers.AccountMother;
 import com.chm.myfinances.testsupport.mothers.BudgetVersionMother;
 import com.chm.myfinances.testsupport.mothers.RecurringTemplateMother;
@@ -98,6 +102,7 @@ class DataExportServiceTest {
       new FakeInvestmentHoldingRepository();
   private final FakeInvestmentSnapshotRepository investmentSnapshots =
       new FakeInvestmentSnapshotRepository();
+  private final FakeVehicleRepository vehicles = new FakeVehicleRepository();
 
   private final DataExportService service =
       new DataExportService(
@@ -115,7 +120,8 @@ class DataExportServiceTest {
           investmentSubcategories,
           investmentProducts,
           investmentHoldings,
-          investmentSnapshots);
+          investmentSnapshots,
+          vehicles);
 
   private final UUID inst = UUID.randomUUID();
   private final UUID food = UUID.randomUUID();
@@ -323,7 +329,8 @@ class DataExportServiceTest {
             new FakeInvestmentSubcategoryRepository(),
             new FakeInvestmentProductRepository(),
             new FakeInvestmentHoldingRepository(),
-            new FakeInvestmentSnapshotRepository());
+            new FakeInvestmentSnapshotRepository(),
+            new FakeVehicleRepository());
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     empty.export(ExportFilter.none(), out);
     List<String> names = new ArrayList<>();
@@ -563,6 +570,132 @@ class DataExportServiceTest {
     assertThat(column(files, "budgets.csv", "effective_from")).containsExactly("2026-03");
     assertThat(files.get("recurring_templates.csv")).isEmpty();
     assertReferenceFilesFull(files);
+  }
+
+  // F024 (ADR 0021): transactions.csv gains vehicle_id/vehicle_name/fuel_type/liters/
+  // price_per_liter/km_since_last_fill/odometer, empty for a non-fuel row. A standalone fixture
+  // (not the shared one above) so it doesn't perturb every other test's exact row-count/filter
+  // assertions on transactions.csv.
+  @Test
+  void fuelColumnsArePopulatedForFuelRowsAndEmptyForOtherRows() throws IOException {
+    FakeCategoryRepository fuelCategories = new FakeCategoryRepository();
+    FakeAccountRepository fuelAccounts = new FakeAccountRepository();
+    FakeTransactionRepository fuelTransactions = new FakeTransactionRepository();
+    FakeVehicleRepository fuelVehicles = new FakeVehicleRepository();
+    FakeInstitutionRepository fuelInstitutions = new FakeInstitutionRepository();
+    FakePaymentMethodRepository fuelPaymentMethods = new FakePaymentMethodRepository();
+
+    UUID institutionId = UUID.randomUUID();
+    fuelInstitutions.save(Institution.reconstitute(institutionId, "No institution", true));
+    UUID accountId = UUID.randomUUID();
+    fuelAccounts.save(
+        AccountMother.checking()
+            .withId(accountId)
+            .withName("Checking")
+            .withInstitutionId(institutionId)
+            .build());
+    UUID plainCategoryId = UUID.randomUUID();
+    fuelCategories.save(Category.create(plainCategoryId, "Groceries", CategoryType.EXPENSE));
+    UUID fuelCategoryId = UUID.randomUUID();
+    fuelCategories.save(
+        Category.reconstitute(fuelCategoryId, "Fuel", CategoryType.EXPENSE, false, true));
+    UUID paymentMethodId = UUID.randomUUID();
+    fuelPaymentMethods.save(PaymentMethod.create(paymentMethodId, "Debit"));
+    UUID vehicleId = UUID.randomUUID();
+    fuelVehicles.save(Vehicle.create(vehicleId, "Civic"));
+
+    fuelTransactions.save(
+        TransactionMother.expense()
+            .withDescription("Groceries")
+            .withCategoryId(plainCategoryId)
+            .withAccountId(accountId)
+            .withPaymentMethodId(paymentMethodId)
+            .withDate(LocalDate.parse("2026-01-05"))
+            .build());
+    fuelTransactions.save(
+        TransactionMother.expense()
+            .withDescription("Fill up")
+            .withCategoryId(fuelCategoryId)
+            .withAccountId(accountId)
+            .withPaymentMethodId(paymentMethodId)
+            .withDate(LocalDate.parse("2026-01-10"))
+            .withFuelDetails(
+                new FuelDetails(
+                    vehicleId,
+                    FuelType.GASOLINA,
+                    new BigDecimal("40.500"),
+                    new BigDecimal("5.799"),
+                    new BigDecimal("400.0"),
+                    new BigDecimal("12345.0")))
+            .build());
+
+    DataExportService fuelService =
+        new DataExportService(
+            fuelCategories,
+            fuelPaymentMethods,
+            fuelInstitutions,
+            fuelAccounts,
+            fuelTransactions,
+            new FakeTransferRepository(),
+            new FakeBudgetRepository(),
+            new FakeBudgetVersionRepository(),
+            new FakeRecurringTemplateRepository(),
+            new FakeRecurringTemplateVersionRepository(),
+            new FakeInvestmentCategoryRepository(),
+            new FakeInvestmentSubcategoryRepository(),
+            new FakeInvestmentProductRepository(),
+            new FakeInvestmentHoldingRepository(),
+            new FakeInvestmentSnapshotRepository(),
+            fuelVehicles);
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    fuelService.export(ExportFilter.none(), out);
+    Map<String, List<Map<String, String>>> files;
+    try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(out.toByteArray()))) {
+      files = new LinkedHashMap<>();
+      for (ZipEntry entry = zip.getNextEntry(); entry != null; entry = zip.getNextEntry()) {
+        String[] lines = new String(zip.readAllBytes(), StandardCharsets.UTF_8).split("\r\n", -1);
+        String[] header = lines[0].split(",", -1);
+        List<Map<String, String>> rows = new ArrayList<>();
+        for (int i = 1; i < lines.length; i++) {
+          if (lines[i].isEmpty()) {
+            continue;
+          }
+          String[] cells = lines[i].split(",", -1);
+          Map<String, String> row = new LinkedHashMap<>();
+          for (int c = 0; c < header.length; c++) {
+            row.put(header[c], cells[c]);
+          }
+          rows.add(row);
+        }
+        files.put(entry.getName(), rows);
+      }
+    }
+
+    var plainRow =
+        files.get("transactions.csv").stream()
+            .filter(r -> r.get("description").equals("Groceries"))
+            .findFirst()
+            .orElseThrow();
+    assertThat(plainRow.get("vehicle_id")).isEmpty();
+    assertThat(plainRow.get("vehicle_name")).isEmpty();
+    assertThat(plainRow.get("fuel_type")).isEmpty();
+    assertThat(plainRow.get("liters")).isEmpty();
+    assertThat(plainRow.get("price_per_liter")).isEmpty();
+    assertThat(plainRow.get("km_since_last_fill")).isEmpty();
+    assertThat(plainRow.get("odometer")).isEmpty();
+
+    var fuelRow =
+        files.get("transactions.csv").stream()
+            .filter(r -> r.get("description").equals("Fill up"))
+            .findFirst()
+            .orElseThrow();
+    assertThat(fuelRow.get("vehicle_id")).isEqualTo(vehicleId.toString());
+    assertThat(fuelRow.get("vehicle_name")).isEqualTo("Civic");
+    assertThat(fuelRow.get("fuel_type")).isEqualTo("GASOLINA");
+    assertThat(fuelRow.get("liters")).isEqualTo("40.500");
+    assertThat(fuelRow.get("price_per_liter")).isEqualTo("5.799");
+    assertThat(fuelRow.get("km_since_last_fill")).isEqualTo("400.0");
+    assertThat(fuelRow.get("odometer")).isEqualTo("12345.0");
   }
 
   private void assertReferenceFilesFull(Map<String, List<Map<String, String>>> files) {

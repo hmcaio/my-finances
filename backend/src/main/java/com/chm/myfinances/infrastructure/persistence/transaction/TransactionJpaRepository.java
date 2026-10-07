@@ -32,4 +32,6 @@ interface TransactionJpaRepository
   boolean existsByPaymentMethodId(UUID paymentMethodId);
 
   boolean existsByAccountId(UUID accountId);
+
+  boolean existsByVehicleId(UUID vehicleId);
 }

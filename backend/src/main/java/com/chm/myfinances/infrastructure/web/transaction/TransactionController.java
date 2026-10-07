@@ -2,6 +2,7 @@ package com.chm.myfinances.infrastructure.web.transaction;
 
 import com.chm.myfinances.application.transaction.MonthlySpendByCategoryQuery;
 import com.chm.myfinances.application.transaction.TransactionService;
+import com.chm.myfinances.domain.transaction.FuelDetails;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionFilter;
 import jakarta.validation.Valid;
@@ -88,9 +89,35 @@ public class TransactionController {
             request.categoryId(),
             request.accountId(),
             request.paymentMethodId(),
+            null,
             request.description(),
-            request.additionalNotes());
+            request.additionalNotes(),
+            toFuelDetails(request));
     return TransactionResponse.from(transaction);
+  }
+
+  private static FuelDetails toFuelDetails(CreateTransactionRequest request) {
+    return request.vehicleId() == null
+        ? null
+        : new FuelDetails(
+            request.vehicleId(),
+            request.fuelType(),
+            request.liters(),
+            request.pricePerLiter(),
+            request.kmSinceLastFill(),
+            request.odometer());
+  }
+
+  private static FuelDetails toFuelDetails(UpdateTransactionRequest request) {
+    return request.vehicleId() == null
+        ? null
+        : new FuelDetails(
+            request.vehicleId(),
+            request.fuelType(),
+            request.liters(),
+            request.pricePerLiter(),
+            request.kmSinceLastFill(),
+            request.odometer());
   }
 
   @GetMapping("/{id}")
@@ -110,7 +137,8 @@ public class TransactionController {
             request.accountId(),
             request.paymentMethodId(),
             request.description(),
-            request.additionalNotes());
+            request.additionalNotes(),
+            toFuelDetails(request));
     return TransactionResponse.from(transaction);
   }
 

@@ -15,6 +15,7 @@ import { DashboardPage } from './features/dashboard/DashboardPage'
 import { AccountsPage } from './features/accounts/AccountsPage'
 import { AccountDetailPage } from './features/accounts/AccountDetailPage'
 import { CategoriesPage } from './features/categories/CategoriesPage'
+import { FuelPage } from './features/fuel/FuelPage'
 import { InstitutionsPage } from './features/institutions/InstitutionsPage'
 import { InvestmentsPage } from './features/investments/InvestmentsPage'
 import { InvestmentProductDetailPage } from './features/investmentProducts/InvestmentProductDetailPage'
@@ -25,6 +26,7 @@ import { TransfersPage } from './features/transfers/TransfersPage'
 import { BudgetsPage } from './features/budgets/BudgetsPage'
 import { ExportPage } from './features/export/ExportPage'
 import { RecurringTemplatesPage } from './features/recurringTemplates/RecurringTemplatesPage'
+import { VehiclesPage } from './features/vehicles/VehiclesPage'
 
 /**
  * Wraps the routed page (inside `Layout`, so the nav/theme survive a page crash). Keyed on the
@@ -67,6 +69,7 @@ function ThemedApp() {
               <Routes>
                 <Route path="/" element={<DashboardPage />} />
                 <Route path="/transactions" element={<TransactionsPage />} />
+                <Route path="/fuel" element={<FuelPage />} />
                 <Route path="/accounts" element={<AccountsPage />} />
                 <Route path="/accounts/:id" element={<AccountDetailPage />} />
                 <Route path="/investment-products/:id" element={<InvestmentProductDetailPage />} />
@@ -81,6 +84,7 @@ function ThemedApp() {
                   element={<InvestmentCategoriesPage />}
                 />
                 <Route path="/settings/payment-methods" element={<PaymentMethodsPage />} />
+                <Route path="/settings/vehicles" element={<VehiclesPage />} />
                 <Route path="/export" element={<ExportPage />} />
               </Routes>
             </PageErrorBoundary>

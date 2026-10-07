@@ -8,18 +8,22 @@ import {
   seedAccounts,
   seedInvestmentAccount,
 } from '../../mocks/handlers/accounts'
-import { seedCategories, seedGroceriesCategory } from '../../mocks/handlers/categories'
+import {
+  seedCategories,
+  seedFuelCategory,
+  seedGroceriesCategory,
+} from '../../mocks/handlers/categories'
 import { seedDebitCardPaymentMethod, seedPaymentMethods } from '../../mocks/handlers/paymentMethods'
 import {
   seedGroceriesTransaction,
   seedTransactions,
   transactionClosedAccountConflictHandler,
 } from '../../mocks/handlers/transactions'
+import { seedCivicVehicle } from '../../mocks/handlers/vehicles'
 import { CLOSED_ACCOUNT_MESSAGE } from '../../api/transactions/transactions'
-import { findRow, selectOption } from '../../test/testUtils'
+import { findRow, renderWithRouter, selectOption } from '../../test/testUtils'
 import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
 import { TransactionsPage } from './TransactionsPage'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
 describe('TransactionsPage', () => {
   // jsdom has no viewport, which MUI treats as the tablet band (payment method column hidden):
@@ -28,7 +32,7 @@ describe('TransactionsPage', () => {
   afterEach(restoreViewport)
 
   it('renders the seeded transactions', async () => {
-    renderWithQueryClient(<TransactionsPage />)
+    renderWithRouter(<TransactionsPage />)
 
     for (const transaction of seedTransactions) {
       expect(await screen.findByText(transaction.description)).toBeInTheDocument()
@@ -37,7 +41,7 @@ describe('TransactionsPage', () => {
 
   it('filters by category', async () => {
     const user = userEvent.setup({ delay: null })
-    renderWithQueryClient(<TransactionsPage />)
+    renderWithRouter(<TransactionsPage />)
     await screen.findByText(seedGroceriesTransaction.description)
 
     const incomeCategory = seedCategories.find((c) => c.type === 'INCOME')!
@@ -51,7 +55,7 @@ describe('TransactionsPage', () => {
 
   it('adds a new transaction through the Add dialog', async () => {
     const user = userEvent.setup({ delay: null })
-    renderWithQueryClient(<TransactionsPage />)
+    renderWithRouter(<TransactionsPage />)
     await screen.findByText(seedGroceriesTransaction.description)
 
     await user.click(screen.getByRole('button', { name: 'Add transaction' }))
@@ -68,7 +72,7 @@ describe('TransactionsPage', () => {
 
   it('excludes closed accounts from the create/edit form account dropdown', async () => {
     const user = userEvent.setup({ delay: null })
-    renderWithQueryClient(<TransactionsPage />)
+    renderWithRouter(<TransactionsPage />)
     await screen.findByText(seedGroceriesTransaction.description)
 
     const closedAccount = seedAccounts.find((a) => a.closed)!
@@ -81,7 +85,7 @@ describe('TransactionsPage', () => {
   it('never offers an investment account in the form account dropdown', async () => {
     server.use(accountsWithInvestmentHandler)
     const user = userEvent.setup({ delay: null })
-    renderWithQueryClient(<TransactionsPage />)
+    renderWithRouter(<TransactionsPage />)
     await screen.findByText(seedGroceriesTransaction.description)
 
     await user.click(screen.getByRole('button', { name: 'Add transaction' }))
@@ -96,7 +100,7 @@ describe('TransactionsPage', () => {
 
   it('edits a transaction', async () => {
     const user = userEvent.setup({ delay: null })
-    renderWithQueryClient(<TransactionsPage />)
+    renderWithRouter(<TransactionsPage />)
     const target = seedGroceriesTransaction
     await screen.findByText(target.description)
 
@@ -114,7 +118,7 @@ describe('TransactionsPage', () => {
 
   it('deletes a transaction after confirming the dialog', async () => {
     const user = userEvent.setup({ delay: null })
-    renderWithQueryClient(<TransactionsPage />)
+    renderWithRouter(<TransactionsPage />)
     const target = seedGroceriesTransaction
     await screen.findByText(target.description)
 
@@ -129,7 +133,7 @@ describe('TransactionsPage', () => {
   it('surfaces the closed-account conflict message on create', async () => {
     server.use(transactionClosedAccountConflictHandler)
     const user = userEvent.setup({ delay: null })
-    renderWithQueryClient(<TransactionsPage />)
+    renderWithRouter(<TransactionsPage />)
     await screen.findByText(seedGroceriesTransaction.description)
 
     await user.click(screen.getByRole('button', { name: 'Add transaction' }))
@@ -154,7 +158,7 @@ describe('TransactionsPage', () => {
       failOnce('/api/payment-methods'),
     )
     const user = userEvent.setup({ delay: null })
-    renderWithQueryClient(<TransactionsPage />)
+    renderWithRouter(<TransactionsPage />)
     await screen.findAllByRole('alert')
 
     await user.click(await screen.findByRole('button', { name: 'Retry' }))
@@ -183,7 +187,7 @@ describe('TransactionsPage', () => {
         return HttpResponse.json(seedCategories)
       }),
     )
-    renderWithQueryClient(<TransactionsPage />)
+    renderWithRouter(<TransactionsPage />)
     const transaction = seedGroceriesTransaction
 
     // The transactions themselves arrive right away; the skeleton stays up for the slow lookup.
@@ -211,7 +215,7 @@ describe('TransactionsPage local-time defaults', () => {
 
   it('defaults the form date to the local date, not the UTC date', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    renderWithQueryClient(<TransactionsPage />)
+    renderWithRouter(<TransactionsPage />)
 
     await user.click(await screen.findByRole('button', { name: 'Add transaction' }))
     expect(await screen.findByLabelText('Date')).toHaveValue('2026-03-31')
@@ -243,7 +247,7 @@ describe('TransactionsPage responsive layout (F021)', () => {
     beforeEach(() => setViewportWidth(VIEWPORT.mobile))
 
     it('renders cards instead of a table, with the signed amount', async () => {
-      renderWithQueryClient(<TransactionsPage />)
+      renderWithRouter(<TransactionsPage />)
 
       const card = await findCard(target.description)
       expect(screen.queryByRole('table')).not.toBeInTheDocument()
@@ -256,7 +260,7 @@ describe('TransactionsPage responsive layout (F021)', () => {
 
     it('collapses the filters behind a button with an active-count badge', async () => {
       const user = userEvent.setup({ delay: null })
-      renderWithQueryClient(<TransactionsPage />)
+      renderWithRouter(<TransactionsPage />)
       await findCard(target.description)
       expect(screen.queryByRole('combobox', { name: 'Category filter' })).not.toBeInTheDocument()
 
@@ -273,7 +277,7 @@ describe('TransactionsPage responsive layout (F021)', () => {
 
     it('Add opens a full-screen dialog that creates a transaction', async () => {
       const user = userEvent.setup({ delay: null })
-      renderWithQueryClient(<TransactionsPage />)
+      renderWithRouter(<TransactionsPage />)
       await findCard(target.description)
 
       await user.click(screen.getByRole('button', { name: 'Add transaction' }))
@@ -288,7 +292,7 @@ describe('TransactionsPage responsive layout (F021)', () => {
     it('shows a save error inside the dialog, which stays open', async () => {
       server.use(transactionClosedAccountConflictHandler)
       const user = userEvent.setup({ delay: null })
-      renderWithQueryClient(<TransactionsPage />)
+      renderWithRouter(<TransactionsPage />)
       await findCard(target.description)
 
       await user.click(screen.getByRole('button', { name: 'Add transaction' }))
@@ -300,7 +304,7 @@ describe('TransactionsPage responsive layout (F021)', () => {
 
     it('Edit opens the dialog prefilled and saves through the same mutation', async () => {
       const user = userEvent.setup({ delay: null })
-      renderWithQueryClient(<TransactionsPage />)
+      renderWithRouter(<TransactionsPage />)
       const card = await findCard(target.description)
 
       await user.click(card.getByRole('button', { name: 'Edit' }))
@@ -320,7 +324,7 @@ describe('TransactionsPage responsive layout (F021)', () => {
 
     it('Cancel closes the dialog without saving', async () => {
       const user = userEvent.setup({ delay: null })
-      renderWithQueryClient(<TransactionsPage />)
+      renderWithRouter(<TransactionsPage />)
       const card = await findCard(target.description)
       await user.click(card.getByRole('button', { name: 'Edit' }))
 
@@ -336,7 +340,7 @@ describe('TransactionsPage responsive layout (F021)', () => {
     beforeEach(() => setViewportWidth(VIEWPORT.tablet))
 
     it('keeps the table without the payment method column, with inline filters and the Add dialog', async () => {
-      renderWithQueryClient(<TransactionsPage />)
+      renderWithRouter(<TransactionsPage />)
 
       await screen.findByText(target.description)
       expect(screen.getByRole('table')).toBeInTheDocument()
@@ -356,7 +360,7 @@ describe('TransactionsPage responsive layout (F021)', () => {
     beforeEach(() => setViewportWidth(VIEWPORT.desktop))
 
     it('shows every column and inline filters, with the form only inside the Add dialog', async () => {
-      renderWithQueryClient(<TransactionsPage />)
+      renderWithRouter(<TransactionsPage />)
 
       await screen.findByText(target.description)
       for (const name of [
@@ -376,7 +380,7 @@ describe('TransactionsPage responsive layout (F021)', () => {
 
     it('Add opens a regular (not full-screen) dialog that creates a transaction', async () => {
       const user = userEvent.setup({ delay: null })
-      renderWithQueryClient(<TransactionsPage />)
+      renderWithRouter(<TransactionsPage />)
       await screen.findByText(target.description)
 
       await user.click(screen.getByRole('button', { name: 'Add transaction' }))
@@ -390,7 +394,7 @@ describe('TransactionsPage responsive layout (F021)', () => {
 
     it('Edit opens the dialog prefilled', async () => {
       const user = userEvent.setup({ delay: null })
-      renderWithQueryClient(<TransactionsPage />)
+      renderWithRouter(<TransactionsPage />)
       const row = await findRow(target.description)
 
       await user.click(row.getByRole('button', { name: 'Edit' }))
@@ -402,5 +406,89 @@ describe('TransactionsPage responsive layout (F021)', () => {
       )
       expect(within(dialog).getByRole('button', { name: 'Save changes' })).toBeInTheDocument()
     })
+  })
+})
+
+describe('TransactionsPage fuel fields (F024)', () => {
+  beforeEach(() => {
+    setViewportWidth(VIEWPORT.desktop)
+    server.use(
+      http.get('/api/categories', () => HttpResponse.json([...seedCategories, seedFuelCategory])),
+    )
+  })
+  afterEach(restoreViewport)
+
+  it('reveals the fuel fields only once the fuel category is selected, and submits them', async () => {
+    const user = userEvent.setup({ delay: null })
+    renderWithRouter(<TransactionsPage />)
+    await screen.findByText(seedGroceriesTransaction.description)
+
+    await user.click(screen.getByRole('button', { name: 'Add transaction' }))
+    expect(screen.queryByRole('combobox', { name: 'Vehicle' })).not.toBeInTheDocument()
+
+    await selectOption(user, 'Category', seedFuelCategory.name)
+    expect(await screen.findByRole('combobox', { name: 'Vehicle' })).toBeInTheDocument()
+
+    await user.type(screen.getByRole('spinbutton', { name: 'Amount' }), '234.85')
+    await selectOption(user, 'Account', seedAccounts.find((a) => !a.closed)!.name)
+    await selectOption(user, 'Payment Method', seedDebitCardPaymentMethod.name)
+    await user.type(screen.getByRole('textbox', { name: 'Description' }), 'Fill up')
+    await selectOption(user, 'Vehicle', seedCivicVehicle.name)
+    await selectOption(user, 'Fuel Type', 'Gasolina')
+    await user.type(screen.getByRole('spinbutton', { name: 'Liters' }), '40.5')
+    await user.type(screen.getByRole('spinbutton', { name: 'Price per Liter' }), '5.799')
+
+    await user.click(screen.getByRole('button', { name: 'Add' }))
+
+    expect(await screen.findByText('Fill up')).toBeInTheDocument()
+  })
+
+  it('clears the fuel fields when the category is changed away from the fuel category', async () => {
+    const user = userEvent.setup({ delay: null })
+    renderWithRouter(<TransactionsPage />)
+    await screen.findByText(seedGroceriesTransaction.description)
+
+    await user.click(screen.getByRole('button', { name: 'Add transaction' }))
+    await selectOption(user, 'Category', seedFuelCategory.name)
+    await selectOption(user, 'Vehicle', seedCivicVehicle.name)
+    expect(screen.getByRole('combobox', { name: 'Vehicle' })).toHaveTextContent(
+      seedCivicVehicle.name,
+    )
+
+    await selectOption(user, 'Category', seedGroceriesCategory.name)
+
+    expect(screen.queryByRole('combobox', { name: 'Vehicle' })).not.toBeInTheDocument()
+  })
+
+  it('disables Add until the mandatory fuel fields are filled', async () => {
+    const user = userEvent.setup({ delay: null })
+    renderWithRouter(<TransactionsPage />)
+    await screen.findByText(seedGroceriesTransaction.description)
+
+    await user.click(screen.getByRole('button', { name: 'Add transaction' }))
+    await user.type(screen.getByRole('spinbutton', { name: 'Amount' }), '10')
+    await selectOption(user, 'Category', seedFuelCategory.name)
+    await selectOption(user, 'Account', seedAccounts.find((a) => !a.closed)!.name)
+    await selectOption(user, 'Payment Method', seedDebitCardPaymentMethod.name)
+    await user.type(screen.getByRole('textbox', { name: 'Description' }), 'Fill up')
+
+    // Vehicle/fuel type/liters/price per liter still missing.
+    expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled()
+  })
+
+  it('arrives with the fuel category pre-selected from the Fuel page and opens straight to Add', async () => {
+    renderWithRouter(<TransactionsPage />, {
+      initialEntries: [
+        { pathname: '/transactions', state: { presetCategoryId: seedFuelCategory.id } },
+      ],
+    })
+
+    const dialog = await screen.findByRole('dialog')
+    // Waits for the categories fetch to resolve and the fuel category to be matched: the Vehicle
+    // field only renders once `TransactionFormFields` knows `categoryId` is the fuel category.
+    expect(await within(dialog).findByRole('combobox', { name: 'Vehicle' })).toBeInTheDocument()
+    expect(within(dialog).getByRole('combobox', { name: 'Category' })).toHaveTextContent(
+      seedFuelCategory.name,
+    )
   })
 })

@@ -1,6 +1,7 @@
 package com.chm.myfinances.infrastructure.persistence.transaction;
 
 import com.chm.myfinances.domain.category.CategoryType;
+import com.chm.myfinances.domain.transaction.FuelType;
 import com.chm.myfinances.infrastructure.persistence.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -57,6 +58,26 @@ public class TransactionJpaEntity extends AuditableEntity {
   @Column(name = "additional_notes")
   private String additionalNotes;
 
+  // F024 (ADR 0021): flat columns mirroring TransferJpaEntity's InvestmentTradeDetails style -
+  // vehicleId/fuelType/liters/pricePerLiter are all null together (no fuel purchase) or all
+  // non-null together; kmSinceLastFill/odometer are independently optional.
+  @Column(name = "vehicle_id")
+  private UUID vehicleId;
+
+  @Enumerated(EnumType.STRING)
+  @Column(name = "fuel_type", length = 30)
+  private FuelType fuelType;
+
+  private BigDecimal liters;
+
+  @Column(name = "price_per_liter")
+  private BigDecimal pricePerLiter;
+
+  @Column(name = "km_since_last_fill")
+  private BigDecimal kmSinceLastFill;
+
+  private BigDecimal odometer;
+
   public TransactionJpaEntity(
       UUID id,
       LocalDate date,
@@ -67,7 +88,13 @@ public class TransactionJpaEntity extends AuditableEntity {
       UUID paymentMethodId,
       UUID recurringTemplateVersionId,
       String description,
-      String additionalNotes) {
+      String additionalNotes,
+      UUID vehicleId,
+      FuelType fuelType,
+      BigDecimal liters,
+      BigDecimal pricePerLiter,
+      BigDecimal kmSinceLastFill,
+      BigDecimal odometer) {
     this.id = id;
     this.date = date;
     this.amount = amount;
@@ -78,5 +105,11 @@ public class TransactionJpaEntity extends AuditableEntity {
     this.recurringTemplateVersionId = recurringTemplateVersionId;
     this.description = description;
     this.additionalNotes = additionalNotes;
+    this.vehicleId = vehicleId;
+    this.fuelType = fuelType;
+    this.liters = liters;
+    this.pricePerLiter = pricePerLiter;
+    this.kmSinceLastFill = kmSinceLastFill;
+    this.odometer = odometer;
   }
 }

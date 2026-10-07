@@ -31,6 +31,7 @@ interface NavItem {
 const MAIN_NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', path: '/' },
   { label: 'Transactions', path: '/transactions' },
+  { label: 'Fuel', path: '/fuel' },
   { label: 'Accounts', path: '/accounts' },
   { label: 'Transfers', path: '/transfers' },
   { label: 'Budgets', path: '/budgets' },
@@ -43,6 +44,7 @@ const SETTINGS_NAV_ITEMS: NavItem[] = [
   { label: 'Investment Categories', path: '/settings/investment-categories' },
   { label: 'Institutions', path: '/settings/institutions' },
   { label: 'Payment Methods', path: '/settings/payment-methods' },
+  { label: 'Vehicles', path: '/settings/vehicles' },
 ]
 
 const EXPORT_NAV_ITEM: NavItem = { label: 'Export', path: '/export' }

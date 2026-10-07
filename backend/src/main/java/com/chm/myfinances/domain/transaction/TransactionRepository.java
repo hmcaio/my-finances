@@ -54,4 +54,17 @@ public interface TransactionRepository {
 
   /** Whether any transaction is posted to {@code accountId} - part of the account delete guard. */
   boolean existsByAccountId(UUID accountId);
+
+  /**
+   * Whether any transaction carries {@code fuelDetails.vehicleId} equal to {@code vehicleId} -
+   * backs {@code VehicleService}'s referenced-by-transaction delete guard (F024 spec).
+   */
+  boolean existsByFuelDetailsVehicleId(UUID vehicleId);
+
+  /**
+   * Every fuel-purchase transaction for {@code vehicleId}, optionally bounded by {@code from}/
+   * {@code to} (either or both may be {@code null} - unbounded on that side), ordered by date
+   * ascending - backs the Fuel page's per-vehicle history/chart endpoint (F024 spec).
+   */
+  List<Transaction> findByVehicleId(UUID vehicleId, LocalDate from, LocalDate to);
 }
