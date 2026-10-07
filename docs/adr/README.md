@@ -26,6 +26,7 @@ One file per decision, numbered sequentially, never renumbered or edited to chan
 | [0020](0020-investment-holdings-many-to-many.md) | Model investment products and accounts as many-to-many holdings, not a 1:1 link | Accepted |
 | [0021](0021-fuel-details-on-transaction.md) | Record fuel purchases as Transaction + optional FuelDetails, gated by a dedicated category flag | Accepted |
 | [0022](0022-audit-log-explicit-port-same-transaction.md) | Record an audit log through an explicit application-layer port, in the same transaction as the change | Accepted |
+| [0023](0023-fii-allocation-plan-and-dividends.md) | Generalize ticker/segment on InvestmentProduct; version the FII allocation plan like a budget; link dividends to Transaction like fuel details | Accepted |
 
 Template:
 ```

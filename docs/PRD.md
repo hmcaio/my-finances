@@ -21,13 +21,15 @@ Designed for solo use today, with a data model that can extend to household/mult
 
 - No bank/card auto-sync — manual entry / CSV import only, and CSV import is a stretch goal, not required for v1.
 - No multi-currency support — single currency only.
-- No *computed* investment math: a buy/sell records its quantity, unit price and taxes as plain data (§5.5), but nothing is derived from them — no cost-basis tracking, no live or computed prices, no automatic gain/loss calculation. Investment values are always manually entered as snapshots (§5.8).
+- No *computed* investment math: a buy/sell records its quantity, unit price and taxes as plain data (§5.5), but nothing price-derived is computed from them — no live or computed market prices, no automatic gain/loss calculation. Investment values are always manually entered as snapshots (§5.8). Running totals of plain recorded fields — cotas held and amount contributed per FII product (§5.13) — are sums of `quantity`/`amount`, the same computed-not-stored style as §5.8's existing monthly `units`/`contributed` value-series fields, not a price-derived valuation, so they stay outside this non-goal.
 - No manual physical assets (real estate, vehicles) in net worth — the `Vehicle` entity introduced for fuel-transaction tracking (§5.11) is a plain label for grouping fuel purchases, not a valued asset counted in net worth.
 - No user-editable fuel types — Etanol, Etanol Aditivado, Gasolina and Gasolina Aditivada are a fixed list (§5.11); adding others (e.g. electric) is a future direction (§9).
 - No authentication — app is single-user and bound to localhost only, not exposed to LAN or internet.
 - No automatic bank statement reconciliation/matching — account balances are whatever the logged transactions and transfers compute to; there is no import-and-match step.
 - No interest/fee accrual modeling on credit card liabilities — the balance owed only reflects logged expenses and payment transfers, not statement interest or fees.
 - No loan amortization schedules — only checking/savings/cash/credit-card/investment account types are modeled (see §5.4); a general "loan" account type is a future direction.
+- No dividend yield or any price-derived return calculation for FIIs (§5.13) — no per-cota market price is tracked (§3), only each holding's latest snapshot total value.
+- No rebalance-suggestion amounts (how much to buy/sell to hit the allocation plan's target) — the FII page (§6.13) only compares target vs. actual percentages.
 
 ## 4. Users
 
@@ -199,6 +201,34 @@ An append-only record of one committed change (ADR 0022). Not part of net worth 
 
 Versioned entities (§5.6, §5.7) log as an `UPDATE` on the logical entity, diffed between the previous and the new version. An update that changes nothing is not logged. Entries are written in the same transaction as the change, are never edited or deleted, and are not part of the data export (§6.9).
 
+### 5.13 Investment Segment, Allocation Plan & FII Dividends
+
+**InvestmentSegment**
+- `id`
+- `name` (e.g. "Shoppings", "Logística", "Papel", "Lajes Corporativas") — flat, user-editable, same pattern as `InvestmentCategory` (§5.8), but orthogonal to the category/sub-category taxonomy: a sub-category like "REITs (FIIs)" is an asset class, a segment is what kind of real estate it holds. A segment referenced by any investment product can't be deleted — only renamed.
+
+**InvestmentProduct gains** (§5.8) — generalized beyond FIIs, so a future ticker-based asset (stocks, ETFs) reuses the same fields without a migration, even though the FII page (§6.13) is the only UI that manages them for v1:
+- `ticker` (optional, e.g. "KNRI11") — distinct from `name`, which stays the descriptive label (e.g. "Kinea Renda Imobiliária").
+- `segment_id` (optional, references `InvestmentSegment`).
+
+**AllocationPlan / AllocationPlanVersion** — a single, versioned target allocation across FIIs, same versioning pattern as `Budget`/`BudgetVersion` (§5.6):
+- `AllocationPlan`: `id` — one implicit singleton for v1, not per-category.
+- `AllocationPlanVersion`: `id`, `plan_id`, `effective_from` (`YearMonth`, like `BudgetVersion`). Editing the plan creates a new version effective from a month; it never mutates an earlier version — same forward-only history, and the same same-month-correction carve-out `BudgetVersion` has.
+- `AllocationPlanEntry`: `version_id`, `investment_product_id` (must be classified under the "REITs (FIIs)" sub-category), `target_percentage`. All entries of one version must sum to exactly 100%.
+- The plan version effective for a given month is resolved the same way as a budget's current cap (§5.6): the version with the latest `effective_from` that is `<=` that month.
+
+**Dividend category**
+- Exactly one `Category` (§5.1) carries `dividend_category` (true), a flag independent of `built_in` and of `fuel_category` (§5.11): a `Transaction`'s `investment_holding_id` (below) may be present only when its category is this one, and must be present when it is. Like the fuel category, it's seeded once by the schema migration and can't be created, deleted or renamed by the user.
+
+**Dividend transaction link** (optional, on `Transaction`, §5.3)
+- `investment_holding_id` — which holding paid the dividend. Present if and only if the transaction's category is the dividend category.
+
+**Computed, not stored** (same sums-of-recorded-data style §5.8 already uses for `needsSnapshot` and the monthly value series — see §3):
+- Cotas currently held, per product = sum of the `quantity` of every buy/sell transfer tagged with that product's holdings (buys positive, sells negative) — the running equivalent of §5.8's monthly `units`.
+- Amount contributed, per product = sum of the `amount` of every buy transfer minus every sell transfer tagged with that product's holdings (net, not gross) — the running equivalent of §5.8's monthly `contributed`.
+- Actual allocation percentage, per product or per segment = that grouping's total value (§5.8's "sum of latest snapshots") divided by the total value of all FII products, restricted to the "REITs (FIIs)" sub-category; by segment, a product with no `segment_id` groups under "No segment".
+- Planned allocation percentage, per segment = the current `AllocationPlanVersion`'s entries' `target_percentage` summed by each entry's product's `segment_id` (same "No segment" grouping).
+
 ## 6. Functional Requirements
 
 ### 6.1 Transactions
@@ -260,7 +290,8 @@ Versioned entities (§5.6, §5.7) log as an `UPDATE` on the logical entity, diff
   - Category: `transactions.csv`, `budgets.csv`, `recurring_templates.csv`.
   - Purely reference files with no date/account/category dimension of their own (`categories.csv`, `payment_methods.csv`, `institutions.csv`, `accounts.csv`, `investment_categories.csv`, `investment_subcategories.csv`, `investment_products.csv`) are always exported in full, since rows in the filtered files reference them by id and would be meaningless without them.
 - No filter selected = full export of everything, unfiltered.
-- `transactions.csv` also carries `vehicle_id`/`vehicle_name`, `fuel_type`, `liters`, `price_per_liter`, `km_since_last_fill` and `odometer` (§5.11), empty for non-fuel rows.
+- `transactions.csv` also carries `vehicle_id`/`vehicle_name`, `fuel_type`, `liters`, `price_per_liter`, `km_since_last_fill` and `odometer` (§5.11), empty for non-fuel rows, plus `investment_holding_id` (§5.13), empty for non-dividend rows.
+- `investment_products.csv` gains `ticker` and `segment_id`/`segment_name` (§5.13, empty when unset). Two new files: `investment_segments.csv` (always-full reference file, no date/account/category dimension) and `allocation_plan_entries.csv` (one row per entry, carrying its version's `effective_from` — narrowed by the date-range filter the same way `budgets.csv` is).
 
 ### 6.10 Institutions
 - CRUD on institutions (name), from a settings screen next to categories and payment methods.
@@ -276,6 +307,15 @@ Versioned entities (§5.6, §5.7) log as an `UPDATE` on the logical entity, diff
 - A read-only Activity page lists every logged change, newest first, grouped by day in the viewer's local time zone, filterable by date range, entity type, action and origin. Each entry expands to its field-by-field before/after diff.
 - Logged: every committed create, update, delete, close, reopen and stop on every entity; recurring catch-up as one summary entry per template per run (`SYSTEM`); side effects of a change as their own `SYSTEM` entries. Not logged: reads, navigation, rejected requests, updates that change nothing.
 - The log starts when the feature is deployed; earlier history is not reconstructed. The log cannot be edited or cleared from the app, and there is no undo from it.
+
+### 6.13 FII Portfolio
+- A dedicated page, scoped to investment products classified under the "REITs (FIIs)" sub-category (§5.8).
+- List every held FII: one row per product, aggregated across every account holding it (closed holdings hidden by default, with a filter to reveal them) — ticker, name, segment, cotas currently held, amount contributed, current value, latest snapshot date (§5.13).
+- CRUD on investment segments (name), from a settings screen alongside investment categories (§6.6); assign a segment to a product from the product's existing edit form.
+- Set/edit the allocation plan: target percentage per FII product, must sum to 100%, versioned by month like a budget (§6.4) — editing creates a new version effective going forward; correcting the current month's own version replaces it in place.
+- Four pie charts: actual allocation by ticker, actual allocation by segment, planned allocation by ticker, planned allocation by segment (a product with no segment groups under "No segment" in both).
+- Register a dividend via a dedicated form (pick the FII/holding, amount, date) that creates a transaction with the dividend category (§5.13) and the holding reference — distinct from the generic transaction form (§6.1).
+- Dividend history: a list of every dividend transaction (date, ticker, amount), filterable by ticker and date range, with totals by ticker and by month/year. No yield or price-derived calculation (§3).
 
 ## 7. Technical Design
 
@@ -320,5 +360,6 @@ These are low-level choices left to implementation rather than product decisions
 - Manual bank statement reconciliation (mark an account balance as matched against a real statement as of a date).
 - User-editable/custom fuel types (e.g. for electric vehicles) — the fuel type list is fixed for v1 (§5.11).
 - Auto-computing `km_since_last_fill` from consecutive odometer readings, or validating `amount` against `liters × price_per_liter` — both are recorded independently and trusted as entered (§5.11).
+- Generalizing the FII page (§6.13), the allocation plan and the ticker/segment fields (§5.13) to other ticker-based assets (stocks, ETFs) — the data model is deliberately generic, but the UI and the plan's product-membership validation are FII-only for v1.
 - Remote/LAN access with authentication.
 - Notifications (email/push) for budget overages or pending recurring bills.
