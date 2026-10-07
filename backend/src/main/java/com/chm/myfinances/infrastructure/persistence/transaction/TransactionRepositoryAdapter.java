@@ -49,6 +49,7 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
                   existing.setDescription(transaction.getDescription());
                   existing.setAdditionalNotes(transaction.getAdditionalNotes());
                   applyFuelDetails(existing, transaction.getFuelDetails());
+                  existing.setInvestmentHoldingId(transaction.getInvestmentHoldingId());
                   return existing;
                 })
             .orElseGet(() -> newEntity(transaction));
@@ -73,7 +74,8 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
         fuel == null ? null : fuel.liters(),
         fuel == null ? null : fuel.pricePerLiter(),
         fuel == null ? null : fuel.kmSinceLastFill(),
-        fuel == null ? null : fuel.odometer());
+        fuel == null ? null : fuel.odometer(),
+        transaction.getInvestmentHoldingId());
   }
 
   private static void applyFuelDetails(TransactionJpaEntity entity, FuelDetails fuel) {
@@ -137,6 +139,30 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
   @Override
   public boolean existsByFuelDetailsVehicleId(UUID vehicleId) {
     return jpaRepository.existsByVehicleId(vehicleId);
+  }
+
+  @Override
+  public boolean existsByInvestmentHoldingId(UUID holdingId) {
+    return jpaRepository.existsByInvestmentHoldingId(holdingId);
+  }
+
+  @Override
+  public List<Transaction> findByCategoryIdAndDateRange(UUID categoryId, LocalDate from, LocalDate to) {
+    Specification<TransactionJpaEntity> spec =
+        (root, query, criteriaBuilder) -> {
+          List<Predicate> predicates = new ArrayList<>();
+          predicates.add(criteriaBuilder.equal(root.get("categoryId"), categoryId));
+          if (from != null) {
+            predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("date"), from));
+          }
+          if (to != null) {
+            predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("date"), to));
+          }
+          return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+    return jpaRepository.findAll(spec, Sort.by(Sort.Direction.ASC, "date")).stream()
+        .map(TransactionRepositoryAdapter::toDomain)
+        .toList();
   }
 
   @Override
@@ -217,6 +243,7 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
         entity.getRecurringTemplateVersionId(),
         entity.getDescription(),
         entity.getAdditionalNotes(),
-        fuelDetails);
+        fuelDetails,
+        entity.getInvestmentHoldingId());
   }
 }

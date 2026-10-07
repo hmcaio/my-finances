@@ -602,4 +602,134 @@ class TransactionTest {
 
     assertThat(transaction.getFuelDetails()).isEqualTo(fuelDetails);
   }
+
+  // F026 (ADR 0023): Transaction gains optional investmentHoldingId, carried through
+  // create/edit/reconstitute unchanged otherwise - no cross-check here against the category
+  // being the dividend category (an application-layer concern, same shape as fuelDetails).
+
+  @Test
+  void createWithoutInvestmentHoldingIdLeavesItNull() {
+    Transaction transaction =
+        Transaction.create(
+            UUID.randomUUID(),
+            LocalDate.now(),
+            BigDecimal.TEN,
+            CATEGORY_ID,
+            CategoryType.INCOME,
+            ACCOUNT_ID,
+            PAYMENT_METHOD_ID,
+            null,
+            "Salary",
+            null);
+
+    assertThat(transaction.getInvestmentHoldingId()).isNull();
+  }
+
+  @Test
+  void createWithInvestmentHoldingIdCarriesItThrough() {
+    UUID holdingId = UUID.randomUUID();
+
+    Transaction transaction =
+        Transaction.create(
+            UUID.randomUUID(),
+            LocalDate.now(),
+            BigDecimal.TEN,
+            CATEGORY_ID,
+            CategoryType.INCOME,
+            ACCOUNT_ID,
+            PAYMENT_METHOD_ID,
+            null,
+            "Dividends",
+            null,
+            null,
+            holdingId);
+
+    assertThat(transaction.getInvestmentHoldingId()).isEqualTo(holdingId);
+    assertThat(transaction.getFuelDetails()).isNull();
+    // Every other field is exactly as it would be without an investment holding id.
+    assertThat(transaction.getDescription()).isEqualTo("Dividends");
+  }
+
+  @Test
+  void reconstituteCarriesTheInvestmentHoldingIdThrough() {
+    UUID holdingId = UUID.randomUUID();
+
+    Transaction transaction =
+        Transaction.reconstitute(
+            UUID.randomUUID(),
+            LocalDate.now(),
+            BigDecimal.TEN,
+            CATEGORY_ID,
+            CategoryType.INCOME,
+            ACCOUNT_ID,
+            PAYMENT_METHOD_ID,
+            null,
+            "Dividends",
+            null,
+            null,
+            holdingId);
+
+    assertThat(transaction.getInvestmentHoldingId()).isEqualTo(holdingId);
+  }
+
+  @Test
+  void editWithoutInvestmentHoldingIdClearsAnyPreviouslyRecordedOne() {
+    Transaction transaction =
+        Transaction.create(
+            UUID.randomUUID(),
+            LocalDate.now(),
+            BigDecimal.TEN,
+            CATEGORY_ID,
+            CategoryType.INCOME,
+            ACCOUNT_ID,
+            PAYMENT_METHOD_ID,
+            null,
+            "Dividends",
+            null,
+            null,
+            UUID.randomUUID());
+
+    transaction.edit(
+        LocalDate.now(),
+        BigDecimal.TEN,
+        CATEGORY_ID,
+        CategoryType.INCOME,
+        ACCOUNT_ID,
+        PAYMENT_METHOD_ID,
+        "Salary",
+        null);
+
+    assertThat(transaction.getInvestmentHoldingId()).isNull();
+  }
+
+  @Test
+  void editWithInvestmentHoldingIdReplacesAnyPreviousOne() {
+    Transaction transaction =
+        Transaction.create(
+            UUID.randomUUID(),
+            LocalDate.now(),
+            BigDecimal.TEN,
+            CATEGORY_ID,
+            CategoryType.INCOME,
+            ACCOUNT_ID,
+            PAYMENT_METHOD_ID,
+            null,
+            "Salary",
+            null);
+    UUID holdingId = UUID.randomUUID();
+
+    transaction.edit(
+        LocalDate.now(),
+        BigDecimal.TEN,
+        CATEGORY_ID,
+        CategoryType.INCOME,
+        ACCOUNT_ID,
+        PAYMENT_METHOD_ID,
+        "Dividends",
+        null,
+        null,
+        holdingId);
+
+    assertThat(transaction.getInvestmentHoldingId()).isEqualTo(holdingId);
+  }
 }

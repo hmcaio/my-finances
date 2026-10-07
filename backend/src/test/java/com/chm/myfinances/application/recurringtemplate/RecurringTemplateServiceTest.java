@@ -20,6 +20,7 @@ import com.chm.myfinances.testsupport.LogCapture;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
 import com.chm.myfinances.testsupport.fakes.FakeCategoryRepository;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
 import com.chm.myfinances.testsupport.fakes.FakePaymentMethodRepository;
 import com.chm.myfinances.testsupport.fakes.FakePendingRecurringOccurrenceRepository;
 import com.chm.myfinances.testsupport.fakes.FakeRecurringTemplateRepository;
@@ -60,6 +61,8 @@ class RecurringTemplateServiceTest {
       new FakePaymentMethodRepository();
   private final FakeTransactionRepository transactionRepository = new FakeTransactionRepository();
   private final FakeVehicleRepository vehicleRepository = new FakeVehicleRepository();
+  private final FakeInvestmentHoldingRepository investmentHoldingRepository =
+      new FakeInvestmentHoldingRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
   private final TransactionService transactionService =
       new TransactionService(
@@ -68,6 +71,7 @@ class RecurringTemplateServiceTest {
           accountRepository,
           paymentMethodRepository,
           vehicleRepository,
+          investmentHoldingRepository,
           idGenerator);
   private final RecurringOccurrenceCatchUpService catchUpService =
       new RecurringOccurrenceCatchUpService(

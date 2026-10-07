@@ -36,6 +36,8 @@ interface TransactionJpaRepository
 
   boolean existsByVehicleId(UUID vehicleId);
 
+  boolean existsByInvestmentHoldingId(UUID investmentHoldingId);
+
   @Query(
       "select coalesce(sum(t.amount), 0) from TransactionJpaEntity t "
           + "where t.categoryId = :categoryId and t.date >= :from and t.date <= :to")

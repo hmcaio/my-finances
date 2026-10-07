@@ -2,6 +2,7 @@ package com.chm.myfinances.application.transaction;
 
 import com.chm.myfinances.application.account.AccountNotFoundException;
 import com.chm.myfinances.application.category.CategoryNotFoundException;
+import com.chm.myfinances.application.investmentholding.InvestmentHoldingNotFoundException;
 import com.chm.myfinances.application.paymentmethod.PaymentMethodNotFoundException;
 import com.chm.myfinances.application.vehicle.VehicleNotFoundException;
 import com.chm.myfinances.domain.account.Account;
@@ -9,6 +10,7 @@ import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
+import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.shared.IdGenerator;
 import com.chm.myfinances.domain.transaction.FuelDetails;
@@ -55,6 +57,7 @@ public class TransactionService {
   private final AccountRepository accountRepository;
   private final PaymentMethodRepository paymentMethodRepository;
   private final VehicleRepository vehicleRepository;
+  private final InvestmentHoldingRepository investmentHoldingRepository;
   private final IdGenerator idGenerator;
 
   public TransactionService(
@@ -63,12 +66,14 @@ public class TransactionService {
       AccountRepository accountRepository,
       PaymentMethodRepository paymentMethodRepository,
       VehicleRepository vehicleRepository,
+      InvestmentHoldingRepository investmentHoldingRepository,
       IdGenerator idGenerator) {
     this.transactionRepository = transactionRepository;
     this.categoryRepository = categoryRepository;
     this.accountRepository = accountRepository;
     this.paymentMethodRepository = paymentMethodRepository;
     this.vehicleRepository = vehicleRepository;
+    this.investmentHoldingRepository = investmentHoldingRepository;
     this.idGenerator = idGenerator;
   }
 
@@ -114,8 +119,8 @@ public class TransactionService {
   }
 
   /**
-   * Full create, accepting optional {@code fuelDetails} (F024) - the overload {@code
-   * TransactionController} calls.
+   * Same as the 9-argument overload, but with no {@code investmentHoldingId} (F026). Most
+   * existing callers never set one.
    */
   public Transaction create(
       LocalDate date,
@@ -127,10 +132,42 @@ public class TransactionService {
       String description,
       String additionalNotes,
       FuelDetails fuelDetails) {
+    return create(
+        date,
+        amount,
+        categoryId,
+        accountId,
+        paymentMethodId,
+        recurringTemplateVersionId,
+        description,
+        additionalNotes,
+        fuelDetails,
+        null);
+  }
+
+  /**
+   * Full create, accepting optional {@code fuelDetails} (F024) and/or {@code investmentHoldingId}
+   * (F026) - the overload {@code TransactionController} calls. {@code requireValidFuelShape}/
+   * {@code requireValidInvestmentHoldingShape} each enforce their own category-gated XOR
+   * invariant independently - fuel and dividend are two separate categories, never both at once
+   * in practice, but nothing here assumes that.
+   */
+  public Transaction create(
+      LocalDate date,
+      BigDecimal amount,
+      UUID categoryId,
+      UUID accountId,
+      UUID paymentMethodId,
+      UUID recurringTemplateVersionId,
+      String description,
+      String additionalNotes,
+      FuelDetails fuelDetails,
+      UUID investmentHoldingId) {
     Category category = requireCategory(categoryId);
     Account account = requireOpenAccount(accountId);
     requirePaymentMethod(paymentMethodId);
     requireValidFuelShape(category, fuelDetails);
+    requireValidInvestmentHoldingShape(category, investmentHoldingId);
 
     Transaction transaction =
         Transaction.create(
@@ -144,7 +181,8 @@ public class TransactionService {
             recurringTemplateVersionId,
             description,
             additionalNotes,
-            fuelDetails);
+            fuelDetails,
+            investmentHoldingId);
     return transactionRepository.save(transaction);
   }
 
@@ -188,7 +226,10 @@ public class TransactionService {
         null);
   }
 
-  /** Full-replace edit including {@code fuelDetails} (F024) - the overload the controller calls. */
+  /**
+   * Same as the 10-argument overload, but with no {@code investmentHoldingId} (F026) - clears any
+   * previously recorded one.
+   */
   public Transaction edit(
       UUID id,
       LocalDate date,
@@ -199,11 +240,40 @@ public class TransactionService {
       String description,
       String additionalNotes,
       FuelDetails fuelDetails) {
+    return edit(
+        id,
+        date,
+        amount,
+        categoryId,
+        accountId,
+        paymentMethodId,
+        description,
+        additionalNotes,
+        fuelDetails,
+        null);
+  }
+
+  /**
+   * Full-replace edit including {@code fuelDetails} (F024) and/or {@code investmentHoldingId}
+   * (F026) - the overload the controller calls.
+   */
+  public Transaction edit(
+      UUID id,
+      LocalDate date,
+      BigDecimal amount,
+      UUID categoryId,
+      UUID accountId,
+      UUID paymentMethodId,
+      String description,
+      String additionalNotes,
+      FuelDetails fuelDetails,
+      UUID investmentHoldingId) {
     Transaction transaction = findById(id);
     Category category = requireCategory(categoryId);
     Account account = requireOpenAccount(accountId);
     requirePaymentMethod(paymentMethodId);
     requireValidFuelShape(category, fuelDetails);
+    requireValidInvestmentHoldingShape(category, investmentHoldingId);
 
     transaction.edit(
         date,
@@ -214,7 +284,8 @@ public class TransactionService {
         paymentMethodId,
         description,
         additionalNotes,
-        fuelDetails);
+        fuelDetails,
+        investmentHoldingId);
     return transactionRepository.save(transaction);
   }
 
@@ -269,6 +340,21 @@ public class TransactionService {
     }
     if (hasFuelDetails && !vehicleRepository.existsById(fuelDetails.vehicleId())) {
       throw new VehicleNotFoundException(fuelDetails.vehicleId());
+    }
+  }
+
+  /**
+   * The F026 dividend invariant (see class javadoc): {@code investmentHoldingId} present iff
+   * {@code category} is the dividend category, and when present it must resolve to an existing
+   * {@code InvestmentHolding}.
+   */
+  private void requireValidInvestmentHoldingShape(Category category, UUID investmentHoldingId) {
+    boolean hasInvestmentHoldingId = investmentHoldingId != null;
+    if (category.isDividendCategory() != hasInvestmentHoldingId) {
+      throw new InvestmentHoldingCategoryMismatchException();
+    }
+    if (hasInvestmentHoldingId && !investmentHoldingRepository.existsById(investmentHoldingId)) {
+      throw new InvestmentHoldingNotFoundException(investmentHoldingId);
     }
   }
 }

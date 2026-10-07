@@ -53,6 +53,7 @@ public final class Transaction {
   private String description;
   private String additionalNotes;
   private FuelDetails fuelDetails;
+  private UUID investmentHoldingId;
 
   private Transaction(
       UUID id,
@@ -65,7 +66,8 @@ public final class Transaction {
       UUID recurringTemplateVersionId,
       String description,
       String additionalNotes,
-      FuelDetails fuelDetails) {
+      FuelDetails fuelDetails,
+      UUID investmentHoldingId) {
     this.id = Objects.requireNonNull(id, "id must not be null");
     this.date = Objects.requireNonNull(date, "date must not be null");
     this.amount = requireValidAmount(amount);
@@ -78,6 +80,7 @@ public final class Transaction {
     this.description = requireValidDescription(description);
     this.additionalNotes = requireValidAdditionalNotes(additionalNotes);
     this.fuelDetails = fuelDetails;
+    this.investmentHoldingId = investmentHoldingId;
   }
 
   /**
@@ -111,7 +114,8 @@ public final class Transaction {
 
   /**
    * Creates a brand-new Transaction, optionally carrying fuel-purchase details (F024). {@code
-   * fuelDetails} may be {@code null} (not a fuel purchase).
+   * fuelDetails} may be {@code null} (not a fuel purchase). Never carries an investment holding
+   * reference - callers that need one use the 12-argument overload (F026).
    */
   public static Transaction create(
       UUID id,
@@ -125,6 +129,40 @@ public final class Transaction {
       String description,
       String additionalNotes,
       FuelDetails fuelDetails) {
+    return create(
+        id,
+        date,
+        amount,
+        categoryId,
+        type,
+        accountId,
+        paymentMethodId,
+        recurringTemplateVersionId,
+        description,
+        additionalNotes,
+        fuelDetails,
+        null);
+  }
+
+  /**
+   * Creates a brand-new Transaction, optionally carrying fuel-purchase details (F024) and/or an
+   * investment holding reference (F026 - a dividend). The two are never both present in practice
+   * (a cross-aggregate invariant enforced by {@code TransactionService}, not here); this
+   * constructor accepts either independently, like {@code Transfer.create}'s fullest overload.
+   */
+  public static Transaction create(
+      UUID id,
+      LocalDate date,
+      BigDecimal amount,
+      UUID categoryId,
+      CategoryType type,
+      UUID accountId,
+      UUID paymentMethodId,
+      UUID recurringTemplateVersionId,
+      String description,
+      String additionalNotes,
+      FuelDetails fuelDetails,
+      UUID investmentHoldingId) {
     return new Transaction(
         id,
         date,
@@ -136,10 +174,11 @@ public final class Transaction {
         recurringTemplateVersionId,
         description,
         additionalNotes,
-        fuelDetails);
+        fuelDetails,
+        investmentHoldingId);
   }
 
-  /** Rebuilds a Transaction from already-validated persisted state. */
+  /** Rebuilds a Transaction, including its investment holding reference (F026), from persisted state. */
   public static Transaction reconstitute(
       UUID id,
       LocalDate date,
@@ -151,7 +190,8 @@ public final class Transaction {
       UUID recurringTemplateVersionId,
       String description,
       String additionalNotes,
-      FuelDetails fuelDetails) {
+      FuelDetails fuelDetails,
+      UUID investmentHoldingId) {
     return new Transaction(
         id,
         date,
@@ -163,7 +203,8 @@ public final class Transaction {
         recurringTemplateVersionId,
         description,
         additionalNotes,
-        fuelDetails);
+        fuelDetails,
+        investmentHoldingId);
   }
 
   /**
@@ -194,9 +235,9 @@ public final class Transaction {
   }
 
   /**
-   * Full-replace edit including fuel details (F024) - same "every field required, this one
-   * optional" shape as {@code Transfer.edit}. Passing {@code null} for {@code fuelDetails} clears
-   * any previously recorded fuel purchase.
+   * Full-replace edit including fuel details (F024), with no investment holding reference - same
+   * "every field required, this one optional" shape as {@code Transfer.edit}. Passing {@code
+   * null} for {@code fuelDetails} clears any previously recorded fuel purchase.
    */
   public void edit(
       LocalDate date,
@@ -208,6 +249,35 @@ public final class Transaction {
       String description,
       String additionalNotes,
       FuelDetails fuelDetails) {
+    edit(
+        date,
+        amount,
+        categoryId,
+        type,
+        accountId,
+        paymentMethodId,
+        description,
+        additionalNotes,
+        fuelDetails,
+        null);
+  }
+
+  /**
+   * Full-replace edit including fuel details (F024) and/or an investment holding reference (F026)
+   * - the overload the controller calls. Passing {@code null} for either clears any previously
+   * recorded value.
+   */
+  public void edit(
+      LocalDate date,
+      BigDecimal amount,
+      UUID categoryId,
+      CategoryType type,
+      UUID accountId,
+      UUID paymentMethodId,
+      String description,
+      String additionalNotes,
+      FuelDetails fuelDetails,
+      UUID investmentHoldingId) {
     this.date = Objects.requireNonNull(date, "date must not be null");
     this.amount = requireValidAmount(amount);
     this.categoryId = Objects.requireNonNull(categoryId, "categoryId must not be null");
@@ -218,6 +288,7 @@ public final class Transaction {
     this.description = requireValidDescription(description);
     this.additionalNotes = requireValidAdditionalNotes(additionalNotes);
     this.fuelDetails = fuelDetails;
+    this.investmentHoldingId = investmentHoldingId;
   }
 
   private static BigDecimal requireValidAmount(BigDecimal value) {
@@ -294,5 +365,14 @@ public final class Transaction {
   /** Fuel-purchase details (F024), or {@code null} for an ordinary (non-fuel) transaction. */
   public FuelDetails getFuelDetails() {
     return fuelDetails;
+  }
+
+  /**
+   * The {@code InvestmentHolding} this transaction is attributed to (F026) - present if and only
+   * if the transaction's category is the dedicated dividend category (an application-layer
+   * invariant, {@code TransactionService}). {@code null} for an ordinary transaction.
+   */
+  public UUID getInvestmentHoldingId() {
+    return investmentHoldingId;
   }
 }
