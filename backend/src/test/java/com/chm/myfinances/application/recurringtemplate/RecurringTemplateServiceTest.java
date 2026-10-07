@@ -172,6 +172,22 @@ class RecurringTemplateServiceTest {
   }
 
   @Test
+  void createRejectsTheFuelCategory() {
+    UUID fuelCategoryId =
+        categoryRepository
+            .save(
+                Category.reconstitute(UUID.randomUUID(), "Fuel", CategoryType.EXPENSE, false, true))
+            .getId();
+
+    assertThatThrownBy(
+            () ->
+                service.create(
+                    fuelCategoryId, accountId, "Fill-up", BigDecimal.TEN, 5, YearMonth.now()))
+        .isInstanceOf(FuelCategoryNotAllowedException.class);
+    assertThat(service.findAll()).isEmpty();
+  }
+
+  @Test
   void findByIdOfUnknownIdThrowsNotFound() {
     assertThatThrownBy(() -> service.findById(UUID.randomUUID()))
         .isInstanceOf(RecurringTemplateNotFoundException.class);

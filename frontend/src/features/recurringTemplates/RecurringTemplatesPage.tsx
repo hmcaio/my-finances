@@ -101,6 +101,13 @@ export function RecurringTemplatesPage() {
     () => (accounts ?? []).filter((a) => a.type !== 'INVESTMENT'),
     [accounts],
   )
+  // The fuel category takes no recurring templates either (a fill-up's per-occurrence details -
+  // vehicle, liters, price, odometer - have nowhere to live on a template, F024/issue #92), so the
+  // form never offers it.
+  const templateCategories = useMemo(
+    () => (categories ?? []).filter((c) => !c.fuelCategory),
+    [categories],
+  )
 
   function isCreateFormValid() {
     return (
@@ -365,7 +372,7 @@ export function RecurringTemplatesPage() {
                 <MenuItem value="" disabled>
                   Category
                 </MenuItem>
-                {categories?.map((c) => (
+                {templateCategories.map((c) => (
                   <MenuItem key={c.id} value={c.id}>
                     {c.name}
                   </MenuItem>
