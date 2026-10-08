@@ -3,6 +3,9 @@ package com.chm.myfinances.application.dataexport;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.chm.myfinances.domain.allocationplan.AllocationPlan;
+import com.chm.myfinances.domain.allocationplan.AllocationPlanEntry;
+import com.chm.myfinances.domain.allocationplan.AllocationPlanVersion;
 import com.chm.myfinances.domain.budget.Budget;
 import com.chm.myfinances.domain.budget.BudgetVersion;
 import com.chm.myfinances.domain.category.Category;
@@ -11,6 +14,7 @@ import com.chm.myfinances.domain.institution.Institution;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
+import com.chm.myfinances.domain.investmentsegment.InvestmentSegment;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
@@ -20,6 +24,8 @@ import com.chm.myfinances.domain.transaction.FuelType;
 import com.chm.myfinances.domain.transfer.InvestmentTradeDetails;
 import com.chm.myfinances.domain.vehicle.Vehicle;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
+import com.chm.myfinances.testsupport.fakes.FakeAllocationPlanRepository;
+import com.chm.myfinances.testsupport.fakes.FakeAllocationPlanVersionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeBudgetRepository;
 import com.chm.myfinances.testsupport.fakes.FakeBudgetVersionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeCategoryRepository;
@@ -27,6 +33,7 @@ import com.chm.myfinances.testsupport.fakes.FakeInstitutionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentCategoryRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentSegmentRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSubcategoryRepository;
 import com.chm.myfinances.testsupport.fakes.FakePaymentMethodRepository;
@@ -75,7 +82,9 @@ class DataExportServiceTest {
           "transfers.csv",
           "budgets.csv",
           "recurring_templates.csv",
+          "allocation_plan_entries.csv",
           "investment_categories.csv",
+          "investment_segments.csv",
           "investment_subcategories.csv",
           "investment_products.csv",
           "investment_holdings.csv",
@@ -103,6 +112,11 @@ class DataExportServiceTest {
   private final FakeInvestmentSnapshotRepository investmentSnapshots =
       new FakeInvestmentSnapshotRepository();
   private final FakeVehicleRepository vehicles = new FakeVehicleRepository();
+  private final FakeInvestmentSegmentRepository investmentSegments =
+      new FakeInvestmentSegmentRepository();
+  private final FakeAllocationPlanRepository allocationPlans = new FakeAllocationPlanRepository();
+  private final FakeAllocationPlanVersionRepository allocationPlanVersions =
+      new FakeAllocationPlanVersionRepository();
 
   private final DataExportService service =
       new DataExportService(
@@ -121,7 +135,10 @@ class DataExportServiceTest {
           investmentProducts,
           investmentHoldings,
           investmentSnapshots,
-          vehicles);
+          vehicles,
+          investmentSegments,
+          allocationPlans,
+          allocationPlanVersions);
 
   private final UUID inst = UUID.randomUUID();
   private final UUID food = UUID.randomUUID();
@@ -135,6 +152,8 @@ class DataExportServiceTest {
   private final UUID invSub = UUID.randomUUID();
   private final UUID fund = UUID.randomUUID();
   private final UUID bond = UUID.randomUUID();
+  private final UUID segment = UUID.randomUUID();
+  private final UUID planId = UUID.randomUUID();
 
   @BeforeEach
   void fixture() {
@@ -203,7 +222,9 @@ class DataExportServiceTest {
 
     investmentCategories.save(InvestmentCategory.create(invCat, "Fixed Income"));
     investmentSubcategories.save(InvestmentSubcategory.create(invSub, invCat, "Treasury"));
-    investmentProducts.save(InvestmentProduct.create(fund, invCat, invSub, "Selic 2029", null));
+    investmentSegments.save(InvestmentSegment.create(segment, "Logistica"));
+    investmentProducts.save(
+        InvestmentProduct.create(fund, invCat, invSub, "Selic 2029", null, "KNRI11", segment));
     investmentProducts.save(InvestmentProduct.create(bond, invCat, null, "Pension", null));
     fundHolding = UUID.randomUUID();
     bondHolding = UUID.randomUUID();
@@ -212,6 +233,32 @@ class DataExportServiceTest {
     snapshot(fundHolding, "2026-01-31", "100.00");
     snapshot(fundHolding, "2026-02-28", "110.00");
     snapshot(bondHolding, "2026-03-31", "50.00");
+
+    // F026 (ADR 0023): allocation_plan_entries.csv is date-range filtered like budgets.csv.
+    allocationPlans.save(AllocationPlan.create(planId));
+    allocationPlanVersion("2026-01", fund, "60.00", bond, "40.00");
+    allocationPlanVersion("2026-03", fund, "100.00");
+  }
+
+  private void allocationPlanVersion(String month, UUID product1, String pct1) {
+    allocationPlanVersions.save(
+        AllocationPlanVersion.create(
+            UUID.randomUUID(),
+            planId,
+            List.of(new AllocationPlanEntry(product1, new BigDecimal(pct1))),
+            YearMonth.parse(month)));
+  }
+
+  private void allocationPlanVersion(
+      String month, UUID product1, String pct1, UUID product2, String pct2) {
+    allocationPlanVersions.save(
+        AllocationPlanVersion.create(
+            UUID.randomUUID(),
+            planId,
+            List.of(
+                new AllocationPlanEntry(product1, new BigDecimal(pct1)),
+                new AllocationPlanEntry(product2, new BigDecimal(pct2))),
+            YearMonth.parse(month)));
   }
 
   private UUID fundHolding;
@@ -292,7 +339,7 @@ class DataExportServiceTest {
   }
 
   @Test
-  void noFilterExportsAllThirteenFilesInFull() throws IOException {
+  void noFilterExportsAllFifteenFilesInFull() throws IOException {
     var files = export(ExportFilter.none());
 
     assertThat(files.keySet()).containsExactlyElementsOf(FILES);
@@ -304,7 +351,9 @@ class DataExportServiceTest {
     assertThat(files.get("transfers.csv")).hasSize(3);
     assertThat(files.get("budgets.csv")).hasSize(3);
     assertThat(files.get("recurring_templates.csv")).hasSize(3);
+    assertThat(files.get("allocation_plan_entries.csv")).hasSize(3);
     assertThat(files.get("investment_categories.csv")).hasSize(1);
+    assertThat(files.get("investment_segments.csv")).hasSize(1);
     assertThat(files.get("investment_subcategories.csv")).hasSize(1);
     assertThat(files.get("investment_products.csv")).hasSize(2);
     assertThat(files.get("investment_holdings.csv")).hasSize(2);
@@ -312,7 +361,7 @@ class DataExportServiceTest {
   }
 
   @Test
-  void emptyDatabaseStillYieldsThirteenHeaderOnlyFiles() throws IOException {
+  void emptyDatabaseStillYieldsFifteenHeaderOnlyFiles() throws IOException {
     DataExportService empty =
         new DataExportService(
             new FakeCategoryRepository(),
@@ -330,7 +379,10 @@ class DataExportServiceTest {
             new FakeInvestmentProductRepository(),
             new FakeInvestmentHoldingRepository(),
             new FakeInvestmentSnapshotRepository(),
-            new FakeVehicleRepository());
+            new FakeVehicleRepository(),
+            new FakeInvestmentSegmentRepository(),
+            new FakeAllocationPlanRepository(),
+            new FakeAllocationPlanVersionRepository());
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     empty.export(ExportFilter.none(), out);
     List<String> names = new ArrayList<>();
@@ -420,10 +472,46 @@ class DataExportServiceTest {
     assertThat(withSub.orElseThrow().get("investment_category_name")).isEqualTo("Fixed Income");
     assertThat(withSub.get().get("investment_subcategory_id")).isEqualTo(invSub.toString());
     assertThat(withSub.get().get("investment_subcategory_name")).isEqualTo("Treasury");
+    // F026 (ADR 0023): ticker/segment columns.
+    assertThat(withSub.get().get("ticker")).isEqualTo("KNRI11");
+    assertThat(withSub.get().get("segment_id")).isEqualTo(segment.toString());
+    assertThat(withSub.get().get("segment_name")).isEqualTo("Logistica");
 
     var without = products.stream().filter(r -> r.get("name").equals("Pension")).findFirst();
     assertThat(without.orElseThrow().get("investment_subcategory_id")).isEmpty();
     assertThat(without.get().get("investment_subcategory_name")).isEmpty();
+    assertThat(without.get().get("ticker")).isEmpty();
+    assertThat(without.get().get("segment_id")).isEmpty();
+    assertThat(without.get().get("segment_name")).isEmpty();
+  }
+
+  @Test
+  void allocationPlanEntriesCarryTheProductNameAndAreDateRangeFiltered() throws IOException {
+    var all = export(ExportFilter.none()).get("allocation_plan_entries.csv");
+    assertThat(all).hasSize(3);
+    var janFund =
+        all.stream()
+            .filter(
+                r ->
+                    r.get("effective_from").equals("2026-01")
+                        && r.get("investment_product_id").equals(fund.toString()))
+            .findFirst()
+            .orElseThrow();
+    assertThat(janFund.get("investment_product_name")).isEqualTo("Selic 2029");
+    assertThat(janFund.get("target_percentage")).isEqualTo("60.00");
+    assertThat(janFund.get("plan_id")).isEqualTo(planId.toString());
+
+    var ranged =
+        export(
+                new ExportFilter(
+                    LocalDate.parse("2026-02-01"), LocalDate.parse("2026-02-28"), null, null))
+            .get("allocation_plan_entries.csv");
+    assertThat(ranged).isEmpty();
+
+    var fromMarch =
+        export(new ExportFilter(LocalDate.parse("2026-02-15"), null, null, null))
+            .get("allocation_plan_entries.csv");
+    assertThat(fromMarch).extracting(r -> r.get("effective_from")).containsOnly("2026-03");
   }
 
   @Test
@@ -499,6 +587,7 @@ class DataExportServiceTest {
     assertThat(column(files, "budgets.csv", "effective_from")).containsExactly("2026-02");
     assertThat(column(files, "recurring_templates.csv", "effective_from"))
         .containsExactly("2026-02");
+    assertThat(files.get("allocation_plan_entries.csv")).isEmpty();
     assertReferenceFilesFull(files);
   }
 
@@ -543,6 +632,8 @@ class DataExportServiceTest {
         .containsExactly("tpl-food", "tpl-food");
     assertThat(files.get("budgets.csv")).hasSize(3);
     assertThat(files.get("investment_snapshots.csv")).hasSize(3);
+    // F026 (ADR 0023): allocation_plan_entries isn't account-filtered, stays full.
+    assertThat(files.get("allocation_plan_entries.csv")).hasSize(3);
     assertReferenceFilesFull(files);
   }
 
@@ -555,6 +646,8 @@ class DataExportServiceTest {
     assertThat(column(files, "recurring_templates.csv", "category_name")).containsExactly("Rent");
     assertThat(files.get("transfers.csv")).hasSize(3);
     assertThat(files.get("investment_snapshots.csv")).hasSize(3);
+    // F026 (ADR 0023): allocation_plan_entries isn't category-filtered, stays full.
+    assertThat(files.get("allocation_plan_entries.csv")).hasSize(3);
     assertReferenceFilesFull(files);
   }
 
@@ -569,6 +662,8 @@ class DataExportServiceTest {
     assertThat(files.get("transfers.csv")).isEmpty();
     assertThat(column(files, "budgets.csv", "effective_from")).containsExactly("2026-03");
     assertThat(files.get("recurring_templates.csv")).isEmpty();
+    assertThat(column(files, "allocation_plan_entries.csv", "effective_from"))
+        .containsExactly("2026-03");
     assertReferenceFilesFull(files);
   }
 
@@ -646,7 +741,10 @@ class DataExportServiceTest {
             new FakeInvestmentProductRepository(),
             new FakeInvestmentHoldingRepository(),
             new FakeInvestmentSnapshotRepository(),
-            fuelVehicles);
+            fuelVehicles,
+            new FakeInvestmentSegmentRepository(),
+            new FakeAllocationPlanRepository(),
+            new FakeAllocationPlanVersionRepository());
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     fuelService.export(ExportFilter.none(), out);
     Map<String, List<Map<String, String>>> files;
@@ -683,6 +781,7 @@ class DataExportServiceTest {
     assertThat(plainRow.get("price_per_liter")).isEmpty();
     assertThat(plainRow.get("km_since_last_fill")).isEmpty();
     assertThat(plainRow.get("odometer")).isEmpty();
+    assertThat(plainRow.get("investment_holding_id")).isEmpty();
 
     var fuelRow =
         files.get("transactions.csv").stream()
@@ -704,6 +803,7 @@ class DataExportServiceTest {
     assertThat(files.get("institutions.csv")).hasSize(1);
     assertThat(files.get("accounts.csv")).hasSize(3);
     assertThat(files.get("investment_categories.csv")).hasSize(1);
+    assertThat(files.get("investment_segments.csv")).hasSize(1);
     assertThat(files.get("investment_subcategories.csv")).hasSize(1);
     assertThat(files.get("investment_products.csv")).hasSize(2);
     assertThat(files.get("investment_holdings.csv")).hasSize(2);
