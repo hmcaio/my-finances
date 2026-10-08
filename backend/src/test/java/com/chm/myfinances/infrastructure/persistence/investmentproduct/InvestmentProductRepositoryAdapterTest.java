@@ -7,6 +7,8 @@ import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
+import com.chm.myfinances.domain.investmentsegment.InvestmentSegment;
+import com.chm.myfinances.domain.investmentsegment.InvestmentSegmentRepository;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategoryRepository;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
@@ -30,6 +32,7 @@ class InvestmentProductRepositoryAdapterTest {
   @Autowired private InvestmentProductRepository productRepository;
   @Autowired private InvestmentCategoryRepository categoryRepository;
   @Autowired private InvestmentSubcategoryRepository subcategoryRepository;
+  @Autowired private InvestmentSegmentRepository segmentRepository;
   @Autowired private EntityManager entityManager;
 
   private UUID fixedIncomeId;
@@ -153,5 +156,46 @@ class InvestmentProductRepositoryAdapterTest {
     assertThat(productRepository.existsByInvestmentCategoryId(fixedIncomeId)).isTrue();
     assertThat(productRepository.existsByInvestmentSubcategoryId(cdbId)).isTrue();
     assertThat(productRepository.existsByInvestmentCategoryId(cryptoId)).isFalse();
+  }
+
+  // F026: optional ticker/segmentId round trip.
+
+  @Test
+  void savesAndReloadsTickerAndSegmentId() {
+    UUID segmentId =
+        segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Shoppings Repo Test")).getId();
+    InvestmentProduct product =
+        InvestmentProduct.create(
+            UUID.randomUUID(), fixedIncomeId, null, "KNRI11 Repo Test", null, "KNRI11", segmentId);
+
+    productRepository.save(product);
+    entityManager.flush();
+    entityManager.clear();
+
+    InvestmentProduct reloaded = productRepository.findById(product.getId()).orElseThrow();
+    assertThat(reloaded.getTicker()).isEqualTo("KNRI11");
+    assertThat(reloaded.getSegmentId()).isEqualTo(segmentId);
+  }
+
+  @Test
+  void tickerAndSegmentIdAreNullWhenNeverSet() {
+    InvestmentProduct product = productRepository.save(newProduct(cryptoId, null, "No Ticker Test"));
+
+    InvestmentProduct reloaded = productRepository.findById(product.getId()).orElseThrow();
+    assertThat(reloaded.getTicker()).isNull();
+    assertThat(reloaded.getSegmentId()).isNull();
+  }
+
+  @Test
+  void existsBySegmentIdBacksTheSegmentDeleteGuard() {
+    UUID segmentId =
+        segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Logistica Repo Test")).getId();
+    assertThat(productRepository.existsBySegmentId(segmentId)).isFalse();
+
+    productRepository.save(
+        InvestmentProduct.create(
+            UUID.randomUUID(), cryptoId, null, "HGLG11 Repo Test", null, "HGLG11", segmentId));
+
+    assertThat(productRepository.existsBySegmentId(segmentId)).isTrue();
   }
 }

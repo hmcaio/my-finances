@@ -4,10 +4,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
+import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
+import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
+import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
+import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
+import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
+import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
+import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.transaction.Transaction;
@@ -44,6 +51,9 @@ class TransactionRepositoryAdapterTest {
   @Autowired private CategoryRepository categoryRepository;
   @Autowired private AccountRepository accountRepository;
   @Autowired private PaymentMethodRepository paymentMethodRepository;
+  @Autowired private InvestmentHoldingRepository investmentHoldingRepository;
+  @Autowired private InvestmentProductRepository investmentProductRepository;
+  @Autowired private InvestmentCategoryRepository investmentCategoryRepository;
 
   private UUID categoryId;
   private UUID otherCategoryId;
@@ -139,6 +149,51 @@ class TransactionRepositoryAdapterTest {
     assertThat(reloaded.get().getRecurringTemplateVersionId()).isNull();
     assertThat(reloaded.get().getDescription()).isEqualTo("Weekly groceries");
     assertThat(reloaded.get().getAdditionalNotes()).isEqualTo("Bought extra for the weekend");
+  }
+
+  @Test
+  void savesAndReloadsAnInvestmentHoldingId() {
+    InvestmentCategory category =
+        investmentCategoryRepository.save(
+            InvestmentCategory.create(UUID.randomUUID(), "Variable Income Txn Repo Test"));
+    InvestmentProduct product =
+        investmentProductRepository.save(
+            InvestmentProduct.create(UUID.randomUUID(), category.getId(), null, "KNRI11 Txn Repo Test", null));
+    Account investmentAccount =
+        TestFixtures.account(
+            accountRepository, institutionRepository, "Broker Txn Repo Test", AccountType.INVESTMENT);
+    InvestmentHolding holding =
+        investmentHoldingRepository.save(
+            InvestmentHolding.create(UUID.randomUUID(), product.getId(), investmentAccount.getId(), null));
+
+    Transaction transaction =
+        Transaction.create(
+            UUID.randomUUID(),
+            LocalDate.of(2026, 3, 15),
+            new BigDecimal("12.34"),
+            otherCategoryId,
+            CategoryType.INCOME,
+            accountId,
+            paymentMethodId,
+            null,
+            "Dividend",
+            null,
+            null,
+            holding.getId());
+
+    transactionRepository.save(transaction);
+
+    Transaction reloaded = transactionRepository.findById(transaction.getId()).orElseThrow();
+    assertThat(reloaded.getInvestmentHoldingId()).isEqualTo(holding.getId());
+  }
+
+  @Test
+  void investmentHoldingIdIsNullWhenNeverSet() {
+    Transaction transaction = newTransaction(LocalDate.of(2026, 1, 1), BigDecimal.TEN);
+    transactionRepository.save(transaction);
+
+    Transaction reloaded = transactionRepository.findById(transaction.getId()).orElseThrow();
+    assertThat(reloaded.getInvestmentHoldingId()).isNull();
   }
 
   @Test
