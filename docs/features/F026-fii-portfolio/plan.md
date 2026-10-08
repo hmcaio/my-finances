@@ -59,3 +59,28 @@ A month picker on the FII page so the portfolio list and all four allocation cha
 - [x] Select a month before any allocation-plan version existed: planned charts render empty/zero rather than erroring.
 - [x] Select a month between two plan versions: planned charts show the version effective for that month, not the current one.
 - [x] Switch back to the current month: behavior matches what shipped before this addendum (today's trades/snapshots, `needsSnapshot` badges restored).
+
+## Addendum — Nested Allocation Charts
+
+Merges the FII page's four flat donuts into two nested (two-ring) donuts: Actual (inner ring = segment, outer ring = ticker, each ticker arc sitting under its segment's arc) and Planned, the same way. `FiiAllocationQuery` already returns both groupings (`TICKER`/`SEGMENT`) from the same underlying data — a ticker row's `totalValue` (`ACTUAL`) or `percentage` (`PLANNED`) already sums exactly into its segment's own row, with no independent rounding between the two (segment totals are a literal `BigDecimal::add` of the same ticker values/percentages). So the two rings can be drawn with mathematically exact matching boundaries by computing both rings' arc angles from the same raw fraction-of-total (`totalValue` for `ACTUAL`, `percentage` for `PLANNED`, never the already-rounded display `percentage` string for `ACTUAL`) — no backend rounding/alignment trick needed, just one new field so the frontend knows which ticker belongs to which segment.
+
+### Backend
+- [ ] Write a test for `FiiAllocationRow` gaining `segmentId` (nullable `UUID`): populated on `TICKER`-groupBy rows (the ticker's own segment, `null` for an unsegmented product), always `null` on `SEGMENT`-groupBy rows (redundant with `key` there), then add the field and populate it in `actualByTicker`/`plannedByTicker` (both already compute/look up each row's segment id for the existing sort - reuse it).
+- [ ] Controller/DTO: `FiiAllocationRowResponse` (or equivalent) gains `segmentId`. Controller test confirming a `TICKER` row's `segmentId` matches its product's segment, and a `SEGMENT` row's is `null`. Regenerate `frontend/src/api/generated/schema.ts`.
+
+### Frontend
+- [ ] `donutGeometry.ts`: parametrize `segmentPath` with optional `innerRadius`/`outerRadius` arguments defaulting to the existing `INNER_RADIUS`/`RADIUS` constants, so every current caller (`FlatAllocationDonutChart`, `InvestmentAllocationChart`'s own copy) keeps compiling unchanged while the new chart below can draw two different radius bands.
+- [ ] New `FiiNestedAllocationDonutChart.tsx` (replaces `FiiAllocationDonutChart.tsx`, deleted along with its test): takes `basis` and `month`, fetches both `useFiiAllocation(basis, 'SEGMENT', month)` and `useFiiAllocation(basis, 'TICKER', month)` (same two queries the four old charts already made between them - no new network calls), groups the ticker rows by `segmentId` preserving the order the backend already sorts them in (segment-cluster, then ticker size - no client re-sort needed), and draws:
+  - Inner ring: one arc per segment row, angle = that row's own `totalValue`/grand-total (`ACTUAL`) or `percentage`/100 (`PLANNED`).
+  - Outer ring: one arc per ticker row, same fraction-of-grand-total math (not segment-relative), which is what makes a segment's child arcs exactly tile its own inner arc, since the fractions already add up exactly.
+  - Color: each segment gets a base hue (`SLICE_COLORS`, cycled by its position in the inner ring); its child ticker arcs reuse that same hue at decreasing opacity (e.g. `1.0`, `0.75`, `0.5`, ...), so the grouping reads visually without a new color-math dependency.
+  - Legend: one combined list - segment name (bold, inner-ring swatch) followed by its indented tickers (outer-ring swatch, shaded), in ring order.
+- [ ] `FiiPage.tsx`: two chart cards (Actual, Planned) instead of four, same `Grid size={{xs:12, md:6}}` responsive pattern; drop the four old `ariaLabel`/`emptyMessage` chart instances for two.
+- [ ] Update `frontend/CLAUDE.md`'s Charts section: `FiiNestedAllocationDonutChart` replaces `FiiAllocationDonutChart` in the list of hand-drawn SVG charts, noting it's the one two-ring chart in the app and why (`donutGeometry.ts`'s `segmentPath` gains optional radius params for it, every other caller unaffected).
+
+### Verification
+- [ ] Both nested charts render: inner ring sums to 100% (or the FII-only total for Actual), each segment's outer-ring child arcs visually tile exactly under its inner arc (no gap/overlap at the boundary).
+- [ ] An unsegmented ticker's arc appears under the "No segment" inner-ring slice, same as the ticker previously appeared under "No segment" in the old flat segment chart.
+- [ ] A segment with only one ticker: inner arc and that ticker's outer arc span the exact same angle.
+- [ ] Switching the month selector updates both rings of both charts together, consistent with the flat charts' prior behavior.
+- [ ] Legend lists every segment with its tickers indented beneath it, in the same order as the rings.
