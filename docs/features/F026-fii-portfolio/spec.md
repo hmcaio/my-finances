@@ -25,6 +25,7 @@ See [ADR 0023](../../adr/0023-fii-allocation-plan-and-dividends.md) for the full
 - **Dividend = `Transaction` + `investmentHoldingId`, gated by a dedicated `dividend_category` flag** — mirrors `FuelDetails`/`fuel_category` (ADR 0021), reusing the same "XOR invariant enforced in the application layer" shape. Unlike `fuelCategory`, this flag also blocks rename (javadoc on `Category.isFuelCategory()` only promised delete-blocking; the dividend history view needs the category's identity, not just its existence, to stay stable).
 - **A dedicated "Register Dividend" form, not the generic transaction form.** Faster for the actual recurring workflow (several tickers, monthly), pre-filtered to FII holdings.
 - **FII list aggregates by ticker across accounts; closed holdings hidden by default.** Matches how someone thinks about "my KNRI11 position" regardless of brokerage; a status filter (open/closed/all, default open) reveals sold-out positions, same pattern F023's product-list status filter already uses.
+- **All four charts sort by size (descending), label as the tie-break** — not alphabetically by default. The two ticker charts cluster tickers by their segment's total size first, then by the ticker's own size within that cluster; an unsegmented ticker is its own one-member cluster, ranked by its own size among the others, no special-casing. The two segment charts sort segments themselves the same way (largest slice first); alphabetical only ever breaks a tie (equal segment totals, or equal ticker sizes within one cluster).
 
 ## Backend
 

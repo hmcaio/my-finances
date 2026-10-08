@@ -135,6 +135,32 @@ class FiiAllocationQueryTest {
   }
 
   @Test
+  void actualByTickerClustersBySegmentSizeThenByTickerSizeWithinSegment() {
+    UUID segmentA =
+        segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Segment A")).getId();
+    UUID segmentB =
+        segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Segment B")).getId();
+    InvestmentProduct x = fiiProduct("X Fund", "TICKX", segmentA);
+    InvestmentProduct y = fiiProduct("Y Fund", "TICKY", segmentA);
+    InvestmentProduct w = fiiProduct("W Fund", "TICKW", null);
+    InvestmentProduct z = fiiProduct("Z Fund", "TICKZ", segmentB);
+    withSnapshot(x, "500.00");
+    withSnapshot(y, "200.00");
+    withSnapshot(w, "400.00");
+    withSnapshot(z, "300.00");
+    // Segment A totals 700 (largest cluster) > unsegmented's own 400 > Segment B's 300; within
+    // Segment A, X (500) outranks Y (200).
+
+    List<FiiAllocationRow> rows =
+        query.allocation(
+            FiiAllocationBasis.ACTUAL, FiiAllocationGroupBy.TICKER, YearMonth.from(TODAY));
+
+    assertThat(rows)
+        .extracting(FiiAllocationRow::label)
+        .containsExactly("TICKX", "TICKY", "TICKW", "TICKZ");
+  }
+
+  @Test
   void anUnsegmentedProductGroupsUnderNoSegmentInTheActualSegmentChart() {
     UUID segmentId =
         segmentRepository
@@ -157,6 +183,29 @@ class FiiAllocationQueryTest {
               assertThat(r.label()).isEqualTo("No segment");
               assertThat(r.percentage()).isEqualByComparingTo("50.00");
             });
+  }
+
+  @Test
+  void actualBySegmentSortsBySizeThenAlphabeticallyOnTies() {
+    UUID alpha =
+        segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Alpha")).getId();
+    UUID beta = segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Beta")).getId();
+    UUID gamma =
+        segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Gamma")).getId();
+    UUID zeta = segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Zeta")).getId();
+    withSnapshot(fiiProduct("Alpha Fund", "ALPHA11", alpha), "300.00");
+    withSnapshot(fiiProduct("Beta Fund", "BETA11", beta), "200.00");
+    withSnapshot(fiiProduct("Gamma Fund", "GAMMA11", gamma), "150.00");
+    withSnapshot(fiiProduct("Zeta Fund", "ZETA11", zeta), "150.00");
+    // Gamma and Zeta tie at 150 - alphabetical tie-break puts Gamma first.
+
+    List<FiiAllocationRow> rows =
+        query.allocation(
+            FiiAllocationBasis.ACTUAL, FiiAllocationGroupBy.SEGMENT, YearMonth.from(TODAY));
+
+    assertThat(rows)
+        .extracting(FiiAllocationRow::label)
+        .containsExactly("Alpha", "Beta", "Gamma", "Zeta");
   }
 
   @Test
@@ -194,6 +243,35 @@ class FiiAllocationQueryTest {
   }
 
   @Test
+  void plannedByTickerClustersBySegmentSizeThenByTickerSizeWithinSegment() {
+    UUID segmentA =
+        segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Segment A")).getId();
+    UUID segmentB =
+        segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Segment B")).getId();
+    InvestmentProduct x = fiiProduct("X Fund", "TICKX", segmentA);
+    InvestmentProduct y = fiiProduct("Y Fund", "TICKY", segmentA);
+    InvestmentProduct w = fiiProduct("W Fund", "TICKW", null);
+    InvestmentProduct z = fiiProduct("Z Fund", "TICKZ", segmentB);
+    allocationPlanService.setAllocation(
+        List.of(
+            new AllocationPlanEntry(x.getId(), new BigDecimal("35.00")),
+            new AllocationPlanEntry(y.getId(), new BigDecimal("15.00")),
+            new AllocationPlanEntry(w.getId(), new BigDecimal("30.00")),
+            new AllocationPlanEntry(z.getId(), new BigDecimal("20.00"))),
+        YearMonth.from(TODAY));
+    // Segment A totals 50 (largest cluster) > unsegmented's own 30 > Segment B's 20; within
+    // Segment A, X (35) outranks Y (15).
+
+    List<FiiAllocationRow> rows =
+        query.allocation(
+            FiiAllocationBasis.PLANNED, FiiAllocationGroupBy.TICKER, YearMonth.from(TODAY));
+
+    assertThat(rows)
+        .extracting(FiiAllocationRow::label)
+        .containsExactly("TICKX", "TICKY", "TICKW", "TICKZ");
+  }
+
+  @Test
   void plannedBySegmentSumsCorrectly() {
     UUID segmentId =
         segmentRepository
@@ -223,6 +301,36 @@ class FiiAllocationQueryTest {
         .isEqualByComparingTo("70.00");
     assertThat(rows.stream().filter(r -> r.key() == null).findFirst().orElseThrow().percentage())
         .isEqualByComparingTo("30.00");
+  }
+
+  @Test
+  void plannedBySegmentSortsBySizeThenAlphabeticallyOnTies() {
+    UUID alpha =
+        segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Alpha")).getId();
+    UUID beta = segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Beta")).getId();
+    UUID gamma =
+        segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Gamma")).getId();
+    UUID zeta = segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Zeta")).getId();
+    InvestmentProduct a = fiiProduct("Alpha Fund", "ALPHA11", alpha);
+    InvestmentProduct b = fiiProduct("Beta Fund", "BETA11", beta);
+    InvestmentProduct g = fiiProduct("Gamma Fund", "GAMMA11", gamma);
+    InvestmentProduct z = fiiProduct("Zeta Fund", "ZETA11", zeta);
+    allocationPlanService.setAllocation(
+        List.of(
+            new AllocationPlanEntry(a.getId(), new BigDecimal("40.00")),
+            new AllocationPlanEntry(b.getId(), new BigDecimal("30.00")),
+            new AllocationPlanEntry(g.getId(), new BigDecimal("15.00")),
+            new AllocationPlanEntry(z.getId(), new BigDecimal("15.00"))),
+        YearMonth.from(TODAY));
+    // Gamma and Zeta tie at 15% - alphabetical tie-break puts Gamma first.
+
+    List<FiiAllocationRow> rows =
+        query.allocation(
+            FiiAllocationBasis.PLANNED, FiiAllocationGroupBy.SEGMENT, YearMonth.from(TODAY));
+
+    assertThat(rows)
+        .extracting(FiiAllocationRow::label)
+        .containsExactly("Alpha", "Beta", "Gamma", "Zeta");
   }
 
   @Test

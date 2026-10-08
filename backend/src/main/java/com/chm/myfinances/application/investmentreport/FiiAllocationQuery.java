@@ -14,6 +14,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,12 +28,23 @@ import org.springframework.stereotype.Service;
  * unchanged valuation source, ADR 0012), restricted to the FII sub-category, percentage of the
  * FII-only total. Planned reads the current {@link AllocationPlanVersion}'s entries directly. A
  * {@code null} segment groups as "No segment" in both segment charts.
+ *
+ * <p>The two ticker charts cluster tickers by their segment's own total size (largest segment
+ * first), then by the ticker's own size within that cluster (largest first), label as the final
+ * tie-break for determinism - so same-segment tickers sit next to each other and the biggest
+ * segment/ticker leads. The two segment charts sort segments themselves the same way - largest
+ * slice first, segment name as the tie-break ({@link #BY_SIZE_THEN_LABEL}, shared by all four).
  */
 @Service
 public class FiiAllocationQuery {
 
   private static final String NO_SEGMENT_LABEL = "No segment";
   private static final BigDecimal HUNDRED = new BigDecimal("100");
+
+  /** Largest slice first, label (segment name) as the tie-break - shared by both segment charts. */
+  private static final Comparator<FiiAllocationRow> BY_SIZE_THEN_LABEL =
+      Comparator.comparing(FiiAllocationRow::percentage, Comparator.reverseOrder())
+          .thenComparing(FiiAllocationRow::label);
 
   private final FiiPortfolioQuery portfolioQuery;
   private final AllocationPlanService allocationPlanService;
@@ -92,7 +104,18 @@ public class FiiAllocationQuery {
     if (total.signum() == 0) {
       return List.of();
     }
+    Map<UUID, BigDecimal> segmentTotals = new HashMap<>();
+    for (FiiPortfolioRow row : rows) {
+      segmentTotals.merge(row.segmentId(), row.currentValue(), BigDecimal::add);
+    }
+    Comparator<FiiPortfolioRow> bySegmentSizeThenTickerSize =
+        Comparator.comparing(
+                (FiiPortfolioRow row) -> segmentTotals.get(row.segmentId()),
+                Comparator.reverseOrder())
+            .thenComparing(FiiPortfolioRow::currentValue, Comparator.reverseOrder())
+            .thenComparing(row -> row.ticker() != null ? row.ticker() : row.name());
     return rows.stream()
+        .sorted(bySegmentSizeThenTickerSize)
         .map(
             row ->
                 new FiiAllocationRow(
@@ -100,7 +123,6 @@ public class FiiAllocationQuery {
                     row.ticker() != null ? row.ticker() : row.name(),
                     row.currentValue(),
                     percentageOf(row.currentValue(), total)))
-        .sorted(Comparator.comparing(FiiAllocationRow::label))
         .toList();
   }
 
@@ -126,8 +148,22 @@ public class FiiAllocationQuery {
                         : segmentNames.getOrDefault(e.getKey(), ""),
                     e.getValue(),
                     percentageOf(e.getValue(), total)))
-        .sorted(Comparator.comparing(FiiAllocationRow::label))
+        .sorted(BY_SIZE_THEN_LABEL)
         .toList();
+  }
+
+  /** An entry paired with the product it resolves to (looked up once, not per comparison). */
+  private record ResolvedEntry(AllocationPlanEntry entry, InvestmentProduct product) {
+    UUID segmentId() {
+      return product == null ? null : product.getSegmentId();
+    }
+
+    String label() {
+      if (product == null) {
+        return entry.investmentProductId().toString();
+      }
+      return product.getTicker() != null ? product.getTicker() : product.getName();
+    }
   }
 
   private List<FiiAllocationRow> plannedByTicker(YearMonth month) {
@@ -135,19 +171,30 @@ public class FiiAllocationQuery {
     if (current.isEmpty()) {
       return List.of();
     }
-    return current.get().getEntries().stream()
+    List<ResolvedEntry> resolved =
+        current.get().getEntries().stream()
+            .map(
+                entry ->
+                    new ResolvedEntry(
+                        entry,
+                        productRepository.findById(entry.investmentProductId()).orElse(null)))
+            .toList();
+    Map<UUID, BigDecimal> segmentTotals = new HashMap<>();
+    for (ResolvedEntry resolvedEntry : resolved) {
+      segmentTotals.merge(
+          resolvedEntry.segmentId(), resolvedEntry.entry().targetPercentage(), BigDecimal::add);
+    }
+    Comparator<ResolvedEntry> bySegmentSizeThenTickerSize =
+        Comparator.comparing(
+                (ResolvedEntry e) -> segmentTotals.get(e.segmentId()), Comparator.reverseOrder())
+            .thenComparing(e -> e.entry().targetPercentage(), Comparator.reverseOrder())
+            .thenComparing(ResolvedEntry::label);
+    return resolved.stream()
+        .sorted(bySegmentSizeThenTickerSize)
         .map(
-            entry -> {
-              InvestmentProduct product =
-                  productRepository.findById(entry.investmentProductId()).orElse(null);
-              String label =
-                  product == null
-                      ? entry.investmentProductId().toString()
-                      : (product.getTicker() != null ? product.getTicker() : product.getName());
-              return new FiiAllocationRow(
-                  entry.investmentProductId(), label, null, entry.targetPercentage());
-            })
-        .sorted(Comparator.comparing(FiiAllocationRow::label))
+            e ->
+                new FiiAllocationRow(
+                    e.entry().investmentProductId(), e.label(), null, e.entry().targetPercentage()))
         .toList();
   }
 
@@ -176,7 +223,7 @@ public class FiiAllocationQuery {
                         : segmentNames.getOrDefault(e.getKey(), ""),
                     null,
                     e.getValue()))
-        .sorted(Comparator.comparing(FiiAllocationRow::label))
+        .sorted(BY_SIZE_THEN_LABEL)
         .toList();
   }
 
