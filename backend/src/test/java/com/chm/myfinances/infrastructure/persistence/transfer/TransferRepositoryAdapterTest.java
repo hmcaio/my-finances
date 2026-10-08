@@ -9,7 +9,9 @@ import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
-import com.chm.myfinances.domain.transfer.InvestmentTradeDetails;
+import com.chm.myfinances.domain.transfer.TradeConfirmation;
+import com.chm.myfinances.domain.transfer.TradeConfirmationLine;
+import com.chm.myfinances.domain.transfer.TradeSide;
 import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.domain.transfer.TransferFilter;
 import com.chm.myfinances.domain.transfer.TransferRepository;
@@ -18,6 +20,7 @@ import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -206,41 +209,51 @@ class TransferRepositoryAdapterTest {
   }
 
   private Transfer newTrade(
-      LocalDate date, UUID fromAccountId, UUID toAccountId, InvestmentTradeDetails details) {
-    return Transfer.create(
+      LocalDate date,
+      UUID cashAccountId,
+      UUID investmentAccountId,
+      TradeSide side,
+      BigDecimal quantity,
+      BigDecimal unitPrice,
+      BigDecimal taxes) {
+    return Transfer.createTradeConfirmation(
         UUID.randomUUID(),
         date,
-        fromAccountId,
-        toAccountId,
-        new BigDecimal("1005.00"),
+        cashAccountId,
+        investmentAccountId,
         "Trade",
         null,
-        productId,
-        details);
+        taxes,
+        TradeConfirmation.of(
+            List.of(new TradeConfirmationLine(productId, side, quantity, unitPrice, null, false))));
   }
 
   @Test
   void aTaggedTradeRoundTripsWithEightDecimalQuantityAndPrice() {
-    InvestmentTradeDetails details =
-        new InvestmentTradeDetails(
+    Transfer trade =
+        newTrade(
+            LocalDate.of(2026, 3, 10),
+            checkingId,
+            brokerId,
+            TradeSide.BUY,
             new BigDecimal("0.12345678"),
             new BigDecimal("250000.87654321"),
             new BigDecimal("5.25"));
-    Transfer trade = newTrade(LocalDate.of(2026, 3, 10), checkingId, brokerId, details);
 
     transferRepository.save(trade);
     entityManager.flush();
     entityManager.clear();
 
     Transfer reloaded = transferRepository.findById(trade.getId()).orElseThrow();
-    assertThat(reloaded.getInvestmentProductId()).isEqualTo(productId);
-    assertThat(reloaded.getTradeDetails().quantity()).isEqualByComparingTo("0.12345678");
-    assertThat(reloaded.getTradeDetails().unitPrice()).isEqualByComparingTo("250000.87654321");
-    assertThat(reloaded.getTradeDetails().taxes()).isEqualByComparingTo("5.25");
+    TradeConfirmationLine line = reloaded.getTradeConfirmation().orElseThrow().getLines().get(0);
+    assertThat(line.productId()).isEqualTo(productId);
+    assertThat(line.quantity()).isEqualByComparingTo("0.12345678");
+    assertThat(line.unitPrice()).isEqualByComparingTo("250000.87654321");
+    assertThat(reloaded.getTaxes()).isEqualByComparingTo("5.25");
   }
 
   @Test
-  void aPlainTransferReloadsWithNoProductAndEmptyDetails() {
+  void aPlainTransferReloadsWithNoTaxesAndNoTradeConfirmation() {
     Transfer plain = newTransfer(LocalDate.now(), checkingId, savingsId);
     transferRepository.save(plain);
     entityManager.flush();
@@ -248,30 +261,35 @@ class TransferRepositoryAdapterTest {
 
     Transfer reloaded = transferRepository.findById(plain.getId()).orElseThrow();
 
-    assertThat(reloaded.getInvestmentProductId()).isNull();
-    assertThat(reloaded.getTradeDetails().isEmpty()).isTrue();
+    assertThat(reloaded.getTaxes()).isNull();
+    assertThat(reloaded.getTradeConfirmation()).isEmpty();
   }
 
   @Test
-  void editingATradePersistsTheTagAndDetailsAndClearingThemWorks() {
+  void editingATradeConfirmationPersistsItsLinesAndClearingItWorks() {
     Transfer transfer = newTransfer(LocalDate.of(2026, 1, 1), checkingId, brokerId);
     transferRepository.save(transfer);
 
-    transfer.edit(
+    TradeConfirmation confirmation =
+        TradeConfirmation.of(
+            List.of(
+                new TradeConfirmationLine(
+                    productId, TradeSide.BUY, BigDecimal.ONE, BigDecimal.TEN, null, false)));
+    transfer.editTradeConfirmation(
         LocalDate.of(2026, 1, 2),
         checkingId,
         brokerId,
-        BigDecimal.TEN,
         "Now a buy",
         null,
-        productId,
-        new InvestmentTradeDetails(BigDecimal.ONE, BigDecimal.TEN, null));
+        BigDecimal.ZERO,
+        confirmation);
     transferRepository.save(transfer);
     entityManager.flush();
     entityManager.clear();
     Transfer tagged = transferRepository.findById(transfer.getId()).orElseThrow();
-    assertThat(tagged.getInvestmentProductId()).isEqualTo(productId);
-    assertThat(tagged.getTradeDetails().quantity()).isEqualByComparingTo("1");
+    assertThat(tagged.getTradeConfirmation()).isPresent();
+    assertThat(tagged.getTradeConfirmation().orElseThrow().getLines().get(0).quantity())
+        .isEqualByComparingTo("1");
 
     tagged.edit(
         LocalDate.of(2026, 1, 3), checkingId, savingsId, BigDecimal.TEN, "Plain again", null);
@@ -279,42 +297,21 @@ class TransferRepositoryAdapterTest {
     entityManager.flush();
     entityManager.clear();
     Transfer untagged = transferRepository.findById(transfer.getId()).orElseThrow();
-    assertThat(untagged.getInvestmentProductId()).isNull();
-    assertThat(untagged.getTradeDetails().isEmpty()).isTrue();
+    assertThat(untagged.getTaxes()).isNull();
+    assertThat(untagged.getTradeConfirmation()).isEmpty();
   }
 
   @Test
-  void findByInvestmentProductIdAndFindAllInvestmentTradesReturnOnlyTaggedTransfers() {
-    Transfer buy = newTrade(LocalDate.of(2026, 3, 1), checkingId, brokerId, null);
-    Transfer sell = newTrade(LocalDate.of(2026, 3, 20), brokerId, checkingId, null);
-    Transfer plain = newTransfer(LocalDate.of(2026, 3, 5), checkingId, savingsId);
-    transferRepository.save(buy);
-    transferRepository.save(sell);
-    transferRepository.save(plain);
-
-    assertThat(transferRepository.findByInvestmentProductId(productId))
-        .extracting(Transfer::getId)
-        .containsExactlyInAnyOrder(buy.getId(), sell.getId());
-    assertThat(transferRepository.findAllInvestmentTrades())
-        .extracting(Transfer::getId)
-        .contains(buy.getId(), sell.getId())
-        .doesNotContain(plain.getId());
-  }
-
-  @Test
-  void existsByInvestmentProductIdIsTrueOnlyOnceATransferIsTagged() {
-    assertThat(transferRepository.existsByInvestmentProductId(productId)).isFalse();
-    transferRepository.save(newTransfer(LocalDate.now(), checkingId, savingsId));
-    assertThat(transferRepository.existsByInvestmentProductId(productId)).isFalse();
-
-    transferRepository.save(newTrade(LocalDate.now(), checkingId, brokerId, null));
-
-    assertThat(transferRepository.existsByInvestmentProductId(productId)).isTrue();
-  }
-
-  @Test
-  void findAllFiltersByInvestmentProductId() {
-    Transfer buy = newTrade(LocalDate.of(2026, 3, 1), checkingId, brokerId, null);
+  void findAllFiltersByInvestmentProductIdViaTheLinesJoin() {
+    Transfer buy =
+        newTrade(
+            LocalDate.of(2026, 3, 1),
+            checkingId,
+            brokerId,
+            TradeSide.BUY,
+            BigDecimal.ONE,
+            BigDecimal.TEN,
+            BigDecimal.ZERO);
     transferRepository.save(buy);
     transferRepository.save(newTransfer(LocalDate.of(2026, 3, 2), checkingId, savingsId));
 
@@ -323,5 +320,23 @@ class TransferRepositoryAdapterTest {
             new TransferFilter(null, null, null, productId), PageRequest.of(0, 20));
 
     assertThat(page.getContent()).extracting(Transfer::getId).containsExactly(buy.getId());
+  }
+
+  @Test
+  void deletingATransferRemovesItsTradeLines() {
+    Transfer buy =
+        newTrade(
+            LocalDate.of(2026, 3, 1),
+            checkingId,
+            brokerId,
+            TradeSide.BUY,
+            BigDecimal.ONE,
+            BigDecimal.TEN,
+            BigDecimal.ZERO);
+    transferRepository.save(buy);
+
+    transferRepository.deleteById(buy.getId());
+
+    assertThat(transferRepository.findById(buy.getId())).isEmpty();
   }
 }

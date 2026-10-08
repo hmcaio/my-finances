@@ -16,6 +16,11 @@ import lombok.Setter;
  * JPA mapping for the {@code transfers} table (F005 spec). {@code fromAccountId}/{@code
  * toAccountId} are plain {@code UUID} columns, not JPA associations - same standalone-aggregate
  * style as {@code TransactionJpaEntity}.
+ *
+ * <p>F027 (ADR 0024) retired the flat {@code investment_product_id}/{@code quantity}/{@code
+ * unit_price} columns: a trade's lines now live in {@code transfer_trade_lines} ({@link
+ * TransferTradeLineJpaEntity}), loaded/replaced separately by {@link TransferRepositoryAdapter}.
+ * {@code taxes} stays here - the confirmation's one aggregate figure, never apportioned per line.
  */
 @Entity
 @Table(name = "transfers")
@@ -44,14 +49,6 @@ public class TransferJpaEntity extends AuditableEntity {
   @Column(name = "additional_notes")
   private String additionalNotes;
 
-  @Column(name = "investment_product_id")
-  private UUID investmentProductId;
-
-  private BigDecimal quantity;
-
-  @Column(name = "unit_price")
-  private BigDecimal unitPrice;
-
   private BigDecimal taxes;
 
   public TransferJpaEntity(
@@ -62,9 +59,6 @@ public class TransferJpaEntity extends AuditableEntity {
       BigDecimal amount,
       String description,
       String additionalNotes,
-      UUID investmentProductId,
-      BigDecimal quantity,
-      BigDecimal unitPrice,
       BigDecimal taxes) {
     this.id = id;
     this.date = date;
@@ -73,9 +67,6 @@ public class TransferJpaEntity extends AuditableEntity {
     this.amount = amount;
     this.description = description;
     this.additionalNotes = additionalNotes;
-    this.investmentProductId = investmentProductId;
-    this.quantity = quantity;
-    this.unitPrice = unitPrice;
     this.taxes = taxes;
   }
 }
