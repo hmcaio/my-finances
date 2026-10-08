@@ -39,3 +39,23 @@
 - [ ] Attempt to save a dividend-category transaction with no holding reference, or a non-dividend transaction with one: both rejected.
 - [ ] Attempt to delete or rename the dividend category, and to delete a segment referenced by a product: all rejected (409).
 - [ ] Export a ZIP: `investment_segments.csv`, `allocation_plan_entries.csv` present; `investment_products.csv` carries ticker/segment; `transactions.csv` carries `investment_holding_id` for dividend rows, empty for others.
+
+## Addendum — Month Selector
+
+A month picker on the FII page so the portfolio list and all four allocation charts can show a past month's situation, not just today's. `FiiPortfolioQuery`/`FiiAllocationQuery` are currently hardcoded to `Clock.now`; most of the underlying as-of machinery already exists elsewhere (`LatestInvestmentSnapshotQuery.latestOf(holdingId, asOfDate)`, `InvestmentSnapshotFreshnessQuery.staleHoldingIds(date)`, `AllocationPlanService.getCurrent(month)`) and just needs threading through instead of being built from scratch. `needsSnapshot` stays a "today" concept — suppressed whenever a past month is selected, not recomputed as-of that month.
+
+### Backend
+- [ ] Write tests for `FiiPortfolioQuery.portfolio(status, asOf)` (new `asOf` param, default today): trades dated after `asOf` excluded from `cotasHeld`/`amountContributed`; `currentValue`/`latestSnapshotDate` use `latestSnapshotQuery.latestOf(holdingId, asOf)` instead of the no-arg overload; `needsSnapshot` always `false` when `asOf` isn't today (never computed against a past date); then implement.
+- [ ] Write tests for `FiiAllocationQuery.allocation(basis, groupBy, month)` (new `month` param, `YearMonth`, default current month): `ACTUAL` converts `month` to an as-of date using the existing F009/F010 convention (month-end, except the current month evaluated at today) and threads it into `FiiPortfolioQuery`; `PLANNED` passes `month` straight to `allocationPlanService.getCurrent(month)` instead of always `YearMonth.now(clock)`; then implement.
+- [ ] Controller: add `?month=` (optional, `YearMonth`, default current month) to `GET /api/fii/portfolio` and `GET /api/fii/allocation`, converting to the as-of date server-side; controller tests for a past month, the current month, and an omitted param (defaults to current). Regenerate `frontend/src/api/generated/schema.ts`.
+
+### Frontend
+- [ ] Add a month-picker control to the FII page (reuse whichever existing component the Budget or net-worth-trend page already uses for this), defaulting to the current month.
+- [ ] Wire the picker into the portfolio-list query hook and all four allocation-chart query hooks (`fiiPortfolio.ts`/`fiiAllocation.ts` + their `*Queries.ts`), forwarding `month`; suppress/hide the `needsSnapshot` badge on the portfolio list whenever a past month is selected.
+- [ ] Disable or clamp selecting a future month (consistent with how other monthly views in the app treat the current month as the latest selectable point).
+
+### Verification
+- [ ] Select a past month on the FII page: portfolio list's cotas/contributed/current value reflect only trades/snapshots on or before that month's cutoff; `needsSnapshot` badges don't show.
+- [ ] Select a month before any allocation-plan version existed: planned charts render empty/zero rather than erroring.
+- [ ] Select a month between two plan versions: planned charts show the version effective for that month, not the current one.
+- [ ] Switch back to the current month: behavior matches what shipped before this addendum (today's trades/snapshots, `needsSnapshot` badges restored).
