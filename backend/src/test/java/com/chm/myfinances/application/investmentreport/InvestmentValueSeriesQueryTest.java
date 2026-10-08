@@ -7,15 +7,15 @@ import com.chm.myfinances.application.investmentproduct.InvestmentProductNotFoun
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
-import com.chm.myfinances.domain.transfer.InvestmentTradeDetails;
+import com.chm.myfinances.domain.transfer.TradeSide;
+import com.chm.myfinances.domain.transfer.TransferTradeLine;
 import com.chm.myfinances.testsupport.TestClocks;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
-import com.chm.myfinances.testsupport.fakes.FakeTransferRepository;
+import com.chm.myfinances.testsupport.fakes.FakeTransferTradeLineRepository;
 import com.chm.myfinances.testsupport.mothers.InvestmentHoldingMother;
 import com.chm.myfinances.testsupport.mothers.InvestmentProductMother;
-import com.chm.myfinances.testsupport.mothers.TransferMother;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -28,14 +28,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Tests for {@link InvestmentValueSeriesQuery} (F009 spec, rewired onto holdings by F022/ADR 0020):
- * per product and month-end (the current month at today) the sum of its holdings' latest snapshot
- * values, the month's contributions (buys minus sells, cash moved) and the running units. Raw data
- * only.
+ * Tests for {@link InvestmentValueSeriesQuery} (F009 spec, rewired onto holdings by F022/ADR 0020;
+ * reworked onto {@code TransferTradeLine}s by F027/ADR 0024): per product and month-end (the
+ * current month at today) the sum of its holdings' latest snapshot values, the month's
+ * contributions (BUY lines add, SELL lines subtract) and the running units. Raw data only.
  */
 class InvestmentValueSeriesQueryTest {
 
   private static final LocalDate TODAY = LocalDate.of(2026, 6, 15);
+  private static final UUID CHECKING_ID = UUID.randomUUID();
 
   private final FakeInvestmentProductRepository productRepository =
       new FakeInvestmentProductRepository();
@@ -43,14 +44,14 @@ class InvestmentValueSeriesQueryTest {
       new FakeInvestmentHoldingRepository();
   private final FakeInvestmentSnapshotRepository snapshotRepository =
       new FakeInvestmentSnapshotRepository();
-  private final FakeTransferRepository transferRepository = new FakeTransferRepository();
+  private final FakeTransferTradeLineRepository tradeLineRepository =
+      new FakeTransferTradeLineRepository();
   private final Clock clock = TestClocks.fixedAtStartOf(TODAY);
   private final InvestmentValueSeriesQuery query =
       new InvestmentValueSeriesQuery(
-          productRepository, holdingRepository, snapshotRepository, transferRepository, clock);
+          productRepository, holdingRepository, snapshotRepository, tradeLineRepository, clock);
 
   private final UUID brokerId = UUID.randomUUID();
-  private final UUID checkingId = UUID.randomUUID();
   private final Map<UUID, InvestmentHolding> holdingByProduct = new HashMap<>();
   private InvestmentProduct product;
 
@@ -82,33 +83,32 @@ class InvestmentValueSeriesQueryTest {
   }
 
   private void buy(InvestmentProduct target, LocalDate date, String amount, String quantity) {
-    trade(target, date, checkingId, brokerId, amount, quantity);
+    trade(target, date, TradeSide.BUY, amount, quantity);
   }
 
   private void sell(InvestmentProduct target, LocalDate date, String amount, String quantity) {
-    trade(target, date, brokerId, checkingId, amount, quantity);
+    trade(target, date, TradeSide.SELL, amount, quantity);
   }
 
+  /**
+   * {@code amount} is the line's total (quantity * unitPrice); {@code quantity} may be null (unit
+   * price becomes the whole amount, matching "a trade with no quantity still moves cash").
+   */
   private void trade(
-      InvestmentProduct target,
-      LocalDate date,
-      UUID from,
-      UUID to,
-      String amount,
-      String quantity) {
-    InvestmentTradeDetails details =
-        quantity == null
-            ? null
-            : new InvestmentTradeDetails(new BigDecimal(quantity), BigDecimal.ONE, null);
-    transferRepository.save(
-        TransferMother.transfer()
-            .withDate(date)
-            .withFromAccountId(from)
-            .withToAccountId(to)
-            .withAmount(new BigDecimal(amount))
-            .withInvestmentProductId(target.getId())
-            .withTradeDetails(details)
-            .build());
+      InvestmentProduct target, LocalDate date, TradeSide side, String amount, String quantity) {
+    BigDecimal qty = quantity == null ? BigDecimal.ONE : new BigDecimal(quantity);
+    BigDecimal unitPrice = new BigDecimal(amount).divide(qty, 8, java.math.RoundingMode.HALF_UP);
+    tradeLineRepository.add(
+        new TransferTradeLine(
+            UUID.randomUUID(),
+            date,
+            CHECKING_ID,
+            brokerId,
+            target.getId(),
+            side,
+            qty,
+            unitPrice,
+            null));
   }
 
   private List<SeriesPoint> points(YearMonth from, YearMonth to) {
@@ -161,10 +161,10 @@ class InvestmentValueSeriesQueryTest {
 
   @Test
   void contributedIsTheMonthsBuysMinusSellsAsCashMoved() {
-    buy(product, LocalDate.of(2026, 3, 5), "1000.00", null);
-    buy(product, LocalDate.of(2026, 3, 20), "500.50", null);
-    sell(product, LocalDate.of(2026, 3, 25), "400.00", null);
-    sell(product, LocalDate.of(2026, 4, 2), "100.00", null);
+    buy(product, LocalDate.of(2026, 3, 5), "1000.00", "10");
+    buy(product, LocalDate.of(2026, 3, 20), "500.50", "5");
+    sell(product, LocalDate.of(2026, 3, 25), "400.00", "4");
+    sell(product, LocalDate.of(2026, 4, 2), "100.00", "1");
 
     List<SeriesPoint> points = points(YearMonth.of(2026, 2), YearMonth.of(2026, 4));
 
@@ -176,9 +176,9 @@ class InvestmentValueSeriesQueryTest {
   @Test
   void contributedIgnoresOtherProductsAndTradesOutsideTheMonth() {
     InvestmentProduct other = newProduct("Other");
-    buy(other, LocalDate.of(2026, 3, 5), "777.00", null);
-    buy(product, LocalDate.of(2026, 2, 28), "10.00", null);
-    buy(product, LocalDate.of(2026, 4, 1), "20.00", null);
+    buy(other, LocalDate.of(2026, 3, 5), "777.00", "7");
+    buy(product, LocalDate.of(2026, 2, 28), "10.00", "1");
+    buy(product, LocalDate.of(2026, 4, 1), "20.00", "2");
 
     assertThat(points(YearMonth.of(2026, 3), YearMonth.of(2026, 3)).get(0).contributed())
         .isEqualByComparingTo("0");
@@ -201,24 +201,13 @@ class InvestmentValueSeriesQueryTest {
   }
 
   @Test
-  void unitsAreNullWhenTheProductHasNoRecordedQuantities() {
-    buy(product, LocalDate.of(2026, 2, 10), "1000.00", null);
-    sell(product, LocalDate.of(2026, 3, 10), "300.00", null);
-
-    List<SeriesPoint> points = points(YearMonth.of(2026, 1), YearMonth.of(2026, 3));
-
-    assertThat(points).allSatisfy(p -> assertThat(p.units()).isNull());
-    assertThat(points.get(1).contributed()).isEqualByComparingTo("1000.00");
-  }
-
-  @Test
-  void aTradeWithoutQuantityMovesCashButNotUnits() {
+  void aTradeWithASmallQuantityStillMovesCashAndUnits() {
     buy(product, LocalDate.of(2026, 2, 10), "1000.00", "10");
-    buy(product, LocalDate.of(2026, 3, 10), "50.00", null);
+    buy(product, LocalDate.of(2026, 3, 10), "50.00", "0.5");
 
     List<SeriesPoint> points = points(YearMonth.of(2026, 2), YearMonth.of(2026, 3));
 
-    assertThat(points.get(1).units()).isEqualByComparingTo("10");
+    assertThat(points.get(1).units()).isEqualByComparingTo("10.5");
     assertThat(points.get(1).contributed()).isEqualByComparingTo("50.00");
   }
 

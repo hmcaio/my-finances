@@ -4,11 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
+import com.chm.myfinances.domain.transfer.TradeSide;
+import com.chm.myfinances.domain.transfer.TransferTradeLine;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
-import com.chm.myfinances.testsupport.fakes.FakeTransferRepository;
+import com.chm.myfinances.testsupport.fakes.FakeTransferTradeLineRepository;
 import com.chm.myfinances.testsupport.mothers.InvestmentHoldingMother;
-import com.chm.myfinances.testsupport.mothers.TransferMother;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -16,9 +17,10 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Tests for {@link InvestmentSnapshotFreshnessQuery} (F009 spec, rekeyed by holding for F022/ADR
- * 0020): a holding {@code needsSnapshot} as of a date when it has a tagged transfer (a transfer
- * whose product and account match this holding) dated after its latest snapshot on or before that
- * date, or a trade and no snapshot. Computed on read, never stored.
+ * 0020; reworked onto {@code TransferTradeLine}s by F027/ADR 0024): a holding {@code needsSnapshot}
+ * as of a date when it has a line (tagged with its product *and* its account) dated after its
+ * latest snapshot on or before that date, or a line and no snapshot. Computed on read, never
+ * stored.
  */
 class InvestmentSnapshotFreshnessQueryTest {
 
@@ -26,14 +28,16 @@ class InvestmentSnapshotFreshnessQueryTest {
       new FakeInvestmentSnapshotRepository();
   private final FakeInvestmentHoldingRepository holdingRepository =
       new FakeInvestmentHoldingRepository();
-  private final FakeTransferRepository transferRepository = new FakeTransferRepository();
+  private final FakeTransferTradeLineRepository tradeLineRepository =
+      new FakeTransferTradeLineRepository();
   private final InvestmentSnapshotFreshnessQuery query =
       new InvestmentSnapshotFreshnessQuery(
           new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository),
-          transferRepository,
+          tradeLineRepository,
           holdingRepository);
 
   private static final LocalDate ASOF = LocalDate.of(2026, 6, 30);
+  private static final UUID CHECKING_ID = UUID.randomUUID();
 
   private final InvestmentHolding holding =
       holdingRepository.save(InvestmentHoldingMother.holding().build());
@@ -42,12 +46,17 @@ class InvestmentSnapshotFreshnessQueryTest {
 
   /** A buy (into the holding's account) tagged with the holding's product, on {@code date}. */
   private void trade(InvestmentHolding holding, LocalDate date) {
-    transferRepository.save(
-        TransferMother.transfer()
-            .withDate(date)
-            .withToAccountId(holding.getAccountId())
-            .withInvestmentProductId(holding.getProductId())
-            .build());
+    tradeLineRepository.add(
+        new TransferTradeLine(
+            UUID.randomUUID(),
+            date,
+            CHECKING_ID,
+            holding.getAccountId(),
+            holding.getProductId(),
+            TradeSide.BUY,
+            BigDecimal.ONE,
+            BigDecimal.ONE,
+            null));
   }
 
   private void snapshot(InvestmentHolding holding, LocalDate date) {
@@ -121,10 +130,9 @@ class InvestmentSnapshotFreshnessQueryTest {
   }
 
   @Test
-  void holdingsAreIndependentAndPlainTransfersAreIgnored() {
+  void holdingsAreIndependent() {
     trade(holding, LocalDate.of(2026, 4, 10));
     snapshot(otherHolding, LocalDate.of(2026, 5, 31));
-    transferRepository.save(TransferMother.transfer().withDate(LocalDate.of(2026, 6, 1)).build());
 
     assertThat(query.staleHoldingIds(ASOF)).containsExactly(holding.getId());
   }

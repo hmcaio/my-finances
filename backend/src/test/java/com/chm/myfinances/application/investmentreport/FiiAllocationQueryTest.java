@@ -19,7 +19,7 @@ import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSegmentRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSubcategoryRepository;
-import com.chm.myfinances.testsupport.fakes.FakeTransferRepository;
+import com.chm.myfinances.testsupport.fakes.FakeTransferTradeLineRepository;
 import com.chm.myfinances.testsupport.mothers.InvestmentHoldingMother;
 import com.chm.myfinances.testsupport.mothers.InvestmentProductMother;
 import java.math.BigDecimal;
@@ -47,7 +47,8 @@ class FiiAllocationQueryTest {
       new FakeInvestmentHoldingRepository();
   private final FakeInvestmentSnapshotRepository snapshotRepository =
       new FakeInvestmentSnapshotRepository();
-  private final FakeTransferRepository transferRepository = new FakeTransferRepository();
+  private final FakeTransferTradeLineRepository tradeLineRepository =
+      new FakeTransferTradeLineRepository();
   private final FakeInvestmentSegmentRepository segmentRepository =
       new FakeInvestmentSegmentRepository();
   private final FakeAllocationPlanRepository planRepository = new FakeAllocationPlanRepository();
@@ -58,13 +59,13 @@ class FiiAllocationQueryTest {
       new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository);
   private final InvestmentSnapshotFreshnessQuery freshnessQuery =
       new InvestmentSnapshotFreshnessQuery(
-          latestSnapshotQuery, transferRepository, holdingRepository);
+          latestSnapshotQuery, tradeLineRepository, holdingRepository);
   private final FiiPortfolioQuery portfolioQuery =
       new FiiPortfolioQuery(
           productRepository,
           subcategoryRepository,
           holdingRepository,
-          transferRepository,
+          tradeLineRepository,
           latestSnapshotQuery,
           freshnessQuery,
           clock);
