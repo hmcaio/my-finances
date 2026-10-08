@@ -20,6 +20,8 @@ export const seedInvestmentProducts: InvestmentProduct[] = [
     name: 'Tesouro Selic 2029',
     additionalNotes: null,
     closed: false,
+    ticker: null,
+    segmentId: null,
   },
   {
     id: 'iprod-btc',
@@ -28,6 +30,8 @@ export const seedInvestmentProducts: InvestmentProduct[] = [
     name: 'Bitcoin',
     additionalNotes: null,
     closed: false,
+    ticker: null,
+    segmentId: null,
   },
   {
     id: 'iprod-old',
@@ -36,6 +40,8 @@ export const seedInvestmentProducts: InvestmentProduct[] = [
     name: 'Old CDB',
     additionalNotes: null,
     closed: true,
+    ticker: null,
+    segmentId: null,
   },
 ]
 
@@ -47,6 +53,8 @@ interface ProductRequestBody {
   investmentSubcategoryId?: string | null
   name: string
   additionalNotes?: string | null
+  ticker?: string | null
+  segmentId?: string | null
 }
 
 /** Shared with the snapshot/holding handlers. */
@@ -128,6 +136,8 @@ export const investmentProductsHandlers = [
       name: body.name,
       additionalNotes: body.additionalNotes ?? null,
       closed: false,
+      ticker: body.ticker ?? null,
+      segmentId: body.segmentId ?? null,
     })
     const holding: InvestmentHolding = {
       id: investmentHoldingsStore.nextId('iholding'),
@@ -152,6 +162,8 @@ export const investmentProductsHandlers = [
       investmentSubcategoryId: body.investmentSubcategoryId ?? null,
       name: body.name,
       additionalNotes: body.additionalNotes ?? null,
+      ticker: body.ticker ?? null,
+      segmentId: body.segmentId ?? null,
     }))
     return updated
       ? HttpResponse.json(withClosed(updated))

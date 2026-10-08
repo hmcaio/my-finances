@@ -20,6 +20,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/fii/allocation-plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["allocationPlan_current"];
+        put: operations["allocationPlan_setAllocation"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/vehicles": {
         parameters: {
             query?: never;
@@ -158,6 +174,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["investmentSubcategory_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/investment-segments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["investmentSegment_list"];
+        put?: never;
+        post: operations["investmentSegment_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -436,6 +468,22 @@ export interface paths {
         patch: operations["investmentSubcategory_rename"];
         trace?: never;
     };
+    "/api/investment-segments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["investmentSegment_delete"];
+        options?: never;
+        head?: never;
+        patch: operations["investmentSegment_rename"];
+        trace?: never;
+    };
     "/api/investment-products/{id}": {
         parameters: {
             query?: never;
@@ -676,6 +724,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/fii/portfolio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["fiiPortfolio_portfolio"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fii/dividends": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["dividend_dividends"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fii/dividends/totals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["dividend_totals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fii/allocation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["fiiAllocation_allocation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fii/allocation-plan/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["allocationPlan_versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/export": {
         parameters: {
             query?: never;
@@ -742,6 +870,28 @@ export interface components {
             date?: string;
             balance?: number;
         };
+        AllocationPlanEntryRequest: {
+            /** Format: uuid */
+            investmentProductId: string;
+            targetPercentage: number;
+        };
+        SetAllocationPlanRequest: {
+            entries: components["schemas"]["AllocationPlanEntryRequest"][];
+            effectiveFrom: string;
+        };
+        AllocationPlanEntryResponse: {
+            /** Format: uuid */
+            investmentProductId?: string;
+            targetPercentage?: number;
+        };
+        AllocationPlanVersionResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            planId?: string;
+            entries?: components["schemas"]["AllocationPlanEntryResponse"][];
+            effectiveFrom?: string;
+        };
         CreateVehicleRequest: {
             name: string;
         };
@@ -805,6 +955,8 @@ export interface components {
             pricePerLiter?: number;
             kmSinceLastFill?: number;
             odometer?: number;
+            /** Format: uuid */
+            investmentHoldingId?: string;
         };
         TransactionResponse: {
             /** Format: uuid */
@@ -835,6 +987,8 @@ export interface components {
             kmPerLiter?: number;
             amountPerKm?: number;
             litersPerKm?: number;
+            /** Format: uuid */
+            investmentHoldingId?: string;
         };
         CreateRecurringTemplateRequest: {
             /** Format: uuid */
@@ -892,6 +1046,14 @@ export interface components {
             investmentCategoryId?: string;
             name?: string;
         };
+        CreateInvestmentSegmentRequest: {
+            name: string;
+        };
+        InvestmentSegmentResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+        };
         CreateInvestmentProductRequest: {
             /** Format: uuid */
             accountId: string;
@@ -901,6 +1063,9 @@ export interface components {
             investmentSubcategoryId?: string;
             name: string;
             additionalNotes?: string;
+            ticker?: string;
+            /** Format: uuid */
+            segmentId?: string;
         };
         InvestmentProductResponse: {
             /** Format: uuid */
@@ -912,6 +1077,9 @@ export interface components {
             name?: string;
             additionalNotes?: string;
             closed?: boolean;
+            ticker?: string;
+            /** Format: uuid */
+            segmentId?: string;
         };
         CreateInvestmentHoldingRequest: {
             /** Format: uuid */
@@ -981,6 +1149,7 @@ export interface components {
             type?: "INCOME" | "EXPENSE";
             builtIn?: boolean;
             fuelCategory?: boolean;
+            dividendCategory?: boolean;
         };
         CreateBudgetRequest: {
             /** Format: uuid */
@@ -1065,6 +1234,8 @@ export interface components {
             pricePerLiter?: number;
             kmSinceLastFill?: number;
             odometer?: number;
+            /** Format: uuid */
+            investmentHoldingId?: string;
         };
         UpdateRecurringTemplateCapRequest: {
             amount: number;
@@ -1078,6 +1249,9 @@ export interface components {
         UpdateInvestmentSubcategoryRequest: {
             name: string;
         };
+        UpdateInvestmentSegmentRequest: {
+            name: string;
+        };
         UpdateInvestmentProductRequest: {
             /** Format: uuid */
             investmentCategoryId: string;
@@ -1085,6 +1259,9 @@ export interface components {
             investmentSubcategoryId?: string;
             name: string;
             additionalNotes?: string;
+            ticker?: string;
+            /** Format: uuid */
+            segmentId?: string;
         };
         UpdateInvestmentHoldingRequest: {
             additionalNotes?: string;
@@ -1184,6 +1361,42 @@ export interface components {
             content?: components["schemas"]["InvestmentProductResponse"][];
             page?: components["schemas"]["PageMetadata"];
         };
+        FiiPortfolioRowResponse: {
+            /** Format: uuid */
+            productId?: string;
+            ticker?: string;
+            name?: string;
+            /** Format: uuid */
+            segmentId?: string;
+            cotasHeld?: number;
+            amountContributed?: number;
+            currentValue?: number;
+            /** Format: date */
+            latestSnapshotDate?: string;
+            needsSnapshot?: boolean;
+            hasOpenHolding?: boolean;
+        };
+        DividendRowResponse: {
+            /** Format: uuid */
+            transactionId?: string;
+            /** Format: date */
+            date?: string;
+            amount?: number;
+            /** Format: uuid */
+            investmentHoldingId?: string;
+            /** Format: uuid */
+            productId?: string;
+            ticker?: string;
+            productName?: string;
+            description?: string;
+        };
+        FiiAllocationRowResponse: {
+            /** Format: uuid */
+            key?: string;
+            label?: string;
+            totalValue?: number;
+            percentage?: number;
+        };
         BudgetReportLineResponse: {
             /** Format: uuid */
             categoryId?: string;
@@ -1244,6 +1457,50 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    allocationPlan_current: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AllocationPlanVersionResponse"];
+                };
+            };
+        };
+    };
+    allocationPlan_setAllocation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetAllocationPlanRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AllocationPlanVersionResponse"];
+                };
             };
         };
     };
@@ -1570,6 +1827,50 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["InvestmentSubcategoryResponse"];
+                };
+            };
+        };
+    };
+    investmentSegment_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvestmentSegmentResponse"][];
+                };
+            };
+        };
+    };
+    investmentSegment_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateInvestmentSegmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvestmentSegmentResponse"];
                 };
             };
         };
@@ -2312,6 +2613,52 @@ export interface operations {
             };
         };
     };
+    investmentSegment_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    investmentSegment_rename: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateInvestmentSegmentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvestmentSegmentResponse"];
+                };
+            };
+        };
+    };
     investmentProduct_get: {
         parameters: {
             query?: never;
@@ -2860,6 +3207,119 @@ export interface operations {
                     "*/*": {
                         [key: string]: Record<string, never>;
                     };
+                };
+            };
+        };
+    };
+    fiiPortfolio_portfolio: {
+        parameters: {
+            query?: {
+                status?: "OPEN" | "CLOSED" | "ALL";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FiiPortfolioRowResponse"][];
+                };
+            };
+        };
+    };
+    dividend_dividends: {
+        parameters: {
+            query?: {
+                productId?: string;
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DividendRowResponse"][];
+                };
+            };
+        };
+    };
+    dividend_totals: {
+        parameters: {
+            query: {
+                groupBy: "TICKER" | "MONTH";
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>[];
+                };
+            };
+        };
+    };
+    fiiAllocation_allocation: {
+        parameters: {
+            query: {
+                basis: "ACTUAL" | "PLANNED";
+                groupBy: "TICKER" | "SEGMENT";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FiiAllocationRowResponse"][];
+                };
+            };
+        };
+    };
+    allocationPlan_versions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AllocationPlanVersionResponse"][];
                 };
             };
         };

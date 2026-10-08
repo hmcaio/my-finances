@@ -7,10 +7,38 @@ import { createStore } from '../store'
  * assert against it directly instead of duplicating the fixture (F015 spec's F002 backfill).
  */
 export const seedCategories: Category[] = [
-  { id: 'cat-1', name: 'Groceries', type: 'EXPENSE', builtIn: false, fuelCategory: false },
-  { id: 'cat-2', name: 'Salary', type: 'INCOME', builtIn: false, fuelCategory: false },
-  { id: 'cat-3', name: 'Other Expense', type: 'EXPENSE', builtIn: true, fuelCategory: false },
-  { id: 'cat-4', name: 'Other Income', type: 'INCOME', builtIn: true, fuelCategory: false },
+  {
+    id: 'cat-1',
+    name: 'Groceries',
+    type: 'EXPENSE',
+    builtIn: false,
+    fuelCategory: false,
+    dividendCategory: false,
+  },
+  {
+    id: 'cat-2',
+    name: 'Salary',
+    type: 'INCOME',
+    builtIn: false,
+    fuelCategory: false,
+    dividendCategory: false,
+  },
+  {
+    id: 'cat-3',
+    name: 'Other Expense',
+    type: 'EXPENSE',
+    builtIn: true,
+    fuelCategory: false,
+    dividendCategory: false,
+  },
+  {
+    id: 'cat-4',
+    name: 'Other Income',
+    type: 'INCOME',
+    builtIn: true,
+    fuelCategory: false,
+    dividendCategory: false,
+  },
 ]
 
 /**
@@ -34,6 +62,21 @@ export const seedFuelCategory: Category = {
   type: 'EXPENSE',
   builtIn: false,
   fuelCategory: true,
+  dividendCategory: false,
+}
+
+/**
+ * The dedicated dividend category (F026, ADR 0023, mirrors `V20`'s seeded "Dividends" INCOME
+ * category) - deliberately NOT part of {@link seedCategories}, same "opt in via `server.use`"
+ * reasoning as {@link seedFuelCategory}.
+ */
+export const seedDividendCategory: Category = {
+  id: 'cat-dividends',
+  name: 'Dividends',
+  type: 'INCOME',
+  builtIn: false,
+  fuelCategory: false,
+  dividendCategory: true,
 }
 
 const CATEGORIES_URL = '/api/categories'
@@ -61,6 +104,7 @@ export const categoriesHandlers = [
       type: body.type ?? 'EXPENSE',
       builtIn: false,
       fuelCategory: false,
+      dividendCategory: false,
     })
     return HttpResponse.json(created, { status: 201 })
   }),

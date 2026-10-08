@@ -40,6 +40,7 @@ export const seedTransactions: Transaction[] = [
     recurringTemplateVersionId: null,
     description: 'Weekly groceries',
     additionalNotes: null,
+    investmentHoldingId: null,
     ...NO_FUEL_DETAILS,
   },
   {
@@ -53,6 +54,7 @@ export const seedTransactions: Transaction[] = [
     recurringTemplateVersionId: null,
     description: 'Monthly salary deposit',
     additionalNotes: 'Direct deposit from employer',
+    investmentHoldingId: null,
     ...NO_FUEL_DETAILS,
   },
 ]
@@ -84,6 +86,7 @@ interface TransactionRequestBody {
   pricePerLiter?: number
   kmSinceLastFill?: number
   odometer?: number
+  investmentHoldingId?: string
 }
 
 function typeForCategory(categoryId: string): TransactionType {
@@ -176,6 +179,7 @@ export const transactionsHandlers = [
       recurringTemplateVersionId: null,
       description: body.description,
       additionalNotes: body.additionalNotes ?? null,
+      investmentHoldingId: body.investmentHoldingId ?? null,
       ...fuelFieldsFrom(body),
     })
     return HttpResponse.json(created, { status: 201 })
@@ -194,6 +198,7 @@ export const transactionsHandlers = [
       recurringTemplateVersionId: null,
       description: body.description,
       additionalNotes: body.additionalNotes ?? null,
+      investmentHoldingId: body.investmentHoldingId ?? null,
       ...fuelFieldsFrom(body),
     }))
     return updated ? HttpResponse.json(updated) : new HttpResponse(null, { status: 404 })
