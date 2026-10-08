@@ -7,16 +7,16 @@ export type FiiAllocationGroupBy = 'TICKER' | 'SEGMENT'
 /**
  * One slice of a FII allocation chart (F026, ADR 0023): either a product (grouped by ticker) or a
  * segment, with its percentage of the FII-only total. `key` is `null` for the "No segment" bucket.
- * `totalValue` is the slice's current value (basis `ACTUAL`); `null` for basis `PLANNED`, which
- * has no value of its own, only a target percentage. `segmentId` (Addendum - Nested Allocation
- * Charts) is set on a `TICKER`-groupBy row (its own segment, `null` if unsegmented), always `null`
- * on a `SEGMENT`-groupBy row (`key` already carries that there) - lets the frontend nest a ticker
- * chart's arcs under their parent segment's arc.
+ * The backend's response also carries `totalValue` (the slice's current money value, basis
+ * `ACTUAL` only); omitted here since no frontend chart reads it - `percentage` already drives every
+ * chart's geometry, including the nested charts' ring alignment (Addendum - Nested Allocation
+ * Charts). `segmentId` (same addendum) is set on a `TICKER`-groupBy row (its own segment, `null` if
+ * unsegmented), always `null` on a `SEGMENT`-groupBy row (`key` already carries that there) - lets
+ * the frontend nest a ticker chart's arcs under their parent segment's arc.
  */
 export interface FiiAllocationRow {
   key: string | null
   label: string
-  totalValue: number | null
   percentage: number
   segmentId: string | null
 }

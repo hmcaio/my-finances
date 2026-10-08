@@ -14,68 +14,20 @@ const ALLOCATION_URL = '/api/fii/allocation'
  */
 export const seedFiiAllocation: Record<string, FiiAllocationRow[]> = {
   'ACTUAL:TICKER': [
-    {
-      key: 'iprod-knri11',
-      label: 'KNRI11',
-      totalValue: 12000,
-      percentage: 68.57,
-      segmentId: 'iseg-shoppings',
-    },
-    {
-      key: 'iprod-hglg11',
-      label: 'HGLG11',
-      totalValue: 5500,
-      percentage: 31.43,
-      segmentId: 'iseg-logistica',
-    },
+    { key: 'iprod-knri11', label: 'KNRI11', percentage: 68.57, segmentId: 'iseg-shoppings' },
+    { key: 'iprod-hglg11', label: 'HGLG11', percentage: 31.43, segmentId: 'iseg-logistica' },
   ],
   'ACTUAL:SEGMENT': [
-    {
-      key: 'iseg-shoppings',
-      label: 'Shoppings',
-      totalValue: 12000,
-      percentage: 68.57,
-      segmentId: null,
-    },
-    {
-      key: 'iseg-logistica',
-      label: 'Logistica',
-      totalValue: 5500,
-      percentage: 31.43,
-      segmentId: null,
-    },
+    { key: 'iseg-shoppings', label: 'Shoppings', percentage: 68.57, segmentId: null },
+    { key: 'iseg-logistica', label: 'Logistica', percentage: 31.43, segmentId: null },
   ],
   'PLANNED:TICKER': [
-    {
-      key: 'iprod-knri11',
-      label: 'KNRI11',
-      totalValue: null,
-      percentage: 60,
-      segmentId: 'iseg-shoppings',
-    },
-    {
-      key: 'iprod-hglg11',
-      label: 'HGLG11',
-      totalValue: null,
-      percentage: 40,
-      segmentId: 'iseg-logistica',
-    },
+    { key: 'iprod-knri11', label: 'KNRI11', percentage: 60, segmentId: 'iseg-shoppings' },
+    { key: 'iprod-hglg11', label: 'HGLG11', percentage: 40, segmentId: 'iseg-logistica' },
   ],
   'PLANNED:SEGMENT': [
-    {
-      key: 'iseg-shoppings',
-      label: 'Shoppings',
-      totalValue: null,
-      percentage: 60,
-      segmentId: null,
-    },
-    {
-      key: 'iseg-logistica',
-      label: 'Logistica',
-      totalValue: null,
-      percentage: 40,
-      segmentId: null,
-    },
+    { key: 'iseg-shoppings', label: 'Shoppings', percentage: 60, segmentId: null },
+    { key: 'iseg-logistica', label: 'Logistica', percentage: 40, segmentId: null },
   ],
 }
 
