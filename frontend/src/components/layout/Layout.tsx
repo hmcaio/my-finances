@@ -42,6 +42,7 @@ const MAIN_NAV_ITEMS: NavItem[] = [
 const SETTINGS_NAV_ITEMS: NavItem[] = [
   { label: 'Categories', path: '/settings/categories' },
   { label: 'Investment Categories', path: '/settings/investment-categories' },
+  { label: 'Investment Segments', path: '/settings/investment-segments' },
   { label: 'Institutions', path: '/settings/institutions' },
   { label: 'Payment Methods', path: '/settings/payment-methods' },
   { label: 'Vehicles', path: '/settings/vehicles' },
