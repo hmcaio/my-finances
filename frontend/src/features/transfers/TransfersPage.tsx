@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   Box,
   Button,
@@ -15,7 +16,7 @@ import EditIcon from '@mui/icons-material/Edit'
 import { useAccounts } from '../../api/accounts/accountsQueries'
 import { useInvestmentProducts } from '../../api/investments/investmentProductsQueries'
 import type { Transfer, TransferFilter } from '../../api/transfers/transfers'
-import { useDeleteTransfer, useTransfers } from '../../api/transfers/transfersQueries'
+import { useDeleteTransfer, useTransfer, useTransfers } from '../../api/transfers/transfersQueries'
 import { defaultErrorMessage } from '../../api/core/apiError'
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
@@ -38,6 +39,9 @@ const PAGE_SIZE = 20
  *
  * Responsive (F021): at every size the header's Add button and each row's/card's Edit open the
  * form in a `ResponsiveDialog` (full screen below `sm`); there is no form panel below the table.
+ *
+ * A `?focus={transferId}` query param (F027: `InvestmentProductDetailPage`'s "View confirmation"
+ * link) opens that transfer's edit dialog directly, regardless of the list's current page/filters.
  */
 export function TransfersPage() {
   const [page, setPage] = useState(0)
@@ -92,6 +96,33 @@ export function TransfersPage() {
     setFormKey((n) => n + 1)
     setFormDialogOpen(true)
   }
+
+  // `InvestmentProductDetailPage`'s "View confirmation" link (F027) arrives here as
+  // `?focus={transferId}` rather than a row click, so the confirmation must open regardless of the
+  // list's current page/filters - fetched directly instead of searched for in `transfers`. Cleared
+  // from the URL once consumed so a later back-navigation doesn't reopen it.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const focusId = searchParams.get('focus')
+  const focusQuery = useTransfer(focusId)
+  useEffect(() => {
+    if (focusQuery.data) {
+      // Deliberately a one-time reaction to an external trigger (the URL's `focus` param resolving
+      // via its fetch), not state derivable from props/render - the dialog must stay open (and
+      // `editing` must stay set) after the param is cleared below, so it can't be computed inline.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      startEdit(focusQuery.data)
+      setSearchParams({}, { replace: true })
+    } else if (focusQuery.isError) {
+      setError(
+        defaultErrorMessage(focusQuery.error, {
+          404: 'The linked transfer could not be found - it may have been deleted.',
+        }),
+      )
+      setSearchParams({}, { replace: true })
+    }
+    // Reacts only to the focused-transfer fetch settling, not to every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusQuery.data, focusQuery.isError, focusQuery.error])
 
   function closeForm() {
     setEditing(null)
