@@ -122,7 +122,8 @@ public class FiiAllocationQuery {
                     row.productId(),
                     row.ticker() != null ? row.ticker() : row.name(),
                     row.currentValue(),
-                    percentageOf(row.currentValue(), total)))
+                    percentageOf(row.currentValue(), total),
+                    row.segmentId()))
         .toList();
   }
 
@@ -147,7 +148,8 @@ public class FiiAllocationQuery {
                         ? NO_SEGMENT_LABEL
                         : segmentNames.getOrDefault(e.getKey(), ""),
                     e.getValue(),
-                    percentageOf(e.getValue(), total)))
+                    percentageOf(e.getValue(), total),
+                    null))
         .sorted(BY_SIZE_THEN_LABEL)
         .toList();
   }
@@ -194,7 +196,11 @@ public class FiiAllocationQuery {
         .map(
             e ->
                 new FiiAllocationRow(
-                    e.entry().investmentProductId(), e.label(), null, e.entry().targetPercentage()))
+                    e.entry().investmentProductId(),
+                    e.label(),
+                    null,
+                    e.entry().targetPercentage(),
+                    e.segmentId()))
         .toList();
   }
 
@@ -222,7 +228,8 @@ public class FiiAllocationQuery {
                         ? NO_SEGMENT_LABEL
                         : segmentNames.getOrDefault(e.getKey(), ""),
                     null,
-                    e.getValue()))
+                    e.getValue(),
+                    null))
         .sorted(BY_SIZE_THEN_LABEL)
         .toList();
   }

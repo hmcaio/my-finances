@@ -135,6 +135,35 @@ class FiiAllocationQueryTest {
   }
 
   @Test
+  void actualByTickerRowsCarryTheirOwnSegmentIdAndSegmentRowsDoNot() {
+    UUID segmentId =
+        segmentRepository
+            .save(InvestmentSegment.create(UUID.randomUUID(), "Shoppings Test"))
+            .getId();
+    InvestmentProduct segmented = fiiProduct("KNRI11 Fund", "KNRI11", segmentId);
+    InvestmentProduct unsegmented = fiiProduct("HGLG11 Fund", "HGLG11", null);
+    withSnapshot(segmented, "600.00");
+    withSnapshot(unsegmented, "400.00");
+
+    List<FiiAllocationRow> tickerRows =
+        query.allocation(
+            FiiAllocationBasis.ACTUAL, FiiAllocationGroupBy.TICKER, YearMonth.from(TODAY));
+    List<FiiAllocationRow> segmentRows =
+        query.allocation(
+            FiiAllocationBasis.ACTUAL, FiiAllocationGroupBy.SEGMENT, YearMonth.from(TODAY));
+
+    assertThat(tickerRows.stream().filter(r -> r.key().equals(segmented.getId())).findFirst())
+        .get()
+        .extracting(FiiAllocationRow::segmentId)
+        .isEqualTo(segmentId);
+    assertThat(tickerRows.stream().filter(r -> r.key().equals(unsegmented.getId())).findFirst())
+        .get()
+        .extracting(FiiAllocationRow::segmentId)
+        .isNull();
+    assertThat(segmentRows).allSatisfy(r -> assertThat(r.segmentId()).isNull());
+  }
+
+  @Test
   void actualByTickerClustersBySegmentSizeThenByTickerSizeWithinSegment() {
     UUID segmentA =
         segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Segment A")).getId();
@@ -240,6 +269,38 @@ class FiiAllocationQueryTest {
                 .orElseThrow()
                 .percentage())
         .isEqualByComparingTo("70.00");
+  }
+
+  @Test
+  void plannedByTickerRowsCarryTheirOwnSegmentIdAndSegmentRowsDoNot() {
+    UUID segmentId =
+        segmentRepository
+            .save(InvestmentSegment.create(UUID.randomUUID(), "Shoppings Test"))
+            .getId();
+    InvestmentProduct segmented = fiiProduct("KNRI11 Fund", "KNRI11", segmentId);
+    InvestmentProduct unsegmented = fiiProduct("HGLG11 Fund", "HGLG11", null);
+    allocationPlanService.setAllocation(
+        List.of(
+            new AllocationPlanEntry(segmented.getId(), new BigDecimal("60.00")),
+            new AllocationPlanEntry(unsegmented.getId(), new BigDecimal("40.00"))),
+        YearMonth.from(TODAY));
+
+    List<FiiAllocationRow> tickerRows =
+        query.allocation(
+            FiiAllocationBasis.PLANNED, FiiAllocationGroupBy.TICKER, YearMonth.from(TODAY));
+    List<FiiAllocationRow> segmentRows =
+        query.allocation(
+            FiiAllocationBasis.PLANNED, FiiAllocationGroupBy.SEGMENT, YearMonth.from(TODAY));
+
+    assertThat(tickerRows.stream().filter(r -> r.key().equals(segmented.getId())).findFirst())
+        .get()
+        .extracting(FiiAllocationRow::segmentId)
+        .isEqualTo(segmentId);
+    assertThat(tickerRows.stream().filter(r -> r.key().equals(unsegmented.getId())).findFirst())
+        .get()
+        .extracting(FiiAllocationRow::segmentId)
+        .isNull();
+    assertThat(segmentRows).allSatisfy(r -> assertThat(r.segmentId()).isNull());
   }
 
   @Test

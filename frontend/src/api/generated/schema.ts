@@ -1396,6 +1396,8 @@ export interface components {
             label?: string;
             totalValue?: number;
             percentage?: number;
+            /** Format: uuid */
+            segmentId?: string;
         };
         BudgetReportLineResponse: {
             /** Format: uuid */
