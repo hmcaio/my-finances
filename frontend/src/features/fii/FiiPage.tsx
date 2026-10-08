@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
-import { Box, Button, Grid, MenuItem, Select, TextField, Typography } from '@mui/material'
+import { Box, Button, Grid, MenuItem, Select, Typography } from '@mui/material'
 import { useInvestmentCategories } from '../../api/investments/investmentCategoriesQueries'
 import { useFiiPortfolio } from '../../api/investments/fiiPortfolioQueries'
 import { useInvestmentProducts } from '../../api/investments/investmentProductsQueries'
 import type { InvestmentProductStatus } from '../../api/investments/investmentProducts'
 import { useQueryState } from '../../hooks/queryState'
+import { MonthPicker } from '../../components/inputs/MonthPicker'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { currentMonth } from '../../utils/localDate'
 import { AllocationPlanEditor } from './AllocationPlanEditor'
@@ -107,17 +108,7 @@ export function FiiPage() {
       </Typography>
 
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mb: 2 }}>
-        <TextField
-          label="Month"
-          type="month"
-          size="small"
-          value={month}
-          onChange={(e) => {
-            const next = e.target.value
-            setMonth(next > currentMonth() ? currentMonth() : next)
-          }}
-          slotProps={{ inputLabel: { shrink: true }, htmlInput: { max: currentMonth() } }}
-        />
+        <MonthPicker label="Month" value={month} onChange={setMonth} clampToCurrentMonth />
         <Select
           size="small"
           value={status}

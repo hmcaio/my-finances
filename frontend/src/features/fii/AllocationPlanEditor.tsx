@@ -8,6 +8,7 @@ import {
 } from '../../api/investments/allocationPlanQueries'
 import type { InvestmentProduct } from '../../api/investments/investmentProducts'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
+import { MonthPicker } from '../../components/inputs/MonthPicker'
 import { currentMonth } from '../../utils/localDate'
 
 interface AllocationPlanEditorProps {
@@ -86,16 +87,13 @@ export function AllocationPlanEditor({ fiiProducts }: AllocationPlanEditorProps)
       <ErrorAlert message={error} onDismiss={() => setError(null)} />
 
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
-        <TextField
+        <MonthPicker
           label="Effective from"
-          type="month"
-          size="small"
           value={effectiveFrom}
-          onChange={(e) => {
-            setEffectiveFrom(e.target.value)
+          onChange={(v) => {
+            setEffectiveFrom(v)
             setSaved(false)
           }}
-          slotProps={{ inputLabel: { shrink: true } }}
         />
       </Box>
 
