@@ -52,6 +52,7 @@ const InvestmentSegmentsPage = lazy(() =>
     default: m.InvestmentSegmentsPage,
   })),
 )
+const FiiPage = lazy(() => import('./features/fii/FiiPage').then((m) => ({ default: m.FiiPage })))
 const PaymentMethodsPage = lazy(() =>
   import('./features/paymentMethods/PaymentMethodsPage').then((m) => ({
     default: m.PaymentMethodsPage,
@@ -143,6 +144,7 @@ function ThemedApp() {
                   <Route path="/budgets" element={<BudgetsPage />} />
                   <Route path="/recurring" element={<RecurringTemplatesPage />} />
                   <Route path="/investments" element={<InvestmentsPage />} />
+                  <Route path="/fii" element={<FiiPage />} />
                   <Route path="/settings/categories" element={<CategoriesPage />} />
                   <Route path="/settings/institutions" element={<InstitutionsPage />} />
                   <Route

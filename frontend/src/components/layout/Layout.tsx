@@ -37,6 +37,7 @@ const MAIN_NAV_ITEMS: NavItem[] = [
   { label: 'Budgets', path: '/budgets' },
   { label: 'Recurring', path: '/recurring' },
   { label: 'Investments', path: '/investments' },
+  { label: 'FII Portfolio', path: '/fii' },
 ]
 
 const SETTINGS_NAV_ITEMS: NavItem[] = [

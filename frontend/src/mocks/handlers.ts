@@ -1,7 +1,11 @@
 import { accountsHandlers } from './handlers/accounts'
+import { allocationPlanHandlers } from './handlers/allocationPlan'
 import { budgetsHandlers } from './handlers/budgets'
 import { categoriesHandlers } from './handlers/categories'
 import { exportHandlers } from './handlers/export'
+import { fiiAllocationHandlers } from './handlers/fiiAllocation'
+import { fiiDividendsHandlers } from './handlers/fiiDividends'
+import { fiiPortfolioHandlers } from './handlers/fiiPortfolio'
 import { institutionsHandlers } from './handlers/institutions'
 import { investmentCategoriesHandlers } from './handlers/investmentCategories'
 import { investmentAllocationHandlers } from './handlers/investmentAllocation'
@@ -28,9 +32,13 @@ import { vehiclesHandlers } from './handlers/vehicles'
  */
 export const handlers = [
   ...accountsHandlers,
+  ...allocationPlanHandlers,
   ...budgetsHandlers,
   ...categoriesHandlers,
   ...exportHandlers,
+  ...fiiAllocationHandlers,
+  ...fiiDividendsHandlers,
+  ...fiiPortfolioHandlers,
   ...institutionsHandlers,
   ...investmentCategoriesHandlers,
   ...investmentAllocationHandlers,
