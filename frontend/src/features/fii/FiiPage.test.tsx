@@ -99,6 +99,7 @@ describe('FiiPage', () => {
     const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<FiiPage />)
     await portfolioTable().findByText('KNRI11')
+    await user.click(screen.getByRole('tab', { name: 'Allocation Plan' }))
 
     const targetInputs = await screen.findAllByLabelText('Target %')
     await user.type(targetInputs[0], '60')
@@ -112,6 +113,7 @@ describe('FiiPage', () => {
     const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<FiiPage />)
     await portfolioTable().findByText('KNRI11')
+    await user.click(screen.getByRole('tab', { name: 'Allocation Plan' }))
 
     const targetInputs = await screen.findAllByLabelText('Target %')
     await user.type(targetInputs[0], '50')
@@ -121,11 +123,27 @@ describe('FiiPage', () => {
   })
 
   it('shows dividend history with totals by ticker and by month', async () => {
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<FiiPage />)
+    await portfolioTable().findByText('KNRI11')
+    await user.click(screen.getByRole('tab', { name: 'Dividends' }))
 
     expect(await screen.findByText('Totals by ticker')).toBeInTheDocument()
     expect(screen.getByText('Totals by month')).toBeInTheDocument()
     expect(await screen.findByText(seedDividends[0].date)).toBeInTheDocument()
+  })
+
+  it('defaults to the Dividends tab, and switching to Allocation Plan hides it', async () => {
+    const user = userEvent.setup({ delay: null })
+    renderWithQueryClient(<FiiPage />)
+    await portfolioTable().findByText('KNRI11')
+
+    expect(await screen.findByText('Totals by ticker')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('tab', { name: 'Allocation Plan' }))
+
+    expect(screen.queryByText('Totals by ticker')).not.toBeInTheDocument()
+    expect(await screen.findAllByLabelText('Target %')).toHaveLength(2)
   })
 
   it('opens the Register Dividend dialog with only FII products in the ticker picker', async () => {

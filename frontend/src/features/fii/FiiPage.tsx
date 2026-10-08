@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Box, Button, Grid, MenuItem, Select, Typography } from '@mui/material'
+import { useMemo, useState, type SyntheticEvent } from 'react'
+import { Box, Button, Grid, MenuItem, Select, Tab, Tabs, Typography } from '@mui/material'
 import { useInvestmentCategories } from '../../api/investments/investmentCategoriesQueries'
 import { useFiiPortfolio } from '../../api/investments/fiiPortfolioQueries'
 import { useInvestmentProducts } from '../../api/investments/investmentProductsQueries'
@@ -17,13 +17,18 @@ import type { FiiPortfolioRow } from '../../api/investments/fiiPortfolio'
 /** The sub-category name every FII product is classified under (mirrors `AllocationPlanService`). */
 const FII_SUBCATEGORY_NAME = 'REITs (FIIs)'
 
+type FiiTab = 'allocation' | 'dividends'
+
 /**
- * The FII portfolio page (F026 spec, ADR 0023): a portfolio list (one row per FII, closed
- * holdings hidden by default), the target-allocation editor, the four allocation pie charts
- * (actual/planned x ticker/segment), a "Register Dividend" dialog, and dividend history. A month
- * picker (Addendum: Month Selector) drives the portfolio list and all four charts, defaulting to
- * (and clamped to) the current month; the `needsSnapshot` badge is hidden whenever a past month is
- * selected, since it's a "today" concept the backend never recomputes against a past date.
+ * The FII portfolio page (F026 spec, ADR 0023): the four allocation pie charts (actual/planned x
+ * ticker/segment) at the top, then the portfolio list (one row per FII, closed holdings hidden by
+ * default) with its month/status filters, then two sub-tabs - "Dividends" (default; dividend
+ * history - the register-dividend dialog trigger lives in the header, not this tab) and "Allocation
+ * Plan" (the target-allocation editor) - mirroring F023's Investments-page layout (charts above
+ * tabs). The month picker (Addendum: Month Selector) drives the portfolio list and all four charts,
+ * defaulting to (and clamped to) the current month; the `needsSnapshot` badge is hidden whenever a
+ * past month is selected, since it's a "today" concept the backend never recomputes against a past
+ * date.
  */
 export function FiiPage() {
   const categoriesQuery = useInvestmentCategories()
@@ -51,6 +56,11 @@ export function FiiPage() {
   const portfolioState = useQueryState(portfolioQuery)
 
   const [registerOpen, setRegisterOpen] = useState(false)
+  const [tab, setTab] = useState<FiiTab>('dividends')
+
+  function handleTabChange(_: SyntheticEvent, value: FiiTab) {
+    setTab(value)
+  }
 
   const columns: ResponsiveColumn<FiiPortfolioRow>[] = [
     { key: 'ticker', header: 'Ticker', render: (r) => r.ticker ?? '-', role: 'primary' },
@@ -107,33 +117,6 @@ export function FiiPage() {
         computed from recorded trades, never price-derived.
       </Typography>
 
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mb: 2 }}>
-        <MonthPicker label="Month" value={month} onChange={setMonth} clampToCurrentMonth />
-        <Select
-          size="small"
-          value={status}
-          onChange={(e) => setStatus(e.target.value as InvestmentProductStatus)}
-          aria-label="Status"
-        >
-          <MenuItem value="OPEN">Open</MenuItem>
-          <MenuItem value="CLOSED">Closed</MenuItem>
-          <MenuItem value="ALL">All</MenuItem>
-        </Select>
-      </Box>
-
-      <ResponsiveTable
-        columns={columns}
-        rows={portfolio}
-        getRowKey={(r) => r.productId}
-        state={portfolioState}
-        emptyMessage="No FII holdings yet."
-        aria-label="FII portfolio"
-      />
-
-      <Box sx={{ mt: 3 }}>
-        <AllocationPlanEditor fiiProducts={fiiProducts} />
-      </Box>
-
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, md: 6 }}>
           <Typography variant="h6" component="h2" sx={{ mb: 1 }}>
@@ -185,7 +168,63 @@ export function FiiPage() {
         </Grid>
       </Grid>
 
-      <DividendHistorySection fiiProducts={fiiProducts} />
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mb: 2 }}>
+        <MonthPicker label="Month" value={month} onChange={setMonth} clampToCurrentMonth />
+        <Select
+          size="small"
+          value={status}
+          onChange={(e) => setStatus(e.target.value as InvestmentProductStatus)}
+          aria-label="Status"
+        >
+          <MenuItem value="OPEN">Open</MenuItem>
+          <MenuItem value="CLOSED">Closed</MenuItem>
+          <MenuItem value="ALL">All</MenuItem>
+        </Select>
+      </Box>
+
+      <ResponsiveTable
+        columns={columns}
+        rows={portfolio}
+        getRowKey={(r) => r.productId}
+        state={portfolioState}
+        emptyMessage="No FII holdings yet."
+        aria-label="FII portfolio"
+      />
+
+      <Tabs value={tab} onChange={handleTabChange} aria-label="FII views" sx={{ mt: 3 }}>
+        <Tab
+          value="dividends"
+          label="Dividends"
+          id="fii-tab-dividends"
+          aria-controls="fii-tabpanel-dividends"
+        />
+        <Tab
+          value="allocation"
+          label="Allocation Plan"
+          id="fii-tab-allocation"
+          aria-controls="fii-tabpanel-allocation"
+        />
+      </Tabs>
+
+      <Box
+        role="tabpanel"
+        id="fii-tabpanel-dividends"
+        aria-labelledby="fii-tab-dividends"
+        hidden={tab !== 'dividends'}
+        sx={{ mt: 3 }}
+      >
+        {tab === 'dividends' && <DividendHistorySection fiiProducts={fiiProducts} />}
+      </Box>
+
+      <Box
+        role="tabpanel"
+        id="fii-tabpanel-allocation"
+        aria-labelledby="fii-tab-allocation"
+        hidden={tab !== 'allocation'}
+        sx={{ mt: 3 }}
+      >
+        {tab === 'allocation' && <AllocationPlanEditor fiiProducts={fiiProducts} />}
+      </Box>
 
       <RegisterDividendDialog
         open={registerOpen}
