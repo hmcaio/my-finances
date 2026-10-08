@@ -4,18 +4,25 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.application.account.AccountNotFoundException;
+import com.chm.myfinances.application.investmentholding.InvestmentHoldingService;
 import com.chm.myfinances.application.investmentsnapshot.InvestmentSnapshotService;
+import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
 import com.chm.myfinances.domain.account.Account;
+import com.chm.myfinances.domain.transfer.TradeConfirmationLine;
+import com.chm.myfinances.domain.transfer.TradeSide;
 import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.domain.transfer.TransferFilter;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
 import com.chm.myfinances.testsupport.fakes.FakeTransferRepository;
 import com.chm.myfinances.testsupport.mothers.AccountMother;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,16 +41,26 @@ class TransferServiceTest {
   private final FakeAccountRepository accountRepository = new FakeAccountRepository();
   private final FakeInvestmentHoldingRepository holdingRepository =
       new FakeInvestmentHoldingRepository();
+  private final FakeInvestmentProductRepository productRepository =
+      new FakeInvestmentProductRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
   private final TransferService service = serviceWith(idGenerator);
 
   private TransferService serviceWith(FakeIdGenerator generator) {
+    FakeInvestmentSnapshotRepository snapshotRepository = new FakeInvestmentSnapshotRepository();
     return new TransferService(
         transferRepository,
         accountRepository,
         holdingRepository,
-        new InvestmentSnapshotService(
-            new FakeInvestmentSnapshotRepository(), holdingRepository, generator),
+        new InvestmentSnapshotService(snapshotRepository, holdingRepository, generator),
+        new InvestmentHoldingService(
+            holdingRepository,
+            productRepository,
+            accountRepository,
+            id -> false,
+            new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository),
+            generator,
+            Clock.systemUTC()),
         generator);
   }
 
@@ -270,5 +287,72 @@ class TransferServiceTest {
             new TransferFilter(null, null, savings.getId(), null), PageRequest.of(0, 20));
 
     assertThat(page.getTotalElements()).isEqualTo(2);
+  }
+
+  // --- requireExactlyOneRequestShape (F027 spec, ADR 0024) -------------------------------------
+
+  private static final List<TradeConfirmationLine> ONE_LINE =
+      List.of(
+          new TradeConfirmationLine(
+              UUID.randomUUID(), TradeSide.BUY, BigDecimal.ONE, BigDecimal.TEN, null, false));
+
+  @Test
+  void requireExactlyOneRequestShapeAcceptsThePlainShapeAlone() {
+    TransferService.requireExactlyOneRequestShape(
+        UUID.randomUUID(), UUID.randomUUID(), BigDecimal.TEN, null, null, null);
+  }
+
+  @Test
+  void requireExactlyOneRequestShapeAcceptsTheConfirmationShapeAlone() {
+    TransferService.requireExactlyOneRequestShape(
+        null, null, null, UUID.randomUUID(), UUID.randomUUID(), ONE_LINE);
+  }
+
+  @Test
+  void requireExactlyOneRequestShapeRejectsNeitherShape() {
+    assertThatThrownBy(
+            () -> TransferService.requireExactlyOneRequestShape(null, null, null, null, null, null))
+        .isInstanceOf(InvalidTradeConfirmationException.class);
+  }
+
+  @Test
+  void requireExactlyOneRequestShapeRejectsBothShapes() {
+    assertThatThrownBy(
+            () ->
+                TransferService.requireExactlyOneRequestShape(
+                    UUID.randomUUID(),
+                    UUID.randomUUID(),
+                    BigDecimal.TEN,
+                    UUID.randomUUID(),
+                    UUID.randomUUID(),
+                    ONE_LINE))
+        .isInstanceOf(InvalidTradeConfirmationException.class);
+  }
+
+  @Test
+  void requireExactlyOneRequestShapeRejectsAPartialPlainShape() {
+    assertThatThrownBy(
+            () ->
+                TransferService.requireExactlyOneRequestShape(
+                    UUID.randomUUID(), null, BigDecimal.TEN, null, null, null))
+        .isInstanceOf(InvalidTradeConfirmationException.class);
+  }
+
+  @Test
+  void requireExactlyOneRequestShapeRejectsAPartialConfirmationShape() {
+    assertThatThrownBy(
+            () ->
+                TransferService.requireExactlyOneRequestShape(
+                    null, null, null, UUID.randomUUID(), null, ONE_LINE))
+        .isInstanceOf(InvalidTradeConfirmationException.class);
+  }
+
+  @Test
+  void requireExactlyOneRequestShapeRejectsEmptyLines() {
+    assertThatThrownBy(
+            () ->
+                TransferService.requireExactlyOneRequestShape(
+                    null, null, null, UUID.randomUUID(), UUID.randomUUID(), List.of()))
+        .isInstanceOf(InvalidTradeConfirmationException.class);
   }
 }

@@ -14,12 +14,15 @@ import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
+import com.chm.myfinances.domain.transfer.TradeConfirmationLine;
+import com.chm.myfinances.domain.transfer.TradeSide;
 import com.chm.myfinances.domain.transfer.TransferFilter;
 import com.chm.myfinances.domain.transfer.TransferRepository;
 import com.chm.myfinances.testsupport.AbstractTransactionalBoundaryTest;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,9 +30,10 @@ import org.springframework.data.domain.PageRequest;
 
 /**
  * End-to-end proof (real Spring context + Testcontainers Postgres, ADR 0010) that {@link
- * TransferService#create}'s {@code @Transactional} boundary rolls the transfer back when the
- * snapshot write that follows it (a trade's {@code resultingBalance}) fails - without it a buy
- * would be committed with no snapshot, and the caller would see a 500 implying nothing was saved.
+ * TransferService#createTradeConfirmation}'s {@code @Transactional} boundary rolls the transfer
+ * back when the snapshot write that follows it (a line's {@code resultingBalance}, F027/ADR 0024)
+ * fails - without it a buy would be committed with no snapshot, and the caller would see a 500
+ * implying nothing was saved.
  *
  * <p>Deliberately carries no class/method-level {@code @Transactional} - see {@code
  * RecurringTemplateServiceTransactionalTest}'s javadoc for why that would defeat the point. The
@@ -75,16 +79,21 @@ class TransferServiceTransactionalTest extends AbstractTransactionalBoundaryTest
 
     assertThatThrownBy(
             () ->
-                transferService.create(
+                transferService.createTradeConfirmation(
                     LocalDate.of(2026, 3, 15),
                     checking.getId(),
                     broker.getId(),
-                    new BigDecimal("1000.00"),
                     "Buy",
                     null,
-                    product.getId(),
-                    null,
-                    new BigDecimal("1000.00")))
+                    BigDecimal.ZERO,
+                    List.of(
+                        new TradeConfirmationLine(
+                            product.getId(),
+                            TradeSide.BUY,
+                            BigDecimal.TEN,
+                            BigDecimal.TEN,
+                            new BigDecimal("1000.00"),
+                            false))))
         .isInstanceOf(RuntimeException.class);
 
     // The transfer, written first, must have rolled back with the failed snapshot.
@@ -94,6 +103,5 @@ class TransferServiceTransactionalTest extends AbstractTransactionalBoundaryTest
                     new TransferFilter(null, null, null, product.getId()), PageRequest.of(0, 10))
                 .getTotalElements())
         .isZero();
-    assertThat(transferRepository.existsByInvestmentProductId(product.getId())).isFalse();
   }
 }
