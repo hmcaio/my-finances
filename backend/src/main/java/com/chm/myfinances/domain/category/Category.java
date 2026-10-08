@@ -27,6 +27,12 @@ import java.util.UUID;
  * is set — enforced in {@code CategoryService}, same layer as the {@code builtIn} delete guard, not
  * here: this class only carries the flag. Same read-only shape as {@code builtIn} - {@link #create}
  * always yields {@code false}, only {@link #reconstitute} can carry it in.
+ *
+ * <p>{@link #isDividendCategory()} (F026, ADR 0023) is a third, independent flag — at most one row
+ * carries it (DB partial unique index, {@code V20}) — same read-only shape and same "delete and
+ * rename both blocked while set" load-bearing reasoning as {@code fuelCategory} (the {@code
+ * Transaction.investmentHoldingId} invariant, enforced in {@code CategoryService}/{@code
+ * TransactionService}, not here).
  */
 public final class Category {
 
@@ -35,27 +41,46 @@ public final class Category {
   private final CategoryType type;
   private final boolean builtIn;
   private final boolean fuelCategory;
+  private final boolean dividendCategory;
 
-  private Category(UUID id, String name, CategoryType type, boolean builtIn, boolean fuelCategory) {
+  private Category(
+      UUID id,
+      String name,
+      CategoryType type,
+      boolean builtIn,
+      boolean fuelCategory,
+      boolean dividendCategory) {
     this.id = Objects.requireNonNull(id, "id must not be null");
     this.name = requireNonBlank(name);
     this.type = Objects.requireNonNull(type, "type must not be null");
     this.builtIn = builtIn;
     this.fuelCategory = fuelCategory;
+    this.dividendCategory = dividendCategory;
   }
 
   /**
-   * Creates a brand-new, non-built-in, non-fuel Category. {@code id} must come from the {@code
-   * IdGenerator} port.
+   * Creates a brand-new, non-built-in, non-fuel, non-dividend Category. {@code id} must come from
+   * the {@code IdGenerator} port.
    */
   public static Category create(UUID id, String name, CategoryType type) {
-    return new Category(id, name, type, false, false);
+    return new Category(id, name, type, false, false, false);
   }
 
-  /** Rebuilds a Category from already-validated persisted state. */
+  /** Rebuilds a Category (never the dividend category) from already-validated persisted state. */
   public static Category reconstitute(
       UUID id, String name, CategoryType type, boolean builtIn, boolean fuelCategory) {
-    return new Category(id, name, type, builtIn, fuelCategory);
+    return reconstitute(id, name, type, builtIn, fuelCategory, false);
+  }
+
+  /** Rebuilds a Category, including its dividend-category flag (F026), from persisted state. */
+  public static Category reconstitute(
+      UUID id,
+      String name,
+      CategoryType type,
+      boolean builtIn,
+      boolean fuelCategory,
+      boolean dividendCategory) {
+    return new Category(id, name, type, builtIn, fuelCategory, dividendCategory);
   }
 
   /** Renames the category, including a built-in one. */
@@ -96,5 +121,13 @@ public final class Category {
    */
   public boolean isFuelCategory() {
     return fuelCategory;
+  }
+
+  /**
+   * Whether this is the single dedicated dividend category (F026, ADR 0023): a {@code Transaction}
+   * carries an {@code investmentHoldingId} if and only if its category is this one.
+   */
+  public boolean isDividendCategory() {
+    return dividendCategory;
   }
 }

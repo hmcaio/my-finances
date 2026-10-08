@@ -68,7 +68,9 @@ public class InvestmentProductController {
             request.investmentCategoryId(),
             request.investmentSubcategoryId(),
             request.name(),
-            request.additionalNotes()));
+            request.additionalNotes(),
+            request.ticker(),
+            request.segmentId()));
   }
 
   @GetMapping("/{id}")
@@ -85,7 +87,9 @@ public class InvestmentProductController {
             request.investmentCategoryId(),
             request.investmentSubcategoryId(),
             request.name(),
-            request.additionalNotes()));
+            request.additionalNotes(),
+            request.ticker(),
+            request.segmentId()));
   }
 
   /**

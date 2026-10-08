@@ -9,7 +9,9 @@ export type CategoryType = 'INCOME' | 'EXPENSE'
  * ("Other Expense" / "Other Income" by default) - it can be renamed but never deleted.
  * `fuelCategory` (F024, ADR 0021) marks the single dedicated fuel category - a Transaction carries
  * fuel details if and only if its category is this one; both rename and delete are blocked while
- * it's set (independent of `builtIn`).
+ * it's set (independent of `builtIn`). `dividendCategory` (F026, ADR 0023) is the same shape for
+ * the single dedicated dividend category - a Transaction carries an `investmentHoldingId` if and
+ * only if its category is this one.
  */
 export interface Category {
   id: string
@@ -17,6 +19,7 @@ export interface Category {
   type: CategoryType
   builtIn: boolean
   fuelCategory: boolean
+  dividendCategory: boolean
 }
 
 export type CreateCategoryRequest = components['schemas']['CreateCategoryRequest']

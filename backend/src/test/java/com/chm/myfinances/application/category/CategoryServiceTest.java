@@ -189,6 +189,34 @@ class CategoryServiceTest {
     assertThat(repository.findById(fuelCategory.getId()).orElseThrow().getName()).isEqualTo("Fuel");
   }
 
+  // F026 (ADR 0023): the dividend_category flag independently blocks both delete and rename, same
+  // shape as fuel_category but a separate flag/exception.
+
+  @Test
+  void deleteRejectsTheDividendCategory() {
+    Category dividendCategory =
+        repository.save(
+            Category.reconstitute(
+                UUID.randomUUID(), "Dividends", CategoryType.INCOME, false, false, true));
+
+    assertThatThrownBy(() -> service.delete(dividendCategory.getId()))
+        .isInstanceOf(DividendCategoryException.class);
+    assertThat(repository.findById(dividendCategory.getId())).isPresent();
+  }
+
+  @Test
+  void renameRejectsTheDividendCategory() {
+    Category dividendCategory =
+        repository.save(
+            Category.reconstitute(
+                UUID.randomUUID(), "Dividends", CategoryType.INCOME, false, false, true));
+
+    assertThatThrownBy(() -> service.rename(dividendCategory.getId(), "FII Income"))
+        .isInstanceOf(DividendCategoryException.class);
+    assertThat(repository.findById(dividendCategory.getId()).orElseThrow().getName())
+        .isEqualTo("Dividends");
+  }
+
   @Test
   void deleteOfUnknownIdThrowsNotFound() {
     assertThatThrownBy(() -> service.delete(UUID.randomUUID()))

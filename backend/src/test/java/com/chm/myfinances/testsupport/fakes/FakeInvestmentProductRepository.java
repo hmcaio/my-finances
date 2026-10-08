@@ -38,4 +38,9 @@ public final class FakeInvestmentProductRepository extends InMemoryRepository<In
     return values().stream()
         .anyMatch(p -> Objects.equals(p.getInvestmentSubcategoryId(), investmentSubcategoryId));
   }
+
+  @Override
+  public boolean existsBySegmentId(UUID segmentId) {
+    return values().stream().anyMatch(p -> Objects.equals(p.getSegmentId(), segmentId));
+  }
 }

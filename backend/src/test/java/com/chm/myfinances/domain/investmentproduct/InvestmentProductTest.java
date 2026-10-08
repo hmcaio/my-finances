@@ -130,4 +130,96 @@ class InvestmentProductTest {
     assertThatThrownBy(() -> product.edit(CATEGORY_ID, null, "X", overMax))
         .isInstanceOf(IllegalArgumentException.class);
   }
+
+  // F026 (ADR 0023): optional ticker/segmentId, generalized fields usable by any product.
+
+  @Test
+  void theShortFactoryOverloadsLeaveTickerAndSegmentNull() {
+    InvestmentProduct product = newProduct();
+
+    assertThat(product.getTicker()).isNull();
+    assertThat(product.getSegmentId()).isNull();
+  }
+
+  @Test
+  void createCarriesTickerAndSegmentId() {
+    UUID segmentId = UUID.randomUUID();
+
+    InvestmentProduct product =
+        InvestmentProduct.create(
+            UUID.randomUUID(), CATEGORY_ID, SUBCATEGORY_ID, "KNRI11", null, "KNRI11", segmentId);
+
+    assertThat(product.getTicker()).isEqualTo("KNRI11");
+    assertThat(product.getSegmentId()).isEqualTo(segmentId);
+  }
+
+  @Test
+  void tickerAndSegmentIdAreOptionalOnTheLongFactoryOverload() {
+    InvestmentProduct product =
+        InvestmentProduct.create(
+            UUID.randomUUID(), CATEGORY_ID, SUBCATEGORY_ID, "Tesouro Selic 2029", null, null, null);
+
+    assertThat(product.getTicker()).isNull();
+    assertThat(product.getSegmentId()).isNull();
+  }
+
+  @Test
+  void reconstituteCarriesTickerAndSegmentId() {
+    UUID segmentId = UUID.randomUUID();
+
+    InvestmentProduct product =
+        InvestmentProduct.reconstitute(
+            UUID.randomUUID(), CATEGORY_ID, null, "KNRI11", null, "KNRI11", segmentId);
+
+    assertThat(product.getTicker()).isEqualTo("KNRI11");
+    assertThat(product.getSegmentId()).isEqualTo(segmentId);
+  }
+
+  @Test
+  void theLongEditOverloadReplacesTickerAndSegmentId() {
+    InvestmentProduct product = newProduct();
+    UUID segmentId = UUID.randomUUID();
+
+    product.edit(CATEGORY_ID, SUBCATEGORY_ID, "KNRI11", null, "KNRI11", segmentId);
+
+    assertThat(product.getTicker()).isEqualTo("KNRI11");
+    assertThat(product.getSegmentId()).isEqualTo(segmentId);
+  }
+
+  @Test
+  void theShortEditOverloadClearsTickerAndSegmentId() {
+    InvestmentProduct product =
+        InvestmentProduct.create(
+            UUID.randomUUID(),
+            CATEGORY_ID,
+            SUBCATEGORY_ID,
+            "KNRI11",
+            null,
+            "KNRI11",
+            UUID.randomUUID());
+
+    product.edit(CATEGORY_ID, SUBCATEGORY_ID, "KNRI11", null);
+
+    assertThat(product.getTicker()).isNull();
+    assertThat(product.getSegmentId()).isNull();
+  }
+
+  @Test
+  void tickerAcceptsNameAtMaxLengthAndRejectsOverIt() {
+    String atMax = "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH);
+    String overMax = "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1);
+
+    assertThat(
+            InvestmentProduct.create(UUID.randomUUID(), CATEGORY_ID, null, "X", null, atMax, null)
+                .getTicker())
+        .isEqualTo(atMax);
+    assertThatThrownBy(
+            () ->
+                InvestmentProduct.create(
+                    UUID.randomUUID(), CATEGORY_ID, null, "X", null, overMax, null))
+        .isInstanceOf(IllegalArgumentException.class);
+    InvestmentProduct product = newProduct();
+    assertThatThrownBy(() -> product.edit(CATEGORY_ID, null, "X", null, overMax, null))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
 }

@@ -1,12 +1,17 @@
 import { accountsHandlers } from './handlers/accounts'
+import { allocationPlanHandlers } from './handlers/allocationPlan'
 import { budgetsHandlers } from './handlers/budgets'
 import { categoriesHandlers } from './handlers/categories'
 import { exportHandlers } from './handlers/export'
+import { fiiAllocationHandlers } from './handlers/fiiAllocation'
+import { fiiDividendsHandlers } from './handlers/fiiDividends'
+import { fiiPortfolioHandlers } from './handlers/fiiPortfolio'
 import { institutionsHandlers } from './handlers/institutions'
 import { investmentCategoriesHandlers } from './handlers/investmentCategories'
 import { investmentAllocationHandlers } from './handlers/investmentAllocation'
 import { investmentHoldingsHandlers } from './handlers/investmentHoldings'
 import { investmentProductsHandlers } from './handlers/investmentProducts'
+import { investmentSegmentsHandlers } from './handlers/investmentSegments'
 import { investmentSnapshotsHandlers } from './handlers/investmentSnapshots'
 import { investmentSubcategoriesHandlers } from './handlers/investmentSubcategories'
 import { investmentValueSeriesHandlers } from './handlers/investmentValueSeries'
@@ -27,14 +32,19 @@ import { vehiclesHandlers } from './handlers/vehicles'
  */
 export const handlers = [
   ...accountsHandlers,
+  ...allocationPlanHandlers,
   ...budgetsHandlers,
   ...categoriesHandlers,
   ...exportHandlers,
+  ...fiiAllocationHandlers,
+  ...fiiDividendsHandlers,
+  ...fiiPortfolioHandlers,
   ...institutionsHandlers,
   ...investmentCategoriesHandlers,
   ...investmentAllocationHandlers,
   ...investmentHoldingsHandlers,
   ...investmentProductsHandlers,
+  ...investmentSegmentsHandlers,
   ...investmentSnapshotsHandlers,
   ...investmentValueSeriesHandlers,
   ...investmentSubcategoriesHandlers,

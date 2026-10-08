@@ -78,6 +78,11 @@ public class TransactionJpaEntity extends AuditableEntity {
 
   private BigDecimal odometer;
 
+  // F026 (ADR 0023): present iff the category is the dedicated dividend category (application
+  // layer invariant, not a DB CHECK - see the migration's own comment).
+  @Column(name = "investment_holding_id")
+  private UUID investmentHoldingId;
+
   public TransactionJpaEntity(
       UUID id,
       LocalDate date,
@@ -94,7 +99,8 @@ public class TransactionJpaEntity extends AuditableEntity {
       BigDecimal liters,
       BigDecimal pricePerLiter,
       BigDecimal kmSinceLastFill,
-      BigDecimal odometer) {
+      BigDecimal odometer,
+      UUID investmentHoldingId) {
     this.id = id;
     this.date = date;
     this.amount = amount;
@@ -111,5 +117,6 @@ public class TransactionJpaEntity extends AuditableEntity {
     this.pricePerLiter = pricePerLiter;
     this.kmSinceLastFill = kmSinceLastFill;
     this.odometer = odometer;
+    this.investmentHoldingId = investmentHoldingId;
   }
 }

@@ -74,6 +74,7 @@ public class CategoryRepositoryAdapter implements CategoryRepository {
         entity.getName(),
         entity.getType(),
         entity.isBuiltIn(),
-        entity.isFuelCategory());
+        entity.isFuelCategory(),
+        entity.isDividendCategory());
   }
 }

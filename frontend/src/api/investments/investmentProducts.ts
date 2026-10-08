@@ -18,6 +18,10 @@ export interface InvestmentProduct {
   /** `null` when the product carries no remark. */
   additionalNotes: string | null
   closed: boolean
+  /** `null` when the product carries no ticker (F026, ADR 0023). Generalized, not FII-only. */
+  ticker: string | null
+  /** `null` when the product carries no segment (F026, ADR 0023). Generalized, not FII-only. */
+  segmentId: string | null
 }
 
 export type CreateInvestmentProductRequest = components['schemas']['CreateInvestmentProductRequest']

@@ -5,11 +5,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.application.account.AccountNotFoundException;
 import com.chm.myfinances.application.category.CategoryNotFoundException;
+import com.chm.myfinances.application.investmentholding.InvestmentHoldingNotFoundException;
 import com.chm.myfinances.application.paymentmethod.PaymentMethodNotFoundException;
 import com.chm.myfinances.application.vehicle.VehicleNotFoundException;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryType;
+import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
 import com.chm.myfinances.domain.transaction.FuelDetails;
 import com.chm.myfinances.domain.transaction.FuelType;
@@ -19,6 +21,7 @@ import com.chm.myfinances.domain.vehicle.Vehicle;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
 import com.chm.myfinances.testsupport.fakes.FakeCategoryRepository;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
 import com.chm.myfinances.testsupport.fakes.FakePaymentMethodRepository;
 import com.chm.myfinances.testsupport.fakes.FakeTransactionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeVehicleRepository;
@@ -44,6 +47,8 @@ class TransactionServiceTest {
   private final FakePaymentMethodRepository paymentMethodRepository =
       new FakePaymentMethodRepository();
   private final FakeVehicleRepository vehicleRepository = new FakeVehicleRepository();
+  private final FakeInvestmentHoldingRepository investmentHoldingRepository =
+      new FakeInvestmentHoldingRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
   private final TransactionService service =
       new TransactionService(
@@ -52,15 +57,18 @@ class TransactionServiceTest {
           accountRepository,
           paymentMethodRepository,
           vehicleRepository,
+          investmentHoldingRepository,
           idGenerator);
 
   private Category expenseCategory;
   private Category incomeCategory;
   private Category fuelCategory;
+  private Category dividendCategory;
   private Account openAccount;
   private Account closedAccount;
   private PaymentMethod paymentMethod;
   private Vehicle vehicle;
+  private InvestmentHolding holding;
 
   @BeforeEach
   void setUp() {
@@ -72,6 +80,10 @@ class TransactionServiceTest {
     fuelCategory =
         categoryRepository.save(
             Category.reconstitute(UUID.randomUUID(), "Fuel", CategoryType.EXPENSE, false, true));
+    dividendCategory =
+        categoryRepository.save(
+            Category.reconstitute(
+                UUID.randomUUID(), "Dividends", CategoryType.INCOME, false, false, true));
     openAccount = accountRepository.save(AccountMother.checking().build());
     closedAccount = accountRepository.save(AccountMother.checking().withName("Old").build());
     closedAccount.close(LocalDate.now());
@@ -79,6 +91,10 @@ class TransactionServiceTest {
     paymentMethod =
         paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), "Debit Card"));
     vehicle = vehicleRepository.save(Vehicle.create(UUID.randomUUID(), "Civic"));
+    holding =
+        investmentHoldingRepository.save(
+            InvestmentHolding.create(
+                UUID.randomUUID(), UUID.randomUUID(), openAccount.getId(), null));
   }
 
   @Test
@@ -91,6 +107,7 @@ class TransactionServiceTest {
             accountRepository,
             paymentMethodRepository,
             vehicleRepository,
+            investmentHoldingRepository,
             new FakeIdGenerator(nextId));
 
     Transaction created =
@@ -625,5 +642,174 @@ class TransactionServiceTest {
     assertThat(history).hasSize(2);
     assertThat(history.get(0).getDate()).isEqualTo(LocalDate.of(2026, 1, 1));
     assertThat(history.get(1).getDate()).isEqualTo(LocalDate.of(2026, 2, 1));
+  }
+
+  // F026 (ADR 0023): the dividend invariant - investmentHoldingId present iff the category is the
+  // dividend category - on both create and edit, plus the holding existence check. Same shape as
+  // the fuel invariant tests above.
+
+  @Test
+  void createWithDividendCategoryAndInvestmentHoldingIdSucceeds() {
+    Transaction created =
+        service.create(
+            LocalDate.now(),
+            BigDecimal.TEN,
+            dividendCategory.getId(),
+            openAccount.getId(),
+            paymentMethod.getId(),
+            null,
+            "KNRI11 dividend",
+            null,
+            null,
+            holding.getId());
+
+    assertThat(created.getInvestmentHoldingId()).isEqualTo(holding.getId());
+  }
+
+  @Test
+  void createRejectsDividendCategoryWithoutInvestmentHoldingId() {
+    assertThatThrownBy(
+            () ->
+                service.create(
+                    LocalDate.now(),
+                    BigDecimal.TEN,
+                    dividendCategory.getId(),
+                    openAccount.getId(),
+                    paymentMethod.getId(),
+                    null,
+                    "KNRI11 dividend",
+                    null,
+                    null,
+                    null))
+        .isInstanceOf(InvestmentHoldingCategoryMismatchException.class);
+  }
+
+  @Test
+  void createRejectsNonDividendCategoryWithInvestmentHoldingId() {
+    assertThatThrownBy(
+            () ->
+                service.create(
+                    LocalDate.now(),
+                    BigDecimal.TEN,
+                    incomeCategory.getId(),
+                    openAccount.getId(),
+                    paymentMethod.getId(),
+                    null,
+                    "Salary",
+                    null,
+                    null,
+                    holding.getId()))
+        .isInstanceOf(InvestmentHoldingCategoryMismatchException.class);
+  }
+
+  @Test
+  void createRejectsAnUnknownInvestmentHoldingId() {
+    assertThatThrownBy(
+            () ->
+                service.create(
+                    LocalDate.now(),
+                    BigDecimal.TEN,
+                    dividendCategory.getId(),
+                    openAccount.getId(),
+                    paymentMethod.getId(),
+                    null,
+                    "KNRI11 dividend",
+                    null,
+                    null,
+                    UUID.randomUUID()))
+        .isInstanceOf(InvestmentHoldingNotFoundException.class);
+  }
+
+  @Test
+  void editWithDividendCategoryAndInvestmentHoldingIdSucceeds() {
+    Transaction created =
+        service.create(
+            LocalDate.now(),
+            BigDecimal.TEN,
+            incomeCategory.getId(),
+            openAccount.getId(),
+            paymentMethod.getId(),
+            "Salary",
+            null);
+
+    Transaction edited =
+        service.edit(
+            created.getId(),
+            LocalDate.now(),
+            BigDecimal.TEN,
+            dividendCategory.getId(),
+            openAccount.getId(),
+            paymentMethod.getId(),
+            "KNRI11 dividend",
+            null,
+            null,
+            holding.getId());
+
+    assertThat(edited.getInvestmentHoldingId()).isEqualTo(holding.getId());
+  }
+
+  @Test
+  void editRejectsMovingADividendTransactionsCategoryAwayWithoutClearingTheHoldingId() {
+    Transaction created =
+        service.create(
+            LocalDate.now(),
+            BigDecimal.TEN,
+            dividendCategory.getId(),
+            openAccount.getId(),
+            paymentMethod.getId(),
+            null,
+            "KNRI11 dividend",
+            null,
+            null,
+            holding.getId());
+
+    assertThatThrownBy(
+            () ->
+                service.edit(
+                    created.getId(),
+                    LocalDate.now(),
+                    BigDecimal.TEN,
+                    incomeCategory.getId(),
+                    openAccount.getId(),
+                    paymentMethod.getId(),
+                    "Salary",
+                    null,
+                    null,
+                    holding.getId()))
+        .isInstanceOf(InvestmentHoldingCategoryMismatchException.class);
+    // Rejected before any write: the transaction still has its original category and holding id.
+    Transaction reloaded = service.findById(created.getId());
+    assertThat(reloaded.getCategoryId()).isEqualTo(dividendCategory.getId());
+    assertThat(reloaded.getInvestmentHoldingId()).isEqualTo(holding.getId());
+  }
+
+  @Test
+  void editMovingADividendTransactionsCategoryAwayAfterClearingTheHoldingIdSucceeds() {
+    Transaction created =
+        service.create(
+            LocalDate.now(),
+            BigDecimal.TEN,
+            dividendCategory.getId(),
+            openAccount.getId(),
+            paymentMethod.getId(),
+            null,
+            "KNRI11 dividend",
+            null,
+            null,
+            holding.getId());
+
+    Transaction edited =
+        service.edit(
+            created.getId(),
+            LocalDate.now(),
+            BigDecimal.TEN,
+            incomeCategory.getId(),
+            openAccount.getId(),
+            paymentMethod.getId(),
+            "Salary",
+            null);
+
+    assertThat(edited.getCategoryId()).isEqualTo(incomeCategory.getId());
+    assertThat(edited.getInvestmentHoldingId()).isNull();
   }
 }

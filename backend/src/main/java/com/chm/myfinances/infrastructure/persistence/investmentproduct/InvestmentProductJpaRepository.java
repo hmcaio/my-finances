@@ -15,4 +15,6 @@ interface InvestmentProductJpaRepository extends JpaRepository<InvestmentProduct
   boolean existsByInvestmentCategoryId(UUID investmentCategoryId);
 
   boolean existsByInvestmentSubcategoryId(UUID investmentSubcategoryId);
+
+  boolean existsBySegmentId(UUID segmentId);
 }

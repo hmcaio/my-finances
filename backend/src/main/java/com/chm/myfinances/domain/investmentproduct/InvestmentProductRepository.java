@@ -37,4 +37,7 @@ public interface InvestmentProductRepository {
 
   /** Whether any product uses this sub-category - backs the sub-category delete guard. */
   boolean existsByInvestmentSubcategoryId(UUID investmentSubcategoryId);
+
+  /** Whether any product uses this segment (F026) - backs the segment delete guard. */
+  boolean existsBySegmentId(UUID segmentId);
 }

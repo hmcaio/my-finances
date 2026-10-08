@@ -16,6 +16,7 @@ import { useInvestmentHoldingsByAccount } from '../../api/investments/investment
 import type { InvestmentHolding } from '../../api/investments/investmentHoldings'
 import { useCreateInvestmentProduct } from '../../api/investments/investmentProductsQueries'
 import { useInvestmentProducts } from '../../api/investments/investmentProductsQueries'
+import { useInvestmentSegments } from '../../api/investments/investmentSegmentsQueries'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
@@ -54,6 +55,8 @@ export function InvestmentProductsSection({
   const categoriesQuery = useInvestmentCategories()
   const categories = categoriesQuery.data
   const categoriesState = useQueryState(categoriesQuery, setError)
+  const segmentsQuery = useInvestmentSegments()
+  const segments = segmentsQuery.data
   const createMutation = useCreateInvestmentProduct()
 
   const productName = useMemo(() => nameLookup(products ?? [], (p) => p.name), [products])
@@ -105,6 +108,8 @@ export function InvestmentProductsSection({
         investmentSubcategoryId: values.subcategoryId || undefined,
         name: values.name,
         additionalNotes: values.additionalNotes || undefined,
+        ticker: values.ticker || undefined,
+        segmentId: values.segmentId || undefined,
       })
       setAddDialogOpen(false)
     } catch (err) {
@@ -242,6 +247,7 @@ export function InvestmentProductsSection({
             dialog
             banner={<ErrorAlert message={error} onDismiss={() => setError(null)} />}
             categories={categories}
+            segments={segments ?? []}
             submitLabel="Add product"
             submitting={adding}
             onSubmit={(values) => void handleAdd(values)}

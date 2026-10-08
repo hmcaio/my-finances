@@ -73,6 +73,9 @@ public class CategoryService {
     if (category.isFuelCategory()) {
       throw new FuelCategoryException(id);
     }
+    if (category.isDividendCategory()) {
+      throw new DividendCategoryException(id);
+    }
     if (categoryRepository.existsByNameAndIdNot(newName, id)) {
       throw new CategoryNameAlreadyExistsException(newName);
     }
@@ -88,6 +91,9 @@ public class CategoryService {
     }
     if (category.isFuelCategory()) {
       throw new FuelCategoryException(id);
+    }
+    if (category.isDividendCategory()) {
+      throw new DividendCategoryException(id);
     }
     if (transactionRepository.existsByCategoryId(id)
         || budgetRepository.existsByCategoryId(id)

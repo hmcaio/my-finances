@@ -24,6 +24,7 @@ import { defaultErrorMessage } from '../../api/core/apiError'
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
+import { MonthPicker } from '../../components/inputs/MonthPicker'
 import { InlineEditActions } from '../../components/table/InlineEditActions'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
@@ -363,14 +364,7 @@ export function BudgetsPage() {
         Budget vs. actual
       </Typography>
       <Box sx={{ mb: 2 }}>
-        <TextField
-          label="Month"
-          type="month"
-          size="small"
-          value={reportMonth}
-          onChange={(e) => setReportMonth(e.target.value)}
-          slotProps={{ inputLabel: { shrink: true } }}
-        />
+        <MonthPicker label="Month" value={reportMonth} onChange={setReportMonth} />
       </Box>
 
       <BudgetVsActualReport month={reportMonth} />

@@ -13,7 +13,9 @@ export type FuelType = components['schemas']['CreateTransactionRequest']['fuelTy
  * <p>The fuel fields (F024, ADR 0021) are `null` for an ordinary transaction and present exactly
  * when the transaction's category is the dedicated fuel category; `kmPerLiter`/`amountPerKm`/
  * `litersPerKm` are computed on read (`FuelRatiosQuery`), `null` when `kmSinceLastFill` is absent
- * (a vehicle's first recorded fill).
+ * (a vehicle's first recorded fill). `investmentHoldingId` (F026, ADR 0023) is `null` for an
+ * ordinary transaction and present exactly when the transaction's category is the dedicated
+ * dividend category.
  */
 export interface Transaction {
   id: string
@@ -35,6 +37,7 @@ export interface Transaction {
   kmPerLiter: number | null
   amountPerKm: number | null
   litersPerKm: number | null
+  investmentHoldingId: string | null
 }
 
 export type CreateTransactionRequest = components['schemas']['CreateTransactionRequest']

@@ -33,6 +33,7 @@ function fuelTransaction(overrides: Partial<Transaction>): Transaction {
     kmPerLiter: null,
     amountPerKm: null,
     litersPerKm: null,
+    investmentHoldingId: null,
     ...overrides,
   }
 }

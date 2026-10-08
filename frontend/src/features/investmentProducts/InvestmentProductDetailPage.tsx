@@ -29,6 +29,7 @@ import LockIcon from '@mui/icons-material/Lock'
 import { useAccounts } from '../../api/accounts/accountsQueries'
 import { defaultErrorMessage } from '../../api/core/apiError'
 import { useInvestmentCategories } from '../../api/investments/investmentCategoriesQueries'
+import { useInvestmentSegments } from '../../api/investments/investmentSegmentsQueries'
 import type { InvestmentHolding } from '../../api/investments/investmentHoldings'
 import {
   useCloseInvestmentHolding,
@@ -100,6 +101,8 @@ export function InvestmentProductDetailPage() {
   )
   const categoriesQuery = useInvestmentCategories()
   const categories = categoriesQuery.data
+  const segmentsQuery = useInvestmentSegments()
+  const segments = segmentsQuery.data
   const accountsQuery = useAccounts(true)
   const accounts = accountsQuery.data
   const accountsState = useQueryState(accountsQuery, setError)
@@ -282,6 +285,8 @@ export function InvestmentProductDetailPage() {
         investmentSubcategoryId: values.subcategoryId || undefined,
         name: values.name,
         additionalNotes: values.additionalNotes || undefined,
+        ticker: values.ticker || undefined,
+        segmentId: values.segmentId || undefined,
       })
       setEditProductOpen(false)
     } catch (err) {
@@ -751,11 +756,14 @@ export function InvestmentProductDetailPage() {
             dialog
             banner={<ErrorAlert message={error} onDismiss={() => setError(null)} />}
             categories={categories}
+            segments={segments ?? []}
             initial={{
               name: product.name,
               categoryId: product.investmentCategoryId,
               subcategoryId: product.investmentSubcategoryId ?? '',
               additionalNotes: product.additionalNotes ?? '',
+              ticker: product.ticker ?? '',
+              segmentId: product.segmentId ?? '',
             }}
             submitLabel="Save"
             submitting={savingProduct}

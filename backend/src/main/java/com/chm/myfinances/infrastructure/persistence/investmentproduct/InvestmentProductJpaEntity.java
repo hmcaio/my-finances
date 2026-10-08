@@ -37,16 +37,27 @@ public class InvestmentProductJpaEntity extends AuditableEntity {
   @Column(name = "additional_notes", length = TextFieldConstraints.MAX_ADDITIONAL_NOTES_LENGTH)
   private String additionalNotes;
 
+  // F026 (ADR 0023): generalized ticker/segment, optional for any product.
+  @Column(length = TextFieldConstraints.MAX_NAME_LENGTH)
+  private String ticker;
+
+  @Column(name = "segment_id")
+  private UUID segmentId;
+
   public InvestmentProductJpaEntity(
       UUID id,
       UUID investmentCategoryId,
       UUID investmentSubcategoryId,
       String name,
-      String additionalNotes) {
+      String additionalNotes,
+      String ticker,
+      UUID segmentId) {
     this.id = id;
     this.investmentCategoryId = investmentCategoryId;
     this.investmentSubcategoryId = investmentSubcategoryId;
     this.name = name;
     this.additionalNotes = additionalNotes;
+    this.ticker = ticker;
+    this.segmentId = segmentId;
   }
 }

@@ -47,12 +47,16 @@ public class CategoryJpaEntity extends AuditableEntity {
   @Column(name = "fuel_category", nullable = false, updatable = false)
   private boolean fuelCategory;
 
-  /** For a brand-new row; never built-in, never the fuel category. */
+  @Column(name = "dividend_category", nullable = false, updatable = false)
+  private boolean dividendCategory;
+
+  /** For a brand-new row; never built-in, never the fuel or dividend category. */
   public CategoryJpaEntity(UUID id, String name, CategoryType type) {
     this.id = id;
     this.name = name;
     this.type = type;
     this.builtIn = false;
     this.fuelCategory = false;
+    this.dividendCategory = false;
   }
 }

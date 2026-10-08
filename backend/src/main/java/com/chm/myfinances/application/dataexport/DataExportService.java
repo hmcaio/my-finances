@@ -2,6 +2,11 @@ package com.chm.myfinances.application.dataexport;
 
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
+import com.chm.myfinances.domain.allocationplan.AllocationPlan;
+import com.chm.myfinances.domain.allocationplan.AllocationPlanEntry;
+import com.chm.myfinances.domain.allocationplan.AllocationPlanRepository;
+import com.chm.myfinances.domain.allocationplan.AllocationPlanVersion;
+import com.chm.myfinances.domain.allocationplan.AllocationPlanVersionRepository;
 import com.chm.myfinances.domain.budget.Budget;
 import com.chm.myfinances.domain.budget.BudgetRepository;
 import com.chm.myfinances.domain.budget.BudgetVersion;
@@ -16,6 +21,8 @@ import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
+import com.chm.myfinances.domain.investmentsegment.InvestmentSegment;
+import com.chm.myfinances.domain.investmentsegment.InvestmentSegmentRepository;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshotRepository;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
@@ -43,6 +50,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.zip.ZipEntry;
@@ -91,6 +99,9 @@ public class DataExportService {
   private final InvestmentHoldingRepository investmentHoldings;
   private final InvestmentSnapshotRepository investmentSnapshots;
   private final VehicleRepository vehicles;
+  private final InvestmentSegmentRepository investmentSegments;
+  private final AllocationPlanRepository allocationPlans;
+  private final AllocationPlanVersionRepository allocationPlanVersions;
 
   public DataExportService(
       CategoryRepository categories,
@@ -108,7 +119,10 @@ public class DataExportService {
       InvestmentProductRepository investmentProducts,
       InvestmentHoldingRepository investmentHoldings,
       InvestmentSnapshotRepository investmentSnapshots,
-      VehicleRepository vehicles) {
+      VehicleRepository vehicles,
+      InvestmentSegmentRepository investmentSegments,
+      AllocationPlanRepository allocationPlans,
+      AllocationPlanVersionRepository allocationPlanVersions) {
     this.categories = categories;
     this.paymentMethods = paymentMethods;
     this.institutions = institutions;
@@ -125,9 +139,15 @@ public class DataExportService {
     this.investmentHoldings = investmentHoldings;
     this.investmentSnapshots = investmentSnapshots;
     this.vehicles = vehicles;
+    this.investmentSegments = investmentSegments;
+    this.allocationPlans = allocationPlans;
+    this.allocationPlanVersions = allocationPlanVersions;
   }
 
-  /** Writes the thirteen CSVs, zipped, to {@code out} (which is left open for the caller). */
+  /**
+   * Writes the CSVs (F026 adds two more), zipped, to {@code out} (which is left open for the
+   * caller).
+   */
   @Transactional(readOnly = true)
   public void export(ExportFilter filter, OutputStream out) throws IOException {
     if (filter.dateFrom() != null
@@ -145,7 +165,9 @@ public class DataExportService {
     writeTransfers(zip, filter, names);
     writeBudgets(zip, filter, names);
     writeRecurringTemplates(zip, filter, names);
+    writeAllocationPlanEntries(zip, filter, names);
     writeInvestmentCategories(zip);
+    writeInvestmentSegments(zip);
     writeInvestmentSubcategories(zip, names);
     writeInvestmentProducts(zip, names);
     writeInvestmentHoldings(zip, names);
@@ -179,6 +201,8 @@ public class DataExportService {
         names(investmentProducts.findAll(), InvestmentProduct::getId, InvestmentProduct::getName);
     final Map<UUID, InvestmentHolding> investmentHoldingById = byId(investmentHoldings.findAll());
     final Map<UUID, String> vehicle = names(vehicles.findAll(), Vehicle::getId, Vehicle::getName);
+    final Map<UUID, String> investmentSegment =
+        names(investmentSegments.findAll(), InvestmentSegment::getId, InvestmentSegment::getName);
   }
 
   private static Map<UUID, InvestmentHolding> byId(List<InvestmentHolding> holdings) {
@@ -290,7 +314,8 @@ public class DataExportService {
             "liters",
             "price_per_liter",
             "km_since_last_fill",
-            "odometer");
+            "odometer",
+            "investment_holding_id");
     TransactionFilter filter =
         new TransactionFilter(f.dateFrom(), f.dateTo(), f.categoryId(), f.accountId(), null);
     List<Transaction> rows =
@@ -321,7 +346,9 @@ public class DataExportService {
           fuel == null ? null : fuel.liters(),
           fuel == null ? null : fuel.pricePerLiter(),
           fuel == null ? null : fuel.kmSinceLastFill(),
-          fuel == null ? null : fuel.odometer());
+          fuel == null ? null : fuel.odometer(),
+          // F026 (ADR 0023): empty for any non-dividend row (investmentHoldingId null).
+          t.getInvestmentHoldingId());
     }
     end(zip, csv);
   }
@@ -460,6 +487,50 @@ public class DataExportService {
     end(zip, csv);
   }
 
+  /**
+   * One row per entry of an {@code AllocationPlanVersion} whose {@code effectiveFrom} falls in
+   * range (F026 spec: date-range filtered "like {@code budgets.csv}"). Empty when no allocation has
+   * ever been set - there is no plan row to iterate.
+   */
+  private void writeAllocationPlanEntries(ZipOutputStream zip, ExportFilter f, Lookups n)
+      throws IOException {
+    CsvWriter csv =
+        begin(
+            zip,
+            "allocation_plan_entries.csv",
+            "plan_id",
+            "version_id",
+            "investment_product_id",
+            "investment_product_name",
+            "target_percentage",
+            "effective_from");
+    Optional<AllocationPlan> plan = allocationPlans.findFirst();
+    if (plan.isPresent()) {
+      for (AllocationPlanVersion v :
+          sorted(
+              allocationPlanVersions.findByPlanId(plan.get().getId()),
+              AllocationPlanVersion::getEffectiveFrom,
+              AllocationPlanVersion::getId)) {
+        if (!inMonthRange(v.getEffectiveFrom(), f)) {
+          continue;
+        }
+        for (AllocationPlanEntry entry :
+            v.getEntries().stream()
+                .sorted(Comparator.comparing(AllocationPlanEntry::investmentProductId))
+                .toList()) {
+          csv.row(
+              plan.get().getId(),
+              v.getId(),
+              entry.investmentProductId(),
+              nameOf(n.investmentProduct, entry.investmentProductId()),
+              entry.targetPercentage(),
+              v.getEffectiveFrom());
+        }
+      }
+    }
+    end(zip, csv);
+  }
+
   private void writeInvestmentCategories(ZipOutputStream zip) throws IOException {
     CsvWriter csv = begin(zip, "investment_categories.csv", "id", "name");
     for (InvestmentCategory c :
@@ -468,6 +539,17 @@ public class DataExportService {
             InvestmentCategory::getName,
             InvestmentCategory::getId)) {
       csv.row(c.getId(), c.getName());
+    }
+    end(zip, csv);
+  }
+
+  /** New flat taxonomy (F026 spec, ADR 0023): segments an FII product can be classified under. */
+  private void writeInvestmentSegments(ZipOutputStream zip) throws IOException {
+    CsvWriter csv = begin(zip, "investment_segments.csv", "id", "name");
+    for (InvestmentSegment s :
+        sorted(
+            investmentSegments.findAll(), InvestmentSegment::getName, InvestmentSegment::getId)) {
+      csv.row(s.getId(), s.getName());
     }
     end(zip, csv);
   }
@@ -506,7 +588,10 @@ public class DataExportService {
             "investment_subcategory_id",
             "investment_subcategory_name",
             "name",
-            "additional_notes");
+            "additional_notes",
+            "ticker",
+            "segment_id",
+            "segment_name");
     for (InvestmentProduct p :
         sorted(
             investmentProducts.findAll(), InvestmentProduct::getName, InvestmentProduct::getId)) {
@@ -517,7 +602,11 @@ public class DataExportService {
           p.getInvestmentSubcategoryId(),
           nameOf(n.investmentSubcategory, p.getInvestmentSubcategoryId()),
           p.getName(),
-          p.getAdditionalNotes());
+          p.getAdditionalNotes(),
+          // F026 (ADR 0023): empty for a product with no ticker/segment.
+          p.getTicker(),
+          p.getSegmentId(),
+          p.getSegmentId() == null ? "" : nameOf(n.investmentSegment, p.getSegmentId()));
     }
     end(zip, csv);
   }

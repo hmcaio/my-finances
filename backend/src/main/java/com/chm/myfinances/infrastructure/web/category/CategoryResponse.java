@@ -6,7 +6,12 @@ import java.util.UUID;
 
 /** API representation of a {@link Category}. */
 public record CategoryResponse(
-    UUID id, String name, CategoryType type, boolean builtIn, boolean fuelCategory) {
+    UUID id,
+    String name,
+    CategoryType type,
+    boolean builtIn,
+    boolean fuelCategory,
+    boolean dividendCategory) {
 
   public static CategoryResponse from(Category category) {
     return new CategoryResponse(
@@ -14,6 +19,7 @@ public record CategoryResponse(
         category.getName(),
         category.getType(),
         category.isBuiltIn(),
-        category.isFuelCategory());
+        category.isFuelCategory(),
+        category.isDividendCategory());
   }
 }

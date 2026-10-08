@@ -15,6 +15,13 @@ import java.util.UUID;
  * <p>References are held by id only - this class doesn't import the taxonomy package. That the
  * category exists and the sub-category belongs to it are checked in {@code
  * InvestmentProductService}.
+ *
+ * <p>F026 (ADR 0023) adds optional {@code ticker} and {@code segmentId}, generalized rather than
+ * FII-scoped: any product may carry them, usable later by a stock/ETF feature without a migration,
+ * even though the FII page is the only UI that manages them for v1. No invariant here links them to
+ * the category/sub-category - that the allocation plan only accepts FII-subcategory products is an
+ * {@code AllocationPlanService} concern. {@code segmentId} is held by id only - this class doesn't
+ * import {@code domain.investmentsegment}.
  */
 public final class InvestmentProduct {
 
@@ -23,60 +30,133 @@ public final class InvestmentProduct {
   private UUID investmentSubcategoryId;
   private String name;
   private String additionalNotes;
+  private String ticker;
+  private UUID segmentId;
 
   private InvestmentProduct(
       UUID id,
       UUID investmentCategoryId,
       UUID investmentSubcategoryId,
       String name,
-      String additionalNotes) {
+      String additionalNotes,
+      String ticker,
+      UUID segmentId) {
     this.id = Objects.requireNonNull(id, "id must not be null");
     this.investmentCategoryId =
         Objects.requireNonNull(investmentCategoryId, "investmentCategoryId must not be null");
     this.investmentSubcategoryId = investmentSubcategoryId;
     this.name = requireValidName(name);
     this.additionalNotes = requireValidNotes(additionalNotes);
+    this.ticker = requireValidTicker(ticker);
+    this.segmentId = segmentId;
   }
 
-  /** Creates a brand-new product. {@code id} must come from the {@code IdGenerator} port. */
+  /**
+   * Creates a brand-new product with no ticker/segment. {@code id} comes from {@code IdGenerator}.
+   */
   public static InvestmentProduct create(
       UUID id,
       UUID investmentCategoryId,
       UUID investmentSubcategoryId,
       String name,
       String additionalNotes) {
-    return new InvestmentProduct(
-        id, investmentCategoryId, investmentSubcategoryId, name, additionalNotes);
+    return create(
+        id, investmentCategoryId, investmentSubcategoryId, name, additionalNotes, null, null);
   }
 
-  /** Rebuilds a product from already-validated persisted state. */
+  /**
+   * Creates a brand-new product, optionally carrying a {@code ticker}/{@code segmentId} (F026).
+   * {@code id} must come from the {@code IdGenerator} port.
+   */
+  public static InvestmentProduct create(
+      UUID id,
+      UUID investmentCategoryId,
+      UUID investmentSubcategoryId,
+      String name,
+      String additionalNotes,
+      String ticker,
+      UUID segmentId) {
+    return new InvestmentProduct(
+        id,
+        investmentCategoryId,
+        investmentSubcategoryId,
+        name,
+        additionalNotes,
+        ticker,
+        segmentId);
+  }
+
+  /** Rebuilds a product (with no ticker/segment) from already-validated persisted state. */
   public static InvestmentProduct reconstitute(
       UUID id,
       UUID investmentCategoryId,
       UUID investmentSubcategoryId,
       String name,
       String additionalNotes) {
+    return reconstitute(
+        id, investmentCategoryId, investmentSubcategoryId, name, additionalNotes, null, null);
+  }
+
+  /** Rebuilds a product, including its ticker/segment (F026), from already-validated state. */
+  public static InvestmentProduct reconstitute(
+      UUID id,
+      UUID investmentCategoryId,
+      UUID investmentSubcategoryId,
+      String name,
+      String additionalNotes,
+      String ticker,
+      UUID segmentId) {
     return new InvestmentProduct(
-        id, investmentCategoryId, investmentSubcategoryId, name, additionalNotes);
+        id,
+        investmentCategoryId,
+        investmentSubcategoryId,
+        name,
+        additionalNotes,
+        ticker,
+        segmentId);
   }
 
   /**
-   * Full-replace edit (PATCH): every editable field at once. All values are validated before any is
-   * assigned, so a rejected edit leaves the product untouched.
+   * Full-replace edit (PATCH): every editable field at once, clearing any ticker/segment. All
+   * values are validated before any is assigned, so a rejected edit leaves the product untouched.
    */
   public void edit(
       UUID newInvestmentCategoryId,
       UUID newInvestmentSubcategoryId,
       String newName,
       String newAdditionalNotes) {
+    edit(
+        newInvestmentCategoryId,
+        newInvestmentSubcategoryId,
+        newName,
+        newAdditionalNotes,
+        null,
+        null);
+  }
+
+  /**
+   * Full-replace edit including {@code ticker}/{@code segmentId} (F026) - the overload the
+   * controller calls. All values are validated before any is assigned, so a rejected edit leaves
+   * the product untouched.
+   */
+  public void edit(
+      UUID newInvestmentCategoryId,
+      UUID newInvestmentSubcategoryId,
+      String newName,
+      String newAdditionalNotes,
+      String newTicker,
+      UUID newSegmentId) {
     UUID validCategoryId =
         Objects.requireNonNull(newInvestmentCategoryId, "investmentCategoryId must not be null");
     String validName = requireValidName(newName);
     String validNotes = requireValidNotes(newAdditionalNotes);
+    String validTicker = requireValidTicker(newTicker);
     this.investmentCategoryId = validCategoryId;
     this.investmentSubcategoryId = newInvestmentSubcategoryId;
     this.name = validName;
     this.additionalNotes = validNotes;
+    this.ticker = validTicker;
+    this.segmentId = newSegmentId;
   }
 
   private static String requireValidName(String value) {
@@ -96,6 +176,14 @@ public final class InvestmentProduct {
           "additionalNotes must not exceed "
               + TextFieldConstraints.MAX_ADDITIONAL_NOTES_LENGTH
               + " characters");
+    }
+    return value;
+  }
+
+  private static String requireValidTicker(String value) {
+    if (value != null && value.length() > TextFieldConstraints.MAX_NAME_LENGTH) {
+      throw new IllegalArgumentException(
+          "ticker must not exceed " + TextFieldConstraints.MAX_NAME_LENGTH + " characters");
     }
     return value;
   }
@@ -120,5 +208,15 @@ public final class InvestmentProduct {
   /** {@code null} when the product carries no remark. */
   public String getAdditionalNotes() {
     return additionalNotes;
+  }
+
+  /** {@code null} when the product carries no ticker (F026). */
+  public String getTicker() {
+    return ticker;
+  }
+
+  /** {@code null} when the product carries no segment (F026). */
+  public UUID getSegmentId() {
+    return segmentId;
   }
 }

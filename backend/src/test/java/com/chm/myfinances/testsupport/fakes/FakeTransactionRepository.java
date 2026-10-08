@@ -97,6 +97,22 @@ public final class FakeTransactionRepository extends InMemoryRepository<Transact
   }
 
   @Override
+  public boolean existsByInvestmentHoldingId(UUID holdingId) {
+    return values().stream().anyMatch(t -> holdingId.equals(t.getInvestmentHoldingId()));
+  }
+
+  @Override
+  public List<Transaction> findByCategoryIdAndDateRange(
+      UUID categoryId, LocalDate from, LocalDate to) {
+    return values().stream()
+        .filter(t -> t.getCategoryId().equals(categoryId))
+        .filter(t -> from == null || !t.getDate().isBefore(from))
+        .filter(t -> to == null || !t.getDate().isAfter(to))
+        .sorted(Comparator.comparing(Transaction::getDate))
+        .toList();
+  }
+
+  @Override
   public List<Transaction> findByVehicleId(UUID vehicleId, LocalDate from, LocalDate to) {
     return values().stream()
         .filter(t -> t.getFuelDetails() != null && t.getFuelDetails().vehicleId().equals(vehicleId))

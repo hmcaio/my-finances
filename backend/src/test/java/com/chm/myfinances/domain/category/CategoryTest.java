@@ -153,4 +153,47 @@ class CategoryTest {
     assertThat(category.isBuiltIn()).isTrue();
     assertThat(category.isFuelCategory()).isTrue();
   }
+
+  // F026 (ADR 0023): a third, independent flag - at most one row, immutable after creation like
+  // builtIn/fuelCategory. Whether rename/delete are blocked while it's set is a CategoryService
+  // concern; this class only carries the flag.
+
+  @Test
+  void createAlwaysYieldsANonDividendCategory() {
+    Category category = Category.create(UUID.randomUUID(), "Groceries", CategoryType.EXPENSE);
+
+    assertThat(category.isDividendCategory()).isFalse();
+  }
+
+  @Test
+  void theShortReconstituteOverloadYieldsANonDividendCategory() {
+    Category category =
+        Category.reconstitute(UUID.randomUUID(), "Groceries", CategoryType.EXPENSE, false, false);
+
+    assertThat(category.isDividendCategory()).isFalse();
+  }
+
+  @Test
+  void reconstitutePreservesTheDividendCategoryFlag() {
+    UUID id = UUID.randomUUID();
+
+    Category dividends =
+        Category.reconstitute(id, "Dividends", CategoryType.INCOME, false, false, true);
+    Category ordinary =
+        Category.reconstitute(id, "Salary", CategoryType.INCOME, false, false, false);
+
+    assertThat(dividends.isDividendCategory()).isTrue();
+    assertThat(ordinary.isDividendCategory()).isFalse();
+  }
+
+  @Test
+  void allThreeFlagsAreIndependent() {
+    Category category =
+        Category.reconstitute(
+            UUID.randomUUID(), "Dividends", CategoryType.INCOME, true, true, true);
+
+    assertThat(category.isBuiltIn()).isTrue();
+    assertThat(category.isFuelCategory()).isTrue();
+    assertThat(category.isDividendCategory()).isTrue();
+  }
 }

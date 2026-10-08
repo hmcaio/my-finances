@@ -34,7 +34,8 @@ public record TransactionResponse(
     BigDecimal odometer,
     BigDecimal kmPerLiter,
     BigDecimal amountPerKm,
-    BigDecimal litersPerKm) {
+    BigDecimal litersPerKm,
+    UUID investmentHoldingId) {
 
   public static TransactionResponse from(Transaction transaction) {
     FuelDetails fuel = transaction.getFuelDetails();
@@ -58,6 +59,7 @@ public record TransactionResponse(
         fuel == null ? null : fuel.odometer(),
         ratios.kmPerLiter(),
         ratios.amountPerKm(),
-        ratios.litersPerKm());
+        ratios.litersPerKm(),
+        transaction.getInvestmentHoldingId());
   }
 }

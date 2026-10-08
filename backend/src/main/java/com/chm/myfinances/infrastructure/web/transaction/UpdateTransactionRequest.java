@@ -40,7 +40,8 @@ public record UpdateTransactionRequest(
     @Positive @Digits(integer = 16, fraction = 3) BigDecimal liters,
     @Positive @Digits(integer = 16, fraction = 3) BigDecimal pricePerLiter,
     @Positive @Digits(integer = 18, fraction = 1) BigDecimal kmSinceLastFill,
-    @Positive @Digits(integer = 18, fraction = 1) BigDecimal odometer) {
+    @Positive @Digits(integer = 18, fraction = 1) BigDecimal odometer,
+    UUID investmentHoldingId) {
 
   @JsonIgnore
   @AssertTrue(message = "vehicleId, fuelType, liters and pricePerLiter must be given together")
