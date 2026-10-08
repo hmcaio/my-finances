@@ -3,7 +3,9 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
+import { seedAccounts, seedInvestmentAccount } from '../../mocks/handlers/accounts'
 import { seedInvestmentCategories } from '../../mocks/handlers/investmentCategories'
+import { investmentHoldingsStore } from '../../mocks/handlers/investmentHoldings'
 import { investmentProductsStore } from '../../mocks/handlers/investmentProducts'
 import { seedFiiPortfolio } from '../../mocks/handlers/fiiPortfolio'
 import { seedDividends } from '../../mocks/handlers/fiiDividends'
@@ -57,6 +59,17 @@ function withFiiTaxonomy() {
     closed: false,
     ticker: 'HGLG11',
     segmentId: 'iseg-logistica',
+  })
+  investmentHoldingsStore.add({
+    id: 'iholding-knri11',
+    productId: 'iprod-knri11',
+    accountId: seedInvestmentAccount.id,
+    closedDate: null,
+    closed: false,
+    additionalNotes: null,
+    hasHistory: false,
+    needsSnapshot: false,
+    latestSnapshot: null,
   })
 }
 
@@ -161,6 +174,29 @@ describe('FiiPage', () => {
     expect(await screen.findByRole('option', { name: 'KNRI11' })).toBeInTheDocument()
     expect(screen.getByRole('option', { name: 'HGLG11' })).toBeInTheDocument()
     expect(screen.queryByRole('option', { name: 'Bitcoin' })).not.toBeInTheDocument()
+  })
+
+  it('shows the account name, not the raw holding id, in the Holding picker', async () => {
+    // The default accounts handler excludes the investment account from the list (every other
+    // page only ever needs it absent, e.g. the generic transaction form's account picker) - this
+    // is the one place that needs it present, to resolve a holding's accountId to a name.
+    server.use(
+      http.get('/api/accounts', () => HttpResponse.json([...seedAccounts, seedInvestmentAccount])),
+    )
+    const user = userEvent.setup({ delay: null })
+    renderWithQueryClient(<FiiPage />)
+    await portfolioTable().findByText('KNRI11')
+
+    await user.click(screen.getByRole('button', { name: 'Register dividend' }))
+    const dialog = within(await screen.findByRole('dialog'))
+    await selectOption(user, 'Ticker', 'KNRI11', dialog)
+    await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument())
+    await user.click(dialog.getByRole('combobox', { name: 'Holding' }))
+
+    expect(
+      await screen.findByRole('option', { name: seedInvestmentAccount.name }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: 'iholding-knri11' })).not.toBeInTheDocument()
   })
 
   it('filters the status select to OPEN by default', async () => {

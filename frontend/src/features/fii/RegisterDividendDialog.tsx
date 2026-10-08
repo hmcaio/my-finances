@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Button,
   DialogActions,
@@ -18,6 +18,7 @@ import { usePaymentMethods } from '../../api/paymentMethods/paymentMethodsQuerie
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
 import { today } from '../../utils/localDate'
+import { nameLookup } from '../../utils/nameLookup'
 
 interface RegisterDividendDialogProps {
   open: boolean
@@ -48,6 +49,11 @@ export function RegisterDividendDialog({
   const dividendCategory = categoriesQuery.data?.find((c) => c.dividendCategory)
   const accountsQuery = useAccounts()
   const accounts = (accountsQuery.data ?? []).filter((a) => a.type !== 'INVESTMENT')
+  // Unfiltered - a holding's accountId always points at an INVESTMENT account, excluded above.
+  const holdingAccountName = useMemo(
+    () => nameLookup(accountsQuery.data ?? [], (a) => a.name),
+    [accountsQuery.data],
+  )
   const paymentMethodsQuery = usePaymentMethods()
   const paymentMethods = paymentMethodsQuery.data ?? []
   const registerDividend = useRegisterDividend()
@@ -149,7 +155,7 @@ export function RegisterDividendDialog({
             </MenuItem>
             {holdings.map((holding) => (
               <MenuItem key={holding.id} value={holding.id}>
-                {holding.id}
+                {holdingAccountName(holding.accountId)}
               </MenuItem>
             ))}
           </Select>
