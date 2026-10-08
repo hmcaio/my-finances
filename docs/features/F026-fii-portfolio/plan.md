@@ -29,16 +29,16 @@
 - [x] Nav entry for the FII page.
 
 ## Verification
-- [ ] Add a ticker/segment to an existing FII product: portfolio list shows it, product form round-trips both fields.
-- [ ] Record buy/sell trades for a product across two accounts: portfolio list's cotas held and amount contributed match the hand-computed net; selling the entire position drops cotas held to zero without affecting other products.
-- [ ] Set an allocation plan summing to 100%: accepted. Attempt a plan summing to 99% or including a non-FII product: rejected.
-- [ ] Edit the plan for the current month twice: second edit replaces the same version (one row in plan history), not two.
-- [ ] Edit the plan for a future month: a new version; the current month's percentages are unaffected until that month arrives.
-- [ ] All four pie charts render and sum to 100% (or to the FII-only total for the actual charts); an unsegmented product's value appears under "No segment" in both segment charts.
-- [ ] Register a dividend via the dedicated form: creates a transaction with the dividend category and the holding reference; appears in dividend history grouped by ticker and month.
-- [ ] Attempt to save a dividend-category transaction with no holding reference, or a non-dividend transaction with one: both rejected.
-- [ ] Attempt to delete or rename the dividend category, and to delete a segment referenced by a product: all rejected (409).
-- [ ] Export a ZIP: `investment_segments.csv`, `allocation_plan_entries.csv` present; `investment_products.csv` carries ticker/segment; `transactions.csv` carries `investment_holding_id` for dividend rows, empty for others.
+- [x] Add a ticker/segment to an existing FII product: portfolio list shows it, product form round-trips both fields.
+- [x] Record buy/sell trades for a product across two accounts: portfolio list's cotas held and amount contributed match the hand-computed net; selling the entire position drops cotas held to zero without affecting other products.
+- [x] Set an allocation plan summing to 100%: accepted. Attempt a plan summing to 99% or including a non-FII product: rejected.
+- [x] Edit the plan for the current month twice: second edit replaces the same version (one row in plan history), not two.
+- [x] Edit the plan for a future month: a new version; the current month's percentages are unaffected until that month arrives.
+- [x] All four pie charts render and sum to 100% (or to the FII-only total for the actual charts); an unsegmented product's value appears under "No segment" in both segment charts.
+- [x] Register a dividend via the dedicated form: creates a transaction with the dividend category and the holding reference; appears in dividend history grouped by ticker and month.
+- [x] Attempt to save a dividend-category transaction with no holding reference, or a non-dividend transaction with one: both rejected.
+- [x] Attempt to delete or rename the dividend category, and to delete a segment referenced by a product: all rejected (409).
+- [x] Export a ZIP: `investment_segments.csv`, `allocation_plan_entries.csv` present; `investment_products.csv` carries ticker/segment; `transactions.csv` carries `investment_holding_id` for dividend rows, empty for others.
 
 ## Addendum — Month Selector
 
