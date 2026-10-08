@@ -144,6 +144,29 @@ describe('InvestmentProductsSection', () => {
     )
   })
 
+  it('adds a product with a ticker and a segment (F026)', async () => {
+    const user = userEvent.setup({ delay: null })
+    const sent = captureBody('post', '/api/investment-products')
+    renderSection()
+    await screen.findByText('Bitcoin')
+    const dialog = within(await openAddDialog(user))
+
+    await user.type(dialog.getByRole('textbox', { name: 'Product name' }), 'KNRI11 Test')
+    await selectOption(user, 'Category', 'Variable Income', dialog)
+    await user.type(dialog.getByRole('textbox', { name: 'Ticker' }), 'KNRI11')
+    await selectOption(user, 'Segment', 'Shoppings', dialog)
+    await user.click(dialog.getByRole('button', { name: 'Add product' }))
+
+    await waitFor(() =>
+      expect(sent.body).toMatchObject({
+        name: 'KNRI11 Test',
+        ticker: 'KNRI11',
+        segmentId: 'iseg-shoppings',
+      }),
+    )
+    expect(await screen.findByText('KNRI11 Test')).toBeInTheDocument()
+  })
+
   it('saves a category-only product (Crypto) without a sub-category', async () => {
     const user = userEvent.setup({ delay: null })
     const sent = captureBody('post', '/api/investment-products')
