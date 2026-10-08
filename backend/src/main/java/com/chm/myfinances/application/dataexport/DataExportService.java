@@ -37,7 +37,7 @@ import com.chm.myfinances.domain.transaction.FuelDetails;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionFilter;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
-import com.chm.myfinances.domain.transfer.InvestmentTradeDetails;
+import com.chm.myfinances.domain.transfer.TradeConfirmationLine;
 import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.domain.transfer.TransferFilter;
 import com.chm.myfinances.domain.transfer.TransferRepository;
@@ -163,6 +163,7 @@ public class DataExportService {
     writeAccounts(zip, names);
     writeTransactions(zip, filter, names);
     writeTransfers(zip, filter, names);
+    writeTransferTradeLines(zip, filter, names);
     writeBudgets(zip, filter, names);
     writeRecurringTemplates(zip, filter, names);
     writeAllocationPlanEntries(zip, filter, names);
@@ -353,6 +354,10 @@ public class DataExportService {
     end(zip, csv);
   }
 
+  /**
+   * F027 (ADR 0024): drops the four flat trade columns (now per-line, {@link
+   * #writeTransferTradeLines}) - {@code taxes} stays, the confirmation's one aggregate figure.
+   */
   private void writeTransfers(ZipOutputStream zip, ExportFilter f, Lookups n) throws IOException {
     CsvWriter csv =
         begin(
@@ -367,20 +372,8 @@ public class DataExportService {
             "amount",
             "description",
             "additional_notes",
-            "investment_product_id",
-            "investment_product_name",
-            "quantity",
-            "unit_price",
             "taxes");
-    TransferFilter filter = new TransferFilter(f.dateFrom(), f.dateTo(), f.accountId(), null);
-    List<Transfer> rows =
-        sorted(
-            transfers.findAll(filter, Pageable.unpaged()).getContent(),
-            Transfer::getDate,
-            Transfer::getId);
-    for (Transfer t : rows) {
-      InvestmentTradeDetails trade = t.getTradeDetails();
-      boolean hasTrade = trade != null;
+    for (Transfer t : exportedTransfers(f)) {
       csv.row(
           t.getId(),
           t.getDate(),
@@ -391,13 +384,51 @@ public class DataExportService {
           t.getAmount(),
           t.getDescription(),
           t.getAdditionalNotes(),
-          t.getInvestmentProductId(),
-          nameOf(n.investmentProduct, t.getInvestmentProductId()),
-          hasTrade ? trade.quantity() : null,
-          hasTrade ? trade.unitPrice() : null,
-          hasTrade ? trade.taxes() : null);
+          t.getTaxes());
     }
     end(zip, csv);
+  }
+
+  /**
+   * One row per {@link TradeConfirmationLine} of every transfer {@link #exportedTransfers} returns
+   * (F027 spec): per-line detail that used to be flat columns on {@code transfers.csv}. Empty for a
+   * transfer with no confirmation - there's no line to iterate.
+   */
+  private void writeTransferTradeLines(ZipOutputStream zip, ExportFilter f, Lookups n)
+      throws IOException {
+    CsvWriter csv =
+        begin(
+            zip,
+            "transfer_trade_lines.csv",
+            "transfer_id",
+            "product_id",
+            "product_name",
+            "side",
+            "quantity",
+            "unit_price",
+            "resulting_balance");
+    for (Transfer t : exportedTransfers(f)) {
+      for (TradeConfirmationLine line :
+          t.getTradeConfirmation().map(c -> c.getLines()).orElse(List.of())) {
+        csv.row(
+            t.getId(),
+            line.productId(),
+            nameOf(n.investmentProduct, line.productId()),
+            line.side(),
+            line.quantity(),
+            line.unitPrice(),
+            line.resultingBalance());
+      }
+    }
+    end(zip, csv);
+  }
+
+  private List<Transfer> exportedTransfers(ExportFilter f) {
+    TransferFilter filter = new TransferFilter(f.dateFrom(), f.dateTo(), f.accountId(), null);
+    return sorted(
+        transfers.findAll(filter, Pageable.unpaged()).getContent(),
+        Transfer::getDate,
+        Transfer::getId);
   }
 
   private void writeBudgets(ZipOutputStream zip, ExportFilter f, Lookups n) throws IOException {

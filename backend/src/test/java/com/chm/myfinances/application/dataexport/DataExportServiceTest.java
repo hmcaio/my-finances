@@ -21,7 +21,8 @@ import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
 import com.chm.myfinances.domain.transaction.FuelDetails;
 import com.chm.myfinances.domain.transaction.FuelType;
-import com.chm.myfinances.domain.transfer.InvestmentTradeDetails;
+import com.chm.myfinances.domain.transfer.TradeConfirmationLine;
+import com.chm.myfinances.domain.transfer.TradeSide;
 import com.chm.myfinances.domain.vehicle.Vehicle;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
 import com.chm.myfinances.testsupport.fakes.FakeAllocationPlanRepository;
@@ -80,6 +81,7 @@ class DataExportServiceTest {
           "accounts.csv",
           "transactions.csv",
           "transfers.csv",
+          "transfer_trade_lines.csv",
           "budgets.csv",
           "recurring_templates.csv",
           "allocation_plan_entries.csv",
@@ -183,18 +185,25 @@ class DataExportServiceTest {
 
     transfer("tr1", checking, savings, "2026-01-15");
     transfer("tr2", savings, checking, "2026-02-15");
-    transfers.save(
-        TransferMother.transfer()
-            .withDescription("tr3")
-            .withFromAccountId(checking)
-            .withToAccountId(broker)
-            .withDate(LocalDate.parse("2026-03-01"))
-            .withAmount(new BigDecimal("1000.00"))
-            .withInvestmentProductId(fund)
-            .withTradeDetails(
-                new InvestmentTradeDetails(
-                    new BigDecimal("10.5"), new BigDecimal("95.00"), new BigDecimal("2.50")))
-            .build());
+    tr3Id =
+        transfers
+            .save(
+                TransferMother.transfer()
+                    .withDescription("tr3")
+                    .withDate(LocalDate.parse("2026-03-01"))
+                    .withTradeConfirmation(
+                        checking,
+                        broker,
+                        new BigDecimal("2.50"),
+                        new TradeConfirmationLine(
+                            fund,
+                            TradeSide.BUY,
+                            new BigDecimal("10.5"),
+                            new BigDecimal("95.00"),
+                            null,
+                            false))
+                    .build())
+            .getId();
 
     Budget foodBudget = budgets.save(Budget.create(UUID.randomUUID(), food));
     Budget rentBudget = budgets.save(Budget.create(UUID.randomUUID(), rent));
@@ -263,6 +272,7 @@ class DataExportServiceTest {
 
   private UUID fundHolding;
   private UUID bondHolding;
+  private UUID tr3Id;
 
   private void transaction(String description, UUID category, UUID account, String date) {
     transactions.save(
@@ -428,8 +438,7 @@ class DataExportServiceTest {
   }
 
   @Test
-  void investmentAccountHasEmptyOpeningFieldsAndPlainTransfersEmptyTradeColumns()
-      throws IOException {
+  void investmentAccountHasEmptyOpeningFieldsAndTransfersCsvHasNoTradeColumns() throws IOException {
     var files = export(ExportFilter.none());
 
     var brokerRow =
@@ -440,15 +449,17 @@ class DataExportServiceTest {
     assertThat(brokerRow.get("opening_balance")).isEmpty();
     assertThat(brokerRow.get("opening_balance_date")).isEmpty();
 
+    // F027 (ADR 0024): transfers.csv has no per-product/quantity/price columns at all.
+    var header = new java.util.ArrayList<>(files.get("transfers.csv").get(0).keySet());
+    assertThat(header)
+        .doesNotContain(
+            "investment_product_id", "investment_product_name", "quantity", "unit_price");
+
     var plain =
         files.get("transfers.csv").stream()
             .filter(r -> r.get("description").equals("tr1"))
             .findFirst()
             .orElseThrow();
-    assertThat(plain.get("investment_product_id")).isEmpty();
-    assertThat(plain.get("investment_product_name")).isEmpty();
-    assertThat(plain.get("quantity")).isEmpty();
-    assertThat(plain.get("unit_price")).isEmpty();
     assertThat(plain.get("taxes")).isEmpty();
 
     var trade =
@@ -456,12 +467,24 @@ class DataExportServiceTest {
             .filter(r -> r.get("description").equals("tr3"))
             .findFirst()
             .orElseThrow();
-    assertThat(trade.get("investment_product_id")).isEqualTo(fund.toString());
-    assertThat(trade.get("investment_product_name")).isEqualTo("Selic 2029");
     assertThat(trade.get("to_account_name")).isEqualTo("Broker");
-    assertThat(trade.get("quantity")).isEqualTo("10.5");
-    assertThat(trade.get("unit_price")).isEqualTo("95.00");
     assertThat(trade.get("taxes")).isEqualTo("2.50");
+  }
+
+  @Test
+  void transferTradeLinesCsvHasOneRowPerLineAndNoneForAPlainTransfer() throws IOException {
+    var files = export(ExportFilter.none());
+
+    var lines = files.get("transfer_trade_lines.csv");
+    assertThat(lines).hasSize(1);
+    var line = lines.get(0);
+    assertThat(line.get("transfer_id")).isEqualTo(tr3Id.toString());
+    assertThat(line.get("product_id")).isEqualTo(fund.toString());
+    assertThat(line.get("product_name")).isEqualTo("Selic 2029");
+    assertThat(line.get("side")).isEqualTo("BUY");
+    assertThat(line.get("quantity")).isEqualTo("10.5");
+    assertThat(line.get("unit_price")).isEqualTo("95.00");
+    assertThat(line.get("resulting_balance")).isEmpty();
   }
 
   @Test
