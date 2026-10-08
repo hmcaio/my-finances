@@ -11,6 +11,7 @@ import com.chm.myfinances.domain.investmentsegment.InvestmentSegmentRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -52,22 +53,40 @@ public class FiiAllocationQuery {
     this.clock = clock;
   }
 
-  public List<FiiAllocationRow> allocation(FiiAllocationBasis basis, FiiAllocationGroupBy groupBy) {
+  /**
+   * {@code month} drives both bases: {@code ACTUAL} converts it to an as-of date (the F009/F010
+   * convention - month-end, except the current month evaluated at today) and threads that into
+   * {@link FiiPortfolioQuery}; {@code PLANNED} passes {@code month} straight to {@link
+   * AllocationPlanService#getCurrent} (Addendum - Month Selector).
+   */
+  public List<FiiAllocationRow> allocation(
+      FiiAllocationBasis basis, FiiAllocationGroupBy groupBy, YearMonth month) {
     return switch (basis) {
-      case ACTUAL -> groupBy == FiiAllocationGroupBy.TICKER ? actualByTicker() : actualBySegment();
+      case ACTUAL ->
+          groupBy == FiiAllocationGroupBy.TICKER ? actualByTicker(month) : actualBySegment(month);
       case PLANNED ->
-          groupBy == FiiAllocationGroupBy.TICKER ? plannedByTicker() : plannedBySegment();
+          groupBy == FiiAllocationGroupBy.TICKER ? plannedByTicker(month) : plannedBySegment(month);
     };
   }
 
-  private List<FiiPortfolioRow> fiiRowsWithValue() {
-    return portfolioQuery.portfolio(InvestmentProductStatus.ALL).stream()
+  /**
+   * The F009/F010 as-of convention: {@code month}'s last day, except the current month, evaluated
+   * at today.
+   */
+  private LocalDate asOfDateFor(YearMonth month) {
+    LocalDate today = LocalDate.now(clock);
+    LocalDate monthEnd = month.atEndOfMonth();
+    return monthEnd.isAfter(today) ? today : monthEnd;
+  }
+
+  private List<FiiPortfolioRow> fiiRowsWithValue(LocalDate asOf) {
+    return portfolioQuery.portfolio(InvestmentProductStatus.ALL, asOf).stream()
         .filter(row -> row.currentValue().signum() != 0)
         .toList();
   }
 
-  private List<FiiAllocationRow> actualByTicker() {
-    List<FiiPortfolioRow> rows = fiiRowsWithValue();
+  private List<FiiAllocationRow> actualByTicker(YearMonth month) {
+    List<FiiPortfolioRow> rows = fiiRowsWithValue(asOfDateFor(month));
     BigDecimal total =
         rows.stream().map(FiiPortfolioRow::currentValue).reduce(BigDecimal.ZERO, BigDecimal::add);
     if (total.signum() == 0) {
@@ -85,8 +104,8 @@ public class FiiAllocationQuery {
         .toList();
   }
 
-  private List<FiiAllocationRow> actualBySegment() {
-    List<FiiPortfolioRow> rows = fiiRowsWithValue();
+  private List<FiiAllocationRow> actualBySegment(YearMonth month) {
+    List<FiiPortfolioRow> rows = fiiRowsWithValue(asOfDateFor(month));
     BigDecimal total =
         rows.stream().map(FiiPortfolioRow::currentValue).reduce(BigDecimal.ZERO, BigDecimal::add);
     if (total.signum() == 0) {
@@ -111,9 +130,8 @@ public class FiiAllocationQuery {
         .toList();
   }
 
-  private List<FiiAllocationRow> plannedByTicker() {
-    Optional<AllocationPlanVersion> current =
-        allocationPlanService.getCurrent(YearMonth.now(clock));
+  private List<FiiAllocationRow> plannedByTicker(YearMonth month) {
+    Optional<AllocationPlanVersion> current = allocationPlanService.getCurrent(month);
     if (current.isEmpty()) {
       return List.of();
     }
@@ -133,9 +151,8 @@ public class FiiAllocationQuery {
         .toList();
   }
 
-  private List<FiiAllocationRow> plannedBySegment() {
-    Optional<AllocationPlanVersion> current =
-        allocationPlanService.getCurrent(YearMonth.now(clock));
+  private List<FiiAllocationRow> plannedBySegment(YearMonth month) {
+    Optional<AllocationPlanVersion> current = allocationPlanService.getCurrent(month);
     if (current.isEmpty()) {
       return List.of();
     }

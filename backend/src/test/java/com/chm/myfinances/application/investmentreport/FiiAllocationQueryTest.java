@@ -118,7 +118,8 @@ class FiiAllocationQueryTest {
     withSnapshot(nonFii, "1000.00");
 
     List<FiiAllocationRow> rows =
-        query.allocation(FiiAllocationBasis.ACTUAL, FiiAllocationGroupBy.TICKER);
+        query.allocation(
+            FiiAllocationBasis.ACTUAL, FiiAllocationGroupBy.TICKER, YearMonth.from(TODAY));
 
     assertThat(rows).hasSize(2);
     BigDecimal sum =
@@ -145,7 +146,8 @@ class FiiAllocationQueryTest {
     withSnapshot(unsegmented, "500.00");
 
     List<FiiAllocationRow> rows =
-        query.allocation(FiiAllocationBasis.ACTUAL, FiiAllocationGroupBy.SEGMENT);
+        query.allocation(
+            FiiAllocationBasis.ACTUAL, FiiAllocationGroupBy.SEGMENT, YearMonth.from(TODAY));
 
     assertThat(rows).hasSize(2);
     assertThat(rows)
@@ -161,7 +163,10 @@ class FiiAllocationQueryTest {
   void actualAllocationIsEmptyWhenNoFiiProductHasAnyValue() {
     fiiProduct("KNRI11 Fund", "KNRI11", null);
 
-    assertThat(query.allocation(FiiAllocationBasis.ACTUAL, FiiAllocationGroupBy.TICKER)).isEmpty();
+    assertThat(
+            query.allocation(
+                FiiAllocationBasis.ACTUAL, FiiAllocationGroupBy.TICKER, YearMonth.from(TODAY)))
+        .isEmpty();
   }
 
   @Test
@@ -175,7 +180,8 @@ class FiiAllocationQueryTest {
         YearMonth.from(TODAY));
 
     List<FiiAllocationRow> rows =
-        query.allocation(FiiAllocationBasis.PLANNED, FiiAllocationGroupBy.TICKER);
+        query.allocation(
+            FiiAllocationBasis.PLANNED, FiiAllocationGroupBy.TICKER, YearMonth.from(TODAY));
 
     assertThat(rows).hasSize(2);
     assertThat(
@@ -204,7 +210,8 @@ class FiiAllocationQueryTest {
         YearMonth.from(TODAY));
 
     List<FiiAllocationRow> rows =
-        query.allocation(FiiAllocationBasis.PLANNED, FiiAllocationGroupBy.SEGMENT);
+        query.allocation(
+            FiiAllocationBasis.PLANNED, FiiAllocationGroupBy.SEGMENT, YearMonth.from(TODAY));
 
     assertThat(rows).hasSize(2);
     assertThat(
@@ -220,6 +227,70 @@ class FiiAllocationQueryTest {
 
   @Test
   void plannedAllocationIsEmptyWhenNoPlanHasEverBeenSet() {
-    assertThat(query.allocation(FiiAllocationBasis.PLANNED, FiiAllocationGroupBy.TICKER)).isEmpty();
+    assertThat(
+            query.allocation(
+                FiiAllocationBasis.PLANNED, FiiAllocationGroupBy.TICKER, YearMonth.from(TODAY)))
+        .isEmpty();
+  }
+
+  @Test
+  void actualAllocationForAPastMonthExcludesValueFromSnapshotsAfterThatMonthsEnd() {
+    InvestmentProduct knri = fiiProduct("KNRI11 Fund", "KNRI11", null);
+    InvestmentHolding holding =
+        holdingRepository.save(
+            InvestmentHoldingMother.holding().withProductId(knri.getId()).build());
+    snapshotRepository.save(
+        InvestmentSnapshot.create(
+            UUID.randomUUID(),
+            holding.getId(),
+            LocalDate.of(2026, 3, 31),
+            new BigDecimal("600.00")));
+    snapshotRepository.save(
+        InvestmentSnapshot.create(
+            UUID.randomUUID(), holding.getId(), TODAY.minusDays(1), new BigDecimal("900.00")));
+
+    List<FiiAllocationRow> marchRows =
+        query.allocation(
+            FiiAllocationBasis.ACTUAL, FiiAllocationGroupBy.TICKER, YearMonth.of(2026, 3));
+
+    assertThat(marchRows).hasSize(1);
+    assertThat(marchRows.get(0).totalValue()).isEqualByComparingTo("600.00");
+  }
+
+  @Test
+  void plannedAllocationForAMonthBeforeAnyPlanVersionExistedIsEmpty() {
+    InvestmentProduct knri = fiiProduct("KNRI11 Fund", "KNRI11", null);
+    allocationPlanService.setAllocation(
+        List.of(new AllocationPlanEntry(knri.getId(), new BigDecimal("100.00"))),
+        YearMonth.from(TODAY));
+
+    List<FiiAllocationRow> rows =
+        query.allocation(
+            FiiAllocationBasis.PLANNED,
+            FiiAllocationGroupBy.TICKER,
+            YearMonth.from(TODAY).minusYears(1));
+
+    assertThat(rows).isEmpty();
+  }
+
+  @Test
+  void plannedAllocationForAMonthBetweenTwoVersionsUsesTheVersionEffectiveForThatMonth() {
+    InvestmentProduct knri = fiiProduct("KNRI11 Fund", "KNRI11", null);
+    InvestmentProduct hglg = fiiProduct("HGLG11 Fund", "HGLG11", null);
+    allocationPlanService.setAllocation(
+        List.of(new AllocationPlanEntry(knri.getId(), new BigDecimal("100.00"))),
+        YearMonth.from(TODAY).minusMonths(2));
+    allocationPlanService.setAllocation(
+        List.of(new AllocationPlanEntry(hglg.getId(), new BigDecimal("100.00"))),
+        YearMonth.from(TODAY));
+
+    List<FiiAllocationRow> rows =
+        query.allocation(
+            FiiAllocationBasis.PLANNED,
+            FiiAllocationGroupBy.TICKER,
+            YearMonth.from(TODAY).minusMonths(1));
+
+    assertThat(rows).hasSize(1);
+    assertThat(rows.get(0).key()).isEqualTo(knri.getId());
   }
 }

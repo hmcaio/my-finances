@@ -66,12 +66,18 @@ public class FiiPortfolioQuery {
 
   /**
    * One row per FII product matching {@code status} (F023's status-filter pattern), ordered by
-   * ticker (falling back to name for an untickered product).
+   * ticker (falling back to name for an untickered product). {@code asOf} drives both {@code
+   * cotasHeld}/{@code amountContributed} (trades after it are excluded) and {@code
+   * currentValue}/{@code latestSnapshotDate} (the latest snapshot on or before it). {@code
+   * needsSnapshot} stays a "today" concept (Addendum - Month Selector): it is only ever computed -
+   * and can only ever be {@code true} - when {@code asOf} is today; a past {@code asOf} always
+   * reports {@code false} rather than being recomputed against that past date.
    */
-  public List<FiiPortfolioRow> portfolio(InvestmentProductStatus status) {
+  public List<FiiPortfolioRow> portfolio(InvestmentProductStatus status, LocalDate asOf) {
     LocalDate today = LocalDate.now(clock);
     Set<UUID> fiiSubcategoryIds = fiiSubcategoryIds();
-    Set<UUID> staleHoldingIds = freshnessQuery.staleHoldingIds(today);
+    Set<UUID> staleHoldingIds =
+        asOf.equals(today) ? freshnessQuery.staleHoldingIds(today) : Set.of();
 
     List<FiiPortfolioRow> rows = new ArrayList<>();
     for (InvestmentProduct product : productRepository.findAll()) {
@@ -83,7 +89,7 @@ public class FiiPortfolioQuery {
       if (!matchesStatus(status, hasOpenHolding)) {
         continue;
       }
-      rows.add(rowFor(product, holdings, hasOpenHolding, staleHoldingIds));
+      rows.add(rowFor(product, holdings, hasOpenHolding, staleHoldingIds, asOf));
     }
     return rows.stream()
         .sorted(Comparator.comparing(r -> r.ticker() != null ? r.ticker() : r.name()))
@@ -94,7 +100,8 @@ public class FiiPortfolioQuery {
       InvestmentProduct product,
       List<InvestmentHolding> holdings,
       boolean hasOpenHolding,
-      Set<UUID> staleHoldingIds) {
+      Set<UUID> staleHoldingIds,
+      LocalDate asOf) {
     Set<UUID> holdingAccountIds =
         holdings.stream().map(InvestmentHolding::getAccountId).collect(Collectors.toSet());
     List<Transfer> trades = transferRepository.findByInvestmentProductId(product.getId());
@@ -102,6 +109,9 @@ public class FiiPortfolioQuery {
     BigDecimal cotasHeld = BigDecimal.ZERO;
     BigDecimal amountContributed = BigDecimal.ZERO;
     for (Transfer trade : trades) {
+      if (trade.getDate().isAfter(asOf)) {
+        continue;
+      }
       boolean buy = holdingAccountIds.contains(trade.getToAccountId());
       BigDecimal quantity = trade.getTradeDetails().quantity();
       if (quantity != null) {
@@ -117,7 +127,7 @@ public class FiiPortfolioQuery {
     LocalDate latestSnapshotDate = null;
     boolean needsSnapshot = false;
     for (InvestmentHolding holding : holdings) {
-      Optional<InvestmentSnapshot> latest = latestSnapshotQuery.latestOf(holding.getId());
+      Optional<InvestmentSnapshot> latest = latestSnapshotQuery.latestOf(holding.getId(), asOf);
       if (latest.isPresent()) {
         currentValue = currentValue.add(latest.get().getBalance());
         LocalDate date = latest.get().getDate();

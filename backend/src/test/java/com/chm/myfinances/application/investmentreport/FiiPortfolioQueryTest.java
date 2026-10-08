@@ -81,7 +81,7 @@ class FiiPortfolioQueryTest {
   void nonFiiProductsAreExcluded() {
     productRepository.save(InvestmentProductMother.product().withName("Not FII Test").build());
 
-    assertThat(query.portfolio(InvestmentProductStatus.ALL)).isEmpty();
+    assertThat(query.portfolio(InvestmentProductStatus.ALL, TODAY)).isEmpty();
   }
 
   @Test
@@ -106,7 +106,7 @@ class FiiPortfolioQueryTest {
     buy(product, checkingId, brokerAId, "1000.00", "10");
     buy(product, checkingId, brokerBId, "500.00", "5");
 
-    List<FiiPortfolioRow> rows = query.portfolio(InvestmentProductStatus.ALL);
+    List<FiiPortfolioRow> rows = query.portfolio(InvestmentProductStatus.ALL, TODAY);
 
     assertThat(rows).hasSize(1);
     assertThat(rows.get(0).cotasHeld()).isEqualByComparingTo("15");
@@ -136,7 +136,7 @@ class FiiPortfolioQueryTest {
     sell(knri, checkingId, brokerId, "1050.00", "10");
     buy(hglg, checkingId, brokerId, "200.00", "2");
 
-    List<FiiPortfolioRow> rows = query.portfolio(InvestmentProductStatus.ALL);
+    List<FiiPortfolioRow> rows = query.portfolio(InvestmentProductStatus.ALL, TODAY);
 
     FiiPortfolioRow knriRow =
         rows.stream().filter(r -> r.productId().equals(knri.getId())).findFirst().orElseThrow();
@@ -189,7 +189,7 @@ class FiiPortfolioQueryTest {
             .withTradeDetails(new InvestmentTradeDetails(new BigDecimal("1"), BigDecimal.ONE, null))
             .build());
 
-    List<FiiPortfolioRow> rows = query.portfolio(InvestmentProductStatus.ALL);
+    List<FiiPortfolioRow> rows = query.portfolio(InvestmentProductStatus.ALL, TODAY);
 
     assertThat(rows).hasSize(1);
     assertThat(rows.get(0).currentValue()).isEqualByComparingTo("1500.00");
@@ -207,9 +207,9 @@ class FiiPortfolioQueryTest {
     closedHolding.close(TODAY);
     holdingRepository.save(closedHolding);
 
-    List<FiiPortfolioRow> openRows = query.portfolio(InvestmentProductStatus.OPEN);
-    List<FiiPortfolioRow> closedRows = query.portfolio(InvestmentProductStatus.CLOSED);
-    List<FiiPortfolioRow> allRows = query.portfolio(InvestmentProductStatus.ALL);
+    List<FiiPortfolioRow> openRows = query.portfolio(InvestmentProductStatus.OPEN, TODAY);
+    List<FiiPortfolioRow> closedRows = query.portfolio(InvestmentProductStatus.CLOSED, TODAY);
+    List<FiiPortfolioRow> allRows = query.portfolio(InvestmentProductStatus.ALL, TODAY);
 
     assertThat(openRows).extracting(FiiPortfolioRow::productId).containsExactly(open.getId());
     assertThat(closedRows).extracting(FiiPortfolioRow::productId).containsExactly(closed.getId());
@@ -230,10 +230,90 @@ class FiiPortfolioQueryTest {
     holdingRepository.save(
         InvestmentHoldingMother.holding().withProductId(product.getId()).build());
 
-    List<FiiPortfolioRow> rows = query.portfolio(InvestmentProductStatus.ALL);
+    List<FiiPortfolioRow> rows = query.portfolio(InvestmentProductStatus.ALL, TODAY);
 
     assertThat(rows.get(0).ticker()).isEqualTo("KNRI11");
     assertThat(rows.get(0).segmentId()).isEqualTo(segmentId);
+  }
+
+  @Test
+  void tradesDatedAfterAsOfAreExcludedFromCotasHeldAndAmountContributed() {
+    InvestmentProduct product = fiiProduct("KNRI11 Fund", "KNRI11");
+    UUID checkingId = UUID.randomUUID();
+    UUID brokerId = UUID.randomUUID();
+    holdingRepository.save(
+        InvestmentHoldingMother.holding()
+            .withProductId(product.getId())
+            .withAccountId(brokerId)
+            .build());
+    buy(product, checkingId, brokerId, "1000.00", "10"); // dated 2026-01-10, on or before asOf
+    transferRepository.save(
+        TransferMother.transfer()
+            .withDate(LocalDate.of(2026, 4, 1)) // after asOf (2026-03-01): must be excluded
+            .withFromAccountId(checkingId)
+            .withToAccountId(brokerId)
+            .withAmount(new BigDecimal("500.00"))
+            .withInvestmentProductId(product.getId())
+            .withTradeDetails(new InvestmentTradeDetails(new BigDecimal("5"), BigDecimal.ONE, null))
+            .build());
+
+    List<FiiPortfolioRow> rows =
+        query.portfolio(InvestmentProductStatus.ALL, LocalDate.of(2026, 3, 1));
+
+    assertThat(rows).hasSize(1);
+    assertThat(rows.get(0).cotasHeld()).isEqualByComparingTo("10");
+    assertThat(rows.get(0).amountContributed()).isEqualByComparingTo("1000.00");
+  }
+
+  @Test
+  void currentValueAndLatestSnapshotDateUseTheSnapshotOnOrBeforeAsOf() {
+    InvestmentProduct product = fiiProduct("KNRI11 Fund", "KNRI11");
+    InvestmentHolding holding =
+        holdingRepository.save(
+            InvestmentHoldingMother.holding().withProductId(product.getId()).build());
+    snapshotRepository.save(
+        InvestmentSnapshot.create(
+            UUID.randomUUID(),
+            holding.getId(),
+            LocalDate.of(2026, 3, 1),
+            new BigDecimal("1000.00")));
+    snapshotRepository.save(
+        InvestmentSnapshot.create(
+            UUID.randomUUID(),
+            holding.getId(),
+            LocalDate.of(2026, 5, 1),
+            new BigDecimal("1200.00")));
+
+    List<FiiPortfolioRow> rows =
+        query.portfolio(InvestmentProductStatus.ALL, LocalDate.of(2026, 4, 1));
+
+    assertThat(rows.get(0).currentValue()).isEqualByComparingTo("1000.00");
+    assertThat(rows.get(0).latestSnapshotDate()).isEqualTo(LocalDate.of(2026, 3, 1));
+  }
+
+  @Test
+  void needsSnapshotIsAlwaysFalseWhenAsOfIsNotToday() {
+    InvestmentProduct product = fiiProduct("KNRI11 Fund", "KNRI11");
+    UUID checkingId = UUID.randomUUID();
+    UUID brokerId = UUID.randomUUID();
+    holdingRepository.save(
+        InvestmentHoldingMother.holding()
+            .withProductId(product.getId())
+            .withAccountId(brokerId)
+            .build());
+    buy(
+        product,
+        checkingId,
+        brokerId,
+        "1000.00",
+        "10"); // no snapshot ever recorded: stale as of today
+
+    List<FiiPortfolioRow> todayRows = query.portfolio(InvestmentProductStatus.ALL, TODAY);
+    List<FiiPortfolioRow> pastRows =
+        query.portfolio(InvestmentProductStatus.ALL, TODAY.minusMonths(1));
+
+    assertThat(todayRows.get(0).needsSnapshot()).isTrue();
+    assertThat(pastRows.get(0).needsSnapshot()).isFalse();
   }
 
   private void buy(InvestmentProduct product, UUID from, UUID to, String amount, String quantity) {

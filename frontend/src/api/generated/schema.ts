@@ -3215,6 +3215,7 @@ export interface operations {
         parameters: {
             query?: {
                 status?: "OPEN" | "CLOSED" | "ALL";
+                month?: string;
             };
             header?: never;
             path?: never;
@@ -3286,6 +3287,7 @@ export interface operations {
             query: {
                 basis: "ACTUAL" | "PLANNED";
                 groupBy: "TICKER" | "SEGMENT";
+                month?: string;
             };
             header?: never;
             path?: never;

@@ -1,10 +1,12 @@
 package com.chm.myfinances.infrastructure.web.investmentreport;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.chm.myfinances.testsupport.web.MockMvcSupport;
 import com.chm.myfinances.testsupport.web.WebIntegrationTest;
+import java.time.YearMonth;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,5 +64,40 @@ class FiiAllocationControllerTest {
     mockMvc
         .perform(get("/api/fii/allocation").param("groupBy", "TICKER"))
         .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void aPastMonthReturns200() throws Exception {
+    mockMvc
+        .perform(
+            get("/api/fii/allocation")
+                .param("basis", "PLANNED")
+                .param("groupBy", "TICKER")
+                .param("month", YearMonth.now().minusMonths(6).toString()))
+        .andExpect(status().isOk());
+  }
+
+  @Test
+  void theCurrentMonthMatchesTheOmittedMonthDefault() throws Exception {
+    String withMonth =
+        mockMvc
+            .perform(
+                get("/api/fii/allocation")
+                    .param("basis", "ACTUAL")
+                    .param("groupBy", "TICKER")
+                    .param("month", YearMonth.now().toString()))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    String withoutMonth =
+        mockMvc
+            .perform(get("/api/fii/allocation").param("basis", "ACTUAL").param("groupBy", "TICKER"))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    assertThat(withMonth).isEqualTo(withoutMonth);
   }
 }
