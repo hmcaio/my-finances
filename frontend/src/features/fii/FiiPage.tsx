@@ -10,7 +10,7 @@ import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/R
 import { currentMonth } from '../../utils/localDate'
 import { AllocationPlanEditor } from './AllocationPlanEditor'
 import { DividendHistorySection } from './DividendHistorySection'
-import { FiiAllocationDonutChart } from './FiiAllocationDonutChart'
+import { FiiNestedAllocationDonutChart } from './FiiNestedAllocationDonutChart'
 import { RegisterDividendDialog } from './RegisterDividendDialog'
 import type { FiiPortfolioRow } from '../../api/investments/fiiPortfolio'
 
@@ -20,15 +20,16 @@ const FII_SUBCATEGORY_NAME = 'REITs (FIIs)'
 type FiiTab = 'allocation' | 'dividends'
 
 /**
- * The FII portfolio page (F026 spec, ADR 0023): the four allocation pie charts (actual/planned x
- * ticker/segment) at the top, then the portfolio list (one row per FII, closed holdings hidden by
- * default) with its month/status filters, then two sub-tabs - "Dividends" (default; dividend
- * history - the register-dividend dialog trigger lives in the header, not this tab) and "Allocation
- * Plan" (the target-allocation editor) - mirroring F023's Investments-page layout (charts above
- * tabs). The month picker (Addendum: Month Selector) drives the portfolio list and all four charts,
- * defaulting to (and clamped to) the current month; the `needsSnapshot` badge is hidden whenever a
- * past month is selected, since it's a "today" concept the backend never recomputes against a past
- * date.
+ * The FII portfolio page (F026 spec, ADR 0023): two nested (two-ring) allocation donuts - Actual
+ * and Planned, inner ring by segment, outer ring by ticker within each segment (Addendum - Nested
+ * Allocation Charts, replacing the four original flat single-ring charts) - at the top, then the
+ * portfolio list (one row per FII, closed holdings hidden by default) with its month/status
+ * filters, then two sub-tabs - "Dividends" (default; dividend history - the register-dividend
+ * dialog trigger lives in the header, not this tab) and "Allocation Plan" (the target-allocation
+ * editor) - mirroring F023's Investments-page layout (charts above tabs). The month picker
+ * (Addendum: Month Selector) drives the portfolio list and both charts, defaulting to (and clamped
+ * to) the current month; the `needsSnapshot` badge is hidden whenever a past month is selected,
+ * since it's a "today" concept the backend never recomputes against a past date.
  */
 export function FiiPage() {
   const categoriesQuery = useInvestmentCategories()
@@ -120,49 +121,23 @@ export function FiiPage() {
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, md: 6 }}>
           <Typography variant="h6" component="h2" sx={{ mb: 1 }}>
-            Actual allocation by ticker
+            Actual allocation
           </Typography>
-          <FiiAllocationDonutChart
+          <FiiNestedAllocationDonutChart
             basis="ACTUAL"
-            groupBy="TICKER"
             month={month}
-            ariaLabel="Actual allocation by ticker"
+            ariaLabel="Actual allocation"
             emptyMessage="No FII value yet."
           />
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
           <Typography variant="h6" component="h2" sx={{ mb: 1 }}>
-            Actual allocation by segment
+            Planned allocation
           </Typography>
-          <FiiAllocationDonutChart
-            basis="ACTUAL"
-            groupBy="SEGMENT"
-            month={month}
-            ariaLabel="Actual allocation by segment"
-            emptyMessage="No FII value yet."
-          />
-        </Grid>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Typography variant="h6" component="h2" sx={{ mb: 1 }}>
-            Planned allocation by ticker
-          </Typography>
-          <FiiAllocationDonutChart
+          <FiiNestedAllocationDonutChart
             basis="PLANNED"
-            groupBy="TICKER"
             month={month}
-            ariaLabel="Planned allocation by ticker"
-            emptyMessage="No allocation plan set yet."
-          />
-        </Grid>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Typography variant="h6" component="h2" sx={{ mb: 1 }}>
-            Planned allocation by segment
-          </Typography>
-          <FiiAllocationDonutChart
-            basis="PLANNED"
-            groupBy="SEGMENT"
-            month={month}
-            ariaLabel="Planned allocation by segment"
+            ariaLabel="Planned allocation"
             emptyMessage="No allocation plan set yet."
           />
         </Grid>

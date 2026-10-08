@@ -84,15 +84,18 @@ describe('FiiPage', () => {
     expect(table.getByText(seedFiiPortfolio[0].currentValue.toFixed(2))).toBeInTheDocument()
   })
 
-  it('renders all four allocation charts', async () => {
+  it('renders both nested allocation charts with tickers nested under their segment', async () => {
     renderWithQueryClient(<FiiPage />)
 
-    expect(
-      await screen.findByRole('img', { name: 'Actual allocation by ticker' }),
-    ).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: 'Actual allocation by segment' })).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: 'Planned allocation by ticker' })).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: 'Planned allocation by segment' })).toBeInTheDocument()
+    expect(await screen.findByRole('img', { name: 'Actual allocation' })).toBeInTheDocument()
+    const actualLegend = screen.getByRole('list', { name: 'Actual allocation legend' })
+    expect(within(actualLegend).getByText('Shoppings')).toBeInTheDocument()
+    expect(within(actualLegend).getByText('KNRI11')).toBeInTheDocument()
+
+    expect(screen.getByRole('img', { name: 'Planned allocation' })).toBeInTheDocument()
+    const plannedLegend = screen.getByRole('list', { name: 'Planned allocation legend' })
+    expect(within(plannedLegend).getByText('Logistica')).toBeInTheDocument()
+    expect(within(plannedLegend).getByText('HGLG11')).toBeInTheDocument()
   })
 
   it('sets an allocation plan summing to 100% and shows it saved', async () => {
