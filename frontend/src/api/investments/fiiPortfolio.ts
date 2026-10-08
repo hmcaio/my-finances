@@ -22,9 +22,15 @@ export interface FiiPortfolioRow {
   hasOpenHolding: boolean
 }
 
-/** Fetches the FII portfolio summary, filtered by holding status (defaults to `OPEN`). */
+/**
+ * Fetches the FII portfolio summary, filtered by holding status (defaults to `OPEN`), as of
+ * `month` (`YYYY-MM`, defaults to the current month - Addendum: Month Selector). A past month's
+ * trades/snapshots on or before its as-of date (computed server-side); `needsSnapshot` is always
+ * `false` for a past month, never recomputed against it.
+ */
 export async function getFiiPortfolio(
   status: InvestmentProductStatus = 'OPEN',
+  month?: string,
 ): Promise<FiiPortfolioRow[]> {
-  return unwrap(apiClient.get<FiiPortfolioRow[]>('/fii/portfolio', { params: { status } }))
+  return unwrap(apiClient.get<FiiPortfolioRow[]>('/fii/portfolio', { params: { status, month } }))
 }

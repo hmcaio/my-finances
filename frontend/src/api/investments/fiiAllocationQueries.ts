@@ -8,13 +8,18 @@ import {
 
 export const fiiAllocationKeys = {
   all: [API_KEY_ROOT, 'fii-allocation'] as const,
-  list: (basis: FiiAllocationBasis, groupBy: FiiAllocationGroupBy) =>
-    [...fiiAllocationKeys.all, 'list', basis, groupBy] as const,
+  list: (basis: FiiAllocationBasis, groupBy: FiiAllocationGroupBy, month: string) =>
+    [...fiiAllocationKeys.all, 'list', basis, groupBy, month] as const,
 }
 
-export function useFiiAllocation(basis: FiiAllocationBasis, groupBy: FiiAllocationGroupBy) {
+/** `month` (`YYYY-MM`) defaults to the current month (Addendum: Month Selector). */
+export function useFiiAllocation(
+  basis: FiiAllocationBasis,
+  groupBy: FiiAllocationGroupBy,
+  month: string,
+) {
   return useQuery({
-    queryKey: fiiAllocationKeys.list(basis, groupBy),
-    queryFn: () => getFiiAllocation(basis, groupBy),
+    queryKey: fiiAllocationKeys.list(basis, groupBy, month),
+    queryFn: () => getFiiAllocation(basis, groupBy, month),
   })
 }

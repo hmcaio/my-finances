@@ -17,11 +17,17 @@ export interface FiiAllocationRow {
   percentage: number
 }
 
+/**
+ * `month` (`YYYY-MM`, defaults to the current month - Addendum: Month Selector) drives both bases:
+ * `ACTUAL` converts it server-side to an as-of date (month-end, except the current month evaluated
+ * at today); `PLANNED` resolves the allocation-plan version effective for that month.
+ */
 export async function getFiiAllocation(
   basis: FiiAllocationBasis,
   groupBy: FiiAllocationGroupBy,
+  month?: string,
 ): Promise<FiiAllocationRow[]> {
   return unwrap(
-    apiClient.get<FiiAllocationRow[]>('/fii/allocation', { params: { basis, groupBy } }),
+    apiClient.get<FiiAllocationRow[]>('/fii/allocation', { params: { basis, groupBy, month } }),
   )
 }

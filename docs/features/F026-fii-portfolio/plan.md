@@ -50,12 +50,12 @@ A month picker on the FII page so the portfolio list and all four allocation cha
 - [x] Controller: add `?month=` (optional, `YearMonth`, default current month) to `GET /api/fii/portfolio` and `GET /api/fii/allocation`, converting to the as-of date server-side; controller tests for a past month, the current month, and an omitted param (defaults to current). Regenerate `frontend/src/api/generated/schema.ts`.
 
 ### Frontend
-- [ ] Add a month-picker control to the FII page (reuse whichever existing component the Budget or net-worth-trend page already uses for this), defaulting to the current month.
-- [ ] Wire the picker into the portfolio-list query hook and all four allocation-chart query hooks (`fiiPortfolio.ts`/`fiiAllocation.ts` + their `*Queries.ts`), forwarding `month`; suppress/hide the `needsSnapshot` badge on the portfolio list whenever a past month is selected.
-- [ ] Disable or clamp selecting a future month (consistent with how other monthly views in the app treat the current month as the latest selectable point).
+- [x] Add a month-picker control to the FII page (reuse whichever existing component the Budget or net-worth-trend page already uses for this), defaulting to the current month.
+- [x] Wire the picker into the portfolio-list query hook and all four allocation-chart query hooks (`fiiPortfolio.ts`/`fiiAllocation.ts` + their `*Queries.ts`), forwarding `month`; suppress/hide the `needsSnapshot` badge on the portfolio list whenever a past month is selected.
+- [x] Disable or clamp selecting a future month (consistent with how other monthly views in the app treat the current month as the latest selectable point).
 
 ### Verification
-- [ ] Select a past month on the FII page: portfolio list's cotas/contributed/current value reflect only trades/snapshots on or before that month's cutoff; `needsSnapshot` badges don't show.
-- [ ] Select a month before any allocation-plan version existed: planned charts render empty/zero rather than erroring.
-- [ ] Select a month between two plan versions: planned charts show the version effective for that month, not the current one.
-- [ ] Switch back to the current month: behavior matches what shipped before this addendum (today's trades/snapshots, `needsSnapshot` badges restored).
+- [x] Select a past month on the FII page: portfolio list's cotas/contributed/current value reflect only trades/snapshots on or before that month's cutoff; `needsSnapshot` badges don't show.
+- [x] Select a month before any allocation-plan version existed: planned charts render empty/zero rather than erroring.
+- [x] Select a month between two plan versions: planned charts show the version effective for that month, not the current one.
+- [x] Switch back to the current month: behavior matches what shipped before this addendum (today's trades/snapshots, `needsSnapshot` badges restored).

@@ -24,6 +24,8 @@ interface Slice {
 interface FiiAllocationDonutChartProps {
   basis: FiiAllocationBasis
   groupBy: FiiAllocationGroupBy
+  /** `YYYY-MM`, defaults to the current month (Addendum: Month Selector). */
+  month: string
   ariaLabel: string
   emptyMessage: string
 }
@@ -39,10 +41,11 @@ interface FiiAllocationDonutChartProps {
 export function FiiAllocationDonutChart({
   basis,
   groupBy,
+  month,
   ariaLabel,
   emptyMessage,
 }: FiiAllocationDonutChartProps) {
-  const query = useFiiAllocation(basis, groupBy)
+  const query = useFiiAllocation(basis, groupBy, month)
   const rows = query.data
   const state = useQueryState(query)
   const showSkeleton = useDelayedFlag(state.loading)

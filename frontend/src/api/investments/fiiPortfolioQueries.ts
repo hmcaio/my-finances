@@ -5,12 +5,14 @@ import type { InvestmentProductStatus } from './investmentProducts'
 
 export const fiiPortfolioKeys = {
   all: [API_KEY_ROOT, 'fii-portfolio'] as const,
-  list: (status: InvestmentProductStatus) => [...fiiPortfolioKeys.all, 'list', status] as const,
+  list: (status: InvestmentProductStatus, month: string) =>
+    [...fiiPortfolioKeys.all, 'list', status, month] as const,
 }
 
-export function useFiiPortfolio(status: InvestmentProductStatus = 'OPEN') {
+/** `month` (`YYYY-MM`) defaults to the current month (Addendum: Month Selector). */
+export function useFiiPortfolio(status: InvestmentProductStatus = 'OPEN', month: string) {
   return useQuery({
-    queryKey: fiiPortfolioKeys.list(status),
-    queryFn: () => getFiiPortfolio(status),
+    queryKey: fiiPortfolioKeys.list(status, month),
+    queryFn: () => getFiiPortfolio(status, month),
   })
 }

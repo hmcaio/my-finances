@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { screen, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
@@ -10,7 +10,15 @@ import { seedDividends } from '../../mocks/handlers/fiiDividends'
 import type { InvestmentCategory } from '../../api/investments/investmentCategories'
 import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 import { selectOption } from '../../test/testUtils'
+import { currentMonth } from '../../utils/localDate'
 import { FiiPage } from './FiiPage'
+
+/** The month after `currentMonth()`, `YYYY-MM` (handles the December-to-January rollover). */
+function nextMonth(): string {
+  const [year, month] = currentMonth().split('-').map(Number)
+  const next = month === 12 ? { y: year + 1, m: 1 } : { y: year, m: month + 1 }
+  return `${next.y}-${String(next.m).padStart(2, '0')}`
+}
 
 /**
  * The default seeds (`investmentCategories.ts`/`investmentProducts.ts`) have no "REITs (FIIs)"
@@ -151,5 +159,46 @@ describe('FiiPage', () => {
     const table = portfolioTable()
     expect(await table.findByText('KNRI11')).toBeInTheDocument()
     expect(table.getByText('HGLG11')).toBeInTheDocument()
+  })
+
+  it('defaults the month picker to the current month', async () => {
+    renderWithQueryClient(<FiiPage />)
+
+    await portfolioTable().findByText('KNRI11')
+    expect(screen.getByLabelText('Month')).toHaveValue(currentMonth())
+  })
+
+  it('clamps a future month back to the current month', async () => {
+    renderWithQueryClient(<FiiPage />)
+    await portfolioTable().findByText('KNRI11')
+
+    fireEvent.change(screen.getByLabelText('Month'), { target: { value: nextMonth() } })
+
+    expect(screen.getByLabelText('Month')).toHaveValue(currentMonth())
+  })
+
+  it('hides the needsSnapshot badge once a past month is selected, and shows it again for the current month', async () => {
+    renderWithQueryClient(<FiiPage />)
+    const table = portfolioTable()
+    await table.findByText('HGLG11')
+    // HGLG11's seed row has needsSnapshot: true, so today's value carries the "*" badge.
+    const flaggedValue = `${seedFiiPortfolio[1].currentValue.toFixed(2)} *`
+    const plainValue = seedFiiPortfolio[1].currentValue.toFixed(2)
+    expect(table.getByText(flaggedValue)).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Month'), { target: { value: '2026-01' } })
+
+    // Wait for the refetch under the new month to land (the table goes through a loading
+    // skeleton in between, where neither value is present) before asserting on its result.
+    await waitFor(() => {
+      expect(portfolioTable().getByText(plainValue)).toBeInTheDocument()
+    })
+    expect(portfolioTable().queryByText(flaggedValue)).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Month'), { target: { value: currentMonth() } })
+
+    await waitFor(() => {
+      expect(portfolioTable().getByText(flaggedValue)).toBeInTheDocument()
+    })
   })
 })

@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
-import { Box, Button, Grid, MenuItem, Select, Typography } from '@mui/material'
+import { Box, Button, Grid, MenuItem, Select, TextField, Typography } from '@mui/material'
 import { useInvestmentCategories } from '../../api/investments/investmentCategoriesQueries'
 import { useFiiPortfolio } from '../../api/investments/fiiPortfolioQueries'
 import { useInvestmentProducts } from '../../api/investments/investmentProductsQueries'
 import type { InvestmentProductStatus } from '../../api/investments/investmentProducts'
 import { useQueryState } from '../../hooks/queryState'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
+import { currentMonth } from '../../utils/localDate'
 import { AllocationPlanEditor } from './AllocationPlanEditor'
 import { DividendHistorySection } from './DividendHistorySection'
 import { FiiAllocationDonutChart } from './FiiAllocationDonutChart'
@@ -18,7 +19,10 @@ const FII_SUBCATEGORY_NAME = 'REITs (FIIs)'
 /**
  * The FII portfolio page (F026 spec, ADR 0023): a portfolio list (one row per FII, closed
  * holdings hidden by default), the target-allocation editor, the four allocation pie charts
- * (actual/planned x ticker/segment), a "Register Dividend" dialog, and dividend history.
+ * (actual/planned x ticker/segment), a "Register Dividend" dialog, and dividend history. A month
+ * picker (Addendum: Month Selector) drives the portfolio list and all four charts, defaulting to
+ * (and clamped to) the current month; the `needsSnapshot` badge is hidden whenever a past month is
+ * selected, since it's a "today" concept the backend never recomputes against a past date.
  */
 export function FiiPage() {
   const categoriesQuery = useInvestmentCategories()
@@ -39,7 +43,9 @@ export function FiiPage() {
   )
 
   const [status, setStatus] = useState<InvestmentProductStatus>('OPEN')
-  const portfolioQuery = useFiiPortfolio(status)
+  const [month, setMonth] = useState(currentMonth())
+  const isCurrentMonth = month === currentMonth()
+  const portfolioQuery = useFiiPortfolio(status, month)
   const portfolio = portfolioQuery.data
   const portfolioState = useQueryState(portfolioQuery)
 
@@ -65,7 +71,7 @@ export function FiiPage() {
     {
       key: 'value',
       header: 'Current value',
-      render: (r) => `${r.currentValue.toFixed(2)}${r.needsSnapshot ? ' *' : ''}`,
+      render: (r) => `${r.currentValue.toFixed(2)}${r.needsSnapshot && isCurrentMonth ? ' *' : ''}`,
       align: 'right',
     },
     {
@@ -100,7 +106,18 @@ export function FiiPage() {
         computed from recorded trades, never price-derived.
       </Typography>
 
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mb: 2 }}>
+        <TextField
+          label="Month"
+          type="month"
+          size="small"
+          value={month}
+          onChange={(e) => {
+            const next = e.target.value
+            setMonth(next > currentMonth() ? currentMonth() : next)
+          }}
+          slotProps={{ inputLabel: { shrink: true }, htmlInput: { max: currentMonth() } }}
+        />
         <Select
           size="small"
           value={status}
@@ -134,6 +151,7 @@ export function FiiPage() {
           <FiiAllocationDonutChart
             basis="ACTUAL"
             groupBy="TICKER"
+            month={month}
             ariaLabel="Actual allocation by ticker"
             emptyMessage="No FII value yet."
           />
@@ -145,6 +163,7 @@ export function FiiPage() {
           <FiiAllocationDonutChart
             basis="ACTUAL"
             groupBy="SEGMENT"
+            month={month}
             ariaLabel="Actual allocation by segment"
             emptyMessage="No FII value yet."
           />
@@ -156,6 +175,7 @@ export function FiiPage() {
           <FiiAllocationDonutChart
             basis="PLANNED"
             groupBy="TICKER"
+            month={month}
             ariaLabel="Planned allocation by ticker"
             emptyMessage="No allocation plan set yet."
           />
@@ -167,6 +187,7 @@ export function FiiPage() {
           <FiiAllocationDonutChart
             basis="PLANNED"
             groupBy="SEGMENT"
+            month={month}
             ariaLabel="Planned allocation by segment"
             emptyMessage="No allocation plan set yet."
           />
