@@ -2,10 +2,26 @@ import { apiClient } from '../core/client'
 import { unwrap } from '../core/apiError'
 import type { components } from '../generated/schema'
 
+/** One product line of a {@link TradeConfirmation} (F027 spec, ADR 0024). */
+export interface TradeConfirmationLine {
+  productId: string
+  side: 'BUY' | 'SELL'
+  quantity: number
+  unitPrice: number
+  resultingBalance: number | null
+  closeHolding: boolean
+}
+
+/** A settlement's lines (F027, ADR 0024). `taxes` is the parent {@link Transfer}'s own field. */
+export interface TradeConfirmation {
+  lines: TradeConfirmationLine[]
+}
+
 /** A Transfer as returned by the API (PRD S5.5/S6.2). No category, no type - a transfer is never
- * "categorized" and has no direct budget/net-worth impact. With `investmentProductId` set (F009,
- * ADR 0012) it is a buy (into the product's INVESTMENT account) or a sell (out of it); quantity,
- * unit price and taxes are record-only and null when not given. */
+ * "categorized" and has no direct budget/net-worth impact. F027 (ADR 0024, superseding F009's
+ * single-product shape): with `tradeConfirmation` set it's a settlement covering one or more
+ * product lines; `fromAccountId`/`toAccountId`/`amount` are then backend-derived from the
+ * confirmation's net settlement, never user-typed. */
 export interface Transfer {
   id: string
   date: string
@@ -14,10 +30,8 @@ export interface Transfer {
   amount: number
   description: string
   additionalNotes: string | null
-  investmentProductId: string | null
-  quantity: number | null
-  unitPrice: number | null
   taxes: number | null
+  tradeConfirmation: TradeConfirmation | null
 }
 
 export type CreateTransferRequest = components['schemas']['CreateTransferRequest']
@@ -29,7 +43,7 @@ export interface TransferFilter {
   dateFrom?: string
   dateTo?: string
   accountId?: string
-  /** One product's buy/sell history (F009). */
+  /** One product's buy/sell history across every confirmation that trades it (F009, F027). */
   investmentProductId?: string
 }
 
@@ -46,9 +60,11 @@ export interface TransferPage {
 }
 
 // The backend sends no message text, so every expected 409 needs its own wording here. A transfer's
-// 409 has several causes: a closed account, and (F009) the investment rules.
+// 409 has several causes: a closed account, and the trade-confirmation rules (F009, generalized by
+// F027): the investment-side account must actually be INVESTMENT, the cash side must not be, and
+// every line's product needs an existing open holding at that account.
 export const TRANSFER_CONFLICT_MESSAGE =
-  'The transfer could not be saved: both accounts must be open, an investment account needs one of its own open products, and a product needs exactly one investment account on one side.'
+  'The transfer could not be saved: both accounts must be open, the investment account must be an INVESTMENT account, and every product needs an existing open holding there.'
 
 /**
  * Fetches a filtered, paginated page of transfers. `page` is 0-indexed; both `page`/`size` default
@@ -67,20 +83,22 @@ export async function getTransfer(id: string): Promise<Transfer> {
 }
 
 /**
- * Creates a transfer - a buy/sell when it carries `investmentProductId` (F009), optionally with a
- * `resultingBalance` that also records a snapshot of the product on the transfer date. A `409`
- * (an account closed, or an investment rule) is mapped to a friendly message, same pattern as
- * F004's `createTransaction`. The same-account case (400, F005's
- * `SameAccountTransferException`) is prevented client-side by the create form (F005 spec: "can't
- * pick the same account twice"), so it isn't given its own friendly message here.
+ * Creates a transfer - a trade confirmation when the request carries `cashAccountId`/
+ * `investmentAccountId`/`tradeConfirmation` (F027, ADR 0024) instead of the plain `fromAccountId`/
+ * `toAccountId`/`amount` shape; the backend derives `amount`/direction from the confirmation's net
+ * settlement and never trusts a client-supplied figure for one. A `409` (an account closed, or a
+ * trade-confirmation rule) is mapped to a friendly message, same pattern as F004's
+ * `createTransaction`. The same-account case (400, F005's `SameAccountTransferException`) is
+ * prevented client-side by the create form (F005 spec: "can't pick the same account twice"), so it
+ * isn't given its own friendly message here.
  */
 export async function createTransfer(request: CreateTransferRequest): Promise<Transfer> {
   return unwrap(apiClient.post<Transfer>('/transfers', request), TRANSFER_CONFLICT_MESSAGE)
 }
 
-/** Full-replace edit - every editable field (date/from/to account/amount/description/additional
- * notes, plus the investment product and trade details), matching F004's PATCH convention (F005
- * spec). Editing never touches snapshots. */
+/** Full-replace edit - every editable field, matching F004's PATCH convention (F005 spec). Omitting
+ * `tradeConfirmation` clears it back to a plain transfer, same as the old "omitting
+ * investmentProductId clears the tag" (F027). */
 export async function editTransfer(id: string, request: UpdateTransferRequest): Promise<Transfer> {
   return unwrap(apiClient.patch<Transfer>(`/transfers/${id}`, request), TRANSFER_CONFLICT_MESSAGE)
 }

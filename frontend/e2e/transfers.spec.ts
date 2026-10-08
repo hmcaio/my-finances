@@ -77,7 +77,7 @@ test.describe('transfers', () => {
     await expectNoHorizontalOverflow(page)
   })
 
-  test('the buy dialog with trade fields fits the viewport', async ({ page }) => {
+  test('the trade-confirmation dialog fits the viewport', async ({ page }) => {
     // The investment account is normally kept out of the pickers; this test needs it.
     await mockApi(page, [accountsWithInvestmentHandler])
     await page.goto('/transfers')
@@ -85,9 +85,10 @@ test.describe('transfers', () => {
 
     await page.getByRole('button', { name: 'Add transfer' }).click()
     const dialog = page.getByRole('dialog')
-    await dialog.getByRole('combobox', { name: 'From Account' }).click()
+    await dialog.getByRole('button', { name: 'Trade confirmation' }).click()
+    await dialog.getByRole('combobox', { name: 'Cash Account' }).click()
     await page.getByRole('option', { name: 'Itau Checking' }).click()
-    await dialog.getByRole('combobox', { name: 'To Account' }).click()
+    await dialog.getByRole('combobox', { name: 'Investment Account' }).click()
     await page.getByRole('option', { name: 'XP Investimentos' }).click()
     await dialog.getByRole('combobox', { name: 'Product' }).click()
     await page.getByRole('option', { name: 'Bitcoin' }).click()

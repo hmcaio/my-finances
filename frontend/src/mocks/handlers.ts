@@ -18,6 +18,7 @@ import { investmentValueSeriesHandlers } from './handlers/investmentValueSeries'
 import { netWorthHandlers } from './handlers/netWorth'
 import { paymentMethodsHandlers } from './handlers/paymentMethods'
 import { recurringTemplatesHandlers } from './handlers/recurringTemplates'
+import { tradeConfirmationLinesHandlers } from './handlers/tradeConfirmationLines'
 import { transactionsHandlers } from './handlers/transactions'
 import { transfersHandlers } from './handlers/transfers'
 import { vehiclesHandlers } from './handlers/vehicles'
@@ -51,6 +52,7 @@ export const handlers = [
   ...netWorthHandlers,
   ...paymentMethodsHandlers,
   ...recurringTemplatesHandlers,
+  ...tradeConfirmationLinesHandlers,
   ...transactionsHandlers,
   ...transfersHandlers,
   ...vehiclesHandlers,

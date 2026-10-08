@@ -119,15 +119,18 @@ export function TransfersPage() {
     }
   }
 
-  /** "Buy"/"Sell" plus the product's name for a tagged transfer; direction is derived from which
-   * side is the INVESTMENT account (F022: a product no longer has one account of its own), never
-   * stored. */
-  function tradeLabel(transfer: Transfer): string | null {
-    if (!transfer.investmentProductId) return null
-    const product = productsById.get(transfer.investmentProductId)
-    if (!product) return null
-    const toAccount = accounts?.find((a) => a.id === transfer.toAccountId)
-    return `${toAccount?.type === 'INVESTMENT' ? 'Buy' : 'Sell'} ${product.name}`
+  /** A "Buy X"/"Sell Y" label per line of a trade confirmation (F027, ADR 0024 - superseding the
+   * single-product chip): collapses past a handful so a many-line confirmation doesn't blow out
+   * the row. */
+  const MAX_TRADE_CHIPS = 3
+  function tradeLabels(transfer: Transfer): string[] {
+    const lines = transfer.tradeConfirmation?.lines ?? []
+    const labels = lines.map((line) => {
+      const product = productsById.get(line.productId)
+      return `${line.side === 'BUY' ? 'Buy' : 'Sell'} ${product?.name ?? '…'}`
+    })
+    if (labels.length <= MAX_TRADE_CHIPS) return labels
+    return [...labels.slice(0, MAX_TRADE_CHIPS), `+${labels.length - MAX_TRADE_CHIPS} more`]
   }
 
   // One load state for the table plus the lookup lists behind its name columns: rows show only
@@ -147,15 +150,14 @@ export function TransfersPage() {
       key: 'description',
       header: 'Description',
       role: 'primary',
-      render: (t) => {
-        const trade = tradeLabel(t)
-        return (
-          <>
-            {t.description}
-            {trade && <Chip label={trade} size="small" sx={{ ml: 1 }} />}
-          </>
-        )
-      },
+      render: (t) => (
+        <>
+          {t.description}
+          {tradeLabels(t).map((label, i) => (
+            <Chip key={i} label={label} size="small" sx={{ ml: 1, mt: 0.5 }} />
+          ))}
+        </>
+      ),
     },
   ]
 

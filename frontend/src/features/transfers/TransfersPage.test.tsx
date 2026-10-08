@@ -345,23 +345,24 @@ describe('TransfersPage responsive layout (F021)', () => {
       await waitFor(() => expect(screen.queryByText(target.description)).not.toBeInTheDocument())
     })
 
-    it('offers the trade fields in the dialog once an investment account is picked', async () => {
+    it('offers the trade-confirmation fields in the dialog once Trade confirmation is picked', async () => {
       server.use(accountsWithInvestmentHandler)
       const user = userEvent.setup({ delay: null })
       renderWithQueryClient(<TransfersPage />)
       await findCard(target.description)
 
       const dialog = await openAddDialog(user)
-      await selectOption(user, 'From Account', name('acct-1'))
-      await selectOption(user, 'To Account', seedInvestmentAccount.name)
-      await selectOption(user, 'Product', 'Bitcoin')
+      await user.click(within(dialog).getByRole('button', { name: 'Trade confirmation' }))
+      await selectOption(user, 'Cash Account', name('acct-1'), within(dialog))
+      await selectOption(user, 'Investment Account', seedInvestmentAccount.name, within(dialog))
+      await selectOption(user, 'Product', 'Bitcoin', within(dialog))
 
-      const trade = within(dialog).getByRole('group', { name: 'Trade details' })
+      const trade = within(dialog).getByRole('group', { name: 'Trade lines' })
       expect(within(trade).getByRole('spinbutton', { name: 'Quantity' })).toBeInTheDocument()
       expect(within(trade).getByRole('spinbutton', { name: 'Unit price' })).toBeInTheDocument()
-      expect(within(trade).getByRole('spinbutton', { name: 'Taxes' })).toBeInTheDocument()
+      expect(within(dialog).getByRole('spinbutton', { name: 'Taxes' })).toBeInTheDocument()
       expect(
-        within(dialog).getByRole('spinbutton', { name: 'Resulting balance' }),
+        within(trade).getByRole('spinbutton', { name: 'Resulting balance' }),
       ).toBeInTheDocument()
     })
   })

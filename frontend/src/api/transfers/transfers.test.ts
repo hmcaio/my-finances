@@ -93,26 +93,24 @@ describe('transfers API client', () => {
     })
   })
 
-  it('getTransfers filters by investmentProductId and returns the trade fields', async () => {
+  it('getTransfers filters by investmentProductId and returns the owning confirmations', async () => {
     const result = await getTransfers({ investmentProductId: 'iprod-btc' })
 
-    // Most recent first: the sell, then the buy with its record-only quantity/price/taxes.
+    // Most recent first: the sell, then the buy, each with its tradeConfirmation lines/taxes.
     expect(result.content).toEqual([seedBitcoinSellTransfer, seedBitcoinBuyTransfer])
-    expect(result.content[1]).toMatchObject({ quantity: 0.01, unitPrice: 100000, taxes: 5 })
-  })
-
-  it('a plain transfer has null trade fields', async () => {
-    const transfer = await getTransfer(seedCreditCardPaymentTransfer.id)
-
-    expect(transfer).toMatchObject({
-      investmentProductId: null,
-      quantity: null,
-      unitPrice: null,
-      taxes: null,
+    expect(result.content[1]).toMatchObject({
+      taxes: 5,
+      tradeConfirmation: { lines: [{ productId: 'iprod-btc', quantity: 0.01, unitPrice: 100000 }] },
     })
   })
 
-  it('createTransfer sends the product, trade details and resultingBalance and returns the trade', async () => {
+  it('a plain transfer has null taxes and no trade confirmation', async () => {
+    const transfer = await getTransfer(seedCreditCardPaymentTransfer.id)
+
+    expect(transfer).toMatchObject({ taxes: null, tradeConfirmation: null })
+  })
+
+  it('createTransfer sends a trade confirmation and returns the derived amount/direction', async () => {
     let sentBody: unknown = null
     server.use(
       http.post('/api/transfers', async ({ request }) => {
@@ -122,37 +120,41 @@ describe('transfers API client', () => {
     )
     const request = {
       date: '2026-08-10',
-      fromAccountId: 'acct-1',
-      toAccountId: 'acct-inv',
-      amount: 1005,
       description: 'Buy Bitcoin',
-      investmentProductId: 'iprod-btc',
-      quantity: 0.01,
-      unitPrice: 100000,
-      taxes: 5,
-      resultingBalance: 1900,
+      cashAccountId: 'acct-1',
+      investmentAccountId: 'acct-inv',
+      tradeConfirmation: {
+        taxes: 5,
+        lines: [
+          { productId: 'iprod-btc', side: 'BUY' as const, quantity: 0.01, unitPrice: 100000 },
+        ],
+      },
     }
 
     const created = await createTransfer(request)
 
     expect(sentBody).toEqual(request)
-    expect(created).toMatchObject({ investmentProductId: 'iprod-btc', quantity: 0.01 })
+    expect(created).toMatchObject({
+      tradeConfirmation: { lines: [{ productId: 'iprod-btc', quantity: 0.01 }] },
+    })
   })
 
-  it('editTransfer sends the investment fields (the edit body has no resultingBalance)', async () => {
+  it('editTransfer sends the trade confirmation fields', async () => {
     const updated = await editTransfer(seedBitcoinBuyTransfer.id, {
       date: '2026-08-10',
-      fromAccountId: 'acct-1',
-      toAccountId: 'acct-inv',
-      amount: 1010,
       description: 'Buy Bitcoin',
-      investmentProductId: 'iprod-btc',
-      quantity: 0.01,
-      unitPrice: 100500,
-      taxes: 5,
+      cashAccountId: 'acct-1',
+      investmentAccountId: 'acct-inv',
+      tradeConfirmation: {
+        taxes: 5,
+        lines: [{ productId: 'iprod-btc', side: 'BUY', quantity: 0.01, unitPrice: 100500 }],
+      },
     })
 
-    expect(updated).toMatchObject({ investmentProductId: 'iprod-btc', unitPrice: 100500 })
+    expect(updated.tradeConfirmation?.lines[0]).toMatchObject({
+      productId: 'iprod-btc',
+      unitPrice: 100500,
+    })
   })
 
   it('deleteTransfer resolves on success', async () => {

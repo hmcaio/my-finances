@@ -1,10 +1,19 @@
 /**
- * Pure helpers behind the transfer form's buy/sell fields (F009 spec). Everything here is a
- * *suggestion* shown to the user - the backend records quantity, unit price and taxes but never
- * computes anything from them, so `amount` and `resultingBalance` stay whatever the user submits.
+ * Pure helpers behind the trade-confirmation form's fields (F027 spec, ADR 0024): per-line totals
+ * and the overall net-settlement preview, mirroring the backend's `TradeConfirmation.netCost` -
+ * sum each line's `quantity x unitPrice`, net BUY against SELL, add taxes once, round only the
+ * final figure. This is a *preview*: the backend is the one that actually derives and enforces
+ * `amount`/direction on submit (ADR 0024 reverses F009/ADR 0012's "the backend doesn't enforce
+ * the equality" for a trade confirmation).
  */
 
-export type TradeDirection = 'buy' | 'sell'
+export type TradeSide = 'BUY' | 'SELL'
+
+export interface TradeLineInput {
+  side: TradeSide
+  quantity: number | null
+  unitPrice: number | null
+}
 
 /** Rounds to cents, avoiding float noise like `100.10000000000001`. */
 export function round2(value: number): number {
@@ -15,56 +24,35 @@ function isPositive(value: number | null | undefined): value is number {
   return value !== null && value !== undefined && Number.isFinite(value) && value > 0
 }
 
-/** The gross traded value, `quantity x unitPrice`; `null` unless both are positive numbers. */
-export function grossFromQuantityAndPrice(
-  quantity: number | null,
-  unitPrice: number | null,
-): number | null {
+/** One line's total, `quantity x unitPrice`; `null` unless both are positive numbers. */
+export function lineTotal(quantity: number | null, unitPrice: number | null): number | null {
   if (!isPositive(quantity) || !isPositive(unitPrice)) return null
-  return round2(quantity * unitPrice)
+  return quantity * unitPrice
 }
 
 /**
- * The cash that moves: buy `quantity x price + taxes`, sell `quantity x price - taxes`. `null`
- * until quantity and price are both given, so the form leaves `amount` alone.
+ * The settlement's net preview across every line plus taxes: BUY lines add, SELL lines subtract,
+ * taxes add once, rounded only at the end (HALF_UP via `round2`) - mirrors the backend's
+ * `TradeConfirmation.netCost`. `null` when any line's total isn't computable yet (quantity/unit
+ * price still missing), so the form shows a prompt instead of a wrong number.
  */
-export function tradeTotal(
-  direction: TradeDirection,
-  quantity: number | null,
-  unitPrice: number | null,
-  taxes: number | null,
-): number | null {
-  const gross = grossFromQuantityAndPrice(quantity, unitPrice)
-  if (gross === null) return null
+export function netSettlementPreview(lines: TradeLineInput[], taxes: number | null): number | null {
+  let net = 0
+  for (const line of lines) {
+    const total = lineTotal(line.quantity, line.unitPrice)
+    if (total === null) return null
+    net += line.side === 'BUY' ? total : -total
+  }
   const fee = taxes !== null && Number.isFinite(taxes) ? taxes : 0
-  return round2(direction === 'buy' ? gross + fee : gross - fee)
+  return round2(net + fee)
 }
 
 /**
- * The value traded before taxes: `quantity x price` when both are given, otherwise backed out of
- * `amount` (buy: `amount - taxes`; sell: `amount + taxes`).
+ * The direction a net settlement resolves to: positive is a net cost (cash account -> investment
+ * account), negative is net proceeds (investment account -> cash account). `null` for a net of
+ * exactly zero - the backend rejects that confirmation outright.
  */
-export function grossTradedValue(
-  direction: TradeDirection,
-  amount: number,
-  taxes: number | null,
-  quantity: number | null,
-  unitPrice: number | null,
-): number {
-  const fromUnits = grossFromQuantityAndPrice(quantity, unitPrice)
-  if (fromUnits !== null) return fromUnits
-  const fee = taxes !== null && Number.isFinite(taxes) ? taxes : 0
-  return round2(direction === 'buy' ? amount - fee : amount + fee)
-}
-
-/**
- * The suggested resulting balance: the prior latest snapshot moved by the gross traded value (up
- * for a buy, down - never below zero - for a sell). The user edits it to the broker's real balance.
- */
-export function suggestedResultingBalance(
-  direction: TradeDirection,
-  latestBalance: number,
-  gross: number,
-): number {
-  return round2(direction === 'buy' ? latestBalance + gross : Math.max(0, latestBalance - gross))
+export function netSettlementDirection(net: number | null): 'cost' | 'proceeds' | null {
+  if (net === null || net === 0) return null
+  return net > 0 ? 'cost' : 'proceeds'
 }

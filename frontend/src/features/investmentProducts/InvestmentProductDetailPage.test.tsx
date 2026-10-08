@@ -61,20 +61,23 @@ describe('InvestmentProductDetailPage', () => {
     expect(dates).toEqual(seedBitcoinSnapshots.map((s) => s.date))
   })
 
-  it('lists the trades with their derived direction and record-only details', async () => {
+  it('lists one row per line with its derived side, quantity/unit price and a link to the confirmation', async () => {
     renderDetail()
     const trades = await screen.findByRole('table', { name: 'Trades' })
+    await within(trades).findByText(seedBitcoinBuyTransfer.date)
 
-    const buy = (await within(trades).findByText(seedBitcoinBuyTransfer.description)).closest('tr')!
+    const buy = within(trades).getByText(seedBitcoinBuyTransfer.date).closest('tr')!
     expect(within(buy).getByText('Buy')).toBeInTheDocument()
-    expect(within(buy).getByText('1005.00')).toBeInTheDocument()
     expect(within(buy).getByText('0.01')).toBeInTheDocument()
     expect(within(buy).getByText('100000')).toBeInTheDocument()
-    expect(within(buy).getByText('5.00')).toBeInTheDocument()
-    const sell = within(trades).getByText(seedBitcoinSellTransfer.description).closest('tr')!
+    expect(within(buy).getByRole('link', { name: 'View confirmation' })).toHaveAttribute(
+      'href',
+      `/transfers?focus=${seedBitcoinBuyTransfer.id}`,
+    )
+    const sell = within(trades).getByText(seedBitcoinSellTransfer.date).closest('tr')!
     expect(within(sell).getByText('Sell')).toBeInTheDocument()
-    // No quantity, price or taxes recorded for the sell.
-    expect(within(sell).getAllByText('-')).toHaveLength(3)
+    // No Taxes column at all - a confirmation's taxes cover its whole settlement, not one line.
+    expect(within(trades).queryByRole('columnheader', { name: 'Taxes' })).not.toBeInTheDocument()
   })
 
   it('draws the value/contribution chart and lists the raw monthly numbers with units', async () => {
@@ -285,21 +288,22 @@ describe('InvestmentProductDetailPage', () => {
     await user.click(screen.getByRole('button', { name: 'Buy' }))
     const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByRole('textbox', { name: 'Description' })).toHaveValue('Buy Bitcoin')
-    expect(within(dialog).getByRole('combobox', { name: 'To Account' })).toHaveTextContent(
+    expect(within(dialog).getByRole('combobox', { name: 'Investment Account' })).toHaveTextContent(
       seedInvestmentAccount.name,
     )
     expect(await within(dialog).findByRole('combobox', { name: 'Product' })).toHaveTextContent(
       'Bitcoin',
     )
 
-    await selectOption(user, 'From Account', seedAccounts[0].name, within(dialog))
-    await user.type(within(dialog).getByRole('spinbutton', { name: 'Amount' }), '100')
+    await selectOption(user, 'Cash Account', seedAccounts[0].name, within(dialog))
+    await user.type(within(dialog).getByRole('spinbutton', { name: 'Quantity' }), '1')
+    await user.type(within(dialog).getByRole('spinbutton', { name: 'Unit price' }), '100')
     await user.click(within(dialog).getByRole('button', { name: 'Add' }))
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
 
-  it('opens the Sell form with the investment account as the source', async () => {
+  it('opens the Sell form with the investment account on the SELL side and "Close this holding" available', async () => {
     const user = userEvent.setup({ delay: null })
     renderDetail()
     await screen.findByRole('heading', { name: 'Bitcoin' })
@@ -307,11 +311,11 @@ describe('InvestmentProductDetailPage', () => {
     await user.click(screen.getByRole('button', { name: 'Sell' }))
 
     const dialog = await screen.findByRole('dialog')
-    expect(within(dialog).getByRole('combobox', { name: 'From Account' })).toHaveTextContent(
+    expect(within(dialog).getByRole('combobox', { name: 'Investment Account' })).toHaveTextContent(
       seedInvestmentAccount.name,
     )
     expect(
-      await within(dialog).findByRole('checkbox', { name: 'Sold entire position' }),
+      await within(dialog).findByRole('checkbox', { name: 'Close this holding' }),
     ).toBeInTheDocument()
   })
 
@@ -369,7 +373,7 @@ describe('InvestmentProductDetailPage responsive layout (F021)', () => {
 
       expect(screen.queryByRole('table', { name: 'Trades' })).not.toBeInTheDocument()
       const trades = await screen.findByRole('list', { name: 'Trades' })
-      expect(within(trades).getByText(seedBitcoinBuyTransfer.description)).toBeInTheDocument()
+      expect(within(trades).getByText(seedBitcoinBuyTransfer.date)).toBeInTheDocument()
 
       // Only two data columns (Date, Balance): stays a table even on mobile (F021's 1-2-column rule).
       expect(await screen.findByRole('table', { name: 'Snapshot history' })).toBeInTheDocument()
@@ -406,18 +410,15 @@ describe('InvestmentProductDetailPage responsive layout (F021)', () => {
       renderDetail()
       const trades = await screen.findByRole('table', { name: 'Trades' })
 
-      expect(within(trades).getByRole('columnheader', { name: 'Amount' })).toBeInTheDocument()
-      expect(
-        within(trades).queryByRole('columnheader', { name: 'Quantity' }),
-      ).not.toBeInTheDocument()
+      expect(within(trades).getByRole('columnheader', { name: 'Quantity' })).toBeInTheDocument()
       expect(
         within(trades).queryByRole('columnheader', { name: 'Unit price' }),
       ).not.toBeInTheDocument()
-      expect(within(trades).queryByRole('columnheader', { name: 'Taxes' })).not.toBeInTheDocument()
+      expect(
+        within(trades).queryByRole('columnheader', { name: 'Resulting balance' }),
+      ).not.toBeInTheDocument()
 
-      const row = (await within(trades).findByText(seedBitcoinBuyTransfer.description)).closest(
-        'tr',
-      )!
+      const row = (await within(trades).findByText(seedBitcoinBuyTransfer.date)).closest('tr')!
       await user.click(within(row).getByRole('button', { name: 'Show details' }))
       // The unit price (100000) only appears in the expanded trade details, unlike the quantity
       // (0.01), which also shows up in the monthly-values table's Units column.
