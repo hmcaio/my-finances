@@ -163,7 +163,9 @@ class InvestmentProductRepositoryAdapterTest {
   @Test
   void savesAndReloadsTickerAndSegmentId() {
     UUID segmentId =
-        segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Shoppings Repo Test")).getId();
+        segmentRepository
+            .save(InvestmentSegment.create(UUID.randomUUID(), "Shoppings Repo Test"))
+            .getId();
     InvestmentProduct product =
         InvestmentProduct.create(
             UUID.randomUUID(), fixedIncomeId, null, "KNRI11 Repo Test", null, "KNRI11", segmentId);
@@ -179,7 +181,8 @@ class InvestmentProductRepositoryAdapterTest {
 
   @Test
   void tickerAndSegmentIdAreNullWhenNeverSet() {
-    InvestmentProduct product = productRepository.save(newProduct(cryptoId, null, "No Ticker Test"));
+    InvestmentProduct product =
+        productRepository.save(newProduct(cryptoId, null, "No Ticker Test"));
 
     InvestmentProduct reloaded = productRepository.findById(product.getId()).orElseThrow();
     assertThat(reloaded.getTicker()).isNull();
@@ -189,7 +192,9 @@ class InvestmentProductRepositoryAdapterTest {
   @Test
   void existsBySegmentIdBacksTheSegmentDeleteGuard() {
     UUID segmentId =
-        segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Logistica Repo Test")).getId();
+        segmentRepository
+            .save(InvestmentSegment.create(UUID.randomUUID(), "Logistica Repo Test"))
+            .getId();
     assertThat(productRepository.existsBySegmentId(segmentId)).isFalse();
 
     productRepository.save(

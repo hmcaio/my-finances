@@ -108,7 +108,9 @@ public class FiiPortfolioQuery {
         cotasHeld = buy ? cotasHeld.add(quantity) : cotasHeld.subtract(quantity);
       }
       amountContributed =
-          buy ? amountContributed.add(trade.getAmount()) : amountContributed.subtract(trade.getAmount());
+          buy
+              ? amountContributed.add(trade.getAmount())
+              : amountContributed.subtract(trade.getAmount());
     }
 
     BigDecimal currentValue = BigDecimal.ZERO;

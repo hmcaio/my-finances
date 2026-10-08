@@ -11,10 +11,10 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 /**
- * Domain-level unit tests for {@link AllocationPlanVersion}/{@link AllocationPlanEntry} (F026
- * spec, ADR 0023), written before the classes themselves (ADR 0004). Mirrors {@code
- * BudgetVersionTest}'s shape: field invariants, the same-month "replace in place" edit
- * ({@link AllocationPlanVersion#updateEntries}), and {@link AllocationPlanVersion#resolveEffective}.
+ * Domain-level unit tests for {@link AllocationPlanVersion}/{@link AllocationPlanEntry} (F026 spec,
+ * ADR 0023), written before the classes themselves (ADR 0004). Mirrors {@code BudgetVersionTest}'s
+ * shape: field invariants, the same-month "replace in place" edit ({@link
+ * AllocationPlanVersion#updateEntries}), and {@link AllocationPlanVersion#resolveEffective}.
  * Entry-specific invariants (no duplicate product, every percentage positive, sum exactly 100) are
  * this version's own, since a budget has only one cap per version and never had to check this.
  */
@@ -84,7 +84,8 @@ class AllocationPlanVersionTest {
         List.of(entry(productId, "60.00"), entry(productId, "40.00"));
 
     assertThatThrownBy(
-            () -> AllocationPlanVersion.create(UUID.randomUUID(), PLAN_ID, entries, YearMonth.now()))
+            () ->
+                AllocationPlanVersion.create(UUID.randomUUID(), PLAN_ID, entries, YearMonth.now()))
         .isInstanceOf(IllegalArgumentException.class);
   }
 
@@ -99,7 +100,8 @@ class AllocationPlanVersionTest {
             () -> AllocationPlanVersion.create(UUID.randomUUID(), PLAN_ID, tooLow, YearMonth.now()))
         .isInstanceOf(IllegalArgumentException.class);
     assertThatThrownBy(
-            () -> AllocationPlanVersion.create(UUID.randomUUID(), PLAN_ID, tooHigh, YearMonth.now()))
+            () ->
+                AllocationPlanVersion.create(UUID.randomUUID(), PLAN_ID, tooHigh, YearMonth.now()))
         .isInstanceOf(IllegalArgumentException.class);
   }
 
@@ -132,7 +134,8 @@ class AllocationPlanVersionTest {
   @Test
   void updateEntriesReplacesInPlace() {
     AllocationPlanVersion version =
-        AllocationPlanVersion.create(UUID.randomUUID(), PLAN_ID, fullEntries(), YearMonth.of(2026, 3));
+        AllocationPlanVersion.create(
+            UUID.randomUUID(), PLAN_ID, fullEntries(), YearMonth.of(2026, 3));
     List<AllocationPlanEntry> replacement = List.of(entry(UUID.randomUUID(), "100.00"));
 
     version.updateEntries(replacement);
@@ -179,8 +182,7 @@ class AllocationPlanVersionTest {
 
   @Test
   void resolveEffectiveReturnsEmptyWhenNoVersionsGiven() {
-    assertThat(AllocationPlanVersion.resolveEffective(List.of(), YearMonth.of(2026, 1)))
-        .isEmpty();
+    assertThat(AllocationPlanVersion.resolveEffective(List.of(), YearMonth.of(2026, 1))).isEmpty();
   }
 
   @Test

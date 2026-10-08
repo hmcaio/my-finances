@@ -8,9 +8,9 @@ import java.util.UUID;
  * Investment segment aggregate (F026 spec, ADR 0023): a flat, user-editable taxonomy entry
  * describing what kind of real estate an FII holds (Shoppings, Logistica, Papel, Lajes
  * Corporativas, ...), same shape as {@code InvestmentCategory}. Orthogonal to the
- * category/sub-category taxonomy - a sub-category like "REITs (FIIs)" is an asset class, a
- * segment is what kind of real estate it holds - so this is a new, independent aggregate, not a
- * third taxonomy tier. No import of any other aggregate's domain package.
+ * category/sub-category taxonomy - a sub-category like "REITs (FIIs)" is an asset class, a segment
+ * is what kind of real estate it holds - so this is a new, independent aggregate, not a third
+ * taxonomy tier. No import of any other aggregate's domain package.
  */
 public final class InvestmentSegment {
 

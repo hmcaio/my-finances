@@ -49,7 +49,8 @@ class FiiPortfolioQueryTest {
   private final LatestInvestmentSnapshotQuery latestSnapshotQuery =
       new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository);
   private final InvestmentSnapshotFreshnessQuery freshnessQuery =
-      new InvestmentSnapshotFreshnessQuery(latestSnapshotQuery, transferRepository, holdingRepository);
+      new InvestmentSnapshotFreshnessQuery(
+          latestSnapshotQuery, transferRepository, holdingRepository);
   private final FiiPortfolioQuery query =
       new FiiPortfolioQuery(
           productRepository,
@@ -91,10 +92,16 @@ class FiiPortfolioQueryTest {
     UUID brokerBId = UUID.randomUUID();
     InvestmentHolding holdingA =
         holdingRepository.save(
-            InvestmentHoldingMother.holding().withProductId(product.getId()).withAccountId(brokerAId).build());
+            InvestmentHoldingMother.holding()
+                .withProductId(product.getId())
+                .withAccountId(brokerAId)
+                .build());
     InvestmentHolding holdingB =
         holdingRepository.save(
-            InvestmentHoldingMother.holding().withProductId(product.getId()).withAccountId(brokerBId).build());
+            InvestmentHoldingMother.holding()
+                .withProductId(product.getId())
+                .withAccountId(brokerBId)
+                .build());
 
     buy(product, checkingId, brokerAId, "1000.00", "10");
     buy(product, checkingId, brokerBId, "500.00", "5");
@@ -115,9 +122,15 @@ class FiiPortfolioQueryTest {
     UUID checkingId = UUID.randomUUID();
     UUID brokerId = UUID.randomUUID();
     holdingRepository.save(
-        InvestmentHoldingMother.holding().withProductId(knri.getId()).withAccountId(brokerId).build());
+        InvestmentHoldingMother.holding()
+            .withProductId(knri.getId())
+            .withAccountId(brokerId)
+            .build());
     holdingRepository.save(
-        InvestmentHoldingMother.holding().withProductId(hglg.getId()).withAccountId(brokerId).build());
+        InvestmentHoldingMother.holding()
+            .withProductId(hglg.getId())
+            .withAccountId(brokerId)
+            .build());
 
     buy(knri, checkingId, brokerId, "1000.00", "10");
     sell(knri, checkingId, brokerId, "1050.00", "10");
@@ -125,8 +138,10 @@ class FiiPortfolioQueryTest {
 
     List<FiiPortfolioRow> rows = query.portfolio(InvestmentProductStatus.ALL);
 
-    FiiPortfolioRow knriRow = rows.stream().filter(r -> r.productId().equals(knri.getId())).findFirst().orElseThrow();
-    FiiPortfolioRow hglgRow = rows.stream().filter(r -> r.productId().equals(hglg.getId())).findFirst().orElseThrow();
+    FiiPortfolioRow knriRow =
+        rows.stream().filter(r -> r.productId().equals(knri.getId())).findFirst().orElseThrow();
+    FiiPortfolioRow hglgRow =
+        rows.stream().filter(r -> r.productId().equals(hglg.getId())).findFirst().orElseThrow();
     assertThat(knriRow.cotasHeld()).isEqualByComparingTo("0");
     assertThat(hglgRow.cotasHeld()).isEqualByComparingTo("2");
   }
@@ -139,14 +154,28 @@ class FiiPortfolioQueryTest {
     UUID brokerBId = UUID.randomUUID();
     InvestmentHolding holdingA =
         holdingRepository.save(
-            InvestmentHoldingMother.holding().withProductId(product.getId()).withAccountId(brokerAId).build());
+            InvestmentHoldingMother.holding()
+                .withProductId(product.getId())
+                .withAccountId(brokerAId)
+                .build());
     InvestmentHolding holdingB =
         holdingRepository.save(
-            InvestmentHoldingMother.holding().withProductId(product.getId()).withAccountId(brokerBId).build());
+            InvestmentHoldingMother.holding()
+                .withProductId(product.getId())
+                .withAccountId(brokerBId)
+                .build());
     snapshotRepository.save(
-        InvestmentSnapshot.create(UUID.randomUUID(), holdingA.getId(), LocalDate.of(2026, 5, 1), new BigDecimal("1000.00")));
+        InvestmentSnapshot.create(
+            UUID.randomUUID(),
+            holdingA.getId(),
+            LocalDate.of(2026, 5, 1),
+            new BigDecimal("1000.00")));
     snapshotRepository.save(
-        InvestmentSnapshot.create(UUID.randomUUID(), holdingB.getId(), LocalDate.of(2026, 5, 1), new BigDecimal("500.00")));
+        InvestmentSnapshot.create(
+            UUID.randomUUID(),
+            holdingB.getId(),
+            LocalDate.of(2026, 5, 1),
+            new BigDecimal("500.00")));
     buy(product, checkingId, brokerAId, "100.00", "1");
     // A trade after the last snapshot makes holdingA stale.
     InvestmentProduct target = product;
@@ -171,8 +200,7 @@ class FiiPortfolioQueryTest {
   void statusFilterDefaultsToOpenOnlyRows() {
     InvestmentProduct open = fiiProduct("Open Fund", "ABCD11");
     InvestmentProduct closed = fiiProduct("Closed Fund", "EFGH11");
-    holdingRepository.save(
-        InvestmentHoldingMother.holding().withProductId(open.getId()).build());
+    holdingRepository.save(InvestmentHoldingMother.holding().withProductId(open.getId()).build());
     InvestmentHolding closedHolding =
         holdingRepository.save(
             InvestmentHoldingMother.holding().withProductId(closed.getId()).build());
@@ -199,7 +227,8 @@ class FiiPortfolioQueryTest {
                 .withTicker("KNRI11")
                 .withSegmentId(segmentId)
                 .build());
-    holdingRepository.save(InvestmentHoldingMother.holding().withProductId(product.getId()).build());
+    holdingRepository.save(
+        InvestmentHoldingMother.holding().withProductId(product.getId()).build());
 
     List<FiiPortfolioRow> rows = query.portfolio(InvestmentProductStatus.ALL);
 
@@ -215,7 +244,8 @@ class FiiPortfolioQueryTest {
             .withToAccountId(to)
             .withAmount(new BigDecimal(amount))
             .withInvestmentProductId(product.getId())
-            .withTradeDetails(new InvestmentTradeDetails(new BigDecimal(quantity), BigDecimal.ONE, null))
+            .withTradeDetails(
+                new InvestmentTradeDetails(new BigDecimal(quantity), BigDecimal.ONE, null))
             .build());
   }
 
@@ -227,7 +257,8 @@ class FiiPortfolioQueryTest {
             .withToAccountId(to)
             .withAmount(new BigDecimal(amount))
             .withInvestmentProductId(product.getId())
-            .withTradeDetails(new InvestmentTradeDetails(new BigDecimal(quantity), BigDecimal.ONE, null))
+            .withTradeDetails(
+                new InvestmentTradeDetails(new BigDecimal(quantity), BigDecimal.ONE, null))
             .build());
   }
 }

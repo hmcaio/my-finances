@@ -12,8 +12,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * JPA mapping for the {@code allocation_plan_versions} table (F026 spec). {@code effectiveFrom}
- * is stored as a {@code date} - always the first day of the month, same convention as {@code
+ * JPA mapping for the {@code allocation_plan_versions} table (F026 spec). {@code effectiveFrom} is
+ * stored as a {@code date} - always the first day of the month, same convention as {@code
  * BudgetVersionJpaEntity} - converted to/from the domain's {@code YearMonth} only at the adapter
  * boundary.
  */

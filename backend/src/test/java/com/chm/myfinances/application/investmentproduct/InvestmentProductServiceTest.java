@@ -518,13 +518,13 @@ class InvestmentProductServiceTest {
   void createCarriesAnOptionalTickerAndSegmentId() {
     UUID segmentId =
         segmentRepository
-            .save(com.chm.myfinances.domain.investmentsegment.InvestmentSegment.create(
-                UUID.randomUUID(), "Shoppings Test"))
+            .save(
+                com.chm.myfinances.domain.investmentsegment.InvestmentSegment.create(
+                    UUID.randomUUID(), "Shoppings Test"))
             .getId();
 
     InvestmentProduct created =
-        service.create(
-            xpAccountId, fixedIncomeId, cdbId, "KNRI11 Test", null, "KNRI11", segmentId);
+        service.create(xpAccountId, fixedIncomeId, cdbId, "KNRI11 Test", null, "KNRI11", segmentId);
 
     assertThat(created.getTicker()).isEqualTo("KNRI11");
     assertThat(created.getSegmentId()).isEqualTo(segmentId);
@@ -552,13 +552,16 @@ class InvestmentProductServiceTest {
   void editReplacesTickerAndSegmentId() {
     UUID segmentId =
         segmentRepository
-            .save(com.chm.myfinances.domain.investmentsegment.InvestmentSegment.create(
-                UUID.randomUUID(), "Logistica Test"))
+            .save(
+                com.chm.myfinances.domain.investmentsegment.InvestmentSegment.create(
+                    UUID.randomUUID(), "Logistica Test"))
             .getId();
-    InvestmentProduct created = service.create(xpAccountId, fixedIncomeId, cdbId, "HGLG11 Test", null);
+    InvestmentProduct created =
+        service.create(xpAccountId, fixedIncomeId, cdbId, "HGLG11 Test", null);
 
     InvestmentProduct edited =
-        service.edit(created.getId(), fixedIncomeId, cdbId, "HGLG11 Test", null, "HGLG11", segmentId);
+        service.edit(
+            created.getId(), fixedIncomeId, cdbId, "HGLG11 Test", null, "HGLG11", segmentId);
 
     assertThat(edited.getTicker()).isEqualTo("HGLG11");
     assertThat(edited.getSegmentId()).isEqualTo(segmentId);
@@ -566,7 +569,8 @@ class InvestmentProductServiceTest {
 
   @Test
   void editRejectsAnUnknownSegmentId() {
-    InvestmentProduct created = service.create(xpAccountId, fixedIncomeId, cdbId, "HGLG11 Test", null);
+    InvestmentProduct created =
+        service.create(xpAccountId, fixedIncomeId, cdbId, "HGLG11 Test", null);
 
     assertThatThrownBy(
             () ->

@@ -23,8 +23,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * Persistence-layer integration test for {@link AllocationPlanVersionRepositoryAdapter} against a
- * real Testcontainers Postgres (ADR 0010, F026): round trips including the entries child table,
- * and that {@code save} wholesale-replaces a version's entries rather than accumulating rows.
+ * real Testcontainers Postgres (ADR 0010, F026): round trips including the entries child table, and
+ * that {@code save} wholesale-replaces a version's entries rather than accumulating rows.
  */
 @DatabaseIntegrationTest
 class AllocationPlanVersionRepositoryAdapterTest {
@@ -47,11 +47,15 @@ class AllocationPlanVersionRepositoryAdapterTest {
             .getId();
     productAId =
         productRepository
-            .save(InvestmentProduct.create(UUID.randomUUID(), categoryId, null, "KNRI11 Repo Test", null))
+            .save(
+                InvestmentProduct.create(
+                    UUID.randomUUID(), categoryId, null, "KNRI11 Repo Test", null))
             .getId();
     productBId =
         productRepository
-            .save(InvestmentProduct.create(UUID.randomUUID(), categoryId, null, "HGLG11 Repo Test", null))
+            .save(
+                InvestmentProduct.create(
+                    UUID.randomUUID(), categoryId, null, "HGLG11 Repo Test", null))
             .getId();
   }
 

@@ -16,7 +16,9 @@ public record InvestmentProductResponse(
     UUID investmentSubcategoryId,
     String name,
     String additionalNotes,
-    boolean closed) {
+    boolean closed,
+    String ticker,
+    UUID segmentId) {
 
   public static InvestmentProductResponse from(InvestmentProduct product, boolean closed) {
     return new InvestmentProductResponse(
@@ -25,6 +27,8 @@ public record InvestmentProductResponse(
         product.getInvestmentSubcategoryId(),
         product.getName(),
         product.getAdditionalNotes(),
-        closed);
+        closed,
+        product.getTicker(),
+        product.getSegmentId());
   }
 }

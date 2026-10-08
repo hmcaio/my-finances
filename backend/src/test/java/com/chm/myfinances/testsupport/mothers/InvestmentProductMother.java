@@ -65,6 +65,12 @@ public final class InvestmentProductMother {
 
   public InvestmentProduct build() {
     return InvestmentProduct.create(
-        id, investmentCategoryId, investmentSubcategoryId, name, additionalNotes, ticker, segmentId);
+        id,
+        investmentCategoryId,
+        investmentSubcategoryId,
+        name,
+        additionalNotes,
+        ticker,
+        segmentId);
   }
 }

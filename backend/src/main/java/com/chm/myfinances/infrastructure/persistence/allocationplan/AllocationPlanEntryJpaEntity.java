@@ -15,8 +15,8 @@ import lombok.Setter;
  * JPA mapping for the {@code allocation_plan_entries} table (F026 spec): one line of an {@code
  * AllocationPlanVersion}. A plain {@code versionId} column, not a JPA association - same
  * standalone-aggregate style as every other entity in this codebase; {@link
- * AllocationPlanVersionRepositoryAdapter} loads/replaces a version's entries explicitly rather
- * than relying on a JPA collection mapping.
+ * AllocationPlanVersionRepositoryAdapter} loads/replaces a version's entries explicitly rather than
+ * relying on a JPA collection mapping.
  */
 @Entity
 @Table(name = "allocation_plan_entries")

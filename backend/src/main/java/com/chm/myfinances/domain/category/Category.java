@@ -124,8 +124,8 @@ public final class Category {
   }
 
   /**
-   * Whether this is the single dedicated dividend category (F026, ADR 0023): a {@code
-   * Transaction} carries an {@code investmentHoldingId} if and only if its category is this one.
+   * Whether this is the single dedicated dividend category (F026, ADR 0023): a {@code Transaction}
+   * carries an {@code investmentHoldingId} if and only if its category is this one.
    */
   public boolean isDividendCategory() {
     return dividendCategory;

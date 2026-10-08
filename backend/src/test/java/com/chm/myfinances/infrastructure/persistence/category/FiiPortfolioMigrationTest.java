@@ -16,12 +16,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 
 /**
- * Proves {@code V20__fii_segments_allocation_plan_dividends.sql} against pre-existing data
- * (backend {@code CLAUDE.md}'s migration-testing pattern, F026 spec): the fresh-insert "Dividends"
- * seed (never adopting an existing row, unlike V18's fuel-category seed), existing categories/
- * investment products/transactions left untouched, the new nullable columns, and the partial
- * unique index on {@code dividend_category}. Same {@code Flyway-by-hand-into-a-throwaway-schema}
- * setup as {@code FuelTrackingMigrationTest}.
+ * Proves {@code V20__fii_segments_allocation_plan_dividends.sql} against pre-existing data (backend
+ * {@code CLAUDE.md}'s migration-testing pattern, F026 spec): the fresh-insert "Dividends" seed
+ * (never adopting an existing row, unlike V18's fuel-category seed), existing categories/
+ * investment products/transactions left untouched, the new nullable columns, and the partial unique
+ * index on {@code dividend_category}. Same {@code Flyway-by-hand-into-a-throwaway-schema} setup as
+ * {@code FuelTrackingMigrationTest}.
  */
 @Tag("integration")
 @SpringBootTest
@@ -53,8 +53,9 @@ class FiiPortfolioMigrationTest extends AbstractMigrationTest {
   }
 
   @Test
-  void withAnExistingDividendsNamedCategoryTheFreshOneFallsBackToADisambiguatedNameRatherThanAdoptingIt()
-      throws Exception {
+  void
+      withAnExistingDividendsNamedCategoryTheFreshOneFallsBackToADisambiguatedNameRatherThanAdoptingIt()
+          throws Exception {
     flyway("19").migrate();
     UUID existingId;
     try (Connection connection = connection()) {
@@ -90,8 +91,10 @@ class FiiPortfolioMigrationTest extends AbstractMigrationTest {
     UUID transactionId;
     try (Connection connection = connection()) {
       categoryId = insertCategory(connection, "Groceries FII Migration Test", "EXPENSE");
-      investmentCategoryId = insertInvestmentCategory(connection, "Variable Income FII Migration Test");
-      productId = insertInvestmentProduct(connection, investmentCategoryId, "KNRI11 FII Migration Test");
+      investmentCategoryId =
+          insertInvestmentCategory(connection, "Variable Income FII Migration Test");
+      productId =
+          insertInvestmentProduct(connection, investmentCategoryId, "KNRI11 FII Migration Test");
       UUID institutionId = insertInstitution(connection, "Test Institution FII Migration");
       accountId = insertAccount(connection, "Test Account FII Migration", institutionId);
       paymentMethodId = insertPaymentMethod(connection, "Test Payment Method FII Migration");
@@ -101,14 +104,18 @@ class FiiPortfolioMigrationTest extends AbstractMigrationTest {
     flyway("20").migrate();
 
     try (Connection connection = connection()) {
-      assertThat(count(connection, "SELECT count(*) FROM categories WHERE id = '" + categoryId + "'"))
-          .isEqualTo(1);
       assertThat(
-              count(connection, "SELECT count(*) FROM investment_products WHERE id = '" + productId + "'"))
+              count(connection, "SELECT count(*) FROM categories WHERE id = '" + categoryId + "'"))
           .isEqualTo(1);
       assertThat(
               count(
-                  connection, "SELECT count(*) FROM transactions WHERE id = '" + transactionId + "'"))
+                  connection,
+                  "SELECT count(*) FROM investment_products WHERE id = '" + productId + "'"))
+          .isEqualTo(1);
+      assertThat(
+              count(
+                  connection,
+                  "SELECT count(*) FROM transactions WHERE id = '" + transactionId + "'"))
           .isEqualTo(1);
       assertThat(isNullable(connection, "transactions", "investment_holding_id")).isTrue();
       assertThat(isNullable(connection, "investment_products", "ticker")).isTrue();
@@ -137,7 +144,9 @@ class FiiPortfolioMigrationTest extends AbstractMigrationTest {
               () ->
                   execute(
                       connection,
-                      "UPDATE categories SET dividend_category = true WHERE id = '" + anotherId + "'"))
+                      "UPDATE categories SET dividend_category = true WHERE id = '"
+                          + anotherId
+                          + "'"))
           .isInstanceOf(SQLException.class)
           .hasMessageContaining("uq_categories_single_dividend_category");
     }
@@ -149,8 +158,10 @@ class FiiPortfolioMigrationTest extends AbstractMigrationTest {
     UUID investmentCategoryId;
     UUID productId;
     try (Connection connection = connection()) {
-      investmentCategoryId = insertInvestmentCategory(connection, "Variable Income Plan Migration Test");
-      productId = insertInvestmentProduct(connection, investmentCategoryId, "HGLG11 Plan Migration Test");
+      investmentCategoryId =
+          insertInvestmentCategory(connection, "Variable Income Plan Migration Test");
+      productId =
+          insertInvestmentProduct(connection, investmentCategoryId, "HGLG11 Plan Migration Test");
     }
 
     flyway("20").migrate();
@@ -186,7 +197,9 @@ class FiiPortfolioMigrationTest extends AbstractMigrationTest {
       assertThat(
               count(
                   connection,
-                  "SELECT count(*) FROM allocation_plan_entries WHERE version_id = '" + versionId + "'"))
+                  "SELECT count(*) FROM allocation_plan_entries WHERE version_id = '"
+                      + versionId
+                      + "'"))
           .isEqualTo(1);
 
       assertThatThrownBy(
@@ -213,7 +226,8 @@ class FiiPortfolioMigrationTest extends AbstractMigrationTest {
     }
   }
 
-  private static UUID insertCategory(Connection connection, String name, String type) throws SQLException {
+  private static UUID insertCategory(Connection connection, String name, String type)
+      throws SQLException {
     UUID id = UUID.randomUUID();
     try (PreparedStatement statement =
         connection.prepareStatement(
@@ -227,7 +241,8 @@ class FiiPortfolioMigrationTest extends AbstractMigrationTest {
     return id;
   }
 
-  private static UUID insertInvestmentCategory(Connection connection, String name) throws SQLException {
+  private static UUID insertInvestmentCategory(Connection connection, String name)
+      throws SQLException {
     UUID id = UUID.randomUUID();
     try (PreparedStatement statement =
         connection.prepareStatement(
@@ -298,7 +313,8 @@ class FiiPortfolioMigrationTest extends AbstractMigrationTest {
   }
 
   private static UUID insertTransaction(
-      Connection connection, UUID categoryId, UUID accountId, UUID paymentMethodId) throws SQLException {
+      Connection connection, UUID categoryId, UUID accountId, UUID paymentMethodId)
+      throws SQLException {
     UUID id = UUID.randomUUID();
     try (PreparedStatement statement =
         connection.prepareStatement(

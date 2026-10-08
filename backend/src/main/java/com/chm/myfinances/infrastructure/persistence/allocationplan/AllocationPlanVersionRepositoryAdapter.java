@@ -13,14 +13,14 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Adapter implementing the domain's {@link AllocationPlanVersionRepository} port on top of
- * Spring Data/Hibernate (ADR 0004). Translates between the framework-free {@link
- * AllocationPlanVersion} aggregate (with its {@link AllocationPlanEntry} value objects) and two
- * tables: {@code allocation_plan_versions} and {@code allocation_plan_entries}.
+ * Adapter implementing the domain's {@link AllocationPlanVersionRepository} port on top of Spring
+ * Data/Hibernate (ADR 0004). Translates between the framework-free {@link AllocationPlanVersion}
+ * aggregate (with its {@link AllocationPlanEntry} value objects) and two tables: {@code
+ * allocation_plan_versions} and {@code allocation_plan_entries}.
  *
  * <p>{@link AllocationPlanEntry} is a value object with no id of its own, so {@link #save} always
- * replaces a version's entries wholesale - delete every existing row for the version, then insert
- * a fresh one per entry, each with a new id from {@link IdGenerator} (ADR 0005: a persistence-only
+ * replaces a version's entries wholesale - delete every existing row for the version, then insert a
+ * fresh one per entry, each with a new id from {@link IdGenerator} (ADR 0005: a persistence-only
  * row still counts as "a new entity" needing an id from the single generator port, even though the
  * domain-level {@code AllocationPlanEntry} carries none). Two writes, so {@code @Transactional}.
  */
@@ -55,14 +55,19 @@ public class AllocationPlanVersionRepositoryAdapter implements AllocationPlanVer
             .orElseGet(
                 () ->
                     new AllocationPlanVersionJpaEntity(
-                        version.getId(), version.getPlanId(), toFirstOfMonth(version.getEffectiveFrom())));
+                        version.getId(),
+                        version.getPlanId(),
+                        toFirstOfMonth(version.getEffectiveFrom())));
     AllocationPlanVersionJpaEntity saved = versionJpaRepository.save(entity);
 
     entryJpaRepository.deleteByVersionId(version.getId());
     for (AllocationPlanEntry entry : version.getEntries()) {
       entryJpaRepository.save(
           new AllocationPlanEntryJpaEntity(
-              idGenerator.newId(), version.getId(), entry.investmentProductId(), entry.targetPercentage()));
+              idGenerator.newId(),
+              version.getId(),
+              entry.investmentProductId(),
+              entry.targetPercentage()));
     }
 
     return toDomain(saved, entryJpaRepository.findByVersionId(version.getId()));
@@ -76,7 +81,8 @@ public class AllocationPlanVersionRepositoryAdapter implements AllocationPlanVer
   }
 
   @Override
-  public Optional<AllocationPlanVersion> findByPlanIdAndEffectiveFrom(UUID planId, YearMonth effectiveFrom) {
+  public Optional<AllocationPlanVersion> findByPlanIdAndEffectiveFrom(
+      UUID planId, YearMonth effectiveFrom) {
     return versionJpaRepository
         .findByPlanIdAndEffectiveFrom(planId, toFirstOfMonth(effectiveFrom))
         .map(entity -> toDomain(entity, entryJpaRepository.findByVersionId(entity.getId())));

@@ -25,22 +25,22 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use cases for {@link AllocationPlan}/{@link AllocationPlanVersion}: resolve the effective
- * version, list history, and set the allocation (F026 spec, ADR 0023). New ids come from the
- * {@link IdGenerator} port (ADR 0005).
+ * version, list history, and set the allocation (F026 spec, ADR 0023). New ids come from the {@link
+ * IdGenerator} port (ADR 0005).
  *
- * <p>The {@link AllocationPlan} marker row isn't user-creatable - {@link #setAllocation} creates
- * it on first use (mirroring {@code BudgetService.create}'s two-write shape, but here there's
- * only ever one plan row, created implicitly rather than per category). {@link #getCurrent}/{@link
+ * <p>The {@link AllocationPlan} marker row isn't user-creatable - {@link #setAllocation} creates it
+ * on first use (mirroring {@code BudgetService.create}'s two-write shape, but here there's only
+ * ever one plan row, created implicitly rather than per category). {@link #getCurrent}/{@link
  * #findVersions} never create it - a read before any allocation has ever been set simply reports
  * nothing (an empty {@link Optional}/list), not a side-effecting row.
  *
  * <p>{@link #setAllocation} validates every entry's product exists (404, {@link
  * InvestmentProductNotFoundException}) and is classified under the "REITs (FIIs)" sub-category
- * (409, {@link AllocationPlanEntryNotFiiException}), then - before touching the domain, which
- * would otherwise raise a plain, unmapped {@code IllegalArgumentException} (500) - rejects a
- * duplicate product (400, {@link AllocationPlanDuplicateProductException}) and a sum other than
- * exactly 100 (400, {@link AllocationPlanSumInvalidException}). Mirrors {@code
- * BudgetService.setCap}'s same-month "replace, don't duplicate" rule.
+ * (409, {@link AllocationPlanEntryNotFiiException}), then - before touching the domain, which would
+ * otherwise raise a plain, unmapped {@code IllegalArgumentException} (500) - rejects a duplicate
+ * product (400, {@link AllocationPlanDuplicateProductException}) and a sum other than exactly 100
+ * (400, {@link AllocationPlanSumInvalidException}). Mirrors {@code BudgetService.setCap}'s
+ * same-month "replace, don't duplicate" rule.
  */
 @Service
 public class AllocationPlanService {
@@ -82,7 +82,10 @@ public class AllocationPlanService {
 
   /** Every version ever set, in no particular order, or empty if none has ever been set. */
   public List<AllocationPlanVersion> findVersions() {
-    return planRepository.findFirst().map(p -> versionRepository.findByPlanId(p.getId())).orElse(List.of());
+    return planRepository
+        .findFirst()
+        .map(p -> versionRepository.findByPlanId(p.getId()))
+        .orElse(List.of());
   }
 
   /**
@@ -90,7 +93,8 @@ public class AllocationPlanService {
    * for that exact month if one already exists (the one allowed same-month correction).
    */
   @Transactional
-  public AllocationPlanVersion setAllocation(List<AllocationPlanEntry> entries, YearMonth effectiveFrom) {
+  public AllocationPlanVersion setAllocation(
+      List<AllocationPlanEntry> entries, YearMonth effectiveFrom) {
     requireValidEntries(entries);
     AllocationPlan plan =
         planRepository

@@ -42,7 +42,9 @@ public class InvestmentSegmentRepositoryAdapter implements InvestmentSegmentRepo
 
   @Override
   public List<InvestmentSegment> findAll() {
-    return jpaRepository.findAll().stream().map(InvestmentSegmentRepositoryAdapter::toDomain).toList();
+    return jpaRepository.findAll().stream()
+        .map(InvestmentSegmentRepositoryAdapter::toDomain)
+        .toList();
   }
 
   @Override

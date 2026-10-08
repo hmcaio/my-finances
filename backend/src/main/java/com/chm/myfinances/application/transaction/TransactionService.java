@@ -119,8 +119,8 @@ public class TransactionService {
   }
 
   /**
-   * Same as the 9-argument overload, but with no {@code investmentHoldingId} (F026). Most
-   * existing callers never set one.
+   * Same as the 9-argument overload, but with no {@code investmentHoldingId} (F026). Most existing
+   * callers never set one.
    */
   public Transaction create(
       LocalDate date,
@@ -148,9 +148,9 @@ public class TransactionService {
   /**
    * Full create, accepting optional {@code fuelDetails} (F024) and/or {@code investmentHoldingId}
    * (F026) - the overload {@code TransactionController} calls. {@code requireValidFuelShape}/
-   * {@code requireValidInvestmentHoldingShape} each enforce their own category-gated XOR
-   * invariant independently - fuel and dividend are two separate categories, never both at once
-   * in practice, but nothing here assumes that.
+   * {@code requireValidInvestmentHoldingShape} each enforce their own category-gated XOR invariant
+   * independently - fuel and dividend are two separate categories, never both at once in practice,
+   * but nothing here assumes that.
    */
   public Transaction create(
       LocalDate date,
@@ -344,9 +344,9 @@ public class TransactionService {
   }
 
   /**
-   * The F026 dividend invariant (see class javadoc): {@code investmentHoldingId} present iff
-   * {@code category} is the dividend category, and when present it must resolve to an existing
-   * {@code InvestmentHolding}.
+   * The F026 dividend invariant (see class javadoc): {@code investmentHoldingId} present iff {@code
+   * category} is the dividend category, and when present it must resolve to an existing {@code
+   * InvestmentHolding}.
    */
   private void requireValidInvestmentHoldingShape(Category category, UUID investmentHoldingId) {
     boolean hasInvestmentHoldingId = investmentHoldingId != null;

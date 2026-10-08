@@ -23,13 +23,17 @@ public class AllocationPlanRepositoryAdapter implements AllocationPlanRepository
   @Override
   public AllocationPlan save(AllocationPlan plan) {
     AllocationPlanJpaEntity entity =
-        jpaRepository.findById(plan.getId()).orElseGet(() -> new AllocationPlanJpaEntity(plan.getId()));
+        jpaRepository
+            .findById(plan.getId())
+            .orElseGet(() -> new AllocationPlanJpaEntity(plan.getId()));
     return toDomain(jpaRepository.save(entity));
   }
 
   @Override
   public Optional<AllocationPlan> findFirst() {
-    return jpaRepository.findAll(PageRequest.of(0, 1)).stream().findFirst().map(AllocationPlanRepositoryAdapter::toDomain);
+    return jpaRepository.findAll(PageRequest.of(0, 1)).stream()
+        .findFirst()
+        .map(AllocationPlanRepositoryAdapter::toDomain);
   }
 
   private static AllocationPlan toDomain(AllocationPlanJpaEntity entity) {

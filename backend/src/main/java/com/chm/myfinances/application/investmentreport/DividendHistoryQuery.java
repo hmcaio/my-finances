@@ -65,20 +65,26 @@ public class DividendHistoryQuery {
         .toList();
   }
 
-  /** Dividend totals grouped by ticker, within {@code from}/{@code to} (either may be {@code null}). */
+  /**
+   * Dividend totals grouped by ticker, within {@code from}/{@code to} (either may be {@code null}).
+   */
   public List<DividendTotalByTicker> totalsByTicker(LocalDate from, LocalDate to) {
     Map<UUID, DividendTotalByTicker> byProduct = new LinkedHashMap<>();
     for (DividendRow row : dividends(null, from, to)) {
       DividendTotalByTicker existing = byProduct.get(row.productId());
-      BigDecimal amount = (existing == null ? BigDecimal.ZERO : existing.amount()).add(row.amount());
-      byProduct.put(row.productId(), new DividendTotalByTicker(row.productId(), row.ticker(), amount));
+      BigDecimal amount =
+          (existing == null ? BigDecimal.ZERO : existing.amount()).add(row.amount());
+      byProduct.put(
+          row.productId(), new DividendTotalByTicker(row.productId(), row.ticker(), amount));
     }
     return byProduct.values().stream()
         .sorted(Comparator.comparing(t -> t.ticker() == null ? "" : t.ticker()))
         .toList();
   }
 
-  /** Dividend totals grouped by month, within {@code from}/{@code to} (either may be {@code null}). */
+  /**
+   * Dividend totals grouped by month, within {@code from}/{@code to} (either may be {@code null}).
+   */
   public List<DividendTotalByMonth> totalsByMonth(LocalDate from, LocalDate to) {
     Map<YearMonth, BigDecimal> byMonth = new LinkedHashMap<>();
     for (DividendRow row : dividends(null, from, to)) {
@@ -93,7 +99,8 @@ public class DividendHistoryQuery {
 
   private DividendRow toRow(Transaction transaction) {
     UUID holdingId = transaction.getInvestmentHoldingId();
-    InvestmentHolding holding = holdingId == null ? null : holdingRepository.findById(holdingId).orElse(null);
+    InvestmentHolding holding =
+        holdingId == null ? null : holdingRepository.findById(holdingId).orElse(null);
     InvestmentProduct product =
         holding == null ? null : productRepository.findById(holding.getProductId()).orElse(null);
     return new DividendRow(

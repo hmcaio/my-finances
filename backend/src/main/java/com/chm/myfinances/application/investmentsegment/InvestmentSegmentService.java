@@ -9,15 +9,15 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 /**
- * Use cases for {@link InvestmentSegment}: create/rename/findAll/delete (F026 spec, ADR 0023).
- * New ids come from the {@link IdGenerator} port (ADR 0005). Same shape as {@code
+ * Use cases for {@link InvestmentSegment}: create/rename/findAll/delete (F026 spec, ADR 0023). New
+ * ids come from the {@link IdGenerator} port (ADR 0005). Same shape as {@code
  * InvestmentCategoryService}.
  *
  * <p>Create/rename reject a duplicate name (409, {@link
  * InvestmentSegmentNameAlreadyExistsException}), exact match, case-sensitive. Delete is a 409
  * ({@link InvestmentSegmentInUseException}) while any {@code InvestmentProduct} still references
- * the segment ({@link InvestmentProductRepository#existsBySegmentId}) - same
- * referenced-by-product pattern as {@code InvestmentSubcategoryService}/{@code VehicleService}.
+ * the segment ({@link InvestmentProductRepository#existsBySegmentId}) - same referenced-by-product
+ * pattern as {@code InvestmentSubcategoryService}/{@code VehicleService}.
  */
 @Service
 public class InvestmentSegmentService {

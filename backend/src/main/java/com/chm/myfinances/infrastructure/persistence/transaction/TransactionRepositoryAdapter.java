@@ -147,7 +147,8 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
   }
 
   @Override
-  public List<Transaction> findByCategoryIdAndDateRange(UUID categoryId, LocalDate from, LocalDate to) {
+  public List<Transaction> findByCategoryIdAndDateRange(
+      UUID categoryId, LocalDate from, LocalDate to) {
     Specification<TransactionJpaEntity> spec =
         (root, query, criteriaBuilder) -> {
           List<Predicate> predicates = new ArrayList<>();

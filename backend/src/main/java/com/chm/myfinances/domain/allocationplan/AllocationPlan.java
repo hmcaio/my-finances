@@ -4,11 +4,11 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * AllocationPlan aggregate (F026 spec, ADR 0023): a one-row marker, like {@code Budget} is one
- * row per category except there is exactly one of these ever, period, no other fields. Its
- * versioned history ({@link AllocationPlanVersion}) carries every target percentage.
- * {@code AllocationPlanService} ensures this row exists (created on first use) rather than it
- * being user-creatable via the API.
+ * AllocationPlan aggregate (F026 spec, ADR 0023): a one-row marker, like {@code Budget} is one row
+ * per category except there is exactly one of these ever, period, no other fields. Its versioned
+ * history ({@link AllocationPlanVersion}) carries every target percentage. {@code
+ * AllocationPlanService} ensures this row exists (created on first use) rather than it being
+ * user-creatable via the API.
  */
 public final class AllocationPlan {
 

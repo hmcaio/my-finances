@@ -55,7 +55,9 @@ class AllocationPlanServiceTest {
         subcategoryRepository
             .save(
                 InvestmentSubcategory.create(
-                    UUID.randomUUID(), variableIncomeId, AllocationPlanService.FII_SUBCATEGORY_NAME))
+                    UUID.randomUUID(),
+                    variableIncomeId,
+                    AllocationPlanService.FII_SUBCATEGORY_NAME))
             .getId();
     UUID otherSubcategoryId =
         subcategoryRepository
@@ -133,8 +135,7 @@ class AllocationPlanServiceTest {
     assertThatThrownBy(
             () ->
                 service.setAllocation(
-                    List.of(entry(knri11Id, "60.00"), entry(hglg11Id, "39.00")),
-                    YearMonth.now()))
+                    List.of(entry(knri11Id, "60.00"), entry(hglg11Id, "39.00")), YearMonth.now()))
         .isInstanceOf(AllocationPlanSumInvalidException.class);
     assertThat(service.findVersions()).isEmpty();
   }
@@ -142,16 +143,15 @@ class AllocationPlanServiceTest {
   @Test
   void setAllocationRejectsANonFiiProduct() {
     assertThatThrownBy(
-            () ->
-                service.setAllocation(
-                    List.of(entry(nonFiiProductId, "100.00")), YearMonth.now()))
+            () -> service.setAllocation(List.of(entry(nonFiiProductId, "100.00")), YearMonth.now()))
         .isInstanceOf(AllocationPlanEntryNotFiiException.class);
   }
 
   @Test
   void setAllocationRejectsAnUnknownProduct() {
     assertThatThrownBy(
-            () -> service.setAllocation(List.of(entry(UUID.randomUUID(), "100.00")), YearMonth.now()))
+            () ->
+                service.setAllocation(List.of(entry(UUID.randomUUID(), "100.00")), YearMonth.now()))
         .isInstanceOf(InvestmentProductNotFoundException.class);
   }
 

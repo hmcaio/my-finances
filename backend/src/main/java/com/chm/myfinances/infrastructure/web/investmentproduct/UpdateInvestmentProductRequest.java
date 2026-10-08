@@ -15,4 +15,6 @@ public record UpdateInvestmentProductRequest(
     @NotNull UUID investmentCategoryId,
     UUID investmentSubcategoryId,
     @NotBlank @Size(max = TextFieldConstraints.MAX_NAME_LENGTH) String name,
-    @Size(max = TextFieldConstraints.MAX_ADDITIONAL_NOTES_LENGTH) String additionalNotes) {}
+    @Size(max = TextFieldConstraints.MAX_ADDITIONAL_NOTES_LENGTH) String additionalNotes,
+    @Size(max = TextFieldConstraints.MAX_NAME_LENGTH) String ticker,
+    UUID segmentId) {}

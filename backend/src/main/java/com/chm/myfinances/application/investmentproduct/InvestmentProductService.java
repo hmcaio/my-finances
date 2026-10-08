@@ -70,7 +70,8 @@ public class InvestmentProductService {
    * Creates the product (with no ticker/segment) and its first holding in {@code accountId}
    * together. See the 7-argument overload (F026) for the full behavior; other callers (and most
    * existing tests) that never set a ticker/segment keep using this shorter form, same "short
-   * overload delegates with nulls" convention as {@code Transaction.create}/{@code Transfer.create}.
+   * overload delegates with nulls" convention as {@code Transaction.create}/{@code
+   * Transfer.create}.
    */
   @Transactional
   public InvestmentProduct create(
@@ -79,7 +80,14 @@ public class InvestmentProductService {
       UUID investmentSubcategoryId,
       String name,
       String additionalNotes) {
-    return create(accountId, investmentCategoryId, investmentSubcategoryId, name, additionalNotes, null, null);
+    return create(
+        accountId,
+        investmentCategoryId,
+        investmentSubcategoryId,
+        name,
+        additionalNotes,
+        null,
+        null);
   }
 
   /**
@@ -206,7 +214,8 @@ public class InvestmentProductService {
       UUID investmentSubcategoryId,
       String name,
       String additionalNotes) {
-    return edit(id, investmentCategoryId, investmentSubcategoryId, name, additionalNotes, null, null);
+    return edit(
+        id, investmentCategoryId, investmentSubcategoryId, name, additionalNotes, null, null);
   }
 
   /**
@@ -227,7 +236,8 @@ public class InvestmentProductService {
     if (productRepository.existsByNameAndIdNot(name, id)) {
       throw new InvestmentProductNameAlreadyExistsException(name);
     }
-    product.edit(investmentCategoryId, investmentSubcategoryId, name, additionalNotes, ticker, segmentId);
+    product.edit(
+        investmentCategoryId, investmentSubcategoryId, name, additionalNotes, ticker, segmentId);
     return productRepository.save(product);
   }
 

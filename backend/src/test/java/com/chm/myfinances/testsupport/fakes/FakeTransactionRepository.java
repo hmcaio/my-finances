@@ -102,7 +102,8 @@ public final class FakeTransactionRepository extends InMemoryRepository<Transact
   }
 
   @Override
-  public List<Transaction> findByCategoryIdAndDateRange(UUID categoryId, LocalDate from, LocalDate to) {
+  public List<Transaction> findByCategoryIdAndDateRange(
+      UUID categoryId, LocalDate from, LocalDate to) {
     return values().stream()
         .filter(t -> t.getCategoryId().equals(categoryId))
         .filter(t -> from == null || !t.getDate().isBefore(from))

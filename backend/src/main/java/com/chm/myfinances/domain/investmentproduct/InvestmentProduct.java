@@ -17,11 +17,11 @@ import java.util.UUID;
  * InvestmentProductService}.
  *
  * <p>F026 (ADR 0023) adds optional {@code ticker} and {@code segmentId}, generalized rather than
- * FII-scoped: any product may carry them, usable later by a stock/ETF feature without a
- * migration, even though the FII page is the only UI that manages them for v1. No invariant here
- * links them to the category/sub-category - that the allocation plan only accepts FII-subcategory
- * products is an {@code AllocationPlanService} concern. {@code segmentId} is held by id only -
- * this class doesn't import {@code domain.investmentsegment}.
+ * FII-scoped: any product may carry them, usable later by a stock/ETF feature without a migration,
+ * even though the FII page is the only UI that manages them for v1. No invariant here links them to
+ * the category/sub-category - that the allocation plan only accepts FII-subcategory products is an
+ * {@code AllocationPlanService} concern. {@code segmentId} is held by id only - this class doesn't
+ * import {@code domain.investmentsegment}.
  */
 public final class InvestmentProduct {
 
@@ -51,14 +51,17 @@ public final class InvestmentProduct {
     this.segmentId = segmentId;
   }
 
-  /** Creates a brand-new product with no ticker/segment. {@code id} comes from {@code IdGenerator}. */
+  /**
+   * Creates a brand-new product with no ticker/segment. {@code id} comes from {@code IdGenerator}.
+   */
   public static InvestmentProduct create(
       UUID id,
       UUID investmentCategoryId,
       UUID investmentSubcategoryId,
       String name,
       String additionalNotes) {
-    return create(id, investmentCategoryId, investmentSubcategoryId, name, additionalNotes, null, null);
+    return create(
+        id, investmentCategoryId, investmentSubcategoryId, name, additionalNotes, null, null);
   }
 
   /**
@@ -74,7 +77,13 @@ public final class InvestmentProduct {
       String ticker,
       UUID segmentId) {
     return new InvestmentProduct(
-        id, investmentCategoryId, investmentSubcategoryId, name, additionalNotes, ticker, segmentId);
+        id,
+        investmentCategoryId,
+        investmentSubcategoryId,
+        name,
+        additionalNotes,
+        ticker,
+        segmentId);
   }
 
   /** Rebuilds a product (with no ticker/segment) from already-validated persisted state. */
@@ -98,7 +107,13 @@ public final class InvestmentProduct {
       String ticker,
       UUID segmentId) {
     return new InvestmentProduct(
-        id, investmentCategoryId, investmentSubcategoryId, name, additionalNotes, ticker, segmentId);
+        id,
+        investmentCategoryId,
+        investmentSubcategoryId,
+        name,
+        additionalNotes,
+        ticker,
+        segmentId);
   }
 
   /**
@@ -110,7 +125,13 @@ public final class InvestmentProduct {
       UUID newInvestmentSubcategoryId,
       String newName,
       String newAdditionalNotes) {
-    edit(newInvestmentCategoryId, newInvestmentSubcategoryId, newName, newAdditionalNotes, null, null);
+    edit(
+        newInvestmentCategoryId,
+        newInvestmentSubcategoryId,
+        newName,
+        newAdditionalNotes,
+        null,
+        null);
   }
 
   /**

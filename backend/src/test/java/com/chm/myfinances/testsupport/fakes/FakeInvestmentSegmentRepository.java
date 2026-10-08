@@ -5,8 +5,8 @@ import com.chm.myfinances.domain.investmentsegment.InvestmentSegmentRepository;
 import java.util.UUID;
 
 /**
- * In-memory test double for {@link InvestmentSegmentRepository}, shared across
- * application-service tests (F026, same spirit as {@link FakeIdGenerator}).
+ * In-memory test double for {@link InvestmentSegmentRepository}, shared across application-service
+ * tests (F026, same spirit as {@link FakeIdGenerator}).
  */
 public final class FakeInvestmentSegmentRepository extends InMemoryRepository<InvestmentSegment>
     implements InvestmentSegmentRepository {

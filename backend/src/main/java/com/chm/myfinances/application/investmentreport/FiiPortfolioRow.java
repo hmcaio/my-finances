@@ -5,8 +5,8 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 /**
- * One row of the FII portfolio summary (F026 spec, ADR 0023): a product classified under the
- * "REITs (FIIs)" sub-category, aggregated across every one of its holdings/accounts.
+ * One row of the FII portfolio summary (F026 spec, ADR 0023): a product classified under the "REITs
+ * (FIIs)" sub-category, aggregated across every one of its holdings/accounts.
  *
  * <p>{@code cotasHeld}/{@code amountContributed} are computed the same way {@code
  * InvestmentValueSeriesQuery} already derives {@code units}/{@code contributed} - a running total

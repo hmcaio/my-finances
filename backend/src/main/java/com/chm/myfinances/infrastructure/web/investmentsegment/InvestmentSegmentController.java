@@ -34,7 +34,8 @@ public class InvestmentSegmentController {
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
-  public InvestmentSegmentResponse create(@Valid @RequestBody CreateInvestmentSegmentRequest request) {
+  public InvestmentSegmentResponse create(
+      @Valid @RequestBody CreateInvestmentSegmentRequest request) {
     InvestmentSegment segment = segmentService.create(request.name());
     return InvestmentSegmentResponse.from(segment);
   }

@@ -92,7 +92,8 @@ public class TransactionController {
             null,
             request.description(),
             request.additionalNotes(),
-            toFuelDetails(request));
+            toFuelDetails(request),
+            request.investmentHoldingId());
     return TransactionResponse.from(transaction);
   }
 
@@ -138,7 +139,8 @@ public class TransactionController {
             request.paymentMethodId(),
             request.description(),
             request.additionalNotes(),
-            toFuelDetails(request));
+            toFuelDetails(request),
+            request.investmentHoldingId());
     return TransactionResponse.from(transaction);
   }
 

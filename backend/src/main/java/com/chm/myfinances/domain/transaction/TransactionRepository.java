@@ -86,16 +86,16 @@ public interface TransactionRepository {
   Map<UUID, BigDecimal> sumExpenseAmountByCategoryForDateRange(LocalDate from, LocalDate to);
 
   /**
-   * Every transaction in {@code categoryId}, optionally bounded by {@code from}/{@code to}
-   * (either or both may be {@code null} - unbounded on that side), ordered by date ascending -
-   * backs F026's {@code DividendHistoryQuery} (the dividend category's own transactions).
+   * Every transaction in {@code categoryId}, optionally bounded by {@code from}/{@code to} (either
+   * or both may be {@code null} - unbounded on that side), ordered by date ascending - backs F026's
+   * {@code DividendHistoryQuery} (the dividend category's own transactions).
    */
   List<Transaction> findByCategoryIdAndDateRange(UUID categoryId, LocalDate from, LocalDate to);
 
   /**
-   * Whether any transaction carries {@code investmentHoldingId} equal to {@code holdingId} (F026)
-   * - available for a future holding-delete guard; not wired to one yet since the spec doesn't
-   * call for blocking a holding's deletion while it has dividend history.
+   * Whether any transaction carries {@code investmentHoldingId} equal to {@code holdingId} (F026) -
+   * available for a future holding-delete guard; not wired to one yet since the spec doesn't call
+   * for blocking a holding's deletion while it has dividend history.
    */
   boolean existsByInvestmentHoldingId(UUID holdingId);
 }

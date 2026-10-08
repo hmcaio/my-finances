@@ -13,8 +13,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
- * Persistence-layer integration test for {@link InvestmentSegmentRepositoryAdapter} against a
- * real Testcontainers Postgres (ADR 0010), so {@code V20} runs for real (F026 spec).
+ * Persistence-layer integration test for {@link InvestmentSegmentRepositoryAdapter} against a real
+ * Testcontainers Postgres (ADR 0010), so {@code V20} runs for real (F026 spec).
  */
 @DatabaseIntegrationTest
 class InvestmentSegmentRepositoryAdapterTest {

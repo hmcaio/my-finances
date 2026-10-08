@@ -32,7 +32,8 @@ class DividendHistoryQueryTest {
   private final FakeInvestmentProductRepository productRepository =
       new FakeInvestmentProductRepository();
   private final DividendHistoryQuery query =
-      new DividendHistoryQuery(transactionRepository, categoryRepository, holdingRepository, productRepository);
+      new DividendHistoryQuery(
+          transactionRepository, categoryRepository, holdingRepository, productRepository);
 
   private final UUID dividendCategoryId =
       categoryRepository
@@ -47,10 +48,18 @@ class DividendHistoryQueryTest {
   private InvestmentHolding hglgHolding;
 
   private void setUpProducts() {
-    knri = productRepository.save(InvestmentProductMother.product().withName("KNRI11 Fund").withTicker("KNRI11").build());
-    hglg = productRepository.save(InvestmentProductMother.product().withName("HGLG11 Fund").withTicker("HGLG11").build());
-    knriHolding = holdingRepository.save(InvestmentHoldingMother.holding().withProductId(knri.getId()).build());
-    hglgHolding = holdingRepository.save(InvestmentHoldingMother.holding().withProductId(hglg.getId()).build());
+    knri =
+        productRepository.save(
+            InvestmentProductMother.product().withName("KNRI11 Fund").withTicker("KNRI11").build());
+    hglg =
+        productRepository.save(
+            InvestmentProductMother.product().withName("HGLG11 Fund").withTicker("HGLG11").build());
+    knriHolding =
+        holdingRepository.save(
+            InvestmentHoldingMother.holding().withProductId(knri.getId()).build());
+    hglgHolding =
+        holdingRepository.save(
+            InvestmentHoldingMother.holding().withProductId(hglg.getId()).build());
   }
 
   private void dividend(LocalDate date, String amount, UUID holdingId) {
@@ -74,7 +83,8 @@ class DividendHistoryQueryTest {
   void dividendsIsEmptyWhenNoDividendCategoryExistsYet() {
     FakeCategoryRepository emptyCategories = new FakeCategoryRepository();
     DividendHistoryQuery queryWithoutCategory =
-        new DividendHistoryQuery(transactionRepository, emptyCategories, holdingRepository, productRepository);
+        new DividendHistoryQuery(
+            transactionRepository, emptyCategories, holdingRepository, productRepository);
 
     assertThat(queryWithoutCategory.dividends(null, null, null)).isEmpty();
   }
@@ -115,7 +125,12 @@ class DividendHistoryQueryTest {
     List<DividendTotalByTicker> totals = query.totalsByTicker(null, null);
 
     assertThat(totals).hasSize(2);
-    assertThat(totals.stream().filter(t -> "KNRI11".equals(t.ticker())).findFirst().orElseThrow().amount())
+    assertThat(
+            totals.stream()
+                .filter(t -> "KNRI11".equals(t.ticker()))
+                .findFirst()
+                .orElseThrow()
+                .amount())
         .isEqualByComparingTo("75.00");
   }
 

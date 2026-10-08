@@ -189,7 +189,8 @@ class CategoryTest {
   @Test
   void allThreeFlagsAreIndependent() {
     Category category =
-        Category.reconstitute(UUID.randomUUID(), "Dividends", CategoryType.INCOME, true, true, true);
+        Category.reconstitute(
+            UUID.randomUUID(), "Dividends", CategoryType.INCOME, true, true, true);
 
     assertThat(category.isBuiltIn()).isTrue();
     assertThat(category.isFuelCategory()).isTrue();

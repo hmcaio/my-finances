@@ -31,9 +31,9 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 /**
- * Tests for {@link FiiAllocationQuery} (F026 spec, ADR 0023): actual-by-ticker/segment
- * percentages sum to 100 across FII products only, an unsegmented product groups under "No
- * segment", and planned-by-ticker/segment mirror the current {@code AllocationPlanVersion}.
+ * Tests for {@link FiiAllocationQuery} (F026 spec, ADR 0023): actual-by-ticker/segment percentages
+ * sum to 100 across FII products only, an unsegmented product groups under "No segment", and
+ * planned-by-ticker/segment mirror the current {@code AllocationPlanVersion}.
  */
 class FiiAllocationQueryTest {
 
@@ -57,7 +57,8 @@ class FiiAllocationQueryTest {
   private final LatestInvestmentSnapshotQuery latestSnapshotQuery =
       new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository);
   private final InvestmentSnapshotFreshnessQuery freshnessQuery =
-      new InvestmentSnapshotFreshnessQuery(latestSnapshotQuery, transferRepository, holdingRepository);
+      new InvestmentSnapshotFreshnessQuery(
+          latestSnapshotQuery, transferRepository, holdingRepository);
   private final FiiPortfolioQuery portfolioQuery =
       new FiiPortfolioQuery(
           productRepository,
@@ -75,7 +76,8 @@ class FiiAllocationQueryTest {
           subcategoryRepository,
           new com.chm.myfinances.testsupport.fakes.FakeIdGenerator());
   private final FiiAllocationQuery query =
-      new FiiAllocationQuery(portfolioQuery, allocationPlanService, productRepository, segmentRepository, clock);
+      new FiiAllocationQuery(
+          portfolioQuery, allocationPlanService, productRepository, segmentRepository, clock);
 
   private final UUID fiiSubcategoryId =
       subcategoryRepository
@@ -96,9 +98,11 @@ class FiiAllocationQueryTest {
 
   private InvestmentHolding withSnapshot(InvestmentProduct product, String value) {
     InvestmentHolding holding =
-        holdingRepository.save(InvestmentHoldingMother.holding().withProductId(product.getId()).build());
+        holdingRepository.save(
+            InvestmentHoldingMother.holding().withProductId(product.getId()).build());
     snapshotRepository.save(
-        InvestmentSnapshot.create(UUID.randomUUID(), holding.getId(), TODAY.minusDays(1), new BigDecimal(value)));
+        InvestmentSnapshot.create(
+            UUID.randomUUID(), holding.getId(), TODAY.minusDays(1), new BigDecimal(value)));
     return holding;
   }
 
@@ -109,34 +113,48 @@ class FiiAllocationQueryTest {
     withSnapshot(knri, "600.00");
     withSnapshot(hglg, "400.00");
     // A non-FII product with value must not affect the FII-only total.
-    InvestmentProduct nonFii = productRepository.save(InvestmentProductMother.product().withName("Non FII").build());
+    InvestmentProduct nonFii =
+        productRepository.save(InvestmentProductMother.product().withName("Non FII").build());
     withSnapshot(nonFii, "1000.00");
 
-    List<FiiAllocationRow> rows = query.allocation(FiiAllocationBasis.ACTUAL, FiiAllocationGroupBy.TICKER);
+    List<FiiAllocationRow> rows =
+        query.allocation(FiiAllocationBasis.ACTUAL, FiiAllocationGroupBy.TICKER);
 
     assertThat(rows).hasSize(2);
-    BigDecimal sum = rows.stream().map(FiiAllocationRow::percentage).reduce(BigDecimal.ZERO, BigDecimal::add);
+    BigDecimal sum =
+        rows.stream().map(FiiAllocationRow::percentage).reduce(BigDecimal.ZERO, BigDecimal::add);
     assertThat(sum).isEqualByComparingTo("100.00");
-    assertThat(rows.stream().filter(r -> r.key().equals(knri.getId())).findFirst().orElseThrow().percentage())
+    assertThat(
+            rows.stream()
+                .filter(r -> r.key().equals(knri.getId()))
+                .findFirst()
+                .orElseThrow()
+                .percentage())
         .isEqualByComparingTo("60.00");
   }
 
   @Test
   void anUnsegmentedProductGroupsUnderNoSegmentInTheActualSegmentChart() {
-    UUID segmentId = segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Shoppings Test")).getId();
+    UUID segmentId =
+        segmentRepository
+            .save(InvestmentSegment.create(UUID.randomUUID(), "Shoppings Test"))
+            .getId();
     InvestmentProduct segmented = fiiProduct("KNRI11 Fund", "KNRI11", segmentId);
     InvestmentProduct unsegmented = fiiProduct("HGLG11 Fund", "HGLG11", null);
     withSnapshot(segmented, "500.00");
     withSnapshot(unsegmented, "500.00");
 
-    List<FiiAllocationRow> rows = query.allocation(FiiAllocationBasis.ACTUAL, FiiAllocationGroupBy.SEGMENT);
+    List<FiiAllocationRow> rows =
+        query.allocation(FiiAllocationBasis.ACTUAL, FiiAllocationGroupBy.SEGMENT);
 
     assertThat(rows).hasSize(2);
-    assertThat(rows).anySatisfy(r -> {
-      assertThat(r.key()).isNull();
-      assertThat(r.label()).isEqualTo("No segment");
-      assertThat(r.percentage()).isEqualByComparingTo("50.00");
-    });
+    assertThat(rows)
+        .anySatisfy(
+            r -> {
+              assertThat(r.key()).isNull();
+              assertThat(r.label()).isEqualTo("No segment");
+              assertThat(r.percentage()).isEqualByComparingTo("50.00");
+            });
   }
 
   @Test
@@ -156,16 +174,25 @@ class FiiAllocationQueryTest {
             new AllocationPlanEntry(hglg.getId(), new BigDecimal("30.00"))),
         YearMonth.from(TODAY));
 
-    List<FiiAllocationRow> rows = query.allocation(FiiAllocationBasis.PLANNED, FiiAllocationGroupBy.TICKER);
+    List<FiiAllocationRow> rows =
+        query.allocation(FiiAllocationBasis.PLANNED, FiiAllocationGroupBy.TICKER);
 
     assertThat(rows).hasSize(2);
-    assertThat(rows.stream().filter(r -> r.key().equals(knri.getId())).findFirst().orElseThrow().percentage())
+    assertThat(
+            rows.stream()
+                .filter(r -> r.key().equals(knri.getId()))
+                .findFirst()
+                .orElseThrow()
+                .percentage())
         .isEqualByComparingTo("70.00");
   }
 
   @Test
   void plannedBySegmentSumsCorrectly() {
-    UUID segmentId = segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Shoppings Test")).getId();
+    UUID segmentId =
+        segmentRepository
+            .save(InvestmentSegment.create(UUID.randomUUID(), "Shoppings Test"))
+            .getId();
     InvestmentProduct knri = fiiProduct("KNRI11 Fund", "KNRI11", segmentId);
     InvestmentProduct hglg = fiiProduct("HGLG11 Fund", "HGLG11", segmentId);
     InvestmentProduct xplg = fiiProduct("XPLG11 Fund", "XPLG11", null);
@@ -176,10 +203,16 @@ class FiiAllocationQueryTest {
             new AllocationPlanEntry(xplg.getId(), new BigDecimal("30.00"))),
         YearMonth.from(TODAY));
 
-    List<FiiAllocationRow> rows = query.allocation(FiiAllocationBasis.PLANNED, FiiAllocationGroupBy.SEGMENT);
+    List<FiiAllocationRow> rows =
+        query.allocation(FiiAllocationBasis.PLANNED, FiiAllocationGroupBy.SEGMENT);
 
     assertThat(rows).hasSize(2);
-    assertThat(rows.stream().filter(r -> segmentId.equals(r.key())).findFirst().orElseThrow().percentage())
+    assertThat(
+            rows.stream()
+                .filter(r -> segmentId.equals(r.key()))
+                .findFirst()
+                .orElseThrow()
+                .percentage())
         .isEqualByComparingTo("70.00");
     assertThat(rows.stream().filter(r -> r.key() == null).findFirst().orElseThrow().percentage())
         .isEqualByComparingTo("30.00");

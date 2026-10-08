@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-
 import org.springframework.stereotype.Service;
 
 /**
@@ -55,8 +54,7 @@ public class FiiAllocationQuery {
 
   public List<FiiAllocationRow> allocation(FiiAllocationBasis basis, FiiAllocationGroupBy groupBy) {
     return switch (basis) {
-      case ACTUAL ->
-          groupBy == FiiAllocationGroupBy.TICKER ? actualByTicker() : actualBySegment();
+      case ACTUAL -> groupBy == FiiAllocationGroupBy.TICKER ? actualByTicker() : actualBySegment();
       case PLANNED ->
           groupBy == FiiAllocationGroupBy.TICKER ? plannedByTicker() : plannedBySegment();
     };
@@ -70,7 +68,8 @@ public class FiiAllocationQuery {
 
   private List<FiiAllocationRow> actualByTicker() {
     List<FiiPortfolioRow> rows = fiiRowsWithValue();
-    BigDecimal total = rows.stream().map(FiiPortfolioRow::currentValue).reduce(BigDecimal.ZERO, BigDecimal::add);
+    BigDecimal total =
+        rows.stream().map(FiiPortfolioRow::currentValue).reduce(BigDecimal.ZERO, BigDecimal::add);
     if (total.signum() == 0) {
       return List.of();
     }
@@ -88,7 +87,8 @@ public class FiiAllocationQuery {
 
   private List<FiiAllocationRow> actualBySegment() {
     List<FiiPortfolioRow> rows = fiiRowsWithValue();
-    BigDecimal total = rows.stream().map(FiiPortfolioRow::currentValue).reduce(BigDecimal.ZERO, BigDecimal::add);
+    BigDecimal total =
+        rows.stream().map(FiiPortfolioRow::currentValue).reduce(BigDecimal.ZERO, BigDecimal::add);
     if (total.signum() == 0) {
       return List.of();
     }
@@ -102,7 +102,9 @@ public class FiiAllocationQuery {
             e ->
                 new FiiAllocationRow(
                     e.getKey(),
-                    e.getKey() == null ? NO_SEGMENT_LABEL : segmentNames.getOrDefault(e.getKey(), ""),
+                    e.getKey() == null
+                        ? NO_SEGMENT_LABEL
+                        : segmentNames.getOrDefault(e.getKey(), ""),
                     e.getValue(),
                     percentageOf(e.getValue(), total)))
         .sorted(Comparator.comparing(FiiAllocationRow::label))
@@ -110,14 +112,16 @@ public class FiiAllocationQuery {
   }
 
   private List<FiiAllocationRow> plannedByTicker() {
-    Optional<AllocationPlanVersion> current = allocationPlanService.getCurrent(YearMonth.now(clock));
+    Optional<AllocationPlanVersion> current =
+        allocationPlanService.getCurrent(YearMonth.now(clock));
     if (current.isEmpty()) {
       return List.of();
     }
     return current.get().getEntries().stream()
         .map(
             entry -> {
-              InvestmentProduct product = productRepository.findById(entry.investmentProductId()).orElse(null);
+              InvestmentProduct product =
+                  productRepository.findById(entry.investmentProductId()).orElse(null);
               String label =
                   product == null
                       ? entry.investmentProductId().toString()
@@ -130,7 +134,8 @@ public class FiiAllocationQuery {
   }
 
   private List<FiiAllocationRow> plannedBySegment() {
-    Optional<AllocationPlanVersion> current = allocationPlanService.getCurrent(YearMonth.now(clock));
+    Optional<AllocationPlanVersion> current =
+        allocationPlanService.getCurrent(YearMonth.now(clock));
     if (current.isEmpty()) {
       return List.of();
     }
@@ -138,7 +143,10 @@ public class FiiAllocationQuery {
     Map<UUID, BigDecimal> bySegment = new LinkedHashMap<>();
     for (AllocationPlanEntry entry : current.get().getEntries()) {
       UUID segmentId =
-          productRepository.findById(entry.investmentProductId()).map(InvestmentProduct::getSegmentId).orElse(null);
+          productRepository
+              .findById(entry.investmentProductId())
+              .map(InvestmentProduct::getSegmentId)
+              .orElse(null);
       bySegment.merge(segmentId, entry.targetPercentage(), BigDecimal::add);
     }
     return bySegment.entrySet().stream()
@@ -146,7 +154,9 @@ public class FiiAllocationQuery {
             e ->
                 new FiiAllocationRow(
                     e.getKey(),
-                    e.getKey() == null ? NO_SEGMENT_LABEL : segmentNames.getOrDefault(e.getKey(), ""),
+                    e.getKey() == null
+                        ? NO_SEGMENT_LABEL
+                        : segmentNames.getOrDefault(e.getKey(), ""),
                     null,
                     e.getValue()))
         .sorted(Comparator.comparing(FiiAllocationRow::label))

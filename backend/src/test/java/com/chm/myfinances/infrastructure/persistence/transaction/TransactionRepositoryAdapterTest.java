@@ -158,13 +158,18 @@ class TransactionRepositoryAdapterTest {
             InvestmentCategory.create(UUID.randomUUID(), "Variable Income Txn Repo Test"));
     InvestmentProduct product =
         investmentProductRepository.save(
-            InvestmentProduct.create(UUID.randomUUID(), category.getId(), null, "KNRI11 Txn Repo Test", null));
+            InvestmentProduct.create(
+                UUID.randomUUID(), category.getId(), null, "KNRI11 Txn Repo Test", null));
     Account investmentAccount =
         TestFixtures.account(
-            accountRepository, institutionRepository, "Broker Txn Repo Test", AccountType.INVESTMENT);
+            accountRepository,
+            institutionRepository,
+            "Broker Txn Repo Test",
+            AccountType.INVESTMENT);
     InvestmentHolding holding =
         investmentHoldingRepository.save(
-            InvestmentHolding.create(UUID.randomUUID(), product.getId(), investmentAccount.getId(), null));
+            InvestmentHolding.create(
+                UUID.randomUUID(), product.getId(), investmentAccount.getId(), null));
 
     Transaction transaction =
         Transaction.create(

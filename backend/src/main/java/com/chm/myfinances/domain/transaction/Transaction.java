@@ -146,9 +146,9 @@ public final class Transaction {
 
   /**
    * Creates a brand-new Transaction, optionally carrying fuel-purchase details (F024) and/or an
-   * investment holding reference (F026 - a dividend). The two are never both present in practice
-   * (a cross-aggregate invariant enforced by {@code TransactionService}, not here); this
-   * constructor accepts either independently, like {@code Transfer.create}'s fullest overload.
+   * investment holding reference (F026 - a dividend). The two are never both present in practice (a
+   * cross-aggregate invariant enforced by {@code TransactionService}, not here); this constructor
+   * accepts either independently, like {@code Transfer.create}'s fullest overload.
    */
   public static Transaction create(
       UUID id,
@@ -178,7 +178,10 @@ public final class Transaction {
         investmentHoldingId);
   }
 
-  /** Rebuilds a Transaction, including its investment holding reference (F026), from persisted state. */
+  /**
+   * Rebuilds a Transaction, including its investment holding reference (F026), from persisted
+   * state.
+   */
   public static Transaction reconstitute(
       UUID id,
       LocalDate date,
@@ -236,8 +239,8 @@ public final class Transaction {
 
   /**
    * Full-replace edit including fuel details (F024), with no investment holding reference - same
-   * "every field required, this one optional" shape as {@code Transfer.edit}. Passing {@code
-   * null} for {@code fuelDetails} clears any previously recorded fuel purchase.
+   * "every field required, this one optional" shape as {@code Transfer.edit}. Passing {@code null}
+   * for {@code fuelDetails} clears any previously recorded fuel purchase.
    */
   public void edit(
       LocalDate date,
@@ -263,8 +266,8 @@ public final class Transaction {
   }
 
   /**
-   * Full-replace edit including fuel details (F024) and/or an investment holding reference (F026)
-   * - the overload the controller calls. Passing {@code null} for either clears any previously
+   * Full-replace edit including fuel details (F024) and/or an investment holding reference (F026) -
+   * the overload the controller calls. Passing {@code null} for either clears any previously
    * recorded value.
    */
   public void edit(
@@ -368,9 +371,9 @@ public final class Transaction {
   }
 
   /**
-   * The {@code InvestmentHolding} this transaction is attributed to (F026) - present if and only
-   * if the transaction's category is the dedicated dividend category (an application-layer
-   * invariant, {@code TransactionService}). {@code null} for an ordinary transaction.
+   * The {@code InvestmentHolding} this transaction is attributed to (F026) - present if and only if
+   * the transaction's category is the dedicated dividend category (an application-layer invariant,
+   * {@code TransactionService}). {@code null} for an ordinary transaction.
    */
   public UUID getInvestmentHoldingId() {
     return investmentHoldingId;
