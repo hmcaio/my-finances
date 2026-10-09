@@ -58,7 +58,8 @@ class TransferServiceTest {
         transferRepository,
         accountRepository,
         holdingRepository,
-        new InvestmentSnapshotService(snapshotRepository, holdingRepository, generator),
+        new InvestmentSnapshotService(
+            snapshotRepository, holdingRepository, generator, new AuditRecorder(auditLog)),
         new InvestmentHoldingService(
             holdingRepository,
             productRepository,
@@ -66,7 +67,8 @@ class TransferServiceTest {
             id -> false,
             new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository),
             generator,
-            Clock.systemUTC()),
+            Clock.systemUTC(),
+            new AuditRecorder(auditLog)),
         generator,
         new AuditRecorder(auditLog));
   }

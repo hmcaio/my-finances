@@ -75,7 +75,9 @@ class FiiAllocationQueryTest {
           versionRepository,
           productRepository,
           subcategoryRepository,
-          new com.chm.myfinances.testsupport.fakes.FakeIdGenerator());
+          new com.chm.myfinances.testsupport.fakes.FakeIdGenerator(),
+          new com.chm.myfinances.application.auditlog.AuditRecorder(
+              new com.chm.myfinances.testsupport.fakes.FakeAuditLog()));
   private final FiiAllocationQuery query =
       new FiiAllocationQuery(
           portfolioQuery, allocationPlanService, productRepository, segmentRepository, clock);

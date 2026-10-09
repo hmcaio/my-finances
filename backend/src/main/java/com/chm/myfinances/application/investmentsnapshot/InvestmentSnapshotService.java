@@ -1,5 +1,7 @@
 package com.chm.myfinances.application.investmentsnapshot;
 
+import com.chm.myfinances.application.auditlog.AuditEntityType;
+import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingNotFoundException;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
@@ -10,10 +12,12 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use cases for {@link InvestmentSnapshot} (F009 spec, rekeyed by holding for F022/ADR 0020):
@@ -38,14 +42,17 @@ public class InvestmentSnapshotService {
   private final InvestmentSnapshotRepository snapshotRepository;
   private final InvestmentHoldingRepository holdingRepository;
   private final IdGenerator idGenerator;
+  private final AuditRecorder auditRecorder;
 
   public InvestmentSnapshotService(
       InvestmentSnapshotRepository snapshotRepository,
       InvestmentHoldingRepository holdingRepository,
-      IdGenerator idGenerator) {
+      IdGenerator idGenerator,
+      AuditRecorder auditRecorder) {
     this.snapshotRepository = snapshotRepository;
     this.holdingRepository = holdingRepository;
     this.idGenerator = idGenerator;
+    this.auditRecorder = auditRecorder;
   }
 
   /**
@@ -53,24 +60,35 @@ public class InvestmentSnapshotService {
    * snapshot. The holding must exist (404); a closed holding may still get a snapshot (a {@code 0}
    * correction, say).
    */
+  @Transactional
   public RecordedSnapshot record(UUID holdingId, LocalDate date, BigDecimal balance) {
     requireHolding(holdingId);
     return snapshotRepository
         .findByHoldingIdAndDate(holdingId, date)
         .map(
             existing -> {
+              Map<String, Object> before = existing.toAuditSnapshot();
               existing.replaceBalance(balance);
-              return new RecordedSnapshot(snapshotRepository.save(existing), false);
+              InvestmentSnapshot saved = snapshotRepository.save(existing);
+              auditRecorder.recordUpdate(
+                  AuditEntityType.INVESTMENT_SNAPSHOT,
+                  saved.getId(),
+                  null,
+                  before,
+                  saved.toAuditSnapshot());
+              return new RecordedSnapshot(saved, false);
             })
         .orElseGet(() -> insertSnapshot(holdingId, date, balance));
   }
 
   private RecordedSnapshot insertSnapshot(UUID holdingId, LocalDate date, BigDecimal balance) {
     try {
-      return new RecordedSnapshot(
+      InvestmentSnapshot saved =
           snapshotRepository.save(
-              InvestmentSnapshot.create(idGenerator.newId(), holdingId, date, balance)),
-          true);
+              InvestmentSnapshot.create(idGenerator.newId(), holdingId, date, balance));
+      auditRecorder.recordCreate(
+          AuditEntityType.INVESTMENT_SNAPSHOT, saved.getId(), null, saved.toAuditSnapshot());
+      return new RecordedSnapshot(saved, true);
     } catch (DataIntegrityViolationException e) {
       throw new InvestmentSnapshotDateTakenException(holdingId);
     }
@@ -88,10 +106,12 @@ public class InvestmentSnapshotService {
    * holding is closed and the edit would leave its latest snapshot non-zero (PRD S5.8). One write,
    * so not {@code @Transactional}.
    */
+  @Transactional
   public InvestmentSnapshot update(
       UUID holdingId, UUID snapshotId, LocalDate date, BigDecimal balance) {
     InvestmentHolding holding = requireHolding(holdingId);
     InvestmentSnapshot snapshot = requireSnapshotOf(holdingId, snapshotId);
+    Map<String, Object> before = snapshot.toAuditSnapshot();
     snapshotRepository
         .findByHoldingIdAndDate(holdingId, date)
         .filter(other -> !other.getId().equals(snapshotId))
@@ -107,7 +127,10 @@ public class InvestmentSnapshotService {
     }
     snapshot.moveTo(date);
     snapshot.replaceBalance(balance);
-    return snapshotRepository.save(snapshot);
+    InvestmentSnapshot saved = snapshotRepository.save(snapshot);
+    auditRecorder.recordUpdate(
+        AuditEntityType.INVESTMENT_SNAPSHOT, saved.getId(), null, before, saved.toAuditSnapshot());
+    return saved;
   }
 
   /**
@@ -115,13 +138,16 @@ public class InvestmentSnapshotService {
    * remaining latest snapshot would be non-zero. A trade's resulting-balance snapshot has no link
    * to its transfer, so the trade is untouched.
    */
+  @Transactional
   public void delete(UUID holdingId, UUID snapshotId) {
     InvestmentHolding holding = requireHolding(holdingId);
-    requireSnapshotOf(holdingId, snapshotId);
+    InvestmentSnapshot snapshot = requireSnapshotOf(holdingId, snapshotId);
     if (holding.isClosed()) {
       requireLatestIsZeroOrAbsent(holdingId, otherSnapshots(holdingId, snapshotId));
     }
     snapshotRepository.deleteById(snapshotId);
+    auditRecorder.recordDelete(
+        AuditEntityType.INVESTMENT_SNAPSHOT, snapshot.getId(), null, snapshot.toAuditSnapshot());
   }
 
   private record DatedBalance(LocalDate date, BigDecimal balance) {}

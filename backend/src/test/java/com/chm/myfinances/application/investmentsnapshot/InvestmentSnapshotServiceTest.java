@@ -3,9 +3,11 @@ package com.chm.myfinances.application.investmentsnapshot;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingNotFoundException;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
+import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
@@ -30,8 +32,10 @@ class InvestmentSnapshotServiceTest {
   private final FakeInvestmentHoldingRepository holdingRepository =
       new FakeInvestmentHoldingRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
+  private final FakeAuditLog auditLog = new FakeAuditLog();
   private final InvestmentSnapshotService service =
-      new InvestmentSnapshotService(snapshotRepository, holdingRepository, idGenerator);
+      new InvestmentSnapshotService(
+          snapshotRepository, holdingRepository, idGenerator, new AuditRecorder(auditLog));
 
   private InvestmentHolding holding;
 
@@ -45,7 +49,10 @@ class InvestmentSnapshotServiceTest {
     UUID nextId = UUID.randomUUID();
     InvestmentSnapshotService service =
         new InvestmentSnapshotService(
-            snapshotRepository, holdingRepository, new FakeIdGenerator(nextId));
+            snapshotRepository,
+            holdingRepository,
+            new FakeIdGenerator(nextId),
+            new AuditRecorder(auditLog));
 
     RecordedSnapshot recorded =
         service.record(holding.getId(), LocalDate.of(2026, 3, 31), new BigDecimal("1234.56"));

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.application.account.AccountNotFoundException;
+import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.application.investmentcategory.InvestmentCategoryNotFoundException;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingService;
 import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
@@ -14,6 +15,7 @@ import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
+import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeHasHoldingHistoryChecker;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentCategoryRepository;
@@ -58,6 +60,7 @@ class InvestmentProductServiceTest {
   private final LatestInvestmentSnapshotQuery latestSnapshotQuery =
       new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository);
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
+  private final FakeAuditLog auditLog = new FakeAuditLog();
   private final InvestmentHoldingService holdingService =
       new InvestmentHoldingService(
           holdingRepository,
@@ -66,7 +69,8 @@ class InvestmentProductServiceTest {
           holdingHistoryChecker,
           latestSnapshotQuery,
           idGenerator,
-          Clock.systemDefaultZone());
+          Clock.systemDefaultZone(),
+          new AuditRecorder(auditLog));
   private final InvestmentProductService service =
       new InvestmentProductService(
           productRepository,
@@ -75,7 +79,8 @@ class InvestmentProductServiceTest {
           segmentRepository,
           holdingRepository,
           holdingService,
-          idGenerator);
+          idGenerator,
+          new AuditRecorder(auditLog));
 
   private final UUID institutionId = UUID.randomUUID();
   private final UUID xpAccountId = saveInvestmentAccount("XP Test").getId();
@@ -108,7 +113,8 @@ class InvestmentProductServiceTest {
             segmentRepository,
             holdingRepository,
             holdingService,
-            singleUseIdGenerator);
+            singleUseIdGenerator,
+            new AuditRecorder(auditLog));
 
     InvestmentProduct created =
         service.create(
