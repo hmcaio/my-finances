@@ -4,7 +4,7 @@
 Adds a user actions log: every committed write on every aggregate is recorded in an append-only `audit_log` table, with a before/after field diff, and surfaced on a read-only Activity page (PRD §5.12, §6.12). Capture is an explicit `AuditLog` port called from application services in the same transaction as the change ([ADR 0022](../../adr/0022-audit-log-explicit-port-same-transaction.md)).
 
 ## Scope
-- New `audit_log` table and `AuditLog` output port, called from every write use case of every aggregate: Category, PaymentMethod, Institution, Account, Transaction, Transfer, Budget, RecurringTemplate, Investment category/sub-category/product/holding/snapshot, and (once F024 lands) Vehicle.
+- New `audit_log` table and `AuditLog` output port, called from every write use case of every aggregate: Category, PaymentMethod, Institution, Account, Transaction, Transfer, Budget, RecurringTemplate, Investment category/sub-category/product/holding/snapshot, and (once F024 lands) Vehicle. **Also `InvestmentSegment` and `AllocationPlan`/`AllocationPlanVersion` (F026) and Transfer's `TradeConfirmation` lines (F027)**: both landed on `develop` after this spec was written, same drift this bullet's own "(once F024 lands)" aside was already tracking - covering them keeps the "every write use case" claim true and lets PR2 empty the ArchUnit allowlist.
 - Actions: `CREATE`, `UPDATE`, `DELETE`, `CLOSE`, `REOPEN`, `STOPPED` (budget tombstone), `GENERATED` (recurring catch-up summary). Origin: `USER` or `SYSTEM`.
 - A generic before/after diff computed from per-aggregate `toAuditSnapshot()`.
 - `GET /api/audit-log` (paginated, newest first, filterable) and an Activity page.
@@ -45,10 +45,10 @@ See [ADR 0022](../../adr/0022-audit-log-explicit-port-same-transaction.md) for t
 - Regenerate `frontend/src/api/generated/schema.ts`; check the generated shape of `changes` (free-form object) and `Instant`.
 
 ## Frontend
-- `src/api/auditLog.ts` + MSW handlers + a query hook following ADR 0016 (`auditLogQueries`).
+- `src/api/auditLog/` (`auditLog.ts` + `auditLogQueries.ts`) + MSW handlers, following the per-area folder convention (frontend `CLAUDE.md`'s "Layout") every other area already uses rather than one flat file.
 - New Activity page (`/activity`), nav entry: filter bar (date range, entity type, action, origin) using `ResponsiveFilterBar`; results paginated and grouped by day in the browser's local zone; each row shows time, action, entity type, label and origin, and expands to the from/to diff.
 - Friendly field labels from a small per-entity map; unknown fields fall back to the raw field name. Money and dates use the existing formatters. Reference fields (ids) are shown as-is unless the label map says otherwise; no extra lookups in v1.
-- Mobile: a card list via the ADR 0019 primitives (`ResponsiveTable`), 44px touch targets.
+- Mobile: a hand-built card list (not `ResponsiveTable`), 44px+ touch targets on the expand toggle. `ResponsiveTable`'s own row-expansion is tied to its column model (hidden columns as label/value pairs); this page's expansion is a field-by-field before/after diff grouped under day headers, a shape that didn't fit that abstraction, so the table/card split is implemented directly (mirroring `ResponsiveTable`'s breakpoint/44px conventions, per ADR 0019, without reusing the component itself).
 - Logging: never send `changes` or `entityLabel` to the frontend `logger`.
 
 ## Dependencies
