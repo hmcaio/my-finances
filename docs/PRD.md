@@ -229,6 +229,19 @@ Versioned entities (§5.6, §5.7) log as an `UPDATE` on the logical entity, diff
 - Actual allocation percentage, per product or per segment = that grouping's total value (§5.8's "sum of latest snapshots") divided by the total value of all FII products, restricted to the "REITs (FIIs)" sub-category; by segment, a product with no `segment_id` groups under "No segment".
 - Planned allocation percentage, per segment = the current `AllocationPlanVersion`'s entries' `target_percentage` summed by each entry's product's `segment_id` (same "No segment" grouping).
 
+### 5.14 Investment Split
+
+**InvestmentSplit** (corporate action: desdobramento/grupamento de cotas — a stock/FII split or reverse split)
+- `id`
+- `investment_product_id` (references `InvestmentProduct`, §5.8) — a split is an event on the security itself, so it's recorded once per product and applies to every holding/account that holds it.
+- `effective_date` — today or earlier; not scheduled ahead of time, consistent with how the rest of the app records events after the fact rather than looking them up from a market-data source.
+- `before_units` / `after_units` (positive integers, e.g. `1`/`10` for a 1:10 split, `10`/`1` for a 1:10 reverse split/grouping) — the ratio as the broker/exchange states it, not a pre-reduced decimal factor.
+- `additional_notes` (optional, bounded free text, same convention as every other entity's optional notes field).
+- Append-only: a product can have more than one split over its lifetime (separate corporate actions, possibly years apart). No edit — a mistaken entry is deleted and re-entered instead.
+- Out of scope for v1: cash-in-lieu for a fractional remainder ("sobra de desdobramento" — when a ratio doesn't divide a holding's quantity evenly and the broker sells the leftover fraction for cash) — if that happens, the payout is recorded as an ordinary transfer, not by this feature (§9).
+
+**Computed, not stored** (same sums-of-recorded-data style §5.8/§5.13 already use — see §3): cotas currently held (§5.13) and the monthly `units` value-series field (§5.8) both multiply each historical buy/sell transfer's recorded `quantity` by the product of every `InvestmentSplit`'s ratio (`after_units / before_units`) for that product whose `effective_date` falls after the transfer's date and on/before the point being computed (today for the running total, the series point's own month-end for each monthly point). A trade's own recorded `quantity`/`unit_price` is never rewritten — only the derived total changes, and it changes exactly at the split's effective month, which is a real jump in units held, not a smoothing artifact (the position's value is unaffected).
+
 ## 6. Functional Requirements
 
 ### 6.1 Transactions
@@ -269,6 +282,7 @@ Versioned entities (§5.6, §5.7) log as an `UPDATE` on the logical entity, diff
 - View snapshot and buy/sell history per holding, plus a monthly value series per product (month-end value summed across its holdings from their latest snapshots, net contributions from buys minus sells, units held when quantities were recorded).
 - List all investment products across accounts, filterable by category, sub-category, account (has a holding there) and status (open/closed, derived from whether any of its holdings is still open), searchable by name.
 - View investment allocation: latest snapshot per holding, grouped and summed by category, by sub-category, or by account (pie chart; the category view drills into its sub-categories; products without a sub-category form a "No sub-category" slice). Holdings flagged as needing a snapshot (§5.8) are marked, rolled up to their product and account.
+- Record a split or reverse split (desdobramento/grupamento) on a product: ratio (e.g. "1 : 10") and effective date, deletable; view a product's split history (§5.14). Changes only the derived cotas-held/units totals — past buy/sell records keep their originally recorded quantity and price unchanged.
 
 ### 6.7 Onboarding
 - First-run flow: create at least one account, setting its opening balance and opening balance date (and its institution, which defaults to "No institution"; a new one can be created inline).
@@ -361,5 +375,6 @@ These are low-level choices left to implementation rather than product decisions
 - User-editable/custom fuel types (e.g. for electric vehicles) — the fuel type list is fixed for v1 (§5.11).
 - Auto-computing `km_since_last_fill` from consecutive odometer readings, or validating `amount` against `liters × price_per_liter` — both are recorded independently and trusted as entered (§5.11).
 - Generalizing the FII page (§6.13), the allocation plan and the ticker/segment fields (§5.13) to other ticker-based assets (stocks, ETFs) — the data model is deliberately generic, but the UI and the plan's product-membership validation are FII-only for v1.
+- Cash-in-lieu handling for a fractional split remainder ("sobra de desdobramento", §5.14) — recorded as an ordinary transfer for now, not a dedicated field on `InvestmentSplit`.
 - Remote/LAN access with authentication.
 - Notifications (email/push) for budget overages or pending recurring bills.
