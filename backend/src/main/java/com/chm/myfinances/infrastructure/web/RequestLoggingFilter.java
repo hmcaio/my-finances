@@ -36,7 +36,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class RequestLoggingFilter extends OncePerRequestFilter {
 
   static final String REQUEST_ID_HEADER = "X-Request-Id";
-  static final String MDC_KEY = "requestId";
+
+  /**
+   * Public (F025, ADR 0022) so {@code AuditLogRepositoryAdapter} can read the same key when it
+   * stamps an {@code AuditEntry}'s {@code requestId} from the MDC - the only other reader of this
+   * constant outside this filter.
+   */
+  public static final String MDC_KEY = "requestId";
 
   private static final Pattern VALID_REQUEST_ID = Pattern.compile("^[A-Za-z0-9-]{1,64}$");
   private static final Logger log = LoggerFactory.getLogger(RequestLoggingFilter.class);

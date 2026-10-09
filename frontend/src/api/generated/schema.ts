@@ -868,6 +868,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/audit-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["auditLog_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1454,6 +1470,33 @@ export interface components {
             categoryId?: string;
             cap?: number;
             actual?: number;
+        };
+        FieldChange: {
+            from?: unknown;
+            to?: unknown;
+        };
+        AuditLogEntryResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: date-time */
+            occurredAt?: string;
+            /** @enum {string} */
+            entityType?: "TRANSACTION" | "TRANSFER" | "ACCOUNT" | "CATEGORY" | "PAYMENT_METHOD" | "INSTITUTION" | "BUDGET" | "RECURRING_TEMPLATE" | "INVESTMENT_CATEGORY" | "INVESTMENT_SUBCATEGORY" | "INVESTMENT_PRODUCT" | "INVESTMENT_HOLDING" | "INVESTMENT_SNAPSHOT" | "INVESTMENT_SEGMENT" | "ALLOCATION_PLAN" | "VEHICLE";
+            /** Format: uuid */
+            entityId?: string;
+            entityLabel?: string;
+            /** @enum {string} */
+            action?: "CREATE" | "UPDATE" | "DELETE" | "CLOSE" | "REOPEN" | "STOPPED" | "GENERATED";
+            /** @enum {string} */
+            origin?: "USER" | "SYSTEM";
+            changes?: {
+                [key: string]: components["schemas"]["FieldChange"];
+            };
+            requestId?: string;
+        };
+        PagedModelAuditLogEntryResponse: {
+            content?: components["schemas"]["AuditLogEntryResponse"][];
+            page?: components["schemas"]["PageMetadata"];
         };
     };
     responses: never;
@@ -3464,6 +3507,34 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    auditLog_list: {
+        parameters: {
+            query: {
+                from?: string;
+                to?: string;
+                entityType?: components["schemas"]["AuditLogEntryResponse"]["entityType"];
+                action?: components["schemas"]["AuditLogEntryResponse"]["action"];
+                origin?: components["schemas"]["AuditLogEntryResponse"]["origin"];
+                entityId?: string;
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModelAuditLogEntryResponse"];
+                };
             };
         };
     };
