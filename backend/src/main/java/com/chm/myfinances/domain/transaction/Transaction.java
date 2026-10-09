@@ -4,6 +4,8 @@ import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -377,5 +379,37 @@ public final class Transaction {
    */
   public UUID getInvestmentHoldingId() {
     return investmentHoldingId;
+  }
+
+  /**
+   * Flat snapshot of every persisted field (F025 spec, ADR 0022), used to compute a before/after
+   * diff for the audit log. Fuel details (F024) are flattened to their own top-level keys rather
+   * than nested, matching how {@code TransactionJpaEntity} stores them as flat columns; a {@code
+   * null} {@code fuelDetails} still contributes those keys with {@code null} values so a fuel
+   * purchase being cleared (or added) shows up as an ordinary field-by-field change rather than
+   * keys appearing/disappearing from the map.
+   */
+  public Map<String, Object> toAuditSnapshot() {
+    Map<String, Object> snapshot = new LinkedHashMap<>();
+    snapshot.put("date", date.toString());
+    snapshot.put("amount", amount);
+    snapshot.put("categoryId", categoryId.toString());
+    snapshot.put("type", type.name());
+    snapshot.put("accountId", accountId.toString());
+    snapshot.put("paymentMethodId", paymentMethodId.toString());
+    snapshot.put(
+        "recurringTemplateVersionId",
+        recurringTemplateVersionId == null ? null : recurringTemplateVersionId.toString());
+    snapshot.put("description", description);
+    snapshot.put("additionalNotes", additionalNotes);
+    snapshot.put("vehicleId", fuelDetails == null ? null : fuelDetails.vehicleId().toString());
+    snapshot.put("fuelType", fuelDetails == null ? null : fuelDetails.fuelType().name());
+    snapshot.put("liters", fuelDetails == null ? null : fuelDetails.liters());
+    snapshot.put("pricePerLiter", fuelDetails == null ? null : fuelDetails.pricePerLiter());
+    snapshot.put("kmSinceLastFill", fuelDetails == null ? null : fuelDetails.kmSinceLastFill());
+    snapshot.put("odometer", fuelDetails == null ? null : fuelDetails.odometer());
+    snapshot.put(
+        "investmentHoldingId", investmentHoldingId == null ? null : investmentHoldingId.toString());
+    return snapshot;
   }
 }

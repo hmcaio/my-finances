@@ -7,6 +7,7 @@ import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -731,5 +732,75 @@ class TransactionTest {
         holdingId);
 
     assertThat(transaction.getInvestmentHoldingId()).isEqualTo(holdingId);
+  }
+
+  @Test
+  void toAuditSnapshotIncludesEveryPersistedFieldAsAPrimitiveOrString() {
+    Transaction transaction =
+        Transaction.create(
+            UUID.randomUUID(),
+            LocalDate.of(2026, 3, 15),
+            new BigDecimal("42.50"),
+            CATEGORY_ID,
+            CategoryType.EXPENSE,
+            ACCOUNT_ID,
+            PAYMENT_METHOD_ID,
+            null,
+            "Weekly groceries",
+            "Bought extra");
+
+    Map<String, Object> snapshot = transaction.toAuditSnapshot();
+
+    assertThat(snapshot)
+        .containsEntry("date", "2026-03-15")
+        .containsEntry("amount", new BigDecimal("42.50"))
+        .containsEntry("categoryId", CATEGORY_ID.toString())
+        .containsEntry("type", "EXPENSE")
+        .containsEntry("accountId", ACCOUNT_ID.toString())
+        .containsEntry("paymentMethodId", PAYMENT_METHOD_ID.toString())
+        .containsEntry("recurringTemplateVersionId", null)
+        .containsEntry("description", "Weekly groceries")
+        .containsEntry("additionalNotes", "Bought extra")
+        .containsEntry("vehicleId", null)
+        .containsEntry("fuelType", null)
+        .containsEntry("liters", null)
+        .containsEntry("pricePerLiter", null)
+        .containsEntry("kmSinceLastFill", null)
+        .containsEntry("odometer", null)
+        .containsEntry("investmentHoldingId", null);
+  }
+
+  @Test
+  void toAuditSnapshotFlattensFuelDetails() {
+    UUID vehicleId = UUID.randomUUID();
+    Transaction transaction =
+        Transaction.create(
+            UUID.randomUUID(),
+            LocalDate.of(2026, 3, 15),
+            new BigDecimal("250.00"),
+            CATEGORY_ID,
+            CategoryType.EXPENSE,
+            ACCOUNT_ID,
+            PAYMENT_METHOD_ID,
+            null,
+            "Fill-up",
+            null,
+            new FuelDetails(
+                vehicleId,
+                FuelType.GASOLINA,
+                new BigDecimal("40.000"),
+                new BigDecimal("5.990"),
+                new BigDecimal("450.0"),
+                new BigDecimal("12000.0")));
+
+    Map<String, Object> snapshot = transaction.toAuditSnapshot();
+
+    assertThat(snapshot)
+        .containsEntry("vehicleId", vehicleId.toString())
+        .containsEntry("fuelType", "GASOLINA")
+        .containsEntry("liters", new BigDecimal("40.000"))
+        .containsEntry("pricePerLiter", new BigDecimal("5.990"))
+        .containsEntry("kmSinceLastFill", new BigDecimal("450.0"))
+        .containsEntry("odometer", new BigDecimal("12000.0"));
   }
 }

@@ -1,6 +1,10 @@
 package com.chm.myfinances.application.recurringtemplate;
 
 import com.chm.myfinances.application.account.AccountNotFoundException;
+import com.chm.myfinances.application.auditlog.AuditAction;
+import com.chm.myfinances.application.auditlog.AuditEntityType;
+import com.chm.myfinances.application.auditlog.AuditOrigin;
+import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.application.category.CategoryNotFoundException;
 import com.chm.myfinances.application.transaction.TransactionService;
 import com.chm.myfinances.domain.account.Account;
@@ -21,6 +25,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -63,6 +68,7 @@ public class RecurringTemplateService {
   private final RecurringOccurrenceCatchUpService catchUpService;
   private final IdGenerator idGenerator;
   private final Clock clock;
+  private final AuditRecorder auditRecorder;
 
   public RecurringTemplateService(
       RecurringTemplateRepository templateRepository,
@@ -73,7 +79,8 @@ public class RecurringTemplateService {
       TransactionService transactionService,
       RecurringOccurrenceCatchUpService catchUpService,
       IdGenerator idGenerator,
-      Clock clock) {
+      Clock clock,
+      AuditRecorder auditRecorder) {
     this.templateRepository = templateRepository;
     this.versionRepository = versionRepository;
     this.pendingRepository = pendingRepository;
@@ -83,6 +90,7 @@ public class RecurringTemplateService {
     this.catchUpService = catchUpService;
     this.idGenerator = idGenerator;
     this.clock = clock;
+    this.auditRecorder = auditRecorder;
   }
 
   /**
@@ -218,10 +226,32 @@ public class RecurringTemplateService {
    */
   @Transactional
   public RecurringTemplate stop(UUID id) {
+    return stop(id, AuditOrigin.USER);
+  }
+
+  /**
+   * Same as {@link #stop(UUID)}, but lets a cascade (F025, ADR 0022: closing an account
+   * deactivating its templates) record its entry as {@link AuditOrigin#SYSTEM} instead of {@link
+   * AuditOrigin#USER}. {@code @Transactional} on both overloads since whichever one an external
+   * caller actually hits is the one the Spring proxy intercepts (backend {@code CLAUDE.md}'s
+   * "Transactions" section) - the public, no-origin {@link #stop(UUID)} delegates to this one via
+   * self-invocation, which bypasses the proxy.
+   */
+  @Transactional
+  public RecurringTemplate stop(UUID id, AuditOrigin origin) {
     RecurringTemplate template = findById(id);
+    Map<String, Object> before = template.toAuditSnapshot();
     template.close();
     RecurringTemplate saved = templateRepository.save(template);
     pendingRepository.deleteByTemplateId(id);
+    auditRecorder.recordAction(
+        AuditEntityType.RECURRING_TEMPLATE,
+        saved.getId(),
+        saved.getDescription(),
+        AuditAction.CLOSE,
+        before,
+        saved.toAuditSnapshot(),
+        origin);
     return saved;
   }
 
@@ -251,7 +281,7 @@ public class RecurringTemplateService {
     int deactivated = 0;
     for (RecurringTemplate template : templateRepository.findByAccountId(accountId)) {
       if (template.isActive()) {
-        stop(template.getId());
+        stop(template.getId(), AuditOrigin.SYSTEM);
         deactivated++;
       }
     }

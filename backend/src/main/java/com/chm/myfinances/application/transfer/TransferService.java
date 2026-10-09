@@ -1,6 +1,8 @@
 package com.chm.myfinances.application.transfer;
 
 import com.chm.myfinances.application.account.AccountNotFoundException;
+import com.chm.myfinances.application.auditlog.AuditEntityType;
+import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingClosedException;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingNotFoundException;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingService;
@@ -64,6 +66,7 @@ public class TransferService {
   private final InvestmentSnapshotService snapshotService;
   private final InvestmentHoldingService holdingService;
   private final IdGenerator idGenerator;
+  private final AuditRecorder auditRecorder;
 
   public TransferService(
       TransferRepository transferRepository,
@@ -71,16 +74,19 @@ public class TransferService {
       InvestmentHoldingRepository holdingRepository,
       InvestmentSnapshotService snapshotService,
       InvestmentHoldingService holdingService,
-      IdGenerator idGenerator) {
+      IdGenerator idGenerator,
+      AuditRecorder auditRecorder) {
     this.transferRepository = transferRepository;
     this.accountRepository = accountRepository;
     this.holdingRepository = holdingRepository;
     this.snapshotService = snapshotService;
     this.holdingService = holdingService;
     this.idGenerator = idGenerator;
+    this.auditRecorder = auditRecorder;
   }
 
   /** Creates a plain (non-investment) transfer. */
+  @Transactional
   public Transfer create(
       LocalDate date,
       UUID fromAccountId,
@@ -100,7 +106,10 @@ public class TransferService {
             amount,
             description,
             additionalNotes);
-    return transferRepository.save(transfer);
+    Transfer saved = transferRepository.save(transfer);
+    auditRecorder.recordCreate(
+        AuditEntityType.TRANSFER, saved.getId(), saved.getDescription(), saved.toAuditSnapshot());
+    return saved;
   }
 
   /**
@@ -135,6 +144,8 @@ public class TransferService {
             taxes,
             confirmation);
     Transfer saved = transferRepository.save(transfer);
+    auditRecorder.recordCreate(
+        AuditEntityType.TRANSFER, saved.getId(), saved.getDescription(), saved.toAuditSnapshot());
     applyLineEffects(confirmation, holdings, date);
     log.info("Recorded trade confirmation as transfer {}", saved.getId());
     return saved;
@@ -180,6 +191,7 @@ public class TransferService {
   }
 
   /** Edits a plain (non-investment) transfer, clearing any trade confirmation it had. */
+  @Transactional
   public Transfer edit(
       UUID id,
       LocalDate date,
@@ -189,12 +201,20 @@ public class TransferService {
       String description,
       String additionalNotes) {
     Transfer transfer = findById(id);
+    Map<String, Object> before = transfer.toAuditSnapshot();
     requireDifferentAccounts(fromAccountId, toAccountId);
     Account fromAccount = requireOpenAccount(fromAccountId);
     Account toAccount = requireOpenAccount(toAccountId);
     transfer.edit(
         date, fromAccount.getId(), toAccount.getId(), amount, description, additionalNotes);
-    return transferRepository.save(transfer);
+    Transfer saved = transferRepository.save(transfer);
+    auditRecorder.recordUpdate(
+        AuditEntityType.TRANSFER,
+        saved.getId(),
+        saved.getDescription(),
+        before,
+        saved.toAuditSnapshot());
+    return saved;
   }
 
   /**
@@ -212,6 +232,7 @@ public class TransferService {
       BigDecimal taxes,
       List<TradeConfirmationLine> lines) {
     Transfer transfer = findById(id);
+    Map<String, Object> before = transfer.toAuditSnapshot();
     requireDifferentAccounts(cashAccountId, investmentAccountId);
     Account cashAccount = requireOpenAccount(cashAccountId);
     Account investmentAccount = requireOpenAccount(investmentAccountId);
@@ -232,16 +253,26 @@ public class TransferService {
       throw new InvalidTradeConfirmationException(e.getMessage());
     }
     Transfer saved = transferRepository.save(transfer);
+    auditRecorder.recordUpdate(
+        AuditEntityType.TRANSFER,
+        saved.getId(),
+        saved.getDescription(),
+        before,
+        saved.toAuditSnapshot());
     applyLineEffects(confirmation, holdings, date);
     log.info("Edited trade confirmation transfer {}", saved.getId());
     return saved;
   }
 
+  @Transactional
   public void delete(UUID id) {
-    if (!transferRepository.existsById(id)) {
-      throw new TransferNotFoundException(id);
-    }
+    Transfer transfer = findById(id);
     transferRepository.deleteById(id);
+    auditRecorder.recordDelete(
+        AuditEntityType.TRANSFER,
+        transfer.getId(),
+        transfer.getDescription(),
+        transfer.toAuditSnapshot());
   }
 
   /**

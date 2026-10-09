@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.application.account.AccountNotFoundException;
+import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.application.category.CategoryNotFoundException;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingNotFoundException;
 import com.chm.myfinances.application.paymentmethod.PaymentMethodNotFoundException;
@@ -19,6 +20,7 @@ import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionFilter;
 import com.chm.myfinances.domain.vehicle.Vehicle;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
+import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeCategoryRepository;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
@@ -50,6 +52,7 @@ class TransactionServiceTest {
   private final FakeInvestmentHoldingRepository investmentHoldingRepository =
       new FakeInvestmentHoldingRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
+  private final FakeAuditLog auditLog = new FakeAuditLog();
   private final TransactionService service =
       new TransactionService(
           transactionRepository,
@@ -58,7 +61,8 @@ class TransactionServiceTest {
           paymentMethodRepository,
           vehicleRepository,
           investmentHoldingRepository,
-          idGenerator);
+          idGenerator,
+          new AuditRecorder(auditLog));
 
   private Category expenseCategory;
   private Category incomeCategory;
@@ -108,7 +112,8 @@ class TransactionServiceTest {
             paymentMethodRepository,
             vehicleRepository,
             investmentHoldingRepository,
-            new FakeIdGenerator(nextId));
+            new FakeIdGenerator(nextId),
+            new AuditRecorder(auditLog));
 
     Transaction created =
         service.create(
@@ -811,5 +816,104 @@ class TransactionServiceTest {
 
     assertThat(edited.getCategoryId()).isEqualTo(incomeCategory.getId());
     assertThat(edited.getInvestmentHoldingId()).isNull();
+  }
+
+  @Test
+  void createRecordsACreateAuditEntry() {
+    Transaction created =
+        service.create(
+            LocalDate.of(2026, 3, 15),
+            new BigDecimal("42.50"),
+            expenseCategory.getId(),
+            openAccount.getId(),
+            paymentMethod.getId(),
+            "Weekly groceries",
+            null);
+
+    assertThat(auditLog.entries()).hasSize(1);
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.entityType())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditEntityType.TRANSACTION);
+    assertThat(entry.entityId()).isEqualTo(created.getId());
+    assertThat(entry.entityLabel()).isEqualTo("Weekly groceries");
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.CREATE);
+    assertThat(entry.origin()).isEqualTo(com.chm.myfinances.application.auditlog.AuditOrigin.USER);
+  }
+
+  @Test
+  void editRecordsAnUpdateAuditEntryWithTheDiff() {
+    Transaction created =
+        service.create(
+            LocalDate.now(),
+            BigDecimal.TEN,
+            expenseCategory.getId(),
+            openAccount.getId(),
+            paymentMethod.getId(),
+            "Groceries",
+            null);
+    auditLog.entries().clear();
+
+    service.edit(
+        created.getId(),
+        LocalDate.now(),
+        new BigDecimal("20"),
+        expenseCategory.getId(),
+        openAccount.getId(),
+        paymentMethod.getId(),
+        "Groceries",
+        null);
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.UPDATE);
+    assertThat(entry.changes()).containsKey("amount");
+  }
+
+  @Test
+  void editWithNoActualChangeRecordsNoAuditEntry() {
+    Transaction created =
+        service.create(
+            LocalDate.now(),
+            BigDecimal.TEN,
+            expenseCategory.getId(),
+            openAccount.getId(),
+            paymentMethod.getId(),
+            "Groceries",
+            null);
+    auditLog.entries().clear();
+
+    service.edit(
+        created.getId(),
+        created.getDate(),
+        created.getAmount(),
+        created.getCategoryId(),
+        created.getAccountId(),
+        created.getPaymentMethodId(),
+        created.getDescription(),
+        created.getAdditionalNotes());
+
+    assertThat(auditLog.entries()).isEmpty();
+  }
+
+  @Test
+  void deleteRecordsADeleteAuditEntryWithTheLastKnownLabel() {
+    Transaction created =
+        service.create(
+            LocalDate.now(),
+            BigDecimal.TEN,
+            expenseCategory.getId(),
+            openAccount.getId(),
+            paymentMethod.getId(),
+            "To be deleted",
+            null);
+    auditLog.entries().clear();
+
+    service.delete(created.getId());
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.DELETE);
+    assertThat(entry.entityLabel()).isEqualTo("To be deleted");
   }
 }

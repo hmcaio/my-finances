@@ -5,6 +5,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ch.qos.logback.classic.Level;
 import com.chm.myfinances.application.account.AccountNotFoundException;
+import com.chm.myfinances.application.auditlog.AuditAction;
+import com.chm.myfinances.application.auditlog.AuditEntityType;
+import com.chm.myfinances.application.auditlog.AuditOrigin;
+import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.application.category.CategoryNotFoundException;
 import com.chm.myfinances.application.transaction.TransactionService;
 import com.chm.myfinances.domain.account.Account;
@@ -18,6 +22,7 @@ import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionFilter;
 import com.chm.myfinances.testsupport.LogCapture;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
+import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeCategoryRepository;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
@@ -64,6 +69,7 @@ class RecurringTemplateServiceTest {
   private final FakeInvestmentHoldingRepository investmentHoldingRepository =
       new FakeInvestmentHoldingRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
+  private final FakeAuditLog auditLog = new FakeAuditLog();
   private final TransactionService transactionService =
       new TransactionService(
           transactionRepository,
@@ -72,7 +78,8 @@ class RecurringTemplateServiceTest {
           paymentMethodRepository,
           vehicleRepository,
           investmentHoldingRepository,
-          idGenerator);
+          idGenerator,
+          new AuditRecorder(auditLog));
   private final RecurringOccurrenceCatchUpService catchUpService =
       new RecurringOccurrenceCatchUpService(
           templateRepository,
@@ -90,7 +97,8 @@ class RecurringTemplateServiceTest {
           transactionService,
           catchUpService,
           idGenerator,
-          Clock.systemDefaultZone());
+          Clock.systemDefaultZone(),
+          new AuditRecorder(auditLog));
 
   private UUID categoryId;
   private UUID accountId;
@@ -120,7 +128,8 @@ class RecurringTemplateServiceTest {
             transactionService,
             catchUpService,
             new FakeIdGenerator(nextTemplateId),
-            Clock.systemDefaultZone());
+            Clock.systemDefaultZone(),
+            new AuditRecorder(auditLog));
 
     RecurringTemplate created =
         service.create(
@@ -563,5 +572,59 @@ class RecurringTemplateServiceTest {
 
       assertThat(logs.events()).isEmpty();
     }
+  }
+
+  @Test
+  void stopRecordsACloseAuditEntryWithUserOrigin() {
+    RecurringTemplate template =
+        service.create(
+            categoryId, accountId, "Rent", new BigDecimal("1500.00"), 5, YearMonth.of(2026, 1));
+    auditLog.entries().clear();
+
+    service.stop(template.getId());
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.entityType()).isEqualTo(AuditEntityType.RECURRING_TEMPLATE);
+    assertThat(entry.action()).isEqualTo(AuditAction.CLOSE);
+    assertThat(entry.origin()).isEqualTo(AuditOrigin.USER);
+  }
+
+  /**
+   * F025/ADR 0022's cascade example: closing an account deactivates its templates as a {@code
+   * SYSTEM} entry, not {@code USER} - same request, different origin from a direct user click.
+   * {@code deactivateForAccount} is the path {@code RealAccountClosedNotifier} calls from {@code
+   * AccountService.close()} (F003); this test exercises it directly, the same way {@code
+   * AccountServiceTest} exercises {@code close()} against a fake notifier - the "both entries share
+   * one request id" half of ADR 0022's claim is a property of the real {@code AuditLog} adapter
+   * reading the MDC at write time (same HTTP request, same thread), not something a fake-port unit
+   * test can observe, and is covered instead by an integration test once that adapter exists.
+   */
+  @Test
+  void deactivateForAccountRecordsASystemOriginCloseEntryPerActiveTemplate() {
+    RecurringTemplate template =
+        service.create(
+            categoryId, accountId, "Rent", new BigDecimal("1500.00"), 5, YearMonth.of(2026, 1));
+    auditLog.entries().clear();
+
+    service.deactivateForAccount(accountId);
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.entityType()).isEqualTo(AuditEntityType.RECURRING_TEMPLATE);
+    assertThat(entry.entityId()).isEqualTo(template.getId());
+    assertThat(entry.action()).isEqualTo(AuditAction.CLOSE);
+    assertThat(entry.origin()).isEqualTo(AuditOrigin.SYSTEM);
+  }
+
+  @Test
+  void deactivateForAccountRecordsNothingWhenNoTemplateIsActive() {
+    RecurringTemplate template =
+        service.create(
+            categoryId, accountId, "Rent", new BigDecimal("1500.00"), 5, YearMonth.of(2026, 1));
+    service.stop(template.getId());
+    auditLog.entries().clear();
+
+    service.deactivateForAccount(accountId);
+
+    assertThat(auditLog.entries()).isEmpty();
   }
 }

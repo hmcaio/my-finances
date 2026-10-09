@@ -7,6 +7,7 @@ import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import com.chm.myfinances.testsupport.mothers.AccountMother;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -411,5 +412,46 @@ class AccountTest {
 
   private static Account newChecking() {
     return AccountMother.checking().withInstitutionId(INSTITUTION_ID).build();
+  }
+
+  @Test
+  void toAuditSnapshotIncludesEveryPersistedField() {
+    Account account =
+        Account.create(
+            UUID.randomUUID(),
+            "Nubank",
+            INSTITUTION_ID,
+            AccountType.CHECKING,
+            new BigDecimal("100.00"),
+            LocalDate.of(2026, 1, 1));
+
+    Map<String, Object> snapshot = account.toAuditSnapshot();
+
+    assertThat(snapshot)
+        .containsEntry("name", "Nubank")
+        .containsEntry("institutionId", INSTITUTION_ID.toString())
+        .containsEntry("type", "CHECKING")
+        .containsEntry("openingBalance", new BigDecimal("100.00"))
+        .containsEntry("openingBalanceDate", "2026-01-01")
+        .containsEntry("closedDate", null);
+  }
+
+  @Test
+  void toAuditSnapshotOfAnInvestmentAccountHasNullOpeningValues() {
+    Account account = AccountMother.investment().withInstitutionId(INSTITUTION_ID).build();
+
+    Map<String, Object> snapshot = account.toAuditSnapshot();
+
+    assertThat(snapshot)
+        .containsEntry("openingBalance", null)
+        .containsEntry("openingBalanceDate", null);
+  }
+
+  @Test
+  void toAuditSnapshotReflectsAClosedDate() {
+    Account account = newChecking();
+    account.close(LocalDate.of(2026, 6, 1));
+
+    assertThat(account.toAuditSnapshot()).containsEntry("closedDate", "2026-06-01");
   }
 }

@@ -2,6 +2,8 @@ package com.chm.myfinances.domain.recurringtemplate;
 
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import java.time.YearMonth;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -137,5 +139,19 @@ public final class RecurringTemplate {
 
   public YearMonth getLastGeneratedFor() {
     return lastGeneratedFor;
+  }
+
+  /**
+   * Flat snapshot of every persisted field (F025 spec, ADR 0022), used to compute a before/after
+   * diff for the audit log.
+   */
+  public Map<String, Object> toAuditSnapshot() {
+    Map<String, Object> snapshot = new LinkedHashMap<>();
+    snapshot.put("categoryId", categoryId.toString());
+    snapshot.put("accountId", accountId.toString());
+    snapshot.put("description", description);
+    snapshot.put("active", active);
+    snapshot.put("lastGeneratedFor", lastGeneratedFor == null ? null : lastGeneratedFor.toString());
+    return snapshot;
   }
 }

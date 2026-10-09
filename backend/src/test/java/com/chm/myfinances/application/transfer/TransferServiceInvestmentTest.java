@@ -3,6 +3,7 @@ package com.chm.myfinances.application.transfer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingClosedException;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingNotFoundException;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingService;
@@ -16,6 +17,7 @@ import com.chm.myfinances.domain.transfer.TradeConfirmationLine;
 import com.chm.myfinances.domain.transfer.TradeSide;
 import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
+import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
@@ -55,6 +57,7 @@ class TransferServiceInvestmentTest {
   private final FakeInvestmentSnapshotRepository snapshotRepository =
       new FakeInvestmentSnapshotRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
+  private final FakeAuditLog auditLog = new FakeAuditLog();
   private final TransferService service =
       new TransferService(
           transferRepository,
@@ -69,7 +72,8 @@ class TransferServiceInvestmentTest {
               new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository),
               idGenerator,
               Clock.systemUTC()),
-          idGenerator);
+          idGenerator,
+          new AuditRecorder(auditLog));
 
   private Account checking;
   private Account savings;

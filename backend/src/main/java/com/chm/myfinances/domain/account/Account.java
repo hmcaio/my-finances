@@ -3,6 +3,8 @@ package com.chm.myfinances.domain.account;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -167,5 +169,22 @@ public final class Account {
 
   public LocalDate getClosedDate() {
     return closedDate;
+  }
+
+  /**
+   * Flat snapshot of every persisted field (F025 spec, ADR 0022), used to compute a before/after
+   * diff for the audit log. {@code type} is included even though it's immutable - still a persisted
+   * field the completeness test must account for, not that it ever actually changes.
+   */
+  public Map<String, Object> toAuditSnapshot() {
+    Map<String, Object> snapshot = new LinkedHashMap<>();
+    snapshot.put("name", name);
+    snapshot.put("institutionId", institutionId.toString());
+    snapshot.put("type", type.name());
+    snapshot.put("openingBalance", openingBalance);
+    snapshot.put(
+        "openingBalanceDate", openingBalanceDate == null ? null : openingBalanceDate.toString());
+    snapshot.put("closedDate", closedDate == null ? null : closedDate.toString());
+    return snapshot;
   }
 }

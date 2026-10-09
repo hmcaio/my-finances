@@ -3,6 +3,9 @@ package com.chm.myfinances.domain.transfer;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -301,5 +304,41 @@ public final class Transfer {
   /** Empty for a plain transfer. */
   public Optional<TradeConfirmation> getTradeConfirmation() {
     return Optional.ofNullable(tradeConfirmation);
+  }
+
+  /**
+   * Flat snapshot of every persisted field (F025 spec, ADR 0022), used to compute a before/after
+   * diff for the audit log. {@code tradeConfirmationLines} flattens each line of a {@link
+   * TradeConfirmation} (F027) - held in a separate {@code transfer_trade_lines} table - to its own
+   * list of flat maps rather than nesting a domain object; {@code null} for a plain transfer.
+   */
+  public Map<String, Object> toAuditSnapshot() {
+    Map<String, Object> snapshot = new LinkedHashMap<>();
+    snapshot.put("date", date.toString());
+    snapshot.put("fromAccountId", fromAccountId.toString());
+    snapshot.put("toAccountId", toAccountId.toString());
+    snapshot.put("amount", amount);
+    snapshot.put("description", description);
+    snapshot.put("additionalNotes", additionalNotes);
+    snapshot.put("taxes", taxes);
+    snapshot.put(
+        "tradeConfirmationLines",
+        tradeConfirmation == null ? null : toLineSnapshots(tradeConfirmation.getLines()));
+    return snapshot;
+  }
+
+  private static List<Map<String, Object>> toLineSnapshots(List<TradeConfirmationLine> lines) {
+    return lines.stream().map(Transfer::toLineSnapshot).toList();
+  }
+
+  private static Map<String, Object> toLineSnapshot(TradeConfirmationLine line) {
+    Map<String, Object> snapshot = new LinkedHashMap<>();
+    snapshot.put("productId", line.productId().toString());
+    snapshot.put("side", line.side().name());
+    snapshot.put("quantity", line.quantity());
+    snapshot.put("unitPrice", line.unitPrice());
+    snapshot.put("resultingBalance", line.resultingBalance());
+    snapshot.put("closeHolding", line.closeHolding());
+    return snapshot;
   }
 }
