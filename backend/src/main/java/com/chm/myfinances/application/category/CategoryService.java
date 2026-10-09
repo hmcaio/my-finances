@@ -1,5 +1,7 @@
 package com.chm.myfinances.application.category;
 
+import com.chm.myfinances.application.auditlog.AuditEntityType;
+import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.domain.budget.BudgetRepository;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
@@ -8,8 +10,10 @@ import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateRepository;
 import com.chm.myfinances.domain.shared.IdGenerator;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use cases for {@link Category}: create/rename/delete (F002 spec). New ids come from the {@link
@@ -41,35 +45,44 @@ public class CategoryService {
   private final RecurringTemplateRepository recurringTemplateRepository;
   private final TransactionRepository transactionRepository;
   private final IdGenerator idGenerator;
+  private final AuditRecorder auditRecorder;
 
   public CategoryService(
       CategoryRepository categoryRepository,
       BudgetRepository budgetRepository,
       RecurringTemplateRepository recurringTemplateRepository,
       TransactionRepository transactionRepository,
-      IdGenerator idGenerator) {
+      IdGenerator idGenerator,
+      AuditRecorder auditRecorder) {
     this.categoryRepository = categoryRepository;
     this.budgetRepository = budgetRepository;
     this.recurringTemplateRepository = recurringTemplateRepository;
     this.transactionRepository = transactionRepository;
     this.idGenerator = idGenerator;
+    this.auditRecorder = auditRecorder;
   }
 
+  @Transactional
   public Category create(String name, CategoryType type) {
     if (categoryRepository.existsByName(name)) {
       throw new CategoryNameAlreadyExistsException(name);
     }
     Category category = Category.create(idGenerator.newId(), name, type);
-    return categoryRepository.save(category);
+    Category saved = categoryRepository.save(category);
+    auditRecorder.recordCreate(
+        AuditEntityType.CATEGORY, saved.getId(), saved.getName(), saved.toAuditSnapshot());
+    return saved;
   }
 
   public List<Category> findAll() {
     return categoryRepository.findAll();
   }
 
+  @Transactional
   public Category rename(UUID id, String newName) {
     Category category =
         categoryRepository.findById(id).orElseThrow(() -> new CategoryNotFoundException(id));
+    Map<String, Object> before = category.toAuditSnapshot();
     if (category.isFuelCategory()) {
       throw new FuelCategoryException(id);
     }
@@ -80,9 +93,13 @@ public class CategoryService {
       throw new CategoryNameAlreadyExistsException(newName);
     }
     category.rename(newName);
-    return categoryRepository.save(category);
+    Category saved = categoryRepository.save(category);
+    auditRecorder.recordUpdate(
+        AuditEntityType.CATEGORY, saved.getId(), saved.getName(), before, saved.toAuditSnapshot());
+    return saved;
   }
 
+  @Transactional
   public void delete(UUID id) {
     Category category =
         categoryRepository.findById(id).orElseThrow(() -> new CategoryNotFoundException(id));
@@ -101,5 +118,7 @@ public class CategoryService {
       throw new CategoryInUseException(id);
     }
     categoryRepository.deleteById(id);
+    auditRecorder.recordDelete(
+        AuditEntityType.CATEGORY, category.getId(), category.getName(), category.toAuditSnapshot());
   }
 }

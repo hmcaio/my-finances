@@ -3,7 +3,9 @@ package com.chm.myfinances.application.investmentsegment;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.domain.investmentsegment.InvestmentSegment;
+import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSegmentRepository;
@@ -21,15 +23,20 @@ class InvestmentSegmentServiceTest {
       new FakeInvestmentSegmentRepository();
   private final FakeInvestmentProductRepository productRepository =
       new FakeInvestmentProductRepository();
+  private final FakeAuditLog auditLog = new FakeAuditLog();
   private final InvestmentSegmentService service =
-      new InvestmentSegmentService(segmentRepository, productRepository, new FakeIdGenerator());
+      new InvestmentSegmentService(
+          segmentRepository, productRepository, new FakeIdGenerator(), new AuditRecorder(auditLog));
 
   @Test
   void createAssignsIdFromIdGeneratorAndPersists() {
     UUID nextId = UUID.randomUUID();
     InvestmentSegmentService service =
         new InvestmentSegmentService(
-            segmentRepository, productRepository, new FakeIdGenerator(nextId));
+            segmentRepository,
+            productRepository,
+            new FakeIdGenerator(nextId),
+            new AuditRecorder(auditLog));
 
     InvestmentSegment created = service.create("Shoppings");
 

@@ -3,10 +3,12 @@ package com.chm.myfinances.application.institution;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.institution.Institution;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
+import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeInstitutionRepository;
 import com.chm.myfinances.testsupport.mothers.AccountMother;
@@ -28,8 +30,10 @@ class InstitutionServiceTest {
   private final FakeInstitutionRepository repository = new FakeInstitutionRepository();
   private final FakeAccountRepository accountRepository = new FakeAccountRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
+  private final FakeAuditLog auditLog = new FakeAuditLog();
   private final InstitutionService service =
-      new InstitutionService(repository, accountRepository, idGenerator);
+      new InstitutionService(
+          repository, accountRepository, idGenerator, new AuditRecorder(auditLog));
 
   /** Stands in for the migration's seeded "No institution" row (only it can be built-in). */
   private Institution seedBuiltIn() {
@@ -52,7 +56,11 @@ class InstitutionServiceTest {
   void createAssignsIdFromIdGeneratorAndPersists() {
     UUID nextId = UUID.randomUUID();
     InstitutionService service =
-        new InstitutionService(repository, accountRepository, new FakeIdGenerator(nextId));
+        new InstitutionService(
+            repository,
+            accountRepository,
+            new FakeIdGenerator(nextId),
+            new AuditRecorder(auditLog));
 
     Institution created = service.create("Nubank");
 

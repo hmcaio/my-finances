@@ -3,7 +3,9 @@ package com.chm.myfinances.application.paymentmethod;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
+import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakePaymentMethodRepository;
 import com.chm.myfinances.testsupport.fakes.FakeTransactionRepository;
@@ -24,14 +26,20 @@ class PaymentMethodServiceTest {
   private final FakePaymentMethodRepository repository = new FakePaymentMethodRepository();
   private final FakeTransactionRepository transactionRepository = new FakeTransactionRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
+  private final FakeAuditLog auditLog = new FakeAuditLog();
   private final PaymentMethodService service =
-      new PaymentMethodService(repository, transactionRepository, idGenerator);
+      new PaymentMethodService(
+          repository, transactionRepository, idGenerator, new AuditRecorder(auditLog));
 
   @Test
   void createAssignsIdFromIdGeneratorAndPersists() {
     UUID nextId = UUID.randomUUID();
     PaymentMethodService service =
-        new PaymentMethodService(repository, transactionRepository, new FakeIdGenerator(nextId));
+        new PaymentMethodService(
+            repository,
+            transactionRepository,
+            new FakeIdGenerator(nextId),
+            new AuditRecorder(auditLog));
 
     PaymentMethod created = service.create("Debit Card");
 

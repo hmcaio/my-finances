@@ -3,8 +3,10 @@ package com.chm.myfinances.application.investmentcategory;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
+import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentCategoryRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
@@ -26,9 +28,14 @@ class InvestmentCategoryServiceTest {
       new FakeInvestmentSubcategoryRepository();
   private final FakeInvestmentProductRepository productRepository =
       new FakeInvestmentProductRepository();
+  private final FakeAuditLog auditLog = new FakeAuditLog();
   private final InvestmentCategoryService service =
       new InvestmentCategoryService(
-          categoryRepository, subcategoryRepository, productRepository, new FakeIdGenerator());
+          categoryRepository,
+          subcategoryRepository,
+          productRepository,
+          new FakeIdGenerator(),
+          new AuditRecorder(auditLog));
 
   @Test
   void createAssignsIdFromIdGeneratorAndPersists() {
@@ -38,7 +45,8 @@ class InvestmentCategoryServiceTest {
             categoryRepository,
             subcategoryRepository,
             productRepository,
-            new FakeIdGenerator(nextId));
+            new FakeIdGenerator(nextId),
+            new AuditRecorder(auditLog));
 
     InvestmentCategory created = service.create("Fixed Income");
 

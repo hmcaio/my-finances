@@ -3,9 +3,11 @@ package com.chm.myfinances.application.category;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
+import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeBudgetRepository;
 import com.chm.myfinances.testsupport.fakes.FakeCategoryRepository;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
@@ -38,13 +40,15 @@ class CategoryServiceTest {
       new FakeRecurringTemplateRepository();
   private final FakeTransactionRepository transactionRepository = new FakeTransactionRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
+  private final FakeAuditLog auditLog = new FakeAuditLog();
   private final CategoryService service =
       new CategoryService(
           repository,
           budgetRepository,
           recurringTemplateRepository,
           transactionRepository,
-          idGenerator);
+          idGenerator,
+          new AuditRecorder(auditLog));
 
   @Test
   void createAssignsIdFromIdGeneratorAndPersists() {
@@ -55,7 +59,8 @@ class CategoryServiceTest {
             budgetRepository,
             recurringTemplateRepository,
             transactionRepository,
-            new FakeIdGenerator(nextId));
+            new FakeIdGenerator(nextId),
+            new AuditRecorder(auditLog));
 
     Category created = service.create("Groceries", CategoryType.EXPENSE);
 

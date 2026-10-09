@@ -1,12 +1,16 @@
 package com.chm.myfinances.application.vehicle;
 
+import com.chm.myfinances.application.auditlog.AuditEntityType;
+import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.domain.shared.IdGenerator;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
 import com.chm.myfinances.domain.vehicle.Vehicle;
 import com.chm.myfinances.domain.vehicle.VehicleRepository;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use cases for {@link Vehicle}: create/rename/findAll/findById/delete (F024 spec). New ids come
@@ -25,22 +29,29 @@ public class VehicleService {
   private final VehicleRepository vehicleRepository;
   private final TransactionRepository transactionRepository;
   private final IdGenerator idGenerator;
+  private final AuditRecorder auditRecorder;
 
   public VehicleService(
       VehicleRepository vehicleRepository,
       TransactionRepository transactionRepository,
-      IdGenerator idGenerator) {
+      IdGenerator idGenerator,
+      AuditRecorder auditRecorder) {
     this.vehicleRepository = vehicleRepository;
     this.transactionRepository = transactionRepository;
     this.idGenerator = idGenerator;
+    this.auditRecorder = auditRecorder;
   }
 
+  @Transactional
   public Vehicle create(String name) {
     if (vehicleRepository.existsByName(name)) {
       throw new VehicleNameAlreadyExistsException(name);
     }
     Vehicle vehicle = Vehicle.create(idGenerator.newId(), name);
-    return vehicleRepository.save(vehicle);
+    Vehicle saved = vehicleRepository.save(vehicle);
+    auditRecorder.recordCreate(
+        AuditEntityType.VEHICLE, saved.getId(), saved.getName(), saved.toAuditSnapshot());
+    return saved;
   }
 
   public List<Vehicle> findAll() {
@@ -52,23 +63,30 @@ public class VehicleService {
     return vehicleRepository.findById(id).orElseThrow(() -> new VehicleNotFoundException(id));
   }
 
+  @Transactional
   public Vehicle rename(UUID id, String newName) {
     Vehicle vehicle =
         vehicleRepository.findById(id).orElseThrow(() -> new VehicleNotFoundException(id));
+    Map<String, Object> before = vehicle.toAuditSnapshot();
     if (vehicleRepository.existsByNameAndIdNot(newName, id)) {
       throw new VehicleNameAlreadyExistsException(newName);
     }
     vehicle.rename(newName);
-    return vehicleRepository.save(vehicle);
+    Vehicle saved = vehicleRepository.save(vehicle);
+    auditRecorder.recordUpdate(
+        AuditEntityType.VEHICLE, saved.getId(), saved.getName(), before, saved.toAuditSnapshot());
+    return saved;
   }
 
+  @Transactional
   public void delete(UUID id) {
-    if (!vehicleRepository.existsById(id)) {
-      throw new VehicleNotFoundException(id);
-    }
+    Vehicle vehicle =
+        vehicleRepository.findById(id).orElseThrow(() -> new VehicleNotFoundException(id));
     if (transactionRepository.existsByFuelDetailsVehicleId(id)) {
       throw new VehicleInUseException(id);
     }
     vehicleRepository.deleteById(id);
+    auditRecorder.recordDelete(
+        AuditEntityType.VEHICLE, vehicle.getId(), vehicle.getName(), vehicle.toAuditSnapshot());
   }
 }
