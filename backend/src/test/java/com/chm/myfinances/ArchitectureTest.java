@@ -185,18 +185,14 @@ class ArchitectureTest {
    * read-only must be in a class that depends on {@code AuditLog}/{@code AuditRecorder}" (F025
    * spec/plan.md, ADR 0022). Checked at the class level (does the class depend on either type
    * anywhere), not per-method, since one shared {@link AuditRecorder} field serves every write
-   * method in a service. {@link #AUDIT_LOG_ALLOWLIST} names every {@code @Service} that still has
-   * an un-instrumented {@code @Transactional} write method; PR2 (F025 plan.md) empties it.
+   * method in a service. Empty as of PR2 (F025 plan.md): every {@code @Transactional} write use
+   * case in the application layer now depends on {@link AuditRecorder}.
    *
    * <p>{@code @Transactional(readOnly = true)} ({@code DataExportService}, which only reads) is
    * deliberately excluded by {@link #hasATransactionalWriteMethod()} - it performs no write at all,
    * so it has nothing to audit.
    */
-  private static final Set<String> AUDIT_LOG_ALLOWLIST =
-      Set.of(
-          "com.chm.myfinances.application.allocationplan.AllocationPlanService",
-          "com.chm.myfinances.application.budget.BudgetService",
-          "com.chm.myfinances.application.investmentproduct.InvestmentProductService");
+  private static final Set<String> AUDIT_LOG_ALLOWLIST = Set.of();
 
   @ArchTest
   static final ArchRule writeUseCasesDependOnAuditLog =

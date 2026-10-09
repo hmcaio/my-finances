@@ -86,7 +86,8 @@ class RecurringTemplateServiceTest {
           versionRepository,
           pendingRepository,
           idGenerator,
-          Clock.systemDefaultZone());
+          Clock.systemDefaultZone(),
+          new AuditRecorder(auditLog));
   private final RecurringTemplateService service =
       new RecurringTemplateService(
           templateRepository,

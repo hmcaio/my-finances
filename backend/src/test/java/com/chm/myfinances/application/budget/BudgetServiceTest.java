@@ -4,12 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ch.qos.logback.classic.Level;
+import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.application.category.CategoryNotFoundException;
 import com.chm.myfinances.domain.budget.Budget;
 import com.chm.myfinances.domain.budget.BudgetVersion;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.testsupport.LogCapture;
+import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeBudgetRepository;
 import com.chm.myfinances.testsupport.fakes.FakeBudgetVersionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeCategoryRepository;
@@ -34,8 +36,14 @@ class BudgetServiceTest {
       new FakeBudgetVersionRepository();
   private final FakeCategoryRepository categoryRepository = new FakeCategoryRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
+  private final FakeAuditLog auditLog = new FakeAuditLog();
   private final BudgetService service =
-      new BudgetService(budgetRepository, budgetVersionRepository, categoryRepository, idGenerator);
+      new BudgetService(
+          budgetRepository,
+          budgetVersionRepository,
+          categoryRepository,
+          idGenerator,
+          new AuditRecorder(auditLog));
 
   private UUID groceriesId;
   private UUID salaryId;
@@ -60,7 +68,8 @@ class BudgetServiceTest {
             budgetRepository,
             budgetVersionRepository,
             categoryRepository,
-            new FakeIdGenerator(nextBudgetId));
+            new FakeIdGenerator(nextBudgetId),
+            new AuditRecorder(auditLog));
 
     Budget created = service.create(groceriesId, new BigDecimal("500.00"), YearMonth.of(2026, 1));
 

@@ -122,9 +122,15 @@ public class RecurringTemplateService {
     RecurringTemplate template =
         templateRepository.save(
             RecurringTemplate.create(idGenerator.newId(), categoryId, accountId, description));
-    versionRepository.save(
-        RecurringTemplateVersion.create(
-            idGenerator.newId(), template.getId(), amount, dayOfMonth, effectiveFrom));
+    RecurringTemplateVersion version =
+        versionRepository.save(
+            RecurringTemplateVersion.create(
+                idGenerator.newId(), template.getId(), amount, dayOfMonth, effectiveFrom));
+    auditRecorder.recordCreate(
+        AuditEntityType.RECURRING_TEMPLATE,
+        template.getId(),
+        template.getDescription(),
+        version.toAuditSnapshot());
     return template;
   }
 
@@ -172,6 +178,11 @@ public class RecurringTemplateService {
   public RecurringTemplateVersion setCap(
       UUID templateId, BigDecimal amount, int dayOfMonth, YearMonth effectiveFrom) {
     RecurringTemplate template = findById(templateId);
+    Map<String, Object> before =
+        RecurringTemplateVersion.resolveEffective(
+                versionRepository.findByTemplateId(template.getId()), effectiveFrom)
+            .map(RecurringTemplateVersion::toAuditSnapshot)
+            .orElse(Map.of());
     Optional<RecurringTemplateVersion> existing =
         versionRepository.findByTemplateIdAndEffectiveFrom(template.getId(), effectiveFrom);
     if (existing.isPresent()) {
@@ -180,6 +191,12 @@ public class RecurringTemplateService {
       RecurringTemplateVersion replaced = versionRepository.save(version);
       log.info(
           "Recurring template {}: version effective {} replaced", template.getId(), effectiveFrom);
+      auditRecorder.recordUpdate(
+          AuditEntityType.RECURRING_TEMPLATE,
+          template.getId(),
+          template.getDescription(),
+          before,
+          replaced.toAuditSnapshot());
       return replaced;
     }
     RecurringTemplateVersion version =
@@ -188,6 +205,12 @@ public class RecurringTemplateService {
     RecurringTemplateVersion saved = versionRepository.save(version);
     realignPendingOccurrences(template.getId());
     log.info("Recurring template {}: new version effective {}", template.getId(), effectiveFrom);
+    auditRecorder.recordUpdate(
+        AuditEntityType.RECURRING_TEMPLATE,
+        template.getId(),
+        template.getDescription(),
+        before,
+        saved.toAuditSnapshot());
     return saved;
   }
 
@@ -259,10 +282,21 @@ public class RecurringTemplateService {
    * Reactivates a template (F007 spec's {@code POST .../reactivate}), resuming generation from now
    * rather than catching up on the entire stopped period (PRD S5.7).
    */
+  @Transactional
   public RecurringTemplate reactivate(UUID id) {
     RecurringTemplate template = findById(id);
+    Map<String, Object> before = template.toAuditSnapshot();
     template.reactivate(YearMonth.now(clock));
-    return templateRepository.save(template);
+    RecurringTemplate saved = templateRepository.save(template);
+    auditRecorder.recordAction(
+        AuditEntityType.RECURRING_TEMPLATE,
+        saved.getId(),
+        saved.getDescription(),
+        AuditAction.REOPEN,
+        before,
+        saved.toAuditSnapshot(),
+        AuditOrigin.USER);
+    return saved;
   }
 
   /**
