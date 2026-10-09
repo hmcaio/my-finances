@@ -1,6 +1,8 @@
 package com.chm.myfinances.domain.investmentproduct;
 
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -218,5 +220,19 @@ public final class InvestmentProduct {
   /** {@code null} when the product carries no segment (F026). */
   public UUID getSegmentId() {
     return segmentId;
+  }
+
+  /** Flat snapshot of every persisted field (F025 spec, ADR 0022). */
+  public Map<String, Object> toAuditSnapshot() {
+    Map<String, Object> snapshot = new LinkedHashMap<>();
+    snapshot.put("investmentCategoryId", investmentCategoryId.toString());
+    snapshot.put(
+        "investmentSubcategoryId",
+        investmentSubcategoryId == null ? null : investmentSubcategoryId.toString());
+    snapshot.put("name", name);
+    snapshot.put("additionalNotes", additionalNotes);
+    snapshot.put("ticker", ticker);
+    snapshot.put("segmentId", segmentId == null ? null : segmentId.toString());
+    return snapshot;
   }
 }

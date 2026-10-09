@@ -1,6 +1,8 @@
 package com.chm.myfinances.domain.investmentsegment;
 
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -53,5 +55,12 @@ public final class InvestmentSegment {
 
   public String getName() {
     return name;
+  }
+
+  /** Flat snapshot of every persisted field (F025 spec, ADR 0022). */
+  public Map<String, Object> toAuditSnapshot() {
+    Map<String, Object> snapshot = new LinkedHashMap<>();
+    snapshot.put("name", name);
+    return snapshot;
   }
 }
