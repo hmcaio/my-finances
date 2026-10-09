@@ -16,10 +16,15 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 
 /**
- * Proves {@code V21__trade_confirmations.sql} (F027, ADR 0024) against pre-existing data: a
+ * Proves {@code V21__trade_confirmations.sql} and {@code
+ * V22__backfill_trade_confirmation_taxes.sql} (F027, ADR 0024) against pre-existing data: a
  * pre-existing single-product trade ends up with exactly one correctly-signed {@code
  * transfer_trade_lines} row; a pre-existing plain transfer gets none; the four flat trade columns
- * are gone from {@code transfers}.
+ * are gone from {@code transfers}; and a pre-existing trade that was recorded with no tax figure at
+ * all (legal under the old all-optional {@code InvestmentTradeDetails}) has its now-required {@code
+ * taxes} backfilled to {@code 0} by V22, rather than left {@code null} and crashing on load (V21
+ * alone reproduced a real {@code NullPointerException}: a non-empty {@code TradeConfirmation} with
+ * null taxes violates {@code Transfer}'s invariant the moment the row is reconstituted).
  *
  * <p>Runs Flyway by hand in its own schema of the shared Testcontainers Postgres (see {@link
  * AbstractMigrationTest}).
@@ -123,6 +128,46 @@ class TradeConfirmationsMigrationTest extends AbstractMigrationTest {
                       + transferId
                       + "'"))
           .isZero();
+    }
+  }
+
+  @Test
+  void aPreExistingTradeWithNoRecordedTaxesGetsThemBackfilledToZero() throws Exception {
+    flyway("20").migrate();
+    UUID checkingId;
+    UUID brokerId;
+    UUID productId;
+    UUID transferId = UUID.randomUUID();
+    try (Connection connection = connection()) {
+      checkingId = insertAccount(connection, "Checking No-Taxes Migration Test", "CHECKING");
+      brokerId = insertAccount(connection, "Broker No-Taxes Migration Test", "INVESTMENT");
+      productId = insertProduct(connection, "Product No-Taxes Migration Test");
+      // No taxes column given at all - legal under the old all-optional InvestmentTradeDetails.
+      insertTransferPreMigration(
+          connection, transferId, checkingId, brokerId, productId, "1", "50.00");
+    }
+
+    // V21 alone reproduces the bug: a line exists for this transfer, but taxes stays null.
+    flyway("21").migrate();
+    try (Connection connection = connection();
+        PreparedStatement statement =
+            connection.prepareStatement("SELECT taxes FROM transfers WHERE id = ?")) {
+      statement.setObject(1, transferId);
+      try (ResultSet rows = statement.executeQuery()) {
+        assertThat(rows.next()).isTrue();
+        assertThat(rows.getObject(1)).as("V21 alone leaves taxes null").isNull();
+      }
+    }
+
+    flyway("22").migrate();
+    try (Connection connection = connection();
+        PreparedStatement statement =
+            connection.prepareStatement("SELECT taxes FROM transfers WHERE id = ?")) {
+      statement.setObject(1, transferId);
+      try (ResultSet rows = statement.executeQuery()) {
+        assertThat(rows.next()).isTrue();
+        assertThat(rows.getBigDecimal(1)).isEqualByComparingTo("0");
+      }
     }
   }
 
