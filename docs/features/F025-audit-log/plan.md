@@ -20,18 +20,18 @@
 - [x] Empty the ArchUnit allowlist; the rule now covers every write use case.
 
 ## PR 3 — Activity page (frontend)
-- [ ] `src/api/auditLog.ts`, MSW handlers, `auditLogQueries` hooks.
-- [ ] Activity page: filter bar, day-grouped list in the browser's local zone, expandable diff rows, friendly per-entity field labels with raw-name fallback, mobile card layout.
-- [ ] Nav entry.
-- [ ] Tests: filters, expansion, label fallback, a non-UTC-zone test at a day boundary (`vi.stubEnv('TZ', ...)`), Playwright geometry check at mobile/tablet/desktop (F020).
-- [ ] Docs: `README.md` status entry, `docs/features/README.md` row (already added with the spec), PRD unchanged unless the build diverged.
+- [x] `src/api/auditLog.ts`, MSW handlers, `auditLogQueries` hooks. **As `src/api/auditLog/{auditLog.ts, auditLogQueries.ts}`**, not a single file - frontend `CLAUDE.md`'s own layout convention is one folder per area holding the client and its sibling `<area>Queries.ts`, which the plan's own wording for every other area already follows; the single-file phrasing here was just shorthand.
+- [x] Activity page: filter bar, day-grouped list in the browser's local zone, expandable diff rows, friendly per-entity field labels with raw-name fallback, mobile card layout.
+- [x] Nav entry.
+- [x] Tests: filters, expansion, label fallback, a non-UTC-zone test at a day boundary (`vi.stubEnv('TZ', ...)`), Playwright geometry check at mobile/tablet/desktop (F020).
+- [x] Docs: `README.md` status entry (moved from "next up" to the built list), `docs/features/README.md` row (already added with the spec, unchanged), PRD unchanged (the build matched §5.12/§6.12 as written).
 
 ## Verification
-- [ ] Create, edit, delete a transaction: three entries appear in Activity, newest first, with the right from/to diff; the deleted one still shows its label.
-- [ ] Save a form with no changes: no new entry.
-- [ ] Close an account with an active template: an account `CLOSE` entry and a `SYSTEM` template entry appear, sharing one request id.
-- [ ] Edit a budget cap: one `UPDATE` with `cap 500 → 600`; stop it: `STOPPED`.
-- [ ] Open the app after being away past several recurring cycles: one `GENERATED` summary per template, not one entry per occurrence.
-- [ ] Force an audit insert failure (test): the business write is rolled back.
-- [ ] Export a ZIP: no audit data in it.
-- [ ] Nothing in the backend or browser logs contains an amount, description, note or entity name from an audit entry.
+- [x] Create, edit, delete a transaction: three entries appear in Activity, newest first, with the right from/to diff; the deleted one still shows its label. Verified via tests, not a live manual run (see report): `TransactionServiceTest`'s `createRecordsACreateAuditEntry`/`editRecordsAnUpdateAuditEntryWithTheDiff`/`deleteRecordsADeleteAuditEntryWithTheLastKnownLabel` prove each write emits the right entry/label; `ActivityPage.test.tsx` proves the frontend renders entries newest-first and resolves the label.
+- [x] Save a form with no changes: no new entry. `TransactionServiceTest.editWithNoActualChangeRecordsNoAuditEntry` (and `AuditRecorderTest`'s `recordUpdateWithNoActualChangeSkipsTheWriteEntirely`/`recordActionWithNoChangeIsSkipped` at the lower level).
+- [x] Close an account with an active template: an account `CLOSE` entry and a `SYSTEM` template entry appear, sharing one request id. `AccountCloseAuditCascadeTest` (real Spring context + Testcontainers Postgres) - the only Verification item that needed a new, dedicated test, since "same request id" is a property of the real adapter reading the MDC that no fake-port unit test can observe.
+- [x] Edit a budget cap: one `UPDATE` with `cap 500 → 600`; stop it: `STOPPED`. `BudgetServiceTest.setCapForANewMonthRecordsAnUpdateAuditEntryWithTheCapDiff`/`stopRecordsAStoppedAuditEntry`.
+- [x] Open the app after being away past several recurring cycles: one `GENERATED` summary per template, not one entry per occurrence. `RecurringOccurrenceCatchUpServiceTest.recordsOneGeneratedSummaryEntryPerTemplatePerRunNotOnePerOccurrence`.
+- [x] Force an audit insert failure (test): the business write is rolled back. `AuditLogTransactionalTest.createRollsBackTheAccountWhenTheAuditInsertFails`.
+- [x] Export a ZIP: no audit data in it. Verified by inspection, not a new test: `DataExportService` (unchanged by this feature) reads only the ports it already depended on before F025 - `AuditLog`/`AuditLogRepository` were never added to its constructor, so there is no code path by which `audit_log` could reach the ZIP; `docs/PRD.md` §5.12 states this is deliberate ("Not part of net worth or any report").
+- [x] Nothing in the backend or browser logs contains an amount, description, note or entity name from an audit entry. Verified by inspection: `AuditLogRepositoryAdapter`/`AuditRecorder` never call a logger at all (no `log.info`/`log.debug` anywhere in either class), so there is nothing in this feature's own code that could leak `changes`/`entityLabel` into a log line; the existing `domainClassesDoNotLog`/no-`Slf4j`-in-domain ArchUnit rules are unaffected since this feature adds no domain-layer logging either.
