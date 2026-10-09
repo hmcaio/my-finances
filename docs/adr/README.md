@@ -28,6 +28,7 @@ One file per decision, numbered sequentially, never renumbered or edited to chan
 | [0022](0022-audit-log-explicit-port-same-transaction.md) | Record an audit log through an explicit application-layer port, in the same transaction as the change | Accepted |
 | [0023](0023-fii-allocation-plan-and-dividends.md) | Generalize ticker/segment on InvestmentProduct; version the FII allocation plan like a budget; link dividends to Transaction like fuel details | Accepted |
 | [0024](0024-trade-confirmations-as-multi-line-transfers.md) | Model a buy/sell as a multi-line Trade Confirmation, with backend-derived settlement amount | Accepted (amends [0012](0012-investments-as-accounts-and-transfers.md)) |
+| [0025](0025-investment-split-as-read-side-adjustment.md) | Model a stock/FII split as a product-level event, applied as a read-side quantity adjustment | Accepted |
 
 Template:
 ```
