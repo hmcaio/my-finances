@@ -219,4 +219,37 @@ class InstitutionServiceTest {
     assertThat(repository.findById(itau.getId())).isEmpty();
     assertThat(repository.findById(nubank.getId())).isPresent();
   }
+
+  @Test
+  void createRecordsACreateAuditEntry() {
+    Institution created = service.create("Nubank");
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.entityId()).isEqualTo(created.getId());
+    assertThat(entry.entityLabel()).isEqualTo("Nubank");
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.CREATE);
+  }
+
+  @Test
+  void renameRecordsAnUpdateAuditEntry() {
+    Institution created = service.create("Nubank");
+    auditLog.entries().clear();
+
+    service.rename(created.getId(), "Nu Bank");
+
+    assertThat(auditLog.onlyEntry().action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.UPDATE);
+  }
+
+  @Test
+  void deleteRecordsADeleteAuditEntry() {
+    Institution created = service.create("Nubank");
+    auditLog.entries().clear();
+
+    service.delete(created.getId());
+
+    assertThat(auditLog.onlyEntry().action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.DELETE);
+  }
 }

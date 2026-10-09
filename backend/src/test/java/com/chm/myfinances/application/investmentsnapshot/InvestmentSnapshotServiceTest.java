@@ -318,4 +318,58 @@ class InvestmentSnapshotServiceTest {
 
     assertThat(snapshotRepository.findByHoldingId(closed.getId())).isEmpty();
   }
+
+  @Test
+  void recordRecordsACreateAuditEntryOnFirstInsert() {
+    RecordedSnapshot recorded =
+        service.record(holding.getId(), LocalDate.of(2026, 3, 31), new BigDecimal("1234.56"));
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.entityType())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditEntityType.INVESTMENT_SNAPSHOT);
+    assertThat(entry.entityId()).isEqualTo(recorded.snapshot().getId());
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.CREATE);
+  }
+
+  @Test
+  void recordRecordsAnUpdateAuditEntryOnSameDayReplace() {
+    service.record(holding.getId(), LocalDate.of(2026, 3, 31), new BigDecimal("1000.00"));
+    auditLog.entries().clear();
+
+    service.record(holding.getId(), LocalDate.of(2026, 3, 31), new BigDecimal("1200.00"));
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.UPDATE);
+    assertThat(entry.changes()).containsKey("balance");
+  }
+
+  @Test
+  void updateRecordsAnUpdateAuditEntry() {
+    InvestmentSnapshot created =
+        service
+            .record(holding.getId(), LocalDate.of(2026, 3, 31), new BigDecimal("1000.00"))
+            .snapshot();
+    auditLog.entries().clear();
+
+    service.update(holding.getId(), created.getId(), LocalDate.of(2026, 4, 1), BigDecimal.TEN);
+
+    assertThat(auditLog.onlyEntry().action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.UPDATE);
+  }
+
+  @Test
+  void deleteRecordsADeleteAuditEntry() {
+    InvestmentSnapshot created =
+        service
+            .record(holding.getId(), LocalDate.of(2026, 3, 31), new BigDecimal("1000.00"))
+            .snapshot();
+    auditLog.entries().clear();
+
+    service.delete(holding.getId(), created.getId());
+
+    assertThat(auditLog.onlyEntry().action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.DELETE);
+  }
 }

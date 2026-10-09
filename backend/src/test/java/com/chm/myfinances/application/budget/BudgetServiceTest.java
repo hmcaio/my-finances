@@ -288,4 +288,47 @@ class BudgetServiceTest {
       assertThat(logs.events()).hasSize(1);
     }
   }
+
+  @Test
+  void createRecordsACreateAuditEntry() {
+    Budget created = service.create(groceriesId, new BigDecimal("500.00"), YearMonth.of(2026, 1));
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.entityType())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditEntityType.BUDGET);
+    assertThat(entry.entityId()).isEqualTo(created.getId());
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.CREATE);
+    assertThat(entry.changes()).containsKey("monthlyCap");
+  }
+
+  @Test
+  void setCapForANewMonthRecordsAnUpdateAuditEntryWithTheCapDiff() {
+    Budget budget = service.create(groceriesId, new BigDecimal("500.00"), YearMonth.of(2026, 1));
+    auditLog.entries().clear();
+
+    service.setCap(budget.getId(), new BigDecimal("600.00"), YearMonth.of(2026, 2));
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.UPDATE);
+    assertThat(entry.changes()).containsKey("monthlyCap");
+  }
+
+  @Test
+  void stopRecordsAStoppedAuditEntry() {
+    Budget budget = service.create(groceriesId, new BigDecimal("500.00"), YearMonth.of(2026, 1));
+    auditLog.entries().clear();
+
+    service.stop(budget.getId(), YearMonth.of(2026, 2));
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.STOPPED);
+    assertThat(entry.changes())
+        .containsEntry(
+            "monthlyCap",
+            new com.chm.myfinances.application.auditlog.FieldChange(
+                new BigDecimal("500.00"), null));
+  }
 }

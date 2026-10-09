@@ -592,4 +592,57 @@ class InvestmentProductServiceTest {
             com.chm.myfinances.application.investmentsegment.InvestmentSegmentNotFoundException
                 .class);
   }
+
+  @Test
+  void createRecordsACreateAuditEntryForTheProductAndItsFirstHolding() {
+    InvestmentProduct created =
+        service.create(xpAccountId, fixedIncomeId, cdbId, "CDB Banco Test", "matures 2030");
+
+    assertThat(auditLog.entries())
+        .anySatisfy(
+            entry -> {
+              assertThat(entry.entityType())
+                  .isEqualTo(
+                      com.chm.myfinances.application.auditlog.AuditEntityType.INVESTMENT_PRODUCT);
+              assertThat(entry.entityId()).isEqualTo(created.getId());
+              assertThat(entry.entityLabel()).isEqualTo("CDB Banco Test");
+              assertThat(entry.action())
+                  .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.CREATE);
+            });
+    assertThat(auditLog.entries())
+        .anySatisfy(
+            entry ->
+                assertThat(entry.entityType())
+                    .isEqualTo(
+                        com.chm.myfinances.application.auditlog.AuditEntityType
+                            .INVESTMENT_HOLDING));
+  }
+
+  @Test
+  void editRecordsAnUpdateAuditEntry() {
+    InvestmentProduct created =
+        service.create(xpAccountId, fixedIncomeId, cdbId, "CDB Banco Test", null);
+    auditLog.entries().clear();
+
+    service.edit(created.getId(), fixedIncomeId, cdbId, "CDB Banco Renamed", null);
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.UPDATE);
+    assertThat(entry.changes()).containsKey("name");
+  }
+
+  @Test
+  void deleteRecordsADeleteAuditEntry() {
+    InvestmentProduct created = service.create(xpAccountId, cryptoId, null, "Bitcoin Test", null);
+    holdingRepository.deleteById(holdingRepository.findByProductId(created.getId()).get(0).getId());
+    auditLog.entries().clear();
+
+    service.delete(created.getId());
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.DELETE);
+    assertThat(entry.entityLabel()).isEqualTo("Bitcoin Test");
+  }
 }

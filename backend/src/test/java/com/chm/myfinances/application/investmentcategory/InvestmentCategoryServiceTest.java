@@ -204,4 +204,37 @@ class InvestmentCategoryServiceTest {
         .isInstanceOf(InvestmentCategoryInUseException.class);
     assertThat(categoryRepository.findById(category.getId())).isPresent();
   }
+
+  @Test
+  void createRecordsACreateAuditEntry() {
+    InvestmentCategory created = service.create("Fixed Income");
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.entityId()).isEqualTo(created.getId());
+    assertThat(entry.entityLabel()).isEqualTo("Fixed Income");
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.CREATE);
+  }
+
+  @Test
+  void renameRecordsAnUpdateAuditEntry() {
+    InvestmentCategory created = service.create("Fixed Income");
+    auditLog.entries().clear();
+
+    service.rename(created.getId(), "Renda Fixa");
+
+    assertThat(auditLog.onlyEntry().action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.UPDATE);
+  }
+
+  @Test
+  void deleteRecordsADeleteAuditEntry() {
+    InvestmentCategory created = service.create("Fixed Income");
+    auditLog.entries().clear();
+
+    service.delete(created.getId());
+
+    assertThat(auditLog.onlyEntry().action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.DELETE);
+  }
 }

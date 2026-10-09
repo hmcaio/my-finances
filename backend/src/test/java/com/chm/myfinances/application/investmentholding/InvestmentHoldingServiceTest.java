@@ -290,4 +290,39 @@ class InvestmentHoldingServiceTest {
     assertThatThrownBy(() -> service.hasHistory(UUID.randomUUID()))
         .isInstanceOf(InvestmentHoldingNotFoundException.class);
   }
+
+  @Test
+  void createRecordsACreateAuditEntry() {
+    InvestmentHolding created = service.create(productId, xpAccountId, null);
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.entityType())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditEntityType.INVESTMENT_HOLDING);
+    assertThat(entry.entityId()).isEqualTo(created.getId());
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.CREATE);
+  }
+
+  @Test
+  void closeRecordsACloseAuditEntry() {
+    InvestmentHolding created = service.create(productId, xpAccountId, null);
+    auditLog.entries().clear();
+
+    service.close(created.getId());
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.action()).isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.CLOSE);
+    assertThat(entry.changes()).containsKey("closedDate");
+  }
+
+  @Test
+  void deleteRecordsADeleteAuditEntry() {
+    InvestmentHolding created = service.create(productId, xpAccountId, null);
+    auditLog.entries().clear();
+
+    service.delete(created.getId());
+
+    assertThat(auditLog.onlyEntry().action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.DELETE);
+  }
 }

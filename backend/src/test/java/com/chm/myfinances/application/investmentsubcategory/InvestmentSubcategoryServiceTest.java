@@ -153,4 +153,37 @@ class InvestmentSubcategoryServiceTest {
         .isInstanceOf(InvestmentSubcategoryInUseException.class);
     assertThat(subcategoryRepository.findById(created.getId())).isPresent();
   }
+
+  @Test
+  void createRecordsACreateAuditEntry() {
+    InvestmentSubcategory created = service.create(fixedIncomeId, "CDB");
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.entityId()).isEqualTo(created.getId());
+    assertThat(entry.entityLabel()).isEqualTo("CDB");
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.CREATE);
+  }
+
+  @Test
+  void renameRecordsAnUpdateAuditEntry() {
+    InvestmentSubcategory created = service.create(fixedIncomeId, "CDB");
+    auditLog.entries().clear();
+
+    service.rename(created.getId(), "CDB/RDB");
+
+    assertThat(auditLog.onlyEntry().action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.UPDATE);
+  }
+
+  @Test
+  void deleteRecordsADeleteAuditEntry() {
+    InvestmentSubcategory created = service.create(fixedIncomeId, "CDB");
+    auditLog.entries().clear();
+
+    service.delete(created.getId());
+
+    assertThat(auditLog.onlyEntry().action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.DELETE);
+  }
 }

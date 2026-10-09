@@ -192,4 +192,29 @@ class AllocationPlanServiceTest {
   void findVersionsReturnsEmptyWhenNoAllocationHasEverBeenSet() {
     assertThat(service.findVersions()).isEmpty();
   }
+
+  @Test
+  void setAllocationOnFirstUseRecordsAnUpdateAuditEntryWithTheEntries() {
+    service.setAllocation(List.of(entry(knri11Id, "100.00")), YearMonth.of(2026, 3));
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.entityType())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditEntityType.ALLOCATION_PLAN);
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.UPDATE);
+    assertThat(entry.changes()).containsKey("entries");
+  }
+
+  @Test
+  void setAllocationForANewMonthRecordsAnotherUpdateAuditEntry() {
+    service.setAllocation(List.of(entry(knri11Id, "100.00")), YearMonth.of(2026, 1));
+    auditLog.entries().clear();
+
+    service.setAllocation(List.of(entry(hglg11Id, "100.00")), YearMonth.of(2026, 6));
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.UPDATE);
+    assertThat(entry.changes()).containsKey("entries");
+  }
 }

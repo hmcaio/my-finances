@@ -132,4 +132,37 @@ class PaymentMethodServiceTest {
         .isInstanceOf(PaymentMethodInUseException.class);
     assertThat(repository.findById(created.getId())).isPresent();
   }
+
+  @Test
+  void createRecordsACreateAuditEntry() {
+    PaymentMethod created = service.create("Debit Card");
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.entityId()).isEqualTo(created.getId());
+    assertThat(entry.entityLabel()).isEqualTo("Debit Card");
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.CREATE);
+  }
+
+  @Test
+  void renameRecordsAnUpdateAuditEntry() {
+    PaymentMethod created = service.create("Debit Card");
+    auditLog.entries().clear();
+
+    service.rename(created.getId(), "Debit");
+
+    assertThat(auditLog.onlyEntry().action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.UPDATE);
+  }
+
+  @Test
+  void deleteRecordsADeleteAuditEntry() {
+    PaymentMethod created = service.create("Debit Card");
+    auditLog.entries().clear();
+
+    service.delete(created.getId());
+
+    assertThat(auditLog.onlyEntry().action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.DELETE);
+  }
 }

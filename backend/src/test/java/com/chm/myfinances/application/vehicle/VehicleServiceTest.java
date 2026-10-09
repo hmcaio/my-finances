@@ -144,4 +144,37 @@ class VehicleServiceTest {
         .isInstanceOf(VehicleInUseException.class);
     assertThat(repository.findById(created.getId())).isPresent();
   }
+
+  @Test
+  void createRecordsACreateAuditEntry() {
+    Vehicle created = service.create("Civic");
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.entityId()).isEqualTo(created.getId());
+    assertThat(entry.entityLabel()).isEqualTo("Civic");
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.CREATE);
+  }
+
+  @Test
+  void renameRecordsAnUpdateAuditEntry() {
+    Vehicle created = service.create("Civic");
+    auditLog.entries().clear();
+
+    service.rename(created.getId(), "Civic Hatch");
+
+    assertThat(auditLog.onlyEntry().action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.UPDATE);
+  }
+
+  @Test
+  void deleteRecordsADeleteAuditEntry() {
+    Vehicle created = service.create("Civic");
+    auditLog.entries().clear();
+
+    service.delete(created.getId());
+
+    assertThat(auditLog.onlyEntry().action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.DELETE);
+  }
 }

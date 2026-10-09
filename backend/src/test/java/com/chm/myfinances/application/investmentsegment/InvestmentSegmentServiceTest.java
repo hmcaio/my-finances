@@ -126,4 +126,37 @@ class InvestmentSegmentServiceTest {
         .isInstanceOf(InvestmentSegmentInUseException.class);
     assertThat(segmentRepository.findById(created.getId())).isPresent();
   }
+
+  @Test
+  void createRecordsACreateAuditEntry() {
+    InvestmentSegment created = service.create("Shoppings");
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.entityId()).isEqualTo(created.getId());
+    assertThat(entry.entityLabel()).isEqualTo("Shoppings");
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.CREATE);
+  }
+
+  @Test
+  void renameRecordsAnUpdateAuditEntry() {
+    InvestmentSegment created = service.create("Shoppings");
+    auditLog.entries().clear();
+
+    service.rename(created.getId(), "Shopping Malls");
+
+    assertThat(auditLog.onlyEntry().action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.UPDATE);
+  }
+
+  @Test
+  void deleteRecordsADeleteAuditEntry() {
+    InvestmentSegment created = service.create("Shoppings");
+    auditLog.entries().clear();
+
+    service.delete(created.getId());
+
+    assertThat(auditLog.onlyEntry().action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.DELETE);
+  }
 }

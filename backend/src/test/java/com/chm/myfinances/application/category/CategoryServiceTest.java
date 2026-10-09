@@ -269,4 +269,43 @@ class CategoryServiceTest {
         .isInstanceOf(CategoryInUseException.class);
     assertThat(repository.findById(created.getId())).isPresent();
   }
+
+  @Test
+  void createRecordsACreateAuditEntry() {
+    Category created = service.create("Groceries", CategoryType.EXPENSE);
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.entityType())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditEntityType.CATEGORY);
+    assertThat(entry.entityId()).isEqualTo(created.getId());
+    assertThat(entry.entityLabel()).isEqualTo("Groceries");
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.CREATE);
+  }
+
+  @Test
+  void renameRecordsAnUpdateAuditEntry() {
+    Category created = service.create("Groceries", CategoryType.EXPENSE);
+    auditLog.entries().clear();
+
+    service.rename(created.getId(), "Supermarket");
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.UPDATE);
+    assertThat(entry.changes()).containsKey("name");
+  }
+
+  @Test
+  void deleteRecordsADeleteAuditEntry() {
+    Category created = service.create("Groceries", CategoryType.EXPENSE);
+    auditLog.entries().clear();
+
+    service.delete(created.getId());
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.DELETE);
+    assertThat(entry.entityLabel()).isEqualTo("Groceries");
+  }
 }
