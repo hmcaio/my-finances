@@ -95,9 +95,7 @@ describe('TransfersPage', () => {
 
     const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByText('Edit transfer')).toBeInTheDocument()
-    expect(
-      within(dialog).getByDisplayValue(seedBitcoinBuyTransfer.description),
-    ).toBeInTheDocument()
+    expect(within(dialog).getByDisplayValue(seedBitcoinBuyTransfer.description)).toBeInTheDocument()
   })
 
   it('shows an error and clears ?focus= for an unknown transfer id', async () => {
