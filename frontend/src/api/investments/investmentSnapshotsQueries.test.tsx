@@ -105,13 +105,14 @@ describe('transfers hooks', () => {
     await waitFor(() => expect(result.current.trades.data?.content).toHaveLength(2))
 
     await result.current.create.mutateAsync({
-      ...seedBitcoinBuyTransfer,
+      date: seedBitcoinBuyTransfer.date,
       description: 'Another buy',
-      quantity: undefined,
-      unitPrice: undefined,
-      taxes: undefined,
-      additionalNotes: undefined,
-      investmentProductId: 'iprod-btc',
+      cashAccountId: seedBitcoinBuyTransfer.fromAccountId,
+      investmentAccountId: seedBitcoinBuyTransfer.toAccountId,
+      tradeConfirmation: {
+        taxes: 0,
+        lines: [{ productId: 'iprod-btc', side: 'BUY', quantity: 0.01, unitPrice: 100000 }],
+      },
     })
 
     await waitFor(() => expect(result.current.trades.data?.content).toHaveLength(3))

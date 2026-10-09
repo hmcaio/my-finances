@@ -36,178 +36,222 @@ function captureCreate(): { body: () => Record<string, unknown> | null } {
   return { body: () => sent }
 }
 
-async function pickBuy(user: ReturnType<typeof userEvent.setup>, product = 'Bitcoin') {
-  await selectOption(user, 'From Account', CHECKING)
-  await selectOption(user, 'To Account', BROKER)
+async function openTradeMode(
+  user: ReturnType<typeof userEvent.setup>,
+  cash = CHECKING,
+  investment = BROKER,
+) {
+  await user.click(screen.getByRole('button', { name: 'Trade confirmation' }))
+  await selectOption(user, 'Cash Account', cash)
+  await selectOption(user, 'Investment Account', investment)
+}
+
+async function pickBuyLine(user: ReturnType<typeof userEvent.setup>, product = 'Bitcoin') {
+  await openTradeMode(user)
   await selectOption(user, 'Product', product)
 }
 
-describe('TransferForm buys and sells', () => {
-  it('shows a product select with only the open products once an investment account is picked', async () => {
+describe('TransferForm plain/trade toggle', () => {
+  it('starts in Plain transfer mode with no trade fields', () => {
+    renderForm()
+
+    expect(screen.getByRole('button', { name: 'Plain transfer' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    expect(screen.queryByRole('group', { name: 'Trade lines' })).not.toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'From Account' })).toBeInTheDocument()
+  })
+
+  it('switching to Trade confirmation shows the cash/investment accounts and one blank line', async () => {
     const user = userEvent.setup({ delay: null })
     renderForm()
-    expect(screen.queryByRole('combobox', { name: 'Product' })).not.toBeInTheDocument()
 
-    await selectOption(user, 'From Account', CHECKING)
-    await selectOption(user, 'To Account', BROKER)
+    await user.click(screen.getByRole('button', { name: 'Trade confirmation' }))
+
+    expect(screen.getByRole('combobox', { name: 'Cash Account' })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Investment Account' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Trade lines' })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Product' })).toBeInTheDocument()
+  })
+
+  it('the Cash Account select never offers an INVESTMENT account', async () => {
+    const user = userEvent.setup({ delay: null })
+    renderForm()
+    await user.click(screen.getByRole('button', { name: 'Trade confirmation' }))
+
+    await user.click(screen.getByRole('combobox', { name: 'Cash Account' }))
+
+    expect(await screen.findByRole('option', { name: CHECKING })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: BROKER })).not.toBeInTheDocument()
+  })
+})
+
+describe('TransferForm trade confirmations', () => {
+  it('shows a product select with only the open holdings of the picked investment account', async () => {
+    const user = userEvent.setup({ delay: null })
+    renderForm()
+    await openTradeMode(user)
+
     await user.click(screen.getByRole('combobox', { name: 'Product' }))
 
     expect(await screen.findByRole('option', { name: 'Bitcoin' })).toBeInTheDocument()
     expect(screen.getByRole('option', { name: 'Tesouro Selic 2029' })).toBeInTheDocument()
-    // "Old CDB" is closed: a closed product takes no new trades.
+    // "Old CDB" is closed: a closed holding takes no new line.
     expect(screen.queryByRole('option', { name: 'Old CDB' })).not.toBeInTheDocument()
   })
 
-  it('does not let an investment account sit on both sides', async () => {
-    const user = userEvent.setup({ delay: null })
-    renderForm({
-      accounts: [...accounts, { ...seedInvestmentAccount, id: 'acct-inv-2', name: 'Other broker' }],
-    })
-
-    await selectOption(user, 'From Account', BROKER)
-    await user.click(screen.getByRole('combobox', { name: 'To Account' }))
-
-    expect(await screen.findByRole('option', { name: CHECKING })).toBeInTheDocument()
-    expect(screen.queryByRole('option', { name: 'Other broker' })).not.toBeInTheDocument()
-  })
-
-  it('prefills the amount with the live total of a buy and keeps a manual override', async () => {
+  it('previews the net settlement of a single BUY line, cash into the investment account', async () => {
     const user = userEvent.setup({ delay: null })
     renderForm()
-    await pickBuy(user)
+    await pickBuyLine(user)
 
     await user.type(screen.getByRole('spinbutton', { name: 'Quantity' }), '10')
     await user.type(screen.getByRole('spinbutton', { name: 'Unit price' }), '100')
+    await user.clear(screen.getByRole('spinbutton', { name: 'Taxes' }))
     await user.type(screen.getByRole('spinbutton', { name: 'Taxes' }), '5')
 
-    expect(screen.getByRole('spinbutton', { name: 'Amount' })).toHaveValue(1005)
-    expect(screen.getByText(/Total 1005\.00/)).toBeInTheDocument()
-
-    const amount = screen.getByRole('spinbutton', { name: 'Amount' })
-    await user.clear(amount)
-    await user.type(amount, '1010')
-    await user.type(screen.getByRole('spinbutton', { name: 'Quantity' }), '0')
-
-    // The user's own figure (brokers round per lot) wins over the recomputed total.
-    expect(amount).toHaveValue(1010)
+    expect(
+      screen.getByText(`Net settlement: 1005.00 (${CHECKING} → ${BROKER})`),
+    ).toBeInTheDocument()
   })
 
-  it('subtracts taxes from the total of a sell', async () => {
+  it('previews the net settlement of a single SELL line, the investment account into cash', async () => {
     const user = userEvent.setup({ delay: null })
     renderForm()
-    await selectOption(user, 'From Account', BROKER)
-    await selectOption(user, 'To Account', CHECKING)
-    await selectOption(user, 'Product', 'Bitcoin')
+    await pickBuyLine(user)
+    await selectOption(user, 'Side', 'Sell')
 
     await user.type(screen.getByRole('spinbutton', { name: 'Quantity' }), '10')
     await user.type(screen.getByRole('spinbutton', { name: 'Unit price' }), '100')
+    await user.clear(screen.getByRole('spinbutton', { name: 'Taxes' }))
     await user.type(screen.getByRole('spinbutton', { name: 'Taxes' }), '5')
 
-    expect(screen.getByRole('spinbutton', { name: 'Amount' })).toHaveValue(995)
+    expect(screen.getByText(`Net settlement: 995.00 (${BROKER} → ${CHECKING})`)).toBeInTheDocument()
   })
 
-  it('suggests a resulting balance from the latest snapshot plus the gross traded value', async () => {
+  it('offers "Close this holding" only on a SELL line', async () => {
     const user = userEvent.setup({ delay: null })
     renderForm()
-    await pickBuy(user)
+    await pickBuyLine(user)
 
-    await user.type(screen.getByRole('spinbutton', { name: 'Quantity' }), '0.01')
-    await user.type(screen.getByRole('spinbutton', { name: 'Unit price' }), '100000')
-    await user.type(screen.getByRole('spinbutton', { name: 'Taxes' }), '5')
+    expect(screen.queryByRole('checkbox', { name: 'Close this holding' })).not.toBeInTheDocument()
 
-    // Bitcoin's latest snapshot is 900, the buy's gross value 0.01 x 100000 = 1000.
-    expect(screen.getByRole('spinbutton', { name: 'Resulting balance' })).toHaveValue(1900)
+    await selectOption(user, 'Side', 'Sell')
+
+    expect(screen.getByRole('checkbox', { name: 'Close this holding' })).toBeInTheDocument()
   })
 
-  it('creates a buy with the product, trade details and the edited resulting balance', async () => {
+  it('adds and removes lines', async () => {
+    const user = userEvent.setup({ delay: null })
+    renderForm()
+    await openTradeMode(user)
+
+    await user.click(screen.getByRole('button', { name: 'Add line' }))
+
+    expect(screen.getAllByRole('combobox', { name: 'Product' })).toHaveLength(2)
+
+    await user.click(screen.getAllByRole('button', { name: 'Remove line' })[0])
+
+    expect(screen.getAllByRole('combobox', { name: 'Product' })).toHaveLength(1)
+  })
+
+  it('creates a single-line buy with the derived amount and direction', async () => {
     const user = userEvent.setup({ delay: null })
     const capture = captureCreate()
     const onSaved = renderForm()
-    await pickBuy(user)
+    await pickBuyLine(user)
     await user.type(screen.getByRole('spinbutton', { name: 'Quantity' }), '10')
     await user.type(screen.getByRole('spinbutton', { name: 'Unit price' }), '100')
+    await user.clear(screen.getByRole('spinbutton', { name: 'Taxes' }))
     await user.type(screen.getByRole('spinbutton', { name: 'Taxes' }), '5')
-    const resulting = screen.getByRole('spinbutton', { name: 'Resulting balance' })
-    await user.clear(resulting)
-    await user.type(resulting, '2000')
-    await user.type(screen.getByRole('textbox', { name: 'Description' }), ' order')
+    await user.type(screen.getByRole('spinbutton', { name: 'Resulting balance' }), '2000')
+    await user.type(screen.getByRole('textbox', { name: 'Description' }), 'Buy order')
     await user.click(screen.getByRole('button', { name: 'Add' }))
 
     await waitFor(() => expect(onSaved).toHaveBeenCalled())
     expect(capture.body()).toMatchObject({
-      fromAccountId: seedAccounts[0].id,
-      toAccountId: seedInvestmentAccount.id,
-      amount: 1005,
-      investmentProductId: 'iprod-btc',
-      quantity: 10,
-      unitPrice: 100,
-      taxes: 5,
-      resultingBalance: 2000,
+      cashAccountId: seedAccounts[0].id,
+      investmentAccountId: seedInvestmentAccount.id,
+      tradeConfirmation: {
+        taxes: 5,
+        lines: [
+          {
+            productId: 'iprod-btc',
+            side: 'BUY',
+            quantity: 10,
+            unitPrice: 100,
+            resultingBalance: 2000,
+            closeHolding: false,
+          },
+        ],
+      },
     })
+    expect(capture.body()).not.toHaveProperty('amount')
+    expect(capture.body()).not.toHaveProperty('fromAccountId')
   })
 
-  it('sends no resulting balance when the field is cleared', async () => {
+  it('sends no resultingBalance when the field is left blank', async () => {
     const user = userEvent.setup({ delay: null })
     const capture = captureCreate()
     const onSaved = renderForm()
-    await pickBuy(user)
-    await user.type(screen.getByRole('spinbutton', { name: 'Amount' }), '300')
-    await user.clear(screen.getByRole('spinbutton', { name: 'Resulting balance' }))
+    await pickBuyLine(user)
+    await user.type(screen.getByRole('spinbutton', { name: 'Quantity' }), '10')
+    await user.type(screen.getByRole('spinbutton', { name: 'Unit price' }), '100')
     await user.type(screen.getByRole('textbox', { name: 'Description' }), 'Top up')
     await user.click(screen.getByRole('button', { name: 'Add' }))
 
     await waitFor(() => expect(onSaved).toHaveBeenCalled())
-    expect(capture.body()).not.toHaveProperty('resultingBalance')
-    expect(capture.body()).not.toHaveProperty('quantity')
-    expect(capture.body()).toMatchObject({ amount: 300, investmentProductId: 'iprod-btc' })
+    const lines = capture.body()!.tradeConfirmation as { lines: Record<string, unknown>[] }
+    expect(lines.lines[0]).not.toHaveProperty('resultingBalance')
   })
 
-  it('"Sold entire position" sends a resulting balance of 0 and locks the field', async () => {
-    const user = userEvent.setup({ delay: null })
-    const capture = captureCreate()
-    const onSaved = renderForm()
-    await selectOption(user, 'From Account', BROKER)
-    await selectOption(user, 'To Account', CHECKING)
-    await selectOption(user, 'Product', 'Bitcoin')
-    await user.type(screen.getByRole('spinbutton', { name: 'Amount' }), '900')
-    await user.click(screen.getByRole('checkbox', { name: 'Sold entire position' }))
-
-    const resulting = screen.getByRole('spinbutton', { name: 'Resulting balance' })
-    expect(resulting).toHaveValue(0)
-    expect(resulting).toBeDisabled()
-
-    await user.type(screen.getByRole('textbox', { name: 'Description' }), 'Sell all')
-    await user.click(screen.getByRole('button', { name: 'Add' }))
-
-    await waitFor(() => expect(onSaved).toHaveBeenCalled())
-    expect(capture.body()).toMatchObject({
-      fromAccountId: seedInvestmentAccount.id,
-      resultingBalance: 0,
-    })
-  })
-
-  it('offers "Sold entire position" only on a sell', async () => {
+  it('requires every line to have a product, positive quantity and unit price', async () => {
     const user = userEvent.setup({ delay: null })
     renderForm()
-    await pickBuy(user)
-
-    expect(screen.queryByRole('checkbox', { name: 'Sold entire position' })).not.toBeInTheDocument()
-  })
-
-  it('requires a product for an investment account and quantity with unit price together', async () => {
-    const user = userEvent.setup({ delay: null })
-    renderForm()
-    await selectOption(user, 'From Account', CHECKING)
-    await selectOption(user, 'To Account', BROKER)
-    await user.type(screen.getByRole('spinbutton', { name: 'Amount' }), '10')
+    await openTradeMode(user)
     await user.type(screen.getByRole('textbox', { name: 'Description' }), 'x')
 
     expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled()
 
     await selectOption(user, 'Product', 'Bitcoin')
-    expect(screen.getByRole('button', { name: 'Add' })).toBeEnabled()
-
     await user.type(screen.getByRole('spinbutton', { name: 'Quantity' }), '1')
+    expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled()
+
+    await user.type(screen.getByRole('spinbutton', { name: 'Unit price' }), '1')
+    expect(screen.getByRole('button', { name: 'Add' })).toBeEnabled()
+  })
+
+  it('rejects a net-zero settlement client-side (Add stays disabled)', async () => {
+    const user = userEvent.setup({ delay: null })
+    renderForm()
+    await openTradeMode(user)
+    await user.click(screen.getByRole('button', { name: 'Add line' }))
+    await user.type(screen.getByRole('textbox', { name: 'Description' }), 'Wash')
+
+    const productSelects = screen.getAllByRole('combobox', { name: 'Product' })
+    await user.click(productSelects[0])
+    await user.click(await screen.findByRole('option', { name: 'Bitcoin' }))
+    await user.click(productSelects[1])
+    await user.click(await screen.findByRole('option', { name: 'Tesouro Selic 2029' }))
+    const sideSelects = screen.getAllByRole('combobox', { name: 'Side' })
+    await user.click(sideSelects[1])
+    await user.click(await screen.findByRole('option', { name: 'Sell' }))
+
+    const quantities = screen.getAllByRole('spinbutton', { name: 'Quantity' })
+    const unitPrices = screen.getAllByRole('spinbutton', { name: 'Unit price' })
+    await user.type(quantities[0], '10')
+    await user.type(unitPrices[0], '100')
+    await user.type(quantities[1], '10')
+    await user.type(unitPrices[1], '100')
+    await user.clear(screen.getByRole('spinbutton', { name: 'Taxes' }))
+    await user.type(screen.getByRole('spinbutton', { name: 'Taxes' }), '0')
+
+    expect(
+      screen.getByText(
+        'This settlement nets to exactly zero and will be rejected - check the lines.',
+      ),
+    ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled()
   })
 
@@ -216,15 +260,16 @@ describe('TransferForm buys and sells', () => {
     server.use(http.post('/api/transfers', () => HttpResponse.json({}, { status: 409 })))
     const onError = vi.fn()
     renderForm({ onError })
-    await pickBuy(user)
-    await user.type(screen.getByRole('spinbutton', { name: 'Amount' }), '10')
+    await pickBuyLine(user)
+    await user.type(screen.getByRole('spinbutton', { name: 'Quantity' }), '1')
+    await user.type(screen.getByRole('spinbutton', { name: 'Unit price' }), '10')
     await user.type(screen.getByRole('textbox', { name: 'Description' }), 'x')
     await user.click(screen.getByRole('button', { name: 'Add' }))
 
     await waitFor(() => expect(onError).toHaveBeenCalledWith(TRANSFER_CONFLICT_MESSAGE))
   })
 
-  it('starts from a Buy preset: investment account, product and description filled in', async () => {
+  it('starts from a Buy preset: trade mode, investment account, product and description filled in', async () => {
     const preset: TransferFormPreset = {
       direction: 'buy',
       investmentAccountId: seedInvestmentAccount.id,
@@ -234,14 +279,14 @@ describe('TransferForm buys and sells', () => {
     renderForm({ preset })
 
     expect(screen.getByRole('textbox', { name: 'Description' })).toHaveValue('Buy Bitcoin')
-    expect(screen.getByRole('combobox', { name: 'To Account' })).toHaveTextContent(BROKER)
+    expect(screen.getByRole('combobox', { name: 'Investment Account' })).toHaveTextContent(BROKER)
     // The product list arrives after the select first renders.
     await waitFor(() =>
       expect(screen.getByRole('combobox', { name: 'Product' })).toHaveTextContent('Bitcoin'),
     )
   })
 
-  it('starts from a Sell preset with the investment account as the source', async () => {
+  it('starts from a Sell preset with "Close this holding" available', async () => {
     renderForm({
       preset: {
         direction: 'sell',
@@ -251,13 +296,11 @@ describe('TransferForm buys and sells', () => {
       },
     })
 
-    expect(screen.getByRole('combobox', { name: 'From Account' })).toHaveTextContent(BROKER)
-    expect(
-      await screen.findByRole('checkbox', { name: 'Sold entire position' }),
-    ).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Investment Account' })).toHaveTextContent(BROKER)
+    expect(await screen.findByRole('checkbox', { name: 'Close this holding' })).toBeInTheDocument()
   })
 
-  it('edits a trade without offering the snapshot fields and sends no resulting balance', async () => {
+  it('edits a trade confirmation, prefilling its line and sending the new shape', async () => {
     const user = userEvent.setup({ delay: null })
     let sent: Record<string, unknown> | null = null
     server.use(
@@ -268,21 +311,25 @@ describe('TransferForm buys and sells', () => {
     )
     const onSaved = renderForm({ editing: seedBitcoinBuyTransfer })
 
-    expect(screen.queryByRole('spinbutton', { name: 'Resulting balance' })).not.toBeInTheDocument()
-    expect(screen.getByText('Editing a trade never changes snapshots.')).toBeInTheDocument()
     // The product list arrives after the select first renders.
     await waitFor(() =>
       expect(screen.getByRole('combobox', { name: 'Product' })).toHaveTextContent('Bitcoin'),
     )
     expect(screen.getByRole('spinbutton', { name: 'Quantity' })).toHaveValue(0.01)
+    expect(screen.getByRole('spinbutton', { name: 'Unit price' })).toHaveValue(100000)
 
     await user.click(screen.getByRole('button', { name: 'Save changes' }))
 
     await waitFor(() => expect(onSaved).toHaveBeenCalled())
-    expect(sent).toMatchObject({ investmentProductId: 'iprod-btc', quantity: 0.01, taxes: 5 })
-    expect(sent).not.toHaveProperty('resultingBalance')
+    expect(sent).toMatchObject({
+      cashAccountId: seedBitcoinBuyTransfer.fromAccountId,
+      investmentAccountId: seedBitcoinBuyTransfer.toAccountId,
+      tradeConfirmation: { taxes: 5, lines: [{ productId: 'iprod-btc', quantity: 0.01 }] },
+    })
   })
+})
 
+describe('TransferForm plain transfers', () => {
   it('leaves a plain transfer without any trade fields', async () => {
     const user = userEvent.setup({ delay: null })
     const capture = captureCreate()
@@ -292,7 +339,7 @@ describe('TransferForm buys and sells', () => {
     await user.type(screen.getByRole('spinbutton', { name: 'Amount' }), '25')
     await user.type(screen.getByRole('textbox', { name: 'Description' }), 'Card payment')
 
-    expect(screen.queryByRole('group', { name: 'Trade details' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: 'Trade lines' })).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Add' }))
 
     await waitFor(() => expect(onSaved).toHaveBeenCalled())
@@ -300,6 +347,28 @@ describe('TransferForm buys and sells', () => {
     expect(Object.keys(sent).sort()).toEqual(
       ['amount', 'date', 'description', 'fromAccountId', 'toAccountId'].sort(),
     )
-    expect(within(document.body).queryByText(/Trade details/)).not.toBeInTheDocument()
+    expect(within(document.body).queryByText(/Trade lines/)).not.toBeInTheDocument()
+  })
+
+  it('editing a plain transfer prefills its fields and mode', () => {
+    renderForm({
+      editing: {
+        id: 'trf-1',
+        date: '2026-01-10',
+        fromAccountId: seedAccounts[0].id,
+        toAccountId: seedAccounts[2].id,
+        amount: 200,
+        description: 'Credit card payment',
+        additionalNotes: null,
+        taxes: null,
+        tradeConfirmation: null,
+      },
+    })
+
+    expect(screen.getByRole('button', { name: 'Plain transfer' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    expect(screen.getByRole('spinbutton', { name: 'Amount' })).toHaveValue(200)
   })
 })

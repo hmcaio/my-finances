@@ -30,11 +30,5 @@ interface TransferJpaRepository
   List<LocalDate> findDistinctDatesBetween(
       @Param("from") LocalDate from, @Param("to") LocalDate to);
 
-  List<TransferJpaEntity> findByInvestmentProductId(UUID investmentProductId);
-
-  List<TransferJpaEntity> findByInvestmentProductIdIsNotNull();
-
-  boolean existsByInvestmentProductId(UUID investmentProductId);
-
   boolean existsByFromAccountIdOrToAccountId(UUID fromAccountId, UUID toAccountId);
 }

@@ -16,7 +16,9 @@ import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategoryRepository;
-import com.chm.myfinances.domain.transfer.InvestmentTradeDetails;
+import com.chm.myfinances.domain.transfer.TradeConfirmation;
+import com.chm.myfinances.domain.transfer.TradeConfirmationLine;
+import com.chm.myfinances.domain.transfer.TradeSide;
 import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.domain.transfer.TransferRepository;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
@@ -25,6 +27,7 @@ import com.chm.myfinances.testsupport.web.WebIntegrationTest;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -139,16 +142,23 @@ class FiiPortfolioControllerTest {
     // Today's trade: must not show up when asking for last month, and must not flag
     // needsSnapshot (that flag is suppressed entirely for a past month, never computed).
     transferRepository.save(
-        Transfer.create(
+        Transfer.createTradeConfirmation(
             UUID.randomUUID(),
             LocalDate.now(),
             checkingAccount.getId(),
             investmentAccount.getId(),
-            new BigDecimal("100.00"),
             "XPLG11 buy",
             null,
-            fii.getId(),
-            new InvestmentTradeDetails(new BigDecimal("1"), BigDecimal.ONE, null)));
+            BigDecimal.ZERO,
+            TradeConfirmation.of(
+                List.of(
+                    new TradeConfirmationLine(
+                        fii.getId(),
+                        TradeSide.BUY,
+                        BigDecimal.ONE,
+                        new BigDecimal("100.00"),
+                        null,
+                        false)))));
 
     YearMonth lastMonth = YearMonth.now().minusMonths(1);
     mockMvc

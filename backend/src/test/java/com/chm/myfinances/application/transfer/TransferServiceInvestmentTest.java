@@ -5,12 +5,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingClosedException;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingNotFoundException;
+import com.chm.myfinances.application.investmentholding.InvestmentHoldingService;
 import com.chm.myfinances.application.investmentsnapshot.InvestmentSnapshotService;
+import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
-import com.chm.myfinances.domain.transfer.InvestmentTradeDetails;
+import com.chm.myfinances.domain.transfer.TradeConfirmationLine;
+import com.chm.myfinances.domain.transfer.TradeSide;
 import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
@@ -22,6 +25,7 @@ import com.chm.myfinances.testsupport.mothers.AccountMother;
 import com.chm.myfinances.testsupport.mothers.InvestmentHoldingMother;
 import com.chm.myfinances.testsupport.mothers.InvestmentProductMother;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -29,12 +33,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Application-layer tests for {@link TransferService}'s investment rules (F009 spec, rewired onto
- * holdings by F022/ADR 0020), written first (ADR 0004): a buy/sell is a transfer between a cash
- * account and an {@code INVESTMENT} account, tagged with a product for which an open holding must
- * already exist in that account (holdings are created explicitly - a trade never creates one).
- * Every case depends on persisted state, so each is its own 404/409 exception. Applied on create
- * and edit; an optional {@code resultingBalance} on create also writes a snapshot.
+ * Application-layer tests for {@link TransferService}'s trade-confirmation rules (F027 spec, ADR
+ * 0024, superseding F009/F022's single-product shape), written first (ADR 0004): a confirmation is
+ * a transfer between a cash account and an {@code INVESTMENT} account, carrying one or more lines
+ * each tagged with a product for which an open holding must already exist in that account (holdings
+ * are created explicitly - a trade never creates one). Mixed BUY/SELL lines and duplicate-product
+ * lines (partial fills) are accepted; per-line {@code resultingBalance} writes a same-day snapshot,
+ * per-line {@code closeHolding} closes that holding - all inside the same {@code @Transactional}
+ * use case as the {@link Transfer} write.
  */
 class TransferServiceInvestmentTest {
 
@@ -55,6 +61,14 @@ class TransferServiceInvestmentTest {
           accountRepository,
           holdingRepository,
           new InvestmentSnapshotService(snapshotRepository, holdingRepository, idGenerator),
+          new InvestmentHoldingService(
+              holdingRepository,
+              productRepository,
+              accountRepository,
+              id -> false,
+              new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository),
+              idGenerator,
+              Clock.systemUTC()),
           idGenerator);
 
   private Account checking;
@@ -63,6 +77,8 @@ class TransferServiceInvestmentTest {
   private Account otherBroker;
   private InvestmentProduct product;
   private InvestmentHolding holding;
+  private InvestmentProduct otherProduct;
+  private InvestmentHolding otherHolding;
   private InvestmentProduct otherBrokerProduct;
 
   @BeforeEach
@@ -79,23 +95,36 @@ class TransferServiceInvestmentTest {
                 .withProductId(product.getId())
                 .withAccountId(broker.getId())
                 .build());
+    otherProduct = productRepository.save(InvestmentProductMother.product().withName("B").build());
+    otherHolding =
+        holdingRepository.save(
+            InvestmentHoldingMother.holding()
+                .withProductId(otherProduct.getId())
+                .withAccountId(broker.getId())
+                .build());
     otherBrokerProduct =
         productRepository.save(InvestmentProductMother.product().withName("Foreign").build());
     // otherBrokerProduct has no holding anywhere - used to test the "no holding" 404.
   }
 
-  private Transfer buy(
-      UUID productId, InvestmentTradeDetails details, BigDecimal resultingBalance) {
-    return service.create(
-        DATE,
-        checking.getId(),
-        broker.getId(),
-        new BigDecimal("1005.00"),
-        "Buy",
-        null,
+  private static TradeConfirmationLine buyLine(UUID productId, String quantity, String unitPrice) {
+    return new TradeConfirmationLine(
+        productId, TradeSide.BUY, new BigDecimal(quantity), new BigDecimal(unitPrice), null, false);
+  }
+
+  private static TradeConfirmationLine sellLine(UUID productId, String quantity, String unitPrice) {
+    return new TradeConfirmationLine(
         productId,
-        details,
-        resultingBalance);
+        TradeSide.SELL,
+        new BigDecimal(quantity),
+        new BigDecimal(unitPrice),
+        null,
+        false);
+  }
+
+  private Transfer createWith(List<TradeConfirmationLine> lines) {
+    return service.createTradeConfirmation(
+        DATE, checking.getId(), broker.getId(), "Trade", null, BigDecimal.ZERO, lines);
   }
 
   private Transfer plainTransfer() {
@@ -103,113 +132,82 @@ class TransferServiceInvestmentTest {
         DATE, checking.getId(), savings.getId(), BigDecimal.TEN, "Transfer", null);
   }
 
-  private Transfer editTo(
-      Transfer transfer, UUID from, UUID to, UUID productId, InvestmentTradeDetails details) {
-    return service.edit(
-        transfer.getId(), DATE, from, to, BigDecimal.TEN, "Edited", null, productId, details);
-  }
-
-  // --- create ---------------------------------------------------------------------------------
+  // --- create -----------------------------------------------------------------------------------
 
   @Test
-  void aBuyIsATransferIntoAnInvestmentAccountTaggedWithItsProduct() {
-    InvestmentTradeDetails details =
-        new InvestmentTradeDetails(
-            new BigDecimal("10"), new BigDecimal("100.00"), new BigDecimal("5.00"));
+  void aSingleBuyLineIsATransferIntoTheInvestmentAccount() {
+    Transfer created = createWith(List.of(buyLine(product.getId(), "10", "100.00")));
 
-    Transfer created = buy(product.getId(), details, null);
-
-    assertThat(created.getInvestmentProductId()).isEqualTo(product.getId());
-    assertThat(created.getTradeDetails()).isEqualTo(details);
-    assertThat(transferRepository.findById(created.getId())).isPresent();
+    assertThat(created.getFromAccountId()).isEqualTo(checking.getId());
+    assertThat(created.getToAccountId()).isEqualTo(broker.getId());
+    assertThat(created.getAmount()).isEqualByComparingTo("1000.00");
+    assertThat(created.getTradeConfirmation()).isPresent();
   }
 
   @Test
-  void aSellIsATransferOutOfAnInvestmentAccountTaggedWithItsProduct() {
+  void aSingleSellLineIsATransferOutOfTheInvestmentAccount() {
+    Transfer created = createWith(List.of(sellLine(product.getId(), "10", "100.00")));
+
+    assertThat(created.getFromAccountId()).isEqualTo(broker.getId());
+    assertThat(created.getToAccountId()).isEqualTo(checking.getId());
+  }
+
+  @Test
+  void mixedBuyAndSellLinesAcrossDifferentProductsAreAccepted() {
     Transfer created =
-        service.create(
-            DATE,
-            broker.getId(),
-            checking.getId(),
-            new BigDecimal("995.00"),
-            "Sell",
-            null,
-            product.getId(),
-            null,
-            null);
+        createWith(
+            List.of(
+                buyLine(product.getId(), "10", "100.00"),
+                sellLine(otherProduct.getId(), "5", "50.00")));
 
-    assertThat(created.getInvestmentProductId()).isEqualTo(product.getId());
-    assertThat(created.getTradeDetails().isEmpty()).isTrue();
+    assertThat(created.getTradeConfirmation().orElseThrow().getLines()).hasSize(2);
   }
 
   @Test
-  void createRejectsAnInvestmentEndpointWithoutAProduct() {
-    assertThatThrownBy(
-            () ->
-                service.create(
-                    DATE,
-                    checking.getId(),
-                    broker.getId(),
-                    BigDecimal.TEN,
-                    "Buy",
-                    null,
-                    null,
-                    null,
-                    null))
-        .isInstanceOf(InvestmentTransferInvalidException.class);
+  void duplicateProductLinesAsPartialFillsAreAccepted() {
+    Transfer created =
+        createWith(
+            List.of(
+                buyLine(product.getId(), "10", "100.00"), buyLine(product.getId(), "5", "101.00")));
+
+    assertThat(created.getTradeConfirmation().orElseThrow().getLines()).hasSize(2);
+    assertThat(created.getAmount()).isEqualByComparingTo("1505.00");
   }
 
   @Test
   void createRejectsAProductWithNoHoldingInThatAccount() {
-    assertThatThrownBy(() -> buy(otherBrokerProduct.getId(), null, null))
+    assertThatThrownBy(() -> createWith(List.of(buyLine(otherBrokerProduct.getId(), "1", "10.00"))))
         .isInstanceOf(InvestmentHoldingNotFoundException.class);
     assertThat(transferRepository.findAll()).isEmpty();
   }
 
   @Test
-  void createRejectsAProductWithoutAnInvestmentEndpoint() {
+  void createRejectsAnInvestmentAccountThatIsNotActuallyInvestment() {
     assertThatThrownBy(
             () ->
-                service.create(
+                service.createTradeConfirmation(
                     DATE,
                     checking.getId(),
                     savings.getId(),
-                    BigDecimal.TEN,
-                    "Transfer",
+                    "Trade",
                     null,
-                    product.getId(),
-                    null,
-                    null))
+                    BigDecimal.ZERO,
+                    List.of(buyLine(product.getId(), "1", "10.00"))))
         .isInstanceOf(InvestmentTransferInvalidException.class);
   }
 
   @Test
-  void createRejectsTwoInvestmentEndpoints() {
+  void createRejectsTwoInvestmentAccounts() {
     assertThatThrownBy(
             () ->
-                service.create(
+                service.createTradeConfirmation(
                     DATE,
                     broker.getId(),
                     otherBroker.getId(),
-                    BigDecimal.TEN,
                     "Move",
                     null,
-                    product.getId(),
-                    null,
-                    null))
-        .isInstanceOf(InvestmentTransferInvalidException.class);
-    assertThatThrownBy(
-            () ->
-                service.create(
-                    DATE,
-                    broker.getId(),
-                    otherBroker.getId(),
-                    BigDecimal.TEN,
-                    "Move",
-                    null,
-                    null,
-                    null,
-                    null))
+                    BigDecimal.ZERO,
+                    List.of(buyLine(product.getId(), "1", "10.00"))))
         .isInstanceOf(InvestmentTransferInvalidException.class);
   }
 
@@ -218,13 +216,13 @@ class TransferServiceInvestmentTest {
     holding.close(LocalDate.of(2026, 3, 1));
     holdingRepository.save(holding);
 
-    assertThatThrownBy(() -> buy(product.getId(), null, null))
+    assertThatThrownBy(() -> createWith(List.of(buyLine(product.getId(), "1", "10.00"))))
         .isInstanceOf(InvestmentHoldingClosedException.class);
   }
 
   @Test
   void createRejectsAnUnknownProduct() {
-    assertThatThrownBy(() -> buy(UUID.randomUUID(), null, null))
+    assertThatThrownBy(() -> createWith(List.of(buyLine(UUID.randomUUID(), "1", "10.00"))))
         .isInstanceOf(InvestmentHoldingNotFoundException.class);
   }
 
@@ -233,205 +231,239 @@ class TransferServiceInvestmentTest {
     broker.close(LocalDate.of(2026, 3, 1));
     accountRepository.save(broker);
 
-    assertThatThrownBy(() -> buy(product.getId(), null, null))
+    assertThatThrownBy(() -> createWith(List.of(buyLine(product.getId(), "1", "10.00"))))
         .isInstanceOf(AccountClosedException.class);
   }
 
   @Test
-  void aPlainTransferStillNeedsNoProduct() {
-    Transfer created = plainTransfer();
-
-    assertThat(created.getInvestmentProductId()).isNull();
-  }
-
-  // --- edit -----------------------------------------------------------------------------------
-
-  @Test
-  void editCanTagAPlainTransferAsABuyAndChangeItsDetails() {
-    Transfer created = plainTransfer();
-    InvestmentTradeDetails details =
-        new InvestmentTradeDetails(BigDecimal.ONE, BigDecimal.TEN, BigDecimal.ONE);
-
-    Transfer edited = editTo(created, checking.getId(), broker.getId(), product.getId(), details);
-
-    assertThat(edited.getInvestmentProductId()).isEqualTo(product.getId());
-    assertThat(edited.getTradeDetails()).isEqualTo(details);
+  void createRejectsAnExactZeroNetSettlement() {
+    assertThatThrownBy(
+            () ->
+                createWith(
+                    List.of(
+                        buyLine(product.getId(), "10", "100.00"),
+                        sellLine(otherProduct.getId(), "10", "100.00"))))
+        .isInstanceOf(InvalidTradeConfirmationException.class);
+    assertThat(transferRepository.findAll()).isEmpty();
   }
 
   @Test
-  void editRejectsAnInvestmentEndpointWithoutAProduct() {
+  void aPlainTransferStillNeedsNoTradeConfirmation() {
     Transfer created = plainTransfer();
 
-    assertThatThrownBy(() -> editTo(created, checking.getId(), broker.getId(), null, null))
-        .isInstanceOf(InvestmentTransferInvalidException.class);
+    assertThat(created.getTradeConfirmation()).isEmpty();
+  }
+
+  // --- edit -------------------------------------------------------------------------------------
+
+  @Test
+  void editTradeConfirmationReplacesTheLinesAndRecomputesAmountAndDirection() {
+    Transfer created = createWith(List.of(buyLine(product.getId(), "10", "100.00")));
+
+    Transfer edited =
+        service.editTradeConfirmation(
+            created.getId(),
+            DATE,
+            checking.getId(),
+            broker.getId(),
+            "Edited",
+            null,
+            BigDecimal.ZERO,
+            List.of(sellLine(product.getId(), "10", "100.00")));
+
+    assertThat(edited.getFromAccountId()).isEqualTo(broker.getId());
+    assertThat(edited.getToAccountId()).isEqualTo(checking.getId());
   }
 
   @Test
   void editRejectsAProductWithNoHoldingInThatAccount() {
-    Transfer created = plainTransfer();
+    Transfer created = createWith(List.of(buyLine(product.getId(), "10", "100.00")));
 
     assertThatThrownBy(
             () ->
-                editTo(created, checking.getId(), broker.getId(), otherBrokerProduct.getId(), null))
+                service.editTradeConfirmation(
+                    created.getId(),
+                    DATE,
+                    checking.getId(),
+                    broker.getId(),
+                    "Edited",
+                    null,
+                    BigDecimal.ZERO,
+                    List.of(buyLine(otherBrokerProduct.getId(), "1", "10.00"))))
         .isInstanceOf(InvestmentHoldingNotFoundException.class);
   }
 
   @Test
-  void editRejectsAProductWithoutAnInvestmentEndpoint() {
-    Transfer created = buy(product.getId(), null, null);
-
-    assertThatThrownBy(
-            () -> editTo(created, checking.getId(), savings.getId(), product.getId(), null))
-        .isInstanceOf(InvestmentTransferInvalidException.class);
-  }
-
-  @Test
-  void editRejectsTwoInvestmentEndpoints() {
-    Transfer created = buy(product.getId(), null, null);
-
-    assertThatThrownBy(
-            () -> editTo(created, broker.getId(), otherBroker.getId(), product.getId(), null))
-        .isInstanceOf(InvestmentTransferInvalidException.class);
-  }
-
-  @Test
   void editRejectsAClosedHolding() {
-    Transfer created = buy(product.getId(), null, null);
+    Transfer created = createWith(List.of(buyLine(product.getId(), "10", "100.00")));
     holding.close(LocalDate.of(2026, 3, 20));
     holdingRepository.save(holding);
 
     assertThatThrownBy(
-            () -> editTo(created, checking.getId(), broker.getId(), product.getId(), null))
+            () ->
+                service.editTradeConfirmation(
+                    created.getId(),
+                    DATE,
+                    checking.getId(),
+                    broker.getId(),
+                    "Edited",
+                    null,
+                    BigDecimal.ZERO,
+                    List.of(buyLine(product.getId(), "1", "10.00"))))
         .isInstanceOf(InvestmentHoldingClosedException.class);
   }
 
   @Test
-  void editCanUntagATransferByMovingItBetweenCashAccounts() {
-    Transfer created = buy(product.getId(), null, null);
+  void editCanClearATradeConfirmationBackToAPlainTransfer() {
+    Transfer created = createWith(List.of(buyLine(product.getId(), "10", "100.00")));
 
-    Transfer edited = editTo(created, checking.getId(), savings.getId(), null, null);
+    Transfer edited =
+        service.edit(
+            created.getId(),
+            DATE,
+            checking.getId(),
+            savings.getId(),
+            BigDecimal.TEN,
+            "Plain",
+            null);
 
-    assertThat(edited.getInvestmentProductId()).isNull();
+    assertThat(edited.getTradeConfirmation()).isEmpty();
   }
 
-  @Test
-  void editNeverTouchesSnapshots() {
-    Transfer created = buy(product.getId(), null, new BigDecimal("1000.00"));
-    List<InvestmentSnapshot> before = snapshotRepository.findByHoldingId(holding.getId());
-
-    editTo(created, checking.getId(), broker.getId(), product.getId(), null);
-
-    assertThat(snapshotRepository.findByHoldingId(holding.getId()))
-        .hasSameSizeAs(before)
-        .first()
-        .satisfies(s -> assertThat(s.getBalance()).isEqualByComparingTo("1000.00"));
-  }
-
-  // --- resulting balance ----------------------------------------------------------------------
+  // --- resulting balance / close holding (per line) ---------------------------------------------
 
   @Test
-  void resultingBalanceWritesTheTransferAndASnapshotDatedTheTransferDate() {
-    Transfer created = buy(product.getId(), null, new BigDecimal("2500.00"));
+  void resultingBalanceOnOneLineWritesASnapshotForItsHoldingOnly() {
+    TradeConfirmationLine withBalance =
+        new TradeConfirmationLine(
+            product.getId(),
+            TradeSide.BUY,
+            BigDecimal.TEN,
+            BigDecimal.TEN,
+            new BigDecimal("2500.00"),
+            false);
+    createWith(List.of(withBalance));
 
     List<InvestmentSnapshot> snapshots = snapshotRepository.findByHoldingId(holding.getId());
-    assertThat(transferRepository.findById(created.getId())).isPresent();
     assertThat(snapshots).hasSize(1);
     assertThat(snapshots.get(0).getDate()).isEqualTo(DATE);
     assertThat(snapshots.get(0).getBalance()).isEqualByComparingTo("2500.00");
+    assertThat(snapshotRepository.findByHoldingId(otherHolding.getId())).isEmpty();
   }
 
   @Test
-  void resultingBalanceReplacesASameDaySnapshot() {
-    snapshotRepository.save(
-        InvestmentSnapshot.create(
-            UUID.randomUUID(), holding.getId(), DATE, new BigDecimal("10.00")));
+  void resultingBalancesOnTwoLinesForDifferentProductsWriteBothSnapshots() {
+    TradeConfirmationLine a =
+        new TradeConfirmationLine(
+            product.getId(),
+            TradeSide.BUY,
+            BigDecimal.ONE,
+            BigDecimal.TEN,
+            new BigDecimal("100.00"),
+            false);
+    TradeConfirmationLine b =
+        new TradeConfirmationLine(
+            otherProduct.getId(),
+            TradeSide.BUY,
+            BigDecimal.ONE,
+            BigDecimal.TEN,
+            new BigDecimal("200.00"),
+            false);
 
-    buy(product.getId(), null, new BigDecimal("2500.00"));
+    createWith(List.of(a, b));
 
-    List<InvestmentSnapshot> snapshots = snapshotRepository.findByHoldingId(holding.getId());
-    assertThat(snapshots).hasSize(1);
-    assertThat(snapshots.get(0).getBalance()).isEqualByComparingTo("2500.00");
+    assertThat(snapshotRepository.findByHoldingId(holding.getId()))
+        .singleElement()
+        .satisfies(s -> assertThat(s.getBalance()).isEqualByComparingTo("100.00"));
+    assertThat(snapshotRepository.findByHoldingId(otherHolding.getId()))
+        .singleElement()
+        .satisfies(s -> assertThat(s.getBalance()).isEqualByComparingTo("200.00"));
   }
 
   @Test
-  void resultingBalanceOfZeroRecordsAFullSell() {
-    service.create(
-        DATE,
-        broker.getId(),
-        checking.getId(),
-        new BigDecimal("2500.00"),
-        "Sold entire position",
-        null,
-        product.getId(),
-        null,
-        BigDecimal.ZERO);
+  void closeHoldingClosesTheHoldingWhenItsLatestSnapshotIsZero() {
+    TradeConfirmationLine sellAndClose =
+        new TradeConfirmationLine(
+            product.getId(), TradeSide.SELL, BigDecimal.TEN, BigDecimal.TEN, BigDecimal.ZERO, true);
 
-    List<InvestmentSnapshot> snapshots = snapshotRepository.findByHoldingId(holding.getId());
-    assertThat(snapshots).hasSize(1);
-    assertThat(snapshots.get(0).getBalance()).isEqualByComparingTo("0");
+    createWith(List.of(sellAndClose));
+
+    assertThat(holdingRepository.findById(holding.getId()).orElseThrow().isClosed()).isTrue();
   }
 
   @Test
   void noResultingBalanceWritesNoSnapshot() {
-    buy(product.getId(), null, null);
+    createWith(List.of(buyLine(product.getId(), "10", "100.00")));
 
     assertThat(snapshotRepository.findAll()).isEmpty();
   }
 
   @Test
   void aRejectedTradeWritesNoSnapshot() {
-    assertThatThrownBy(() -> buy(otherBrokerProduct.getId(), null, new BigDecimal("1.00")))
+    assertThatThrownBy(
+            () ->
+                createWith(
+                    List.of(
+                        new TradeConfirmationLine(
+                            otherBrokerProduct.getId(),
+                            TradeSide.BUY,
+                            BigDecimal.ONE,
+                            BigDecimal.ONE,
+                            BigDecimal.ONE,
+                            false))))
         .isInstanceOf(InvestmentHoldingNotFoundException.class);
 
     assertThat(snapshotRepository.findAll()).isEmpty();
-  }
-
-  @Test
-  void resultingBalanceWithoutAProductIsRejected() {
-    assertThatThrownBy(
-            () ->
-                service.create(
-                    DATE,
-                    checking.getId(),
-                    savings.getId(),
-                    BigDecimal.TEN,
-                    "Transfer",
-                    null,
-                    null,
-                    null,
-                    BigDecimal.TEN))
-        .isInstanceOf(IllegalArgumentException.class);
-    assertThat(transferRepository.findAll()).isEmpty();
   }
 
   // --- multi-holding (F022) ---------------------------------------------------------------------
 
   @Test
   void theSameProductCanBeTradedIndependentlyAtTwoHoldings() {
-    InvestmentHolding otherHolding =
+    InvestmentHolding otherBrokerHolding =
         holdingRepository.save(
             InvestmentHoldingMother.holding()
                 .withProductId(product.getId())
                 .withAccountId(otherBroker.getId())
                 .build());
 
-    Transfer atBroker = buy(product.getId(), null, new BigDecimal("1000.00"));
+    Transfer atBroker =
+        service.createTradeConfirmation(
+            DATE,
+            checking.getId(),
+            broker.getId(),
+            "Buy",
+            null,
+            BigDecimal.ZERO,
+            List.of(
+                new TradeConfirmationLine(
+                    product.getId(),
+                    TradeSide.BUY,
+                    BigDecimal.TEN,
+                    BigDecimal.ONE,
+                    new BigDecimal("1000.00"),
+                    false)));
     Transfer atOtherBroker =
-        service.create(
+        service.createTradeConfirmation(
             DATE,
             checking.getId(),
             otherBroker.getId(),
-            new BigDecimal("500.00"),
             "Buy elsewhere",
             null,
-            product.getId(),
-            null,
-            new BigDecimal("500.00"));
+            BigDecimal.ZERO,
+            List.of(
+                new TradeConfirmationLine(
+                    product.getId(),
+                    TradeSide.BUY,
+                    BigDecimal.ONE,
+                    BigDecimal.ONE,
+                    new BigDecimal("500.00"),
+                    false)));
 
     assertThat(snapshotRepository.findByHoldingId(holding.getId()))
         .singleElement()
         .satisfies(s -> assertThat(s.getBalance()).isEqualByComparingTo("1000.00"));
-    assertThat(snapshotRepository.findByHoldingId(otherHolding.getId()))
+    assertThat(snapshotRepository.findByHoldingId(otherBrokerHolding.getId()))
         .singleElement()
         .satisfies(s -> assertThat(s.getBalance()).isEqualByComparingTo("500.00"));
     assertThat(atBroker.getId()).isNotEqualTo(atOtherBroker.getId());

@@ -4,6 +4,7 @@ import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -26,11 +27,16 @@ import java.util.UUID;
  * <p>{@code description} (mandatory) and {@code additionalNotes} (optional) are bounded free-text
  * fields, sharing the {@link TextFieldConstraints} convention used by {@code Transaction} (F004).
  *
- * <p>F009 (ADR 0012) makes a transfer able to be a buy/sell: {@code investmentProductId} tags it
- * with the product bought or sold, and {@link InvestmentTradeDetails} records quantity, unit price
- * and taxes (record-only, never used in balances). Details require a product. That an endpoint is
- * an {@code INVESTMENT} account, and that the product belongs to it, are application-layer rules
- * ({@code TransferService}); this package never imports the account or product packages.
+ * <p>F027 (ADR 0024, superseding F009/ADR 0012's one-product-per-transfer shape): a transfer can
+ * carry a {@link TradeConfirmation} - one or more product lines sharing one cash account and one
+ * {@code INVESTMENT} account, plus a single {@code taxes} figure that covers the whole settlement
+ * (never apportioned per line). {@link #createTradeConfirmation}/{@link #editTradeConfirmation}
+ * derive {@code amount} and direction ({@code fromAccountId}/{@code toAccountId}) from {@link
+ * TradeConfirmation#netCost}, rather than trusting a user-typed figure - unlike the plain {@link
+ * #create}/{@link #edit} overloads, which still take {@code amount}/direction manually and are used
+ * whenever no confirmation is given. That an endpoint is an {@code INVESTMENT} account, and that
+ * every line's product has an open holding there, are application-layer rules ({@code
+ * TransferService}); this package never imports the account, product or holding packages.
  *
  * <p>No versioning, no editing beyond a plain field update - deleting is a hard delete (F005 spec),
  * same as {@code Transaction}.
@@ -44,8 +50,8 @@ public final class Transfer {
   private BigDecimal amount;
   private String description;
   private String additionalNotes;
-  private UUID investmentProductId;
-  private InvestmentTradeDetails tradeDetails;
+  private BigDecimal taxes;
+  private TradeConfirmation tradeConfirmation;
 
   private Transfer(
       UUID id,
@@ -55,8 +61,8 @@ public final class Transfer {
       BigDecimal amount,
       String description,
       String additionalNotes,
-      UUID investmentProductId,
-      InvestmentTradeDetails tradeDetails) {
+      BigDecimal taxes,
+      TradeConfirmation tradeConfirmation) {
     this.id = Objects.requireNonNull(id, "id must not be null");
     this.date = Objects.requireNonNull(date, "date must not be null");
     this.fromAccountId = Objects.requireNonNull(fromAccountId, "fromAccountId must not be null");
@@ -65,8 +71,8 @@ public final class Transfer {
     this.amount = requireValidAmount(amount);
     this.description = requireValidDescription(description);
     this.additionalNotes = requireValidAdditionalNotes(additionalNotes);
-    this.tradeDetails = normalizeTradeDetails(investmentProductId, tradeDetails);
-    this.investmentProductId = investmentProductId;
+    this.tradeConfirmation = tradeConfirmation;
+    this.taxes = requireValidTaxes(tradeConfirmation, taxes);
   }
 
   /**
@@ -80,34 +86,41 @@ public final class Transfer {
       BigDecimal amount,
       String description,
       String additionalNotes) {
-    return create(
+    return new Transfer(
         id, date, fromAccountId, toAccountId, amount, description, additionalNotes, null, null);
   }
 
   /**
-   * Creates a brand-new Transfer, optionally tagged with an investment product (a buy/sell, F009).
-   * {@code tradeDetails} may be {@code null} (none) but requires a product when non-empty.
+   * Creates a brand-new Transfer carrying a {@link TradeConfirmation} (F027, ADR 0024): {@code
+   * amount} and direction are derived, never taken from the caller. {@code cashAccountId}/{@code
+   * investmentAccountId} are unlabeled (which is "from" and which is "to" depends on {@link
+   * TradeConfirmation#netCost}'s sign) - a positive net cost flows cash -&gt; investment, a
+   * negative one (net proceeds) flows investment -&gt; cash.
    */
-  public static Transfer create(
+  public static Transfer createTradeConfirmation(
       UUID id,
       LocalDate date,
-      UUID fromAccountId,
-      UUID toAccountId,
-      BigDecimal amount,
+      UUID cashAccountId,
+      UUID investmentAccountId,
       String description,
       String additionalNotes,
-      UUID investmentProductId,
-      InvestmentTradeDetails tradeDetails) {
+      BigDecimal taxes,
+      TradeConfirmation confirmation) {
+    Objects.requireNonNull(confirmation, "confirmation must not be null");
+    BigDecimal net = confirmation.netCost(taxes);
+    boolean isCost = net.signum() > 0;
+    UUID fromAccountId = isCost ? cashAccountId : investmentAccountId;
+    UUID toAccountId = isCost ? investmentAccountId : cashAccountId;
     return new Transfer(
         id,
         date,
         fromAccountId,
         toAccountId,
-        amount,
+        net.abs(),
         description,
         additionalNotes,
-        investmentProductId,
-        tradeDetails);
+        taxes,
+        confirmation);
   }
 
   /** Rebuilds a Transfer from already-validated persisted state. */
@@ -119,8 +132,8 @@ public final class Transfer {
       BigDecimal amount,
       String description,
       String additionalNotes,
-      UUID investmentProductId,
-      InvestmentTradeDetails tradeDetails) {
+      BigDecimal taxes,
+      TradeConfirmation tradeConfirmation) {
     return new Transfer(
         id,
         date,
@@ -129,11 +142,11 @@ public final class Transfer {
         amount,
         description,
         additionalNotes,
-        investmentProductId,
-        tradeDetails);
+        taxes,
+        tradeConfirmation);
   }
 
-  /** Edit of a plain transfer: clears any investment product and trade details. */
+  /** Edit of a plain transfer: clears any trade confirmation and taxes. */
   public void edit(
       LocalDate date,
       UUID fromAccountId,
@@ -141,23 +154,6 @@ public final class Transfer {
       BigDecimal amount,
       String description,
       String additionalNotes) {
-    edit(date, fromAccountId, toAccountId, amount, description, additionalNotes, null, null);
-  }
-
-  /**
-   * Plain in-place edit of every field except {@code id} (F005 spec, same as {@code Transaction}),
-   * including the investment tag and trade details (full replace). Every value is validated before
-   * any is assigned, so a rejected edit leaves the transfer untouched.
-   */
-  public void edit(
-      LocalDate date,
-      UUID fromAccountId,
-      UUID toAccountId,
-      BigDecimal amount,
-      String description,
-      String additionalNotes,
-      UUID investmentProductId,
-      InvestmentTradeDetails tradeDetails) {
     Objects.requireNonNull(date, "date must not be null");
     Objects.requireNonNull(fromAccountId, "fromAccountId must not be null");
     Objects.requireNonNull(toAccountId, "toAccountId must not be null");
@@ -165,26 +161,71 @@ public final class Transfer {
     BigDecimal validAmount = requireValidAmount(amount);
     String validDescription = requireValidDescription(description);
     String validNotes = requireValidAdditionalNotes(additionalNotes);
-    InvestmentTradeDetails validDetails = normalizeTradeDetails(investmentProductId, tradeDetails);
     this.date = date;
     this.fromAccountId = fromAccountId;
     this.toAccountId = toAccountId;
     this.amount = validAmount;
     this.description = validDescription;
     this.additionalNotes = validNotes;
-    this.investmentProductId = investmentProductId;
-    this.tradeDetails = validDetails;
+    this.taxes = null;
+    this.tradeConfirmation = null;
   }
 
-  /** Trade details describe a trade of a product, so they can't exist without one. */
-  private static InvestmentTradeDetails normalizeTradeDetails(
-      UUID investmentProductId, InvestmentTradeDetails tradeDetails) {
-    InvestmentTradeDetails details =
-        tradeDetails == null ? InvestmentTradeDetails.empty() : tradeDetails;
-    if (investmentProductId == null && !details.isEmpty()) {
-      throw new IllegalArgumentException("trade details require an investmentProductId");
+  /**
+   * Full-replace edit of a Transfer carrying a {@link TradeConfirmation} (F027): recomputes {@code
+   * amount}/direction from the new confirmation's {@code netCost}, same derivation as {@link
+   * #createTradeConfirmation}. Every value is validated before any is assigned, so a rejected edit
+   * leaves the transfer untouched.
+   */
+  public void editTradeConfirmation(
+      LocalDate date,
+      UUID cashAccountId,
+      UUID investmentAccountId,
+      String description,
+      String additionalNotes,
+      BigDecimal taxes,
+      TradeConfirmation confirmation) {
+    Objects.requireNonNull(date, "date must not be null");
+    Objects.requireNonNull(cashAccountId, "cashAccountId must not be null");
+    Objects.requireNonNull(investmentAccountId, "investmentAccountId must not be null");
+    Objects.requireNonNull(confirmation, "confirmation must not be null");
+    BigDecimal net = confirmation.netCost(taxes);
+    boolean isCost = net.signum() > 0;
+    UUID fromAccountId = isCost ? cashAccountId : investmentAccountId;
+    UUID toAccountId = isCost ? investmentAccountId : cashAccountId;
+    requireDifferentAccounts(fromAccountId, toAccountId);
+    BigDecimal validAmount = requireValidAmount(net.abs());
+    String validDescription = requireValidDescription(description);
+    String validNotes = requireValidAdditionalNotes(additionalNotes);
+    BigDecimal validTaxes = requireValidTaxes(confirmation, taxes);
+    this.date = date;
+    this.fromAccountId = fromAccountId;
+    this.toAccountId = toAccountId;
+    this.amount = validAmount;
+    this.description = validDescription;
+    this.additionalNotes = validNotes;
+    this.taxes = validTaxes;
+    this.tradeConfirmation = confirmation;
+  }
+
+  /**
+   * A trade confirmation describes a settlement, so it can't exist without taxes to net against
+   * (the confirmation's one aggregate tax figure); conversely, taxes without a confirmation is
+   * meaningless (there is nothing for it to net against). Mirrors the old "trade details require a
+   * product" pairing rule (ADR 0012) at the new granularity.
+   */
+  private static BigDecimal requireValidTaxes(TradeConfirmation confirmation, BigDecimal taxes) {
+    if (confirmation == null) {
+      if (taxes != null) {
+        throw new IllegalArgumentException("taxes require a tradeConfirmation");
+      }
+      return null;
     }
-    return details;
+    Objects.requireNonNull(taxes, "a tradeConfirmation requires taxes");
+    if (taxes.signum() < 0) {
+      throw new IllegalArgumentException("taxes must not be negative");
+    }
+    return taxes;
   }
 
   private static void requireDifferentAccounts(UUID fromAccountId, UUID toAccountId) {
@@ -252,13 +293,13 @@ public final class Transfer {
     return additionalNotes;
   }
 
-  /** The investment product this transfer buys or sells, or {@code null} for a plain transfer. */
-  public UUID getInvestmentProductId() {
-    return investmentProductId;
+  /** The settlement's aggregate tax/fee figure; {@code null} for a plain transfer. */
+  public BigDecimal getTaxes() {
+    return taxes;
   }
 
-  /** Never {@code null}; {@link InvestmentTradeDetails#isEmpty()} when nothing was recorded. */
-  public InvestmentTradeDetails getTradeDetails() {
-    return tradeDetails;
+  /** Empty for a plain transfer. */
+  public Optional<TradeConfirmation> getTradeConfirmation() {
+    return Optional.ofNullable(tradeConfirmation);
   }
 }

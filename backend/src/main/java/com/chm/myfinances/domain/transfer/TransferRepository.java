@@ -40,18 +40,6 @@ public interface TransferRepository {
    */
   List<LocalDate> findDistinctDatesBetween(LocalDate from, LocalDate to);
 
-  /** Every buy/sell of one investment product (F009), in no particular order. */
-  List<Transfer> findByInvestmentProductId(UUID investmentProductId);
-
-  /**
-   * Every transfer tagged with any investment product (F009), for the snapshot-freshness and
-   * value-series queries; trades are few (manual entries), so no paging.
-   */
-  List<Transfer> findAllInvestmentTrades();
-
-  /** Whether any transfer is tagged with the product - half of the delete-safety history check. */
-  boolean existsByInvestmentProductId(UUID investmentProductId);
-
   /** Whether any transfer touches {@code accountId} on either side - account delete guard. */
   boolean existsByAccountId(UUID accountId);
 }

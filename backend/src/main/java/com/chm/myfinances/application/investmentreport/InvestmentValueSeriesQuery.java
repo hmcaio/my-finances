@@ -7,8 +7,9 @@ import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshotRepository;
-import com.chm.myfinances.domain.transfer.Transfer;
-import com.chm.myfinances.domain.transfer.TransferRepository;
+import com.chm.myfinances.domain.transfer.TradeSide;
+import com.chm.myfinances.domain.transfer.TransferTradeLine;
+import com.chm.myfinances.domain.transfer.TransferTradeLineRepository;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -16,9 +17,7 @@ import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 
@@ -29,9 +28,9 @@ import org.springframework.stereotype.Service;
  * own latest snapshots as of that point (a product can be held at more than one account, each with
  * independent snapshot history). The point in time of a month is its last day, except the current
  * month, which is evaluated at today; months after the current one are not included. Direction of a
- * trade is derived, as everywhere (ADR 0012): a transfer into one of the product's holding accounts
- * is a buy, out of one is a sell. Computed on read from raw data; nothing is derived from quantity
- * or price.
+ * line is its own {@code side} (F027, ADR 0024, superseding the old "a transfer into a holding
+ * account is a buy" derivation): BUY adds to contributed/units, SELL subtracts. Computed on read
+ * from raw data; nothing is derived from quantity or price.
  */
 @Service
 public class InvestmentValueSeriesQuery {
@@ -42,19 +41,19 @@ public class InvestmentValueSeriesQuery {
   private final InvestmentProductRepository productRepository;
   private final InvestmentHoldingRepository holdingRepository;
   private final InvestmentSnapshotRepository snapshotRepository;
-  private final TransferRepository transferRepository;
+  private final TransferTradeLineRepository tradeLineRepository;
   private final Clock clock;
 
   public InvestmentValueSeriesQuery(
       InvestmentProductRepository productRepository,
       InvestmentHoldingRepository holdingRepository,
       InvestmentSnapshotRepository snapshotRepository,
-      TransferRepository transferRepository,
+      TransferTradeLineRepository tradeLineRepository,
       Clock clock) {
     this.productRepository = productRepository;
     this.holdingRepository = holdingRepository;
     this.snapshotRepository = snapshotRepository;
-    this.transferRepository = transferRepository;
+    this.tradeLineRepository = tradeLineRepository;
     this.clock = clock;
   }
 
@@ -89,14 +88,11 @@ public class InvestmentValueSeriesQuery {
   private ProductSeries seriesOf(
       InvestmentProduct product, YearMonth from, YearMonth last, LocalDate today) {
     List<InvestmentHolding> holdings = holdingRepository.findByProductId(product.getId());
-    Set<UUID> holdingAccountIds = new HashSet<>();
     List<List<InvestmentSnapshot>> snapshotsByHolding = new ArrayList<>();
     for (InvestmentHolding holding : holdings) {
-      holdingAccountIds.add(holding.getAccountId());
       snapshotsByHolding.add(snapshotRepository.findByHoldingId(holding.getId()));
     }
-    List<Transfer> trades = transferRepository.findByInvestmentProductId(product.getId());
-    boolean hasQuantities = trades.stream().anyMatch(t -> t.getTradeDetails().quantity() != null);
+    List<TransferTradeLine> lines = tradeLineRepository.findByProductId(product.getId());
 
     List<SeriesPoint> points = new ArrayList<>();
     for (YearMonth month = from; !month.isAfter(last); month = month.plusMonths(1)) {
@@ -118,21 +114,18 @@ public class InvestmentValueSeriesQuery {
 
       BigDecimal contributed = BigDecimal.ZERO;
       BigDecimal units = BigDecimal.ZERO;
-      for (Transfer trade : trades) {
-        if (trade.getDate().isAfter(point)) {
+      for (TransferTradeLine line : lines) {
+        if (line.date().isAfter(point)) {
           continue;
         }
-        boolean buy = holdingAccountIds.contains(trade.getToAccountId());
-        if (!trade.getDate().isBefore(monthStart)) {
-          contributed =
-              buy ? contributed.add(trade.getAmount()) : contributed.subtract(trade.getAmount());
+        boolean buy = line.side() == TradeSide.BUY;
+        BigDecimal total = line.quantity().multiply(line.unitPrice());
+        if (!line.date().isBefore(monthStart)) {
+          contributed = buy ? contributed.add(total) : contributed.subtract(total);
         }
-        BigDecimal quantity = trade.getTradeDetails().quantity();
-        if (quantity != null) {
-          units = buy ? units.add(quantity) : units.subtract(quantity);
-        }
+        units = buy ? units.add(line.quantity()) : units.subtract(line.quantity());
       }
-      points.add(new SeriesPoint(month, value, contributed, hasQuantities ? units : null));
+      points.add(new SeriesPoint(month, value, contributed, lines.isEmpty() ? null : units));
     }
     return new ProductSeries(product.getId(), List.copyOf(points));
   }

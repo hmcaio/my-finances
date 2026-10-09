@@ -53,6 +53,7 @@ class DataExportControllerTest {
           "accounts.csv",
           "transactions.csv",
           "transfers.csv",
+          "transfer_trade_lines.csv",
           "budgets.csv",
           "recurring_templates.csv",
           "allocation_plan_entries.csv",
@@ -133,7 +134,7 @@ class DataExportControllerTest {
   }
 
   @Test
-  void fullExportContainsAllFifteenFilesWithDenormalizedNamesAndSafeText() throws Exception {
+  void fullExportContainsAllSixteenFilesWithDenormalizedNamesAndSafeText() throws Exception {
     Map<String, String> files = exportFiles();
 
     assertThat(new ArrayList<>(files.keySet())).isEqualTo(FILES);

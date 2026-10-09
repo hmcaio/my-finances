@@ -16,11 +16,10 @@ import {
   transferClosedAccountConflictHandler,
 } from '../../mocks/handlers/transfers'
 import { TRANSFER_CONFLICT_MESSAGE } from '../../api/transfers/transfers'
-import { findRow, selectOption } from '../../test/testUtils'
+import { findRow, renderWithRouter, selectOption } from '../../test/testUtils'
 import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
 import { expectLoadStates } from '../../test/loadStates'
 import { TransfersPage } from './TransfersPage'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
 /** The form only exists inside the header's Add dialog. */
 async function openAddDialog(user: ReturnType<typeof userEvent.setup>) {
@@ -43,7 +42,7 @@ describe('TransfersPage', () => {
   afterEach(restoreViewport)
 
   it('renders the seeded transfers', async () => {
-    renderWithQueryClient(<TransfersPage />)
+    renderWithRouter(<TransfersPage />)
 
     for (const transfer of seedTransfers) {
       expect(await screen.findByText(transfer.description)).toBeInTheDocument()
@@ -52,7 +51,7 @@ describe('TransfersPage', () => {
 
   it('filters by account, matching either side', async () => {
     const user = userEvent.setup({ delay: null })
-    renderWithQueryClient(<TransfersPage />)
+    renderWithRouter(<TransfersPage />)
     await screen.findByText(seedCreditCardPaymentTransfer.description)
 
     const otherAccount = seedAccounts.find(
@@ -78,7 +77,7 @@ describe('TransfersPage', () => {
 
   it('adds a new transfer with the create form', async () => {
     const user = userEvent.setup({ delay: null })
-    renderWithQueryClient(<TransfersPage />)
+    renderWithRouter(<TransfersPage />)
     await screen.findByText(seedCreditCardPaymentTransfer.description)
 
     await openAddDialog(user)
@@ -88,9 +87,27 @@ describe('TransfersPage', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
 
+  it('opens the edit dialog for the transfer named by ?focus=, even though it is not in the default list', async () => {
+    server.use(accountsWithInvestmentHandler)
+    renderWithRouter(<TransfersPage />, {
+      initialEntries: [`/transfers?focus=${seedBitcoinBuyTransfer.id}`],
+    })
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('Edit transfer')).toBeInTheDocument()
+    expect(within(dialog).getByDisplayValue(seedBitcoinBuyTransfer.description)).toBeInTheDocument()
+  })
+
+  it('shows an error and clears ?focus= for an unknown transfer id', async () => {
+    renderWithRouter(<TransfersPage />, { initialEntries: ['/transfers?focus=trf-missing'] })
+
+    expect(await screen.findByText(/could not be found/i)).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
   it('excludes the selected From account from the To dropdown (no same-account transfer)', async () => {
     const user = userEvent.setup({ delay: null })
-    renderWithQueryClient(<TransfersPage />)
+    renderWithRouter(<TransfersPage />)
     await screen.findByText(seedCreditCardPaymentTransfer.description)
     await openAddDialog(user)
 
@@ -103,7 +120,7 @@ describe('TransfersPage', () => {
 
   it('excludes closed accounts from the create/edit form account dropdowns', async () => {
     const user = userEvent.setup({ delay: null })
-    renderWithQueryClient(<TransfersPage />)
+    renderWithRouter(<TransfersPage />)
     await screen.findByText(seedCreditCardPaymentTransfer.description)
     await openAddDialog(user)
 
@@ -115,7 +132,7 @@ describe('TransfersPage', () => {
 
   it('edits a transfer', async () => {
     const user = userEvent.setup({ delay: null })
-    renderWithQueryClient(<TransfersPage />)
+    renderWithRouter(<TransfersPage />)
     const target = seedCreditCardPaymentTransfer
     await screen.findByText(target.description)
 
@@ -133,7 +150,7 @@ describe('TransfersPage', () => {
 
   it('deletes a transfer after confirming the dialog', async () => {
     const user = userEvent.setup({ delay: null })
-    renderWithQueryClient(<TransfersPage />)
+    renderWithRouter(<TransfersPage />)
     const target = seedCreditCardPaymentTransfer
     await screen.findByText(target.description)
 
@@ -148,7 +165,7 @@ describe('TransfersPage', () => {
   it('surfaces the closed-account conflict message on create', async () => {
     server.use(transferClosedAccountConflictHandler)
     const user = userEvent.setup({ delay: null })
-    renderWithQueryClient(<TransfersPage />)
+    renderWithRouter(<TransfersPage />)
     await screen.findByText(seedCreditCardPaymentTransfer.description)
 
     await openAddDialog(user)
@@ -163,7 +180,7 @@ describe('TransfersPage', () => {
   // intercepting either composed source shows the same skeleton/failure - accounts is the simpler
   // body to fake a delayed/failing response for.
   expectLoadStates({
-    render: () => renderWithQueryClient(<TransfersPage />),
+    render: () => renderWithRouter(<TransfersPage />),
     url: '/api/accounts',
     successBody: seedAccounts,
     loadedText: seedCreditCardPaymentTransfer.description,
@@ -185,7 +202,7 @@ describe('TransfersPage local-time defaults', () => {
 
   it('defaults the form date to the local date, not the UTC date', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    renderWithQueryClient(<TransfersPage />)
+    renderWithRouter(<TransfersPage />)
 
     await user.click(await screen.findByRole('button', { name: 'Add transfer' }))
     expect(await screen.findByLabelText('Date')).toHaveValue('2026-03-31')
@@ -206,7 +223,7 @@ describe('TransfersPage trades', () => {
         }),
       ),
     )
-    renderWithQueryClient(<TransfersPage />)
+    renderWithRouter(<TransfersPage />)
 
     expect(
       await screen.findByText('Buy Bitcoin', { selector: '.MuiChip-label' }),
@@ -232,7 +249,7 @@ describe('TransfersPage responsive layout (F021)', () => {
     beforeEach(() => setViewportWidth(VIEWPORT.mobile))
 
     it('renders cards instead of a table: description, date, From, To and Amount', async () => {
-      renderWithQueryClient(<TransfersPage />)
+      renderWithRouter(<TransfersPage />)
 
       const card = await findCard(target.description)
       expect(screen.queryByRole('table')).not.toBeInTheDocument()
@@ -254,7 +271,7 @@ describe('TransfersPage responsive layout (F021)', () => {
           }),
         ),
       )
-      renderWithQueryClient(<TransfersPage />)
+      renderWithRouter(<TransfersPage />)
 
       const list = await screen.findByRole('list', { name: 'Transfers' })
       expect(
@@ -264,7 +281,7 @@ describe('TransfersPage responsive layout (F021)', () => {
 
     it('collapses the filters behind a button with an active-count badge', async () => {
       const user = userEvent.setup({ delay: null })
-      renderWithQueryClient(<TransfersPage />)
+      renderWithRouter(<TransfersPage />)
       await findCard(target.description)
       expect(screen.queryByRole('combobox', { name: 'Account filter' })).not.toBeInTheDocument()
 
@@ -278,7 +295,7 @@ describe('TransfersPage responsive layout (F021)', () => {
 
     it('Add opens a full-screen dialog that creates a transfer', async () => {
       const user = userEvent.setup({ delay: null })
-      renderWithQueryClient(<TransfersPage />)
+      renderWithRouter(<TransfersPage />)
       await findCard(target.description)
 
       const dialog = await openAddDialog(user)
@@ -292,7 +309,7 @@ describe('TransfersPage responsive layout (F021)', () => {
     it('shows a save error inside the dialog, which stays open', async () => {
       server.use(transferClosedAccountConflictHandler)
       const user = userEvent.setup({ delay: null })
-      renderWithQueryClient(<TransfersPage />)
+      renderWithRouter(<TransfersPage />)
       await findCard(target.description)
 
       const dialog = await openAddDialog(user)
@@ -303,7 +320,7 @@ describe('TransfersPage responsive layout (F021)', () => {
 
     it('Edit opens the dialog prefilled and saves through the same mutation', async () => {
       const user = userEvent.setup({ delay: null })
-      renderWithQueryClient(<TransfersPage />)
+      renderWithRouter(<TransfersPage />)
       const card = await findCard(target.description)
 
       await user.click(card.getByRole('button', { name: 'Edit' }))
@@ -323,7 +340,7 @@ describe('TransfersPage responsive layout (F021)', () => {
 
     it('Cancel closes the dialog without saving', async () => {
       const user = userEvent.setup({ delay: null })
-      renderWithQueryClient(<TransfersPage />)
+      renderWithRouter(<TransfersPage />)
       const card = await findCard(target.description)
       await user.click(card.getByRole('button', { name: 'Edit' }))
 
@@ -336,7 +353,7 @@ describe('TransfersPage responsive layout (F021)', () => {
 
     it('keeps the delete confirmation on the card', async () => {
       const user = userEvent.setup({ delay: null })
-      renderWithQueryClient(<TransfersPage />)
+      renderWithRouter(<TransfersPage />)
       const card = await findCard(target.description)
 
       await user.click(card.getByRole('button', { name: 'Delete' }))
@@ -345,23 +362,24 @@ describe('TransfersPage responsive layout (F021)', () => {
       await waitFor(() => expect(screen.queryByText(target.description)).not.toBeInTheDocument())
     })
 
-    it('offers the trade fields in the dialog once an investment account is picked', async () => {
+    it('offers the trade-confirmation fields in the dialog once Trade confirmation is picked', async () => {
       server.use(accountsWithInvestmentHandler)
       const user = userEvent.setup({ delay: null })
-      renderWithQueryClient(<TransfersPage />)
+      renderWithRouter(<TransfersPage />)
       await findCard(target.description)
 
       const dialog = await openAddDialog(user)
-      await selectOption(user, 'From Account', name('acct-1'))
-      await selectOption(user, 'To Account', seedInvestmentAccount.name)
-      await selectOption(user, 'Product', 'Bitcoin')
+      await user.click(within(dialog).getByRole('button', { name: 'Trade confirmation' }))
+      await selectOption(user, 'Cash Account', name('acct-1'), within(dialog))
+      await selectOption(user, 'Investment Account', seedInvestmentAccount.name, within(dialog))
+      await selectOption(user, 'Product', 'Bitcoin', within(dialog))
 
-      const trade = within(dialog).getByRole('group', { name: 'Trade details' })
+      const trade = within(dialog).getByRole('group', { name: 'Trade lines' })
       expect(within(trade).getByRole('spinbutton', { name: 'Quantity' })).toBeInTheDocument()
       expect(within(trade).getByRole('spinbutton', { name: 'Unit price' })).toBeInTheDocument()
-      expect(within(trade).getByRole('spinbutton', { name: 'Taxes' })).toBeInTheDocument()
+      expect(within(dialog).getByRole('spinbutton', { name: 'Taxes' })).toBeInTheDocument()
       expect(
-        within(dialog).getByRole('spinbutton', { name: 'Resulting balance' }),
+        within(trade).getByRole('spinbutton', { name: 'Resulting balance' }),
       ).toBeInTheDocument()
     })
   })
@@ -370,7 +388,7 @@ describe('TransfersPage responsive layout (F021)', () => {
     beforeEach(() => setViewportWidth(VIEWPORT.tablet))
 
     it('keeps the full table with inline filters and the Add dialog', async () => {
-      renderWithQueryClient(<TransfersPage />)
+      renderWithRouter(<TransfersPage />)
 
       await screen.findByText(target.description)
       expect(screen.getByRole('table')).toBeInTheDocument()
@@ -390,7 +408,7 @@ describe('TransfersPage responsive layout (F021)', () => {
 
     it('Add opens a regular (not full-screen) dialog', async () => {
       const user = userEvent.setup({ delay: null })
-      renderWithQueryClient(<TransfersPage />)
+      renderWithRouter(<TransfersPage />)
       await screen.findByText(target.description)
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
 
@@ -401,7 +419,7 @@ describe('TransfersPage responsive layout (F021)', () => {
 
     it('Edit opens the dialog prefilled', async () => {
       const user = userEvent.setup({ delay: null })
-      renderWithQueryClient(<TransfersPage />)
+      renderWithRouter(<TransfersPage />)
       const row = await findRow(target.description)
 
       await user.click(row.getByRole('button', { name: 'Edit' }))

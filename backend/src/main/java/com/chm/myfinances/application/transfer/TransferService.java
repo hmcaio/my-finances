@@ -3,6 +3,7 @@ package com.chm.myfinances.application.transfer;
 import com.chm.myfinances.application.account.AccountNotFoundException;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingClosedException;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingNotFoundException;
+import com.chm.myfinances.application.investmentholding.InvestmentHoldingService;
 import com.chm.myfinances.application.investmentsnapshot.InvestmentSnapshotService;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
@@ -10,12 +11,16 @@ import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.shared.IdGenerator;
-import com.chm.myfinances.domain.transfer.InvestmentTradeDetails;
+import com.chm.myfinances.domain.transfer.TradeConfirmation;
+import com.chm.myfinances.domain.transfer.TradeConfirmationLine;
 import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.domain.transfer.TransferFilter;
 import com.chm.myfinances.domain.transfer.TransferRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,16 +38,20 @@ import org.springframework.transaction.annotation.Transactional;
  * 0004), not a domain-layer dependency: {@code domain/transfer} itself never imports {@code
  * domain.account}.
  *
- * <p>F009 makes a transfer able to be a buy/sell (ADR 0012). On create and edit, {@link
- * #requireValidInvestmentShape}: an endpoint that is an {@code INVESTMENT} account requires {@code
- * investmentProductId}, and an open holding must already exist for {@code (investmentProductId,
- * that account)} (F022/ADR 0020 - changed from an equality check on the product's own account to a
- * holding existence check, since a product no longer belongs to a single account); a product
- * requires exactly one {@code INVESTMENT} endpoint (two isn't modeled). Direction is derived
- * (destination {@code INVESTMENT} = buy, source = sell), never stored. {@code create} also takes an
- * optional {@code resultingBalance}: when present it writes the transfer and a snapshot dated the
- * transfer date in one transaction (the only multi-write use case here, hence the method-level
- * {@code @Transactional}); editing never touches snapshots.
+ * <p>F027 (ADR 0024, superseding F009/F022's single-product shape) makes a transfer able to carry a
+ * {@link TradeConfirmation}: one shared cash account, one shared {@code INVESTMENT} account, and
+ * one-or-more lines. {@link #createTradeConfirmation}/{@link #editTradeConfirmation} validate, per
+ * line, that {@code (productId, investmentAccountId)} resolves to an existing open {@code
+ * InvestmentHolding} (404/409, generalizing F009/F022's single-product check), then write the
+ * {@link Transfer} (amount/direction derived from {@link TradeConfirmation#netCost}) and, per line,
+ * replace a same-day snapshot ({@code resultingBalance}) and/or close the holding ({@code
+ * closeHolding}) - all inside one {@code @Transactional} use case (backend CLAUDE.md,
+ * "Transactions"). {@link #requireExactlyOneRequestShape} is the create/edit mutual-exclusivity
+ * rule between the plain {@code {fromAccountId, toAccountId, amount}} shape and the confirmation
+ * shape (spec's Decisions) - called by {@code TransferController} before it decides which create/
+ * edit overload to invoke, so each stays its own clean, directly {@code @Transactional} entry point
+ * (no self-invocation, which would silently skip the Spring proxy and the transaction boundary it
+ * provides).
  */
 @Service
 public class TransferService {
@@ -53,6 +62,7 @@ public class TransferService {
   private final AccountRepository accountRepository;
   private final InvestmentHoldingRepository holdingRepository;
   private final InvestmentSnapshotService snapshotService;
+  private final InvestmentHoldingService holdingService;
   private final IdGenerator idGenerator;
 
   public TransferService(
@@ -60,11 +70,13 @@ public class TransferService {
       AccountRepository accountRepository,
       InvestmentHoldingRepository holdingRepository,
       InvestmentSnapshotService snapshotService,
+      InvestmentHoldingService holdingService,
       IdGenerator idGenerator) {
     this.transferRepository = transferRepository;
     this.accountRepository = accountRepository;
     this.holdingRepository = holdingRepository;
     this.snapshotService = snapshotService;
+    this.holdingService = holdingService;
     this.idGenerator = idGenerator;
   }
 
@@ -76,36 +88,9 @@ public class TransferService {
       BigDecimal amount,
       String description,
       String additionalNotes) {
-    return create(
-        date, fromAccountId, toAccountId, amount, description, additionalNotes, null, null, null);
-  }
-
-  /**
-   * Creates a transfer, a buy/sell when tagged with {@code investmentProductId}. A non-null {@code
-   * resultingBalance} (requires a product) also records a snapshot of that product dated {@code
-   * date}, replacing a same-day one - atomically with the transfer. Every validation runs before
-   * the first write.
-   */
-  @Transactional
-  public Transfer create(
-      LocalDate date,
-      UUID fromAccountId,
-      UUID toAccountId,
-      BigDecimal amount,
-      String description,
-      String additionalNotes,
-      UUID investmentProductId,
-      InvestmentTradeDetails tradeDetails,
-      BigDecimal resultingBalance) {
-    if (resultingBalance != null && investmentProductId == null) {
-      throw new IllegalArgumentException("resultingBalance requires an investmentProductId");
-    }
     requireDifferentAccounts(fromAccountId, toAccountId);
     Account fromAccount = requireOpenAccount(fromAccountId);
     Account toAccount = requireOpenAccount(toAccountId);
-    InvestmentHolding holding =
-        requireValidInvestmentShape(fromAccount, toAccount, investmentProductId);
-
     Transfer transfer =
         Transfer.create(
             idGenerator.newId(),
@@ -114,18 +99,76 @@ public class TransferService {
             toAccount.getId(),
             amount,
             description,
+            additionalNotes);
+    return transferRepository.save(transfer);
+  }
+
+  /**
+   * Creates a Transfer carrying a {@link TradeConfirmation} (F027): validates the cash/investment
+   * accounts and every line's holding, writes the transfer with its backend-derived amount/
+   * direction, then applies each line's {@code resultingBalance}/{@code closeHolding} side effects.
+   * Two or more writes whenever any line effect applies, so {@code @Transactional}.
+   */
+  @Transactional
+  public Transfer createTradeConfirmation(
+      LocalDate date,
+      UUID cashAccountId,
+      UUID investmentAccountId,
+      String description,
+      String additionalNotes,
+      BigDecimal taxes,
+      List<TradeConfirmationLine> lines) {
+    requireDifferentAccounts(cashAccountId, investmentAccountId);
+    Account cashAccount = requireOpenAccount(cashAccountId);
+    Account investmentAccount = requireOpenAccount(investmentAccountId);
+    requireInvestmentShape(cashAccount, investmentAccount);
+    TradeConfirmation confirmation = toConfirmation(lines);
+    Map<UUID, InvestmentHolding> holdings = requireValidHoldings(confirmation, investmentAccount);
+
+    Transfer transfer =
+        createTransfer(
+            date,
+            cashAccount.getId(),
+            investmentAccount.getId(),
+            description,
             additionalNotes,
-            investmentProductId,
-            tradeDetails);
+            taxes,
+            confirmation);
     Transfer saved = transferRepository.save(transfer);
-    if (resultingBalance != null) {
-      snapshotService.record(holding.getId(), date, resultingBalance);
-      log.info(
-          "Recorded snapshot for investment holding {} as part of transfer {}",
-          holding.getId(),
-          saved.getId());
-    }
+    applyLineEffects(confirmation, holdings, date);
+    log.info("Recorded trade confirmation as transfer {}", saved.getId());
     return saved;
+  }
+
+  private Transfer createTransfer(
+      LocalDate date,
+      UUID cashAccountId,
+      UUID investmentAccountId,
+      String description,
+      String additionalNotes,
+      BigDecimal taxes,
+      TradeConfirmation confirmation) {
+    try {
+      return Transfer.createTradeConfirmation(
+          idGenerator.newId(),
+          date,
+          cashAccountId,
+          investmentAccountId,
+          description,
+          additionalNotes,
+          taxes,
+          confirmation);
+    } catch (IllegalArgumentException e) {
+      throw new InvalidTradeConfirmationException(e.getMessage());
+    }
+  }
+
+  private TradeConfirmation toConfirmation(List<TradeConfirmationLine> lines) {
+    try {
+      return TradeConfirmation.of(lines);
+    } catch (IllegalArgumentException e) {
+      throw new InvalidTradeConfirmationException(e.getMessage());
+    }
   }
 
   public Transfer findById(UUID id) {
@@ -136,7 +179,7 @@ public class TransferService {
     return transferRepository.findAll(filter, pageable);
   }
 
-  /** Edits a plain (non-investment) transfer, clearing any investment tag it had. */
+  /** Edits a plain (non-investment) transfer, clearing any trade confirmation it had. */
   public Transfer edit(
       UUID id,
       LocalDate date,
@@ -145,37 +188,53 @@ public class TransferService {
       BigDecimal amount,
       String description,
       String additionalNotes) {
-    return edit(
-        id, date, fromAccountId, toAccountId, amount, description, additionalNotes, null, null);
-  }
-
-  /** Full-replace edit including the investment tag and trade details; snapshots are untouched. */
-  public Transfer edit(
-      UUID id,
-      LocalDate date,
-      UUID fromAccountId,
-      UUID toAccountId,
-      BigDecimal amount,
-      String description,
-      String additionalNotes,
-      UUID investmentProductId,
-      InvestmentTradeDetails tradeDetails) {
     Transfer transfer = findById(id);
     requireDifferentAccounts(fromAccountId, toAccountId);
     Account fromAccount = requireOpenAccount(fromAccountId);
     Account toAccount = requireOpenAccount(toAccountId);
-    requireValidInvestmentShape(fromAccount, toAccount, investmentProductId);
-
     transfer.edit(
-        date,
-        fromAccount.getId(),
-        toAccount.getId(),
-        amount,
-        description,
-        additionalNotes,
-        investmentProductId,
-        tradeDetails);
+        date, fromAccount.getId(), toAccount.getId(), amount, description, additionalNotes);
     return transferRepository.save(transfer);
+  }
+
+  /**
+   * Full-replace edit of a Transfer's {@link TradeConfirmation} (F027): same validation and
+   * per-line side effects as {@link #createTradeConfirmation}, recomputing amount/direction.
+   */
+  @Transactional
+  public Transfer editTradeConfirmation(
+      UUID id,
+      LocalDate date,
+      UUID cashAccountId,
+      UUID investmentAccountId,
+      String description,
+      String additionalNotes,
+      BigDecimal taxes,
+      List<TradeConfirmationLine> lines) {
+    Transfer transfer = findById(id);
+    requireDifferentAccounts(cashAccountId, investmentAccountId);
+    Account cashAccount = requireOpenAccount(cashAccountId);
+    Account investmentAccount = requireOpenAccount(investmentAccountId);
+    requireInvestmentShape(cashAccount, investmentAccount);
+    TradeConfirmation confirmation = toConfirmation(lines);
+    Map<UUID, InvestmentHolding> holdings = requireValidHoldings(confirmation, investmentAccount);
+
+    try {
+      transfer.editTradeConfirmation(
+          date,
+          cashAccount.getId(),
+          investmentAccount.getId(),
+          description,
+          additionalNotes,
+          taxes,
+          confirmation);
+    } catch (IllegalArgumentException e) {
+      throw new InvalidTradeConfirmationException(e.getMessage());
+    }
+    Transfer saved = transferRepository.save(transfer);
+    applyLineEffects(confirmation, holdings, date);
+    log.info("Edited trade confirmation transfer {}", saved.getId());
+    return saved;
   }
 
   public void delete(UUID id) {
@@ -183,6 +242,40 @@ public class TransferService {
       throw new TransferNotFoundException(id);
     }
     transferRepository.deleteById(id);
+  }
+
+  /**
+   * The F027 create/edit mutual-exclusivity rule (ADR 0024, spec's Decisions): exactly one of
+   * {@code {fromAccountId, toAccountId, amount}} (all required together) or {@code {cashAccountId,
+   * investmentAccountId, lines}} (all required together) must be given. A static, state-independent
+   * check - 400 either way, never a 409, since it's wrong regardless of what's persisted.
+   */
+  public static void requireExactlyOneRequestShape(
+      UUID fromAccountId,
+      UUID toAccountId,
+      BigDecimal amount,
+      UUID cashAccountId,
+      UUID investmentAccountId,
+      List<TradeConfirmationLine> lines) {
+    boolean anyPlain = fromAccountId != null || toAccountId != null || amount != null;
+    boolean anyConfirmation = cashAccountId != null || investmentAccountId != null || lines != null;
+    if (anyPlain == anyConfirmation) {
+      throw new InvalidTradeConfirmationException(
+          "exactly one of {fromAccountId, toAccountId, amount} or {cashAccountId,"
+              + " investmentAccountId, tradeConfirmation} must be given");
+    }
+    if (anyPlain && (fromAccountId == null || toAccountId == null || amount == null)) {
+      throw new InvalidTradeConfirmationException(
+          "fromAccountId, toAccountId and amount must be given together");
+    }
+    if (anyConfirmation
+        && (cashAccountId == null
+            || investmentAccountId == null
+            || lines == null
+            || lines.isEmpty())) {
+      throw new InvalidTradeConfirmationException(
+          "cashAccountId, investmentAccountId and tradeConfirmation must be given together");
+    }
   }
 
   /**
@@ -215,42 +308,69 @@ public class TransferService {
   }
 
   /**
-   * The F009 investment rules (see the class javadoc), rewired onto holdings by F022. All 409
-   * except the holding lookup itself, which is 404 (a trade shouldn't silently create one). Returns
-   * the resolved holding ({@code null} for a plain transfer) so {@link #create} can record a
-   * resulting-balance snapshot against the right holding without a second lookup.
+   * A confirmation's two accounts (F027 spec): the investment-side account must actually be {@code
+   * INVESTMENT}, and the cash-side account must not be (a confirmation spanning two investment
+   * accounts isn't modeled, same as F009's original rule).
    */
-  private InvestmentHolding requireValidInvestmentShape(
-      Account fromAccount, Account toAccount, UUID investmentProductId) {
-    boolean fromInvestment = fromAccount.getType() == AccountType.INVESTMENT;
-    boolean toInvestment = toAccount.getType() == AccountType.INVESTMENT;
-    if (fromInvestment && toInvestment) {
+  private void requireInvestmentShape(Account cashAccount, Account investmentAccount) {
+    if (cashAccount.getType() == AccountType.INVESTMENT) {
       throw new InvestmentTransferInvalidException(
           "a transfer between two investment accounts is not supported");
     }
-    boolean hasInvestmentEndpoint = fromInvestment || toInvestment;
-    if (investmentProductId == null) {
-      if (hasInvestmentEndpoint) {
-        throw new InvestmentTransferInvalidException(
-            "a transfer with an investment account requires an investment product");
-      }
-      return null;
-    }
-    if (!hasInvestmentEndpoint) {
+    if (investmentAccount.getType() != AccountType.INVESTMENT) {
       throw new InvestmentTransferInvalidException(
-          "an investment product requires an investment account on one side");
+          "investmentAccountId must be an INVESTMENT account");
     }
-    Account investmentAccount = fromInvestment ? fromAccount : toAccount;
+  }
+
+  /**
+   * Per-line holding validation (F027 spec, generalizing F009/F022's single-product check): every
+   * distinct product across the confirmation's lines must resolve to an existing, open {@code
+   * InvestmentHolding} at {@code investmentAccount} (404 if no such holding, 409 if closed).
+   * Returns the resolved holdings by product id so {@link #applyLineEffects} doesn't look them up
+   * again.
+   */
+  private Map<UUID, InvestmentHolding> requireValidHoldings(
+      TradeConfirmation confirmation, Account investmentAccount) {
+    Map<UUID, InvestmentHolding> holdings = new LinkedHashMap<>();
+    for (TradeConfirmationLine line : confirmation.getLines()) {
+      holdings.computeIfAbsent(
+          line.productId(), productId -> resolveOpenHolding(productId, investmentAccount));
+    }
+    return holdings;
+  }
+
+  private InvestmentHolding resolveOpenHolding(UUID productId, Account investmentAccount) {
     InvestmentHolding holding =
         holdingRepository
-            .findByProductIdAndAccountId(investmentProductId, investmentAccount.getId())
+            .findByProductIdAndAccountId(productId, investmentAccount.getId())
             .orElseThrow(
-                () ->
-                    new InvestmentHoldingNotFoundException(
-                        investmentProductId, investmentAccount.getId()));
+                () -> new InvestmentHoldingNotFoundException(productId, investmentAccount.getId()));
     if (holding.isClosed()) {
       throw new InvestmentHoldingClosedException(holding.getId());
     }
     return holding;
+  }
+
+  /**
+   * Per-line side effects (F027 spec): every line with a {@code resultingBalance} replaces that
+   * holding's same-day snapshot first (so a same-line {@code closeHolding} sees it), then every
+   * line with {@code closeHolding = true} closes its holding - same ordering guarantees the close
+   * guard (latest snapshot zero/absent) sees the just-written snapshot.
+   */
+  private void applyLineEffects(
+      TradeConfirmation confirmation, Map<UUID, InvestmentHolding> holdings, LocalDate date) {
+    for (TradeConfirmationLine line : confirmation.getLines()) {
+      if (line.resultingBalance() != null) {
+        InvestmentHolding holding = holdings.get(line.productId());
+        snapshotService.record(holding.getId(), date, line.resultingBalance());
+      }
+    }
+    for (TradeConfirmationLine line : confirmation.getLines()) {
+      if (line.closeHolding()) {
+        InvestmentHolding holding = holdings.get(line.productId());
+        holdingService.close(holding.getId());
+      }
+    }
   }
 }

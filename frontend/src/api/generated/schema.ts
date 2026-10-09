@@ -628,6 +628,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/trade-confirmation-lines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["tradeConfirmationLine_findByProduct"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/recurring-templates/pending": {
         parameters: {
             query?: never;
@@ -904,18 +920,44 @@ export interface components {
             /** Format: date */
             date: string;
             /** Format: uuid */
-            fromAccountId: string;
+            fromAccountId?: string;
             /** Format: uuid */
-            toAccountId: string;
-            amount: number;
+            toAccountId?: string;
+            amount?: number;
             description: string;
             additionalNotes?: string;
             /** Format: uuid */
-            investmentProductId?: string;
+            cashAccountId?: string;
+            /** Format: uuid */
+            investmentAccountId?: string;
+            tradeConfirmation?: components["schemas"]["TradeConfirmationRequest"];
+        };
+        TradeConfirmationLineRequest: {
+            /** Format: uuid */
+            productId: string;
+            /** @enum {string} */
+            side: "BUY" | "SELL";
+            quantity: number;
+            unitPrice: number;
+            resultingBalance?: number;
+            closeHolding?: boolean;
+        };
+        TradeConfirmationRequest: {
+            taxes: number;
+            lines: components["schemas"]["TradeConfirmationLineRequest"][];
+        };
+        TradeConfirmationLineResponse: {
+            /** Format: uuid */
+            productId?: string;
+            /** @enum {string} */
+            side?: "BUY" | "SELL";
             quantity?: number;
             unitPrice?: number;
-            taxes?: number;
             resultingBalance?: number;
+            closeHolding?: boolean;
+        };
+        TradeConfirmationResponse: {
+            lines?: components["schemas"]["TradeConfirmationLineResponse"][];
         };
         TransferResponse: {
             /** Format: uuid */
@@ -929,11 +971,8 @@ export interface components {
             amount?: number;
             description?: string;
             additionalNotes?: string;
-            /** Format: uuid */
-            investmentProductId?: string;
-            quantity?: number;
-            unitPrice?: number;
             taxes?: number;
+            tradeConfirmation?: components["schemas"]["TradeConfirmationResponse"];
         };
         CreateTransactionRequest: {
             /** Format: date */
@@ -1202,17 +1241,17 @@ export interface components {
             /** Format: date */
             date: string;
             /** Format: uuid */
-            fromAccountId: string;
+            fromAccountId?: string;
             /** Format: uuid */
-            toAccountId: string;
-            amount: number;
+            toAccountId?: string;
+            amount?: number;
             description: string;
             additionalNotes?: string;
             /** Format: uuid */
-            investmentProductId?: string;
-            quantity?: number;
-            unitPrice?: number;
-            taxes?: number;
+            cashAccountId?: string;
+            /** Format: uuid */
+            investmentAccountId?: string;
+            tradeConfirmation?: components["schemas"]["TradeConfirmationRequest"];
         };
         UpdateTransactionRequest: {
             /** Format: date */
@@ -1313,6 +1352,17 @@ export interface components {
             /** Format: uuid */
             categoryId?: string;
             total?: number;
+        };
+        TradeConfirmationLineRecordResponse: {
+            /** Format: uuid */
+            transferId?: string;
+            /** Format: date */
+            date?: string;
+            /** @enum {string} */
+            side?: "BUY" | "SELL";
+            quantity?: number;
+            unitPrice?: number;
+            resultingBalance?: number;
         };
         PendingRecurringOccurrenceResponse: {
             /** Format: uuid */
@@ -3074,6 +3124,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["CategorySpendResponse"][];
+                };
+            };
+        };
+    };
+    tradeConfirmationLine_findByProduct: {
+        parameters: {
+            query: {
+                productId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TradeConfirmationLineRecordResponse"][];
                 };
             };
         };

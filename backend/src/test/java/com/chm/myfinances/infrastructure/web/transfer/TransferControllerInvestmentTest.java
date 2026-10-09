@@ -19,8 +19,8 @@ import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import com.chm.myfinances.testsupport.web.JsonSupport;
 import com.chm.myfinances.testsupport.web.MockMvcSupport;
 import com.chm.myfinances.testsupport.web.WebIntegrationTest;
-import java.time.LocalDate;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,12 +32,13 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.web.context.WebApplicationContext;
 
 /**
- * REST-layer tests for the F009 additions to {@link TransferController}, rewired onto holdings by
- * F022/ADR 0020: buys/sells as tagged transfers with record-only trade details (including an
- * 8-decimal quantity/price round trip), the optional {@code resultingBalance} snapshot, the {@code
- * 400}/{@code 409}/{@code 404} split between request shape, closed-holding and missing-holding
- * rules, and the {@code investmentProductId} list filter. Snapshot/close/needsSnapshot now live on
- * the holding endpoints.
+ * REST-layer tests for the F027 trade-confirmation additions to {@link TransferController} (ADR
+ * 0024, superseding F009/F022's single-product shape): a confirmation's {@code cashAccountId}/
+ * {@code investmentAccountId}/{@code tradeConfirmation} request shape, the create/edit
+ * mutual-exclusivity 400 against the plain {@code fromAccountId}/{@code toAccountId}/{@code amount}
+ * shape, per-line holding 404/409s, the net-zero-settlement 400, the optional per-line {@code
+ * resultingBalance}/{@code closeHolding} side effects, and the {@code investmentProductId} list
+ * filter (now a join to {@code transfer_trade_lines}).
  */
 @WebIntegrationTest
 class TransferControllerInvestmentTest {
@@ -56,6 +57,8 @@ class TransferControllerInvestmentTest {
   private UUID otherBrokerId;
   private UUID productId;
   private UUID holdingId;
+  private UUID otherProductId;
+  private UUID otherHoldingId;
   private UUID otherBrokerProductId;
   private UUID categoryId;
 
@@ -72,7 +75,9 @@ class TransferControllerInvestmentTest {
             .getId();
     productId = product("Product Trade Web Test");
     holdingId = holding(productId, brokerId);
-    otherBrokerProductId = product("Other Product Trade Web Test");
+    otherProductId = product("Other Product Trade Web Test");
+    otherHoldingId = holding(otherProductId, brokerId);
+    otherBrokerProductId = product("Other Broker Product Trade Web Test");
     holding(otherBrokerProductId, otherBrokerId);
   }
 
@@ -92,15 +97,40 @@ class TransferControllerInvestmentTest {
         .getId();
   }
 
-  /** A transfer body; {@code extra} entries (trade fields, resultingBalance) are merged in. */
-  private Map<String, Object> body(UUID from, UUID to, Map<String, Object> extra) {
+  private Map<String, Object> line(Object... keysAndValues) {
+    Map<String, Object> line = new LinkedHashMap<>();
+    for (int i = 0; i < keysAndValues.length; i += 2) {
+      line.put((String) keysAndValues[i], keysAndValues[i + 1]);
+    }
+    return line;
+  }
+
+  private Map<String, Object> confirmation(String taxes, Map<String, Object>... lines) {
+    Map<String, Object> confirmation = new LinkedHashMap<>();
+    confirmation.put("taxes", taxes);
+    confirmation.put("lines", List.of(lines));
+    return confirmation;
+  }
+
+  /** A confirmation body; {@code cashAccountId}/{@code investmentAccountId} unlabeled by F027. */
+  private Map<String, Object> body(
+      UUID cashAccountId, UUID investmentAccountId, Map<String, Object> tradeConfirmation) {
     Map<String, Object> body = new LinkedHashMap<>();
     body.put("date", "2026-03-15");
-    body.put("amount", "1005.00");
+    body.put("description", "Trade");
+    body.put("cashAccountId", cashAccountId.toString());
+    body.put("investmentAccountId", investmentAccountId.toString());
+    body.put("tradeConfirmation", tradeConfirmation);
+    return body;
+  }
+
+  private Map<String, Object> plainBody(UUID from, UUID to, String amount) {
+    Map<String, Object> body = new LinkedHashMap<>();
+    body.put("date", "2026-03-15");
+    body.put("amount", amount);
     body.put("fromAccountId", from.toString());
     body.put("toAccountId", to.toString());
-    body.put("description", "Trade");
-    body.putAll(extra);
+    body.put("description", "Transfer");
     return body;
   }
 
@@ -118,85 +148,223 @@ class TransferControllerInvestmentTest {
             .content(JsonSupport.toJson(body)));
   }
 
-  private Map<String, Object> trade(Object... keysAndValues) {
-    Map<String, Object> extra = new LinkedHashMap<>();
-    for (int i = 0; i < keysAndValues.length; i += 2) {
-      extra.put((String) keysAndValues[i], keysAndValues[i + 1]);
-    }
-    return extra;
-  }
-
-  // --- create ---------------------------------------------------------------------------------
+  // --- create -----------------------------------------------------------------------------------
 
   @Test
-  void aBuyReturnsTheProductAndTradeDetails() throws Exception {
+  void aSingleLineBuyDerivesAmountAndDirectionAndReturnsTheConfirmation() throws Exception {
     create(
             body(
                 checkingId,
                 brokerId,
-                trade(
-                    "investmentProductId", productId.toString(),
-                    "quantity", "10",
-                    "unitPrice", "100.00",
-                    "taxes", "5.00")))
+                confirmation(
+                    "5.00",
+                    line(
+                        "productId", productId.toString(),
+                        "side", "BUY",
+                        "quantity", "10",
+                        "unitPrice", "100.00"))))
         .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.investmentProductId").value(productId.toString()))
-        .andExpect(jsonPath("$.quantity").value(10))
-        .andExpect(jsonPath("$.unitPrice").value(100.00))
+        .andExpect(jsonPath("$.fromAccountId").value(checkingId.toString()))
+        .andExpect(jsonPath("$.toAccountId").value(brokerId.toString()))
+        .andExpect(jsonPath("$.amount").value(1005.00))
         .andExpect(jsonPath("$.taxes").value(5.00))
-        .andExpect(jsonPath("$.amount").value(1005.00));
+        .andExpect(jsonPath("$.tradeConfirmation.lines[0].productId").value(productId.toString()))
+        .andExpect(jsonPath("$.tradeConfirmation.lines[0].side").value("BUY"))
+        .andExpect(jsonPath("$.tradeConfirmation.lines[0].quantity").value(10))
+        .andExpect(jsonPath("$.tradeConfirmation.lines[0].unitPrice").value(100.00));
   }
 
   @Test
-  void aSellBackToCheckingIsATaggedTransferOutOfTheInvestmentAccount() throws Exception {
-    create(body(brokerId, checkingId, trade("investmentProductId", productId.toString())))
+  void aSingleLineSellDerivesTheOppositeDirection() throws Exception {
+    create(
+            body(
+                checkingId,
+                brokerId,
+                confirmation(
+                    "0.00",
+                    line(
+                        "productId", productId.toString(),
+                        "side", "SELL",
+                        "quantity", "10",
+                        "unitPrice", "100.00"))))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.fromAccountId").value(brokerId.toString()))
-        .andExpect(jsonPath("$.investmentProductId").value(productId.toString()))
-        .andExpect(jsonPath("$.quantity").doesNotExist());
+        .andExpect(jsonPath("$.toAccountId").value(checkingId.toString()))
+        .andExpect(jsonPath("$.amount").value(1000.00));
   }
 
   @Test
-  void aPlainTransferHasNullTradeFields() throws Exception {
-    create(body(checkingId, savingsId, Map.of()))
+  void mixedBuyAndSellLinesAcrossTwoProductsNetTogether() throws Exception {
+    create(
+            body(
+                checkingId,
+                brokerId,
+                confirmation(
+                    "10.00",
+                    line(
+                        "productId", productId.toString(),
+                        "side", "BUY",
+                        "quantity", "10",
+                        "unitPrice", "100.00"),
+                    line(
+                        "productId", otherProductId.toString(),
+                        "side", "SELL",
+                        "quantity", "5",
+                        "unitPrice", "50.00"))))
         .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.investmentProductId").doesNotExist())
-        .andExpect(jsonPath("$.quantity").doesNotExist())
-        .andExpect(jsonPath("$.unitPrice").doesNotExist())
+        .andExpect(jsonPath("$.amount").value(760.00))
+        .andExpect(jsonPath("$.tradeConfirmation.lines.length()").value(2));
+  }
+
+  @Test
+  void aPlainTransferStillWorksUnchanged() throws Exception {
+    create(plainBody(checkingId, savingsId, "10.00"))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.tradeConfirmation").doesNotExist())
         .andExpect(jsonPath("$.taxes").doesNotExist());
   }
 
   @Test
-  void eightDecimalQuantityAndPriceRoundTripThroughCreateAndGet() throws Exception {
-    String id =
-        JsonSupport.idOf(
-            create(
-                    body(
-                        checkingId,
-                        brokerId,
-                        trade(
-                            "investmentProductId", productId.toString(),
-                            "quantity", "0.12345678",
-                            "unitPrice", "250000.87654321")))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.quantity").value(0.12345678))
-                .andExpect(jsonPath("$.unitPrice").value(250000.87654321))
-                .andReturn());
+  void neitherShapeNorBothShapesIsRejectedWith400() throws Exception {
+    Map<String, Object> neither = new LinkedHashMap<>();
+    neither.put("date", "2026-03-15");
+    neither.put("description", "Nothing");
+    create(neither).andExpect(status().isBadRequest());
 
-    mockMvc
-        .perform(get("/api/transfers/" + id))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.quantity").value(0.12345678))
-        .andExpect(jsonPath("$.unitPrice").value(250000.87654321));
+    Map<String, Object> both = body(checkingId, brokerId, confirmation("0.00"));
+    both.put("fromAccountId", checkingId.toString());
+    both.put("toAccountId", brokerId.toString());
+    both.put("amount", "10.00");
+    create(both).andExpect(status().isBadRequest());
   }
 
   @Test
-  void resultingBalanceRecordsASnapshotDatedTheTransferDate() throws Exception {
+  void aNetZeroSettlementIsRejectedWith400() throws Exception {
     create(
             body(
                 checkingId,
                 brokerId,
-                trade("investmentProductId", productId.toString(), "resultingBalance", "1000.00")))
+                confirmation(
+                    "0.00",
+                    line(
+                        "productId", productId.toString(),
+                        "side", "BUY",
+                        "quantity", "10",
+                        "unitPrice", "100.00"),
+                    line(
+                        "productId", otherProductId.toString(),
+                        "side", "SELL",
+                        "quantity", "10",
+                        "unitPrice", "100.00"))))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void closeHoldingOnABuyLineIsRejectedWith400() throws Exception {
+    create(
+            body(
+                checkingId,
+                brokerId,
+                confirmation(
+                    "0.00",
+                    line(
+                        "productId", productId.toString(),
+                        "side", "BUY",
+                        "quantity", "10",
+                        "unitPrice", "100.00",
+                        "closeHolding", true))))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void twoLinesOfTheSameProductBothCarryingAResultingBalanceIsRejectedWith400() throws Exception {
+    create(
+            body(
+                checkingId,
+                brokerId,
+                confirmation(
+                    "0.00",
+                    line(
+                        "productId", productId.toString(),
+                        "side", "BUY",
+                        "quantity", "5",
+                        "unitPrice", "10.00",
+                        "resultingBalance", "50.00"),
+                    line(
+                        "productId", productId.toString(),
+                        "side", "BUY",
+                        "quantity", "5",
+                        "unitPrice", "10.00",
+                        "resultingBalance", "100.00"))))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void aProductWithNoHoldingInThatAccountIsRejectedWith404() throws Exception {
+    create(
+            body(
+                checkingId,
+                brokerId,
+                confirmation(
+                    "0.00",
+                    line(
+                        "productId", otherBrokerProductId.toString(),
+                        "side", "BUY",
+                        "quantity", "1",
+                        "unitPrice", "1.00"))))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void aClosedHoldingIsRejectedWith409() throws Exception {
+    mockMvc
+        .perform(post("/api/investment-holdings/" + holdingId + "/close"))
+        .andExpect(status().isOk());
+
+    create(
+            body(
+                checkingId,
+                brokerId,
+                confirmation(
+                    "0.00",
+                    line(
+                        "productId", productId.toString(),
+                        "side", "BUY",
+                        "quantity", "1",
+                        "unitPrice", "1.00"))))
+        .andExpect(status().isConflict());
+  }
+
+  @Test
+  void anInvestmentAccountThatIsNotActuallyInvestmentIsRejectedWith409() throws Exception {
+    create(
+            body(
+                checkingId,
+                savingsId,
+                confirmation(
+                    "0.00",
+                    line(
+                        "productId", productId.toString(),
+                        "side", "BUY",
+                        "quantity", "1",
+                        "unitPrice", "1.00"))))
+        .andExpect(status().isConflict());
+  }
+
+  @Test
+  void resultingBalanceOnOneLineRecordsASnapshotForItsHoldingOnly() throws Exception {
+    create(
+            body(
+                checkingId,
+                brokerId,
+                confirmation(
+                    "0.00",
+                    line(
+                        "productId", productId.toString(),
+                        "side", "BUY",
+                        "quantity", "1",
+                        "unitPrice", "1000.00",
+                        "resultingBalance", "1000.00"))))
         .andExpect(status().isCreated());
 
     mockMvc
@@ -206,152 +374,70 @@ class TransferControllerInvestmentTest {
         .andExpect(jsonPath("$[0].date").value("2026-03-15"))
         .andExpect(jsonPath("$[0].balance").value(1000.00));
     mockMvc
-        .perform(get("/api/investment-holdings/" + holdingId))
-        .andExpect(jsonPath("$.needsSnapshot").value(false));
+        .perform(get("/api/investment-holdings/" + otherHoldingId + "/snapshots"))
+        .andExpect(jsonPath("$.length()").value(0));
   }
 
   @Test
-  void resultingBalanceReplacesASameDaySnapshotAndZeroRecordsAFullSell() throws Exception {
-    mockMvc.perform(
-        post("/api/investment-holdings/" + holdingId + "/snapshots")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(JsonSupport.toJson(Map.of("date", "2026-03-15", "balance", "50.00"))));
-
+  void closeHoldingOnASellLineClosesItWhenItsLatestSnapshotIsZero() throws Exception {
     create(
             body(
-                brokerId,
                 checkingId,
-                trade("investmentProductId", productId.toString(), "resultingBalance", "0")))
+                brokerId,
+                confirmation(
+                    "0.00",
+                    line(
+                        "productId", productId.toString(),
+                        "side", "SELL",
+                        "quantity", "1",
+                        "unitPrice", "1.00",
+                        "resultingBalance", "0",
+                        "closeHolding", true))))
         .andExpect(status().isCreated());
 
+    // Closing always uses "today" (InvestmentHoldingService's Clock), not the trade's own date.
     mockMvc
-        .perform(get("/api/investment-holdings/" + holdingId + "/snapshots"))
-        .andExpect(jsonPath("$.length()").value(1))
-        .andExpect(jsonPath("$[0].balance").value(0));
-    // The position is now empty, so the holding can be closed.
-    mockMvc
-        .perform(post("/api/investment-holdings/" + holdingId + "/close"))
-        .andExpect(status().isOk());
+        .perform(get("/api/investment-holdings/" + holdingId))
+        .andExpect(jsonPath("$.closedDate").exists());
   }
 
   @Test
   void aBuyWithoutAResultingBalanceLeavesTheHoldingNeedingASnapshot() throws Exception {
-    create(body(checkingId, brokerId, trade("investmentProductId", productId.toString())))
+    create(
+            body(
+                checkingId,
+                brokerId,
+                confirmation(
+                    "0.00",
+                    line(
+                        "productId", productId.toString(),
+                        "side", "BUY",
+                        "quantity", "1",
+                        "unitPrice", "1.00"))))
         .andExpect(status().isCreated());
 
     mockMvc
         .perform(get("/api/investment-holdings/" + holdingId))
         .andExpect(jsonPath("$.needsSnapshot").value(true));
-    mockMvc
-        .perform(get("/api/investment-holdings/" + holdingId + "/snapshots"))
-        .andExpect(jsonPath("$.length()").value(0));
-  }
-
-  @Test
-  void tradeFieldsWithoutAProductAreRejectedWith400() throws Exception {
-    create(body(checkingId, savingsId, trade("quantity", "1", "unitPrice", "1")))
-        .andExpect(status().isBadRequest());
-    create(body(checkingId, savingsId, trade("taxes", "1.00"))).andExpect(status().isBadRequest());
-    create(body(checkingId, savingsId, trade("resultingBalance", "1.00")))
-        .andExpect(status().isBadRequest());
-  }
-
-  @Test
-  void quantityWithoutUnitPriceOrTheReverseIsRejectedWith400() throws Exception {
-    create(
-            body(
-                checkingId,
-                brokerId,
-                trade("investmentProductId", productId.toString(), "quantity", "1")))
-        .andExpect(status().isBadRequest());
-    create(
-            body(
-                checkingId,
-                brokerId,
-                trade("investmentProductId", productId.toString(), "unitPrice", "1")))
-        .andExpect(status().isBadRequest());
-  }
-
-  @Test
-  void nonPositiveQuantityOrPriceAndNegativeTaxesOrBalanceAreRejectedWith400() throws Exception {
-    String product = productId.toString();
-    create(
-            body(
-                checkingId,
-                brokerId,
-                trade("investmentProductId", product, "quantity", "0", "unitPrice", "1")))
-        .andExpect(status().isBadRequest());
-    create(
-            body(
-                checkingId,
-                brokerId,
-                trade("investmentProductId", product, "quantity", "1", "unitPrice", "-1")))
-        .andExpect(status().isBadRequest());
-    create(body(checkingId, brokerId, trade("investmentProductId", product, "taxes", "-0.01")))
-        .andExpect(status().isBadRequest());
-    create(
-            body(
-                checkingId,
-                brokerId,
-                trade("investmentProductId", product, "resultingBalance", "-1")))
-        .andExpect(status().isBadRequest());
-  }
-
-  @Test
-  void moreThanEightDecimalsOnQuantityIsRejectedWith400() throws Exception {
-    create(
-            body(
-                checkingId,
-                brokerId,
-                trade(
-                    "investmentProductId", productId.toString(),
-                    "quantity", "0.123456789",
-                    "unitPrice", "1")))
-        .andExpect(status().isBadRequest());
-  }
-
-  @Test
-  void anInvestmentEndpointWithoutAProductIsRejectedWith409() throws Exception {
-    create(body(checkingId, brokerId, Map.of())).andExpect(status().isConflict());
-  }
-
-  @Test
-  void aProductWithNoHoldingInThatAccountIsRejectedWith404() throws Exception {
-    create(
-            body(
-                checkingId,
-                brokerId,
-                trade("investmentProductId", otherBrokerProductId.toString())))
-        .andExpect(status().isNotFound());
-  }
-
-  @Test
-  void aClosedHoldingIsRejectedWith409AndAnUnknownProductWith404() throws Exception {
-    mockMvc
-        .perform(post("/api/investment-holdings/" + holdingId + "/close"))
-        .andExpect(status().isOk());
-
-    create(body(checkingId, brokerId, trade("investmentProductId", productId.toString())))
-        .andExpect(status().isConflict());
-    create(body(checkingId, brokerId, trade("investmentProductId", UUID.randomUUID().toString())))
-        .andExpect(status().isNotFound());
   }
 
   // --- edit, filter ---------------------------------------------------------------------------
 
   @Test
-  void editReplacesTheTagAndTradeDetailsAndNeverTouchesSnapshots() throws Exception {
+  void editReplacesTheLinesAndRecomputesAmount() throws Exception {
     String id =
         JsonSupport.idOf(
             create(
                     body(
                         checkingId,
                         brokerId,
-                        trade(
-                            "investmentProductId",
-                            productId.toString(),
-                            "resultingBalance",
-                            "1000.00")))
+                        confirmation(
+                            "0.00",
+                            line(
+                                "productId", productId.toString(),
+                                "side", "BUY",
+                                "quantity", "10",
+                                "unitPrice", "100.00"))))
                 .andReturn());
 
     edit(
@@ -359,79 +445,115 @@ class TransferControllerInvestmentTest {
             body(
                 checkingId,
                 brokerId,
-                trade(
-                    "investmentProductId", productId.toString(),
-                    "quantity", "2.5",
-                    "unitPrice", "400.00",
-                    "taxes", "5.00")))
+                confirmation(
+                    "5.00",
+                    line(
+                        "productId", productId.toString(),
+                        "side", "BUY",
+                        "quantity", "2.5",
+                        "unitPrice", "400.00"))))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.quantity").value(2.5))
-        .andExpect(jsonPath("$.unitPrice").value(400.00));
-
-    mockMvc
-        .perform(get("/api/investment-holdings/" + holdingId + "/snapshots"))
-        .andExpect(jsonPath("$.length()").value(1))
-        .andExpect(jsonPath("$[0].balance").value(1000.00));
+        .andExpect(jsonPath("$.amount").value(1005.00))
+        .andExpect(jsonPath("$.tradeConfirmation.lines[0].quantity").value(2.5));
   }
 
   @Test
-  void editRejectsTheSameCasesAsCreate() throws Exception {
-    String id = JsonSupport.idOf(create(body(checkingId, savingsId, Map.of())).andReturn());
+  void editToAnUnknownHoldingIsRejectedWith404() throws Exception {
+    String id =
+        JsonSupport.idOf(
+            create(
+                    body(
+                        checkingId,
+                        brokerId,
+                        confirmation(
+                            "0.00",
+                            line(
+                                "productId", productId.toString(),
+                                "side", "BUY",
+                                "quantity", "1",
+                                "unitPrice", "1.00"))))
+                .andReturn());
 
-    edit(id, body(checkingId, savingsId, trade("quantity", "1", "unitPrice", "1")))
-        .andExpect(status().isBadRequest());
-    edit(id, body(checkingId, brokerId, Map.of())).andExpect(status().isConflict());
     edit(
             id,
             body(
                 checkingId,
                 brokerId,
-                trade("investmentProductId", otherBrokerProductId.toString())))
+                confirmation(
+                    "0.00",
+                    line(
+                        "productId", otherBrokerProductId.toString(),
+                        "side", "BUY",
+                        "quantity", "1",
+                        "unitPrice", "1.00"))))
         .andExpect(status().isNotFound());
-    edit(id, body(checkingId, savingsId, trade("investmentProductId", productId.toString())))
-        .andExpect(status().isConflict());
   }
 
   @Test
-  void listFiltersByInvestmentProductId() throws Exception {
-    create(body(checkingId, brokerId, trade("investmentProductId", productId.toString())))
+  void editCanClearATradeConfirmationBackToAPlainTransfer() throws Exception {
+    String id =
+        JsonSupport.idOf(
+            create(
+                    body(
+                        checkingId,
+                        brokerId,
+                        confirmation(
+                            "0.00",
+                            line(
+                                "productId", productId.toString(),
+                                "side", "BUY",
+                                "quantity", "1",
+                                "unitPrice", "1.00"))))
+                .andReturn());
+
+    edit(id, plainBody(checkingId, savingsId, "10.00"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.tradeConfirmation").doesNotExist());
+  }
+
+  @Test
+  void listFiltersByInvestmentProductIdViaTheLinesJoin() throws Exception {
+    create(
+            body(
+                checkingId,
+                brokerId,
+                confirmation(
+                    "0.00",
+                    line(
+                        "productId", productId.toString(),
+                        "side", "BUY",
+                        "quantity", "1",
+                        "unitPrice", "1.00"))))
         .andExpect(status().isCreated());
-    create(body(brokerId, checkingId, trade("investmentProductId", productId.toString())))
+    create(
+            body(
+                checkingId,
+                brokerId,
+                confirmation(
+                    "0.00",
+                    line(
+                        "productId", productId.toString(),
+                        "side", "SELL",
+                        "quantity", "1",
+                        "unitPrice", "1.00"))))
         .andExpect(status().isCreated());
-    create(body(checkingId, savingsId, Map.of())).andExpect(status().isCreated());
+    create(plainBody(checkingId, savingsId, "10.00")).andExpect(status().isCreated());
     create(
             body(
                 checkingId,
                 otherBrokerId,
-                trade("investmentProductId", otherBrokerProductId.toString())))
+                confirmation(
+                    "0.00",
+                    line(
+                        "productId", otherBrokerProductId.toString(),
+                        "side", "BUY",
+                        "quantity", "1",
+                        "unitPrice", "1.00"))))
         .andExpect(status().isCreated());
 
     mockMvc
         .perform(get("/api/transfers").param("investmentProductId", productId.toString()))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.page.totalElements").value(2))
-        .andExpect(jsonPath("$.content[0].investmentProductId").value(productId.toString()))
-        .andExpect(jsonPath("$.content[1].investmentProductId").value(productId.toString()));
-  }
-
-  @Test
-  void aTradeMakesTheHoldingNeedASnapshotUntilOneIsRecordedOnOrAfterTheTradeDate()
-      throws Exception {
-    create(body(checkingId, brokerId, trade("investmentProductId", productId.toString())))
-        .andExpect(status().isCreated());
-    mockMvc
-        .perform(get("/api/investment-holdings/" + holdingId))
-        .andExpect(jsonPath("$.needsSnapshot").value(true));
-
-    mockMvc.perform(
-        post("/api/investment-holdings/" + holdingId + "/snapshots")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(
-                JsonSupport.toJson(
-                    Map.of("date", LocalDate.of(2026, 3, 16).toString(), "balance", "1005.00"))));
-
-    mockMvc
-        .perform(get("/api/investment-holdings/" + holdingId))
-        .andExpect(jsonPath("$.needsSnapshot").value(false));
+        .andExpect(jsonPath("$.page.totalElements").value(2));
   }
 }

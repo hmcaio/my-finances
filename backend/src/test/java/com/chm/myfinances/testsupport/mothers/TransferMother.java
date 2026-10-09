@@ -1,9 +1,11 @@
 package com.chm.myfinances.testsupport.mothers;
 
-import com.chm.myfinances.domain.transfer.InvestmentTradeDetails;
+import com.chm.myfinances.domain.transfer.TradeConfirmation;
+import com.chm.myfinances.domain.transfer.TradeConfirmationLine;
 import com.chm.myfinances.domain.transfer.Transfer;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -11,6 +13,11 @@ import java.util.UUID;
  * defaults that a test overrides only where it cares. A test asserting on {@link Transfer#create}'s
  * own validation should keep calling {@code Transfer.create(...)} directly - going through this
  * builder would obscure what's being tested.
+ *
+ * <p>{@link #withTradeConfirmation} (F027, ADR 0024) switches {@link #build()} to {@link
+ * Transfer#createTradeConfirmation} instead of the plain {@link Transfer#create}: {@code amount}/
+ * direction are then derived from the confirmation's {@code netCost}, so {@link #withAmount}/
+ * {@link #withFromAccountId}/{@link #withToAccountId} are ignored for a trade-confirmation build.
  */
 public final class TransferMother {
 
@@ -21,8 +28,10 @@ public final class TransferMother {
   private BigDecimal amount = new BigDecimal("100.00");
   private String description = "Credit card payment";
   private String additionalNotes = null;
-  private UUID investmentProductId = null;
-  private InvestmentTradeDetails tradeDetails = null;
+  private UUID cashAccountId;
+  private UUID investmentAccountId;
+  private BigDecimal taxes;
+  private List<TradeConfirmationLine> lines;
 
   private TransferMother() {}
 
@@ -65,26 +74,40 @@ public final class TransferMother {
     return this;
   }
 
-  public TransferMother withInvestmentProductId(UUID investmentProductId) {
-    this.investmentProductId = investmentProductId;
-    return this;
+  /**
+   * A single-line trade confirmation (F027): {@code cashAccountId}/{@code investmentAccountId} are
+   * unlabeled - direction is derived from the line's net cost.
+   */
+  public TransferMother withTradeConfirmation(
+      UUID cashAccountId, UUID investmentAccountId, BigDecimal taxes, TradeConfirmationLine line) {
+    return withTradeConfirmation(cashAccountId, investmentAccountId, taxes, List.of(line));
   }
 
-  public TransferMother withTradeDetails(InvestmentTradeDetails tradeDetails) {
-    this.tradeDetails = tradeDetails;
+  public TransferMother withTradeConfirmation(
+      UUID cashAccountId,
+      UUID investmentAccountId,
+      BigDecimal taxes,
+      List<TradeConfirmationLine> lines) {
+    this.cashAccountId = cashAccountId;
+    this.investmentAccountId = investmentAccountId;
+    this.taxes = taxes;
+    this.lines = lines;
     return this;
   }
 
   public Transfer build() {
+    if (lines != null) {
+      return Transfer.createTradeConfirmation(
+          id,
+          date,
+          cashAccountId,
+          investmentAccountId,
+          description,
+          additionalNotes,
+          taxes,
+          TradeConfirmation.of(lines));
+    }
     return Transfer.create(
-        id,
-        date,
-        fromAccountId,
-        toAccountId,
-        amount,
-        description,
-        additionalNotes,
-        investmentProductId,
-        tradeDetails);
+        id, date, fromAccountId, toAccountId, amount, description, additionalNotes);
   }
 }

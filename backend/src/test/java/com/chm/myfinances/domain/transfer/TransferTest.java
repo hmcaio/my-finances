@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -366,27 +367,30 @@ class TransferTest {
     assertThat(transfer.getAmount()).isEqualByComparingTo("50.00");
     assertThat(transfer.getDescription()).isEqualTo("Reconstituted");
     assertThat(transfer.getAdditionalNotes()).isEqualTo("Notes");
-    assertThat(transfer.getInvestmentProductId()).isNull();
-    assertThat(transfer.getTradeDetails().isEmpty()).isTrue();
+    assertThat(transfer.getTaxes()).isNull();
+    assertThat(transfer.getTradeConfirmation()).isEmpty();
   }
 
   private static final UUID PRODUCT_ID = UUID.randomUUID();
+  private static final UUID OTHER_PRODUCT_ID = UUID.randomUUID();
 
-  private static Transfer buyWith(UUID productId, InvestmentTradeDetails details) {
-    return Transfer.create(
-        UUID.randomUUID(),
-        LocalDate.of(2026, 3, 15),
-        FROM_ACCOUNT_ID,
-        TO_ACCOUNT_ID,
-        new BigDecimal("1005.00"),
-        "Buy",
-        null,
+  private static TradeConfirmationLine buyLine(UUID productId, String quantity, String unitPrice) {
+    return new TradeConfirmationLine(
+        productId, TradeSide.BUY, new BigDecimal(quantity), new BigDecimal(unitPrice), null, false);
+  }
+
+  private static TradeConfirmationLine sellLine(UUID productId, String quantity, String unitPrice) {
+    return new TradeConfirmationLine(
         productId,
-        details);
+        TradeSide.SELL,
+        new BigDecimal(quantity),
+        new BigDecimal(unitPrice),
+        null,
+        false);
   }
 
   @Test
-  void plainTransferHasNoProductAndEmptyTradeDetails() {
+  void plainTransferHasNoTaxesAndNoTradeConfirmation() {
     Transfer transfer =
         Transfer.create(
             UUID.randomUUID(),
@@ -397,95 +401,182 @@ class TransferTest {
             "Transfer",
             null);
 
-    assertThat(transfer.getInvestmentProductId()).isNull();
-    assertThat(transfer.getTradeDetails().isEmpty()).isTrue();
+    assertThat(transfer.getTaxes()).isNull();
+    assertThat(transfer.getTradeConfirmation()).isEmpty();
   }
 
   @Test
-  void createsATaggedTransferWithTradeDetails() {
-    InvestmentTradeDetails details =
-        new InvestmentTradeDetails(
-            new BigDecimal("10"), new BigDecimal("100.00000000"), new BigDecimal("5.00"));
+  void createTradeConfirmationDerivesFromAccountToAccountAndAmountFromANetCost() {
+    TradeConfirmation confirmation =
+        TradeConfirmation.of(List.of(buyLine(PRODUCT_ID, "10", "100.00")));
 
-    Transfer transfer = buyWith(PRODUCT_ID, details);
-
-    assertThat(transfer.getInvestmentProductId()).isEqualTo(PRODUCT_ID);
-    assertThat(transfer.getTradeDetails()).isEqualTo(details);
-  }
-
-  @Test
-  void createsATaggedTransferWithoutTradeDetails() {
-    assertThat(buyWith(PRODUCT_ID, null).getTradeDetails().isEmpty()).isTrue();
-    assertThat(buyWith(PRODUCT_ID, InvestmentTradeDetails.empty()).getInvestmentProductId())
-        .isEqualTo(PRODUCT_ID);
-  }
-
-  @Test
-  void createRejectsTradeDetailsWithoutAProduct() {
-    assertThatThrownBy(
-            () -> buyWith(null, new InvestmentTradeDetails(BigDecimal.ONE, BigDecimal.TEN, null)))
-        .isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> buyWith(null, new InvestmentTradeDetails(null, null, BigDecimal.ONE)))
-        .isInstanceOf(IllegalArgumentException.class);
-  }
-
-  @Test
-  void editCanTagAndUntagAProductAndReplaceDetails() {
     Transfer transfer =
-        Transfer.create(
+        Transfer.createTradeConfirmation(
             UUID.randomUUID(),
-            LocalDate.of(2026, 1, 1),
+            LocalDate.of(2026, 3, 15),
             FROM_ACCOUNT_ID,
             TO_ACCOUNT_ID,
-            BigDecimal.TEN,
-            "Transfer",
-            null);
-    InvestmentTradeDetails details =
-        new InvestmentTradeDetails(BigDecimal.ONE, BigDecimal.TEN, BigDecimal.ONE);
+            "Buy",
+            null,
+            new BigDecimal("5.00"),
+            confirmation);
 
-    transfer.edit(
-        LocalDate.of(2026, 1, 2),
-        FROM_ACCOUNT_ID,
-        TO_ACCOUNT_ID,
-        BigDecimal.TEN,
-        "Transfer",
-        null,
-        PRODUCT_ID,
-        details);
-    assertThat(transfer.getInvestmentProductId()).isEqualTo(PRODUCT_ID);
-    assertThat(transfer.getTradeDetails()).isEqualTo(details);
-
-    transfer.edit(
-        LocalDate.of(2026, 1, 2),
-        FROM_ACCOUNT_ID,
-        TO_ACCOUNT_ID,
-        BigDecimal.TEN,
-        "Transfer",
-        null,
-        null,
-        null);
-    assertThat(transfer.getInvestmentProductId()).isNull();
-    assertThat(transfer.getTradeDetails().isEmpty()).isTrue();
+    // Net cost is positive (1005.00): cash -> investment.
+    assertThat(transfer.getFromAccountId()).isEqualTo(FROM_ACCOUNT_ID);
+    assertThat(transfer.getToAccountId()).isEqualTo(TO_ACCOUNT_ID);
+    assertThat(transfer.getAmount()).isEqualByComparingTo("1005.00");
+    assertThat(transfer.getTaxes()).isEqualByComparingTo("5.00");
+    assertThat(transfer.getTradeConfirmation()).contains(confirmation);
   }
 
   @Test
-  void editRejectsTradeDetailsWithoutAProductAndLeavesTheTransferUntouched() {
-    Transfer transfer = buyWith(PRODUCT_ID, InvestmentTradeDetails.empty());
+  void createTradeConfirmationReversesDirectionForANetSell() {
+    TradeConfirmation confirmation =
+        TradeConfirmation.of(List.of(sellLine(PRODUCT_ID, "10", "100.00")));
+
+    Transfer transfer =
+        Transfer.createTradeConfirmation(
+            UUID.randomUUID(),
+            LocalDate.of(2026, 3, 15),
+            FROM_ACCOUNT_ID, // cashAccountId
+            TO_ACCOUNT_ID, // investmentAccountId
+            "Sell",
+            null,
+            new BigDecimal("5.00"),
+            confirmation);
+
+    // Net cost is negative (-995.00): investment -> cash.
+    assertThat(transfer.getFromAccountId()).isEqualTo(TO_ACCOUNT_ID);
+    assertThat(transfer.getToAccountId()).isEqualTo(FROM_ACCOUNT_ID);
+    assertThat(transfer.getAmount()).isEqualByComparingTo("995.00");
+  }
+
+  @Test
+  void createTradeConfirmationRejectsAnExactZeroNetSettlement() {
+    TradeConfirmation confirmation =
+        TradeConfirmation.of(
+            List.of(
+                buyLine(PRODUCT_ID, "10", "100.00"), sellLine(OTHER_PRODUCT_ID, "10", "100.00")));
 
     assertThatThrownBy(
             () ->
-                transfer.edit(
-                    LocalDate.of(2027, 1, 1),
+                Transfer.createTradeConfirmation(
+                    UUID.randomUUID(),
+                    LocalDate.of(2026, 3, 15),
                     FROM_ACCOUNT_ID,
                     TO_ACCOUNT_ID,
-                    BigDecimal.TEN,
+                    "Wash",
+                    null,
+                    BigDecimal.ZERO,
+                    confirmation))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void createTradeConfirmationRejectsNullConfirmation() {
+    assertThatThrownBy(
+            () ->
+                Transfer.createTradeConfirmation(
+                    UUID.randomUUID(),
+                    LocalDate.of(2026, 3, 15),
+                    FROM_ACCOUNT_ID,
+                    TO_ACCOUNT_ID,
+                    "Buy",
+                    null,
+                    BigDecimal.ZERO,
+                    null))
+        .isInstanceOf(NullPointerException.class);
+  }
+
+  @Test
+  void editTradeConfirmationRecomputesAmountAndDirection() {
+    TradeConfirmation original = TradeConfirmation.of(List.of(buyLine(PRODUCT_ID, "10", "100.00")));
+    Transfer transfer =
+        Transfer.createTradeConfirmation(
+            UUID.randomUUID(),
+            LocalDate.of(2026, 3, 15),
+            FROM_ACCOUNT_ID,
+            TO_ACCOUNT_ID,
+            "Buy",
+            null,
+            new BigDecimal("5.00"),
+            original);
+
+    TradeConfirmation edited = TradeConfirmation.of(List.of(sellLine(PRODUCT_ID, "10", "100.00")));
+    transfer.editTradeConfirmation(
+        LocalDate.of(2026, 3, 16),
+        FROM_ACCOUNT_ID,
+        TO_ACCOUNT_ID,
+        "Now a sell",
+        "note",
+        new BigDecimal("2.00"),
+        edited);
+
+    assertThat(transfer.getFromAccountId()).isEqualTo(TO_ACCOUNT_ID);
+    assertThat(transfer.getToAccountId()).isEqualTo(FROM_ACCOUNT_ID);
+    assertThat(transfer.getAmount()).isEqualByComparingTo("998.00");
+    assertThat(transfer.getTaxes()).isEqualByComparingTo("2.00");
+    assertThat(transfer.getTradeConfirmation()).contains(edited);
+    assertThat(transfer.getDescription()).isEqualTo("Now a sell");
+  }
+
+  @Test
+  void editTradeConfirmationRejectingTheNewConfirmationLeavesTheTransferUntouched() {
+    TradeConfirmation original = TradeConfirmation.of(List.of(buyLine(PRODUCT_ID, "10", "100.00")));
+    Transfer transfer =
+        Transfer.createTradeConfirmation(
+            UUID.randomUUID(),
+            LocalDate.of(2026, 3, 15),
+            FROM_ACCOUNT_ID,
+            TO_ACCOUNT_ID,
+            "Buy",
+            null,
+            new BigDecimal("5.00"),
+            original);
+    TradeConfirmation washConfirmation =
+        TradeConfirmation.of(
+            List.of(
+                buyLine(PRODUCT_ID, "10", "100.00"), sellLine(OTHER_PRODUCT_ID, "10", "100.00")));
+
+    assertThatThrownBy(
+            () ->
+                transfer.editTradeConfirmation(
+                    LocalDate.of(2026, 3, 16),
+                    FROM_ACCOUNT_ID,
+                    TO_ACCOUNT_ID,
                     "Changed",
                     null,
-                    null,
-                    new InvestmentTradeDetails(BigDecimal.ONE, BigDecimal.TEN, null)))
+                    BigDecimal.ZERO,
+                    washConfirmation))
         .isInstanceOf(IllegalArgumentException.class);
 
     assertThat(transfer.getDescription()).isEqualTo("Buy");
-    assertThat(transfer.getInvestmentProductId()).isEqualTo(PRODUCT_ID);
+    assertThat(transfer.getTradeConfirmation()).contains(original);
+  }
+
+  @Test
+  void editClearsATradeConfirmationBackToAPlainTransfer() {
+    TradeConfirmation original = TradeConfirmation.of(List.of(buyLine(PRODUCT_ID, "10", "100.00")));
+    Transfer transfer =
+        Transfer.createTradeConfirmation(
+            UUID.randomUUID(),
+            LocalDate.of(2026, 3, 15),
+            FROM_ACCOUNT_ID,
+            TO_ACCOUNT_ID,
+            "Buy",
+            null,
+            new BigDecimal("5.00"),
+            original);
+
+    transfer.edit(
+        LocalDate.of(2026, 3, 17),
+        FROM_ACCOUNT_ID,
+        TO_ACCOUNT_ID,
+        BigDecimal.TEN,
+        "Plain again",
+        null);
+
+    assertThat(transfer.getTaxes()).isNull();
+    assertThat(transfer.getTradeConfirmation()).isEmpty();
   }
 }

@@ -10,16 +10,16 @@ import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
-import com.chm.myfinances.domain.transfer.InvestmentTradeDetails;
+import com.chm.myfinances.domain.transfer.TradeSide;
+import com.chm.myfinances.domain.transfer.TransferTradeLine;
 import com.chm.myfinances.testsupport.TestClocks;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSubcategoryRepository;
-import com.chm.myfinances.testsupport.fakes.FakeTransferRepository;
+import com.chm.myfinances.testsupport.fakes.FakeTransferTradeLineRepository;
 import com.chm.myfinances.testsupport.mothers.InvestmentHoldingMother;
 import com.chm.myfinances.testsupport.mothers.InvestmentProductMother;
-import com.chm.myfinances.testsupport.mothers.TransferMother;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -28,13 +28,15 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 /**
- * Tests for {@link FiiPortfolioQuery} (F026 spec, ADR 0023): per FII product, cotas held/amount
- * contributed as a running total across every holding/account, current value/needsSnapshot rolled
- * up from holdings, and the status filter.
+ * Tests for {@link FiiPortfolioQuery} (F026 spec, ADR 0023; reworked onto {@code
+ * TransferTradeLine}s by F027/ADR 0024): per FII product, cotas held/amount contributed as a
+ * running total across every holding/account (signed by each line's {@code side}), current
+ * value/needsSnapshot rolled up from holdings, and the status filter.
  */
 class FiiPortfolioQueryTest {
 
   private static final LocalDate TODAY = LocalDate.of(2026, 6, 15);
+  private static final UUID CHECKING_ID = UUID.randomUUID();
 
   private final FakeInvestmentProductRepository productRepository =
       new FakeInvestmentProductRepository();
@@ -44,19 +46,20 @@ class FiiPortfolioQueryTest {
       new FakeInvestmentHoldingRepository();
   private final FakeInvestmentSnapshotRepository snapshotRepository =
       new FakeInvestmentSnapshotRepository();
-  private final FakeTransferRepository transferRepository = new FakeTransferRepository();
+  private final FakeTransferTradeLineRepository tradeLineRepository =
+      new FakeTransferTradeLineRepository();
   private final Clock clock = TestClocks.fixedAtStartOf(TODAY);
   private final LatestInvestmentSnapshotQuery latestSnapshotQuery =
       new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository);
   private final InvestmentSnapshotFreshnessQuery freshnessQuery =
       new InvestmentSnapshotFreshnessQuery(
-          latestSnapshotQuery, transferRepository, holdingRepository);
+          latestSnapshotQuery, tradeLineRepository, holdingRepository);
   private final FiiPortfolioQuery query =
       new FiiPortfolioQuery(
           productRepository,
           subcategoryRepository,
           holdingRepository,
-          transferRepository,
+          tradeLineRepository,
           latestSnapshotQuery,
           freshnessQuery,
           clock);
@@ -87,7 +90,6 @@ class FiiPortfolioQueryTest {
   @Test
   void cotasHeldAndAmountContributedMatchHandComputedSumsAcrossTwoHoldings() {
     InvestmentProduct product = fiiProduct("KNRI11 Fund", "KNRI11");
-    UUID checkingId = UUID.randomUUID();
     UUID brokerAId = UUID.randomUUID();
     UUID brokerBId = UUID.randomUUID();
     InvestmentHolding holdingA =
@@ -103,8 +105,8 @@ class FiiPortfolioQueryTest {
                 .withAccountId(brokerBId)
                 .build());
 
-    buy(product, checkingId, brokerAId, "1000.00", "10");
-    buy(product, checkingId, brokerBId, "500.00", "5");
+    buy(product, brokerAId, "100.00", "10");
+    buy(product, brokerBId, "100.00", "5");
 
     List<FiiPortfolioRow> rows = query.portfolio(InvestmentProductStatus.ALL, TODAY);
 
@@ -119,7 +121,6 @@ class FiiPortfolioQueryTest {
   void sellingTheEntirePositionDropsCotasHeldToZeroWithoutAffectingOtherProducts() {
     InvestmentProduct knri = fiiProduct("KNRI11 Fund", "KNRI11");
     InvestmentProduct hglg = fiiProduct("HGLG11 Fund", "HGLG11");
-    UUID checkingId = UUID.randomUUID();
     UUID brokerId = UUID.randomUUID();
     holdingRepository.save(
         InvestmentHoldingMother.holding()
@@ -132,9 +133,9 @@ class FiiPortfolioQueryTest {
             .withAccountId(brokerId)
             .build());
 
-    buy(knri, checkingId, brokerId, "1000.00", "10");
-    sell(knri, checkingId, brokerId, "1050.00", "10");
-    buy(hglg, checkingId, brokerId, "200.00", "2");
+    buy(knri, brokerId, "100.00", "10");
+    sell(knri, brokerId, "105.00", "10");
+    buy(hglg, brokerId, "100.00", "2");
 
     List<FiiPortfolioRow> rows = query.portfolio(InvestmentProductStatus.ALL, TODAY);
 
@@ -149,7 +150,6 @@ class FiiPortfolioQueryTest {
   @Test
   void currentValueAndNeedsSnapshotMatchExistingHoldingLevelComputationsRolledUp() {
     InvestmentProduct product = fiiProduct("KNRI11 Fund", "KNRI11");
-    UUID checkingId = UUID.randomUUID();
     UUID brokerAId = UUID.randomUUID();
     UUID brokerBId = UUID.randomUUID();
     InvestmentHolding holdingA =
@@ -176,18 +176,19 @@ class FiiPortfolioQueryTest {
             holdingB.getId(),
             LocalDate.of(2026, 5, 1),
             new BigDecimal("500.00")));
-    buy(product, checkingId, brokerAId, "100.00", "1");
+    buy(product, brokerAId, "100.00", "1");
     // A trade after the last snapshot makes holdingA stale.
-    InvestmentProduct target = product;
-    transferRepository.save(
-        TransferMother.transfer()
-            .withDate(LocalDate.of(2026, 5, 2))
-            .withFromAccountId(checkingId)
-            .withToAccountId(brokerAId)
-            .withAmount(new BigDecimal("100.00"))
-            .withInvestmentProductId(target.getId())
-            .withTradeDetails(new InvestmentTradeDetails(new BigDecimal("1"), BigDecimal.ONE, null))
-            .build());
+    tradeLineRepository.add(
+        new TransferTradeLine(
+            UUID.randomUUID(),
+            LocalDate.of(2026, 5, 2),
+            CHECKING_ID,
+            brokerAId,
+            product.getId(),
+            TradeSide.BUY,
+            BigDecimal.ONE,
+            BigDecimal.ONE,
+            null));
 
     List<FiiPortfolioRow> rows = query.portfolio(InvestmentProductStatus.ALL, TODAY);
 
@@ -239,30 +240,41 @@ class FiiPortfolioQueryTest {
   @Test
   void tradesDatedAfterAsOfAreExcludedFromCotasHeldAndAmountContributed() {
     InvestmentProduct product = fiiProduct("KNRI11 Fund", "KNRI11");
-    UUID checkingId = UUID.randomUUID();
     UUID brokerId = UUID.randomUUID();
     holdingRepository.save(
         InvestmentHoldingMother.holding()
             .withProductId(product.getId())
             .withAccountId(brokerId)
             .build());
-    buy(product, checkingId, brokerId, "1000.00", "10"); // dated 2026-01-10, on or before asOf
-    transferRepository.save(
-        TransferMother.transfer()
-            .withDate(LocalDate.of(2026, 4, 1)) // after asOf (2026-03-01): must be excluded
-            .withFromAccountId(checkingId)
-            .withToAccountId(brokerId)
-            .withAmount(new BigDecimal("500.00"))
-            .withInvestmentProductId(product.getId())
-            .withTradeDetails(new InvestmentTradeDetails(new BigDecimal("5"), BigDecimal.ONE, null))
-            .build());
+    tradeLineRepository.add(
+        new TransferTradeLine(
+            UUID.randomUUID(),
+            LocalDate.of(2026, 1, 10), // on or before asOf
+            CHECKING_ID,
+            brokerId,
+            product.getId(),
+            TradeSide.BUY,
+            new BigDecimal("10"),
+            BigDecimal.ONE,
+            null));
+    tradeLineRepository.add(
+        new TransferTradeLine(
+            UUID.randomUUID(),
+            LocalDate.of(2026, 4, 1), // after asOf (2026-03-01): must be excluded
+            CHECKING_ID,
+            brokerId,
+            product.getId(),
+            TradeSide.BUY,
+            new BigDecimal("5"),
+            BigDecimal.ONE,
+            null));
 
     List<FiiPortfolioRow> rows =
         query.portfolio(InvestmentProductStatus.ALL, LocalDate.of(2026, 3, 1));
 
     assertThat(rows).hasSize(1);
     assertThat(rows.get(0).cotasHeld()).isEqualByComparingTo("10");
-    assertThat(rows.get(0).amountContributed()).isEqualByComparingTo("1000.00");
+    assertThat(rows.get(0).amountContributed()).isEqualByComparingTo("10.00");
   }
 
   @Test
@@ -294,19 +306,13 @@ class FiiPortfolioQueryTest {
   @Test
   void needsSnapshotIsAlwaysFalseWhenAsOfIsNotToday() {
     InvestmentProduct product = fiiProduct("KNRI11 Fund", "KNRI11");
-    UUID checkingId = UUID.randomUUID();
     UUID brokerId = UUID.randomUUID();
     holdingRepository.save(
         InvestmentHoldingMother.holding()
             .withProductId(product.getId())
             .withAccountId(brokerId)
             .build());
-    buy(
-        product,
-        checkingId,
-        brokerId,
-        "1000.00",
-        "10"); // no snapshot ever recorded: stale as of today
+    buy(product, brokerId, "100.00", "10"); // no snapshot ever recorded: stale as of today
 
     List<FiiPortfolioRow> todayRows = query.portfolio(InvestmentProductStatus.ALL, TODAY);
     List<FiiPortfolioRow> pastRows =
@@ -316,29 +322,31 @@ class FiiPortfolioQueryTest {
     assertThat(pastRows.get(0).needsSnapshot()).isFalse();
   }
 
-  private void buy(InvestmentProduct product, UUID from, UUID to, String amount, String quantity) {
-    transferRepository.save(
-        TransferMother.transfer()
-            .withDate(LocalDate.of(2026, 1, 10))
-            .withFromAccountId(from)
-            .withToAccountId(to)
-            .withAmount(new BigDecimal(amount))
-            .withInvestmentProductId(product.getId())
-            .withTradeDetails(
-                new InvestmentTradeDetails(new BigDecimal(quantity), BigDecimal.ONE, null))
-            .build());
+  private void buy(InvestmentProduct product, UUID brokerId, String unitPrice, String quantity) {
+    tradeLineRepository.add(
+        new TransferTradeLine(
+            UUID.randomUUID(),
+            LocalDate.of(2026, 1, 10),
+            CHECKING_ID,
+            brokerId,
+            product.getId(),
+            TradeSide.BUY,
+            new BigDecimal(quantity),
+            new BigDecimal(unitPrice),
+            null));
   }
 
-  private void sell(InvestmentProduct product, UUID to, UUID from, String amount, String quantity) {
-    transferRepository.save(
-        TransferMother.transfer()
-            .withDate(LocalDate.of(2026, 2, 10))
-            .withFromAccountId(from)
-            .withToAccountId(to)
-            .withAmount(new BigDecimal(amount))
-            .withInvestmentProductId(product.getId())
-            .withTradeDetails(
-                new InvestmentTradeDetails(new BigDecimal(quantity), BigDecimal.ONE, null))
-            .build());
+  private void sell(InvestmentProduct product, UUID brokerId, String unitPrice, String quantity) {
+    tradeLineRepository.add(
+        new TransferTradeLine(
+            UUID.randomUUID(),
+            LocalDate.of(2026, 2, 10),
+            brokerId,
+            CHECKING_ID,
+            product.getId(),
+            TradeSide.SELL,
+            new BigDecimal(quantity),
+            new BigDecimal(unitPrice),
+            null));
   }
 }

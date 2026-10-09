@@ -356,7 +356,6 @@ class AccountBalanceQueryTest {
             .withFromAccountId(investment.getId())
             .withToAccountId(checking.getId())
             .withAmount(new BigDecimal("400.00"))
-            .withInvestmentProductId(selic.getProductId())
             .build());
 
     assertThat(query.balanceAsOf(checking, LocalDate.of(2026, 2, 28)))

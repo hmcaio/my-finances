@@ -11,8 +11,9 @@ import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategoryRepository;
-import com.chm.myfinances.domain.transfer.Transfer;
-import com.chm.myfinances.domain.transfer.TransferRepository;
+import com.chm.myfinances.domain.transfer.TradeSide;
+import com.chm.myfinances.domain.transfer.TransferTradeLine;
+import com.chm.myfinances.domain.transfer.TransferTradeLineRepository;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -23,18 +24,18 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 /**
  * The FII portfolio summary (F026 spec, ADR 0023): for every {@code InvestmentProduct} classified
  * under the "REITs (FIIs)" sub-category, {@code cotasHeld}/{@code amountContributed} are computed
  * on read the same way {@code InvestmentValueSeriesQuery.seriesOf} already derives {@code units}/
- * {@code contributed} - reusing {@code TransferRepository.findByInvestmentProductId} and the
- * trade's quantity/amount, direction via holding account membership - but as a running total over
- * all trades to date, not bucketed by month. {@code currentValue}/{@code needsSnapshot} reuse
- * {@code LatestInvestmentSnapshotQuery}/{@code InvestmentSnapshotFreshnessQuery}, summed per
- * product across its holdings. Nothing here is price-derived (PRD S3/S9).
+ * {@code contributed} - reusing {@code TransferTradeLineRepository.findByProductId} (F027, ADR
+ * 0024) and each line's own quantity/total, signed by its {@code side} (BUY adds, SELL subtracts) -
+ * but as a running total over all trades to date, not bucketed by month. {@code currentValue}/
+ * {@code needsSnapshot} reuse {@code LatestInvestmentSnapshotQuery}/{@code
+ * InvestmentSnapshotFreshnessQuery}, summed per product across its holdings. Nothing here is
+ * price-derived (PRD S3/S9).
  */
 @Service
 public class FiiPortfolioQuery {
@@ -42,7 +43,7 @@ public class FiiPortfolioQuery {
   private final InvestmentProductRepository productRepository;
   private final InvestmentSubcategoryRepository subcategoryRepository;
   private final InvestmentHoldingRepository holdingRepository;
-  private final TransferRepository transferRepository;
+  private final TransferTradeLineRepository tradeLineRepository;
   private final LatestInvestmentSnapshotQuery latestSnapshotQuery;
   private final InvestmentSnapshotFreshnessQuery freshnessQuery;
   private final Clock clock;
@@ -51,14 +52,14 @@ public class FiiPortfolioQuery {
       InvestmentProductRepository productRepository,
       InvestmentSubcategoryRepository subcategoryRepository,
       InvestmentHoldingRepository holdingRepository,
-      TransferRepository transferRepository,
+      TransferTradeLineRepository tradeLineRepository,
       LatestInvestmentSnapshotQuery latestSnapshotQuery,
       InvestmentSnapshotFreshnessQuery freshnessQuery,
       Clock clock) {
     this.productRepository = productRepository;
     this.subcategoryRepository = subcategoryRepository;
     this.holdingRepository = holdingRepository;
-    this.transferRepository = transferRepository;
+    this.tradeLineRepository = tradeLineRepository;
     this.latestSnapshotQuery = latestSnapshotQuery;
     this.freshnessQuery = freshnessQuery;
     this.clock = clock;
@@ -102,25 +103,18 @@ public class FiiPortfolioQuery {
       boolean hasOpenHolding,
       Set<UUID> staleHoldingIds,
       LocalDate asOf) {
-    Set<UUID> holdingAccountIds =
-        holdings.stream().map(InvestmentHolding::getAccountId).collect(Collectors.toSet());
-    List<Transfer> trades = transferRepository.findByInvestmentProductId(product.getId());
+    List<TransferTradeLine> lines = tradeLineRepository.findByProductId(product.getId());
 
     BigDecimal cotasHeld = BigDecimal.ZERO;
     BigDecimal amountContributed = BigDecimal.ZERO;
-    for (Transfer trade : trades) {
-      if (trade.getDate().isAfter(asOf)) {
+    for (TransferTradeLine line : lines) {
+      if (line.date().isAfter(asOf)) {
         continue;
       }
-      boolean buy = holdingAccountIds.contains(trade.getToAccountId());
-      BigDecimal quantity = trade.getTradeDetails().quantity();
-      if (quantity != null) {
-        cotasHeld = buy ? cotasHeld.add(quantity) : cotasHeld.subtract(quantity);
-      }
-      amountContributed =
-          buy
-              ? amountContributed.add(trade.getAmount())
-              : amountContributed.subtract(trade.getAmount());
+      boolean buy = line.side() == TradeSide.BUY;
+      cotasHeld = buy ? cotasHeld.add(line.quantity()) : cotasHeld.subtract(line.quantity());
+      BigDecimal total = line.quantity().multiply(line.unitPrice());
+      amountContributed = buy ? amountContributed.add(total) : amountContributed.subtract(total);
     }
 
     BigDecimal currentValue = BigDecimal.ZERO;

@@ -52,15 +52,14 @@ import {
 } from '../../api/investments/investmentSnapshotsQueries'
 import { useInvestmentValueSeries } from '../../api/investments/investmentValueSeriesQueries'
 import type { ValueSeriesPoint } from '../../api/investments/investmentValueSeries'
-import type { Transfer } from '../../api/transfers/transfers'
-import { useTransfers } from '../../api/transfers/transfersQueries'
+import type { TradeConfirmationLineRecord } from '../../api/investments/tradeConfirmationLines'
+import { useTradeConfirmationLinesByProduct } from '../../api/investments/tradeConfirmationLinesQueries'
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
 import { InlineEditActions } from '../../components/table/InlineEditActions'
 import { DataTableBody } from '../../components/table/DataTableBody'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { fadeInSx } from '../../components/feedback/fadeIn'
 import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
-import { PaginationControls } from '../../components/table/PaginationControls'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState, type LoadState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
@@ -69,8 +68,6 @@ import { today } from '../../utils/localDate'
 import { TransferForm, type TransferFormPreset } from '../transfers/TransferForm'
 import { InvestmentProductForm, type InvestmentProductFormValues } from './InvestmentProductForm'
 import { ValueSeriesChart } from './ValueSeriesChart'
-
-const TRADES_PAGE_SIZE = 10
 
 /** Tighter section padding on phones (F021), matching `AccountDetailPage`. */
 const SECTION_PADDING = { xs: 2, sm: 3 }
@@ -105,7 +102,7 @@ export function InvestmentProductDetailPage() {
   const segments = segmentsQuery.data
   const accountsQuery = useAccounts(true)
   const accounts = accountsQuery.data
-  const accountsState = useQueryState(accountsQuery, setError)
+  useQueryState(accountsQuery, setError)
   const accountName = useMemo(() => nameLookup(accounts ?? [], (a) => a.name), [accounts])
 
   const holdingsQuery = useInvestmentHoldingsByProduct(id)
@@ -122,12 +119,10 @@ export function InvestmentProductDetailPage() {
   const seriesQuery = useInvestmentValueSeries({ productId })
   const series = seriesQuery.data
   const seriesState = useQueryState(seriesQuery, setError)
-  const [tradesPage, setTradesPage] = useState(0)
-  const tradesQuery = useTransfers({ investmentProductId: productId }, tradesPage, TRADES_PAGE_SIZE)
-  const trades = tradesQuery.data?.content
-  const pageInfo = tradesQuery.data
-    ? { number: tradesQuery.data.page.number, totalPages: tradesQuery.data.page.totalPages }
-    : null
+  const tradesQuery = useTradeConfirmationLinesByProduct(productId)
+  // transferId alone isn't unique across rows (partial fills put more than one line under the
+  // same confirmation), so each row gets a synthetic client-side key.
+  const trades = tradesQuery.data?.map((t, i) => ({ ...t, rowKey: `${t.transferId}-${i}` }))
   const tradesState = useQueryState(tradesQuery, setError)
   const recordSnapshot = useRecordInvestmentSnapshot()
   const updateSnapshot = useUpdateInvestmentSnapshot()
@@ -265,13 +260,6 @@ export function InvestmentProductDetailPage() {
 
   function handleTradeSaved() {
     setTradeDialog(null)
-    setTradesPage(0)
-  }
-
-  // Direction is derived, never stored: a transfer into any of the product's holding accounts is a
-  // buy (F022: a product can have more than one holding, so no single "its account" any more).
-  function tradeDirection(trade: Transfer): string {
-    return holdingAccountIds.has(trade.toAccountId) ? 'Buy' : 'Sell'
   }
 
   async function handleEditProduct(values: InvestmentProductFormValues) {
@@ -413,52 +401,66 @@ export function InvestmentProductDetailPage() {
       : []),
   ]
 
-  const tradeColumns: ResponsiveColumn<Transfer>[] = [
+  // F027 (ADR 0024): one row per matching line (not per confirmation); Taxes dropped - a
+  // confirmation's taxes cover its whole settlement, not one product. Each row links back to its
+  // parent confirmation so the real total taxes stay reachable.
+  type TradeRow = TradeConfirmationLineRecord & { rowKey: string }
+  const tradeColumns: ResponsiveColumn<TradeRow>[] = [
     { key: 'date', header: 'Date', role: 'secondary', render: (t) => t.date },
-    { key: 'type', header: 'Type', render: (t) => tradeDirection(t) },
-    { key: 'amount', header: 'Amount', align: 'right', render: (t) => t.amount.toFixed(2) },
+    { key: 'side', header: 'Side', render: (t) => (t.side === 'BUY' ? 'Buy' : 'Sell') },
     {
       key: 'quantity',
       header: 'Quantity',
       align: 'right',
-      tabletPriority: 'low',
-      render: (t) => (t.quantity === null ? '-' : String(t.quantity)),
+      render: (t) => String(t.quantity),
     },
     {
       key: 'unitPrice',
       header: 'Unit price',
       align: 'right',
       tabletPriority: 'low',
-      render: (t) => (t.unitPrice === null ? '-' : String(t.unitPrice)),
+      render: (t) => String(t.unitPrice),
     },
     {
-      key: 'taxes',
-      header: 'Taxes',
+      key: 'resultingBalance',
+      header: 'Resulting balance',
       align: 'right',
       tabletPriority: 'low',
-      render: (t) => (t.taxes === null ? '-' : t.taxes.toFixed(2)),
+      render: (t) => (t.resultingBalance === null ? '-' : t.resultingBalance.toFixed(2)),
     },
-    { key: 'description', header: 'Description', role: 'primary', render: (t) => t.description },
+    {
+      key: 'confirmation',
+      header: 'Confirmation',
+      role: 'primary',
+      render: (t) => (
+        <MuiLink component={RouterLink} to={`/transfers?focus=${t.transferId}`} underline="hover">
+          View confirmation
+        </MuiLink>
+      ),
+    },
   ]
 
-  // The card leads with the description and derived direction, then the record-only trade details.
-  function renderTradeCard(trade: Transfer) {
+  function renderTradeCard(trade: TradeRow) {
     return (
       <Paper variant="outlined" sx={{ p: 1.5 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-          <Typography variant="subtitle1" component="div" sx={{ overflowWrap: 'anywhere' }}>
-            {trade.description}
+          <Typography variant="subtitle1" component="div">
+            {trade.date}
           </Typography>
-          <Chip label={tradeDirection(trade)} size="small" />
+          <Chip label={trade.side === 'BUY' ? 'Buy' : 'Sell'} size="small" />
         </Box>
         <Typography variant="body2" color="text.secondary">
-          {trade.date} · Amount {trade.amount.toFixed(2)}
+          Quantity {trade.quantity} · Unit price {trade.unitPrice}
+          {trade.resultingBalance !== null &&
+            ` · Resulting balance ${trade.resultingBalance.toFixed(2)}`}
         </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Quantity {trade.quantity === null ? '-' : String(trade.quantity)} · Unit price{' '}
-          {trade.unitPrice === null ? '-' : String(trade.unitPrice)} · Taxes{' '}
-          {trade.taxes === null ? '-' : trade.taxes.toFixed(2)}
-        </Typography>
+        <MuiLink
+          component={RouterLink}
+          to={`/transfers?focus=${trade.transferId}`}
+          underline="hover"
+        >
+          View confirmation
+        </MuiLink>
       </Paper>
     )
   }
@@ -649,16 +651,12 @@ export function InvestmentProductDetailPage() {
               aria-label="Trades"
               columns={tradeColumns}
               rows={trades}
-              getRowKey={(t) => t.id}
-              state={combineLoadState(tradesState, accountsState)}
-              onRetry={() => {
-                tradesState.reload()
-                accountsState.reload()
-              }}
+              getRowKey={(t) => t.rowKey}
+              state={tradesState}
+              onRetry={tradesState.reload}
               renderCard={renderTradeCard}
               emptyMessage="No trades yet."
             />
-            <PaginationControls pageInfo={pageInfo} onPageChange={setTradesPage} />
           </Paper>
         </Box>
       )}

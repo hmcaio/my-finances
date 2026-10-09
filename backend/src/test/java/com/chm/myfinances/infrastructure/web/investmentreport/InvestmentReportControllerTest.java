@@ -22,7 +22,10 @@ import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import com.chm.myfinances.testsupport.web.JsonSupport;
 import com.chm.myfinances.testsupport.web.MockMvcSupport;
 import com.chm.myfinances.testsupport.web.WebIntegrationTest;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -115,20 +118,38 @@ class InvestmentReportControllerTest {
         .andExpect(status().is2xxSuccessful());
   }
 
+  /**
+   * A single-line trade confirmation (F027, ADR 0024): direction is derived from which of {@code
+   * from}/{@code to} is the (only) {@code INVESTMENT} account in this test, {@code brokerId}.
+   * {@code quantity} defaults to {@code "1"} when {@code null} is passed (every line's quantity is
+   * now mandatory, unlike the old all-optional {@code InvestmentTradeDetails}) - callers that used
+   * to pass {@code null} only cared that cash moved, not about units.
+   */
   private void trade(
       UUID from, UUID to, UUID productId, String date, String amount, String quantity)
       throws Exception {
+    boolean buy = to.equals(brokerId);
+    UUID cashAccountId = buy ? from : to;
+    UUID investmentAccountId = buy ? to : from;
+    String qty = quantity == null ? "1" : quantity;
+    BigDecimal unitPrice =
+        new BigDecimal(amount).divide(new BigDecimal(qty), 8, RoundingMode.HALF_UP);
+
+    Map<String, Object> line = new LinkedHashMap<>();
+    line.put("productId", productId.toString());
+    line.put("side", buy ? "BUY" : "SELL");
+    line.put("quantity", qty);
+    line.put("unitPrice", unitPrice.toPlainString());
+    Map<String, Object> confirmation = new LinkedHashMap<>();
+    confirmation.put("taxes", "0.00");
+    confirmation.put("lines", List.of(line));
     Map<String, Object> body = new LinkedHashMap<>();
     body.put("date", date);
-    body.put("amount", amount);
-    body.put("fromAccountId", from.toString());
-    body.put("toAccountId", to.toString());
     body.put("description", "Trade");
-    body.put("investmentProductId", productId.toString());
-    if (quantity != null) {
-      body.put("quantity", quantity);
-      body.put("unitPrice", "1");
-    }
+    body.put("cashAccountId", cashAccountId.toString());
+    body.put("investmentAccountId", investmentAccountId.toString());
+    body.put("tradeConfirmation", confirmation);
+
     mockMvc
         .perform(
             post("/api/transfers")
@@ -256,7 +277,10 @@ class InvestmentReportControllerTest {
   }
 
   @Test
-  void valueSeriesUnitsAreNullWithoutRecordedQuantities() throws Exception {
+  void valueSeriesUnitsAreComputedFromTheLineSEvenWithoutAnExplicitQuantityArgument()
+      throws Exception {
+    // F027 (ADR 0024): every line's quantity is now mandatory, unlike the old all-optional
+    // InvestmentTradeDetails - a product with any trade at all now always has units, never null.
     trade(checkingId, brokerId, bareProductId, "2026-02-10", "400.00", null);
 
     mockMvc
@@ -267,7 +291,7 @@ class InvestmentReportControllerTest {
                 .param("productId", bareProductId.toString()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].points[0].contributed").value(400.00))
-        .andExpect(jsonPath("$[0].points[0].units").doesNotExist());
+        .andExpect(jsonPath("$[0].points[0].units").value(1));
   }
 
   @Test

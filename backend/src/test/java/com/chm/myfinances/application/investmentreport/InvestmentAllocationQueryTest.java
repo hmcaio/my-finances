@@ -11,17 +11,18 @@ import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
+import com.chm.myfinances.domain.transfer.TradeSide;
+import com.chm.myfinances.domain.transfer.TransferTradeLine;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentCategoryRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSubcategoryRepository;
-import com.chm.myfinances.testsupport.fakes.FakeTransferRepository;
+import com.chm.myfinances.testsupport.fakes.FakeTransferTradeLineRepository;
 import com.chm.myfinances.testsupport.mothers.AccountMother;
 import com.chm.myfinances.testsupport.mothers.InvestmentHoldingMother;
 import com.chm.myfinances.testsupport.mothers.InvestmentProductMother;
-import com.chm.myfinances.testsupport.mothers.TransferMother;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -50,7 +51,8 @@ class InvestmentAllocationQueryTest {
       new FakeInvestmentSubcategoryRepository();
   private final FakeInvestmentSnapshotRepository snapshotRepository =
       new FakeInvestmentSnapshotRepository();
-  private final FakeTransferRepository transferRepository = new FakeTransferRepository();
+  private final FakeTransferTradeLineRepository tradeLineRepository =
+      new FakeTransferTradeLineRepository();
   private final FakeAccountRepository accountRepository = new FakeAccountRepository();
   private final LatestInvestmentSnapshotQuery latestQuery =
       new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository);
@@ -62,7 +64,8 @@ class InvestmentAllocationQueryTest {
           subcategoryRepository,
           accountRepository,
           latestQuery,
-          new InvestmentSnapshotFreshnessQuery(latestQuery, transferRepository, holdingRepository));
+          new InvestmentSnapshotFreshnessQuery(
+              latestQuery, tradeLineRepository, holdingRepository));
 
   private final Map<UUID, InvestmentHolding> holdingByProduct = new HashMap<>();
 
@@ -140,17 +143,24 @@ class InvestmentAllocationQueryTest {
             UUID.randomUUID(), holding.getId(), date, new BigDecimal(balance)));
   }
 
+  private static final UUID CHECKING_ID = UUID.randomUUID();
+
   private void trade(InvestmentProduct product, LocalDate date) {
     trade(holdingByProduct.get(product.getId()), date);
   }
 
   private void trade(InvestmentHolding holding, LocalDate date) {
-    transferRepository.save(
-        TransferMother.transfer()
-            .withDate(date)
-            .withToAccountId(holding.getAccountId())
-            .withInvestmentProductId(holding.getProductId())
-            .build());
+    tradeLineRepository.add(
+        new TransferTradeLine(
+            UUID.randomUUID(),
+            date,
+            CHECKING_ID,
+            holding.getAccountId(),
+            holding.getProductId(),
+            TradeSide.BUY,
+            BigDecimal.ONE,
+            BigDecimal.ONE,
+            null));
   }
 
   @Test

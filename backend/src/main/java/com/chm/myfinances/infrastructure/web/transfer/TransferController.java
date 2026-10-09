@@ -1,11 +1,12 @@
 package com.chm.myfinances.infrastructure.web.transfer;
 
 import com.chm.myfinances.application.transfer.TransferService;
-import com.chm.myfinances.domain.transfer.InvestmentTradeDetails;
+import com.chm.myfinances.domain.transfer.TradeConfirmationLine;
 import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.domain.transfer.TransferFilter;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -25,7 +26,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-/** REST API for {@code Transfer} (F005 spec). */
+/**
+ * REST API for {@code Transfer} (F005 spec). F027 (ADR 0024): {@code create}/{@code edit} first
+ * check the create/edit mutual-exclusivity rule ({@code
+ * TransferService.requireExactlyOneRequestShape}), then dispatch to whichever of {@code
+ * TransferService}'s create/edit overloads matches - never through a shared self-invoking wrapper,
+ * so each overload's own {@code @Transactional} boundary is honored (backend {@code CLAUDE.md},
+ * "Transactions": a self-call bypasses the Spring proxy).
+ */
 @RestController
 @RequestMapping("/api/transfers")
 public class TransferController {
@@ -39,9 +47,10 @@ public class TransferController {
   /**
    * Filtered, paginated list - {@code GET /api/transfers?dateFrom=&dateTo=&accountId=&
    * investmentProductId=&page=&size=&sort=}. {@code accountId} matches either side of the transfer
-   * (PRD S6.9); {@code investmentProductId} (F009) is one product's buy/sell history. Defaults to
-   * 20 per page, most recent first ({@code date} descending) - same {@link PagedModel} envelope
-   * convention as F004's transaction list endpoint.
+   * (PRD S6.9); {@code investmentProductId} (F009, now a join to {@code transfer_trade_lines},
+   * F027) is one product's buy/sell history, returning the owning confirmations. Defaults to 20 per
+   * page, most recent first ({@code date} descending) - same {@link PagedModel} envelope convention
+   * as F004's transaction list endpoint.
    */
   @GetMapping
   public PagedModel<TransferResponse> list(
@@ -61,17 +70,31 @@ public class TransferController {
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
   public TransferResponse create(@Valid @RequestBody CreateTransferRequest request) {
+    List<TradeConfirmationLine> lines = toDomainLines(request.tradeConfirmation());
+    TransferService.requireExactlyOneRequestShape(
+        request.fromAccountId(),
+        request.toAccountId(),
+        request.amount(),
+        request.cashAccountId(),
+        request.investmentAccountId(),
+        lines);
     Transfer transfer =
-        transferService.create(
-            request.date(),
-            request.fromAccountId(),
-            request.toAccountId(),
-            request.amount(),
-            request.description(),
-            request.additionalNotes(),
-            request.investmentProductId(),
-            new InvestmentTradeDetails(request.quantity(), request.unitPrice(), request.taxes()),
-            request.resultingBalance());
+        lines != null
+            ? transferService.createTradeConfirmation(
+                request.date(),
+                request.cashAccountId(),
+                request.investmentAccountId(),
+                request.description(),
+                request.additionalNotes(),
+                request.tradeConfirmation().taxes(),
+                lines)
+            : transferService.create(
+                request.date(),
+                request.fromAccountId(),
+                request.toAccountId(),
+                request.amount(),
+                request.description(),
+                request.additionalNotes());
     return TransferResponse.from(transfer);
   }
 
@@ -83,17 +106,33 @@ public class TransferController {
   @PatchMapping("/{id}")
   public TransferResponse edit(
       @PathVariable UUID id, @Valid @RequestBody UpdateTransferRequest request) {
+    List<TradeConfirmationLine> lines = toDomainLines(request.tradeConfirmation());
+    TransferService.requireExactlyOneRequestShape(
+        request.fromAccountId(),
+        request.toAccountId(),
+        request.amount(),
+        request.cashAccountId(),
+        request.investmentAccountId(),
+        lines);
     Transfer transfer =
-        transferService.edit(
-            id,
-            request.date(),
-            request.fromAccountId(),
-            request.toAccountId(),
-            request.amount(),
-            request.description(),
-            request.additionalNotes(),
-            request.investmentProductId(),
-            new InvestmentTradeDetails(request.quantity(), request.unitPrice(), request.taxes()));
+        lines != null
+            ? transferService.editTradeConfirmation(
+                id,
+                request.date(),
+                request.cashAccountId(),
+                request.investmentAccountId(),
+                request.description(),
+                request.additionalNotes(),
+                request.tradeConfirmation().taxes(),
+                lines)
+            : transferService.edit(
+                id,
+                request.date(),
+                request.fromAccountId(),
+                request.toAccountId(),
+                request.amount(),
+                request.description(),
+                request.additionalNotes());
     return TransferResponse.from(transfer);
   }
 
@@ -101,5 +140,22 @@ public class TransferController {
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void delete(@PathVariable UUID id) {
     transferService.delete(id);
+  }
+
+  private static List<TradeConfirmationLine> toDomainLines(TradeConfirmationRequest request) {
+    if (request == null) {
+      return null;
+    }
+    return request.lines().stream()
+        .map(
+            l ->
+                new TradeConfirmationLine(
+                    l.productId(),
+                    l.side(),
+                    l.quantity(),
+                    l.unitPrice(),
+                    l.resultingBalance(),
+                    l.closeHoldingOrDefault()))
+        .toList();
   }
 }
