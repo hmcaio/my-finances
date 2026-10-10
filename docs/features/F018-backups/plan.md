@@ -9,11 +9,11 @@ Suggested order: pure logic first (test-first), then the sidecar, compose and CI
 - [x] `docs/features/F018-backups/{spec,plan}.md` and the `docs/features/README.md` row.
 
 ## Phase 1 — Backup logic (test first)
-- [ ] Add `bats-core` as the test runner for `backup/` with a `backup/test/` folder; document `bats backup/test` in the README/`CLAUDE.md`.
-- [ ] Test first: `prune.bats` — table-driven cases from the spec (day/ISO-week/month buckets, year boundary, month lengths, on-demand gaps, `pre-upgrade` exemption and release, idempotence, foreign files untouched).
-- [ ] Implement `backup/scripts/prune.sh` (file names + "now" in, files to delete out; no side effects).
-- [ ] Test first: `decide.bats` — forced (`pre-upgrade`) vs stale vs fresh from a marker and a build id; a missing or corrupt marker means back up now.
-- [ ] Implement the decision function used by `entrypoint.sh`.
+- [x] Add `bats-core` as the test runner for `backup/` with a `backup/test/` folder; document `bats backup/test` in the README/`CLAUDE.md`.
+- [x] Test first: `prune.bats` — table-driven cases from the spec (day/ISO-week/month buckets, year boundary, month lengths, on-demand gaps, `pre-upgrade` exemption and release, idempotence, foreign files untouched).
+- [x] Implement `backup/scripts/prune.sh` (file names + "now" in, files to delete out; no side effects).
+- [x] Test first: `decide.bats` — forced (`pre-upgrade`) vs stale vs fresh from a marker and a build id; a missing or corrupt marker means back up now.
+- [x] Implement the decision function used by `entrypoint.sh`.
 
 ## Phase 2 — Sidecar image and scripts
 - [ ] `backup/Dockerfile` (`postgres:17-alpine` + `age` + `rclone` + `bash`/`jq`, `ARG BUILD_ID` written to `/etc/backup-build-id`).
