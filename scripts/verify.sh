@@ -2,15 +2,18 @@
 # The one definition of "the checks" (issue #73): CI's jobs call this script, and so do you, so a
 # green local run means a green CI run. Usage:
 #
-#   scripts/verify.sh [stage...]     stages: versions backend frontend e2e   (default: versions backend frontend)
+#   scripts/verify.sh [stage...]     stages: versions backend frontend e2e backup   (default: versions backend frontend)
 #
 #   scripts/verify.sh                everything CI's unit-test jobs run
 #   scripts/verify.sh frontend       just the frontend checks
 #   scripts/verify.sh e2e            Playwright layout checks (needs `npx playwright install chromium` once)
+#   scripts/verify.sh backup         F018 backup sidecar: bats unit tests + the Docker e2e test
 #
 # Every stage runs even if an earlier one fails (like Gradle's --continue), and the exit code is
 # non-zero if any failed. Backend integration tests need Docker running (Testcontainers, ADR 0010).
-# Dependencies are not installed here: run `npm ci`/`npm install` in frontend/ first.
+# `backup` needs Docker running and `bats` on PATH (bats-core; not installed by this script -
+# see backup/CLAUDE.md for how CI and local dev get it). Dependencies are not installed here: run
+# `npm ci`/`npm install` in frontend/ first.
 set -u
 cd "$(dirname "$0")/.."
 
@@ -62,13 +65,18 @@ stage_e2e() {
   run "frontend: e2e (Playwright)" in_dir frontend npm run e2e
 }
 
+stage_backup() {
+  run "backup: bats unit tests" bats backup/test
+  run "backup: Docker end-to-end test" bash backup/test/e2e.sh
+}
+
 stages=("$@")
 [ ${#stages[@]} -eq 0 ] && stages=(versions backend frontend)
 
 for stage in "${stages[@]}"; do
   case $stage in
-    versions|backend|frontend|e2e) "stage_$stage" ;;
-    *) echo "unknown stage '$stage' (versions backend frontend e2e)" >&2; exit 2 ;;
+    versions|backend|frontend|e2e|backup) "stage_$stage" ;;
+    *) echo "unknown stage '$stage' (versions backend frontend e2e backup)" >&2; exit 2 ;;
   esac
 done
 

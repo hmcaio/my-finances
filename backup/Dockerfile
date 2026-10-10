@@ -1,8 +1,12 @@
-# F018 backup sidecar (ADR 0015). postgres:17-alpine so pg_dump/pg_restore are exactly the server
-# major version; age for encryption; rclone for the optional off-site push; bash/coreutils/jq for
-# the scripts themselves (coreutils specifically for GNU date's -d parsing and %G/%V ISO-week
-# formatting that busybox's date doesn't support - prune.sh/decide.sh rely on it).
-FROM postgres:17-alpine
+# F018 backup sidecar (ADR 0015). postgres:17.11-alpine - same major as the server (pg_dump/
+# pg_restore must match it) and the exact same full patch tag docker-compose.prod.yml pins for
+# the postgres service itself (root CLAUDE.md: a tool version is pinned in every file that names
+# it; scripts/check-versions.sh fails if this drifts from docker-compose.prod.yml/
+# TestcontainersConfiguration) - plus age for encryption, rclone for the optional off-site push,
+# and bash/coreutils/jq for the scripts themselves (coreutils specifically for GNU date's -d
+# parsing and %G/%V ISO-week formatting that busybox's date doesn't support - prune.sh/decide.sh
+# rely on it).
+FROM postgres:17.11-alpine
 
 # The git SHA this image was built from, baked in at /etc/backup-build-id (ADR 0015's
 # "pre-upgrade" trigger compares this to the value a previous run recorded in status.json).

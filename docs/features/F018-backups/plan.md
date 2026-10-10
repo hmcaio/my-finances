@@ -24,10 +24,10 @@ Suggested order: pure logic first (test-first), then the sidecar, compose and CI
 - [x] End-to-end test (`backup/test/e2e.sh`, scripted `docker run` job): seed Postgres, backup, restore into a fresh Postgres, compare row counts and `flyway_schema_history`; a wrong key fails cleanly; the safety dump exists. Verified locally against real Docker (not just CI).
 
 ## Phase 3 — Compose, env and CI
-- [ ] `docker-compose.prod.yml`: `backup` service (image, user, mounts, healthcheck, `x-logging`, `depends_on: postgres`), `backend` `depends_on: backup: service_healthy` and read-only `/backups` mount, external volume `my-finances-backups-prod` with an explicit `name:`.
-- [ ] `.env.example`: `BACKUP_AGE_RECIPIENT`, `BACKUP_DIR`, `BACKUP_UID`, `BACKUP_GID`, `BACKUP_MAX_AGE_HOURS`, `BACKUP_RCLONE_REMOTE`, each commented.
-- [ ] `.github/workflows/ci.yml`: run `bats backup/test` and the end-to-end test; build and push `my-finances-backup` with the same tags as backend/frontend, passing `BUILD_ID`.
-- [ ] Confirm the dev `docker-compose.yml` is untouched.
+- [x] `docker-compose.prod.yml`: `backup` service (image, user, mounts, healthcheck, `x-logging`, `depends_on: postgres`), `backend` `depends_on: backup: service_healthy` and read-only `/backups` mount, external volume `my-finances-backups-prod` with an explicit `name:`. Verified with `docker compose -f docker-compose.prod.yml config` (both the default named-volume path and a `BACKUP_DIR`-set bind-mount path).
+- [x] `.env.example`: `BACKUP_AGE_RECIPIENT`, `BACKUP_DIR`, `BACKUP_UID`, `BACKUP_GID`, `BACKUP_MAX_AGE_HOURS`, `BACKUP_RCLONE_REMOTE`, each commented. (The optional `rclone.conf` the compose file also mounts is a plain file next to `.env`, not a seventh env var — see its own comment in `docker-compose.prod.yml`.)
+- [x] `.github/workflows/ci.yml`: run `bats backup/test` and the end-to-end test (new `test-backup` job, `bash scripts/verify.sh backup`); build and push `my-finances-backup` with the same tags as backend/frontend, passing `BUILD_ID=${{ github.sha }}`.
+- [x] Confirm the dev `docker-compose.yml` is untouched. (`git diff --stat docker-compose.yml` is empty.)
 
 ## Phase 4 — Backend status endpoint (test first)
 - [ ] Test first: state derivation (`OK`/`STALE`/`FAILING`/`UNKNOWN`, `localOnly`) as a pure function; adapter tests for a missing, malformed and valid marker (tier per ADR 0013); controller test for `GET /api/backup-status`.

@@ -10,6 +10,7 @@ on:
 env:
   BACKEND_IMAGE: ghcr.io/hmcaio/my-finances-backend
   FRONTEND_IMAGE: ghcr.io/hmcaio/my-finances-frontend
+  BACKUP_IMAGE: ghcr.io/hmcaio/my-finances-backup
 
 jobs:
   test-backend:
@@ -166,9 +167,24 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+  test-backup:
+    name: Backup sidecar tests (F018)
+    runs-on: ubuntu-latest
+    # Docker is already available on GitHub's hosted Ubuntu runners (same assumption test-backend
+    # relies on for Testcontainers) - the e2e test (backup/test/e2e.sh) builds the real sidecar
+    # image and runs it against throwaway Postgres containers of its own.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install bats-core
+        run: sudo apt-get update && sudo apt-get install -y bats
+
+      - name: bats unit tests + Docker end-to-end test
+        run: bash scripts/verify.sh backup
+
   build-and-push:
     name: Build and push images
-    needs: [test-backend, test-frontend, e2e-frontend]
+    needs: [test-backend, test-frontend, e2e-frontend, test-backup]
     runs-on: ubuntu-latest
     # Only publish on pushes to main and on vX.Y.Z tags - every push/PR runs the test jobs
     # above, but images are only built for deliberate, deployable versions.
@@ -226,3 +242,27 @@ jobs:
           push: true
           tags: ${{ steps.frontend-meta.outputs.tags }}
           labels: ${{ steps.frontend-meta.outputs.labels }}
+
+      - name: Backup image metadata
+        id: backup-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.BACKUP_IMAGE }}
+          tags: |
+            type=sha,format=short
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=ref,event=tag
+
+      - name: Build and push backup image
+        # BUILD_ID is the git SHA baked into /etc/backup-build-id (ADR 0015) - it changes exactly
+        # when this image does, including for the floating "latest" tag, which a tag-string
+        # comparison alone could never detect as different from a previous "latest" build.
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backup
+          file: ./backup/Dockerfile
+          build-args: |
+            BUILD_ID=${{ github.sha }}
+          push: true
+          tags: ${{ steps.backup-meta.outputs.tags }}
+          labels: ${{ steps.backup-meta.outputs.labels }}

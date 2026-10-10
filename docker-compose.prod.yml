@@ -1,6 +1,7 @@
-# Production stack (F014). Wholly separate from docker-compose.yml (F001's Postgres-only dev
-# file) rather than a profile/override of it — see ADR 0006. Pulls versioned images from GHCR
-# instead of building locally, so a specific release can be pinned and reproduced:
+# Production stack (F014, extended by F018 with a fourth service/image for backups). Wholly
+# separate from docker-compose.yml (F001's Postgres-only dev file) rather than a profile/override
+# of it — see ADR 0006. Pulls versioned images from GHCR instead of building locally, so a
+# specific release can be pinned and reproduced:
 #
 #   docker compose -f docker-compose.prod.yml up -d
 #
@@ -8,6 +9,7 @@
 # values. Images:
 #   ghcr.io/hmcaio/my-finances-backend:${IMAGE_TAG}
 #   ghcr.io/hmcaio/my-finances-frontend:${IMAGE_TAG}
+#   ghcr.io/hmcaio/my-finances-backup:${IMAGE_TAG}
 # Every push to main is tagged with the short git SHA and `latest`; every `vX.Y.Z` tag push is
 # additionally tagged with that version string, so IMAGE_TAG can pin a reproducible release
 # instead of always tracking `latest` (see .github/workflows/ci.yml).
@@ -17,6 +19,14 @@
 # backend's own rolling file on the my-finances-logs-prod volume - it outlives `down`, image
 # updates and container recreation (only `down -v` / `docker volume rm` remove it). Read it with:
 #   docker run --rm -v my-finances-logs-prod:/logs alpine sh -c 'ls /logs; tail -n 200 /logs/backend.log'
+#
+# Backups (F018, ADR 0015): the `backup` sidecar takes encrypted, retained pg_dump backups on a
+# catch-up schedule and writes a status.json the backend reads read-only. The backups volume
+# (my-finances-backups-prod, or BACKUP_DIR if set) is declared `external: true` below — unlike
+# every other volume in this file, `docker compose down -v` does *not* remove it; it must be
+# created once with `docker volume create my-finances-backups-prod` before the first `up -d`
+# (skip this if BACKUP_DIR is set — then it's an ordinary host folder). See README for setup
+# (keygen, .env, restore) and docs/features/F018-backups/spec.md for the full design.
 x-logging: &default-logging
   driver: json-file
   options:
@@ -41,6 +51,55 @@ services:
       timeout: 5s
       retries: 5
 
+  # F018, ADR 0015: encrypted, retained pg_dump backups on a catch-up schedule (not cron - the app
+  # runs on demand, ADR 0003). Must come up before the backend so a forced pre-upgrade backup (the
+  # sidecar's own build id differing from the one in its last status.json) always runs before any
+  # new Flyway migration touches the database - see the healthcheck below, which backend waits on.
+  backup:
+    image: ghcr.io/hmcaio/my-finances-backup:${IMAGE_TAG}
+    container_name: my-finances-backup-prod
+    restart: unless-stopped
+    user: "${BACKUP_UID:-1000}:${BACKUP_GID:-1000}"
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGDATABASE: ${POSTGRES_DB}
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      IMAGE_TAG: ${IMAGE_TAG}
+      BACKUP_AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT:-}
+      # Also read as a plain value below to pick bind-mount vs. named-volume: a value containing a
+      # path separator is a bind mount (point it at a synced folder for an off-machine copy),
+      # anything else (including unset, which falls back to the external volume's own name) is
+      # looked up as a named volume - this is Compose's own short `volumes:` syntax behavior, not
+      # anything this image does; backup.sh just re-derives the same rule to label status.json.
+      BACKUP_DIR: ${BACKUP_DIR:-}
+      BACKUP_MAX_AGE_HOURS: ${BACKUP_MAX_AGE_HOURS:-20}
+      BACKUP_RCLONE_REMOTE: ${BACKUP_RCLONE_REMOTE:-}
+      # rclone reads its config from this path when set. If ./rclone.conf (next to .env,
+      # gitignored) doesn't exist, Docker silently mounts an empty directory there instead of
+      # failing `up` - harmless, since BACKUP_RCLONE_REMOTE is unset in that case too and rclone
+      # is never actually invoked.
+      RCLONE_CONFIG: /etc/rclone/rclone.conf
+    volumes:
+      - ${BACKUP_DIR:-my-finances-backups-prod}:/backups
+      - ./rclone.conf:/etc/rclone/rclone.conf:ro
+    logging: *default-logging
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # Healthy once the start-time catch-up check has finished - success or a recorded failure
+      # (entrypoint.sh always touches this file either way) - so a failing backup (full disk, a
+      # bad age recipient, an rclone outage) never blocks the rest of the stack from starting
+      # (ADR 0015); the failure still shows up as FAILING in the backend's /api/backup-status and
+      # the frontend banner.
+      test: ["CMD", "test", "-f", "/tmp/backup-healthcheck-ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 10s
+
   backend:
     image: ghcr.io/hmcaio/my-finances-backend:${IMAGE_TAG}
     container_name: my-finances-backend-prod
@@ -59,9 +118,15 @@ services:
       LOGGING_LEVEL_COM_CHM_MYFINANCES: ${LOG_LEVEL:-INFO}
     volumes:
       - my-finances-logs-prod:/var/log/my-finances
+      # Read-only (F018): the backend only ever reads status.json through this mount, never writes
+      # to the backups folder. Same BACKUP_DIR-or-named-volume source as the backup service's own
+      # mount above - they must point at the same place.
+      - ${BACKUP_DIR:-my-finances-backups-prod}:/backups:ro
     logging: *default-logging
     depends_on:
       postgres:
+        condition: service_healthy
+      backup:
         condition: service_healthy
     healthcheck:
       # 127.0.0.1, not "localhost": wget in this Alpine image resolves "localhost" to the IPv6
@@ -91,3 +156,12 @@ volumes:
     # my-finances_my-finances-logs-prod) so the documented `docker run -v my-finances-logs-prod:...`
     # read command works from any checkout directory.
     name: my-finances-logs-prod
+  my-finances-backups-prod:
+    # F018, ADR 0015: external (unlike the two volumes above) so `docker compose down -v` cannot
+    # remove it along with the data it exists to protect - that is the whole point, and also a
+    # footgun for anyone expecting `down -v` to leave nothing behind. Create it once, before the
+    # first `up -d`: `docker volume create my-finances-backups-prod`. Only actually used when
+    # BACKUP_DIR is unset - if BACKUP_DIR points at a host folder instead, this declared-but-
+    # unreferenced volume is simply never mounted by either service.
+    external: true
+    name: my-finances-backups-prod

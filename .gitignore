@@ -15,6 +15,10 @@ npm-debug.log*
 # Environment secrets (see F014, ADR 0007) — never commit
 .env
 
+# rclone config for F018's optional off-site backup push (ADR 0015) — holds remote credentials,
+# same gitignore convention as .env. Never commit.
+rclone.conf
+
 # Agent worktrees (created by subagents via isolation:"worktree", e.g. the implement-feature skill)
 .claude/worktrees/
 
