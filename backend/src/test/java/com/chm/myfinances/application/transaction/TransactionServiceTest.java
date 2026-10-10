@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.application.account.AccountNotFoundException;
 import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.application.category.CategoryNotFoundException;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingNotFoundException;
 import com.chm.myfinances.application.paymentmethod.PaymentMethodNotFoundException;
@@ -62,7 +63,7 @@ class TransactionServiceTest {
           vehicleRepository,
           investmentHoldingRepository,
           idGenerator,
-          new AuditRecorder(auditLog));
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
   private Category expenseCategory;
   private Category incomeCategory;
@@ -113,7 +114,7 @@ class TransactionServiceTest {
             vehicleRepository,
             investmentHoldingRepository,
             new FakeIdGenerator(nextId),
-            new AuditRecorder(auditLog));
+            new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
     Transaction created =
         service.create(

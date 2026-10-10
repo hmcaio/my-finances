@@ -142,6 +142,45 @@ describe('ActivityPage', () => {
   })
 })
 
+describe('ActivityPage reference values', () => {
+  it('shows a resolved reference as "label (id)", and falls back to the bare id with no label', async () => {
+    server.use(
+      http.get('/api/audit-log', () =>
+        HttpResponse.json({
+          content: [
+            {
+              id: 'audit-reference',
+              occurredAt: '2026-03-16T14:30:00Z',
+              entityType: 'ACCOUNT',
+              entityId: 'account-9',
+              entityLabel: 'Checking',
+              action: 'UPDATE',
+              origin: 'USER',
+              changes: {
+                institutionId: {
+                  from: { id: 'f892b930-3956-4a1f-8b2f-c1f2acfdf1d4', label: 'Nubank' },
+                  to: { id: 'f892b930-3956-4a1f-8b2f-c1f2acfdf1d5', label: null },
+                },
+              },
+              requestId: null,
+            },
+          ],
+          page: { size: 20, number: 0, totalElements: 1, totalPages: 1 },
+        }),
+      ),
+    )
+    const user = userEvent.setup()
+    renderWithQueryClient(<ActivityPage />)
+
+    await user.click(await screen.findByRole('button', { name: 'Expand details' }))
+
+    expect(
+      await screen.findByText('Nubank (f892b930-3956-4a1f-8b2f-c1f2acfdf1d4)'),
+    ).toBeInTheDocument()
+    expect(screen.getByText('f892b930-3956-4a1f-8b2f-c1f2acfdf1d5')).toBeInTheDocument()
+  })
+})
+
 describe('ActivityPage field labels', () => {
   it('shows a friendly label for a known field and falls back to the raw name for an unknown one', async () => {
     server.use(

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.domain.transaction.FuelDetails;
 import com.chm.myfinances.domain.transaction.FuelType;
 import com.chm.myfinances.domain.vehicle.Vehicle;
@@ -29,7 +30,10 @@ class VehicleServiceTest {
   private final FakeAuditLog auditLog = new FakeAuditLog();
   private final VehicleService service =
       new VehicleService(
-          repository, transactionRepository, idGenerator, new AuditRecorder(auditLog));
+          repository,
+          transactionRepository,
+          idGenerator,
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
   @Test
   void createAssignsIdFromIdGeneratorAndPersists() {
@@ -39,7 +43,7 @@ class VehicleServiceTest {
             repository,
             transactionRepository,
             new FakeIdGenerator(nextId),
-            new AuditRecorder(auditLog));
+            new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
     Vehicle created = service.create("Civic");
 

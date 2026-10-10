@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingClosedException;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingNotFoundException;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingService;
@@ -64,7 +65,10 @@ class TransferServiceInvestmentTest {
           accountRepository,
           holdingRepository,
           new InvestmentSnapshotService(
-              snapshotRepository, holdingRepository, idGenerator, new AuditRecorder(auditLog)),
+              snapshotRepository,
+              holdingRepository,
+              idGenerator,
+              new AuditRecorder(auditLog, AuditReferenceLabels.none())),
           new InvestmentHoldingService(
               holdingRepository,
               productRepository,
@@ -73,9 +77,9 @@ class TransferServiceInvestmentTest {
               new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository),
               idGenerator,
               Clock.systemUTC(),
-              new AuditRecorder(auditLog)),
+              new AuditRecorder(auditLog, AuditReferenceLabels.none())),
           idGenerator,
-          new AuditRecorder(auditLog));
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
   private Account checking;
   private Account savings;

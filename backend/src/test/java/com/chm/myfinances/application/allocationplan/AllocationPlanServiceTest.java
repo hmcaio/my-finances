@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.application.investmentproduct.InvestmentProductNotFoundException;
 import com.chm.myfinances.domain.allocationplan.AllocationPlanEntry;
 import com.chm.myfinances.domain.allocationplan.AllocationPlanVersion;
@@ -49,7 +50,7 @@ class AllocationPlanServiceTest {
           productRepository,
           subcategoryRepository,
           idGenerator,
-          new AuditRecorder(auditLog));
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
   private UUID fiiId;
   private UUID knri11Id;

@@ -8,6 +8,7 @@ import com.chm.myfinances.application.auditlog.AuditAction;
 import com.chm.myfinances.application.auditlog.AuditEntityType;
 import com.chm.myfinances.application.auditlog.AuditOrigin;
 import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.application.institution.InstitutionNotFoundException;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountClosedNotifier;
@@ -59,7 +60,7 @@ class AccountServiceTest {
           notifier,
           usageChecker,
           Clock.systemDefaultZone(),
-          new AuditRecorder(auditLog));
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
   @Test
   void createAssignsIdFromIdGeneratorAndPersists() {
@@ -73,7 +74,7 @@ class AccountServiceTest {
             notifier,
             usageChecker,
             Clock.systemDefaultZone(),
-            new AuditRecorder(auditLog));
+            new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
     Account created =
         service.create(

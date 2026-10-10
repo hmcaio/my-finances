@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.application.account.AccountNotFoundException;
 import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.application.investmentproduct.InvestmentAccountRequiredException;
 import com.chm.myfinances.application.investmentproduct.InvestmentProductNotFoundException;
 import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
@@ -54,7 +55,7 @@ class InvestmentHoldingServiceTest {
           latestSnapshotQuery,
           idGenerator,
           Clock.systemDefaultZone(),
-          new AuditRecorder(auditLog));
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
   private final UUID xpAccountId =
       accountRepository.save(AccountMother.investment().withName("XP Test").build()).getId();
@@ -75,7 +76,7 @@ class InvestmentHoldingServiceTest {
             latestSnapshotQuery,
             new FakeIdGenerator(nextId),
             Clock.systemDefaultZone(),
-            new AuditRecorder(auditLog));
+            new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
     InvestmentHolding created = service.create(productId, xpAccountId, "bought via promo");
 

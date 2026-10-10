@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.institution.Institution;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
@@ -33,7 +34,10 @@ class InstitutionServiceTest {
   private final FakeAuditLog auditLog = new FakeAuditLog();
   private final InstitutionService service =
       new InstitutionService(
-          repository, accountRepository, idGenerator, new AuditRecorder(auditLog));
+          repository,
+          accountRepository,
+          idGenerator,
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
   /** Stands in for the migration's seeded "No institution" row (only it can be built-in). */
   private Institution seedBuiltIn() {
@@ -60,7 +64,7 @@ class InstitutionServiceTest {
             repository,
             accountRepository,
             new FakeIdGenerator(nextId),
-            new AuditRecorder(auditLog));
+            new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
     Institution created = service.create("Nubank");
 

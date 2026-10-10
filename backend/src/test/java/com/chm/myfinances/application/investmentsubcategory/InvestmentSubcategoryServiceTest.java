@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.application.investmentcategory.InvestmentCategoryNotFoundException;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
@@ -36,7 +37,7 @@ class InvestmentSubcategoryServiceTest {
           categoryRepository,
           productRepository,
           new FakeIdGenerator(),
-          new AuditRecorder(auditLog));
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
   private final UUID fixedIncomeId =
       categoryRepository
@@ -56,7 +57,7 @@ class InvestmentSubcategoryServiceTest {
             categoryRepository,
             productRepository,
             new FakeIdGenerator(nextId),
-            new AuditRecorder(auditLog));
+            new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
     InvestmentSubcategory created = service.create(fixedIncomeId, "CDB");
 

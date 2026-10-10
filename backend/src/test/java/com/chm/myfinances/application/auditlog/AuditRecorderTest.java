@@ -5,7 +5,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -17,7 +19,7 @@ import org.junit.jupiter.api.Test;
 class AuditRecorderTest {
 
   private final FakeAuditLog auditLog = new FakeAuditLog();
-  private final AuditRecorder recorder = new AuditRecorder(auditLog);
+  private final AuditRecorder recorder = new AuditRecorder(auditLog, AuditReferenceLabels.none());
   private final UUID entityId = UUID.randomUUID();
 
   @Test
@@ -154,5 +156,69 @@ class AuditRecorderTest {
         AuditOrigin.SYSTEM);
 
     assertThat(auditLog.onlyEntry().origin()).isEqualTo(AuditOrigin.SYSTEM);
+  }
+
+  @Test
+  void aKnownReferenceFieldIsWrappedWithItsResolvedLabelOnBothSides() {
+    UUID fromCategoryId = UUID.randomUUID();
+    UUID toCategoryId = UUID.randomUUID();
+    AuditRecorder withResolver =
+        new AuditRecorder(
+            auditLog,
+            new AuditReferenceLabels(
+                Map.of(
+                    "categoryId",
+                    (Function<UUID, Optional<String>>)
+                        id ->
+                            id.equals(fromCategoryId)
+                                ? Optional.of("Groceries")
+                                : Optional.of("Transport"))));
+
+    withResolver.recordUpdate(
+        AuditEntityType.TRANSACTION,
+        entityId,
+        "Monthly shop",
+        Map.of("categoryId", fromCategoryId.toString()),
+        Map.of("categoryId", toCategoryId.toString()));
+
+    AuditEntry entry = auditLog.onlyEntry();
+    assertThat(entry.changes())
+        .containsEntry(
+            "categoryId",
+            new FieldChange(
+                new ReferenceValue(fromCategoryId.toString(), "Groceries"),
+                new ReferenceValue(toCategoryId.toString(), "Transport")));
+  }
+
+  @Test
+  void aKnownReferenceFieldWithNoMatchingRowKeepsTheIdWithANullLabel() {
+    UUID categoryId = UUID.randomUUID();
+    AuditRecorder withResolver =
+        new AuditRecorder(
+            auditLog,
+            new AuditReferenceLabels(
+                Map.of("categoryId", (Function<UUID, Optional<String>>) id -> Optional.empty())));
+
+    withResolver.recordCreate(
+        AuditEntityType.TRANSACTION,
+        entityId,
+        "Monthly shop",
+        Map.of("categoryId", categoryId.toString()));
+
+    AuditEntry entry = auditLog.onlyEntry();
+    assertThat(entry.changes())
+        .containsEntry(
+            "categoryId", new FieldChange(null, new ReferenceValue(categoryId.toString(), null)));
+  }
+
+  @Test
+  void anUnknownReferenceFieldIsLeftAsTheBareId() {
+    UUID vehicleId = UUID.randomUUID();
+    recorder.recordCreate(
+        AuditEntityType.TRANSACTION, entityId, "Fuel", Map.of("vehicleId", vehicleId.toString()));
+
+    AuditEntry entry = auditLog.onlyEntry();
+    assertThat(entry.changes())
+        .containsEntry("vehicleId", new FieldChange(null, vehicleId.toString()));
   }
 }

@@ -76,11 +76,32 @@ function enumLabel(value: string): string {
   return words.map((w, i) => (i === 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w)).join(' ')
 }
 
-/** Renders a diff value: `null`/`undefined` as a dash, booleans as Yes/No, everything else as-is. */
+/** A reference field's value once the backend has resolved its label (see `AuditReferenceLabels`). */
+interface ReferenceValue {
+  id: string
+  label: string | null
+}
+
+function isReferenceValue(value: unknown): value is ReferenceValue {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'id' in value &&
+    'label' in value &&
+    typeof (value as { id: unknown }).id === 'string'
+  )
+}
+
+/**
+ * Renders a diff value: `null`/`undefined` as a dash, booleans as Yes/No, a resolved reference as
+ * "Label (id)" (falling back to the bare id when the backend had no label for it, e.g. an older
+ * audit row predating label resolution, or a deleted referenced entity), everything else as-is.
+ */
 function formatDiffValue(value: unknown): string {
   if (value === null || value === undefined) return '—'
   if (typeof value === 'boolean') return value ? 'Yes' : 'No'
   if (typeof value === 'number') return Number.isInteger(value) ? String(value) : value.toFixed(2)
+  if (isReferenceValue(value)) return value.label ? `${value.label} (${value.id})` : value.id
   if (typeof value === 'object') return JSON.stringify(value)
   return String(value)
 }

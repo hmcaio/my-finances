@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
@@ -48,7 +49,7 @@ class CategoryServiceTest {
           recurringTemplateRepository,
           transactionRepository,
           idGenerator,
-          new AuditRecorder(auditLog));
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
   @Test
   void createAssignsIdFromIdGeneratorAndPersists() {
@@ -60,7 +61,7 @@ class CategoryServiceTest {
             recurringTemplateRepository,
             transactionRepository,
             new FakeIdGenerator(nextId),
-            new AuditRecorder(auditLog));
+            new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
     Category created = service.create("Groceries", CategoryType.EXPENSE);
 

@@ -9,6 +9,7 @@ import com.chm.myfinances.application.auditlog.AuditAction;
 import com.chm.myfinances.application.auditlog.AuditEntityType;
 import com.chm.myfinances.application.auditlog.AuditOrigin;
 import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.application.category.CategoryNotFoundException;
 import com.chm.myfinances.application.transaction.TransactionService;
 import com.chm.myfinances.domain.account.Account;
@@ -79,7 +80,7 @@ class RecurringTemplateServiceTest {
           vehicleRepository,
           investmentHoldingRepository,
           idGenerator,
-          new AuditRecorder(auditLog));
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
   private final RecurringOccurrenceCatchUpService catchUpService =
       new RecurringOccurrenceCatchUpService(
           templateRepository,
@@ -87,7 +88,7 @@ class RecurringTemplateServiceTest {
           pendingRepository,
           idGenerator,
           Clock.systemDefaultZone(),
-          new AuditRecorder(auditLog));
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
   private final RecurringTemplateService service =
       new RecurringTemplateService(
           templateRepository,
@@ -99,7 +100,7 @@ class RecurringTemplateServiceTest {
           catchUpService,
           idGenerator,
           Clock.systemDefaultZone(),
-          new AuditRecorder(auditLog));
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
   private UUID categoryId;
   private UUID accountId;
@@ -130,7 +131,7 @@ class RecurringTemplateServiceTest {
             catchUpService,
             new FakeIdGenerator(nextTemplateId),
             Clock.systemDefaultZone(),
-            new AuditRecorder(auditLog));
+            new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
     RecurringTemplate created =
         service.create(

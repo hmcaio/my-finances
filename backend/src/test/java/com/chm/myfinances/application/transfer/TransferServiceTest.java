@@ -8,6 +8,7 @@ import com.chm.myfinances.application.auditlog.AuditAction;
 import com.chm.myfinances.application.auditlog.AuditEntityType;
 import com.chm.myfinances.application.auditlog.AuditOrigin;
 import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingService;
 import com.chm.myfinances.application.investmentsnapshot.InvestmentSnapshotService;
 import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
@@ -59,7 +60,10 @@ class TransferServiceTest {
         accountRepository,
         holdingRepository,
         new InvestmentSnapshotService(
-            snapshotRepository, holdingRepository, generator, new AuditRecorder(auditLog)),
+            snapshotRepository,
+            holdingRepository,
+            generator,
+            new AuditRecorder(auditLog, AuditReferenceLabels.none())),
         new InvestmentHoldingService(
             holdingRepository,
             productRepository,
@@ -68,9 +72,9 @@ class TransferServiceTest {
             new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository),
             generator,
             Clock.systemUTC(),
-            new AuditRecorder(auditLog)),
+            new AuditRecorder(auditLog, AuditReferenceLabels.none())),
         generator,
-        new AuditRecorder(auditLog));
+        new AuditRecorder(auditLog, AuditReferenceLabels.none()));
   }
 
   private Account checking;

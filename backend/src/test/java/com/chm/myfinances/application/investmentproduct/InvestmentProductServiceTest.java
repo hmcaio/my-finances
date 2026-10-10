@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.application.account.AccountNotFoundException;
 import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.application.investmentcategory.InvestmentCategoryNotFoundException;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingService;
 import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
@@ -70,7 +71,7 @@ class InvestmentProductServiceTest {
           latestSnapshotQuery,
           idGenerator,
           Clock.systemDefaultZone(),
-          new AuditRecorder(auditLog));
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
   private final InvestmentProductService service =
       new InvestmentProductService(
           productRepository,
@@ -80,7 +81,7 @@ class InvestmentProductServiceTest {
           holdingRepository,
           holdingService,
           idGenerator,
-          new AuditRecorder(auditLog));
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
   private final UUID institutionId = UUID.randomUUID();
   private final UUID xpAccountId = saveInvestmentAccount("XP Test").getId();
@@ -114,7 +115,7 @@ class InvestmentProductServiceTest {
             holdingRepository,
             holdingService,
             singleUseIdGenerator,
-            new AuditRecorder(auditLog));
+            new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
     InvestmentProduct created =
         service.create(

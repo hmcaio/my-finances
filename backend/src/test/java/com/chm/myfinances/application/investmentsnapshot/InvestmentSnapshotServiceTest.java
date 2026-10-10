@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingNotFoundException;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
@@ -35,7 +36,10 @@ class InvestmentSnapshotServiceTest {
   private final FakeAuditLog auditLog = new FakeAuditLog();
   private final InvestmentSnapshotService service =
       new InvestmentSnapshotService(
-          snapshotRepository, holdingRepository, idGenerator, new AuditRecorder(auditLog));
+          snapshotRepository,
+          holdingRepository,
+          idGenerator,
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
   private InvestmentHolding holding;
 
@@ -52,7 +56,7 @@ class InvestmentSnapshotServiceTest {
             snapshotRepository,
             holdingRepository,
             new FakeIdGenerator(nextId),
-            new AuditRecorder(auditLog));
+            new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
     RecordedSnapshot recorded =
         service.record(holding.getId(), LocalDate.of(2026, 3, 31), new BigDecimal("1234.56"));

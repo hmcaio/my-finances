@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
 import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
@@ -29,7 +30,10 @@ class PaymentMethodServiceTest {
   private final FakeAuditLog auditLog = new FakeAuditLog();
   private final PaymentMethodService service =
       new PaymentMethodService(
-          repository, transactionRepository, idGenerator, new AuditRecorder(auditLog));
+          repository,
+          transactionRepository,
+          idGenerator,
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
   @Test
   void createAssignsIdFromIdGeneratorAndPersists() {
@@ -39,7 +43,7 @@ class PaymentMethodServiceTest {
             repository,
             transactionRepository,
             new FakeIdGenerator(nextId),
-            new AuditRecorder(auditLog));
+            new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
     PaymentMethod created = service.create("Debit Card");
 

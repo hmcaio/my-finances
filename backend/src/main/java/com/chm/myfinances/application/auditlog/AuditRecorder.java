@@ -1,5 +1,6 @@
 package com.chm.myfinances.application.auditlog;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
@@ -7,8 +8,10 @@ import org.springframework.stereotype.Component;
 /**
  * Small helper every write use case calls instead of {@link AuditLog} directly (spec's Domain/
  * application section): computes the before/after diff via {@link AuditDiff}, skips the call
- * entirely when nothing actually changed, and fills in {@code origin} - so a use case only ever
- * supplies its own before/after snapshots and which action/origin applies.
+ * entirely when nothing actually changed, resolves known reference fields' ids to the referenced
+ * entity's label via {@link AuditReferenceLabels} (wrapping them in {@link ReferenceValue}), and
+ * fills in {@code origin} - so a use case only ever supplies its own before/after snapshots and
+ * which action/origin applies.
  *
  * <p>{@code requestId} is deliberately never set here - it's {@code null} on every {@link
  * AuditEntry} this class builds; the {@link AuditLog} adapter fills it in from the MDC (ADR 0022).
@@ -17,9 +20,11 @@ import org.springframework.stereotype.Component;
 public class AuditRecorder {
 
   private final AuditLog auditLog;
+  private final AuditReferenceLabels referenceLabels;
 
-  public AuditRecorder(AuditLog auditLog) {
+  public AuditRecorder(AuditLog auditLog, AuditReferenceLabels referenceLabels) {
     this.auditLog = auditLog;
+    this.referenceLabels = referenceLabels;
   }
 
   /** {@code CREATE}, origin {@link AuditOrigin#USER}. */
@@ -121,6 +126,45 @@ public class AuditRecorder {
       return;
     }
     auditLog.record(
-        new AuditEntry(entityType, entityId, entityLabel, action, origin, changes, null));
+        new AuditEntry(
+            entityType,
+            entityId,
+            entityLabel,
+            action,
+            origin,
+            withResolvedReferences(changes),
+            null));
+  }
+
+  /**
+   * Replaces a known reference field's bare id string with a {@link ReferenceValue} carrying its
+   * resolved label, on both sides of the diff. A {@code null} side (CREATE's {@code from}, DELETE's
+   * {@code to}) stays {@code null}; an id that no longer resolves (deleted mid-transaction, which
+   * shouldn't happen, or a resolver with no match) keeps a {@code null} label rather than failing
+   * the write.
+   */
+  private Map<String, FieldChange> withResolvedReferences(Map<String, FieldChange> changes) {
+    Map<String, FieldChange> resolved = new LinkedHashMap<>();
+    for (Map.Entry<String, FieldChange> entry : changes.entrySet()) {
+      String field = entry.getKey();
+      FieldChange change = entry.getValue();
+      if (referenceLabels.resolves(field)) {
+        resolved.put(
+            field,
+            new FieldChange(
+                referenceValueOrNull(field, change.from()),
+                referenceValueOrNull(field, change.to())));
+      } else {
+        resolved.put(field, change);
+      }
+    }
+    return resolved;
+  }
+
+  private ReferenceValue referenceValueOrNull(String field, Object value) {
+    if (!(value instanceof String id)) {
+      return null;
+    }
+    return new ReferenceValue(id, referenceLabels.labelFor(field, id).orElse(null));
   }
 }

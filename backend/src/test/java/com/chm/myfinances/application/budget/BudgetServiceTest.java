@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ch.qos.logback.classic.Level;
 import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.application.category.CategoryNotFoundException;
 import com.chm.myfinances.domain.budget.Budget;
 import com.chm.myfinances.domain.budget.BudgetVersion;
@@ -43,7 +44,7 @@ class BudgetServiceTest {
           budgetVersionRepository,
           categoryRepository,
           idGenerator,
-          new AuditRecorder(auditLog));
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
   private UUID groceriesId;
   private UUID salaryId;
@@ -69,7 +70,7 @@ class BudgetServiceTest {
             budgetVersionRepository,
             categoryRepository,
             new FakeIdGenerator(nextBudgetId),
-            new AuditRecorder(auditLog));
+            new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
     Budget created = service.create(groceriesId, new BigDecimal("500.00"), YearMonth.of(2026, 1));
 

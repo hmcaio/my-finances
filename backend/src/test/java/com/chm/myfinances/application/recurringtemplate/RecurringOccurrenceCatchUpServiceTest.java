@@ -7,6 +7,7 @@ import com.chm.myfinances.application.auditlog.AuditAction;
 import com.chm.myfinances.application.auditlog.AuditEntityType;
 import com.chm.myfinances.application.auditlog.AuditOrigin;
 import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrence;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
 import com.chm.myfinances.testsupport.LogCapture;
@@ -49,7 +50,7 @@ class RecurringOccurrenceCatchUpServiceTest {
           pendingRepository,
           idGenerator,
           Clock.systemDefaultZone(),
-          new AuditRecorder(auditLog));
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
   private UUID categoryId;
   private UUID accountId;
