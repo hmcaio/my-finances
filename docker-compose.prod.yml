@@ -59,7 +59,12 @@ services:
     image: ghcr.io/hmcaio/my-finances-backup:${IMAGE_TAG}
     container_name: my-finances-backup-prod
     restart: unless-stopped
-    user: "${BACKUP_UID:-1000}:${BACKUP_GID:-1000}"
+    # No fixed `user:` here (unlike every other service): the container must start as root so
+    # entrypoint.sh can chown a fresh volume/bind mount - root:root by default, unwritable by any
+    # fixed non-root uid - before dropping to BACKUP_UID:BACKUP_GID via `gosu` for the actual
+    # backup work. restore.sh and backup-keygen (invoked via `run --rm --no-deps`, which replaces
+    # CMD and so never goes through entrypoint.sh's drop-privilege step) run as root too - fine,
+    # since both are one-off manual operations, not the routine automated backup path.
     environment:
       PGHOST: postgres
       PGPORT: 5432
@@ -68,6 +73,8 @@ services:
       PGPASSWORD: ${POSTGRES_PASSWORD}
       IMAGE_TAG: ${IMAGE_TAG}
       BACKUP_AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT:-}
+      BACKUP_UID: ${BACKUP_UID:-1000}
+      BACKUP_GID: ${BACKUP_GID:-1000}
       # Also read as a plain value below to pick bind-mount vs. named-volume: a value containing a
       # path separator is a bind mount (point it at a synced folder for an off-machine copy),
       # anything else (including unset, which falls back to the external volume's own name) is

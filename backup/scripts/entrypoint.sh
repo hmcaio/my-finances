@@ -18,6 +18,20 @@ MAX_AGE_HOURS="${BACKUP_MAX_AGE_HOURS:-20}"
 
 log() { echo "[entrypoint.sh] $*"; }
 
+# The container starts as root (no `user:` override in compose) so this can run; a fresh
+# `docker volume create`d named volume - and most first-time bind mounts - is root:root, which a
+# fixed non-root `user:` could never write to no matter what BACKUP_UID/BACKUP_GID said. Fix
+# ownership once here, then re-exec the rest of this script as the unprivileged target uid/gid via
+# `gosu` (already present in the postgres base image for its own entrypoint). A container already
+# started non-root (someone overrode `user:` back) skips this and runs as-is.
+if [ "$(id -u)" = "0" ]; then
+  TARGET_UID="${BACKUP_UID:-1000}"
+  TARGET_GID="${BACKUP_GID:-1000}"
+  mkdir -p "$STORAGE_DIR"
+  chown "$TARGET_UID:$TARGET_GID" "$STORAGE_DIR" 2>/dev/null || true
+  exec gosu "$TARGET_UID:$TARGET_GID" "$0" "$@"
+fi
+
 check_and_backup_if_needed() {
   local build_id now marker_json decision
   build_id=$(cat "$BUILD_ID_FILE" 2>/dev/null || echo "")
