@@ -30,6 +30,7 @@ Designed for solo use today, with a data model that can extend to household/mult
 - No loan amortization schedules — only checking/savings/cash/credit-card/investment account types are modeled (see §5.4); a general "loan" account type is a future direction.
 - No dividend yield or any price-derived return calculation for FIIs (§5.13) — no per-cota market price is tracked (§3), only each holding's latest snapshot total value.
 - No rebalance-suggestion amounts (how much to buy/sell to hit the allocation plan's target) — the FII page (§6.13) only compares target vs. actual percentages.
+- No scheduled or emailed report generation, and reports (§6.9) are not a backup/disaster-recovery mechanism — generation is on-demand and user-triggered only, consistent with the app not running continuously (§7.3); real backups are F018's job.
 
 ## 4. Users
 
@@ -199,7 +200,7 @@ An append-only record of one committed change (ADR 0022). Not part of net worth 
 - `changes`: field → `{from, to}` diff
 - `request_id`: ties together the entries one click produced
 
-Versioned entities (§5.6, §5.7) log as an `UPDATE` on the logical entity, diffed between the previous and the new version. An update that changes nothing is not logged. Entries are written in the same transaction as the change, are never edited or deleted, and are not part of the data export (§6.9).
+Versioned entities (§5.6, §5.7) log as an `UPDATE` on the logical entity, diffed between the previous and the new version. An update that changes nothing is not logged. Entries are written in the same transaction as the change, are never edited or deleted, and are not part of any report (§6.9).
 
 ### 5.13 Investment Segment, Allocation Plan & FII Dividends
 
@@ -295,17 +296,21 @@ Versioned entities (§5.6, §5.7) log as an `UPDATE` on the logical entity, diff
 - Investment allocation by category, drilling into sub-categories (pie/bar chart, from latest product snapshots).
 - Upcoming recurring bills (pending occurrences awaiting confirmation).
 
-### 6.9 Data Export
-- Exports **all** data, one CSV per entity, delivered as a single ZIP download: `categories.csv`, `payment_methods.csv`, `institutions.csv`, `accounts.csv`, `transactions.csv`, `transfers.csv`, `budgets.csv` (one row per `BudgetVersion`), `recurring_templates.csv` (one row per `RecurringTemplateVersion`), `investment_categories.csv`, `investment_subcategories.csv`, `investment_products.csv`, `investment_snapshots.csv`. Investment accounts are rows of `accounts.csv` (empty opening balance and date for `INVESTMENT`), and buys/sells are rows of `transfers.csv`, which also carries `investment_product_id`/`investment_product_name`, `quantity`, `unit_price` and `taxes` (empty for ordinary transfers).
-- Every foreign key column is accompanied by the referenced name inline (e.g. a transaction row includes both `category_id` and `category_name`, both `account_id` and `account_name`) so each file is usable directly in a spreadsheet without joins, while still preserving ids for full-fidelity backup.
-- Optional filters before export: date range, account, category. A filter only affects files with that dimension:
-  - Date range: `transactions.csv`, `transfers.csv`, `investment_snapshots.csv`, `budgets.csv`/`recurring_templates.csv` (by each version's `effective_from`).
-  - Account: `transactions.csv`, `transfers.csv` (matches either side), `recurring_templates.csv`.
-  - Category: `transactions.csv`, `budgets.csv`, `recurring_templates.csv`.
-  - Purely reference files with no date/account/category dimension of their own (`categories.csv`, `payment_methods.csv`, `institutions.csv`, `accounts.csv`, `investment_categories.csv`, `investment_subcategories.csv`, `investment_products.csv`) are always exported in full, since rows in the filtered files reference them by id and would be meaningless without them.
-- No filter selected = full export of everything, unfiltered.
-- `transactions.csv` also carries `vehicle_id`/`vehicle_name`, `fuel_type`, `liters`, `price_per_liter`, `km_since_last_fill` and `odometer` (§5.11), empty for non-fuel rows, plus `investment_holding_id` (§5.13), empty for non-dividend rows.
-- `investment_products.csv` gains `ticker` and `segment_id`/`segment_name` (§5.13, empty when unset). Two new files: `investment_segments.csv` (always-full reference file, no date/account/category dimension) and `allocation_plan_entries.csv` (one row per entry, carrying its version's `effective_from` — narrowed by the date-range filter the same way `budgets.csv` is).
+### 6.9 Reports
+Eleven curated, human-readable reports a user generates on demand, superseding the earlier all-entity backup-shaped export (F013) now that real database backups (§7.3-adjacent, F018) are the disaster-recovery mechanism — these reports are for reading and analysis, not recovery (see Non-Goals, §3).
+- **Transactions & Transfers**: one combined chronological statement, date range + account + category filters.
+- **Account balances**: every account's balance as of a selectable date (falling back to the latest value at or before it).
+- **FII portfolio**: the FII portfolio list (§6.13) as of a selectable month.
+- **Fuel history & stats**: every fill-up in a date range with its per-row ratios (§5.11), plus a per-vehicle summary (total spent, total liters, average km/L).
+- **Budgets & spending by category**: every category with spend in a selected month — cap/actual/variance where a budget exists (§6.4), actual only otherwise. One month at a time.
+- **Investments**: every holding's latest snapshot as of a selectable date, plus its trade/transfer activity within a date range.
+- **Net worth trend**: the existing trend series (§5.9) over a date range, with the same monthly/every-change choice.
+- **Recurring templates / fixed costs summary**: every currently active template as of a selectable date.
+- **Investment allocation**: by institution (every holding, any product) and by FII segment (§5.13), as of a selectable date/month.
+- **Dividend income**: dividend transactions (§5.13) in a date range, per-product totals with a per-month subtotal.
+- **Annual summary**: one calendar year's total income, total expense, and net worth at year-start/year-end with the delta.
+- One or more report types are selected per generation, through one shared set of filters (date range, as-of date, account, category, vehicle, month); a report ignores a filter dimension it has no use for. One type generates its own file (CSV, or CSV+PDF for the two reports where a printable layout helps); more than one bundles into a single ZIP.
+- Not part of any report: the audit log (§5.12).
 
 ### 6.10 Institutions
 - CRUD on institutions (name), from a settings screen next to categories and payment methods.
@@ -357,7 +362,8 @@ These are low-level choices left to implementation rather than product decisions
 - Exact predefined starter category and payment method lists.
 - Category/payment-method deletion/reassignment behavior when transactions reference it.
 - Currency precision/rounding rules.
-- ~~Exact CSV column ordering/naming and ZIP file naming convention for data export (§6.9).~~ Decided in F013's spec.
+- ~~Exact CSV column ordering/naming and ZIP file naming convention for data export (§6.9).~~ Decided in F013's spec (superseded by F030).
+- Exact CSV/PDF column layout and generated-file naming for the Reports feature (§6.9) — decided in F030's spec.
 
 ## 9. Future Directions (explicitly out of scope for v1)
 
@@ -367,6 +373,7 @@ These are low-level choices left to implementation rather than product decisions
 - Computed investment tracking (cost basis, value derived from quantity × price, gain/loss). Quantity, unit price and taxes are already recorded per buy/sell (§5.5) but nothing is calculated from them; this would build on that data and the manual snapshots.
 - Monthly value series grouped by investment category or sub-category (today the series is per product).
 - Manual physical assets (real estate, vehicles) in net worth.
+- Scheduled or emailed report generation; a multi-month range for the budgets report (§6.9, currently one month at a time); split-adjusted figures in the Investments report (§6.9) once F028/F029 ship.
 - Allocation by institution: how much is held at each institution (account balances, `INVESTMENT` accounts included, grouped by `institution_id`; the built-in "No institution" row is just another slice; how credit card balances net against an institution is decided when it is built), as a dashboard pie chart. The data model (§5.10) already supports it as a single grouping over accounts; the query and widget are a later feature.
 - Undo/revert from the audit log (§5.12), retention of old entries, and entity-scoped history links from account or transaction pages.
 - Loan account type with amortization schedules (beyond the current checking/savings/cash/credit-card/investment types).
