@@ -30,10 +30,10 @@ Suggested order: pure logic first (test-first), then the sidecar, compose and CI
 - [x] Confirm the dev `docker-compose.yml` is untouched. (`git diff --stat docker-compose.yml` is empty.)
 
 ## Phase 4 — Backend status endpoint (test first)
-- [ ] Test first: state derivation (`OK`/`STALE`/`FAILING`/`UNKNOWN`, `localOnly`) as a pure function; adapter tests for a missing, malformed and valid marker (tier per ADR 0013); controller test for `GET /api/backup-status`.
-- [ ] Implement the read port (`application/`), file adapter (`infrastructure/`, `BACKUP_STATUS_PATH`), controller and DTO. No logging of marker contents beyond state and counts.
-- [ ] ArchUnit rules still green (ADR 0014).
-- [ ] `./gradlew spotlessApply` then `./gradlew spotlessCheck test integrationTest`.
+- [x] Test first: state derivation (`OK`/`STALE`/`FAILING`/`UNKNOWN`, `localOnly`) as a pure function; adapter tests for a missing, malformed and valid marker (tier per ADR 0013 — a plain JUnit test with no Spring/Testcontainers, since the adapter touches only the filesystem, never the database); controller test for `GET /api/backup-status`.
+- [x] Implement the read port (`application/`), file adapter (`infrastructure/`, `BACKUP_STATUS_PATH`), controller and DTO. No logging of marker contents beyond state and counts.
+- [x] ArchUnit rules still green (ADR 0014).
+- [x] `./gradlew spotlessApply` then `./gradlew spotlessCheck test integrationTest`. All green.
 
 ## Phase 5 — Frontend banner (test first)
 - [ ] `npm run generate-api-types` (backend running).
