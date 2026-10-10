@@ -22,6 +22,17 @@ public class InvestmentSnapshotRepositoryAdapter implements InvestmentSnapshotRe
     this.jpaRepository = jpaRepository;
   }
 
+  /**
+   * {@code saveAndFlush}, not {@code save} (F025, issue #94 regression): {@code
+   * InvestmentSnapshotService.insertSnapshot} relies on the {@code
+   * uq_investment_snapshots_holding_date} constraint violation being thrown synchronously, inside
+   * its own try/catch, so it can translate it to a 409. That only happens if this call actually
+   * hits the database - once {@code record()} became {@code @Transactional} (F025, so the audit
+   * insert shares its transaction), this save joined that outer transaction instead of committing
+   * (and therefore flushing) on its own, so a plain {@code save()} silently deferred the insert -
+   * and the constraint check - past the try/catch, to the outer commit, surfacing as an unmapped
+   * exception instead of the 409.
+   */
   @Override
   public InvestmentSnapshot save(InvestmentSnapshot snapshot) {
     InvestmentSnapshotJpaEntity entity =
@@ -40,7 +51,7 @@ public class InvestmentSnapshotRepositoryAdapter implements InvestmentSnapshotRe
                         snapshot.getHoldingId(),
                         snapshot.getDate(),
                         snapshot.getBalance()));
-    return toDomain(jpaRepository.save(entity));
+    return toDomain(jpaRepository.saveAndFlush(entity));
   }
 
   @Override

@@ -3,7 +3,10 @@ package com.chm.myfinances.application.investmentsegment;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.domain.investmentsegment.InvestmentSegment;
+import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSegmentRepository;
@@ -21,15 +24,23 @@ class InvestmentSegmentServiceTest {
       new FakeInvestmentSegmentRepository();
   private final FakeInvestmentProductRepository productRepository =
       new FakeInvestmentProductRepository();
+  private final FakeAuditLog auditLog = new FakeAuditLog();
   private final InvestmentSegmentService service =
-      new InvestmentSegmentService(segmentRepository, productRepository, new FakeIdGenerator());
+      new InvestmentSegmentService(
+          segmentRepository,
+          productRepository,
+          new FakeIdGenerator(),
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
   @Test
   void createAssignsIdFromIdGeneratorAndPersists() {
     UUID nextId = UUID.randomUUID();
     InvestmentSegmentService service =
         new InvestmentSegmentService(
-            segmentRepository, productRepository, new FakeIdGenerator(nextId));
+            segmentRepository,
+            productRepository,
+            new FakeIdGenerator(nextId),
+            new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
     InvestmentSegment created = service.create("Shoppings");
 
@@ -118,5 +129,38 @@ class InvestmentSegmentServiceTest {
     assertThatThrownBy(() -> service.delete(created.getId()))
         .isInstanceOf(InvestmentSegmentInUseException.class);
     assertThat(segmentRepository.findById(created.getId())).isPresent();
+  }
+
+  @Test
+  void createRecordsACreateAuditEntry() {
+    InvestmentSegment created = service.create("Shoppings");
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.entityId()).isEqualTo(created.getId());
+    assertThat(entry.entityLabel()).isEqualTo("Shoppings");
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.CREATE);
+  }
+
+  @Test
+  void renameRecordsAnUpdateAuditEntry() {
+    InvestmentSegment created = service.create("Shoppings");
+    auditLog.entries().clear();
+
+    service.rename(created.getId(), "Shopping Malls");
+
+    assertThat(auditLog.onlyEntry().action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.UPDATE);
+  }
+
+  @Test
+  void deleteRecordsADeleteAuditEntry() {
+    InvestmentSegment created = service.create("Shoppings");
+    auditLog.entries().clear();
+
+    service.delete(created.getId());
+
+    assertThat(auditLog.onlyEntry().action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.DELETE);
   }
 }

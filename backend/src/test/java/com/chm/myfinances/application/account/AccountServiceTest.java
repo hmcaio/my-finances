@@ -4,6 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ch.qos.logback.classic.Level;
+import com.chm.myfinances.application.auditlog.AuditAction;
+import com.chm.myfinances.application.auditlog.AuditEntityType;
+import com.chm.myfinances.application.auditlog.AuditOrigin;
+import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.application.institution.InstitutionNotFoundException;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountClosedNotifier;
@@ -14,6 +19,7 @@ import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.testsupport.LogCapture;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
 import com.chm.myfinances.testsupport.fakes.FakeAccountUsageChecker;
+import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeInstitutionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
@@ -40,6 +46,7 @@ class AccountServiceTest {
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
   private final FakeAccountClosedNotifier notifier = new FakeAccountClosedNotifier();
   private final FakeAccountUsageChecker usageChecker = new FakeAccountUsageChecker();
+  private final FakeAuditLog auditLog = new FakeAuditLog();
   private final UUID institutionId =
       institutionRepository.save(Institution.create(UUID.randomUUID(), "Nubank Test")).getId();
   private final UUID otherInstitutionId =
@@ -52,7 +59,8 @@ class AccountServiceTest {
           idGenerator,
           notifier,
           usageChecker,
-          Clock.systemDefaultZone());
+          Clock.systemDefaultZone(),
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
   @Test
   void createAssignsIdFromIdGeneratorAndPersists() {
@@ -65,7 +73,8 @@ class AccountServiceTest {
             new FakeIdGenerator(nextId),
             notifier,
             usageChecker,
-            Clock.systemDefaultZone());
+            Clock.systemDefaultZone(),
+            new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
     Account created =
         service.create(
@@ -431,5 +440,65 @@ class AccountServiceTest {
 
       assertThat(logs.events()).isEmpty();
     }
+  }
+
+  @Test
+  void createRecordsACreateAuditEntry() {
+    Account created = createChecking("Audit Test Account");
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.entityType()).isEqualTo(AuditEntityType.ACCOUNT);
+    assertThat(entry.entityId()).isEqualTo(created.getId());
+    assertThat(entry.entityLabel()).isEqualTo("Audit Test Account");
+    assertThat(entry.action()).isEqualTo(AuditAction.CREATE);
+    assertThat(entry.origin()).isEqualTo(AuditOrigin.USER);
+  }
+
+  @Test
+  void aRejectedCreateRecordsNoAuditEntry() {
+    createChecking("Duplicate Name");
+    auditLog.entries().clear();
+
+    assertThatThrownBy(() -> createChecking("Duplicate Name"))
+        .isInstanceOf(AccountNameAlreadyExistsException.class);
+
+    assertThat(auditLog.entries()).isEmpty();
+  }
+
+  @Test
+  void editRecordsAnUpdateAuditEntry() {
+    Account created = createChecking("Before Name");
+    auditLog.entries().clear();
+
+    service.edit(created.getId(), "After Name", otherInstitutionId);
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.action()).isEqualTo(AuditAction.UPDATE);
+    assertThat(entry.changes()).containsKey("name").containsKey("institutionId");
+  }
+
+  @Test
+  void closeRecordsACloseAuditEntryWithUserOrigin() {
+    Account created = createChecking("To Close");
+    auditLog.entries().clear();
+
+    service.close(created.getId());
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.action()).isEqualTo(AuditAction.CLOSE);
+    assertThat(entry.origin()).isEqualTo(AuditOrigin.USER);
+    assertThat(entry.changes()).containsKey("closedDate");
+  }
+
+  @Test
+  void deleteRecordsADeleteAuditEntryWithTheLastKnownName() {
+    Account created = createChecking("To Delete");
+    auditLog.entries().clear();
+
+    service.delete(created.getId());
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.action()).isEqualTo(AuditAction.DELETE);
+    assertThat(entry.entityLabel()).isEqualTo("To Delete");
   }
 }

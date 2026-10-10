@@ -3,8 +3,11 @@ package com.chm.myfinances.application.investmentcategory;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
+import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentCategoryRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
@@ -26,9 +29,14 @@ class InvestmentCategoryServiceTest {
       new FakeInvestmentSubcategoryRepository();
   private final FakeInvestmentProductRepository productRepository =
       new FakeInvestmentProductRepository();
+  private final FakeAuditLog auditLog = new FakeAuditLog();
   private final InvestmentCategoryService service =
       new InvestmentCategoryService(
-          categoryRepository, subcategoryRepository, productRepository, new FakeIdGenerator());
+          categoryRepository,
+          subcategoryRepository,
+          productRepository,
+          new FakeIdGenerator(),
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
   @Test
   void createAssignsIdFromIdGeneratorAndPersists() {
@@ -38,7 +46,8 @@ class InvestmentCategoryServiceTest {
             categoryRepository,
             subcategoryRepository,
             productRepository,
-            new FakeIdGenerator(nextId));
+            new FakeIdGenerator(nextId),
+            new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
     InvestmentCategory created = service.create("Fixed Income");
 
@@ -195,5 +204,38 @@ class InvestmentCategoryServiceTest {
     assertThatThrownBy(() -> service.delete(category.getId()))
         .isInstanceOf(InvestmentCategoryInUseException.class);
     assertThat(categoryRepository.findById(category.getId())).isPresent();
+  }
+
+  @Test
+  void createRecordsACreateAuditEntry() {
+    InvestmentCategory created = service.create("Fixed Income");
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.entityId()).isEqualTo(created.getId());
+    assertThat(entry.entityLabel()).isEqualTo("Fixed Income");
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.CREATE);
+  }
+
+  @Test
+  void renameRecordsAnUpdateAuditEntry() {
+    InvestmentCategory created = service.create("Fixed Income");
+    auditLog.entries().clear();
+
+    service.rename(created.getId(), "Renda Fixa");
+
+    assertThat(auditLog.onlyEntry().action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.UPDATE);
+  }
+
+  @Test
+  void deleteRecordsADeleteAuditEntry() {
+    InvestmentCategory created = service.create("Fixed Income");
+    auditLog.entries().clear();
+
+    service.delete(created.getId());
+
+    assertThat(auditLog.onlyEntry().action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.DELETE);
   }
 }

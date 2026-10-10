@@ -3,9 +3,12 @@ package com.chm.myfinances.application.vehicle;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.domain.transaction.FuelDetails;
 import com.chm.myfinances.domain.transaction.FuelType;
 import com.chm.myfinances.domain.vehicle.Vehicle;
+import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeTransactionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeVehicleRepository;
@@ -24,14 +27,23 @@ class VehicleServiceTest {
   private final FakeVehicleRepository repository = new FakeVehicleRepository();
   private final FakeTransactionRepository transactionRepository = new FakeTransactionRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
+  private final FakeAuditLog auditLog = new FakeAuditLog();
   private final VehicleService service =
-      new VehicleService(repository, transactionRepository, idGenerator);
+      new VehicleService(
+          repository,
+          transactionRepository,
+          idGenerator,
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
   @Test
   void createAssignsIdFromIdGeneratorAndPersists() {
     UUID nextId = UUID.randomUUID();
     VehicleService service =
-        new VehicleService(repository, transactionRepository, new FakeIdGenerator(nextId));
+        new VehicleService(
+            repository,
+            transactionRepository,
+            new FakeIdGenerator(nextId),
+            new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
     Vehicle created = service.create("Civic");
 
@@ -135,5 +147,38 @@ class VehicleServiceTest {
     assertThatThrownBy(() -> service.delete(created.getId()))
         .isInstanceOf(VehicleInUseException.class);
     assertThat(repository.findById(created.getId())).isPresent();
+  }
+
+  @Test
+  void createRecordsACreateAuditEntry() {
+    Vehicle created = service.create("Civic");
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.entityId()).isEqualTo(created.getId());
+    assertThat(entry.entityLabel()).isEqualTo("Civic");
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.CREATE);
+  }
+
+  @Test
+  void renameRecordsAnUpdateAuditEntry() {
+    Vehicle created = service.create("Civic");
+    auditLog.entries().clear();
+
+    service.rename(created.getId(), "Civic Hatch");
+
+    assertThat(auditLog.onlyEntry().action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.UPDATE);
+  }
+
+  @Test
+  void deleteRecordsADeleteAuditEntry() {
+    Vehicle created = service.create("Civic");
+    auditLog.entries().clear();
+
+    service.delete(created.getId());
+
+    assertThat(auditLog.onlyEntry().action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.DELETE);
   }
 }

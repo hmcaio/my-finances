@@ -49,6 +49,7 @@ const SETTINGS_NAV_ITEMS: NavItem[] = [
   { label: 'Vehicles', path: '/settings/vehicles' },
 ]
 
+const ACTIVITY_NAV_ITEM: NavItem = { label: 'Activity', path: '/activity' }
 const EXPORT_NAV_ITEM: NavItem = { label: 'Export', path: '/export' }
 
 function NavListItem({ item, pathname }: { item: NavItem; pathname: string }) {
@@ -97,6 +98,7 @@ export function Layout({ children }: PropsWithChildren) {
           <NavListItem key={item.path} item={item} pathname={pathname} />
         ))}
         <Divider component="li" sx={{ my: 1 }} />
+        <NavListItem item={ACTIVITY_NAV_ITEM} pathname={pathname} />
         <NavListItem item={EXPORT_NAV_ITEM} pathname={pathname} />
       </List>
     </Fragment>

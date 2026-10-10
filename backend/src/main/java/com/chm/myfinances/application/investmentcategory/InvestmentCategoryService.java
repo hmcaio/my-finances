@@ -1,5 +1,7 @@
 package com.chm.myfinances.application.investmentcategory;
 
+import com.chm.myfinances.application.auditlog.AuditEntityType;
+import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
@@ -8,8 +10,10 @@ import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategoryRepo
 import com.chm.myfinances.domain.shared.IdGenerator;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use cases for {@link InvestmentCategory}: create/rename/delete and the nested read (F008 spec).
@@ -29,23 +33,34 @@ public class InvestmentCategoryService {
   private final InvestmentSubcategoryRepository subcategoryRepository;
   private final InvestmentProductRepository productRepository;
   private final IdGenerator idGenerator;
+  private final AuditRecorder auditRecorder;
 
   public InvestmentCategoryService(
       InvestmentCategoryRepository categoryRepository,
       InvestmentSubcategoryRepository subcategoryRepository,
       InvestmentProductRepository productRepository,
-      IdGenerator idGenerator) {
+      IdGenerator idGenerator,
+      AuditRecorder auditRecorder) {
     this.categoryRepository = categoryRepository;
     this.subcategoryRepository = subcategoryRepository;
     this.productRepository = productRepository;
     this.idGenerator = idGenerator;
+    this.auditRecorder = auditRecorder;
   }
 
+  @Transactional
   public InvestmentCategory create(String name) {
     if (categoryRepository.existsByName(name)) {
       throw new InvestmentCategoryNameAlreadyExistsException(name);
     }
-    return categoryRepository.save(InvestmentCategory.create(idGenerator.newId(), name));
+    InvestmentCategory saved =
+        categoryRepository.save(InvestmentCategory.create(idGenerator.newId(), name));
+    auditRecorder.recordCreate(
+        AuditEntityType.INVESTMENT_CATEGORY,
+        saved.getId(),
+        saved.getName(),
+        saved.toAuditSnapshot());
+    return saved;
   }
 
   /** Every category with its sub-categories nested, both levels sorted by name. */
@@ -76,26 +91,42 @@ public class InvestmentCategoryService {
             .toList());
   }
 
+  @Transactional
   public InvestmentCategory rename(UUID id, String newName) {
     InvestmentCategory category =
         categoryRepository
             .findById(id)
             .orElseThrow(() -> new InvestmentCategoryNotFoundException(id));
+    Map<String, Object> before = category.toAuditSnapshot();
     if (categoryRepository.existsByNameAndIdNot(newName, id)) {
       throw new InvestmentCategoryNameAlreadyExistsException(newName);
     }
     category.rename(newName);
-    return categoryRepository.save(category);
+    InvestmentCategory saved = categoryRepository.save(category);
+    auditRecorder.recordUpdate(
+        AuditEntityType.INVESTMENT_CATEGORY,
+        saved.getId(),
+        saved.getName(),
+        before,
+        saved.toAuditSnapshot());
+    return saved;
   }
 
+  @Transactional
   public void delete(UUID id) {
-    if (!categoryRepository.existsById(id)) {
-      throw new InvestmentCategoryNotFoundException(id);
-    }
+    InvestmentCategory category =
+        categoryRepository
+            .findById(id)
+            .orElseThrow(() -> new InvestmentCategoryNotFoundException(id));
     if (subcategoryRepository.existsByInvestmentCategoryId(id)
         || productRepository.existsByInvestmentCategoryId(id)) {
       throw new InvestmentCategoryInUseException(id);
     }
     categoryRepository.deleteById(id);
+    auditRecorder.recordDelete(
+        AuditEntityType.INVESTMENT_CATEGORY,
+        category.getId(),
+        category.getName(),
+        category.toAuditSnapshot());
   }
 }

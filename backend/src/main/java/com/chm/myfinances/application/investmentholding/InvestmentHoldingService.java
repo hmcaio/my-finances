@@ -1,6 +1,10 @@
 package com.chm.myfinances.application.investmentholding;
 
 import com.chm.myfinances.application.account.AccountNotFoundException;
+import com.chm.myfinances.application.auditlog.AuditAction;
+import com.chm.myfinances.application.auditlog.AuditEntityType;
+import com.chm.myfinances.application.auditlog.AuditOrigin;
+import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.application.investmentproduct.InvestmentAccountRequiredException;
 import com.chm.myfinances.application.investmentproduct.InvestmentProductNotFoundException;
 import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
@@ -15,8 +19,10 @@ import com.chm.myfinances.domain.shared.IdGenerator;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use cases for {@link InvestmentHolding} (F022 spec, ADR 0020): the many-to-many link between an
@@ -42,6 +48,7 @@ public class InvestmentHoldingService {
   private final LatestInvestmentSnapshotQuery latestSnapshotQuery;
   private final IdGenerator idGenerator;
   private final Clock clock;
+  private final AuditRecorder auditRecorder;
 
   public InvestmentHoldingService(
       InvestmentHoldingRepository holdingRepository,
@@ -50,7 +57,8 @@ public class InvestmentHoldingService {
       HasHoldingHistoryChecker historyChecker,
       LatestInvestmentSnapshotQuery latestSnapshotQuery,
       IdGenerator idGenerator,
-      Clock clock) {
+      Clock clock,
+      AuditRecorder auditRecorder) {
     this.holdingRepository = holdingRepository;
     this.productRepository = productRepository;
     this.accountRepository = accountRepository;
@@ -58,8 +66,10 @@ public class InvestmentHoldingService {
     this.latestSnapshotQuery = latestSnapshotQuery;
     this.idGenerator = idGenerator;
     this.clock = clock;
+    this.auditRecorder = auditRecorder;
   }
 
+  @Transactional
   public InvestmentHolding create(UUID productId, UUID accountId, String additionalNotes) {
     if (!productRepository.existsById(productId)) {
       throw new InvestmentProductNotFoundException(productId);
@@ -74,8 +84,12 @@ public class InvestmentHoldingService {
     if (holdingRepository.existsByProductIdAndAccountId(productId, accountId)) {
       throw new InvestmentHoldingAlreadyExistsException(productId, accountId);
     }
-    return holdingRepository.save(
-        InvestmentHolding.create(idGenerator.newId(), productId, accountId, additionalNotes));
+    InvestmentHolding saved =
+        holdingRepository.save(
+            InvestmentHolding.create(idGenerator.newId(), productId, accountId, additionalNotes));
+    auditRecorder.recordCreate(
+        AuditEntityType.INVESTMENT_HOLDING, saved.getId(), null, saved.toAuditSnapshot());
+    return saved;
   }
 
   public InvestmentHolding findById(UUID id) {
@@ -100,10 +114,15 @@ public class InvestmentHoldingService {
     return holdingRepository.findByAccountId(accountId);
   }
 
+  @Transactional
   public InvestmentHolding editNotes(UUID id, String additionalNotes) {
     InvestmentHolding holding = findById(id);
+    Map<String, Object> before = holding.toAuditSnapshot();
     holding.editNotes(additionalNotes);
-    return holdingRepository.save(holding);
+    InvestmentHolding saved = holdingRepository.save(holding);
+    auditRecorder.recordUpdate(
+        AuditEntityType.INVESTMENT_HOLDING, saved.getId(), null, before, saved.toAuditSnapshot());
+    return saved;
   }
 
   /**
@@ -111,8 +130,10 @@ public class InvestmentHoldingService {
    * its latest snapshot is {@code 0} or absent (F009's rule, moved here by F022), so a closed
    * holding never keeps counting a stale value.
    */
+  @Transactional
   public InvestmentHolding close(UUID id) {
     InvestmentHolding holding = findById(id);
+    Map<String, Object> before = holding.toAuditSnapshot();
     if (holding.isClosed()) {
       throw new InvestmentHoldingAlreadyClosedException(id);
     }
@@ -123,15 +144,27 @@ public class InvestmentHoldingService {
       throw new InvestmentHoldingNotEmptyException(id);
     }
     holding.close(LocalDate.now(clock));
-    return holdingRepository.save(holding);
+    InvestmentHolding saved = holdingRepository.save(holding);
+    auditRecorder.recordAction(
+        AuditEntityType.INVESTMENT_HOLDING,
+        saved.getId(),
+        null,
+        AuditAction.CLOSE,
+        before,
+        saved.toAuditSnapshot(),
+        AuditOrigin.USER);
+    return saved;
   }
 
+  @Transactional
   public void delete(UUID id) {
-    findById(id);
+    InvestmentHolding holding = findById(id);
     if (historyChecker.hasHistory(id)) {
       throw new InvestmentHoldingHasHistoryException(id);
     }
     holdingRepository.deleteById(id);
+    auditRecorder.recordDelete(
+        AuditEntityType.INVESTMENT_HOLDING, holding.getId(), null, holding.toAuditSnapshot());
   }
 
   /** Whether the holding has history - drives the API response's {@code hasHistory} flag. */

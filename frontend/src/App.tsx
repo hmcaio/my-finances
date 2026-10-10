@@ -80,6 +80,9 @@ const RecurringTemplatesPage = lazy(() =>
 const VehiclesPage = lazy(() =>
   import('./features/vehicles/VehiclesPage').then((m) => ({ default: m.VehiclesPage })),
 )
+const ActivityPage = lazy(() =>
+  import('./features/activity/ActivityPage').then((m) => ({ default: m.ActivityPage })),
+)
 
 /** Suspense fallback while a route's chunk loads - same skeleton shape as the onboarding check. */
 function RouteFallback() {
@@ -158,6 +161,7 @@ function ThemedApp() {
                   <Route path="/settings/payment-methods" element={<PaymentMethodsPage />} />
                   <Route path="/settings/vehicles" element={<VehiclesPage />} />
                   <Route path="/export" element={<ExportPage />} />
+                  <Route path="/activity" element={<ActivityPage />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </Suspense>

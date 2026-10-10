@@ -1,5 +1,6 @@
 import { accountsHandlers } from './handlers/accounts'
 import { allocationPlanHandlers } from './handlers/allocationPlan'
+import { auditLogHandlers } from './handlers/auditLog'
 import { budgetsHandlers } from './handlers/budgets'
 import { categoriesHandlers } from './handlers/categories'
 import { exportHandlers } from './handlers/export'
@@ -34,6 +35,7 @@ import { vehiclesHandlers } from './handlers/vehicles'
 export const handlers = [
   ...accountsHandlers,
   ...allocationPlanHandlers,
+  ...auditLogHandlers,
   ...budgetsHandlers,
   ...categoriesHandlers,
   ...exportHandlers,

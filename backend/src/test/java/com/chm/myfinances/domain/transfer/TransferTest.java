@@ -7,6 +7,7 @@ import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -578,5 +579,60 @@ class TransferTest {
 
     assertThat(transfer.getTaxes()).isNull();
     assertThat(transfer.getTradeConfirmation()).isEmpty();
+  }
+
+  @Test
+  void toAuditSnapshotOfAPlainTransferHasNoTradeConfirmationLines() {
+    Transfer transfer =
+        Transfer.create(
+            UUID.randomUUID(),
+            LocalDate.of(2026, 3, 15),
+            FROM_ACCOUNT_ID,
+            TO_ACCOUNT_ID,
+            new BigDecimal("50.00"),
+            "Pay card",
+            "Note");
+
+    Map<String, Object> snapshot = transfer.toAuditSnapshot();
+
+    assertThat(snapshot)
+        .containsEntry("date", "2026-03-15")
+        .containsEntry("fromAccountId", FROM_ACCOUNT_ID.toString())
+        .containsEntry("toAccountId", TO_ACCOUNT_ID.toString())
+        .containsEntry("amount", new BigDecimal("50.00"))
+        .containsEntry("description", "Pay card")
+        .containsEntry("additionalNotes", "Note")
+        .containsEntry("taxes", null)
+        .containsEntry("tradeConfirmationLines", null);
+  }
+
+  @Test
+  void toAuditSnapshotOfATradeConfirmationFlattensItsLines() {
+    TradeConfirmation confirmation =
+        TradeConfirmation.of(List.of(buyLine(PRODUCT_ID, "10", "100.00")));
+    Transfer transfer =
+        Transfer.createTradeConfirmation(
+            UUID.randomUUID(),
+            LocalDate.of(2026, 3, 15),
+            FROM_ACCOUNT_ID,
+            TO_ACCOUNT_ID,
+            "Buy",
+            null,
+            new BigDecimal("5.00"),
+            confirmation);
+
+    Map<String, Object> snapshot = transfer.toAuditSnapshot();
+
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> lines =
+        (List<Map<String, Object>>) snapshot.get("tradeConfirmationLines");
+    assertThat(lines).hasSize(1);
+    assertThat(lines.get(0))
+        .containsEntry("productId", PRODUCT_ID.toString())
+        .containsEntry("side", "BUY")
+        .containsEntry("quantity", new BigDecimal("10"))
+        .containsEntry("unitPrice", new BigDecimal("100.00"))
+        .containsEntry("closeHolding", false);
+    assertThat(snapshot).containsEntry("taxes", new BigDecimal("5.00"));
   }
 }

@@ -3,7 +3,9 @@ package com.chm.myfinances.domain.allocationplan;
 import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -108,5 +110,28 @@ public final class AllocationPlanVersion {
 
   public YearMonth getEffectiveFrom() {
     return effectiveFrom;
+  }
+
+  /**
+   * Flat snapshot of every persisted field (F025 spec, ADR 0022): {@code entries} flattens to a
+   * list of {@code {investmentProductId, targetPercentage}} maps, same "a collection field is a
+   * list of flat maps" convention as {@code Transfer.toAuditSnapshot}'s trade confirmation lines.
+   */
+  public Map<String, Object> toAuditSnapshot() {
+    Map<String, Object> snapshot = new LinkedHashMap<>();
+    snapshot.put("planId", planId.toString());
+    snapshot.put("effectiveFrom", effectiveFrom.toString());
+    snapshot.put(
+        "entries",
+        entries.stream()
+            .map(
+                entry -> {
+                  Map<String, Object> entrySnapshot = new LinkedHashMap<>();
+                  entrySnapshot.put("investmentProductId", entry.investmentProductId().toString());
+                  entrySnapshot.put("targetPercentage", entry.targetPercentage());
+                  return entrySnapshot;
+                })
+            .toList());
+    return snapshot;
   }
 }

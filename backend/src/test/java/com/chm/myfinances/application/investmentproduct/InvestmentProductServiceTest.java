@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.application.account.AccountNotFoundException;
+import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.application.investmentcategory.InvestmentCategoryNotFoundException;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingService;
 import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
@@ -14,6 +16,7 @@ import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
+import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeHasHoldingHistoryChecker;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentCategoryRepository;
@@ -58,6 +61,7 @@ class InvestmentProductServiceTest {
   private final LatestInvestmentSnapshotQuery latestSnapshotQuery =
       new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository);
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
+  private final FakeAuditLog auditLog = new FakeAuditLog();
   private final InvestmentHoldingService holdingService =
       new InvestmentHoldingService(
           holdingRepository,
@@ -66,7 +70,8 @@ class InvestmentProductServiceTest {
           holdingHistoryChecker,
           latestSnapshotQuery,
           idGenerator,
-          Clock.systemDefaultZone());
+          Clock.systemDefaultZone(),
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
   private final InvestmentProductService service =
       new InvestmentProductService(
           productRepository,
@@ -75,7 +80,8 @@ class InvestmentProductServiceTest {
           segmentRepository,
           holdingRepository,
           holdingService,
-          idGenerator);
+          idGenerator,
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
   private final UUID institutionId = UUID.randomUUID();
   private final UUID xpAccountId = saveInvestmentAccount("XP Test").getId();
@@ -108,7 +114,8 @@ class InvestmentProductServiceTest {
             segmentRepository,
             holdingRepository,
             holdingService,
-            singleUseIdGenerator);
+            singleUseIdGenerator,
+            new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
     InvestmentProduct created =
         service.create(
@@ -585,5 +592,58 @@ class InvestmentProductServiceTest {
         .isInstanceOf(
             com.chm.myfinances.application.investmentsegment.InvestmentSegmentNotFoundException
                 .class);
+  }
+
+  @Test
+  void createRecordsACreateAuditEntryForTheProductAndItsFirstHolding() {
+    InvestmentProduct created =
+        service.create(xpAccountId, fixedIncomeId, cdbId, "CDB Banco Test", "matures 2030");
+
+    assertThat(auditLog.entries())
+        .anySatisfy(
+            entry -> {
+              assertThat(entry.entityType())
+                  .isEqualTo(
+                      com.chm.myfinances.application.auditlog.AuditEntityType.INVESTMENT_PRODUCT);
+              assertThat(entry.entityId()).isEqualTo(created.getId());
+              assertThat(entry.entityLabel()).isEqualTo("CDB Banco Test");
+              assertThat(entry.action())
+                  .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.CREATE);
+            });
+    assertThat(auditLog.entries())
+        .anySatisfy(
+            entry ->
+                assertThat(entry.entityType())
+                    .isEqualTo(
+                        com.chm.myfinances.application.auditlog.AuditEntityType
+                            .INVESTMENT_HOLDING));
+  }
+
+  @Test
+  void editRecordsAnUpdateAuditEntry() {
+    InvestmentProduct created =
+        service.create(xpAccountId, fixedIncomeId, cdbId, "CDB Banco Test", null);
+    auditLog.entries().clear();
+
+    service.edit(created.getId(), fixedIncomeId, cdbId, "CDB Banco Renamed", null);
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.UPDATE);
+    assertThat(entry.changes()).containsKey("name");
+  }
+
+  @Test
+  void deleteRecordsADeleteAuditEntry() {
+    InvestmentProduct created = service.create(xpAccountId, cryptoId, null, "Bitcoin Test", null);
+    holdingRepository.deleteById(holdingRepository.findByProductId(created.getId()).get(0).getId());
+    auditLog.entries().clear();
+
+    service.delete(created.getId());
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.DELETE);
+    assertThat(entry.entityLabel()).isEqualTo("Bitcoin Test");
   }
 }

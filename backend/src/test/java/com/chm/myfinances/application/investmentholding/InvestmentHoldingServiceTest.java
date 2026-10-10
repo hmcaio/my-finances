@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.application.account.AccountNotFoundException;
+import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.application.investmentproduct.InvestmentAccountRequiredException;
 import com.chm.myfinances.application.investmentproduct.InvestmentProductNotFoundException;
 import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
@@ -12,6 +14,7 @@ import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
+import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeHasHoldingHistoryChecker;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
@@ -42,6 +45,7 @@ class InvestmentHoldingServiceTest {
   private final LatestInvestmentSnapshotQuery latestSnapshotQuery =
       new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository);
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
+  private final FakeAuditLog auditLog = new FakeAuditLog();
   private final InvestmentHoldingService service =
       new InvestmentHoldingService(
           holdingRepository,
@@ -50,7 +54,8 @@ class InvestmentHoldingServiceTest {
           historyChecker,
           latestSnapshotQuery,
           idGenerator,
-          Clock.systemDefaultZone());
+          Clock.systemDefaultZone(),
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
   private final UUID xpAccountId =
       accountRepository.save(AccountMother.investment().withName("XP Test").build()).getId();
@@ -70,7 +75,8 @@ class InvestmentHoldingServiceTest {
             historyChecker,
             latestSnapshotQuery,
             new FakeIdGenerator(nextId),
-            Clock.systemDefaultZone());
+            Clock.systemDefaultZone(),
+            new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
     InvestmentHolding created = service.create(productId, xpAccountId, "bought via promo");
 
@@ -284,5 +290,40 @@ class InvestmentHoldingServiceTest {
   void hasHistoryOfUnknownIdThrowsNotFound() {
     assertThatThrownBy(() -> service.hasHistory(UUID.randomUUID()))
         .isInstanceOf(InvestmentHoldingNotFoundException.class);
+  }
+
+  @Test
+  void createRecordsACreateAuditEntry() {
+    InvestmentHolding created = service.create(productId, xpAccountId, null);
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.entityType())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditEntityType.INVESTMENT_HOLDING);
+    assertThat(entry.entityId()).isEqualTo(created.getId());
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.CREATE);
+  }
+
+  @Test
+  void closeRecordsACloseAuditEntry() {
+    InvestmentHolding created = service.create(productId, xpAccountId, null);
+    auditLog.entries().clear();
+
+    service.close(created.getId());
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.action()).isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.CLOSE);
+    assertThat(entry.changes()).containsKey("closedDate");
+  }
+
+  @Test
+  void deleteRecordsADeleteAuditEntry() {
+    InvestmentHolding created = service.create(productId, xpAccountId, null);
+    auditLog.entries().clear();
+
+    service.delete(created.getId());
+
+    assertThat(auditLog.onlyEntry().action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.DELETE);
   }
 }

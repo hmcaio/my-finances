@@ -4,7 +4,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -129,5 +131,19 @@ public final class RecurringTemplateVersion {
 
   public YearMonth getEffectiveFrom() {
     return effectiveFrom;
+  }
+
+  /**
+   * Flat snapshot of every persisted field (F025 spec, ADR 0022). Used to diff the previous vs. new
+   * effective version of this template - the logical entity the audit entry is recorded against
+   * (spec's Decisions: "versioned entities log as `UPDATE` on the logical entity").
+   */
+  public Map<String, Object> toAuditSnapshot() {
+    Map<String, Object> snapshot = new LinkedHashMap<>();
+    snapshot.put("templateId", templateId.toString());
+    snapshot.put("amount", amount);
+    snapshot.put("dayOfMonth", dayOfMonth);
+    snapshot.put("effectiveFrom", effectiveFrom.toString());
+    return snapshot;
   }
 }

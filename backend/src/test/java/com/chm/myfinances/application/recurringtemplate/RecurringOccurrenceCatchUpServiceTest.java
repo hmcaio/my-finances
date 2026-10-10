@@ -3,9 +3,15 @@ package com.chm.myfinances.application.recurringtemplate;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import ch.qos.logback.classic.Level;
+import com.chm.myfinances.application.auditlog.AuditAction;
+import com.chm.myfinances.application.auditlog.AuditEntityType;
+import com.chm.myfinances.application.auditlog.AuditOrigin;
+import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrence;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
 import com.chm.myfinances.testsupport.LogCapture;
+import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakePendingRecurringOccurrenceRepository;
 import com.chm.myfinances.testsupport.fakes.FakeRecurringTemplateRepository;
@@ -36,13 +42,15 @@ class RecurringOccurrenceCatchUpServiceTest {
   private final FakePendingRecurringOccurrenceRepository pendingRepository =
       new FakePendingRecurringOccurrenceRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
+  private final FakeAuditLog auditLog = new FakeAuditLog();
   private final RecurringOccurrenceCatchUpService service =
       new RecurringOccurrenceCatchUpService(
           templateRepository,
           versionRepository,
           pendingRepository,
           idGenerator,
-          Clock.systemDefaultZone());
+          Clock.systemDefaultZone(),
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
   private UUID categoryId;
   private UUID accountId;
@@ -259,6 +267,32 @@ class RecurringOccurrenceCatchUpServiceTest {
               event ->
                   assertThat(event.getFormattedMessage()).doesNotContain("Distinctive Landlord"));
     }
+  }
+
+  @Test
+  void recordsOneGeneratedSummaryEntryPerTemplatePerRunNotOnePerOccurrence() {
+    seedTemplate("Rent", YearMonth.of(2025, 11));
+
+    service.runCatchUp(LocalDate.of(2026, 3, 15));
+
+    assertThat(auditLog.entries()).hasSize(1);
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.entityType()).isEqualTo(AuditEntityType.RECURRING_TEMPLATE);
+    assertThat(entry.action()).isEqualTo(AuditAction.GENERATED);
+    assertThat(entry.origin()).isEqualTo(AuditOrigin.SYSTEM);
+    assertThat(entry.changes())
+        .containsKey("count")
+        .containsKey("firstDate")
+        .containsKey("lastDate");
+  }
+
+  @Test
+  void aRunThatGeneratesNothingRecordsNoAuditEntry() {
+    seedTemplate("Rent", YearMonth.of(2026, 3));
+
+    service.runCatchUp(LocalDate.of(2026, 3, 15));
+
+    assertThat(auditLog.entries()).isEmpty();
   }
 
   /**

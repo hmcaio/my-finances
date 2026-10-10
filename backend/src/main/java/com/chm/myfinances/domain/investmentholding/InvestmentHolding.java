@@ -2,6 +2,8 @@ package com.chm.myfinances.domain.investmentholding;
 
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -97,5 +99,15 @@ public final class InvestmentHolding {
   /** {@code null} when the holding carries no remark. */
   public String getAdditionalNotes() {
     return additionalNotes;
+  }
+
+  /** Flat snapshot of every persisted field (F025 spec, ADR 0022). */
+  public Map<String, Object> toAuditSnapshot() {
+    Map<String, Object> snapshot = new LinkedHashMap<>();
+    snapshot.put("productId", productId.toString());
+    snapshot.put("accountId", accountId.toString());
+    snapshot.put("closedDate", closedDate == null ? null : closedDate.toString());
+    snapshot.put("additionalNotes", additionalNotes);
+    return snapshot;
   }
 }

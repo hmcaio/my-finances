@@ -3,9 +3,12 @@ package com.chm.myfinances.application.category;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
+import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeBudgetRepository;
 import com.chm.myfinances.testsupport.fakes.FakeCategoryRepository;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
@@ -38,13 +41,15 @@ class CategoryServiceTest {
       new FakeRecurringTemplateRepository();
   private final FakeTransactionRepository transactionRepository = new FakeTransactionRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
+  private final FakeAuditLog auditLog = new FakeAuditLog();
   private final CategoryService service =
       new CategoryService(
           repository,
           budgetRepository,
           recurringTemplateRepository,
           transactionRepository,
-          idGenerator);
+          idGenerator,
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
   @Test
   void createAssignsIdFromIdGeneratorAndPersists() {
@@ -55,7 +60,8 @@ class CategoryServiceTest {
             budgetRepository,
             recurringTemplateRepository,
             transactionRepository,
-            new FakeIdGenerator(nextId));
+            new FakeIdGenerator(nextId),
+            new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
     Category created = service.create("Groceries", CategoryType.EXPENSE);
 
@@ -263,5 +269,44 @@ class CategoryServiceTest {
     assertThatThrownBy(() -> service.delete(created.getId()))
         .isInstanceOf(CategoryInUseException.class);
     assertThat(repository.findById(created.getId())).isPresent();
+  }
+
+  @Test
+  void createRecordsACreateAuditEntry() {
+    Category created = service.create("Groceries", CategoryType.EXPENSE);
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.entityType())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditEntityType.CATEGORY);
+    assertThat(entry.entityId()).isEqualTo(created.getId());
+    assertThat(entry.entityLabel()).isEqualTo("Groceries");
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.CREATE);
+  }
+
+  @Test
+  void renameRecordsAnUpdateAuditEntry() {
+    Category created = service.create("Groceries", CategoryType.EXPENSE);
+    auditLog.entries().clear();
+
+    service.rename(created.getId(), "Supermarket");
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.UPDATE);
+    assertThat(entry.changes()).containsKey("name");
+  }
+
+  @Test
+  void deleteRecordsADeleteAuditEntry() {
+    Category created = service.create("Groceries", CategoryType.EXPENSE);
+    auditLog.entries().clear();
+
+    service.delete(created.getId());
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.DELETE);
+    assertThat(entry.entityLabel()).isEqualTo("Groceries");
   }
 }

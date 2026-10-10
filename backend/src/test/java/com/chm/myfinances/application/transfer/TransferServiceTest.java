@@ -4,6 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.application.account.AccountNotFoundException;
+import com.chm.myfinances.application.auditlog.AuditAction;
+import com.chm.myfinances.application.auditlog.AuditEntityType;
+import com.chm.myfinances.application.auditlog.AuditOrigin;
+import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingService;
 import com.chm.myfinances.application.investmentsnapshot.InvestmentSnapshotService;
 import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
@@ -13,6 +18,7 @@ import com.chm.myfinances.domain.transfer.TradeSide;
 import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.domain.transfer.TransferFilter;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
+import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
@@ -44,6 +50,7 @@ class TransferServiceTest {
   private final FakeInvestmentProductRepository productRepository =
       new FakeInvestmentProductRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
+  private final FakeAuditLog auditLog = new FakeAuditLog();
   private final TransferService service = serviceWith(idGenerator);
 
   private TransferService serviceWith(FakeIdGenerator generator) {
@@ -52,7 +59,11 @@ class TransferServiceTest {
         transferRepository,
         accountRepository,
         holdingRepository,
-        new InvestmentSnapshotService(snapshotRepository, holdingRepository, generator),
+        new InvestmentSnapshotService(
+            snapshotRepository,
+            holdingRepository,
+            generator,
+            new AuditRecorder(auditLog, AuditReferenceLabels.none())),
         new InvestmentHoldingService(
             holdingRepository,
             productRepository,
@@ -60,8 +71,10 @@ class TransferServiceTest {
             id -> false,
             new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository),
             generator,
-            Clock.systemUTC()),
-        generator);
+            Clock.systemUTC(),
+            new AuditRecorder(auditLog, AuditReferenceLabels.none())),
+        generator,
+        new AuditRecorder(auditLog, AuditReferenceLabels.none()));
   }
 
   private Account checking;
@@ -354,5 +367,59 @@ class TransferServiceTest {
                 TransferService.requireExactlyOneRequestShape(
                     null, null, null, UUID.randomUUID(), UUID.randomUUID(), List.of()))
         .isInstanceOf(InvalidTradeConfirmationException.class);
+  }
+
+  @Test
+  void createRecordsACreateAuditEntry() {
+    Transfer created =
+        service.create(
+            LocalDate.of(2026, 3, 15),
+            checking.getId(),
+            savings.getId(),
+            new BigDecimal("42.50"),
+            "Move to savings",
+            null);
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.entityType()).isEqualTo(AuditEntityType.TRANSFER);
+    assertThat(entry.entityId()).isEqualTo(created.getId());
+    assertThat(entry.entityLabel()).isEqualTo("Move to savings");
+    assertThat(entry.action()).isEqualTo(AuditAction.CREATE);
+    assertThat(entry.origin()).isEqualTo(AuditOrigin.USER);
+  }
+
+  @Test
+  void editRecordsAnUpdateAuditEntry() {
+    Transfer created =
+        service.create(
+            LocalDate.now(), checking.getId(), savings.getId(), BigDecimal.TEN, "Move", null);
+    auditLog.entries().clear();
+
+    service.edit(
+        created.getId(),
+        LocalDate.now(),
+        checking.getId(),
+        savings.getId(),
+        new BigDecimal("20"),
+        "Move",
+        null);
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.action()).isEqualTo(AuditAction.UPDATE);
+    assertThat(entry.changes()).containsKey("amount");
+  }
+
+  @Test
+  void deleteRecordsADeleteAuditEntry() {
+    Transfer created =
+        service.create(
+            LocalDate.now(), checking.getId(), savings.getId(), BigDecimal.TEN, "Move", null);
+    auditLog.entries().clear();
+
+    service.delete(created.getId());
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.action()).isEqualTo(AuditAction.DELETE);
+    assertThat(entry.entityLabel()).isEqualTo("Move");
   }
 }

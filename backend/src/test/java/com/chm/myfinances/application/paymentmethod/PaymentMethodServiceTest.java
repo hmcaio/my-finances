@@ -3,7 +3,10 @@ package com.chm.myfinances.application.paymentmethod;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
+import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakePaymentMethodRepository;
 import com.chm.myfinances.testsupport.fakes.FakeTransactionRepository;
@@ -24,14 +27,23 @@ class PaymentMethodServiceTest {
   private final FakePaymentMethodRepository repository = new FakePaymentMethodRepository();
   private final FakeTransactionRepository transactionRepository = new FakeTransactionRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
+  private final FakeAuditLog auditLog = new FakeAuditLog();
   private final PaymentMethodService service =
-      new PaymentMethodService(repository, transactionRepository, idGenerator);
+      new PaymentMethodService(
+          repository,
+          transactionRepository,
+          idGenerator,
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
   @Test
   void createAssignsIdFromIdGeneratorAndPersists() {
     UUID nextId = UUID.randomUUID();
     PaymentMethodService service =
-        new PaymentMethodService(repository, transactionRepository, new FakeIdGenerator(nextId));
+        new PaymentMethodService(
+            repository,
+            transactionRepository,
+            new FakeIdGenerator(nextId),
+            new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
     PaymentMethod created = service.create("Debit Card");
 
@@ -123,5 +135,38 @@ class PaymentMethodServiceTest {
     assertThatThrownBy(() -> service.delete(created.getId()))
         .isInstanceOf(PaymentMethodInUseException.class);
     assertThat(repository.findById(created.getId())).isPresent();
+  }
+
+  @Test
+  void createRecordsACreateAuditEntry() {
+    PaymentMethod created = service.create("Debit Card");
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.entityId()).isEqualTo(created.getId());
+    assertThat(entry.entityLabel()).isEqualTo("Debit Card");
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.CREATE);
+  }
+
+  @Test
+  void renameRecordsAnUpdateAuditEntry() {
+    PaymentMethod created = service.create("Debit Card");
+    auditLog.entries().clear();
+
+    service.rename(created.getId(), "Debit");
+
+    assertThat(auditLog.onlyEntry().action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.UPDATE);
+  }
+
+  @Test
+  void deleteRecordsADeleteAuditEntry() {
+    PaymentMethod created = service.create("Debit Card");
+    auditLog.entries().clear();
+
+    service.delete(created.getId());
+
+    assertThat(auditLog.onlyEntry().action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.DELETE);
   }
 }

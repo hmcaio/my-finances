@@ -1,5 +1,7 @@
 package com.chm.myfinances.application.investmentproduct;
 
+import com.chm.myfinances.application.auditlog.AuditEntityType;
+import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.application.investmentcategory.InvestmentCategoryNotFoundException;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingService;
 import com.chm.myfinances.application.investmentsegment.InvestmentSegmentNotFoundException;
@@ -15,6 +17,7 @@ import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategoryRepo
 import com.chm.myfinances.domain.shared.IdGenerator;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -48,6 +51,7 @@ public class InvestmentProductService {
   private final InvestmentHoldingRepository holdingRepository;
   private final InvestmentHoldingService holdingService;
   private final IdGenerator idGenerator;
+  private final AuditRecorder auditRecorder;
 
   public InvestmentProductService(
       InvestmentProductRepository productRepository,
@@ -56,7 +60,8 @@ public class InvestmentProductService {
       InvestmentSegmentRepository segmentRepository,
       InvestmentHoldingRepository holdingRepository,
       InvestmentHoldingService holdingService,
-      IdGenerator idGenerator) {
+      IdGenerator idGenerator,
+      AuditRecorder auditRecorder) {
     this.productRepository = productRepository;
     this.categoryRepository = categoryRepository;
     this.subcategoryRepository = subcategoryRepository;
@@ -64,6 +69,7 @@ public class InvestmentProductService {
     this.holdingRepository = holdingRepository;
     this.holdingService = holdingService;
     this.idGenerator = idGenerator;
+    this.auditRecorder = auditRecorder;
   }
 
   /**
@@ -122,6 +128,11 @@ public class InvestmentProductService {
                 additionalNotes,
                 ticker,
                 segmentId));
+    auditRecorder.recordCreate(
+        AuditEntityType.INVESTMENT_PRODUCT,
+        product.getId(),
+        product.getName(),
+        product.toAuditSnapshot());
     holdingService.create(product.getId(), accountId, null);
     return product;
   }
@@ -208,6 +219,7 @@ public class InvestmentProductService {
    * Full-replace edit (with no ticker/segment). See the 7-argument overload (F026) for the full
    * behavior; other callers keep using this shorter form.
    */
+  @Transactional
   public InvestmentProduct edit(
       UUID id,
       UUID investmentCategoryId,
@@ -222,6 +234,7 @@ public class InvestmentProductService {
    * Full-replace edit including {@code ticker}/{@code segmentId} (F026) - the overload the
    * controller calls.
    */
+  @Transactional
   public InvestmentProduct edit(
       UUID id,
       UUID investmentCategoryId,
@@ -231,6 +244,7 @@ public class InvestmentProductService {
       String ticker,
       UUID segmentId) {
     InvestmentProduct product = findById(id);
+    Map<String, Object> before = product.toAuditSnapshot();
     requireValidCategoryReferences(investmentCategoryId, investmentSubcategoryId);
     requireValidSegmentReference(segmentId);
     if (productRepository.existsByNameAndIdNot(name, id)) {
@@ -238,19 +252,32 @@ public class InvestmentProductService {
     }
     product.edit(
         investmentCategoryId, investmentSubcategoryId, name, additionalNotes, ticker, segmentId);
-    return productRepository.save(product);
+    InvestmentProduct saved = productRepository.save(product);
+    auditRecorder.recordUpdate(
+        AuditEntityType.INVESTMENT_PRODUCT,
+        saved.getId(),
+        saved.getName(),
+        before,
+        saved.toAuditSnapshot());
+    return saved;
   }
 
   /**
    * Hard-deletes a product only while it has zero holdings (F022 spec) - even a closed, empty
    * holding still counts and must be removed first.
    */
+  @Transactional
   public void delete(UUID id) {
-    findById(id);
+    InvestmentProduct product = findById(id);
     if (holdingRepository.existsByProductId(id)) {
       throw new InvestmentProductHasHoldingsException(id);
     }
     productRepository.deleteById(id);
+    auditRecorder.recordDelete(
+        AuditEntityType.INVESTMENT_PRODUCT,
+        product.getId(),
+        product.getName(),
+        product.toAuditSnapshot());
   }
 
   private void requireValidCategoryReferences(

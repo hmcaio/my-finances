@@ -3,9 +3,12 @@ package com.chm.myfinances.application.investmentsnapshot;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingNotFoundException;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
+import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
@@ -30,8 +33,13 @@ class InvestmentSnapshotServiceTest {
   private final FakeInvestmentHoldingRepository holdingRepository =
       new FakeInvestmentHoldingRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
+  private final FakeAuditLog auditLog = new FakeAuditLog();
   private final InvestmentSnapshotService service =
-      new InvestmentSnapshotService(snapshotRepository, holdingRepository, idGenerator);
+      new InvestmentSnapshotService(
+          snapshotRepository,
+          holdingRepository,
+          idGenerator,
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
   private InvestmentHolding holding;
 
@@ -45,7 +53,10 @@ class InvestmentSnapshotServiceTest {
     UUID nextId = UUID.randomUUID();
     InvestmentSnapshotService service =
         new InvestmentSnapshotService(
-            snapshotRepository, holdingRepository, new FakeIdGenerator(nextId));
+            snapshotRepository,
+            holdingRepository,
+            new FakeIdGenerator(nextId),
+            new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
     RecordedSnapshot recorded =
         service.record(holding.getId(), LocalDate.of(2026, 3, 31), new BigDecimal("1234.56"));
@@ -310,5 +321,59 @@ class InvestmentSnapshotServiceTest {
     service.delete(closed.getId(), zero.getId());
 
     assertThat(snapshotRepository.findByHoldingId(closed.getId())).isEmpty();
+  }
+
+  @Test
+  void recordRecordsACreateAuditEntryOnFirstInsert() {
+    RecordedSnapshot recorded =
+        service.record(holding.getId(), LocalDate.of(2026, 3, 31), new BigDecimal("1234.56"));
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.entityType())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditEntityType.INVESTMENT_SNAPSHOT);
+    assertThat(entry.entityId()).isEqualTo(recorded.snapshot().getId());
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.CREATE);
+  }
+
+  @Test
+  void recordRecordsAnUpdateAuditEntryOnSameDayReplace() {
+    service.record(holding.getId(), LocalDate.of(2026, 3, 31), new BigDecimal("1000.00"));
+    auditLog.entries().clear();
+
+    service.record(holding.getId(), LocalDate.of(2026, 3, 31), new BigDecimal("1200.00"));
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.UPDATE);
+    assertThat(entry.changes()).containsKey("balance");
+  }
+
+  @Test
+  void updateRecordsAnUpdateAuditEntry() {
+    InvestmentSnapshot created =
+        service
+            .record(holding.getId(), LocalDate.of(2026, 3, 31), new BigDecimal("1000.00"))
+            .snapshot();
+    auditLog.entries().clear();
+
+    service.update(holding.getId(), created.getId(), LocalDate.of(2026, 4, 1), BigDecimal.TEN);
+
+    assertThat(auditLog.onlyEntry().action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.UPDATE);
+  }
+
+  @Test
+  void deleteRecordsADeleteAuditEntry() {
+    InvestmentSnapshot created =
+        service
+            .record(holding.getId(), LocalDate.of(2026, 3, 31), new BigDecimal("1000.00"))
+            .snapshot();
+    auditLog.entries().clear();
+
+    service.delete(holding.getId(), created.getId());
+
+    assertThat(auditLog.onlyEntry().action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.DELETE);
   }
 }

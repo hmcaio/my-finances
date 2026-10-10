@@ -1,6 +1,8 @@
 package com.chm.myfinances.application.transaction;
 
 import com.chm.myfinances.application.account.AccountNotFoundException;
+import com.chm.myfinances.application.auditlog.AuditEntityType;
+import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.application.category.CategoryNotFoundException;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingNotFoundException;
 import com.chm.myfinances.application.paymentmethod.PaymentMethodNotFoundException;
@@ -21,16 +23,27 @@ import com.chm.myfinances.domain.vehicle.VehicleRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use cases for {@link Transaction}: create/edit/delete/findById/findAll (F004 spec). New ids come
  * from the {@link IdGenerator} port (ADR 0005). {@code type} is always derived from the target
  * category's own (immutable, F002) type - never accepted as caller input - so it can never drift
  * from the category it's denormalized from.
+ *
+ * <p>F025 (ADR 0022) made every create/edit/delete overload {@code @Transactional}: each now
+ * performs two writes (the business change, then the audit entry) that must commit or roll back
+ * together, same multi-write reasoning as every other instrumented use case in this codebase. Every
+ * overload carries its own annotation rather than just the "final" one each other delegates to via
+ * self-invocation, which bypasses the Spring proxy (backend {@code CLAUDE.md}'s "Transactions"
+ * section) - so whichever overload an external caller actually hits (the controller's 10-argument
+ * {@code create}/{@code edit}, {@code RecurringTemplateService}'s 8-argument {@code create}) is
+ * itself the one the proxy intercepts.
  *
  * <p>Coordinates across four other aggregates' repository ports (category, account, payment method,
  * vehicle) to validate foreign references exist and, for account, is open - this is ordinary
@@ -59,6 +72,7 @@ public class TransactionService {
   private final VehicleRepository vehicleRepository;
   private final InvestmentHoldingRepository investmentHoldingRepository;
   private final IdGenerator idGenerator;
+  private final AuditRecorder auditRecorder;
 
   public TransactionService(
       TransactionRepository transactionRepository,
@@ -67,7 +81,8 @@ public class TransactionService {
       PaymentMethodRepository paymentMethodRepository,
       VehicleRepository vehicleRepository,
       InvestmentHoldingRepository investmentHoldingRepository,
-      IdGenerator idGenerator) {
+      IdGenerator idGenerator,
+      AuditRecorder auditRecorder) {
     this.transactionRepository = transactionRepository;
     this.categoryRepository = categoryRepository;
     this.accountRepository = accountRepository;
@@ -75,8 +90,10 @@ public class TransactionService {
     this.vehicleRepository = vehicleRepository;
     this.investmentHoldingRepository = investmentHoldingRepository;
     this.idGenerator = idGenerator;
+    this.auditRecorder = auditRecorder;
   }
 
+  @Transactional
   public Transaction create(
       LocalDate date,
       BigDecimal amount,
@@ -97,6 +114,7 @@ public class TransactionService {
    * overload instead of duplicating category/account/payment-method validation. Never carries fuel
    * details.
    */
+  @Transactional
   public Transaction create(
       LocalDate date,
       BigDecimal amount,
@@ -122,6 +140,7 @@ public class TransactionService {
    * Same as the 9-argument overload, but with no {@code investmentHoldingId} (F026). Most existing
    * callers never set one.
    */
+  @Transactional
   public Transaction create(
       LocalDate date,
       BigDecimal amount,
@@ -152,6 +171,7 @@ public class TransactionService {
    * independently - fuel and dividend are two separate categories, never both at once in practice,
    * but nothing here assumes that.
    */
+  @Transactional
   public Transaction create(
       LocalDate date,
       BigDecimal amount,
@@ -183,7 +203,13 @@ public class TransactionService {
             additionalNotes,
             fuelDetails,
             investmentHoldingId);
-    return transactionRepository.save(transaction);
+    Transaction saved = transactionRepository.save(transaction);
+    auditRecorder.recordCreate(
+        AuditEntityType.TRANSACTION,
+        saved.getId(),
+        saved.getDescription(),
+        saved.toAuditSnapshot());
+    return saved;
   }
 
   public Transaction findById(UUID id) {
@@ -205,6 +231,7 @@ public class TransactionService {
     return transactionRepository.findByVehicleId(vehicleId, from, to);
   }
 
+  @Transactional
   public Transaction edit(
       UUID id,
       LocalDate date,
@@ -230,6 +257,7 @@ public class TransactionService {
    * Same as the 10-argument overload, but with no {@code investmentHoldingId} (F026) - clears any
    * previously recorded one.
    */
+  @Transactional
   public Transaction edit(
       UUID id,
       LocalDate date,
@@ -257,6 +285,7 @@ public class TransactionService {
    * Full-replace edit including {@code fuelDetails} (F024) and/or {@code investmentHoldingId}
    * (F026) - the overload the controller calls.
    */
+  @Transactional
   public Transaction edit(
       UUID id,
       LocalDate date,
@@ -269,6 +298,7 @@ public class TransactionService {
       FuelDetails fuelDetails,
       UUID investmentHoldingId) {
     Transaction transaction = findById(id);
+    Map<String, Object> before = transaction.toAuditSnapshot();
     Category category = requireCategory(categoryId);
     Account account = requireOpenAccount(accountId);
     requirePaymentMethod(paymentMethodId);
@@ -286,14 +316,25 @@ public class TransactionService {
         additionalNotes,
         fuelDetails,
         investmentHoldingId);
-    return transactionRepository.save(transaction);
+    Transaction saved = transactionRepository.save(transaction);
+    auditRecorder.recordUpdate(
+        AuditEntityType.TRANSACTION,
+        saved.getId(),
+        saved.getDescription(),
+        before,
+        saved.toAuditSnapshot());
+    return saved;
   }
 
+  @Transactional
   public void delete(UUID id) {
-    if (!transactionRepository.existsById(id)) {
-      throw new TransactionNotFoundException(id);
-    }
+    Transaction transaction = findById(id);
     transactionRepository.deleteById(id);
+    auditRecorder.recordDelete(
+        AuditEntityType.TRANSACTION,
+        transaction.getId(),
+        transaction.getDescription(),
+        transaction.toAuditSnapshot());
   }
 
   private Category requireCategory(UUID categoryId) {

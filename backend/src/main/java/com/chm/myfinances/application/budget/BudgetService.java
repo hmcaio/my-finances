@@ -1,5 +1,9 @@
 package com.chm.myfinances.application.budget;
 
+import com.chm.myfinances.application.auditlog.AuditAction;
+import com.chm.myfinances.application.auditlog.AuditEntityType;
+import com.chm.myfinances.application.auditlog.AuditOrigin;
+import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.application.category.CategoryNotFoundException;
 import com.chm.myfinances.domain.budget.Budget;
 import com.chm.myfinances.domain.budget.BudgetRepository;
@@ -12,6 +16,7 @@ import com.chm.myfinances.domain.shared.IdGenerator;
 import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -38,16 +43,19 @@ public class BudgetService {
   private final BudgetVersionRepository budgetVersionRepository;
   private final CategoryRepository categoryRepository;
   private final IdGenerator idGenerator;
+  private final AuditRecorder auditRecorder;
 
   public BudgetService(
       BudgetRepository budgetRepository,
       BudgetVersionRepository budgetVersionRepository,
       CategoryRepository categoryRepository,
-      IdGenerator idGenerator) {
+      IdGenerator idGenerator,
+      AuditRecorder auditRecorder) {
     this.budgetRepository = budgetRepository;
     this.budgetVersionRepository = budgetVersionRepository;
     this.categoryRepository = categoryRepository;
     this.idGenerator = idGenerator;
+    this.auditRecorder = auditRecorder;
   }
 
   /**
@@ -73,8 +81,11 @@ public class BudgetService {
     }
 
     Budget budget = budgetRepository.save(Budget.create(idGenerator.newId(), categoryId));
-    budgetVersionRepository.save(
-        BudgetVersion.create(idGenerator.newId(), budget.getId(), monthlyCap, effectiveFrom));
+    BudgetVersion version =
+        budgetVersionRepository.save(
+            BudgetVersion.create(idGenerator.newId(), budget.getId(), monthlyCap, effectiveFrom));
+    auditRecorder.recordCreate(
+        AuditEntityType.BUDGET, budget.getId(), null, version.toAuditSnapshot());
     return budget;
   }
 
@@ -92,8 +103,14 @@ public class BudgetService {
    * correction), otherwise creates a brand-new forward-only version - versioning is otherwise never
    * rewritten (PRD S5.6).
    */
+  @Transactional
   public BudgetVersion setCap(UUID budgetId, BigDecimal monthlyCap, YearMonth effectiveFrom) {
     Budget budget = findById(budgetId);
+    List<BudgetVersion> versionsBeforeEdit = budgetVersionRepository.findByBudgetId(budget.getId());
+    Map<String, Object> before =
+        BudgetVersion.resolveEffective(versionsBeforeEdit, effectiveFrom)
+            .map(BudgetVersion::toAuditSnapshot)
+            .orElse(Map.of());
     Optional<BudgetVersion> existing =
         budgetVersionRepository.findByBudgetIdAndEffectiveFrom(budget.getId(), effectiveFrom);
     if (existing.isPresent()) {
@@ -101,12 +118,16 @@ public class BudgetService {
       version.updateCap(monthlyCap);
       BudgetVersion replaced = budgetVersionRepository.save(version);
       log.info("Budget {}: version effective {} replaced", budget.getId(), effectiveFrom);
+      auditRecorder.recordUpdate(
+          AuditEntityType.BUDGET, budget.getId(), null, before, replaced.toAuditSnapshot());
       return replaced;
     }
     BudgetVersion version =
         BudgetVersion.create(idGenerator.newId(), budget.getId(), monthlyCap, effectiveFrom);
     BudgetVersion saved = budgetVersionRepository.save(version);
     log.info("Budget {}: new version effective {}", budget.getId(), effectiveFrom);
+    auditRecorder.recordUpdate(
+        AuditEntityType.BUDGET, budget.getId(), null, before, saved.toAuditSnapshot());
     return saved;
   }
 
@@ -117,6 +138,7 @@ public class BudgetService {
    * effective tombstone) when the budget is already stopped as of that month, so repeated stops
    * never pile up redundant tombstones.
    */
+  @Transactional
   public BudgetVersion stop(UUID budgetId, YearMonth effectiveFrom) {
     Budget budget = findById(budgetId);
     Optional<BudgetVersion> effective =
@@ -125,6 +147,7 @@ public class BudgetService {
     if (effective.isPresent() && effective.get().isTombstone()) {
       return effective.get();
     }
+    Map<String, Object> before = effective.map(BudgetVersion::toAuditSnapshot).orElse(Map.of());
     Optional<BudgetVersion> existing =
         budgetVersionRepository.findByBudgetIdAndEffectiveFrom(budget.getId(), effectiveFrom);
     BudgetVersion tombstone;
@@ -136,6 +159,14 @@ public class BudgetService {
     }
     BudgetVersion saved = budgetVersionRepository.save(tombstone);
     log.info("Budget {}: stopped effective {}", budget.getId(), effectiveFrom);
+    auditRecorder.recordAction(
+        AuditEntityType.BUDGET,
+        budget.getId(),
+        null,
+        AuditAction.STOPPED,
+        before,
+        saved.toAuditSnapshot(),
+        AuditOrigin.USER);
     return saved;
   }
 }

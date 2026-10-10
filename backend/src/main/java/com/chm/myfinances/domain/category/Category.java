@@ -1,6 +1,8 @@
 package com.chm.myfinances.domain.category;
 
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -129,5 +131,19 @@ public final class Category {
    */
   public boolean isDividendCategory() {
     return dividendCategory;
+  }
+
+  /**
+   * Flat snapshot of every persisted field (F025 spec, ADR 0022), used to compute a before/after
+   * diff for the audit log.
+   */
+  public Map<String, Object> toAuditSnapshot() {
+    Map<String, Object> snapshot = new LinkedHashMap<>();
+    snapshot.put("name", name);
+    snapshot.put("type", type.name());
+    snapshot.put("builtIn", builtIn);
+    snapshot.put("fuelCategory", fuelCategory);
+    snapshot.put("dividendCategory", dividendCategory);
+    return snapshot;
   }
 }

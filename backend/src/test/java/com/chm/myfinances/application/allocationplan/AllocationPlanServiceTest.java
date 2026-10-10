@@ -3,6 +3,8 @@ package com.chm.myfinances.application.allocationplan;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.application.investmentproduct.InvestmentProductNotFoundException;
 import com.chm.myfinances.domain.allocationplan.AllocationPlanEntry;
 import com.chm.myfinances.domain.allocationplan.AllocationPlanVersion;
@@ -10,6 +12,7 @@ import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
 import com.chm.myfinances.testsupport.fakes.FakeAllocationPlanRepository;
 import com.chm.myfinances.testsupport.fakes.FakeAllocationPlanVersionRepository;
+import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSubcategoryRepository;
@@ -39,9 +42,15 @@ class AllocationPlanServiceTest {
   private final FakeInvestmentSubcategoryRepository subcategoryRepository =
       new FakeInvestmentSubcategoryRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
+  private final FakeAuditLog auditLog = new FakeAuditLog();
   private final AllocationPlanService service =
       new AllocationPlanService(
-          planRepository, versionRepository, productRepository, subcategoryRepository, idGenerator);
+          planRepository,
+          versionRepository,
+          productRepository,
+          subcategoryRepository,
+          idGenerator,
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
   private UUID fiiId;
   private UUID knri11Id;
@@ -183,5 +192,30 @@ class AllocationPlanServiceTest {
   @Test
   void findVersionsReturnsEmptyWhenNoAllocationHasEverBeenSet() {
     assertThat(service.findVersions()).isEmpty();
+  }
+
+  @Test
+  void setAllocationOnFirstUseRecordsAnUpdateAuditEntryWithTheEntries() {
+    service.setAllocation(List.of(entry(knri11Id, "100.00")), YearMonth.of(2026, 3));
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.entityType())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditEntityType.ALLOCATION_PLAN);
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.UPDATE);
+    assertThat(entry.changes()).containsKey("entries");
+  }
+
+  @Test
+  void setAllocationForANewMonthRecordsAnotherUpdateAuditEntry() {
+    service.setAllocation(List.of(entry(knri11Id, "100.00")), YearMonth.of(2026, 1));
+    auditLog.entries().clear();
+
+    service.setAllocation(List.of(entry(hglg11Id, "100.00")), YearMonth.of(2026, 6));
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.UPDATE);
+    assertThat(entry.changes()).containsKey("entries");
   }
 }

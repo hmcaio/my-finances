@@ -1,5 +1,7 @@
 package com.chm.myfinances.application.allocationplan;
 
+import com.chm.myfinances.application.auditlog.AuditEntityType;
+import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.application.investmentproduct.InvestmentProductNotFoundException;
 import com.chm.myfinances.domain.allocationplan.AllocationPlan;
 import com.chm.myfinances.domain.allocationplan.AllocationPlanEntry;
@@ -15,6 +17,7 @@ import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -56,18 +59,21 @@ public class AllocationPlanService {
   private final InvestmentProductRepository productRepository;
   private final InvestmentSubcategoryRepository subcategoryRepository;
   private final IdGenerator idGenerator;
+  private final AuditRecorder auditRecorder;
 
   public AllocationPlanService(
       AllocationPlanRepository planRepository,
       AllocationPlanVersionRepository versionRepository,
       InvestmentProductRepository productRepository,
       InvestmentSubcategoryRepository subcategoryRepository,
-      IdGenerator idGenerator) {
+      IdGenerator idGenerator,
+      AuditRecorder auditRecorder) {
     this.planRepository = planRepository;
     this.versionRepository = versionRepository;
     this.productRepository = productRepository;
     this.subcategoryRepository = subcategoryRepository;
     this.idGenerator = idGenerator;
+    this.auditRecorder = auditRecorder;
   }
 
   /** The version effective for {@code month}, or empty if no allocation has ever been set. */
@@ -101,6 +107,11 @@ public class AllocationPlanService {
             .findFirst()
             .orElseGet(() -> planRepository.save(AllocationPlan.create(idGenerator.newId())));
 
+    Map<String, Object> before =
+        AllocationPlanVersion.resolveEffective(
+                versionRepository.findByPlanId(plan.getId()), effectiveFrom)
+            .map(AllocationPlanVersion::toAuditSnapshot)
+            .orElse(Map.of());
     Optional<AllocationPlanVersion> existing =
         versionRepository.findByPlanIdAndEffectiveFrom(plan.getId(), effectiveFrom);
     if (existing.isPresent()) {
@@ -108,12 +119,16 @@ public class AllocationPlanService {
       version.updateEntries(entries);
       AllocationPlanVersion replaced = versionRepository.save(version);
       log.info("Allocation plan {}: version effective {} replaced", plan.getId(), effectiveFrom);
+      auditRecorder.recordUpdate(
+          AuditEntityType.ALLOCATION_PLAN, plan.getId(), null, before, replaced.toAuditSnapshot());
       return replaced;
     }
     AllocationPlanVersion version =
         AllocationPlanVersion.create(idGenerator.newId(), plan.getId(), entries, effectiveFrom);
     AllocationPlanVersion saved = versionRepository.save(version);
     log.info("Allocation plan {}: new version effective {}", plan.getId(), effectiveFrom);
+    auditRecorder.recordUpdate(
+        AuditEntityType.ALLOCATION_PLAN, plan.getId(), null, before, saved.toAuditSnapshot());
     return saved;
   }
 

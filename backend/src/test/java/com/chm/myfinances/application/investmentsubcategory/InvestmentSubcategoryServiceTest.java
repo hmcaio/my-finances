@@ -3,9 +3,12 @@ package com.chm.myfinances.application.investmentsubcategory;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.chm.myfinances.application.auditlog.AuditRecorder;
+import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.application.investmentcategory.InvestmentCategoryNotFoundException;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
+import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentCategoryRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
@@ -27,9 +30,14 @@ class InvestmentSubcategoryServiceTest {
       new FakeInvestmentSubcategoryRepository();
   private final FakeInvestmentProductRepository productRepository =
       new FakeInvestmentProductRepository();
+  private final FakeAuditLog auditLog = new FakeAuditLog();
   private final InvestmentSubcategoryService service =
       new InvestmentSubcategoryService(
-          subcategoryRepository, categoryRepository, productRepository, new FakeIdGenerator());
+          subcategoryRepository,
+          categoryRepository,
+          productRepository,
+          new FakeIdGenerator(),
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
   private final UUID fixedIncomeId =
       categoryRepository
@@ -48,7 +56,8 @@ class InvestmentSubcategoryServiceTest {
             subcategoryRepository,
             categoryRepository,
             productRepository,
-            new FakeIdGenerator(nextId));
+            new FakeIdGenerator(nextId),
+            new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
     InvestmentSubcategory created = service.create(fixedIncomeId, "CDB");
 
@@ -144,5 +153,38 @@ class InvestmentSubcategoryServiceTest {
     assertThatThrownBy(() -> service.delete(created.getId()))
         .isInstanceOf(InvestmentSubcategoryInUseException.class);
     assertThat(subcategoryRepository.findById(created.getId())).isPresent();
+  }
+
+  @Test
+  void createRecordsACreateAuditEntry() {
+    InvestmentSubcategory created = service.create(fixedIncomeId, "CDB");
+
+    var entry = auditLog.onlyEntry();
+    assertThat(entry.entityId()).isEqualTo(created.getId());
+    assertThat(entry.entityLabel()).isEqualTo("CDB");
+    assertThat(entry.action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.CREATE);
+  }
+
+  @Test
+  void renameRecordsAnUpdateAuditEntry() {
+    InvestmentSubcategory created = service.create(fixedIncomeId, "CDB");
+    auditLog.entries().clear();
+
+    service.rename(created.getId(), "CDB/RDB");
+
+    assertThat(auditLog.onlyEntry().action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.UPDATE);
+  }
+
+  @Test
+  void deleteRecordsADeleteAuditEntry() {
+    InvestmentSubcategory created = service.create(fixedIncomeId, "CDB");
+    auditLog.entries().clear();
+
+    service.delete(created.getId());
+
+    assertThat(auditLog.onlyEntry().action())
+        .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.DELETE);
   }
 }

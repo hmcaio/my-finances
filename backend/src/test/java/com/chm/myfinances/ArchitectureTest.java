@@ -6,6 +6,8 @@ import static com.tngtech.archunit.lang.conditions.ArchConditions.callMethod;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
+import com.chm.myfinances.application.auditlog.AuditLog;
+import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.infrastructure.config.RandomUuidGenerator;
@@ -14,6 +16,7 @@ import com.chm.myfinances.infrastructure.web.GlobalExceptionHandler;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.Dependency;
 import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
@@ -22,7 +25,10 @@ import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 import jakarta.persistence.Entity;
+import java.util.Set;
 import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -173,6 +179,72 @@ class ArchitectureTest {
           .resideInAPackage(DOMAIN_PACKAGE + "..")
           .should()
           .dependOnClassesThat(FORBIDDEN_FRAMEWORK_DEPENDENCY);
+
+  /**
+   * "Every public method of an application command service that is {@code @Transactional} and not
+   * read-only must be in a class that depends on {@code AuditLog}/{@code AuditRecorder}" (F025
+   * spec/plan.md, ADR 0022). Checked at the class level (does the class depend on either type
+   * anywhere), not per-method, since one shared {@link AuditRecorder} field serves every write
+   * method in a service. Empty as of PR2 (F025 plan.md): every {@code @Transactional} write use
+   * case in the application layer now depends on {@link AuditRecorder}.
+   *
+   * <p>{@code @Transactional(readOnly = true)} ({@code DataExportService}, which only reads) is
+   * deliberately excluded by {@link #hasATransactionalWriteMethod()} - it performs no write at all,
+   * so it has nothing to audit.
+   */
+  private static final Set<String> AUDIT_LOG_ALLOWLIST = Set.of();
+
+  @ArchTest
+  static final ArchRule writeUseCasesDependOnAuditLog =
+      classes()
+          .that()
+          .resideInAPackage("com.chm.myfinances.application..")
+          .and()
+          .areAnnotatedWith(Service.class)
+          .and(hasATransactionalWriteMethod())
+          .and()
+          .haveNameNotMatching(allowlistRegex())
+          .should()
+          .dependOnClassesThat(isAuditPort())
+          .as(
+              "application @Service classes with a @Transactional write method depend on"
+                  + " AuditLog/AuditRecorder (F025, ADR 0022), minus the PR1 allowlist");
+
+  private static DescribedPredicate<JavaClass> hasATransactionalWriteMethod() {
+    return new DescribedPredicate<>("has a @Transactional write method") {
+      @Override
+      public boolean test(JavaClass javaClass) {
+        for (JavaMethod method : javaClass.getMethods()) {
+          if (!method
+              .getModifiers()
+              .contains(com.tngtech.archunit.core.domain.JavaModifier.PUBLIC)) {
+            continue;
+          }
+          if (!method.isAnnotatedWith(Transactional.class)) {
+            continue;
+          }
+          boolean readOnly =
+              method
+                  .tryGetAnnotationOfType(Transactional.class)
+                  .map(Transactional::readOnly)
+                  .orElse(false);
+          if (!readOnly) {
+            return true;
+          }
+        }
+        return false;
+      }
+    };
+  }
+
+  private static DescribedPredicate<JavaClass> isAuditPort() {
+    return JavaClass.Predicates.assignableTo(AuditLog.class)
+        .or(JavaClass.Predicates.assignableTo(AuditRecorder.class));
+  }
+
+  private static String allowlistRegex() {
+    return String.join("|", AUDIT_LOG_ALLOWLIST);
+  }
 
   private static ArchCondition<JavaClass> notDependOnAnotherAggregatesDomainPackage() {
     return new ArchCondition<>("not depend on another aggregate's domain package") {

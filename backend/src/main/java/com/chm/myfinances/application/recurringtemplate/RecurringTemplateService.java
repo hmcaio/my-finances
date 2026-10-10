@@ -1,6 +1,10 @@
 package com.chm.myfinances.application.recurringtemplate;
 
 import com.chm.myfinances.application.account.AccountNotFoundException;
+import com.chm.myfinances.application.auditlog.AuditAction;
+import com.chm.myfinances.application.auditlog.AuditEntityType;
+import com.chm.myfinances.application.auditlog.AuditOrigin;
+import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.application.category.CategoryNotFoundException;
 import com.chm.myfinances.application.transaction.TransactionService;
 import com.chm.myfinances.domain.account.Account;
@@ -21,6 +25,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -63,6 +68,7 @@ public class RecurringTemplateService {
   private final RecurringOccurrenceCatchUpService catchUpService;
   private final IdGenerator idGenerator;
   private final Clock clock;
+  private final AuditRecorder auditRecorder;
 
   public RecurringTemplateService(
       RecurringTemplateRepository templateRepository,
@@ -73,7 +79,8 @@ public class RecurringTemplateService {
       TransactionService transactionService,
       RecurringOccurrenceCatchUpService catchUpService,
       IdGenerator idGenerator,
-      Clock clock) {
+      Clock clock,
+      AuditRecorder auditRecorder) {
     this.templateRepository = templateRepository;
     this.versionRepository = versionRepository;
     this.pendingRepository = pendingRepository;
@@ -83,6 +90,7 @@ public class RecurringTemplateService {
     this.catchUpService = catchUpService;
     this.idGenerator = idGenerator;
     this.clock = clock;
+    this.auditRecorder = auditRecorder;
   }
 
   /**
@@ -114,9 +122,15 @@ public class RecurringTemplateService {
     RecurringTemplate template =
         templateRepository.save(
             RecurringTemplate.create(idGenerator.newId(), categoryId, accountId, description));
-    versionRepository.save(
-        RecurringTemplateVersion.create(
-            idGenerator.newId(), template.getId(), amount, dayOfMonth, effectiveFrom));
+    RecurringTemplateVersion version =
+        versionRepository.save(
+            RecurringTemplateVersion.create(
+                idGenerator.newId(), template.getId(), amount, dayOfMonth, effectiveFrom));
+    auditRecorder.recordCreate(
+        AuditEntityType.RECURRING_TEMPLATE,
+        template.getId(),
+        template.getDescription(),
+        version.toAuditSnapshot());
     return template;
   }
 
@@ -164,6 +178,11 @@ public class RecurringTemplateService {
   public RecurringTemplateVersion setCap(
       UUID templateId, BigDecimal amount, int dayOfMonth, YearMonth effectiveFrom) {
     RecurringTemplate template = findById(templateId);
+    Map<String, Object> before =
+        RecurringTemplateVersion.resolveEffective(
+                versionRepository.findByTemplateId(template.getId()), effectiveFrom)
+            .map(RecurringTemplateVersion::toAuditSnapshot)
+            .orElse(Map.of());
     Optional<RecurringTemplateVersion> existing =
         versionRepository.findByTemplateIdAndEffectiveFrom(template.getId(), effectiveFrom);
     if (existing.isPresent()) {
@@ -172,6 +191,12 @@ public class RecurringTemplateService {
       RecurringTemplateVersion replaced = versionRepository.save(version);
       log.info(
           "Recurring template {}: version effective {} replaced", template.getId(), effectiveFrom);
+      auditRecorder.recordUpdate(
+          AuditEntityType.RECURRING_TEMPLATE,
+          template.getId(),
+          template.getDescription(),
+          before,
+          replaced.toAuditSnapshot());
       return replaced;
     }
     RecurringTemplateVersion version =
@@ -180,6 +205,12 @@ public class RecurringTemplateService {
     RecurringTemplateVersion saved = versionRepository.save(version);
     realignPendingOccurrences(template.getId());
     log.info("Recurring template {}: new version effective {}", template.getId(), effectiveFrom);
+    auditRecorder.recordUpdate(
+        AuditEntityType.RECURRING_TEMPLATE,
+        template.getId(),
+        template.getDescription(),
+        before,
+        saved.toAuditSnapshot());
     return saved;
   }
 
@@ -218,10 +249,32 @@ public class RecurringTemplateService {
    */
   @Transactional
   public RecurringTemplate stop(UUID id) {
+    return stop(id, AuditOrigin.USER);
+  }
+
+  /**
+   * Same as {@link #stop(UUID)}, but lets a cascade (F025, ADR 0022: closing an account
+   * deactivating its templates) record its entry as {@link AuditOrigin#SYSTEM} instead of {@link
+   * AuditOrigin#USER}. {@code @Transactional} on both overloads since whichever one an external
+   * caller actually hits is the one the Spring proxy intercepts (backend {@code CLAUDE.md}'s
+   * "Transactions" section) - the public, no-origin {@link #stop(UUID)} delegates to this one via
+   * self-invocation, which bypasses the proxy.
+   */
+  @Transactional
+  public RecurringTemplate stop(UUID id, AuditOrigin origin) {
     RecurringTemplate template = findById(id);
+    Map<String, Object> before = template.toAuditSnapshot();
     template.close();
     RecurringTemplate saved = templateRepository.save(template);
     pendingRepository.deleteByTemplateId(id);
+    auditRecorder.recordAction(
+        AuditEntityType.RECURRING_TEMPLATE,
+        saved.getId(),
+        saved.getDescription(),
+        AuditAction.CLOSE,
+        before,
+        saved.toAuditSnapshot(),
+        origin);
     return saved;
   }
 
@@ -229,10 +282,21 @@ public class RecurringTemplateService {
    * Reactivates a template (F007 spec's {@code POST .../reactivate}), resuming generation from now
    * rather than catching up on the entire stopped period (PRD S5.7).
    */
+  @Transactional
   public RecurringTemplate reactivate(UUID id) {
     RecurringTemplate template = findById(id);
+    Map<String, Object> before = template.toAuditSnapshot();
     template.reactivate(YearMonth.now(clock));
-    return templateRepository.save(template);
+    RecurringTemplate saved = templateRepository.save(template);
+    auditRecorder.recordAction(
+        AuditEntityType.RECURRING_TEMPLATE,
+        saved.getId(),
+        saved.getDescription(),
+        AuditAction.REOPEN,
+        before,
+        saved.toAuditSnapshot(),
+        AuditOrigin.USER);
+    return saved;
   }
 
   /**
@@ -251,7 +315,7 @@ public class RecurringTemplateService {
     int deactivated = 0;
     for (RecurringTemplate template : templateRepository.findByAccountId(accountId)) {
       if (template.isActive()) {
-        stop(template.getId());
+        stop(template.getId(), AuditOrigin.SYSTEM);
         deactivated++;
       }
     }

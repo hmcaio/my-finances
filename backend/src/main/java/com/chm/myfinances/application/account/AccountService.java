@@ -1,5 +1,9 @@
 package com.chm.myfinances.application.account;
 
+import com.chm.myfinances.application.auditlog.AuditAction;
+import com.chm.myfinances.application.auditlog.AuditEntityType;
+import com.chm.myfinances.application.auditlog.AuditOrigin;
+import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.application.institution.InstitutionNotFoundException;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountClosedNotifier;
@@ -13,6 +17,7 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +50,7 @@ public class AccountService {
   private final AccountClosedNotifier accountClosedNotifier;
   private final AccountUsageChecker accountUsageChecker;
   private final Clock clock;
+  private final AuditRecorder auditRecorder;
 
   public AccountService(
       AccountRepository accountRepository,
@@ -53,7 +59,8 @@ public class AccountService {
       IdGenerator idGenerator,
       AccountClosedNotifier accountClosedNotifier,
       AccountUsageChecker accountUsageChecker,
-      Clock clock) {
+      Clock clock,
+      AuditRecorder auditRecorder) {
     this.accountRepository = accountRepository;
     this.institutionRepository = institutionRepository;
     this.investmentHoldingRepository = investmentHoldingRepository;
@@ -61,8 +68,10 @@ public class AccountService {
     this.accountClosedNotifier = accountClosedNotifier;
     this.accountUsageChecker = accountUsageChecker;
     this.clock = clock;
+    this.auditRecorder = auditRecorder;
   }
 
+  @Transactional
   public Account create(
       String name,
       UUID institutionId,
@@ -76,7 +85,10 @@ public class AccountService {
     Account account =
         Account.create(
             idGenerator.newId(), name, institutionId, type, openingBalance, openingBalanceDate);
-    return accountRepository.save(account);
+    Account saved = accountRepository.save(account);
+    auditRecorder.recordCreate(
+        AuditEntityType.ACCOUNT, saved.getId(), saved.getName(), saved.toAuditSnapshot());
+    return saved;
   }
 
   public Account findById(UUID id) {
@@ -96,14 +108,19 @@ public class AccountService {
   }
 
   /** Edits name/institution only - type and opening balance/date are immutable (F003 spec). */
+  @Transactional
   public Account edit(UUID id, String name, UUID institutionId) {
     Account account = findById(id);
+    Map<String, Object> before = account.toAuditSnapshot();
     if (accountRepository.existsByNameAndIdNot(name, id)) {
       throw new AccountNameAlreadyExistsException(name);
     }
     requireInstitutionExists(institutionId);
     account.edit(name, institutionId);
-    return accountRepository.save(account);
+    Account saved = accountRepository.save(account);
+    auditRecorder.recordUpdate(
+        AuditEntityType.ACCOUNT, saved.getId(), saved.getName(), before, saved.toAuditSnapshot());
+    return saved;
   }
 
   /** The domain only holds the institution id; that it resolves is checked here (F017 spec). */
@@ -131,6 +148,7 @@ public class AccountService {
   @Transactional
   public Account close(UUID id) {
     Account account = findById(id);
+    Map<String, Object> before = account.toAuditSnapshot();
     if (account.isClosed()) {
       throw new AccountAlreadyClosedException(id);
     }
@@ -141,6 +159,14 @@ public class AccountService {
     account.close(LocalDate.now(clock));
     Account saved = accountRepository.save(account);
     log.info("Account {} closed", saved.getId());
+    auditRecorder.recordAction(
+        AuditEntityType.ACCOUNT,
+        saved.getId(),
+        saved.getName(),
+        AuditAction.CLOSE,
+        before,
+        saved.toAuditSnapshot(),
+        AuditOrigin.USER);
     accountClosedNotifier.accountClosed(saved.getId());
     return saved;
   }
@@ -150,14 +176,15 @@ public class AccountService {
    * 409 ({@link AccountHasHistoryException}): close it instead. The foreign keys back this up in
    * the database, so a concurrent insert can never orphan a row.
    */
+  @Transactional
   public void delete(UUID id) {
-    if (!accountRepository.existsById(id)) {
-      throw new AccountNotFoundException(id);
-    }
+    Account account = findById(id);
     if (accountUsageChecker.isUsed(id)) {
       throw new AccountHasHistoryException(id);
     }
     accountRepository.deleteById(id);
     log.info("Account {} deleted", id);
+    auditRecorder.recordDelete(
+        AuditEntityType.ACCOUNT, account.getId(), account.getName(), account.toAuditSnapshot());
   }
 }

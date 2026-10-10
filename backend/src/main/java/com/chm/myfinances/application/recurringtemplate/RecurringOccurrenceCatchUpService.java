@@ -1,5 +1,7 @@
 package com.chm.myfinances.application.recurringtemplate;
 
+import com.chm.myfinances.application.auditlog.AuditEntityType;
+import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrence;
 import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrenceRepository;
 import com.chm.myfinances.domain.recurringtemplate.RecurringOccurrenceGenerator;
@@ -12,7 +14,10 @@ import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersionRepos
 import com.chm.myfinances.domain.shared.IdGenerator;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -40,18 +45,21 @@ public class RecurringOccurrenceCatchUpService {
   private final PendingRecurringOccurrenceRepository pendingRepository;
   private final IdGenerator idGenerator;
   private final Clock clock;
+  private final AuditRecorder auditRecorder;
 
   public RecurringOccurrenceCatchUpService(
       RecurringTemplateRepository templateRepository,
       RecurringTemplateVersionRepository versionRepository,
       PendingRecurringOccurrenceRepository pendingRepository,
       IdGenerator idGenerator,
-      Clock clock) {
+      Clock clock,
+      AuditRecorder auditRecorder) {
     this.templateRepository = templateRepository;
     this.versionRepository = versionRepository;
     this.pendingRepository = pendingRepository;
     this.idGenerator = idGenerator;
     this.clock = clock;
+    this.auditRecorder = auditRecorder;
   }
 
   /** Runs catch-up generation for every active template, as of today. */
@@ -65,6 +73,7 @@ public class RecurringOccurrenceCatchUpService {
     int templatesWithNewOccurrences = 0;
     for (RecurringTemplate template : templateRepository.findAllActive()) {
       int generatedForTemplate = 0;
+      List<LocalDate> generatedDates = new ArrayList<>();
       List<RecurringTemplateVersion> versions =
           versionRepository.findByTemplateId(template.getId());
       CatchUpResult result =
@@ -83,11 +92,13 @@ public class RecurringOccurrenceCatchUpService {
                     cycle.dueDate()));
         if (inserted) {
           generatedForTemplate++;
+          generatedDates.add(cycle.dueDate());
         }
       }
       generatedOccurrences += generatedForTemplate;
       if (generatedForTemplate > 0) {
         templatesWithNewOccurrences++;
+        recordGeneratedSummary(template, generatedDates);
       }
 
       if (result.advancedLastGeneratedFor() != null
@@ -107,5 +118,24 @@ public class RecurringOccurrenceCatchUpService {
     } else {
       log.debug("Recurring catch-up generated 0 pending occurrence(s)");
     }
+  }
+
+  /**
+   * One {@code GENERATED} summary entry per template per run (PRD S5.12, ADR 0022) - never one
+   * entry per occurrence. Deliberately not wrapped in the same transaction as the occurrences it
+   * summarizes: this whole method is intentionally not {@code @Transactional} (a broken template
+   * must not roll back every other template's catch-up, backend {@code CLAUDE.md}), so the audit
+   * write for one template's summary follows the same per-template, not-all-or-nothing shape.
+   */
+  private void recordGeneratedSummary(RecurringTemplate template, List<LocalDate> generatedDates) {
+    LocalDate first = generatedDates.stream().min(Comparator.naturalOrder()).orElseThrow();
+    LocalDate last = generatedDates.stream().max(Comparator.naturalOrder()).orElseThrow();
+    Map<String, Object> summary =
+        Map.of(
+            "count", generatedDates.size(),
+            "firstDate", first.toString(),
+            "lastDate", last.toString());
+    auditRecorder.recordGenerated(
+        AuditEntityType.RECURRING_TEMPLATE, template.getId(), template.getDescription(), summary);
   }
 }

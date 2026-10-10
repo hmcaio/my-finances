@@ -1,6 +1,7 @@
 package com.chm.myfinances.testsupport;
 
 import com.chm.myfinances.TestcontainersConfiguration;
+import com.chm.myfinances.application.auditlog.AuditLog;
 import com.chm.myfinances.domain.budget.BudgetVersionRepository;
 import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshotRepository;
@@ -36,4 +37,10 @@ public abstract class AbstractTransactionalBoundaryTest {
   @MockitoSpyBean protected BudgetVersionRepository budgetVersionRepository;
   @MockitoSpyBean protected InvestmentHoldingRepository holdingRepository;
   @MockitoSpyBean protected InvestmentSnapshotRepository snapshotRepository;
+
+  /**
+   * F025 (ADR 0022): proves a use case's {@code @Transactional} boundary also rolls back when the
+   * audit insert itself fails, not just when a second business write does.
+   */
+  @MockitoSpyBean protected AuditLog auditLog;
 }
