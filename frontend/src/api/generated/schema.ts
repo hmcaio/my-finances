@@ -84,6 +84,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["report_generate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/recurring-templates": {
         parameters: {
             query?: never;
@@ -820,22 +836,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/export": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["dataExport_export"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/budgets/report": {
         parameters: {
             query?: never;
@@ -844,22 +844,6 @@ export interface paths {
             cookie?: never;
         };
         get: operations["budget_report"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/backup-status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["backupStatus_getStatus"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1060,6 +1044,27 @@ export interface components {
             litersPerKm?: number;
             /** Format: uuid */
             investmentHoldingId?: string;
+        };
+        ReportFilterRequest: {
+            /** Format: date */
+            dateFrom?: string;
+            /** Format: date */
+            dateTo?: string;
+            /** Format: date */
+            asOfDate?: string;
+            /** Format: uuid */
+            accountId?: string;
+            /** Format: uuid */
+            categoryId?: string;
+            /** Format: uuid */
+            vehicleId?: string;
+            month?: string;
+            /** @enum {string} */
+            netWorthGranularity?: "CHANGE_DATE" | "MONTH";
+        };
+        ReportRequest: {
+            types?: ("TRANSACTIONS_TRANSFERS" | "ACCOUNT_BALANCES" | "FII_PORTFOLIO" | "FUEL_HISTORY" | "BUDGETS_SPENDING" | "INVESTMENTS" | "NET_WORTH_TREND" | "RECURRING_TEMPLATES" | "INVESTMENT_ALLOCATION" | "DIVIDEND_INCOME" | "ANNUAL_SUMMARY")[];
+            filter?: components["schemas"]["ReportFilterRequest"];
         };
         CreateRecurringTemplateRequest: {
             /** Format: uuid */
@@ -1436,6 +1441,9 @@ export interface components {
             /** Format: uuid */
             accountId?: string;
             accountName?: string;
+            /** Format: uuid */
+            institutionId?: string;
+            institutionName?: string;
             totalValue?: number;
             needsSnapshot?: boolean;
         };
@@ -1486,24 +1494,6 @@ export interface components {
             categoryId?: string;
             cap?: number;
             actual?: number;
-        };
-        BackupStatusResponse: {
-            /** @enum {string} */
-            state?: "OK" | "STALE" | "FAILING" | "UNKNOWN";
-            localOnly?: boolean;
-            /** Format: date-time */
-            lastSuccessAt?: string;
-            /** Format: date-time */
-            lastAttemptAt?: string;
-            lastError?: string;
-            imageTag?: string;
-            buildId?: string;
-            schemaVersion?: string;
-            targetType?: string;
-            remoteConfigured?: boolean;
-            remoteOk?: boolean;
-            /** Format: int32 */
-            count?: number;
         };
         AuditLogEntryResponse: {
             /** Format: uuid */
@@ -1774,6 +1764,30 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["TransactionResponse"];
+                };
+            };
+        };
+    };
+    report_generate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
                 };
             };
         };
@@ -3321,7 +3335,7 @@ export interface operations {
         parameters: {
             query?: {
                 asOf?: string;
-                groupBy?: "CATEGORY" | "SUBCATEGORY" | "ACCOUNT";
+                groupBy?: "CATEGORY" | "SUBCATEGORY" | "ACCOUNT" | "INSTITUTION";
             };
             header?: never;
             path?: never;
@@ -3477,31 +3491,6 @@ export interface operations {
             };
         };
     };
-    dataExport_export: {
-        parameters: {
-            query?: {
-                dateFrom?: string;
-                dateTo?: string;
-                accountId?: string;
-                categoryId?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/zip": string;
-                };
-            };
-        };
-    };
     budget_report: {
         parameters: {
             query: {
@@ -3520,26 +3509,6 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["BudgetReportLineResponse"][];
-                };
-            };
-        };
-    };
-    backupStatus_getStatus: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["BackupStatusResponse"];
                 };
             };
         };
