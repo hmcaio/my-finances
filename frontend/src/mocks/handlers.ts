@@ -4,7 +4,6 @@ import { auditLogHandlers } from './handlers/auditLog'
 import { backupStatusHandlers } from './handlers/backupStatus'
 import { budgetsHandlers } from './handlers/budgets'
 import { categoriesHandlers } from './handlers/categories'
-import { exportHandlers } from './handlers/export'
 import { fiiAllocationHandlers } from './handlers/fiiAllocation'
 import { fiiDividendsHandlers } from './handlers/fiiDividends'
 import { fiiPortfolioHandlers } from './handlers/fiiPortfolio'
@@ -20,6 +19,7 @@ import { investmentValueSeriesHandlers } from './handlers/investmentValueSeries'
 import { netWorthHandlers } from './handlers/netWorth'
 import { paymentMethodsHandlers } from './handlers/paymentMethods'
 import { recurringTemplatesHandlers } from './handlers/recurringTemplates'
+import { reportsHandlers } from './handlers/reports'
 import { tradeConfirmationLinesHandlers } from './handlers/tradeConfirmationLines'
 import { transactionsHandlers } from './handlers/transactions'
 import { transfersHandlers } from './handlers/transfers'
@@ -40,7 +40,6 @@ export const handlers = [
   ...backupStatusHandlers,
   ...budgetsHandlers,
   ...categoriesHandlers,
-  ...exportHandlers,
   ...fiiAllocationHandlers,
   ...fiiDividendsHandlers,
   ...fiiPortfolioHandlers,
@@ -56,6 +55,7 @@ export const handlers = [
   ...netWorthHandlers,
   ...paymentMethodsHandlers,
   ...recurringTemplatesHandlers,
+  ...reportsHandlers,
   ...tradeConfirmationLinesHandlers,
   ...transactionsHandlers,
   ...transfersHandlers,

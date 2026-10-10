@@ -94,7 +94,7 @@ describe('Layout', () => {
     }
   })
 
-  it('groups the settings pages under a Settings subheader and keeps Export as a normal item', () => {
+  it('groups the settings pages under a Settings subheader and keeps Reports as a normal item', () => {
     setViewportWidth(1280)
     renderLayout()
 
@@ -104,7 +104,7 @@ describe('Layout', () => {
       'Investment Categories',
       'Institutions',
       'Payment Methods',
-      'Export',
+      'Reports',
     ]) {
       expect(screen.getByRole('link', { name: label })).toBeVisible()
     }

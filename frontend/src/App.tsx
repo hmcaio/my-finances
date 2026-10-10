@@ -70,8 +70,8 @@ const TransfersPage = lazy(() =>
 const BudgetsPage = lazy(() =>
   import('./features/budgets/BudgetsPage').then((m) => ({ default: m.BudgetsPage })),
 )
-const ExportPage = lazy(() =>
-  import('./features/export/ExportPage').then((m) => ({ default: m.ExportPage })),
+const ReportsPage = lazy(() =>
+  import('./features/reports/ReportsPage').then((m) => ({ default: m.ReportsPage })),
 )
 const RecurringTemplatesPage = lazy(() =>
   import('./features/recurringTemplates/RecurringTemplatesPage').then((m) => ({
@@ -164,7 +164,7 @@ function ThemedApp() {
                   />
                   <Route path="/settings/payment-methods" element={<PaymentMethodsPage />} />
                   <Route path="/settings/vehicles" element={<VehiclesPage />} />
-                  <Route path="/export" element={<ExportPage />} />
+                  <Route path="/reports" element={<ReportsPage />} />
                   <Route path="/activity" element={<ActivityPage />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
