@@ -852,17 +852,17 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/recurring-templates/pending/{id}": {
+    "/api/backup-status": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["backupStatus_getStatus"];
         put?: never;
         post?: never;
-        delete: operations["recurringTemplate_dismiss"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -879,6 +879,22 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recurring-templates/pending/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["recurringTemplate_dismiss"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1471,9 +1487,23 @@ export interface components {
             cap?: number;
             actual?: number;
         };
-        FieldChange: {
-            from?: unknown;
-            to?: unknown;
+        BackupStatusResponse: {
+            /** @enum {string} */
+            state?: "OK" | "STALE" | "FAILING" | "UNKNOWN";
+            localOnly?: boolean;
+            /** Format: date-time */
+            lastSuccessAt?: string;
+            /** Format: date-time */
+            lastAttemptAt?: string;
+            lastError?: string;
+            imageTag?: string;
+            buildId?: string;
+            schemaVersion?: string;
+            targetType?: string;
+            remoteConfigured?: boolean;
+            remoteOk?: boolean;
+            /** Format: int32 */
+            count?: number;
         };
         AuditLogEntryResponse: {
             /** Format: uuid */
@@ -1493,6 +1523,10 @@ export interface components {
                 [key: string]: components["schemas"]["FieldChange"];
             };
             requestId?: string;
+        };
+        FieldChange: {
+            from?: Record<string, never>;
+            to?: Record<string, never>;
         };
         PagedModelAuditLogEntryResponse: {
             content?: components["schemas"]["AuditLogEntryResponse"][];
@@ -3490,23 +3524,23 @@ export interface operations {
             };
         };
     };
-    recurringTemplate_dismiss: {
+    backupStatus_getStatus: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                id: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description No Content */
-            204: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "*/*": components["schemas"]["BackupStatusResponse"];
+                };
             };
         };
     };
@@ -3515,9 +3549,9 @@ export interface operations {
             query: {
                 from?: string;
                 to?: string;
-                entityType?: components["schemas"]["AuditLogEntryResponse"]["entityType"];
-                action?: components["schemas"]["AuditLogEntryResponse"]["action"];
-                origin?: components["schemas"]["AuditLogEntryResponse"]["origin"];
+                entityType?: "TRANSACTION" | "TRANSFER" | "ACCOUNT" | "CATEGORY" | "PAYMENT_METHOD" | "INSTITUTION" | "BUDGET" | "RECURRING_TEMPLATE" | "INVESTMENT_CATEGORY" | "INVESTMENT_SUBCATEGORY" | "INVESTMENT_PRODUCT" | "INVESTMENT_HOLDING" | "INVESTMENT_SNAPSHOT" | "INVESTMENT_SEGMENT" | "ALLOCATION_PLAN" | "VEHICLE";
+                action?: "CREATE" | "UPDATE" | "DELETE" | "CLOSE" | "REOPEN" | "STOPPED" | "GENERATED";
+                origin?: "USER" | "SYSTEM";
                 entityId?: string;
                 pageable: components["schemas"]["Pageable"];
             };
@@ -3535,6 +3569,26 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["PagedModelAuditLogEntryResponse"];
                 };
+            };
+        };
+    };
+    recurringTemplate_dismiss: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

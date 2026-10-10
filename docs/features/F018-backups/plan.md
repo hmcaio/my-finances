@@ -36,10 +36,10 @@ Suggested order: pure logic first (test-first), then the sidecar, compose and CI
 - [x] `./gradlew spotlessApply` then `./gradlew spotlessCheck test integrationTest`. All green.
 
 ## Phase 5 — Frontend banner (test first)
-- [ ] `npm run generate-api-types` (backend running).
-- [ ] Test first: `BackupStatusBanner` with MSW — `OK`/`UNKNOWN` render nothing, `STALE`/`FAILING` warn with the last success time, `localOnly` info, per-session dismiss.
-- [ ] Implement the banner and mount it in the app shell (not shown behind the F011 onboarding gate).
-- [ ] `npm run lint && npm test && npm run build`.
+- [x] `npm run generate-api-types` (backend running). Ran against a locally-built instance of this branch's backend; `backupStatus_getStatus`/`BackupStatusResponse` now in `schema.ts`.
+- [x] Test first: `BackupStatusBanner` with MSW — `OK`/`UNKNOWN` render nothing, `STALE`/`FAILING` warn with the last success time, `localOnly` info, per-session dismiss. Dismissal is plain component state (no `sessionStorage`): the banner lives in the app shell for the page's lifetime, so a real reload is "next load" and an SPA route change never remounts it.
+- [x] Implement the banner and mount it in the app shell (not shown behind the F011 onboarding gate) — `src/components/feedback/BackupStatusBanner.tsx`, mounted in `App.tsx` above the onboarding/router branch.
+- [x] `npm run lint && npm test && npm run build`. All green (739 tests, 93 files, no regressions from mounting the banner globally).
 
 ## Phase 6 — Docs
 - [ ] README: setup (keygen, `.env`, one-time `docker volume create`, `BACKUP_DIR`, optional rclone), restore, the "no authentication, VPS needs private access" notice, the key-loss warning, and a "Project status" entry.
