@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.tuple;
 import com.chm.myfinances.application.investmentsnapshot.InvestmentSnapshotFreshnessQuery;
 import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
 import com.chm.myfinances.domain.account.Account;
+import com.chm.myfinances.domain.institution.Institution;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
@@ -14,6 +15,7 @@ import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
 import com.chm.myfinances.domain.transfer.TradeSide;
 import com.chm.myfinances.domain.transfer.TransferTradeLine;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInstitutionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentCategoryRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
@@ -54,6 +56,7 @@ class InvestmentAllocationQueryTest {
   private final FakeTransferTradeLineRepository tradeLineRepository =
       new FakeTransferTradeLineRepository();
   private final FakeAccountRepository accountRepository = new FakeAccountRepository();
+  private final FakeInstitutionRepository institutionRepository = new FakeInstitutionRepository();
   private final LatestInvestmentSnapshotQuery latestQuery =
       new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository);
   private final InvestmentAllocationQuery query =
@@ -63,6 +66,7 @@ class InvestmentAllocationQueryTest {
           categoryRepository,
           subcategoryRepository,
           accountRepository,
+          institutionRepository,
           latestQuery,
           new InvestmentSnapshotFreshnessQuery(
               latestQuery, tradeLineRepository, holdingRepository));
@@ -89,6 +93,20 @@ class InvestmentAllocationQueryTest {
   private UUID account(String name) {
     Account account = accountRepository.save(AccountMother.investment().withName(name).build());
     return account.getId();
+  }
+
+  private UUID accountAt(String accountName, UUID institutionId) {
+    Account account =
+        accountRepository.save(
+            AccountMother.investment()
+                .withName(accountName)
+                .withInstitutionId(institutionId)
+                .build());
+    return account.getId();
+  }
+
+  private UUID institution(String name) {
+    return institutionRepository.save(Institution.create(UUID.randomUUID(), name)).getId();
   }
 
   private InvestmentProduct product(String name, UUID categoryId, UUID subcategoryId) {
@@ -398,6 +416,47 @@ class InvestmentAllocationQueryTest {
 
     assertThat(rows).hasSize(1);
     assertThat(rows.get(0).totalValue()).isEqualByComparingTo("0");
+    assertThat(rows.get(0).needsSnapshot()).isTrue();
+  }
+
+  @Test
+  void byInstitutionSumsEveryHoldingUnderAccountsAtThatInstitutionRegardlessOfProduct() {
+    UUID xpInstitution = institution("XP Test");
+    UUID nuInstitution = institution("Nubank Test");
+    UUID xpAccount = accountAt("XP Broker Test", xpInstitution);
+    UUID xpAccount2 = accountAt("XP Broker Test 2", xpInstitution);
+    UUID nuAccount = accountAt("Nubank Broker Test", nuInstitution);
+    InvestmentProduct a = productWithoutHolding("CDB A", fixedIncome, cdb);
+    InvestmentProduct b = productWithoutHolding("PETR4", variableIncome, stocks);
+    snapshot(holdingAt(a, xpAccount), LocalDate.of(2026, 6, 1), "100.00");
+    snapshot(holdingAt(b, xpAccount2), LocalDate.of(2026, 6, 1), "50.00");
+    snapshot(holdingAt(a, nuAccount), LocalDate.of(2026, 6, 1), "30.00");
+
+    List<AllocationRow> rows = query.allocation(ASOF, AllocationGrouping.INSTITUTION);
+
+    assertThat(rows)
+        .extracting(AllocationRow::institutionName, r -> r.totalValue().toPlainString())
+        .containsExactly(tuple("Nubank Test", "30.00"), tuple("XP Test", "150.00"));
+    assertThat(rows)
+        .allSatisfy(
+            row -> {
+              assertThat(row.categoryId()).isNull();
+              assertThat(row.accountId()).isNull();
+            });
+  }
+
+  @Test
+  void needsSnapshotIsTrueForAnInstitutionWithAStaleHolding() {
+    UUID xpInstitution = institution("XP Test");
+    UUID xpAccount = accountAt("XP Broker Test", xpInstitution);
+    InvestmentProduct stale = productWithoutHolding("Stale", fixedIncome, cdb);
+    InvestmentHolding staleHolding = holdingAt(stale, xpAccount);
+    snapshot(staleHolding, LocalDate.of(2026, 5, 1), "100.00");
+    trade(staleHolding, LocalDate.of(2026, 6, 10));
+
+    List<AllocationRow> rows = query.allocation(ASOF, AllocationGrouping.INSTITUTION);
+
+    assertThat(rows).hasSize(1);
     assertThat(rows.get(0).needsSnapshot()).isTrue();
   }
 }

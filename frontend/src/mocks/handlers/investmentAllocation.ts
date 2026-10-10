@@ -14,6 +14,8 @@ export const seedAllocationByCategory: AllocationRow[] = [
     subcategoryName: null,
     accountId: null,
     accountName: null,
+    institutionId: null,
+    institutionName: null,
     totalValue: 900,
     needsSnapshot: false,
   },
@@ -24,6 +26,8 @@ export const seedAllocationByCategory: AllocationRow[] = [
     subcategoryName: null,
     accountId: null,
     accountName: null,
+    institutionId: null,
+    institutionName: null,
     totalValue: 3000,
     needsSnapshot: true,
   },
@@ -41,6 +45,8 @@ export const seedAllocationBySubcategory: AllocationRow[] = [
     subcategoryName: null,
     accountId: null,
     accountName: null,
+    institutionId: null,
+    institutionName: null,
     totalValue: 900,
     needsSnapshot: false,
   },
@@ -51,6 +57,8 @@ export const seedAllocationBySubcategory: AllocationRow[] = [
     subcategoryName: 'CDB',
     accountId: null,
     accountName: null,
+    institutionId: null,
+    institutionName: null,
     totalValue: 1000,
     needsSnapshot: true,
   },
@@ -61,6 +69,8 @@ export const seedAllocationBySubcategory: AllocationRow[] = [
     subcategoryName: 'Tesouro Selic',
     accountId: null,
     accountName: null,
+    institutionId: null,
+    institutionName: null,
     totalValue: 2000,
     needsSnapshot: false,
   },
@@ -78,6 +88,24 @@ export const seedAllocationByAccount: AllocationRow[] = [
     subcategoryName: null,
     accountId: seedInvestmentAccount.id,
     accountName: seedInvestmentAccount.name,
+    institutionId: null,
+    institutionName: null,
+    totalValue: 3900,
+    needsSnapshot: true,
+  },
+]
+
+/** `groupBy=INSTITUTION` (F030): the same portfolio summed under its one seeded institution. */
+export const seedAllocationByInstitution: AllocationRow[] = [
+  {
+    categoryId: null,
+    categoryName: null,
+    subcategoryId: null,
+    subcategoryName: null,
+    accountId: null,
+    accountName: null,
+    institutionId: 'inst-no-institution',
+    institutionName: 'No institution',
     totalValue: 3900,
     needsSnapshot: true,
   },
@@ -88,6 +116,7 @@ export const investmentAllocationHandlers = [
     const groupBy = new URL(request.url).searchParams.get('groupBy') ?? 'CATEGORY'
     if (groupBy === 'SUBCATEGORY') return HttpResponse.json(seedAllocationBySubcategory)
     if (groupBy === 'ACCOUNT') return HttpResponse.json(seedAllocationByAccount)
+    if (groupBy === 'INSTITUTION') return HttpResponse.json(seedAllocationByInstitution)
     return HttpResponse.json(seedAllocationByCategory)
   }),
 ]
