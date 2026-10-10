@@ -31,3 +31,7 @@ Thumbs.db
 *.log
 # Rolled/gzipped backend log archives (backend.log.2026-09-19.0.gz) are not matched by *.log (F016)
 backend/logs/
+
+# F018 backup sidecar end-to-end test scratch dir (backup/test/e2e.sh), normally removed by its
+# own cleanup trap - left behind only if the script is killed mid-run.
+backup/.e2e-tmp-*/

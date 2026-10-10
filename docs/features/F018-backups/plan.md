@@ -16,12 +16,12 @@ Suggested order: pure logic first (test-first), then the sidecar, compose and CI
 - [x] Implement the decision function used by `entrypoint.sh`.
 
 ## Phase 2 — Sidecar image and scripts
-- [ ] `backup/Dockerfile` (`postgres:17-alpine` + `age` + `rclone` + `bash`/`jq`, `ARG BUILD_ID` written to `/etc/backup-build-id`).
-- [ ] `backup.sh`: dump → `age` → temp file → atomic rename → optional `rclone copy` → prune → write `status.json`. Non-zero exit on any failure with previous backups untouched; refuses to run without `BACKUP_AGE_RECIPIENT`; logs file names and counts only, never row data.
-- [ ] `entrypoint.sh`: start-time decision, healthcheck flag, hourly loop.
-- [ ] `restore.sh`: pre-flight (decrypt + `pg_restore --list`) before touching anything, stop backend/frontend, `pre-restore-<ts>` safety dump, recreate DB, `pg_restore`, restart; requires `--yes`.
-- [ ] `backup-keygen` helper with the loud "store the private key now" output.
-- [ ] End-to-end test (scripted `docker run` job): seed Postgres, backup, restore into a fresh Postgres, compare row counts and `flyway_schema_history`; a wrong key fails cleanly; the safety dump exists.
+- [x] `backup/Dockerfile` (`postgres:17-alpine` + `age` + `rclone` + `bash`/`jq`, `ARG BUILD_ID` written to `/etc/backup-build-id`).
+- [x] `backup.sh`: dump → `age` → temp file → atomic rename → optional `rclone copy` → prune → write `status.json`. Non-zero exit on any failure with previous backups untouched; refuses to run without `BACKUP_AGE_RECIPIENT`; logs file names and counts only, never row data.
+- [x] `entrypoint.sh`: start-time decision, healthcheck flag, hourly loop.
+- [x] `restore.sh`: pre-flight (decrypt + `pg_restore --list`) before touching anything, `pre-restore-<ts>` safety dump, recreate DB, `pg_restore`; requires `--yes`. Stopping/restarting the `backend`/`frontend` containers is a host-level `docker compose` step around invoking this script (see README) — the backup container is deliberately never given the Docker socket, the same reasoning ADR 0015 already gives against reading the backend image's digest.
+- [x] `backup-keygen` helper with the loud "store the private key now" output.
+- [x] End-to-end test (`backup/test/e2e.sh`, scripted `docker run` job): seed Postgres, backup, restore into a fresh Postgres, compare row counts and `flyway_schema_history`; a wrong key fails cleanly; the safety dump exists. Verified locally against real Docker (not just CI).
 
 ## Phase 3 — Compose, env and CI
 - [ ] `docker-compose.prod.yml`: `backup` service (image, user, mounts, healthcheck, `x-logging`, `depends_on: postgres`), `backend` `depends_on: backup: service_healthy` and read-only `/backups` mount, external volume `my-finances-backups-prod` with an explicit `name:`.
