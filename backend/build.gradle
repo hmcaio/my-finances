@@ -43,6 +43,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.flywaydb:flyway-database-postgresql'
     implementation libs.springdoc.openapi.starter.webmvc.ui
+    // F030: PdfReportWriter (application/report) renders the FII portfolio and budgets reports' PDFs.
+    implementation libs.openpdf
     runtimeOnly 'org.postgresql:postgresql'
 
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
