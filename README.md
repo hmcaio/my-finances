@@ -70,6 +70,32 @@ Before pushing, `scripts/verify.sh` runs the same checks CI does (pinned version
 
 A production-shaped smoke test (Docker images end to end, no cloud involved) is also documented in `CLAUDE.md`.
 
+## Backups
+
+The production stack (`docker-compose.prod.yml`) runs a `backup` sidecar that takes encrypted `pg_dump` backups on a catch-up schedule (on start if the last success is older than `BACKUP_MAX_AGE_HOURS`, then hourly while the stack is up) with GFS retention (7 daily / 5 weekly / 12 monthly). See [ADR 0015](docs/adr/0015-automated-encrypted-backups-sidecar.md) for the full design. The dev stack is never backed up — it's not in scope.
+
+**Setup**, once, before the first `up -d`:
+
+1. Generate an age keypair: `docker compose -f docker-compose.prod.yml run --rm --no-deps backup backup-keygen`. Put the printed recipient in `.env` as `BACKUP_AGE_RECIPIENT`. **Store the printed private key somewhere off this machine right now** — a password manager, or printed and locked away. It is never written to disk by this command and must never go in `.env` or anywhere on this host. Losing it makes every existing backup permanently unrecoverable; there is no recovery path.
+2. Create the backups volume once: `docker volume create my-finances-backups-prod`. (Skip this if you're instead setting `BACKUP_DIR` below to a host folder — see `.env.example`.)
+3. Optional: set `BACKUP_DIR` to a folder already synced by Dropbox/OneDrive/Syncthing/etc. for an off-machine copy with no cloud credentials in this repo, and/or create an `rclone.conf` (gitignored, next to `.env`) and set `BACKUP_RCLONE_REMOTE` to push the encrypted file to a remote — useful on a VPS with no synced folder of its own. A push failure counts as a backup failure in the status below.
+4. `docker compose -f docker-compose.prod.yml up -d` as usual. A `myfinances-<timestamp>.dump.age` file and a `status.json` appear in the backups folder/volume after the first catch-up check. The backend reads that file read-only (`GET /api/backup-status`) and the frontend shows a banner only when something needs attention — stale, failing, or backups existing on only this one machine; nothing when everything is fine.
+
+**Restoring** is destructive, so it always takes a safety dump of the current database first and requires an explicit `--yes`:
+
+```bash
+docker compose -f docker-compose.prod.yml stop backend frontend
+docker compose -f docker-compose.prod.yml run --rm --no-deps \
+  -v /path/to/age-key.txt:/run/secrets/age-key.txt:ro \
+  -e AGE_KEY_FILE=/run/secrets/age-key.txt \
+  backup restore.sh myfinances-20260310T080000Z.dump.age --yes
+docker compose -f docker-compose.prod.yml start backend frontend
+```
+
+The private key is supplied at run time — mounted for this one-off container only — never stored in `.env`. A wrong key or a corrupt file fails before anything in the database is touched. **Restoring onto a new machine**: copy `docker-compose.prod.yml` and `.env` over, create the backups volume (or point `BACKUP_DIR` at wherever the synced folder landed on the new machine), start the stack, then run the same `restore.sh` command against whichever `.dump.age` file came with it.
+
+**This app has no authentication** (PRD §7.3) and backups don't change that. Everything above assumes a trusted machine you control. Running the stack on a VPS instead of your own computer means that machine needs to be made private on its own — a VPN, an SSH tunnel, or an authenticated reverse proxy in front of it — before putting any real data on it; exposing it directly to the internet exposes your financial data to the internet. That's a separate, future concern this feature only documents, not solves.
+
 ## Project status
 
 Built:
@@ -99,8 +125,9 @@ Built:
 - **F025** — audit log (every committed create, update, delete, close, reopen and stop on every aggregate recorded in an append-only `audit_log` table through an explicit `AuditLog` port called in the same transaction as the change, `jsonb` field-by-field before/after diff, `USER`/`SYSTEM` origin — a lazy recurring catch-up run records one `GENERATED` summary per template instead of one entry per occurrence, and a cascade such as closing an account deactivating its templates records its own `SYSTEM` entries under the same request id; a read-only Activity page lists every entry, newest first, grouped by day in the viewer's local time zone, filterable by date range/entity type/action/origin, each row expanding to its diff; not part of the data export, no undo, no retention; [ADR 0022](docs/adr/0022-audit-log-explicit-port-same-transaction.md))
 - **F026** — FII portfolio (a `ticker` and a new, independent `InvestmentSegment` taxonomy on `InvestmentProduct`; a versioned `AllocationPlan`/`AllocationPlanVersion`/`AllocationPlanEntry` (percent per FII, same shape as a budget, entries summing to exactly 100%); a dedicated FII page with a portfolio list (cotas held/amount contributed computed from trades, never price-derived), an allocation-plan editor and two nested (two-ring) allocation donuts, Actual and Planned, segment inner ring/ticker outer ring; dividend tracking via a dedicated `dividend_category` on `Category` and `Transaction.investmentHoldingId`, a Register Dividend form and a history view grouped by ticker/month; `investment_segments.csv`/`allocation_plan_entries.csv` added to the data export, `investment_products.csv`/`transactions.csv` gain their new columns; [ADR 0023](docs/adr/0023-fii-allocation-plan-and-dividends.md))
 - **F027** — trade confirmations (generalizes a buy/sell `Transfer` from one product per transfer to a multi-line `TradeConfirmation` matching a real *nota de negociação* — one cash settlement, one aggregate tax figure, one-or-more product lines, mixed buy/sell and partial fills allowed; the backend derives and enforces the settlement amount/direction from the lines via `TradeConfirmation.netCost`, rejecting an exact-zero net; per-line optional `resultingBalance`/`closeHolding`; `FiiPortfolioQuery`/`InvestmentValueSeriesQuery`/`InvestmentSnapshotFreshnessQuery` and the holding-history checker reworked onto the new `transfer_trade_lines` table; a new `GET /api/trade-confirmation-lines?productId=` for a product's own line history; `transfers.csv` export loses its flat trade columns in favor of a new `transfer_trade_lines.csv`; [ADR 0024](docs/adr/0024-trade-confirmations-as-multi-line-transfers.md))
+- **F018** — backups (a `backup` sidecar image in the prod stack takes encrypted `pg_dump -Fc` backups on a catch-up schedule with GFS retention, storing them in an external volume or a `BACKUP_DIR` bind mount with an optional `rclone` off-site push; a `GET /api/backup-status` endpoint and a `BackupStatusBanner` surface staleness/failure/local-only; a `restore.sh` script always takes a safety dump first and requires `--yes`; see [ADR 0015](docs/adr/0015-automated-encrypted-backups-sidecar.md))
 
-Documented and next up: **F018** (automated encrypted backups for the prod stack), **F028** (investment splits, backend — a product-level `InvestmentSplit` event for a stock/FII split or reverse split, and the shared read-side adjustment that corrects the cotas-held total and the monthly value series' `units` without ever rewriting a recorded trade; [ADR 0025](docs/adr/0025-investment-split-as-read-side-adjustment.md)) and **F029** (investment splits, frontend — the product-detail-page split history panel and record/delete dialog for F028, split out as a separate feature at the user's request) — see [docs/features/](docs/features/) for the full breakdown, in build order, with each feature's spec and its dependencies on the others.
+Documented and next up: **F028** (investment splits, backend — a product-level `InvestmentSplit` event for a stock/FII split or reverse split, and the shared read-side adjustment that corrects the cotas-held total and the monthly value series' `units` without ever rewriting a recorded trade; [ADR 0025](docs/adr/0025-investment-split-as-read-side-adjustment.md)) and **F029** (investment splits, frontend — the product-detail-page split history panel and record/delete dialog for F028, split out as a separate feature at the user's request) — see [docs/features/](docs/features/) for the full breakdown, in build order, with each feature's spec and its dependencies on the others.
 
 ## Workflow
 

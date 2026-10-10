@@ -35,7 +35,7 @@ It must survive two failures: data destroyed on the same machine (`down -v`, a b
 ## Sidecar
 
 ### Image (`backup/Dockerfile`)
-`postgres:17-alpine` (`pg_dump`/`pg_restore` must match the server major) + `age` + `rclone` + `bash`, `coreutils` and `jq`. Scripts under `backup/scripts/`. Built with `ARG BUILD_ID` (the git SHA), written to `/etc/backup-build-id`. CI builds and pushes `ghcr.io/hmcaio/my-finances-backup:<tag>` next to the other two images.
+`postgres:17.11-alpine` (`pg_dump`/`pg_restore` must match the server major; the exact full patch tag `docker-compose.prod.yml` already pins for the `postgres` service, per root `CLAUDE.md`'s tool-version-pinning rule — `scripts/check-versions.sh` checks this file too) + `age` + `rclone` + `bash`, `coreutils` and `jq`. Scripts under `backup/scripts/`. Built with `ARG BUILD_ID` (the git SHA), written to `/etc/backup-build-id`. CI builds and pushes `ghcr.io/hmcaio/my-finances-backup:<tag>` next to the other two images.
 
 ### Scripts
 - `backup.sh` — one run: `pg_dump -Fc` → `age -r "$BACKUP_AGE_RECIPIENT"` → temp name → atomic rename to `myfinances-<UTC yyyymmddThhmmssZ>[.pre-upgrade].dump.age` → optional `rclone copy` → prune → update `status.json`. Exits non-zero on any failure, leaving previous backups untouched. Refuses to run without `BACKUP_AGE_RECIPIENT`.
@@ -57,7 +57,7 @@ File names encode the UTC timestamp, so pruning never depends on mtime (which sy
 - Dev `docker-compose.yml` is untouched (ADR 0006).
 
 ### Restore
-`docker compose -f docker-compose.prod.yml run --rm --no-deps backup restore.sh <file> --yes`, with the private key supplied at run time (a key file mounted for the one-off run, never stored in `.env`). Steps: stop the `backend` and `frontend` containers, take the `pre-restore-<ts>` safety dump, drop and recreate the database, `pg_restore`, restart the two containers. Fails before touching anything if the file can't be decrypted or `pg_restore --list` can't read it. Documented in the README, including restoring onto a new machine.
+`docker compose -f docker-compose.prod.yml run --rm --no-deps backup restore.sh <file> --yes`, with the private key supplied at run time (a key file mounted for the one-off run, never stored in `.env`). `restore.sh` itself only ever touches the database: take the `pre-restore-<ts>` safety dump (encrypted with `BACKUP_AGE_RECIPIENT` the same as an ordinary backup, named so it never matches the `myfinances-*.dump.age` pattern `prune.sh` prunes), drop and recreate it, `pg_restore`. **Stopping the `backend`/`frontend` containers first and starting them again afterward is a host-level `docker compose stop`/`start` step the README documents around this command**, not something `restore.sh` does itself — the backup container is deliberately never given the Docker socket, the same reasoning this ADR already gives against reading the backend image's digest (it's root-equivalent host access). Fails before touching anything if the file can't be decrypted or `pg_restore --list` can't read it. Documented in the README, including restoring onto a new machine.
 
 ## Backend
 - `GET /api/backup-status` returns the marker fields plus a derived `state`: `OK`, `STALE` (last success older than 48h), `FAILING` (last attempt failed), `UNKNOWN` (marker missing or unreadable), and `localOnly` (no bind mount and no remote). Reads `BACKUP_STATUS_PATH` (default `/backups/status.json`); never throws on a missing or malformed file.

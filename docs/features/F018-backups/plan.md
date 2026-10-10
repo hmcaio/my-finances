@@ -42,17 +42,17 @@ Suggested order: pure logic first (test-first), then the sidecar, compose and CI
 - [x] `npm run lint && npm test && npm run build`. All green (739 tests, 93 files, no regressions from mounting the banner globally).
 
 ## Phase 6 — Docs
-- [ ] README: setup (keygen, `.env`, one-time `docker volume create`, `BACKUP_DIR`, optional rclone), restore, the "no authentication, VPS needs private access" notice, the key-loss warning, and a "Project status" entry.
-- [ ] Root `CLAUDE.md`: external backups volume survives `down -v`; fourth service and image. Backend `CLAUDE.md`: status port and adapter.
-- [ ] `CHANGELOG.md` `[Unreleased]` entry (`**F018 — Backups**`) with an `Upgrade:` sub-line; add the PR link in a follow-up commit once the PR is open.
-- [ ] Tick this plan and mark F018 built in the README status.
+- [x] README: setup (keygen, `.env`, one-time `docker volume create`, `BACKUP_DIR`, optional rclone), restore, the "no authentication, VPS needs private access" notice, the key-loss warning, and a "Project status" entry.
+- [x] Root `CLAUDE.md`: external backups volume survives `down -v`; fourth service and image. Backend `CLAUDE.md`: status port and adapter.
+- [x] `CHANGELOG.md` `[Unreleased]` entry (`**F018 — Backups**`) with an `Upgrade:` sub-line; add the PR link in a follow-up commit once the PR is open (no PR exists yet — left as a TODO for whoever opens it).
+- [x] Tick this plan and mark F018 built in the README status.
 
 ## Verification
-- [ ] `bats backup/test` green; end-to-end restore test green in CI.
-- [ ] Manual, Docker Desktop on Windows: fresh `.env` with a keygen'd recipient, `docker volume create`, `up -d`; a `.dump.age` file and `status.json` appear; the banner shows nothing; stop the sidecar past the staleness window and confirm `STALE`.
-- [ ] Manual: `BACKUP_DIR` pointed at a synced folder — files sync without partial uploads; `down -v` leaves the external volume and the folder intact.
-- [ ] Manual, upgrade: run with a new sidecar build id, `up -d` — a `pre-upgrade` file is taken before the backend starts.
-- [ ] Manual: restore onto a fresh stack with the private key; the app shows the same data; a wrong key fails before anything changes; the safety dump exists.
-- [ ] Manual, host matrix: WSL2 Ubuntu and a plain Linux Docker host (ownership with `BACKUP_UID`/`BACKUP_GID`).
-- [ ] Manual, optional rclone: configure a remote; a push failure shows `FAILING`; retention prunes the remote too.
-- [ ] No log line or `status.json` contains an amount, description, note or entity name.
+- [x] `bats backup/test` green (25/25, run locally against a Docker image built from `bats/bats` + `bash`/`coreutils`/`jq`, since this dev machine has no `bats` on `PATH`); `backup/test/e2e.sh` green locally against real Docker (build the real sidecar image, seed a throwaway Postgres, back up, restore into a second fresh Postgres, compare row counts/`flyway_schema_history`, wrong-key-fails-cleanly, safety-dump-exists — all passed). `ci.yml`'s new `test-backup` job runs both the same way on push/PR; not actually exercised through GitHub Actions in this session (the branch wasn't pushed).
+- [ ] Manual, Docker Desktop on Windows: fresh `.env` with a keygen'd recipient, `docker volume create`, `up -d`; a `.dump.age` file and `status.json` appear; the banner shows nothing; stop the sidecar past the staleness window and confirm `STALE`. **Not done** — this requires leaving a real prod stack running for >20h (`BACKUP_MAX_AGE_HOURS`) and is a destination-state check beyond what the automated e2e test already covers; left for the user.
+- [ ] Manual: `BACKUP_DIR` pointed at a synced folder — files sync without partial uploads; `down -v` leaves the external volume and the folder intact. **Not done** — needs a real Dropbox/OneDrive/Syncthing folder and a human watching it sync; left for the user. (The atomic-rename behaviour itself, and that `down -v` can't touch an `external: true` volume, are both exercised/verified by the e2e test and the `docker compose config` checks in Phase 3, respectively.)
+- [x] Manual, upgrade: run with a new sidecar build id, `up -d` — a `pre-upgrade` file is taken before the backend starts. Verified directly against the built image (not full `docker compose up`, which would need real GHCR images): a container built with a different `BUILD_ID` produces `decision: forced` and a `.pre-upgrade.dump.age` file, then marks the healthcheck ready.
+- [x] Manual: restore onto a fresh stack with the private key; the app shows the same data; a wrong key fails before anything changes; the safety dump exists. Verified via `backup/test/e2e.sh` and ad hoc `docker run`s against two separate throwaway Postgres containers (not the app itself, which wasn't built/running in this session) — row counts and `flyway_schema_history` matched exactly, the wrong key failed before any table existed on the target, and the safety dump was written.
+- [ ] Manual, host matrix: WSL2 Ubuntu and a plain Linux Docker host (ownership with `BACKUP_UID`/`BACKUP_GID`). **Not done** — this session only has Docker Desktop for Windows available; left for the user, as the task instructions anticipated.
+- [ ] Manual, optional rclone: configure a remote; a push failure shows `FAILING`; retention prunes the remote too. **Not done** — needs a real rclone remote/credentials; left for the user. (`backup.sh`'s rclone push/prune code paths exist and are exercised structurally by the script review and the local `docker compose config` check that `./rclone.conf` mounts correctly when present and is a harmless no-op when absent, but not against a real remote.)
+- [x] No log line or `status.json` contains an amount, description, note or entity name. Reviewed every `log`/`echo` line in `backup/scripts/*` and the backend's `FileBackupStatusAdapter`/`BackupStatusController` path: only file names, counts, state/category words and timestamps are ever logged or written to the marker.
