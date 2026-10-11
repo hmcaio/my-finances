@@ -26,10 +26,13 @@ expect_one() {
   fi
 }
 
-# Postgres: dev + prod compose and the Testcontainers tag used by every backend test.
+# Postgres: dev + prod compose, the Testcontainers tag used by every backend test, and the F018
+# backup sidecar image (its own pg_dump/pg_restore must match the server major, and the tool-
+# version-pinning rule applies to it exactly as to the other three).
 pg=$(values 'postgres:[0-9][0-9.]*-alpine' \
   docker-compose.yml docker-compose.prod.yml \
-  backend/src/test/java/com/chm/myfinances/TestcontainersConfiguration.java)
+  backend/src/test/java/com/chm/myfinances/TestcontainersConfiguration.java \
+  backup/Dockerfile)
 expect_one "postgres" $pg
 
 # Node: frontend/.nvmrc is the source of truth for CI (setup-node reads it) and native dev

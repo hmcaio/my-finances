@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# backup-keygen — generates one age keypair for F018 backups (ADR 0015) and prints both halves
+# with a loud warning. Run once, before the first backup:
+#
+#   docker compose -f docker-compose.prod.yml run --rm --no-deps backup backup-keygen
+#
+# (or, with age-keygen installed locally, just `age-keygen`.)
+#
+# The recipient (public key) goes in .env as BACKUP_AGE_RECIPIENT - the sidecar only ever needs
+# that half. The private key is never written to disk by this script and must never go in .env or
+# anywhere on this host: copy it into a password manager or print it and lock it away right now.
+# Losing it makes every existing backup permanently unrecoverable - there is no recovery path.
+
+set -euo pipefail
+
+RAW=$(age-keygen 2>&1)
+
+PRIVATE_KEY=$(printf '%s\n' "$RAW" | grep -o 'AGE-SECRET-KEY-[0-9A-Z]*' | head -n1)
+RECIPIENT=$(printf '%s\n' "$RAW" | grep '^# public key:' | sed 's/^# public key: *//')
+
+if [ -z "$PRIVATE_KEY" ] || [ -z "$RECIPIENT" ]; then
+  echo "backup-keygen: age-keygen did not produce the expected output:" >&2
+  printf '%s\n' "$RAW" >&2
+  exit 1
+fi
+
+cat <<BANNER
+================================================================================
+ F018 backups: new age keypair generated.
+
+ 1) Put this in .env as BACKUP_AGE_RECIPIENT:
+
+      $RECIPIENT
+
+ 2) STORE THE PRIVATE KEY BELOW SOMEWHERE OFF THIS MACHINE RIGHT NOW - a
+    password manager, or printed and locked away. It is NOT written to disk
+    by this script and must NEVER be put in .env or anywhere on this host.
+
+      $PRIVATE_KEY
+
+ Losing the private key makes every backup ever taken with this recipient
+ PERMANENTLY UNRECOVERABLE. There is no recovery path - act now, not later.
+================================================================================
+BANNER

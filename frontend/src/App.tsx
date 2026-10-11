@@ -7,6 +7,7 @@ import { useHasAccounts } from './hooks/useHasAccounts'
 import { getTheme } from './theme'
 import { Layout } from './components/layout/Layout'
 import { ErrorBoundary } from './components/feedback/ErrorBoundary'
+import { BackupStatusBanner } from './components/feedback/BackupStatusBanner'
 import { LoadFailedNotice } from './components/feedback/LoadFailedNotice'
 import { fadeInSx } from './components/feedback/fadeIn'
 import { useDelayedFlag } from './hooks/useDelayedFlag'
@@ -115,6 +116,9 @@ function ThemedApp() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+      {/* F018: not behind the onboarding gate below, so it shows regardless of whether
+          onboarding has happened yet or which page (if any) is open. */}
+      <BackupStatusBanner />
       {hasAccounts === null ? (
         <Box sx={{ maxWidth: 720, mx: 'auto', px: 2, py: 6 }}>
           {loadError !== null ? (

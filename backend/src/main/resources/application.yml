@@ -63,3 +63,12 @@ springdoc:
     path: /swagger-ui.html
   api-docs:
     path: /v3/api-docs
+
+myfinances:
+  backup:
+    # F018, ADR 0015: where FileBackupStatusAdapter reads the sidecar's status.json. Same default
+    # in every profile (matches the read-only /backups mount docker-compose.prod.yml gives the
+    # backend container); BACKUP_STATUS_PATH overrides it without a rebuild. Dev has no sidecar
+    # and no mount at all, so the file is simply absent there - GET /api/backup-status returns
+    # UNKNOWN, not an error.
+    status-path: ${BACKUP_STATUS_PATH:/backups/status.json}
