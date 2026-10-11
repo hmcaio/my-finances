@@ -1,5 +1,7 @@
 # F013 — Data Export
 
+> **Superseded by [F030](../F030-reports/spec.md):** this all-entity backup-shaped export is retired once F030 ships — `DataExportService`, `DataExportController`, `GET /api/export` and the `/export` page are removed, not kept alongside F030's curated reports. Read this spec as history for what was built and why.
+
 ## Summary
 All-entity export as a ZIP of CSVs, with FK names denormalized inline, optionally filtered by date range/account/category (PRD §6.9). The last feature since it reads from every other entity in the system.
 
