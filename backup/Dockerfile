@@ -3,16 +3,18 @@
 # the postgres service itself (root CLAUDE.md: a tool version is pinned in every file that names
 # it; scripts/check-versions.sh fails if this drifts from docker-compose.prod.yml/
 # TestcontainersConfiguration) - plus age for encryption, rclone for the optional off-site push,
-# and bash/coreutils/jq for the scripts themselves (coreutils specifically for GNU date's -d
-# parsing and %G/%V ISO-week formatting that busybox's date doesn't support - prune.sh/decide.sh
-# rely on it).
+# and bash/coreutils/findutils/jq for the scripts themselves: coreutils for GNU date's -d parsing
+# and %G/%V ISO-week formatting that busybox's date doesn't support (prune.sh/decide.sh rely on
+# it), findutils for GNU find's -printf (busybox's find applet - Alpine's default - doesn't
+# support it at all; backup.sh's local-prune listing needs it to strip the directory prefix down
+# to a bare filename).
 FROM postgres:17.11-alpine
 
 # The git SHA this image was built from, baked in at /etc/backup-build-id (ADR 0015's
 # "pre-upgrade" trigger compares this to the value a previous run recorded in status.json).
 ARG BUILD_ID=dev
 
-RUN apk add --no-cache bash coreutils jq age rclone \
+RUN apk add --no-cache bash coreutils findutils jq age rclone \
   && printf '%s' "$BUILD_ID" >/etc/backup-build-id
 
 COPY scripts/backup.sh scripts/entrypoint.sh scripts/prune.sh scripts/decide.sh scripts/restore.sh scripts/backup-keygen /usr/local/bin/
