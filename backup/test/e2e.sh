@@ -2,8 +2,10 @@
 # e2e.sh — scripted Docker end-to-end test for the F018 backup sidecar (spec "Testing/End-to-end",
 # plan.md Phase 2). Builds the real backup image, seeds a throwaway Postgres, takes a real
 # encrypted backup, restores it into a second fresh Postgres, and compares row counts and
-# flyway_schema_history. Also proves a wrong key fails cleanly (nothing touched) and that the
-# pre-restore safety dump is written. Run from the repo root:
+# flyway_schema_history. Also proves a wrong key fails cleanly (nothing touched), that the
+# pre-restore safety dump is written, and that local retention actually prunes against the real
+# image's tools (not just prune.sh's own logic in isolation - see that check's own comment for
+# why this needed its own regression test). Run from the repo root:
 #
 #   bash backup/test/e2e.sh
 #
@@ -174,6 +176,36 @@ DST_FLYWAY=$(docker exec "$DST_PG" psql -U myfinances -d myfinances -tAc "select
 SAFETY_DUMP=$(find "$BACKUPS_DIR" -maxdepth 1 -name 'pre-restore-*' | head -n1)
 [ -n "$SAFETY_DUMP" ] && pass "pre-restore safety dump exists ($(basename "$SAFETY_DUMP"))" ||
   fail "no pre-restore safety dump was written"
+
+# Regression test for a real bug this feature shipped with: Alpine's default `find` applet
+# (busybox) has no -printf option at all, so backup.sh's local-prune listing (find ... -printf
+# '%f\n' | prune.sh) silently returned zero lines on every run - local backups piled up unbounded
+# while the rclone remote (listed via `rclone lsf`, which doesn't go through this `find` call)
+# pruned correctly, exposing the mismatch in production before it was caught here. prune.sh's own
+# bats suite already proves the GFS/pre-upgrade/foreign-file *logic* exhaustively in isolation
+# (a pure function over a given file list) - what that suite structurally cannot catch is the
+# real image's `find` failing to produce that file list in the first place. This runs backup.sh
+# for real, against the actual built image, with a same-day decoy that MUST be pruned and a
+# foreign file that must not be touched - the minimal case that would have caught the regression.
+echo "== local retention prunes correctly against the real image's find (not just prune.sh in isolation) =="
+RETENTION_DIR="$WORKDIR/retention-backups"
+mkdir -p "$RETENTION_DIR"
+SAME_DAY_DECOY="myfinances-$(date -u +%Y%m%d)T000001Z.dump.age"
+FOREIGN_FILE="notes.txt"
+touch "$RETENTION_DIR/$SAME_DAY_DECOY" "$RETENTION_DIR/$FOREIGN_FILE"
+
+docker run --rm \
+  --network "$NETWORK" \
+  -e PGHOST="$SRC_PG" -e PGPORT=5432 -e PGDATABASE=myfinances -e PGUSER=myfinances -e PGPASSWORD=myfinances \
+  -e BACKUP_AGE_RECIPIENT="$RECIPIENT" -e IMAGE_TAG=e2e-test \
+  -v "$RETENTION_DIR:/backups" \
+  "$IMAGE" backup.sh || fail "retention test: backup.sh exited non-zero"
+
+[ -f "$RETENTION_DIR/$SAME_DAY_DECOY" ] &&
+  fail "retention: same-day decoy was not pruned (local find/prune.sh plumbing is broken again)" ||
+  pass "retention: older same-day decoy correctly pruned, newest kept"
+[ -f "$RETENTION_DIR/$FOREIGN_FILE" ] && pass "retention: foreign file left untouched" ||
+  fail "retention: foreign file was wrongly deleted"
 
 if [ "$FAILED" -eq 0 ]; then
   echo "E2E: all checks passed"
