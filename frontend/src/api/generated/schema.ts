@@ -852,6 +852,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/backup-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["backupStatus_getStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/audit-log": {
         parameters: {
             query?: never;
@@ -1494,6 +1510,24 @@ export interface components {
             categoryId?: string;
             cap?: number;
             actual?: number;
+        };
+        BackupStatusResponse: {
+            /** @enum {string} */
+            state?: "OK" | "STALE" | "FAILING" | "UNKNOWN";
+            localOnly?: boolean;
+            /** Format: date-time */
+            lastSuccessAt?: string;
+            /** Format: date-time */
+            lastAttemptAt?: string;
+            lastError?: string;
+            imageTag?: string;
+            buildId?: string;
+            schemaVersion?: string;
+            targetType?: string;
+            remoteConfigured?: boolean;
+            remoteOk?: boolean;
+            /** Format: int32 */
+            count?: number;
         };
         AuditLogEntryResponse: {
             /** Format: uuid */
@@ -3509,6 +3543,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["BudgetReportLineResponse"][];
+                };
+            };
+        };
+    };
+    backupStatus_getStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BackupStatusResponse"];
                 };
             };
         };
