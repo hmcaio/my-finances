@@ -279,6 +279,23 @@ export function TransferForm({
   const investmentAccountName =
     accounts.find((a) => a.id === form.investmentAccountId)?.name ?? 'investment account'
 
+  /**
+   * Product ids with a `resultingBalance` set on more than one line - mirrors the backend's
+   * `TradeConfirmation`/`TradeConfirmationRequest` cross-line invariant (a holding has one snapshot
+   * per date, so two lines of the same product each trying to set one would be ambiguous). Blocked
+   * client-side, same as the same-account case, since the backend sends no message for its 400.
+   */
+  function duplicateResultingBalanceProductIds(lines: LineState[]): Set<string> {
+    const seen = new Set<string>()
+    const duplicates = new Set<string>()
+    for (const line of lines) {
+      if (line.resultingBalance.trim() === '' || line.productId === '') continue
+      if (seen.has(line.productId)) duplicates.add(line.productId)
+      seen.add(line.productId)
+    }
+    return duplicates
+  }
+
   function isLineValid(line: LineState): boolean {
     if (line.productId === '') return false
     const quantity = numberOrNull(line.quantity)
@@ -311,6 +328,7 @@ export function TransferForm({
     if (form.lines.length === 0) return false
     if (!(taxes !== null && taxes >= 0)) return false
     if (!form.lines.every(isLineValid)) return false
+    if (duplicateResultingBalanceProductIds(form.lines).size > 0) return false
     return netPreview !== null && netPreview !== 0
   }
 
@@ -353,7 +371,11 @@ export function TransferForm({
         : await createMutation.mutateAsync(request)
       onSaved(saved)
     } catch (err) {
-      onError(defaultErrorMessage(err))
+      onError(
+        defaultErrorMessage(err, {
+          400: "Check the trade lines: only one line per product can set a resulting balance, and the net settlement can't be zero.",
+        }),
+      )
     } finally {
       setSaving(false)
     }
@@ -502,8 +524,11 @@ export function TransferForm({
     </>
   )
 
+  const duplicateResultingBalanceIds = duplicateResultingBalanceProductIds(form.lines)
   const lineRows = form.lines.map((line) => {
     const holdingOptions = holdingOptionsFor(line)
+    const hasDuplicateResultingBalance =
+      line.resultingBalance.trim() !== '' && duplicateResultingBalanceIds.has(line.productId)
     return (
       <Box
         key={line.key}
@@ -562,7 +587,12 @@ export function TransferForm({
           size="small"
           value={line.resultingBalance}
           onChange={(e) => updateLine(line.key, { resultingBalance: e.target.value })}
-          helperText="Optional: recorded as a snapshot on the transfer date."
+          error={hasDuplicateResultingBalance}
+          helperText={
+            hasDuplicateResultingBalance
+              ? 'Only one line per product can set a resulting balance - leave it blank here.'
+              : 'Optional: recorded as a snapshot on the transfer date.'
+          }
           slotProps={{ htmlInput: { step: '0.01', min: '0' } }}
         />
         {line.side === 'SELL' && (
