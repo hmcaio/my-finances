@@ -29,7 +29,7 @@ import java.util.Set;
  */
 public record TradeConfirmationRequest(
     @NotNull @PositiveOrZero @Digits(integer = 17, fraction = 2) BigDecimal taxes,
-    @NotEmpty @Valid List<TradeConfirmationLineRequest> lines) {
+    @NotEmpty List<@Valid TradeConfirmationLineRequest> lines) {
 
   @JsonIgnore
   @AssertTrue(message = "at most one line per product may carry a resultingBalance")
