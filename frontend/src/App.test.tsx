@@ -39,15 +39,15 @@ describe('App', () => {
     expect(await screen.findByRole('switch', { name: 'Show closed accounts' })).toBeInTheDocument()
   })
 
-  it('routes the Export nav link to the data export page', async () => {
+  it('routes the Reports nav link to the reports page', async () => {
     stubMatchMedia()
     const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<App />)
     await screen.findByRole('heading', { name: 'Dashboard' })
 
-    await user.click(screen.getByRole('link', { name: 'Export' }))
+    await user.click(screen.getByRole('link', { name: 'Reports' }))
 
-    expect(await screen.findByRole('button', { name: 'Download' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Generate' })).toBeInTheDocument()
   })
 
   describe('onboarding gate (F011)', () => {

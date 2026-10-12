@@ -4,6 +4,8 @@ import com.chm.myfinances.application.investmentsnapshot.InvestmentSnapshotFresh
 import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
+import com.chm.myfinances.domain.institution.Institution;
+import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
@@ -50,6 +52,7 @@ public class InvestmentAllocationQuery {
   private final InvestmentCategoryRepository categoryRepository;
   private final InvestmentSubcategoryRepository subcategoryRepository;
   private final AccountRepository accountRepository;
+  private final InstitutionRepository institutionRepository;
   private final LatestInvestmentSnapshotQuery latestSnapshotQuery;
   private final InvestmentSnapshotFreshnessQuery freshnessQuery;
 
@@ -59,6 +62,7 @@ public class InvestmentAllocationQuery {
       InvestmentCategoryRepository categoryRepository,
       InvestmentSubcategoryRepository subcategoryRepository,
       AccountRepository accountRepository,
+      InstitutionRepository institutionRepository,
       LatestInvestmentSnapshotQuery latestSnapshotQuery,
       InvestmentSnapshotFreshnessQuery freshnessQuery) {
     this.productRepository = productRepository;
@@ -66,19 +70,71 @@ public class InvestmentAllocationQuery {
     this.categoryRepository = categoryRepository;
     this.subcategoryRepository = subcategoryRepository;
     this.accountRepository = accountRepository;
+    this.institutionRepository = institutionRepository;
     this.latestSnapshotQuery = latestSnapshotQuery;
     this.freshnessQuery = freshnessQuery;
   }
 
   /**
    * Slices ordered by category name, then sub-category name (the null slice last); {@code ACCOUNT}
-   * slices are ordered by account name.
+   * slices are ordered by account name; {@code INSTITUTION} slices are ordered by institution name.
    */
   public List<AllocationRow> allocation(LocalDate asOfDate, AllocationGrouping grouping) {
     if (grouping == AllocationGrouping.ACCOUNT) {
       return allocationByAccount(asOfDate);
     }
+    if (grouping == AllocationGrouping.INSTITUTION) {
+      return allocationByInstitution(asOfDate);
+    }
     return allocationByCategory(asOfDate, grouping);
+  }
+
+  /**
+   * One row per institution (F030, the Investment allocation report's "by institution" section):
+   * every investment holding's latest snapshot, summed into its account's institution - any
+   * product, no category/sub-category roll-up, unlike {@link #allocationByCategory}.
+   */
+  private List<AllocationRow> allocationByInstitution(LocalDate asOfDate) {
+    Map<UUID, InvestmentSnapshot> latestByHolding = latestSnapshotQuery.latestByHolding(asOfDate);
+    Set<UUID> staleHoldings = freshnessQuery.staleHoldingIds(asOfDate);
+    Map<UUID, UUID> institutionIdByAccount =
+        accountRepository.findAll().stream()
+            .collect(Collectors.toMap(Account::getId, Account::getInstitutionId));
+    Map<UUID, String> institutionNames =
+        institutionRepository.findAll().stream()
+            .collect(Collectors.toMap(Institution::getId, Institution::getName));
+
+    Map<UUID, Accumulator> groups = new LinkedHashMap<>();
+    for (InvestmentHolding holding : holdingRepository.findAll()) {
+      InvestmentSnapshot snapshot = latestByHolding.get(holding.getId());
+      BigDecimal value = snapshot != null ? snapshot.getBalance() : BigDecimal.ZERO;
+      boolean isStale = staleHoldings.contains(holding.getId());
+      if (value.signum() == 0 && !isStale) {
+        continue;
+      }
+      UUID institutionId = institutionIdByAccount.get(holding.getAccountId());
+      Accumulator accumulator = groups.computeIfAbsent(institutionId, k -> new Accumulator());
+      accumulator.total = accumulator.total.add(value);
+      accumulator.needsSnapshot |= isStale;
+    }
+
+    Comparator<AllocationRow> order = Comparator.comparing(AllocationRow::institutionName);
+    return groups.entrySet().stream()
+        .map(
+            entry ->
+                new AllocationRow(
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    entry.getKey(),
+                    institutionNames.get(entry.getKey()),
+                    entry.getValue().total,
+                    entry.getValue().needsSnapshot))
+        .sorted(order)
+        .toList();
   }
 
   private List<AllocationRow> allocationByAccount(LocalDate asOfDate) {
@@ -113,6 +169,8 @@ public class InvestmentAllocationQuery {
                     null,
                     entry.getKey(),
                     accountNames.get(entry.getKey()),
+                    null,
+                    null,
                     entry.getValue().total,
                     entry.getValue().needsSnapshot))
         .sorted(order)
@@ -172,6 +230,8 @@ public class InvestmentAllocationQuery {
                     entry.getKey().subcategoryId() == null
                         ? null
                         : subcategoryNames.get(entry.getKey().subcategoryId()),
+                    null,
+                    null,
                     null,
                     null,
                     entry.getValue().total,

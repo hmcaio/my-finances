@@ -238,11 +238,35 @@ class InvestmentReportControllerTest {
   @Test
   void allocationRejectsAnUnknownGroupByOrBadDateWith400() throws Exception {
     mockMvc
-        .perform(get("/api/investments/allocation").param("groupBy", "INSTITUTION"))
+        .perform(get("/api/investments/allocation").param("groupBy", "NOT_A_GROUPING"))
         .andExpect(status().isBadRequest());
     mockMvc
         .perform(get("/api/investments/allocation").param("asOf", "not-a-date"))
         .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void allocationByInstitutionSumsHoldingsIntoTheirAccountsInstitution() throws Exception {
+    snapshot(cdbHoldingId, "2026-02-28", "150.00");
+    snapshot(bareHoldingId, "2026-02-28", "25.50");
+    UUID institutionId = accountRepository.findById(brokerId).orElseThrow().getInstitutionId();
+    String institutionName = institutionRepository.findById(institutionId).orElseThrow().getName();
+
+    mockMvc
+        .perform(
+            get("/api/investments/allocation")
+                .param("asOf", "2026-03-31")
+                .param("groupBy", "INSTITUTION"))
+        .andExpect(status().isOk())
+        .andExpect(
+            jsonPath("$[?(@.institutionName == '" + institutionName + "')].totalValue")
+                .value(hasItem(175.50)))
+        .andExpect(
+            jsonPath("$[?(@.institutionName == '" + institutionName + "')].categoryId")
+                .value(contains((Object) null)))
+        .andExpect(
+            jsonPath("$[?(@.institutionName == '" + institutionName + "')].accountId")
+                .value(contains((Object) null)));
   }
 
   @Test

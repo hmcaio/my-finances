@@ -12,7 +12,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * REST API for the investment allocation view (F009 spec; {@code groupBy=ACCOUNT} added by F023).
+ * REST API for the investment allocation view (F009 spec; {@code groupBy=ACCOUNT} added by F023;
+ * {@code groupBy=INSTITUTION} added by F030).
  */
 @RestController
 @RequestMapping("/api/investments/allocation")
@@ -27,8 +28,8 @@ public class InvestmentAllocationController {
   }
 
   /**
-   * {@code GET /api/investments/allocation?asOf=&groupBy=CATEGORY|SUBCATEGORY|ACCOUNT}: {@code
-   * asOf} defaults to today, {@code groupBy} to {@code CATEGORY}.
+   * {@code GET /api/investments/allocation?asOf=&groupBy=CATEGORY|SUBCATEGORY|ACCOUNT|INSTITUTION}:
+   * {@code asOf} defaults to today, {@code groupBy} to {@code CATEGORY}.
    */
   @GetMapping
   public List<AllocationRowResponse> allocation(

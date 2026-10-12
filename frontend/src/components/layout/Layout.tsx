@@ -50,7 +50,7 @@ const SETTINGS_NAV_ITEMS: NavItem[] = [
 ]
 
 const ACTIVITY_NAV_ITEM: NavItem = { label: 'Activity', path: '/activity' }
-const EXPORT_NAV_ITEM: NavItem = { label: 'Export', path: '/export' }
+const REPORTS_NAV_ITEM: NavItem = { label: 'Reports', path: '/reports' }
 
 function NavListItem({ item, pathname }: { item: NavItem; pathname: string }) {
   return (
@@ -99,7 +99,7 @@ export function Layout({ children }: PropsWithChildren) {
         ))}
         <Divider component="li" sx={{ my: 1 }} />
         <NavListItem item={ACTIVITY_NAV_ITEM} pathname={pathname} />
-        <NavListItem item={EXPORT_NAV_ITEM} pathname={pathname} />
+        <NavListItem item={REPORTS_NAV_ITEM} pathname={pathname} />
       </List>
     </Fragment>
   )

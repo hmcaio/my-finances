@@ -309,7 +309,7 @@ Eleven curated, human-readable reports a user generates on demand, superseding t
 - **Investment allocation**: by institution (every holding, any product) and by FII segment (§5.13), as of a selectable date/month.
 - **Dividend income**: dividend transactions (§5.13) in a date range, per-product totals with a per-month subtotal.
 - **Annual summary**: one calendar year's total income, total expense, and net worth at year-start/year-end with the delta.
-- One or more report types are selected per generation, through one shared set of filters (date range, as-of date, account, category, vehicle, month); a report ignores a filter dimension it has no use for. One type generates its own file (CSV, or CSV+PDF for the two reports where a printable layout helps); more than one bundles into a single ZIP.
+- One or more report types are selected per generation, through one shared set of filters (date range, as-of date, account, category, vehicle, month); a report ignores a filter dimension it has no use for. One type generates its own file (CSV, or both a CSV and a PDF for the two reports where a printable layout helps); more than one type, or a single type that itself produces more than one file (the CSV+PDF pair), bundles into a single ZIP.
 - Not part of any report: the audit log (§5.12).
 
 ### 6.10 Institutions
