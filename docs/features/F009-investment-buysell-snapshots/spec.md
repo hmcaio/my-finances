@@ -1,5 +1,7 @@
 # F009 — Investment Trades, Snapshots & Reports
 
+**Superseded in part.** This spec describes buy/sell as a single-product-tagged `Transfer` and `closedDate`/the close guard/`needsSnapshot` as product-level facts. [F022](../F022-investment-holdings/spec.md) ([ADR 0020](../../adr/0020-investment-holdings-many-to-many.md)) moved those from product to the new `InvestmentHolding`, and [F027](../F027-trade-confirmations/spec.md) ([ADR 0024](../../adr/0024-trade-confirmations-as-multi-line-transfers.md)) replaced the single-product `Transfer`/`InvestmentTradeDetails` model with a multi-line `TradeConfirmation`/`transfer_trade_lines`. The snapshot model, freshness concept and allocation/value-series reporting described below are still current; read F022 and F027 for what trades and holdings actually look like today.
+
 ## Summary
 `InvestmentSnapshot` (the manually entered value used everywhere else), buys/sells as `Transfer`s tagged with a product (with quantity, unit price and taxes recorded as data), the snapshot-freshness rules that keep those two in step, the allocation view and a monthly per-product value series (PRD §5.5 trades, §5.8 snapshots, §6.6 remaining). Fulfills F008's `HasInvestmentHistoryChecker` port and gives `INVESTMENT` accounts their balance. Reworked by [ADR 0012](../../adr/0012-investments-as-accounts-and-transfers.md): there is no separate buy/sell log.
 

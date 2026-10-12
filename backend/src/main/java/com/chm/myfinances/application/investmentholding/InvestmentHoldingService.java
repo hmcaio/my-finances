@@ -126,9 +126,8 @@ public class InvestmentHoldingService {
   }
 
   /**
-   * Closes a holding. One write, so no {@code @Transactional}. A holding can only be closed while
-   * its latest snapshot is {@code 0} or absent (F009's rule, moved here by F022), so a closed
-   * holding never keeps counting a stale value.
+   * Closes a holding. A holding can only be closed while its latest snapshot is {@code 0} or absent
+   * (F009's rule, moved here by F022), so a closed holding never keeps counting a stale value.
    */
   @Transactional
   public InvestmentHolding close(UUID id) {

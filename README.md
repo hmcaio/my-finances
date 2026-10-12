@@ -6,9 +6,9 @@ Manual entry only. There's no bank sync, because there's no server to sync to �
 
 ## Why it's built this way
 
-Most personal finance tools are either a spreadsheet you maintain by hand, or a hosted SaaS that wants your bank credentials and your data on someone else's server. This is neither: a small, self-hosted app that runs when you tell it to, keeps everything local, and gets the financial modeling right (versioned budgets and recurring bills, correct credit-card accounting, an honest net worth number) without any of the multi-tenant complexity — auth, roles, rate limiting, horizontal scaling — that a "real" SaaS would need and this project has no use for.
+Most personal finance tools are either a spreadsheet you maintain by hand, or a hosted SaaS that wants your bank credentials and your data on someone else's server. This is neither: a small, self-hosted app that runs when you tell it to and keeps everything local, with none of the multi-tenant machinery a "real" SaaS would need.
 
-Every non-obvious decision behind that shape is written down as an [ADR](docs/adr/) rather than left implicit, and the full product spec lives in [docs/PRD.md](docs/PRD.md). Both are meant to be read, not just archived — this README is the short version.
+Every non-obvious decision behind that shape is written down as an [ADR](docs/adr/) rather than left implicit, and the full product spec (data model, versioning rules, net worth formula, non-goals) lives in [docs/PRD.md](docs/PRD.md). Both are meant to be read, not just archived — this README is the short version.
 
 ## Tech stack
 

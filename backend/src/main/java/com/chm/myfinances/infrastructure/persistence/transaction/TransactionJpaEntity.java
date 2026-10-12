@@ -58,7 +58,8 @@ public class TransactionJpaEntity extends AuditableEntity {
   @Column(name = "additional_notes")
   private String additionalNotes;
 
-  // F024 (ADR 0021): flat columns mirroring TransferJpaEntity's InvestmentTradeDetails style -
+  // F024 (ADR 0021): flat columns, same null-together/non-null-together convention the old
+  // (F009/ADR 0012, retired by F027/ADR 0024) TransferJpaEntity trade columns used -
   // vehicleId/fuelType/liters/pricePerLiter are all null together (no fuel purchase) or all
   // non-null together; kmSinceLastFill/odometer are independently optional.
   @Column(name = "vehicle_id")

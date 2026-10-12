@@ -20,10 +20,10 @@ One file per decision, numbered sequentially, never renumbered or edited to chan
 | [0014](0014-archunit-for-architecture-rules.md) | Enforce architecture rules with ArchUnit, with `Transaction` depending on `CategoryType` as a documented exception | Accepted |
 | [0015](0015-automated-encrypted-backups-sidecar.md) | Automated, encrypted backups run by a sidecar container in the prod stack | Accepted |
 | [0016](0016-tanstack-query-client-cache.md) | Client-side query cache with TanStack Query and coarse invalidation; no server cache until measured | Accepted |
-| [0017](0017-delete-accounts-with-no-history.md) | Allow hard-deleting an account that has no history | Accepted |
+| [0017](0017-delete-accounts-with-no-history.md) | Allow hard-deleting an account that has no history | Accepted (example amended by [0020](0020-investment-holdings-many-to-many.md)) |
 | [0018](0018-opt-in-full-stack-dev-compose-profile.md) | Opt-in `full` compose profile runs the whole stack in dev | Accepted |
 | [0019](0019-responsive-layout-strategy.md) | Responsive layout: MUI breakpoints, cards over tables, shared primitives, geometry-only e2e | Accepted |
-| [0020](0020-investment-holdings-many-to-many.md) | Model investment products and accounts as many-to-many holdings, not a 1:1 link | Accepted |
+| [0020](0020-investment-holdings-many-to-many.md) | Model investment products and accounts as many-to-many holdings, not a 1:1 link | Accepted (amends [0012](0012-investments-as-accounts-and-transfers.md), [0017](0017-delete-accounts-with-no-history.md)) |
 | [0021](0021-fuel-details-on-transaction.md) | Record fuel purchases as Transaction + optional FuelDetails, gated by a dedicated category flag | Accepted |
 | [0022](0022-audit-log-explicit-port-same-transaction.md) | Record an audit log through an explicit application-layer port, in the same transaction as the change | Accepted |
 | [0023](0023-fii-allocation-plan-and-dividends.md) | Generalize ticker/segment on InvestmentProduct; version the FII allocation plan like a budget; link dividends to Transaction like fuel details | Accepted |
