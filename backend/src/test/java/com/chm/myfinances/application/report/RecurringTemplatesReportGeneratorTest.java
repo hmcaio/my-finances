@@ -140,6 +140,7 @@ class RecurringTemplatesReportGeneratorTest {
 
     List<Map<String, String>> rows = CsvTestSupport.parseSingleSection(files.get(0).content());
     assertThat(rows).hasSize(1);
+    assertThat(rows.get(0).get("description")).isEqualTo("Rent R Test");
     assertThat(rows.get(0).get("amount")).isEqualTo("1500.00");
     assertThat(rows.get(0).get("day_of_month")).isEqualTo("20");
     assertThat(rows.get(0).get("next_occurrence")).isEqualTo("2026-06-20");

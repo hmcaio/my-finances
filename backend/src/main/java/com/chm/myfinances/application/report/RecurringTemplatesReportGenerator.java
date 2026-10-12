@@ -22,14 +22,20 @@ import org.springframework.stereotype.Service;
 
 /**
  * Report 8 (F030 spec): every currently-active {@link RecurringTemplate}, as of a selectable date
- * (defaults to today) - category, account, amount, day-of-month, next occurrence. No history, no
- * inactive templates - a "what am I committed to right now" view.
+ * (defaults to today) - description, category, account, amount, day-of-month, next occurrence. No
+ * history, no inactive templates - a "what am I committed to right now" view.
  */
 @Service
 public class RecurringTemplatesReportGenerator implements ReportGenerator {
 
   private static final List<String> COLUMNS =
-      List.of("category_name", "account_name", "amount", "day_of_month", "next_occurrence");
+      List.of(
+          "description",
+          "category_name",
+          "account_name",
+          "amount",
+          "day_of_month",
+          "next_occurrence");
 
   private final RecurringTemplateService templateService;
   private final RecurringTemplateVersionRepository versionRepository;
@@ -83,6 +89,7 @@ public class RecurringTemplatesReportGenerator implements ReportGenerator {
       }
       rows.add(
           Arrays.asList(
+              template.getDescription(),
               categoryNames.getOrDefault(template.getCategoryId(), ""),
               accountNames.getOrDefault(template.getAccountId(), ""),
               next.version().getAmount(),
