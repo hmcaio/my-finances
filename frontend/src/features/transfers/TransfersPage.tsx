@@ -156,10 +156,14 @@ export function TransfersPage() {
   const MAX_TRADE_CHIPS = 3
   function tradeLabels(transfer: Transfer): string[] {
     const lines = transfer.tradeConfirmation?.lines ?? []
-    const labels = lines.map((line) => {
-      const product = productsById.get(line.productId)
-      return `${line.side === 'BUY' ? 'Buy' : 'Sell'} ${product?.name ?? '…'}`
-    })
+    const labels = [
+      ...new Set(
+        lines.map((line) => {
+          const product = productsById.get(line.productId)
+          return `${line.side === 'BUY' ? 'Buy' : 'Sell'} ${product?.name ?? '…'}`
+        }),
+      ),
+    ]
     if (labels.length <= MAX_TRADE_CHIPS) return labels
     return [...labels.slice(0, MAX_TRADE_CHIPS), `+${labels.length - MAX_TRADE_CHIPS} more`]
   }
