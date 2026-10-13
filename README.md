@@ -119,11 +119,11 @@ Built:
 - **F018** — backups (an encrypted `pg_dump` sidecar on a catch-up schedule with GFS retention; a status banner; [ADR 0015](docs/adr/0015-automated-encrypted-backups-sidecar.md))
 - **F030** — reports (eleven curated, on-demand reports replacing F013's all-entity export)
 - **F031** — structured error responses (RFC 9457 Problem Details body with a `type` auto-derived from the exception class, replacing the status-code-only contract; [ADR 0026](docs/adr/0026-structured-error-responses-rfc9457.md))
+- **F032** — validation error details (per-field `errors` array on a bean-validation 400, extending F031's `ProblemDetail` body)
 
 Documented and next up:
 - **F028** — investment splits, backend (a product-level `InvestmentSplit` event, applied as a read-side adjustment to held units; [ADR 0025](docs/adr/0025-investment-split-as-read-side-adjustment.md))
 - **F029** — investment splits, frontend (the product-detail split-history panel and record/delete dialog for F028)
-- **F032** — validation error details (per-field `errors` array on a bean-validation 400, extending F031's `ProblemDetail` body)
 
 See [docs/features/](docs/features/) for the full breakdown, in build order, with each feature's spec and its dependencies on the others.
 
