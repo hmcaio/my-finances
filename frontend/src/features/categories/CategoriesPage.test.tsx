@@ -7,6 +7,8 @@ import {
   categoryCreateConflictHandler,
   categoryDeleteConflictHandler,
   seedCategories,
+  seedDividendCategory,
+  seedFuelCategory,
   seedGroceriesCategory,
   seedSalaryCategory,
 } from '../../mocks/handlers/categories'
@@ -55,37 +57,35 @@ describe('CategoriesPage', () => {
     expect(names).toEqual([builtInExpense.name, 'Groceries', builtInIncome.name, 'Salary'])
   })
 
-  it('offers no delete action on a built-in row, only rename', async () => {
+  it('offers neither a rename nor a delete action on a built-in row', async () => {
+    // Issue #117: built-in used to allow Rename; now it's protected like fuel/dividend.
     renderWithQueryClient(<CategoriesPage />)
     await screen.findByText(builtInExpense.name)
 
     const row = await findRow(builtInExpense.name)
-    expect(row.getByRole('button', { name: 'Rename' })).toBeInTheDocument()
+    expect(row.queryByRole('button', { name: 'Rename' })).not.toBeInTheDocument()
     expect(row.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
-    // An ordinary row still has it.
-    expect((await findRow('Groceries')).getByRole('button', { name: 'Delete' })).toBeInTheDocument()
+    // An ordinary row still has both.
+    const ordinaryRow = await findRow('Groceries')
+    expect(ordinaryRow.getByRole('button', { name: 'Rename' })).toBeInTheDocument()
+    expect(ordinaryRow.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
   })
 
-  it('renames a built-in row, which stays first and still has no delete action', async () => {
-    const user = userEvent.setup({ delay: null })
+  it('offers neither a rename nor a delete action on the fuel or dividend category', async () => {
+    server.use(
+      http.get('/api/categories', () =>
+        HttpResponse.json([...seedCategories, seedFuelCategory, seedDividendCategory]),
+      ),
+    )
     renderWithQueryClient(<CategoriesPage />)
-    await screen.findByText(builtInIncome.name)
+    await screen.findByText(seedFuelCategory.name)
 
-    const row = await findRow(builtInIncome.name)
-    await user.click(row.getByRole('button', { name: 'Rename' }))
-    const input = row.getByRole('textbox')
-    await user.clear(input)
-    await user.type(input, 'Outras receitas')
-    await user.click(row.getByRole('button', { name: 'Save' }))
-
-    expect(await screen.findByText('Outras receitas')).toBeInTheDocument()
-    const renamed = await findRow('Outras receitas')
-    expect(renamed.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
-    const names = screen
-      .getAllByRole('row')
-      .slice(1)
-      .map((r) => within(r).getAllByRole('cell')[0].textContent)
-    expect(names.indexOf('Outras receitas')).toBeLessThan(names.indexOf('Salary'))
+    const fuelRow = await findRow(seedFuelCategory.name)
+    expect(fuelRow.queryByRole('button', { name: 'Rename' })).not.toBeInTheDocument()
+    expect(fuelRow.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
+    const dividendRow = await findRow(seedDividendCategory.name)
+    expect(dividendRow.queryByRole('button', { name: 'Rename' })).not.toBeInTheDocument()
+    expect(dividendRow.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
   })
 
   // Bespoke load-state coverage: richer than the shared `expectLoadStates` pair (also checks that
