@@ -12,12 +12,25 @@ export class ApiError extends Error {
    * a screen that genuinely needs different phrasing for the same `type` branch on it, the ADR's
    * own escape hatch now that `unwrap()` no longer takes a per-call-site override. */
   readonly type?: string
+  /** The raw bean-validation violation list (F032) when the response's `type` was
+   * `method-argument-not-valid` and it carried an `errors` extension - `field` is the backend's
+   * own (possibly nested/indexed, e.g. `tradeConfirmation.lines[0].quantity`) path, `null` for a
+   * cross-field `@AssertTrue` invariant. This feature itself only folds the list into one summary
+   * {@link message}; a future per-field `TextField` UI can read this passthrough without another
+   * backend change. */
+  readonly fieldErrors?: { field: string | null; code: string }[]
 
-  constructor(status: number, message: string, type?: string) {
+  constructor(
+    status: number,
+    message: string,
+    type?: string,
+    fieldErrors?: { field: string | null; code: string }[],
+  ) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.type = type
+    this.fieldErrors = fieldErrors
   }
 }
 
@@ -142,6 +155,32 @@ export const PROBLEM_TYPE_MESSAGES: Record<string, string> = {
 }
 
 /**
+ * Central `code → message` lookup for a bean-validation violation (F032), mirroring {@link
+ * PROBLEM_TYPE_MESSAGES}'s pattern but keyed by the `errors[].code` the backend derives from a
+ * Jakarta constraint annotation's simple name (kebab-cased, `GlobalExceptionHandler`/
+ * `ProblemTypeSlugs`) - never by `field`, since the same `code` recurs across many fields and
+ * forms (e.g. every mandatory text field fails `@NotBlank`). A `code` absent from this map (a
+ * constraint not yet given its own wording, or one of this codebase's per-invariant `@AssertTrue`
+ * codes like `at-most-one-resulting-balance-per-product`) is simply skipped when building the
+ * joined summary in {@link toApiError} - if every code in a response is unmapped, the summary
+ * falls back to the same generic `Request failed with status {status}` text as an unmapped
+ * `type` (see {@link PROBLEM_TYPE_MESSAGES}).
+ */
+export const VALIDATION_CODE_MESSAGES: Record<string, string> = {
+  'not-blank': 'This field is required.',
+  'not-null': 'This field is required.',
+  'not-empty': 'At least one entry is required.',
+  size: 'This field is too long.',
+  positive: 'This value must be greater than zero.',
+  'positive-or-zero': "This value can't be negative.",
+  digits: 'This value has too many digits.',
+  'decimal-min': 'This value is below the allowed minimum.',
+  'decimal-max': 'This value is above the allowed maximum.',
+  min: 'This value is below the allowed minimum.',
+  max: 'This value is above the allowed maximum.',
+}
+
+/**
  * Runs an Axios call and unwraps its `data` on success. On failure, converts the `AxiosError`
  * (Axios throws on any non-2xx by default, unlike `fetch`) into an {@link ApiError} whose message
  * comes from {@link PROBLEM_TYPE_MESSAGES} when the response's RFC 9457 `type` is one it covers,
@@ -184,9 +223,27 @@ function toApiError(error: unknown): ApiError {
       // Request never reached the server (network error, CORS, backend down, ...).
       return new ApiError(0, error.message || 'Network error')
     }
-    const type = (error.response?.data as { type?: string } | undefined)?.type
-    const message = (type && PROBLEM_TYPE_MESSAGES[type]) || `Request failed with status ${status}`
-    return new ApiError(status, message, type)
+    const data = error.response?.data as
+      { type?: string; errors?: { field: string | null; code: string }[] } | undefined
+    const type = data?.type
+    const fieldErrors = data?.errors
+    const message =
+      fieldErrors && fieldErrors.length > 0
+        ? summaryFor(fieldErrors, status)
+        : (type && PROBLEM_TYPE_MESSAGES[type]) || `Request failed with status ${status}`
+    return new ApiError(status, message, type, fieldErrors)
   }
   return new ApiError(0, error instanceof Error ? error.message : 'Unknown error')
+}
+
+/**
+ * F032: one joined summary string for the existing generic banner, built from every violation's
+ * {@link VALIDATION_CODE_MESSAGES} entry - deduplicated, since several fields commonly share one
+ * `code` (e.g. two mandatory text fields both failing `@NotBlank`) and repeating the same sentence
+ * would just be noise. Falls back to the same generic `Request failed with status {status}` text
+ * used for an unmapped `type` when none of the violations' codes are in the map.
+ */
+function summaryFor(errors: { field: string | null; code: string }[], status: number): string {
+  const messages = [...new Set(errors.map((e) => VALIDATION_CODE_MESSAGES[e.code]).filter(Boolean))]
+  return messages.length > 0 ? messages.join(' ') : `Request failed with status ${status}`
 }

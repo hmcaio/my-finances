@@ -18,9 +18,9 @@ One feature branch (`feature/f032-validation-error-details`), backend first, the
 - [ ] `npm run generate-api-types` (backend running); `npm run build` to confirm `schema.ts` still compiles.
 
 ## Phase 3 — Frontend
-- [ ] Test first: `apiError.test.ts` — a 400 response carrying `errors` builds a joined summary string from the per-`code` message map; an unrecognized `code` falls back to existing generic text; `ApiError.fieldErrors` is populated from the raw list.
-- [ ] Add the `code → message` map and `errors`-reading logic to `apiError.ts`; add `fieldErrors?: { field: string | null; code: string }[]` to `ApiError`.
-- [ ] `npm run lint && npm test && npm run build && npm run format:check`.
+- [x] Test first: `apiError.test.ts` — a 400 response carrying `errors` builds a joined summary string from the per-`code` message map; an unrecognized `code` falls back to existing generic text; `ApiError.fieldErrors` is populated from the raw list.
+- [x] Add the `code → message` map and `errors`-reading logic to `apiError.ts`; add `fieldErrors?: { field: string | null; code: string }[]` to `ApiError`.
+- [x] `npm run lint && npm test && npm run build && npm run format:check`.
 
 ## Phase 4 — Docs
 - [ ] Backend `CLAUDE.md` "Errors" section: `errors` extension member, constraint-code derivation (shared utility with F031), `field: null` convention for `@AssertTrue`, `@Valid @RequestBody`-only scope.
