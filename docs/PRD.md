@@ -31,6 +31,9 @@ Designed for solo use today, with a data model that can extend to household/mult
 - No dividend yield or any price-derived return calculation for FIIs (§5.13) — no per-cota market price is tracked (§3), only each holding's latest snapshot total value.
 - No rebalance-suggestion amounts (how much to buy/sell to hit the allocation plan's target) — the FII page (§6.13) only compares target vs. actual percentages.
 - No scheduled or emailed report generation, and reports (§6.9) are not a backup/disaster-recovery mechanism — generation is on-demand and user-triggered only, consistent with the app not running continuously (§7.3); real backups are F018's job.
+- No UI language beyond English and Brazilian Portuguese (pt-BR, §6.14) — a third language is a future direction (§9).
+- No per-request or multi-user locale — the UI language is a single client-side preference (no backend involvement, consistent with the single-user/no-auth scope above); the backend itself never sends translatable text regardless (ADR 0011, ADR 0026).
+- No currency symbol introduced by the UI language toggle (§6.14) — amounts stay symbol-less in both languages, consistent with the single-currency stance above.
 
 ## 4. Users
 
@@ -341,6 +344,11 @@ Eleven curated, human-readable reports a user generates on demand, superseding t
 - Register a dividend via a dedicated form (pick the FII/holding, amount, date) that creates a transaction with the dividend category (§5.13) and the holding reference — distinct from the generic transaction form (§6.1).
 - Dividend history: a list of every dividend transaction (date, ticker, amount), filterable by ticker and date range, with totals by ticker and by month/year. No yield or price-derived calculation (§3).
 
+### 6.14 Language / Localization
+- Toggle the UI language (English / Portuguese (Brazil)) from a header control; defaults to the browser's reported language on first load (Portuguese unless the browser reports English), persisted per-device thereafter — no account/backend involvement.
+- Every label, button, nav item and validation/error message switches with it; so does number, date and money formatting (decimal/thousands separator, date order) — amounts never gain a currency symbol in either language (§3).
+- User-entered text (category/account/institution names, transaction descriptions and notes, etc.) is never translated. A seeded starter category/payment method/institution/investment-taxonomy row (§5.1, §5.2, §5.8, §5.10) displays translated only until renamed — once a user changes its name, it is ordinary user data in whatever language they typed.
+
 ## 7. Technical Design
 
 ### 7.1 Stack
@@ -390,3 +398,5 @@ These are low-level choices left to implementation rather than product decisions
 - Cash-in-lieu handling for a fractional split remainder ("sobra de desdobramento", §5.14) — recorded as an ordinary transfer for now, not a dedicated field on `InvestmentSplit`.
 - Remote/LAN access with authentication.
 - Notifications (email/push) for budget overages or pending recurring bills.
+- Additional UI languages beyond English and Brazilian Portuguese (§6.14); server-side/multi-user locale (today it's a single client-side preference, no backend involvement).
+- Currency symbol display (§6.14) — tied to the existing no-multi-currency-support non-goal (§3), not introduced by the language toggle.
