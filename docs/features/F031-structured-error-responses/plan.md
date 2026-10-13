@@ -28,10 +28,10 @@ One feature branch (`feature/f031-structured-error-responses`), backend first (t
 - [x] `npm run lint && npm test && npm run build && npm run format:check`.
 
 ## Phase 4 — Docs
-- [ ] Root `CLAUDE.md`: update the "backend never sends exception text" bullet to scope it to `detail`, note the new body shape otherwise.
-- [ ] Backend `CLAUDE.md` "Errors" section: `ProblemDetail` contract, slug derivation + the deliberate cross-aggregate-duplicate collapse, fixed `internal-error` slug, no more rethrow in `GlobalExceptionHandler`.
-- [ ] Frontend `CLAUDE.md`: central `type → message` map replacing per-call-site `conflictMessage`; `unwrap()` signature change.
-- [ ] `docs/features/README.md`: F031 row (already present from this design pass; verify accuracy once built). `CHANGELOG.md` entry deferred to release time (ADR 0007).
+- [x] Root `CLAUDE.md`: update the "backend never sends exception text" bullet to scope it to `detail`, note the new body shape otherwise.
+- [x] Backend `CLAUDE.md` "Errors" section: `ProblemDetail` contract, slug derivation + the deliberate cross-aggregate-duplicate collapse, fixed `internal-error` slug, no more rethrow in `GlobalExceptionHandler`.
+- [x] Frontend `CLAUDE.md`: central `type → message` map replacing per-call-site `conflictMessage`; `unwrap()` signature change.
+- [x] `docs/features/README.md`: F031 row (already present from this design pass; verify accuracy once built). `CHANGELOG.md` entry deferred to release time (ADR 0007).
 
 ## Verification
 - [ ] `./gradlew spotlessCheck test integrationTest` (Docker running) and `npm run lint && npm test && npm run build && npm run format:check` all green.
