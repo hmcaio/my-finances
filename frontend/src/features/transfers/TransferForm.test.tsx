@@ -85,6 +85,33 @@ describe('TransferForm plain/trade toggle', () => {
     expect(await screen.findByRole('option', { name: CHECKING })).toBeInTheDocument()
     expect(screen.queryByRole('option', { name: BROKER })).not.toBeInTheDocument()
   })
+
+  it('the From/To Account selects never offer an INVESTMENT account in plain mode', async () => {
+    const user = userEvent.setup({ delay: null })
+    renderForm()
+
+    await user.click(screen.getByRole('combobox', { name: 'From Account' }))
+    expect(await screen.findByRole('option', { name: CHECKING })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: BROKER })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('option', { name: CHECKING }))
+
+    await user.click(screen.getByRole('combobox', { name: 'To Account' }))
+    expect(await screen.findByRole('option', { name: seedAccounts[2].name })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: BROKER })).not.toBeInTheDocument()
+  })
+
+  it('switching to Plain transfer while editing a trade confirmation drops the investment account', async () => {
+    const user = userEvent.setup({ delay: null })
+    renderForm({ editing: seedBitcoinBuyTransfer })
+
+    await user.click(screen.getByRole('button', { name: 'Plain transfer' }))
+
+    // seedBitcoinBuyTransfer's toAccountId is the INVESTMENT account (the trade's buy side) - it
+    // must not survive into the plain shape's To Account, while the unaffected From Account (the
+    // cash side, non-investment) keeps its value.
+    expect(screen.getByRole('combobox', { name: 'From Account' })).toHaveTextContent(CHECKING)
+    expect(screen.getByRole('combobox', { name: 'To Account' })).not.toHaveTextContent(BROKER)
+  })
 })
 
 describe('TransferForm trade confirmations', () => {

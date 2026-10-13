@@ -264,6 +264,20 @@ class TransferServiceInvestmentTest {
     assertThat(created.getTradeConfirmation()).isEmpty();
   }
 
+  @Test
+  void createRejectsAPlainTransferIntoAnInvestmentAccount() {
+    assertThatThrownBy(
+            () -> service.create(DATE, checking.getId(), broker.getId(), BigDecimal.TEN, "x", null))
+        .isInstanceOf(InvestmentTransferInvalidException.class);
+  }
+
+  @Test
+  void createRejectsAPlainTransferOutOfAnInvestmentAccount() {
+    assertThatThrownBy(
+            () -> service.create(DATE, broker.getId(), checking.getId(), BigDecimal.TEN, "x", null))
+        .isInstanceOf(InvestmentTransferInvalidException.class);
+  }
+
   // --- edit -------------------------------------------------------------------------------------
 
   @Test
@@ -338,6 +352,23 @@ class TransferServiceInvestmentTest {
             null);
 
     assertThat(edited.getTradeConfirmation()).isEmpty();
+  }
+
+  @Test
+  void editRejectsClearingATradeConfirmationIntoAPlainTransferThatKeepsTheInvestmentAccount() {
+    Transfer created = createWith(List.of(buyLine(product.getId(), "10", "100.00")));
+
+    assertThatThrownBy(
+            () ->
+                service.edit(
+                    created.getId(),
+                    DATE,
+                    checking.getId(),
+                    broker.getId(),
+                    BigDecimal.TEN,
+                    "Plain",
+                    null))
+        .isInstanceOf(InvestmentTransferInvalidException.class);
   }
 
   // --- resulting balance / close holding (per line) ---------------------------------------------

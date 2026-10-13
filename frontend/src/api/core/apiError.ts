@@ -87,7 +87,7 @@ export const PROBLEM_TYPE_MESSAGES: Record<string, string> = {
   'urn:my-finances:error:invalid-trade-confirmation':
     "Check the trade lines: only one line per product can set a resulting balance, and the net settlement can't be zero.",
   'urn:my-finances:error:investment-transfer-invalid':
-    'The investment side of this transfer must be an INVESTMENT account, and the other side must not be.',
+    "A trade confirmation's investment side must be an INVESTMENT account and its cash side must not be; a plain transfer can't target an INVESTMENT account at all - use a trade confirmation instead.",
   'urn:my-finances:error:investment-holding-closed':
     'Every product in this transfer needs an existing open holding in the investment account.',
 
