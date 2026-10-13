@@ -1,6 +1,6 @@
 # 0017. Allow hard-deleting an account that has no history
 
-Status: Accepted
+Status: Accepted (its example below predates [0020](0020-investment-holdings-many-to-many.md): the investment-history check moved from `investment_products.account_id`/`HasInvestmentHistoryChecker` to `investment_holdings.account_id`/`HasHoldingHistoryChecker`; the delete rule itself is unchanged)
 Date: 2026-09-25
 
 ## Context
@@ -8,8 +8,8 @@ The PRD said accounts are never hard-deleted, only closed (§5.8's delete-safety
 
 ## Decision
 - **Reverses the "never hard-deleted" rule for accounts with no history.** `DELETE /api/accounts/{id}` deletes an account, open or closed, only when nothing references it; otherwise it answers `409` and the user closes the account instead. `404` for an unknown id, `204` on success.
-- **History** is any row that references the account: `transactions.account_id`, `transfers.from_account_id` / `to_account_id`, `recurring_templates.account_id` (active or not) or `investment_products.account_id` (open or closed). These are exactly the tables whose foreign keys point at `accounts`, so the check matches what the database would reject, and the FKs stay as the backstop against a concurrent insert. No migration.
-- **Hexagonal shape**: `domain/account/AccountUsageChecker` is a port owned by the account aggregate; `infrastructure/account/RealAccountUsageChecker` implements it over the four repositories' new `existsByAccountId` methods, so `AccountService` does not depend on other aggregates (same shape as `HasInvestmentHistoryChecker`, ADR 0004). Closing an account still keeps everything; deleting is for the mistake case only.
+- **History** is any row that references the account: `transactions.account_id`, `transfers.from_account_id` / `to_account_id`, `recurring_templates.account_id` (active or not) or, at the time of this decision, `investment_products.account_id` (open or closed) — moved to `investment_holdings.account_id` by ADR 0020. These are exactly the tables whose foreign keys point at `accounts`, so the check matches what the database would reject, and the FKs stay as the backstop against a concurrent insert. No migration.
+- **Hexagonal shape**: `domain/account/AccountUsageChecker` is a port owned by the account aggregate; `infrastructure/account/RealAccountUsageChecker` implements it over the four repositories' new `existsByAccountId` methods, so `AccountService` does not depend on other aggregates (same shape as the investment-history checker, ADR 0004 — `HasInvestmentHistoryChecker` at the time, renamed `HasHoldingHistoryChecker` by ADR 0020). Closing an account still keeps everything; deleting is for the mistake case only.
 - **Accepted caveat: an account with only an opening balance is not "history" for this rule, but it does count in past net worth** (§5.9 counts an account from its `opening_balance_date`). Deleting it therefore changes past net worth figures. We accept that: treating any opening balance as history would make the feature useless for the very mistake it exists for, since every non-investment account has one. The confirmation dialog states it.
 - Deleting the last account returns the app to onboarding (F011), because the gate derives from "zero accounts, closed ones included". Expected, and the dialog mentions it.
 

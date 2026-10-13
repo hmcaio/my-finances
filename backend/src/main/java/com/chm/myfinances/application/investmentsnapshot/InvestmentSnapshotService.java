@@ -26,9 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
  * #delete} fix a wrongly dated or mistaken entry (issue #59). New ids come from the {@link
  * IdGenerator} port (ADR 0005).
  *
- * <p>{@code record} is a single write, so it isn't {@code @Transactional} itself; {@code
- * TransferService.create} calls it from inside its own transaction when a trade carries a resulting
- * balance, and joins that one.
+ * <p>{@code TransferService.create} calls {@code record} from inside its own transaction when a
+ * trade carries a resulting balance, and joins that one.
  *
  * <p>{@code record}'s find-then-insert on {@code (holdingId, date)} has a TOCTOU gap: two
  * concurrent calls for the same holding and date can both see "absent" and both attempt an insert,
@@ -103,8 +102,7 @@ public class InvestmentSnapshotService {
   /**
    * Edits a snapshot's date and balance. 404 for an unknown holding or a snapshot that isn't that
    * holding's; 409 when the new date already holds another snapshot of the holding, or when the
-   * holding is closed and the edit would leave its latest snapshot non-zero (PRD S5.8). One write,
-   * so not {@code @Transactional}.
+   * holding is closed and the edit would leave its latest snapshot non-zero (PRD S5.8).
    */
   @Transactional
   public InvestmentSnapshot update(
