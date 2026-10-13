@@ -1,0 +1,65 @@
+# F032 — Validation Error Details
+
+## Summary
+Fills the gap F031 ([ADR 0026](../../adr/0026-structured-error-responses-rfc9457.md)) deliberately left open: bean-validation (`@Valid @RequestBody`) 400 responses. Today a failed Jakarta Bean Validation check returns no body at all — `spring.web.error.include-binding-errors: never` plus the old rethrow-to-Spring's-default-resolver behavior — so the only thing the client ever learns is "400." Under F031, `MethodArgumentNotValidException` already implements Spring's `ErrorResponse` and would automatically get a `ProblemDetail` body with a `type` derived from its own class name (`urn:my-finances:error:method-argument-not-valid`) like every other exception — but a single `type` can't say *which field* failed, and a request can fail several fields' constraints at once. This feature adds exactly that: a `errors` extension member listing every violation, each as `{field, code}`, with no interpolated message, no rejected value, and no new top-level mechanism — the base `type`/`title`/`status`/`instance` fields are unchanged, produced by F031's existing per-class derivation.
+
+Infrastructure/cross-cutting only — no product or data-model change, no new migration. No new ADR: this elaborates scope ADR 0026 already reserved as "the immediate next design," it doesn't introduce a new tradeoff.
+
+## Scope
+- Backend: `GlobalExceptionHandler`'s existing `MethodArgumentNotValidException` handling (inherited from F031's uniform `ProblemDetail`-building path) extended to attach an `errors` extension member built from the exception's `BindingResult`.
+- Backend: a constraint-type → code mapping (`not-blank`, `not-null`, `size`, `positive`, `positive-or-zero`, `digits`, `decimal-min`, `decimal-max`, `not-empty`) plus a fallback for the two existing class-level `@AssertTrue` invariants (`TradeConfirmationRequest`, `TradeConfirmationLineRequest`), keyed by their method name since they carry no field path.
+- Backend: `@ApiResponse` for every `@Valid @RequestBody` operation gains a note that its 400 may additionally carry an `errors` array (reusing F031's existing per-operation `@ApiResponse` additions rather than a second annotation pass).
+- Frontend: `apiError.ts` reads `errors` when present and builds one summary string for the existing generic banner (`ErrorAlert`) instead of today's generic/empty message — no per-field `TextField` wiring.
+- Out of scope: see [Non-goals](#non-goals).
+
+## Decisions
+
+| Decision | Why |
+|---|---|
+| `errors` is a `ProblemDetail` **extension member** (`setProperty("errors", ...)`) alongside the usual `type`/`title`/`status`/`instance` — not a separate body shape, and `type` itself is *not* special-cased for this exception. | F031's generic per-class derivation already produces a correct `type` for `MethodArgumentNotValidException`; this feature only adds the one field a single `type` can't express. One base contract everywhere, forms special-case one extra array. |
+| Each violation is `{field, code}` — **no interpolated message, no constraint parameters, no rejected value.** | Same principle as F031: never send exception/validation text to the client. Jakarta's default messages can interpolate the rejected value into the string (`@Size`'s `{max}`-templated text is adjacent to that risk) — `code` alone sidesteps it entirely. Bare `code` with no bound value (e.g. `{field:"description", code:"size"}`, not `{..., max:150}`) relies on the frontend already knowing its own bound via `TextFieldConstraints`/generated schema/`maxLength` — the same three-way bound duplication (domain/DTO/column/frontend) root `CLAUDE.md` already establishes for every bounded field, so this introduces no new duplication. |
+| `field` is Hibernate Validator's own path, **passed through verbatim**, including nested/indexed paths (`tradeConfirmation.lines[0].quantity`, `entries[0].targetPercentage`). | It's the DTO's own field names — not entity data — and matches the request JSON shape 1:1; a parallel path format would be pure overhead for the two nested cases (`TradeConfirmationRequest.lines`, `SetAllocationPlanRequest.entries`) found in the backend survey. |
+| `@AssertTrue` class-level violations (`TradeConfirmationRequest`/`TradeConfirmationLineRequest`'s own cross-field invariants) get `field: null` and a `code` derived from the `@AssertTrue` method name, **not** converted to a dedicated manual exception. | They go through the same `BindingResult` as field constraints — can't be separated without a second mechanism for just two cases. Still genuinely "a `@Valid` violation," just object-scoped instead of field-scoped. |
+| `code` derived from the constraint annotation's simple name (kebab-cased: `@NotBlank` → `not-blank`, `@DecimalMin` → `decimal-min`), reusing the **same kebab-casing utility F031 built** for exception-class-name slugs — not a hand-maintained per-constraint map. | One derivation mechanism, one place it could be wrong, consistent with F031's own "auto-derive, don't hand-author" choice. |
+| Frontend: this pass only builds **one summary string** for the existing generic banner from the `errors` list — no per-field `TextField` error/helperText wiring. | Real per-field UI touches every form in the app (`TransactionFormFields` and the rest) — a large, cross-cutting frontend lift. Land the backend contract and a better banner first; let actual pain justify the bigger UI investment as its own future feature, now that the client-side mirroring gap (no numeric rules mirrored today) is at least visible through a readable message instead of nothing. |
+| No new ADR. | Extends ADR 0026's own reserved-but-deferred scope with one additive mechanism (an extension member for one already-covered exception type) — not a new architectural tradeoff or a reversal of anything decided there. |
+
+## Backend
+
+### Violation-code derivation
+Extends F031's slug-derivation utility (`infrastructure/web`) with a second entry point:
+- `codeFor(ConstraintViolation)`/`codeFor(FieldError)`: constraint annotation simple name → kebab-case (`NotBlank` → `not-blank`, `PositiveOrZero` → `positive-or-zero`). Reuses the exact same PascalCase-to-kebab transform already written for exception class names — no second implementation.
+- For a class-level `@AssertTrue` error (`ObjectError`, no field): derive the code from the validated method/property name instead of a constraint annotation (e.g. the method backing `TradeConfirmationRequest`'s invariant).
+
+### `GlobalExceptionHandler`
+No new branch — `MethodArgumentNotValidException` already flows through F031's uniform `ProblemDetail`-building path (it implements `ErrorResponse`, so it gets the same `type`/`title`/`status`/`instance` as everything else). This feature adds, specifically for this one exception type:
+- Walk `exception.getBindingResult().getFieldErrors()` → `{field: fieldError.getField(), code: codeFor(fieldError)}` (the field path Spring/Hibernate Validator already compute, including bracket/dot notation for list/nested fields).
+- Walk `exception.getBindingResult().getGlobalErrors()` → `{field: null, code: codeFor(objectError)}` for the `@AssertTrue` cases.
+- `problemDetail.setProperty("errors", violations)` before returning.
+- No change to logging: an INFO line with the exception class name only, same as every other `@ResponseStatus`/`ErrorResponse` case under F031 — never the field list or any value.
+
+### OpenAPI
+- Extend the `@ApiResponse` entries F031 added for `@Valid @RequestBody` operations: note in the 400 response's description that the body may include an `errors` array, and list the possible `code` values for that operation's DTO (derived from its own annotations — mechanical, one per operation already touched by F031's annotation pass).
+
+## Frontend
+
+### `apiError.ts`
+- When `error.response?.data?.errors` is present (array, possibly empty is not expected — Spring always reports at least one), build one joined summary string from a `{field, code} → message` lookup (reusing the `PROBLEM_TYPE_MESSAGES`-style map pattern F031 introduced, keyed by `code` since `field` is DTO-specific and the same `code` recurs across many fields/forms) and surface it as the `ApiError`'s message, falling back to the existing generic string for any `code` not yet in the map.
+- `ApiError` gains an optional `fieldErrors?: { field: string | null; code: string }[]` passthrough (the raw list), so a future per-field-UI feature can consume it without another backend change — this feature itself doesn't render it beyond the summary string.
+- No change to `unwrap()`'s call-site signature (F031 already removed `conflictMessage`); this only changes what `toApiError` does with a 400 that carries `errors`.
+
+## Docs
+- Backend `CLAUDE.md`: add to the "Errors" section (next to F031's `ProblemDetail` contract) — the `errors` extension member, the constraint-code derivation reusing F031's slug utility, the `field: null` convention for `@AssertTrue`, and that it covers `@Valid @RequestBody` only (no `@Validated` method-parameter path exists in this codebase).
+- Frontend `CLAUDE.md`: note that `apiError.ts` additionally reads `errors` for a 400 and that per-field UI is not yet wired (pointer for whoever picks that up later).
+- `docs/features/README.md`: F032 row. `CHANGELOG.md` entry deferred to release time (ADR 0007).
+- No `docs/PRD.md` change — zero product-facing/data-model surface, same precedent as F016/F019/F020/F031.
+
+## Non-goals
+- Per-field `TextField` error/helperText UI on any form — flagged as the natural next step once this ships, not built here.
+- `@Validated` method-parameter validation (`@RequestParam`/`@PathVariable` constraints) — doesn't exist anywhere in this codebase today; nothing to cover.
+- Any constraint parameter (bound value) in the response — `code` alone, per Decisions.
+- Client-side mirroring of numeric constraints (`@Positive`, `@Digits`, `@DecimalMin`/`Max`) to prevent invalid submissions before they reach the backend — a separate, larger frontend-validation effort, not this feature's problem to solve.
+- Internationalization/localization of the per-`code` frontend messages — out of scope for the whole app today, not newly introduced here.
+
+## Dependencies
+F031 (the `ProblemDetail` body and slug-derivation utility this feature extends — **must land first**, this is unbuildable without it), F002's `apiError.ts`/`unwrap()` convention. Touches every controller with a `@Valid @RequestBody` DTO, i.e. most features built so far — no business-logic change, only the 400 response body and the frontend's generic-banner rendering.
