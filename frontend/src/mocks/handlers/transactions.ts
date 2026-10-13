@@ -231,5 +231,5 @@ export const transactionsHandlers = [
  * that path, same pattern as `accountAlreadyClosedConflictHandler`.
  */
 export const transactionClosedAccountConflictHandler = http.post(TRANSACTIONS_URL, () =>
-  HttpResponse.json({ message: 'Account is closed' }, { status: 409 }),
+  HttpResponse.json({ type: 'urn:my-finances:error:account-closed' }, { status: 409 }),
 )

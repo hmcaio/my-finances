@@ -6,9 +6,8 @@ import {
   seedTransactions,
   transactionClosedAccountConflictHandler,
 } from '../../mocks/handlers/transactions'
-import { ApiError } from '../core/apiError'
+import { ApiError, PROBLEM_TYPE_MESSAGES } from '../core/apiError'
 import {
-  CLOSED_ACCOUNT_MESSAGE,
   createTransaction,
   deleteTransaction,
   editTransaction,
@@ -75,7 +74,9 @@ describe('transactions API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toBe(CLOSED_ACCOUNT_MESSAGE)
+    expect((error as ApiError).message).toBe(
+      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-closed'],
+    )
   })
 
   it('editTransaction patches every field and returns the updated transaction', async () => {

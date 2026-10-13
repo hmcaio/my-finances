@@ -11,49 +11,47 @@ describe('unwrap', () => {
     await expect(unwrap(apiClient.get('/things'))).resolves.toEqual({ id: 'thing-1' })
   })
 
-  it('rejects with an ApiError carrying the backend message for a non-409 failure', async () => {
+  it('maps a response whose RFC 9457 type is in the central map to its message', async () => {
     server.use(
-      http.get('/api/things', () => HttpResponse.json({ message: 'Not found' }, { status: 404 })),
+      http.get('/api/things', () =>
+        HttpResponse.json(
+          { type: 'urn:my-finances:error:account-has-history', title: 'Account has history' },
+          { status: 409 },
+        ),
+      ),
     )
 
     const error: unknown = await unwrap(apiClient.get('/things')).catch((err: unknown) => err)
 
     expect(error).toBeInstanceOf(ApiError)
-    expect((error as ApiError).status).toBe(404)
-    expect((error as ApiError).message).toBe('Not found')
+    expect((error as ApiError).status).toBe(409)
+    expect((error as ApiError).type).toBe('urn:my-finances:error:account-has-history')
+    expect((error as ApiError).message).toBe(
+      'This account has history (transactions, transfers, recurring templates or investment products) and cannot be deleted - close it instead.',
+    )
   })
 
-  it('falls back to a generic message when the backend sends none', async () => {
+  it('falls back to the generic status message when the type is absent', async () => {
     server.use(http.get('/api/things', () => new HttpResponse(null, { status: 404 })))
 
     const error: unknown = await unwrap(apiClient.get('/things')).catch((err: unknown) => err)
 
     expect(error).toBeInstanceOf(ApiError)
+    expect((error as ApiError).type).toBeUndefined()
     expect((error as ApiError).message).toBe('Request failed with status 404')
   })
 
-  it('replaces a 409 with the call-site conflictMessage, ignoring the backend body', async () => {
+  it('falls back to the generic status message when the type is unrecognized', async () => {
     server.use(
       http.get('/api/things', () =>
-        HttpResponse.json({ message: 'ignored backend detail' }, { status: 409 }),
+        HttpResponse.json({ type: 'urn:my-finances:error:some-brand-new-case' }, { status: 409 }),
       ),
     )
-
-    const error: unknown = await unwrap(apiClient.get('/things'), 'Reassign them first').catch(
-      (err: unknown) => err,
-    )
-
-    expect(error).toBeInstanceOf(ApiError)
-    expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toBe('Reassign them first')
-  })
-
-  it('falls back to the generic status message for a 409 with no conflictMessage given', async () => {
-    server.use(http.get('/api/things', () => new HttpResponse(null, { status: 409 })))
 
     const error: unknown = await unwrap(apiClient.get('/things')).catch((err: unknown) => err)
 
     expect(error).toBeInstanceOf(ApiError)
+    expect((error as ApiError).type).toBe('urn:my-finances:error:some-brand-new-case')
     expect((error as ApiError).message).toBe('Request failed with status 409')
   })
 

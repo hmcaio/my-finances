@@ -909,14 +909,18 @@ export interface components {
             date: string;
             balance: number;
         };
-        InvestmentSnapshotResponse: {
-            /** Format: uuid */
-            id?: string;
-            /** Format: uuid */
-            holdingId?: string;
-            /** Format: date */
-            date?: string;
-            balance?: number;
+        ProblemDetail: {
+            /** Format: uri */
+            type?: string;
+            title?: string;
+            /** Format: int32 */
+            status?: number;
+            detail?: string;
+            /** Format: uri */
+            instance?: string;
+            properties?: {
+                [key: string]: Record<string, never>;
+            };
         };
         AllocationPlanEntryRequest: {
             /** Format: uuid */
@@ -926,19 +930,6 @@ export interface components {
         SetAllocationPlanRequest: {
             entries: components["schemas"]["AllocationPlanEntryRequest"][];
             effectiveFrom: string;
-        };
-        AllocationPlanEntryResponse: {
-            /** Format: uuid */
-            investmentProductId?: string;
-            targetPercentage?: number;
-        };
-        AllocationPlanVersionResponse: {
-            /** Format: uuid */
-            id?: string;
-            /** Format: uuid */
-            planId?: string;
-            entries?: components["schemas"]["AllocationPlanEntryResponse"][];
-            effectiveFrom?: string;
         };
         CreateVehicleRequest: {
             name: string;
@@ -1406,17 +1397,6 @@ export interface components {
             categoryId?: string;
             total?: number;
         };
-        TradeConfirmationLineRecordResponse: {
-            /** Format: uuid */
-            transferId?: string;
-            /** Format: date */
-            date?: string;
-            /** @enum {string} */
-            side?: "BUY" | "SELL";
-            quantity?: number;
-            unitPrice?: number;
-            resultingBalance?: number;
-        };
         PendingRecurringOccurrenceResponse: {
             /** Format: uuid */
             id?: string;
@@ -1467,6 +1447,15 @@ export interface components {
             content?: components["schemas"]["InvestmentProductResponse"][];
             page?: components["schemas"]["PageMetadata"];
         };
+        InvestmentSnapshotResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            holdingId?: string;
+            /** Format: date */
+            date?: string;
+            balance?: number;
+        };
         FiiPortfolioRowResponse: {
             /** Format: uuid */
             productId?: string;
@@ -1504,6 +1493,19 @@ export interface components {
             percentage?: number;
             /** Format: uuid */
             segmentId?: string;
+        };
+        AllocationPlanEntryResponse: {
+            /** Format: uuid */
+            investmentProductId?: string;
+            targetPercentage?: number;
+        };
+        AllocationPlanVersionResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            planId?: string;
+            entries?: components["schemas"]["AllocationPlanEntryResponse"][];
+            effectiveFrom?: string;
         };
         BudgetReportLineResponse: {
             /** Format: uuid */
@@ -1581,13 +1583,22 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: one of urn:my-finances:error:investment-holding-not-found, urn:my-finances:error:investment-snapshot-not-found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["InvestmentSnapshotResponse"];
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:investment-snapshot-date-taken, urn:my-finances:error:investment-snapshot-closed-holding */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -1610,6 +1621,24 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description type: one of urn:my-finances:error:investment-holding-not-found, urn:my-finances:error:investment-snapshot-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:investment-snapshot-closed-holding */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
             };
         };
     };
@@ -1646,13 +1675,31 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: one of urn:my-finances:error:allocation-plan-duplicate-product, urn:my-finances:error:allocation-plan-sum-invalid */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["AllocationPlanVersionResponse"];
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:investment-product-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:allocation-plan-entry-not-fii */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -1697,6 +1744,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["VehicleResponse"];
+                };
+            };
+            /** @description type: urn:my-finances:error:vehicle-name-already-exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -1747,6 +1803,33 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["TransferResponse"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:same-account-transfer, urn:my-finances:error:invalid-trade-confirmation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:account-not-found, urn:my-finances:error:investment-holding-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:account-closed, urn:my-finances:error:investment-transfer-invalid, urn:my-finances:error:investment-holding-closed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -1800,6 +1883,33 @@ export interface operations {
                     "*/*": components["schemas"]["TransactionResponse"];
                 };
             };
+            /** @description type: one of urn:my-finances:error:fuel-details-category-mismatch, urn:my-finances:error:investment-holding-category-mismatch */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:category-not-found, urn:my-finances:error:account-not-found, urn:my-finances:error:payment-method-not-found, urn:my-finances:error:vehicle-not-found, urn:my-finances:error:investment-holding-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:account-closed, urn:my-finances:error:account-type-not-allowed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     report_generate: {
@@ -1815,13 +1925,13 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: urn:my-finances:error:empty-report-types */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": string;
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -1868,6 +1978,24 @@ export interface operations {
                     "*/*": components["schemas"]["RecurringTemplateResponse"];
                 };
             };
+            /** @description type: one of urn:my-finances:error:category-not-found, urn:my-finances:error:account-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:fuel-category-not-allowed, urn:my-finances:error:account-closed, urn:my-finances:error:account-type-not-allowed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     recurringTemplate_stop: {
@@ -1881,13 +2009,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: urn:my-finances:error:recurring-template-not-found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RecurringTemplateResponse"];
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -1903,13 +2031,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: urn:my-finances:error:recurring-template-not-found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RecurringTemplateResponse"];
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -1929,13 +2057,31 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: urn:my-finances:error:investment-holding-category-mismatch */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["TransactionResponse"];
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:pending-recurring-occurrence-not-found, urn:my-finances:error:recurring-template-not-found, urn:my-finances:error:account-not-found, urn:my-finances:error:payment-method-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:account-closed, urn:my-finances:error:account-type-not-allowed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -1982,6 +2128,15 @@ export interface operations {
                     "*/*": components["schemas"]["PaymentMethodResponse"];
                 };
             };
+            /** @description type: urn:my-finances:error:payment-method-name-already-exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     investmentSubcategory_create: {
@@ -2004,6 +2159,24 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["InvestmentSubcategoryResponse"];
+                };
+            };
+            /** @description type: urn:my-finances:error:investment-category-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:investment-subcategory-name-already-exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -2048,6 +2221,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["InvestmentSegmentResponse"];
+                };
+            };
+            /** @description type: urn:my-finances:error:investment-segment-name-already-exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -2101,6 +2283,24 @@ export interface operations {
                     "*/*": components["schemas"]["InvestmentProductResponse"];
                 };
             };
+            /** @description type: one of urn:my-finances:error:investment-category-not-found, urn:my-finances:error:investment-subcategory-not-found, urn:my-finances:error:investment-segment-not-found, urn:my-finances:error:account-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:investment-subcategory-mismatch, urn:my-finances:error:investment-product-name-already-exists, urn:my-finances:error:investment-account-required */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     investmentHolding_list: {
@@ -2115,13 +2315,22 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: urn:my-finances:error:investment-holding-filter-required */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["InvestmentHoldingResponse"][];
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:investment-product-not-found, urn:my-finances:error:account-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -2148,6 +2357,24 @@ export interface operations {
                     "*/*": components["schemas"]["InvestmentHoldingResponse"];
                 };
             };
+            /** @description type: one of urn:my-finances:error:investment-product-not-found, urn:my-finances:error:account-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:investment-account-required, urn:my-finances:error:investment-holding-already-exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     investmentHolding_close: {
@@ -2161,13 +2388,22 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: urn:my-finances:error:investment-holding-not-found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["InvestmentHoldingResponse"];
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:investment-holding-already-closed, urn:my-finances:error:investment-holding-not-empty */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -2183,13 +2419,22 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description The holding's snapshots, most recent date first. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "*/*": components["schemas"]["InvestmentSnapshotResponse"][];
+                };
+            };
+            /** @description type: urn:my-finances:error:investment-holding-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -2209,13 +2454,22 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: urn:my-finances:error:investment-holding-not-found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["InvestmentSnapshotResponse"];
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:investment-snapshot-date-taken */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -2262,6 +2516,15 @@ export interface operations {
                     "*/*": components["schemas"]["InvestmentCategoryResponse"];
                 };
             };
+            /** @description type: urn:my-finances:error:investment-category-name-already-exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     institution_list: {
@@ -2304,6 +2567,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["InstitutionResponse"];
+                };
+            };
+            /** @description type: urn:my-finances:error:institution-name-already-exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -2350,6 +2622,15 @@ export interface operations {
                     "*/*": components["schemas"]["CategoryResponse"];
                 };
             };
+            /** @description type: urn:my-finances:error:category-name-already-exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     budget_list: {
@@ -2394,6 +2675,24 @@ export interface operations {
                     "*/*": components["schemas"]["BudgetResponse"];
                 };
             };
+            /** @description type: urn:my-finances:error:category-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:category-not-expense, urn:my-finances:error:budget-already-exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     budget_stop: {
@@ -2411,13 +2710,13 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: urn:my-finances:error:budget-not-found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["BudgetResponse"];
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -2466,6 +2765,24 @@ export interface operations {
                     "*/*": components["schemas"]["AccountResponse"];
                 };
             };
+            /** @description type: urn:my-finances:error:institution-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:account-name-already-exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     account_close: {
@@ -2479,13 +2796,22 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: urn:my-finances:error:account-not-found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["AccountResponse"];
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:account-already-closed, urn:my-finances:error:investment-account-has-open-holdings */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -2508,6 +2834,24 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description type: urn:my-finances:error:vehicle-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:vehicle-in-use */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     vehicle_rename: {
@@ -2525,13 +2869,22 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: urn:my-finances:error:vehicle-not-found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["VehicleResponse"];
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:vehicle-name-already-exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -2547,13 +2900,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: urn:my-finances:error:transfer-not-found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["TransferResponse"];
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -2576,6 +2929,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description type: urn:my-finances:error:transfer-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     transfer_edit: {
@@ -2593,13 +2955,31 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: one of urn:my-finances:error:same-account-transfer, urn:my-finances:error:invalid-trade-confirmation */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["TransferResponse"];
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:transfer-not-found, urn:my-finances:error:account-not-found, urn:my-finances:error:investment-holding-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:account-closed, urn:my-finances:error:investment-transfer-invalid, urn:my-finances:error:investment-holding-closed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -2615,13 +2995,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: urn:my-finances:error:transaction-not-found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["TransactionResponse"];
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -2644,6 +3024,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description type: urn:my-finances:error:transaction-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     transaction_edit: {
@@ -2661,13 +3050,31 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: one of urn:my-finances:error:fuel-details-category-mismatch, urn:my-finances:error:investment-holding-category-mismatch */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["TransactionResponse"];
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:transaction-not-found, urn:my-finances:error:category-not-found, urn:my-finances:error:account-not-found, urn:my-finances:error:payment-method-not-found, urn:my-finances:error:vehicle-not-found, urn:my-finances:error:investment-holding-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:account-closed, urn:my-finances:error:account-type-not-allowed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -2687,13 +3094,13 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: urn:my-finances:error:recurring-template-not-found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RecurringTemplateResponse"];
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -2716,6 +3123,24 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description type: urn:my-finances:error:payment-method-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:payment-method-in-use */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     paymentMethod_rename: {
@@ -2733,13 +3158,22 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: urn:my-finances:error:payment-method-not-found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PaymentMethodResponse"];
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:payment-method-name-already-exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -2762,6 +3196,24 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description type: urn:my-finances:error:investment-subcategory-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:investment-subcategory-in-use */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     investmentSubcategory_rename: {
@@ -2779,13 +3231,22 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: urn:my-finances:error:investment-subcategory-not-found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["InvestmentSubcategoryResponse"];
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:investment-subcategory-name-already-exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -2808,6 +3269,24 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description type: urn:my-finances:error:investment-segment-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:investment-segment-in-use */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     investmentSegment_rename: {
@@ -2825,13 +3304,22 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: urn:my-finances:error:investment-segment-not-found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["InvestmentSegmentResponse"];
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:investment-segment-name-already-exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -2847,13 +3335,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: urn:my-finances:error:investment-product-not-found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["InvestmentProductResponse"];
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -2876,6 +3364,24 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description type: urn:my-finances:error:investment-product-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:investment-product-has-holdings */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     investmentProduct_edit: {
@@ -2893,13 +3399,22 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: one of urn:my-finances:error:investment-product-not-found, urn:my-finances:error:investment-category-not-found, urn:my-finances:error:investment-subcategory-not-found, urn:my-finances:error:investment-segment-not-found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["InvestmentProductResponse"];
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:investment-subcategory-mismatch, urn:my-finances:error:investment-product-name-already-exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -2915,13 +3430,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: urn:my-finances:error:investment-holding-not-found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["InvestmentHoldingResponse"];
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -2944,6 +3459,24 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description type: urn:my-finances:error:investment-holding-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:investment-holding-has-history */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     investmentHolding_edit: {
@@ -2961,13 +3494,13 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: urn:my-finances:error:investment-holding-not-found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["InvestmentHoldingResponse"];
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -2990,6 +3523,24 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description type: urn:my-finances:error:investment-category-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:investment-category-in-use */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     investmentCategory_rename: {
@@ -3007,13 +3558,22 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: urn:my-finances:error:investment-category-not-found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["InvestmentCategoryResponse"];
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:investment-category-name-already-exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -3036,6 +3596,24 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description type: urn:my-finances:error:institution-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:built-in-institution, urn:my-finances:error:institution-in-use */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     institution_rename: {
@@ -3053,13 +3631,22 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: urn:my-finances:error:institution-not-found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["InstitutionResponse"];
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:institution-name-already-exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -3082,6 +3669,24 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description type: urn:my-finances:error:category-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:built-in-category, urn:my-finances:error:fuel-category, urn:my-finances:error:dividend-category, urn:my-finances:error:category-in-use */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     category_rename: {
@@ -3099,13 +3704,22 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: urn:my-finances:error:category-not-found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["CategoryResponse"];
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:category-name-already-exists, urn:my-finances:error:fuel-category, urn:my-finances:error:dividend-category */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -3125,13 +3739,13 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: urn:my-finances:error:budget-not-found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["BudgetResponse"];
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -3149,13 +3763,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: urn:my-finances:error:account-not-found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["AccountResponse"];
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -3178,6 +3792,24 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description type: urn:my-finances:error:account-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:account-has-history */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     account_edit: {
@@ -3195,13 +3827,22 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: one of urn:my-finances:error:account-not-found, urn:my-finances:error:institution-not-found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["AccountResponse"];
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:account-name-already-exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -3220,13 +3861,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: urn:my-finances:error:vehicle-not-found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["TransactionResponse"][];
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -3264,13 +3905,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: urn:my-finances:error:investment-product-not-found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["TradeConfirmationLineRecordResponse"][];
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -3330,13 +3971,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description type: urn:my-finances:error:invalid-net-worth-range */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["NetWorthPointResponse"][];
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -3354,13 +3995,22 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description One series per product, or per the filtered product. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "*/*": components["schemas"]["ProductSeriesResponse"][];
+                };
+            };
+            /** @description type: urn:my-finances:error:invalid-value-series-range */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -3612,6 +4262,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description type: urn:my-finances:error:pending-recurring-occurrence-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
             };
         };
     };

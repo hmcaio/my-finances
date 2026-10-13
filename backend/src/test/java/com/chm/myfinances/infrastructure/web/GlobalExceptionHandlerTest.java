@@ -1,20 +1,24 @@
 package com.chm.myfinances.infrastructure.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import com.chm.myfinances.TestcontainersConfiguration;
+import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
+import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.testsupport.LogCapture;
 import com.chm.myfinances.testsupport.web.MockMvcSupport;
+import java.net.URI;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -26,25 +30,31 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.mock.http.MockHttpInputMessage;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver;
 
 /**
- * REST-layer test for {@link GlobalExceptionHandler}, the cross-cutting
- * {@code @RestControllerAdvice} that guarantees unexpected/unhandled exceptions never leak their
- * message, class name, or stack trace into the HTTP response (security-audit fix). Boots the real
- * app context against Testcontainers Postgres (ADR 0010) — see {@code CategoryControllerTest} for
- * why {@link MockMvc} is built by hand here instead of via {@code @AutoConfigureMockMvc} (removed
- * in Boot 4.x) — and overrides just the one collaborator ({@link CategoryRepository}) needed to
- * force a realistic unchecked exception, exactly as a real bug (e.g. a database error) would
- * surface it.
+ * REST-layer test for {@link GlobalExceptionHandler} (ADR 0026, F031): every error response - this
+ * app's own {@code @ResponseStatus} exceptions, Spring's own {@link ErrorResponse} exceptions,
+ * {@link HttpMessageNotReadableException}/ {@link TypeMismatchException}, and the generic
+ * unexpected-exception fallback - now returns an RFC 9457 {@link ProblemDetail} body built by the
+ * handler itself (no more rethrow), while the original security-audit guarantee (no leaked
+ * message/class name/stack trace) and the F016 logging behavior stay exactly as before. Boots the
+ * real app context against Testcontainers Postgres (ADR 0010) — see {@code CategoryControllerTest}
+ * for why {@link MockMvc} is built by hand here instead of via {@code @AutoConfigureMockMvc}
+ * (removed in Boot 4.x) — and overrides just the one collaborator ({@link CategoryRepository})
+ * needed to force a realistic unchecked exception, exactly as a real bug (e.g. a database error)
+ * would surface it.
  */
 @Tag("integration")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
@@ -63,7 +73,7 @@ class GlobalExceptionHandlerTest {
   }
 
   @Test
-  void unexpectedExceptionReturnsGenericBodyWithNoLeakedDetails() throws Exception {
+  void unexpectedExceptionReturnsAProblemDetailBodyWithNoLeakedDetails() throws Exception {
     // A realistic unchecked failure a repository could throw (e.g. a database driver error) -
     // deliberately carries a message that would be a real leak if it reached the client.
     given(categoryRepository.findAll())
@@ -73,11 +83,15 @@ class GlobalExceptionHandlerTest {
         mockMvc
             .perform(get("/api/categories"))
             .andExpect(status().isInternalServerError())
+            .andExpect(jsonPath("$.type").value("urn:my-finances:error:internal-error"))
+            .andExpect(jsonPath("$.title").value("An unexpected error occurred"))
+            .andExpect(jsonPath("$.status").value(500))
+            .andExpect(jsonPath("$.instance").value("/api/categories"))
+            .andExpect(jsonPath("$.detail").doesNotExist())
             .andReturn();
 
     String body = result.getResponse().getContentAsString();
     assertThat(body)
-        .contains("An unexpected error occurred")
         .doesNotContain("sensitive detail")
         .doesNotContain("10.0.0.5")
         .doesNotContain("RuntimeException")
@@ -86,38 +100,71 @@ class GlobalExceptionHandlerTest {
   }
 
   @Test
-  void notFoundExceptionIsUnaffectedByTheGlobalHandlerAndStillReturns404() throws Exception {
+  void notFoundResponseStatusExceptionReturnsADerivedTypeAndStillA404() throws Exception {
     // No stubbing: CategoryRepository#existsById on an un-stubbed mock defaults to false, so the
     // real CategoryService/CategoryController path throws CategoryNotFoundException exactly as it
     // would for a genuinely missing id - proving the new catch-all handler does not shadow the
-    // existing @ResponseStatus(HttpStatus.NOT_FOUND) mapping.
+    // existing @ResponseStatus(HttpStatus.NOT_FOUND) mapping, and now also builds a ProblemDetail
+    // body for it instead of an empty one.
+    UUID id = UUID.randomUUID();
+
     mockMvc
-        .perform(delete("/api/categories/" + UUID.randomUUID()))
-        .andExpect(status().isNotFound());
+        .perform(delete("/api/categories/" + id))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.type").value("urn:my-finances:error:category-not-found"))
+        .andExpect(jsonPath("$.title").value("Category not found"))
+        .andExpect(jsonPath("$.status").value(404))
+        .andExpect(jsonPath("$.instance").value("/api/categories/" + id))
+        .andExpect(jsonPath("$.detail").doesNotExist());
   }
 
   @Test
-  void unmappedRouteStillReturnsPlain404UnaffectedByTheGlobalHandler() throws Exception {
+  void conflictResponseStatusExceptionReturnsADerivedTypeAndStillA409() throws Exception {
+    // CategoryController.delete against a built-in category throws the @ResponseStatus(CONFLICT)
+    // BuiltInCategoryException - a second, representative @ResponseStatus status code alongside
+    // the 404 case above. categoryRepository is @MockitoBean-replaced for this whole test class, so
+    // stub findById to hand CategoryService a built-in Category rather than relying on seeded rows.
+    UUID id = UUID.randomUUID();
+    Category builtIn =
+        Category.reconstitute(id, "Other Expense", CategoryType.EXPENSE, true, false);
+    given(categoryRepository.findById(id)).willReturn(Optional.of(builtIn));
+
+    mockMvc
+        .perform(delete("/api/categories/" + id))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.type").value("urn:my-finances:error:built-in-category"))
+        .andExpect(jsonPath("$.status").value(409))
+        .andExpect(jsonPath("$.detail").doesNotExist());
+  }
+
+  @Test
+  void unmappedRouteReturnsAProblemDetailBodyForSpringsOwnErrorResponseExceptionAndStillA404()
+      throws Exception {
     // A request to a route no controller maps triggers Spring's own NoResourceFoundException,
     // which reports its 404 programmatically (via the ErrorResponse contract) rather than through
-    // a @ResponseStatus annotation on its class. Since GlobalExceptionHandler's @ResponseStatus
-    // check wouldn't match this exception, this proves the catch-all doesn't downgrade it to a
-    // generic 500.
-    mockMvc.perform(get("/api/this-route-does-not-exist")).andExpect(status().isNotFound());
+    // a @ResponseStatus annotation on its class. Proves the handler now builds a ProblemDetail body
+    // for this case too (it used to rethrow to Spring's default resolver, which sent none).
+    mockMvc
+        .perform(get("/api/this-route-does-not-exist"))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.type").value("urn:my-finances:error:no-resource-found"))
+        .andExpect(jsonPath("$.status").value(404))
+        .andExpect(jsonPath("$.detail").doesNotExist());
   }
 
   @Test
-  void unexpectedExceptionIsLoggedOnceAtErrorWithTheThrowableAndTheBodyStaysGeneric()
+  void unexpectedExceptionIsLoggedOnceAtErrorWithTheThrowableAndTheBodyStaysAProblemDetail()
       throws Exception {
     RuntimeException failure = new RuntimeException("sensitive detail: row 42 failed");
     given(categoryRepository.findAll()).willThrow(failure);
 
     try (LogCapture logs = LogCapture.of(GlobalExceptionHandler.class)) {
-      MvcResult result =
-          mockMvc
-              .perform(get("/api/categories"))
-              .andExpect(status().isInternalServerError())
-              .andReturn();
+      mockMvc
+          .perform(get("/api/categories"))
+          .andExpect(status().isInternalServerError())
+          .andExpect(jsonPath("$.type").value("urn:my-finances:error:internal-error"))
+          .andExpect(jsonPath("$.title").value("An unexpected error occurred"))
+          .andExpect(jsonPath("$.detail").doesNotExist());
 
       List<ILoggingEvent> errors = logs.eventsAt(Level.ERROR);
       assertThat(errors).hasSize(1);
@@ -129,10 +176,6 @@ class GlobalExceptionHandlerTest {
           .isEqualTo(RuntimeException.class.getName());
       assertThat(event.getThrowableProxy().getMessage()).contains("sensitive detail");
       assertThat(logs.events()).hasSize(1);
-
-      // The no-leak invariant must not regress: the response is still exactly the generic body.
-      assertThat(result.getResponse().getContentAsString())
-          .isEqualTo("{\"message\":\"An unexpected error occurred\"}");
     }
   }
 
@@ -162,34 +205,44 @@ class GlobalExceptionHandlerTest {
   }
 
   @Test
-  void unreadableMessageIsRethrownNotConvertedToTheGeneric500AndNotLoggedAtError() {
+  void unreadableMessageReturnsBadRequestWithADerivedTypeAndIsNotLoggedAtError() {
     HttpMessageNotReadableException exception =
         new HttpMessageNotReadableException("bad body", new MockHttpInputMessage(new byte[0]));
 
-    assertRethrownWithoutErrorLog(exception);
+    assertBadRequestProblemDetailWithoutErrorLog(
+        exception, "urn:my-finances:error:http-message-not-readable");
   }
 
   @Test
-  void typeMismatchIsRethrownNotConvertedToTheGeneric500AndNotLoggedAtError() {
+  void typeMismatchReturnsBadRequestWithADerivedTypeAndIsNotLoggedAtError() {
     TypeMismatchException exception = new TypeMismatchException("not-a-uuid", UUID.class);
 
-    assertRethrownWithoutErrorLog(exception);
+    assertBadRequestProblemDetailWithoutErrorLog(exception, "urn:my-finances:error:type-mismatch");
   }
 
   @Test
-  void methodArgumentTypeMismatchIsRethrownNotConvertedToTheGeneric500AndNotLoggedAtError() {
+  void methodArgumentTypeMismatchReturnsBadRequestWithADerivedTypeAndIsNotLoggedAtError() {
     MethodArgumentTypeMismatchException exception =
         new MethodArgumentTypeMismatchException("not-a-uuid", UUID.class, "id", null, null);
 
-    assertRethrownWithoutErrorLog(exception);
+    assertBadRequestProblemDetailWithoutErrorLog(
+        exception, "urn:my-finances:error:method-argument-type-mismatch");
   }
 
-  private static void assertRethrownWithoutErrorLog(Exception exception) {
+  private static void assertBadRequestProblemDetailWithoutErrorLog(
+      Exception exception, String expectedType) {
     GlobalExceptionHandler handler = new GlobalExceptionHandler();
     MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/anything");
 
     try (LogCapture logs = LogCapture.of(GlobalExceptionHandler.class)) {
-      assertThatThrownBy(() -> handler.handleUnexpected(exception, request)).isSameAs(exception);
+      ResponseEntity<ProblemDetail> response = handler.handleUnexpected(exception, request);
+
+      assertThat(response.getStatusCode().value()).isEqualTo(400);
+      ProblemDetail body = response.getBody();
+      assertThat(body).isNotNull();
+      assertThat(body.getType()).isEqualTo(URI.create(expectedType));
+      assertThat(body.getDetail()).isNull();
+      assertThat(body.getInstance()).isEqualTo(URI.create("/api/anything"));
 
       assertThat(logs.eventsAt(Level.ERROR)).isEmpty();
       assertThat(logs.events()).isEmpty();
@@ -204,16 +257,21 @@ class GlobalExceptionHandlerTest {
         "{\"name\":\"x\",\"type\":\"BOGUS\"}",
         "{\"name\":[\"x\"],\"type\":\"EXPENSE\"}"
       })
-  void aMalformedJsonBodyReturns400WithNoLeakedDetails(String body) throws Exception {
+  void aMalformedJsonBodyReturns400WithADerivedTypeAndNoLeakedDetails(String body)
+      throws Exception {
     try (LogCapture logs = LogCapture.of(GlobalExceptionHandler.class)) {
       MvcResult result =
           mockMvc
               .perform(
                   post("/api/categories").contentType(MediaType.APPLICATION_JSON).content(body))
               .andExpect(status().isBadRequest())
+              .andExpect(
+                  jsonPath("$.type").value("urn:my-finances:error:http-message-not-readable"))
+              .andExpect(jsonPath("$.detail").doesNotExist())
               .andReturn();
 
-      assertNoLeakedDetails(result);
+      assertThat(result.getResponse().getContentAsString()).doesNotContain("BOGUS");
+      assertNoLeakedExceptionDetails(result);
       assertThat(logs.eventsAt(Level.ERROR)).isEmpty();
     }
   }
@@ -226,22 +284,29 @@ class GlobalExceptionHandlerTest {
         "/api/transactions?accountId=garbage",
         "/api/transactions?dateFrom=garbage"
       })
-  void anUnparseableIdOrDateInThePathOrQueryReturns400WithNoLeakedDetails(String uri)
+  void anUnparseableIdOrDateInThePathOrQueryReturns400WithADerivedTypeAndNoLeakedDetails(String uri)
       throws Exception {
     try (LogCapture logs = LogCapture.of(GlobalExceptionHandler.class)) {
-      MvcResult result = mockMvc.perform(get(uri)).andExpect(status().isBadRequest()).andReturn();
+      // `instance` echoes the request's own path/query (same convention as the access log) - that
+      // is not a leak, since the client already knows what it requested. Only the exception's
+      // message/class/stack trace must never appear.
+      MvcResult result =
+          mockMvc
+              .perform(get(uri))
+              .andExpect(status().isBadRequest())
+              .andExpect(jsonPath("$.detail").doesNotExist())
+              .andReturn();
 
-      assertNoLeakedDetails(result);
+      assertThat(result.getResponse().getContentAsString())
+          .contains("urn:my-finances:error:")
+          .contains("method-argument-type-mismatch");
+      assertNoLeakedExceptionDetails(result);
       assertThat(logs.eventsAt(Level.ERROR)).isEmpty();
     }
   }
 
-  private static void assertNoLeakedDetails(MvcResult result) throws Exception {
+  private static void assertNoLeakedExceptionDetails(MvcResult result) throws Exception {
     assertThat(result.getResponse().getContentAsString())
-        .doesNotContain("An unexpected error occurred")
-        .doesNotContain("garbage")
-        .doesNotContain("not-a-uuid")
-        .doesNotContain("BOGUS")
         .doesNotContain("Exception")
         .doesNotContain("com.chm.myfinances")
         .doesNotContain("\tat ");

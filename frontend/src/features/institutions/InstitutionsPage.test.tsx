@@ -6,11 +6,8 @@ import {
   institutionDeleteConflictHandler,
   seedInstitutions,
 } from '../../mocks/handlers/institutions'
-import {
-  CONFLICT_MESSAGE,
-  DUPLICATE_NAME_MESSAGE,
-  INSTITUTION_NAME_MAX_LENGTH,
-} from '../../api/institutions/institutions'
+import { INSTITUTION_NAME_MAX_LENGTH } from '../../api/institutions/institutions'
+import { PROBLEM_TYPE_MESSAGES } from '../../api/core/apiError'
 import { findRow } from '../../test/testUtils'
 import { describeSettingsPage } from '../../test/settingsPageContract'
 import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
@@ -28,8 +25,14 @@ describe('InstitutionsPage', () => {
     deleteTarget: regular[1],
     newName: 'Inter',
     addButtonLabel: 'Add institution',
-    conflict: { message: CONFLICT_MESSAGE, handler: institutionDeleteConflictHandler },
-    duplicateName: { message: DUPLICATE_NAME_MESSAGE, handler: institutionCreateConflictHandler },
+    conflict: {
+      message: PROBLEM_TYPE_MESSAGES['urn:my-finances:error:institution-in-use'],
+      handler: institutionDeleteConflictHandler,
+    },
+    duplicateName: {
+      message: PROBLEM_TYPE_MESSAGES['urn:my-finances:error:institution-name-already-exists'],
+      handler: institutionCreateConflictHandler,
+    },
     maxLength: INSTITUTION_NAME_MAX_LENGTH,
     loadStates: { url: '/api/institutions', successBody: seedInstitutions },
   })

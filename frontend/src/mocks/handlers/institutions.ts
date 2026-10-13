@@ -58,19 +58,25 @@ export const institutionsHandlers = [
 
 /**
  * `409` variant for deleting an institution an account still references (F017's
- * `InstitutionInUseException`) - applied via `server.use(...)`. The backend sends no message text
- * (`include-message: never`), so the body is a placeholder: what the UI shows comes from
- * `institutions.ts`'s own `conflictMessage`.
+ * `InstitutionInUseException`) - applied via `server.use(...)`. The backend sends no exception
+ * text - only the RFC 9457 `type` identifier (F031/ADR 0026) - and what the UI shows comes from
+ * `apiError.ts`'s central `PROBLEM_TYPE_MESSAGES` map.
  */
 export const institutionDeleteConflictHandler = http.delete(`${INSTITUTIONS_URL}/:id`, () =>
-  HttpResponse.json({ message: 'Institution is in use' }, { status: 409 }),
+  HttpResponse.json({ type: 'urn:my-finances:error:institution-in-use' }, { status: 409 }),
 )
 
 /** `409` variants for the duplicate-name case on create/rename (`InstitutionNameAlreadyExistsException`). */
 export const institutionCreateConflictHandler = http.post(INSTITUTIONS_URL, () =>
-  HttpResponse.json({ message: 'Institution name already exists' }, { status: 409 }),
+  HttpResponse.json(
+    { type: 'urn:my-finances:error:institution-name-already-exists' },
+    { status: 409 },
+  ),
 )
 
 export const institutionRenameConflictHandler = http.patch(`${INSTITUTIONS_URL}/:id`, () =>
-  HttpResponse.json({ message: 'Institution name already exists' }, { status: 409 }),
+  HttpResponse.json(
+    { type: 'urn:my-finances:error:institution-name-already-exists' },
+    { status: 409 },
+  ),
 )

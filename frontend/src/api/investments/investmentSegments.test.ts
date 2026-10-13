@@ -6,9 +6,8 @@ import {
   seedInvestmentSegments,
 } from '../../mocks/handlers/investmentSegments'
 import { describeNamedEntityApi } from '../../test/apiContract'
+import { PROBLEM_TYPE_MESSAGES } from '../core/apiError'
 import {
-  CONFLICT_MESSAGE,
-  DUPLICATE_NAME_MESSAGE,
   createInvestmentSegment,
   deleteInvestmentSegment,
   getInvestmentSegments,
@@ -42,8 +41,9 @@ describeNamedEntityApi<
   },
   remove: { id: 'iseg-logistica' },
   conflict: {
-    message: CONFLICT_MESSAGE,
-    duplicateNameMessage: DUPLICATE_NAME_MESSAGE,
+    message: PROBLEM_TYPE_MESSAGES['urn:my-finances:error:investment-segment-in-use'],
+    duplicateNameMessage:
+      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:investment-segment-name-already-exists'],
     createHandler: investmentSegmentCreateConflictHandler,
     renameHandler: investmentSegmentRenameConflictHandler,
     deleteHandler: investmentSegmentDeleteConflictHandler,

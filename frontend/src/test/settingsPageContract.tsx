@@ -28,12 +28,12 @@ export interface SettingsPageContractConfig<Entity extends { id: string; name: s
    */
   addButtonLabel: string
   conflict: {
-    /** The delete-conflict message (`CONFLICT_MESSAGE` in the entity's api client). */
+    /** The delete-conflict message, from `PROBLEM_TYPE_MESSAGES` in `apiError.ts` (F031/ADR 0026). */
     message: string
     handler: RequestHandler
   }
   duplicateName: {
-    /** The duplicate-name message (`DUPLICATE_NAME_MESSAGE` in the entity's api client). */
+    /** The duplicate-name message, from `PROBLEM_TYPE_MESSAGES` in `apiError.ts`. */
     message: string
     handler: RequestHandler
   }

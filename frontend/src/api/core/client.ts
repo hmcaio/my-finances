@@ -58,7 +58,8 @@ apiClient.interceptors.request.use((config) => {
 // HTTP logging lives here and only here, so no page/hook call site logs a failed request itself.
 // Never log request/response bodies (amounts, descriptions) — only method, path, status, timing
 // and the request id. The error interceptor re-rejects the original error untouched, so
-// `unwrap()`/`ApiError`/`conflictMessage` behave exactly as they would without it.
+// `unwrap()`/`ApiError` (F031/ADR 0026: `type`-driven message lookup) behave exactly as they would
+// without it.
 apiClient.interceptors.response.use(
   (response) => {
     const tracked = inFlight.get(response.config)

@@ -4,6 +4,9 @@ import com.chm.myfinances.application.transfer.TransferService;
 import com.chm.myfinances.domain.transfer.TradeConfirmationLine;
 import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.domain.transfer.TransferFilter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
@@ -15,6 +18,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.data.web.PagedModel;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -69,6 +73,25 @@ public class TransferController {
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
+  @ApiResponse(
+      responseCode = "400",
+      description =
+          "type: one of urn:my-finances:error:same-account-transfer, "
+              + "urn:my-finances:error:invalid-trade-confirmation",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "404",
+      description =
+          "type: one of urn:my-finances:error:account-not-found, "
+              + "urn:my-finances:error:investment-holding-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description =
+          "type: one of urn:my-finances:error:account-closed, "
+              + "urn:my-finances:error:investment-transfer-invalid, "
+              + "urn:my-finances:error:investment-holding-closed",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public TransferResponse create(@Valid @RequestBody CreateTransferRequest request) {
     List<TradeConfirmationLine> lines = toDomainLines(request.tradeConfirmation());
     TransferService.requireExactlyOneRequestShape(
@@ -99,11 +122,35 @@ public class TransferController {
   }
 
   @GetMapping("/{id}")
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:transfer-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public TransferResponse get(@PathVariable UUID id) {
     return TransferResponse.from(transferService.findById(id));
   }
 
   @PatchMapping("/{id}")
+  @ApiResponse(
+      responseCode = "400",
+      description =
+          "type: one of urn:my-finances:error:same-account-transfer, "
+              + "urn:my-finances:error:invalid-trade-confirmation",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "404",
+      description =
+          "type: one of urn:my-finances:error:transfer-not-found, "
+              + "urn:my-finances:error:account-not-found, "
+              + "urn:my-finances:error:investment-holding-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description =
+          "type: one of urn:my-finances:error:account-closed, "
+              + "urn:my-finances:error:investment-transfer-invalid, "
+              + "urn:my-finances:error:investment-holding-closed",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public TransferResponse edit(
       @PathVariable UUID id, @Valid @RequestBody UpdateTransferRequest request) {
     List<TradeConfirmationLine> lines = toDomainLines(request.tradeConfirmation());
@@ -138,6 +185,10 @@ public class TransferController {
 
   @DeleteMapping("/{id}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:transfer-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public void delete(@PathVariable UUID id) {
     transferService.delete(id);
   }

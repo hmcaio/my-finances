@@ -140,7 +140,8 @@ class BudgetControllerTest {
 
     mockMvc
         .perform(post("/api/budgets").contentType(MediaType.APPLICATION_JSON).content(body))
-        .andExpect(status().isConflict());
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.type").value("urn:my-finances:error:budget-already-exists"));
   }
 
   @Test
@@ -295,7 +296,8 @@ class BudgetControllerTest {
             post("/api/budgets/" + UUID.randomUUID() + "/stop")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(stopBody(YearMonthNow.currentMonth())))
-        .andExpect(status().isNotFound());
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.type").value("urn:my-finances:error:budget-not-found"));
   }
 
   @Test

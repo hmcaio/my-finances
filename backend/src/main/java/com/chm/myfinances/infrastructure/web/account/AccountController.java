@@ -3,6 +3,9 @@ package com.chm.myfinances.infrastructure.web.account;
 import com.chm.myfinances.application.account.AccountBalanceQuery;
 import com.chm.myfinances.application.account.AccountService;
 import com.chm.myfinances.domain.account.Account;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -10,6 +13,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -51,6 +55,14 @@ public class AccountController {
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:institution-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description = "type: urn:my-finances:error:account-name-already-exists",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public AccountResponse create(@Valid @RequestBody CreateAccountRequest request) {
     Account account =
         accountService.create(
@@ -63,6 +75,10 @@ public class AccountController {
   }
 
   @GetMapping("/{id}")
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:account-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public AccountResponse get(
       @PathVariable UUID id,
       @RequestParam(name = "asOf", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
@@ -72,6 +88,16 @@ public class AccountController {
   }
 
   @PatchMapping("/{id}")
+  @ApiResponse(
+      responseCode = "404",
+      description =
+          "type: one of urn:my-finances:error:account-not-found, "
+              + "urn:my-finances:error:institution-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description = "type: urn:my-finances:error:account-name-already-exists",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public AccountResponse edit(
       @PathVariable UUID id, @Valid @RequestBody UpdateAccountRequest request) {
     Account account = accountService.edit(id, request.name(), request.institutionId());
@@ -79,6 +105,16 @@ public class AccountController {
   }
 
   @PostMapping("/{id}/close")
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:account-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description =
+          "type: one of urn:my-finances:error:account-already-closed, "
+              + "urn:my-finances:error:investment-account-has-open-holdings",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public AccountResponse close(@PathVariable UUID id) {
     Account account = accountService.close(id);
     return toResponse(account, LocalDate.now(clock));
@@ -86,6 +122,14 @@ public class AccountController {
 
   @DeleteMapping("/{id}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:account-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description = "type: urn:my-finances:error:account-has-history",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public void delete(@PathVariable UUID id) {
     accountService.delete(id);
   }

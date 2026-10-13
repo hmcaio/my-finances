@@ -11,6 +11,7 @@ import com.chm.myfinances.domain.institution.Institution;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
+import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
@@ -144,7 +145,10 @@ class AccountControllerTest {
 
   @Test
   void getOfUnknownIdReturns404() throws Exception {
-    mockMvc.perform(get("/api/accounts/" + UUID.randomUUID())).andExpect(status().isNotFound());
+    mockMvc
+        .perform(get("/api/accounts/" + UUID.randomUUID()))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.type").value("urn:my-finances:error:account-not-found"));
   }
 
   @Test
@@ -255,7 +259,10 @@ class AccountControllerTest {
             .withToAccountId(UUID.fromString(otherId))
             .build());
 
-    mockMvc.perform(delete("/api/accounts/" + id)).andExpect(status().isConflict());
+    mockMvc
+        .perform(delete("/api/accounts/" + id))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.type").value("urn:my-finances:error:account-has-history"));
 
     mockMvc.perform(get("/api/accounts/" + id)).andExpect(status().isOk());
   }
@@ -564,7 +571,7 @@ class AccountControllerTest {
     UUID holdingId =
         investmentHoldingRepository
             .save(
-                com.chm.myfinances.domain.investmentholding.InvestmentHolding.create(
+                InvestmentHolding.create(
                     UUID.randomUUID(), productId, UUID.fromString(accountId), null))
             .getId();
 

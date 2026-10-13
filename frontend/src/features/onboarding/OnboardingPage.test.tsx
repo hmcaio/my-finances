@@ -5,7 +5,7 @@ import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import { accountCreateConflictHandler } from '../../mocks/handlers/accounts'
 import { BUILT_IN_INSTITUTION_ID } from '../../mocks/handlers/institutions'
-import { DUPLICATE_NAME_MESSAGE } from '../../api/accounts/accounts'
+import { PROBLEM_TYPE_MESSAGES } from '../../api/core/apiError'
 import { OnboardingPage } from './OnboardingPage'
 import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
@@ -64,7 +64,11 @@ describe('OnboardingPage', () => {
     await user.type(screen.getByLabelText('Name'), 'Main checking')
     await user.click(screen.getByRole('button', { name: 'Create account' }))
 
-    expect(await screen.findByText(DUPLICATE_NAME_MESSAGE)).toBeInTheDocument()
+    expect(
+      await screen.findByText(
+        PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-name-already-exists'],
+      ),
+    ).toBeInTheDocument()
     expect(onCompleted).not.toHaveBeenCalled()
   })
 })

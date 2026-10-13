@@ -122,25 +122,31 @@ export const categoriesHandlers = [
 ]
 
 /**
- * `409` variant for the delete-conflict case (F002 spec's `conflictMessage`, now backed for real by
- * F004's `CategoryInUseException`) - applied via `server.use(...)` in tests that exercise that
- * path, same pattern as `accountAlreadyClosedConflictHandler`.
+ * `409` variant for the delete-conflict case (F004's `CategoryInUseException`, F031/ADR 0026's
+ * `type`-driven message lookup) - applied via `server.use(...)` in tests that exercise that path,
+ * same pattern as `accountAlreadyClosedConflictHandler`.
  */
 export const categoryDeleteConflictHandler = http.delete(`${CATEGORIES_URL}/:id`, () =>
-  HttpResponse.json({ message: 'Category is in use' }, { status: 409 }),
+  HttpResponse.json({ type: 'urn:my-finances:error:category-in-use' }, { status: 409 }),
 )
 
 /**
  * `409` variant for the duplicate-name case on create/rename (post-F007 schema audit's
  * `CategoryNameAlreadyExistsException`) - applied via `server.use(...)` in tests that exercise that
- * path, same pattern as {@link categoryDeleteConflictHandler}. The backend never sends the real
- * exception message on the wire (`include-message: never`), so the body here is a placeholder -
- * what the frontend actually shows comes from `categories.ts`'s own hardcoded `conflictMessage`.
+ * path, same pattern as {@link categoryDeleteConflictHandler}. The backend never sends exception
+ * text (`include-message: never`) - only the RFC 9457 `type` identifier (F031/ADR 0026) - and what
+ * the frontend shows comes from `apiError.ts`'s central `PROBLEM_TYPE_MESSAGES` map.
  */
 export const categoryCreateConflictHandler = http.post(CATEGORIES_URL, () =>
-  HttpResponse.json({ message: 'Category name already exists' }, { status: 409 }),
+  HttpResponse.json(
+    { type: 'urn:my-finances:error:category-name-already-exists' },
+    { status: 409 },
+  ),
 )
 
 export const categoryRenameConflictHandler = http.patch(`${CATEGORIES_URL}/:id`, () =>
-  HttpResponse.json({ message: 'Category name already exists' }, { status: 409 }),
+  HttpResponse.json(
+    { type: 'urn:my-finances:error:category-name-already-exists' },
+    { status: 409 },
+  ),
 )

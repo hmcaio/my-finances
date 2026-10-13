@@ -38,8 +38,9 @@ export async function recordInvestmentSnapshot(
 
 /**
  * Edits a snapshot's date and balance. `409` when the new date already holds another snapshot of
- * the holding, or when the holding is closed and the edit would leave its latest snapshot non-zero
- * (the backend sends no text and one status for both, so the message names both).
+ * the holding (`InvestmentSnapshotDateTakenException`), or when the holding is closed and the edit
+ * would leave its latest snapshot non-zero (`InvestmentSnapshotClosedHoldingException`) -
+ * F031/ADR 0026, see `PROBLEM_TYPE_MESSAGES` in `apiError.ts`.
  */
 export async function updateInvestmentSnapshot(
   holdingId: string,
@@ -51,20 +52,16 @@ export async function updateInvestmentSnapshot(
       `/investment-holdings/${holdingId}/snapshots/${snapshotId}`,
       request,
     ),
-    'Could not save: another snapshot already has that date, or the holding is closed and this would leave it with a non-zero latest snapshot.',
   )
 }
 
 /**
  * Deletes a snapshot. `409` when the holding is closed and the remaining latest snapshot would be
- * non-zero.
+ * non-zero (`InvestmentSnapshotClosedHoldingException`, F031/ADR 0026).
  */
 export async function deleteInvestmentSnapshot(
   holdingId: string,
   snapshotId: string,
 ): Promise<void> {
-  await unwrap(
-    apiClient.delete<void>(`/investment-holdings/${holdingId}/snapshots/${snapshotId}`),
-    'Could not delete: the holding is closed and its latest snapshot would no longer be zero.',
-  )
+  await unwrap(apiClient.delete<void>(`/investment-holdings/${holdingId}/snapshots/${snapshotId}`))
 }

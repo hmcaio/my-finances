@@ -4,6 +4,9 @@ import com.chm.myfinances.application.investmentproduct.InvestmentProductFilter;
 import com.chm.myfinances.application.investmentproduct.InvestmentProductService;
 import com.chm.myfinances.application.investmentproduct.InvestmentProductStatus;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -11,6 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.data.web.PagedModel;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -60,6 +64,21 @@ public class InvestmentProductController {
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
+  @ApiResponse(
+      responseCode = "404",
+      description =
+          "type: one of urn:my-finances:error:investment-category-not-found, "
+              + "urn:my-finances:error:investment-subcategory-not-found, "
+              + "urn:my-finances:error:investment-segment-not-found, "
+              + "urn:my-finances:error:account-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description =
+          "type: one of urn:my-finances:error:investment-subcategory-mismatch, "
+              + "urn:my-finances:error:investment-product-name-already-exists, "
+              + "urn:my-finances:error:investment-account-required",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public InvestmentProductResponse create(
       @Valid @RequestBody CreateInvestmentProductRequest request) {
     return toResponse(
@@ -74,11 +93,29 @@ public class InvestmentProductController {
   }
 
   @GetMapping("/{id}")
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:investment-product-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public InvestmentProductResponse get(@PathVariable UUID id) {
     return toResponse(productService.findById(id));
   }
 
   @PatchMapping("/{id}")
+  @ApiResponse(
+      responseCode = "404",
+      description =
+          "type: one of urn:my-finances:error:investment-product-not-found, "
+              + "urn:my-finances:error:investment-category-not-found, "
+              + "urn:my-finances:error:investment-subcategory-not-found, "
+              + "urn:my-finances:error:investment-segment-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description =
+          "type: one of urn:my-finances:error:investment-subcategory-mismatch, "
+              + "urn:my-finances:error:investment-product-name-already-exists",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public InvestmentProductResponse edit(
       @PathVariable UUID id, @Valid @RequestBody UpdateInvestmentProductRequest request) {
     return toResponse(
@@ -98,6 +135,14 @@ public class InvestmentProductController {
    */
   @DeleteMapping("/{id}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:investment-product-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description = "type: urn:my-finances:error:investment-product-has-holdings",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public void delete(@PathVariable UUID id) {
     productService.delete(id);
   }

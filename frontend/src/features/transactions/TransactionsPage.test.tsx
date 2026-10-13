@@ -20,7 +20,7 @@ import {
   transactionClosedAccountConflictHandler,
 } from '../../mocks/handlers/transactions'
 import { seedCivicVehicle } from '../../mocks/handlers/vehicles'
-import { CLOSED_ACCOUNT_MESSAGE } from '../../api/transactions/transactions'
+import { PROBLEM_TYPE_MESSAGES } from '../../api/core/apiError'
 import { findRow, renderWithRouter, selectOption } from '../../test/testUtils'
 import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
 import { TransactionsPage } from './TransactionsPage'
@@ -145,7 +145,9 @@ describe('TransactionsPage', () => {
     await user.type(screen.getByRole('textbox', { name: 'Description' }), 'Coffee run')
     await user.click(screen.getByRole('button', { name: 'Add' }))
 
-    expect(await screen.findByText(CLOSED_ACCOUNT_MESSAGE)).toBeInTheDocument()
+    expect(
+      await screen.findByText(PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-closed']),
+    ).toBeInTheDocument()
   })
 
   it('retries the table and its name lookups together, clearing the error banner', async () => {
@@ -299,7 +301,11 @@ describe('TransactionsPage responsive layout (F021)', () => {
       await fillAndSubmitAddForm(user)
 
       const dialog = screen.getByRole('dialog')
-      expect(await within(dialog).findByText(CLOSED_ACCOUNT_MESSAGE)).toBeInTheDocument()
+      expect(
+        await within(dialog).findByText(
+          PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-closed'],
+        ),
+      ).toBeInTheDocument()
     })
 
     it('Edit opens the dialog prefilled and saves through the same mutation', async () => {

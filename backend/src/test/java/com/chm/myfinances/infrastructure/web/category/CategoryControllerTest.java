@@ -124,7 +124,10 @@ class CategoryControllerTest {
   void deleteRejectsABuiltInCategoryWith409AndKeepsIt() throws Exception {
     String builtInId = builtInCategoryId("Other Expense");
 
-    mockMvc.perform(delete("/api/categories/" + builtInId)).andExpect(status().isConflict());
+    mockMvc
+        .perform(delete("/api/categories/" + builtInId))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.type").value("urn:my-finances:error:built-in-category"));
 
     mockMvc
         .perform(get("/api/categories"))
@@ -241,7 +244,8 @@ class CategoryControllerTest {
     mockMvc
         .perform(
             post("/api/categories").contentType(MediaType.APPLICATION_JSON).content(createBody))
-        .andExpect(status().isConflict());
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.type").value("urn:my-finances:error:category-name-already-exists"));
   }
 
   @Test

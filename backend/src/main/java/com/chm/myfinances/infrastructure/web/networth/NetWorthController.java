@@ -2,10 +2,14 @@ package com.chm.myfinances.infrastructure.web.networth;
 
 import com.chm.myfinances.application.networth.NetWorthGranularity;
 import com.chm.myfinances.application.networth.NetWorthQuery;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -42,6 +46,10 @@ public class NetWorthController {
    * before {@code to}; {@code granularity} to {@code CHANGE_DATE}.
    */
   @GetMapping("/trend")
+  @ApiResponse(
+      responseCode = "400",
+      description = "type: urn:my-finances:error:invalid-net-worth-range",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public List<NetWorthPointResponse> netWorthTrend(
       @RequestParam(name = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
           LocalDate from,

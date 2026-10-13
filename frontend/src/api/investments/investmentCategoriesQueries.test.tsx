@@ -12,7 +12,7 @@ import {
   useInvestmentProduct,
   useInvestmentProducts,
 } from './investmentProductsQueries'
-import { SAVE_CONFLICT_MESSAGE } from './investmentProducts'
+import { PROBLEM_TYPE_MESSAGES } from '../core/apiError'
 
 describe('investment taxonomy and product hooks', () => {
   it('loads the taxonomy and refetches it after a category or sub-category is created', async () => {
@@ -64,13 +64,22 @@ describe('investment taxonomy and product hooks', () => {
     })
     await waitFor(() => expect(result.current.list.data?.map((p) => p.name)).toContain('LCI'))
 
-    server.use(http.post('/api/investment-products', () => HttpResponse.json({}, { status: 409 })))
+    server.use(
+      http.post('/api/investment-products', () =>
+        HttpResponse.json(
+          { type: 'urn:my-finances:error:investment-product-name-already-exists' },
+          { status: 409 },
+        ),
+      ),
+    )
     await expect(
       result.current.create.mutateAsync({
         accountId: 'acct-inv',
         investmentCategoryId: 'icat-fixed',
         name: 'LCI',
       }),
-    ).rejects.toThrow(SAVE_CONFLICT_MESSAGE)
+    ).rejects.toThrow(
+      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:investment-product-name-already-exists'],
+    )
   })
 })

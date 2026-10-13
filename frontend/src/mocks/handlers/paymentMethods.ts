@@ -55,11 +55,11 @@ export const paymentMethodsHandlers = [
 ]
 
 /**
- * `409` variant for the delete-conflict case (F002 spec's `conflictMessage`, now backed for real by
- * F004's `PaymentMethodInUseException`) - see `categoryDeleteConflictHandler` in `categories.ts`.
+ * `409` variant for the delete-conflict case (F004's `PaymentMethodInUseException`, F031/ADR 0026's
+ * `type`-driven message lookup) - see `categoryDeleteConflictHandler` in `categories.ts`.
  */
 export const paymentMethodDeleteConflictHandler = http.delete(`${PAYMENT_METHODS_URL}/:id`, () =>
-  HttpResponse.json({ message: 'Payment method is in use' }, { status: 409 }),
+  HttpResponse.json({ type: 'urn:my-finances:error:payment-method-in-use' }, { status: 409 }),
 )
 
 /**
@@ -68,9 +68,15 @@ export const paymentMethodDeleteConflictHandler = http.delete(`${PAYMENT_METHODS
  * `categories.ts`.
  */
 export const paymentMethodCreateConflictHandler = http.post(PAYMENT_METHODS_URL, () =>
-  HttpResponse.json({ message: 'Payment method name already exists' }, { status: 409 }),
+  HttpResponse.json(
+    { type: 'urn:my-finances:error:payment-method-name-already-exists' },
+    { status: 409 },
+  ),
 )
 
 export const paymentMethodRenameConflictHandler = http.patch(`${PAYMENT_METHODS_URL}/:id`, () =>
-  HttpResponse.json({ message: 'Payment method name already exists' }, { status: 409 }),
+  HttpResponse.json(
+    { type: 'urn:my-finances:error:payment-method-name-already-exists' },
+    { status: 409 },
+  ),
 )

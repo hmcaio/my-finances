@@ -30,22 +30,21 @@ export type CreateBudgetRequest = components['schemas']['CreateBudgetRequest']
 export type UpdateBudgetCapRequest = components['schemas']['UpdateBudgetCapRequest']
 export type StopBudgetRequest = components['schemas']['StopBudgetRequest']
 
-export const CREATE_CONFLICT_MESSAGE =
-  'This category cannot be budgeted - it may already have a budget, or not be an expense category.'
-
 /** Fetches every Budget, each with its cap as of the current month (F006 spec). */
 export async function getBudgets(): Promise<Budget[]> {
   return unwrap(apiClient.get<Budget[]>('/budgets'))
 }
 
 /**
- * Creates a Budget for a category plus its first cap. A `409` covers two distinct cases (a
- * non-expense category, or a category that's already budgeted) - the create form (F006 spec:
- * "pick an unbudgeted expense category") only offers unbudgeted expense categories in the first
- * place, so this is a fallback message for if the picker's own data is stale.
+ * Creates a Budget for a category plus its first cap. A `409` covers two distinct cases - a
+ * non-expense category (`CategoryNotExpenseException`) or a category that's already budgeted
+ * (`BudgetAlreadyExistsException`), each with its own message in `apiError.ts`'s
+ * `PROBLEM_TYPE_MESSAGES` (F031/ADR 0026) - the create form (F006 spec: "pick an unbudgeted
+ * expense category") only offers unbudgeted expense categories in the first place, so this is a
+ * fallback for if the picker's own data is stale.
  */
 export async function createBudget(request: CreateBudgetRequest): Promise<Budget> {
-  return unwrap(apiClient.post<Budget>('/budgets', request), CREATE_CONFLICT_MESSAGE)
+  return unwrap(apiClient.post<Budget>('/budgets', request))
 }
 
 /**

@@ -99,5 +99,5 @@ export const budgetsHandlers = [
  * pattern as `categoryDeleteConflictHandler`.
  */
 export const budgetCreateConflictHandler = http.post(BUDGETS_URL, () =>
-  HttpResponse.json({ message: 'Category cannot be budgeted' }, { status: 409 }),
+  HttpResponse.json({ type: 'urn:my-finances:error:category-not-expense' }, { status: 409 }),
 )

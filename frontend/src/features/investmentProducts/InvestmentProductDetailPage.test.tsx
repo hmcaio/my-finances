@@ -214,7 +214,10 @@ describe('InvestmentProductDetailPage', () => {
     const user = userEvent.setup({ delay: null })
     server.use(
       http.put('/api/investment-holdings/:id/snapshots/:snapshotId', () =>
-        HttpResponse.json({}, { status: 409 }),
+        HttpResponse.json(
+          { type: 'urn:my-finances:error:investment-snapshot-date-taken' },
+          { status: 409 },
+        ),
       ),
     )
     renderDetail()
@@ -264,7 +267,10 @@ describe('InvestmentProductDetailPage', () => {
     const user = userEvent.setup({ delay: null })
     server.use(
       http.delete('/api/investment-holdings/:id/snapshots/:snapshotId', () =>
-        HttpResponse.json({}, { status: 409 }),
+        HttpResponse.json(
+          { type: 'urn:my-finances:error:investment-snapshot-closed-holding' },
+          { status: 409 },
+        ),
       ),
     )
     renderDetail()

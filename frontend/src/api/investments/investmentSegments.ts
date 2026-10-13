@@ -19,10 +19,6 @@ export const INVESTMENT_SEGMENT_NAME_MAX_LENGTH = 100
 export type CreateInvestmentSegmentRequest = components['schemas']['CreateInvestmentSegmentRequest']
 export type UpdateInvestmentSegmentRequest = components['schemas']['UpdateInvestmentSegmentRequest']
 
-export const CONFLICT_MESSAGE =
-  'This segment is still used by an investment product - reclassify it first.'
-export const DUPLICATE_NAME_MESSAGE = 'An investment segment with this name already exists.'
-
 export async function getInvestmentSegments(): Promise<InvestmentSegment[]> {
   return unwrap(apiClient.get<InvestmentSegment[]>('/investment-segments'))
 }
@@ -30,23 +26,18 @@ export async function getInvestmentSegments(): Promise<InvestmentSegment[]> {
 export async function createInvestmentSegment(
   request: CreateInvestmentSegmentRequest,
 ): Promise<InvestmentSegment> {
-  return unwrap(
-    apiClient.post<InvestmentSegment>('/investment-segments', request),
-    DUPLICATE_NAME_MESSAGE,
-  )
+  return unwrap(apiClient.post<InvestmentSegment>('/investment-segments', request))
 }
 
 export async function renameInvestmentSegment(
   id: string,
   request: UpdateInvestmentSegmentRequest,
 ): Promise<InvestmentSegment> {
-  return unwrap(
-    apiClient.patch<InvestmentSegment>(`/investment-segments/${id}`, request),
-    DUPLICATE_NAME_MESSAGE,
-  )
+  return unwrap(apiClient.patch<InvestmentSegment>(`/investment-segments/${id}`, request))
 }
 
-/** Deletes a segment; a 409 means a product still references it. */
+/** Deletes a segment; a `409` means a product still references it
+ * (`InvestmentSegmentInUseException`, F031/ADR 0026). */
 export async function deleteInvestmentSegment(id: string): Promise<void> {
-  await unwrap(apiClient.delete<void>(`/investment-segments/${id}`), CONFLICT_MESSAGE)
+  await unwrap(apiClient.delete<void>(`/investment-segments/${id}`))
 }

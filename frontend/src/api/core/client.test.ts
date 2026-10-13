@@ -85,22 +85,24 @@ describe('apiClient request/response logging', () => {
     expect(errorSpy).not.toHaveBeenCalled()
   })
 
-  it('logs a 409 at warn, and still rejects as an ApiError carrying the call-site conflictMessage', async () => {
+  it('logs a 409 at warn, and still rejects as an ApiError carrying the central map message', async () => {
     let sentId: string | null = null
     server.use(
       http.delete('/api/things/1', ({ request }) => {
         sentId = request.headers.get('X-Request-Id')
-        return HttpResponse.json({ message: RESPONSE_BODY_MARKER }, { status: 409 })
+        return HttpResponse.json(
+          { type: 'urn:my-finances:error:account-has-history', detail: RESPONSE_BODY_MARKER },
+          { status: 409 },
+        )
       }),
     )
 
-    const error: unknown = await unwrap(apiClient.delete('/things/1'), 'Reassign them first').catch(
-      (err: unknown) => err,
-    )
+    const error: unknown = await unwrap(apiClient.delete('/things/1')).catch((err: unknown) => err)
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toBe('Reassign them first')
+    expect((error as ApiError).type).toBe('urn:my-finances:error:account-has-history')
+    expect((error as ApiError).message).not.toContain(RESPONSE_BODY_MARKER)
     expect(warnSpy).toHaveBeenCalledOnce()
     const [message, context] = warnSpy.mock.calls[0]
     expect(message).toMatch(/^DELETE \/things\/1 409 \(\d+ ms\)$/)

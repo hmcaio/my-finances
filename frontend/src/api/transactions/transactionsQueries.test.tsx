@@ -9,7 +9,7 @@ import {
   transactionClosedAccountConflictHandler,
 } from '../../mocks/handlers/transactions'
 import { renderHookWithQueryClient } from '../../test/renderWithQueryClient'
-import { CLOSED_ACCOUNT_MESSAGE } from './transactions'
+import { PROBLEM_TYPE_MESSAGES } from '../core/apiError'
 import {
   useCreateTransaction,
   useDeleteTransaction,
@@ -80,7 +80,9 @@ describe('transactions hooks', () => {
     }))
     await waitFor(() => expect(result.current.list.data).toBeDefined())
 
-    await expect(result.current.create.mutateAsync(request)).rejects.toThrow(CLOSED_ACCOUNT_MESSAGE)
+    await expect(result.current.create.mutateAsync(request)).rejects.toThrow(
+      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-closed'],
+    )
 
     expect(lists).toBe(1)
   })

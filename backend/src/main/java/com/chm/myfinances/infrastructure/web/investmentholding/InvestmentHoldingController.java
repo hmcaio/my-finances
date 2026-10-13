@@ -4,12 +4,16 @@ import com.chm.myfinances.application.investmentholding.InvestmentHoldingService
 import com.chm.myfinances.application.investmentsnapshot.InvestmentSnapshotFreshnessQuery;
 import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -47,6 +51,16 @@ public class InvestmentHoldingController {
   }
 
   @GetMapping
+  @ApiResponse(
+      responseCode = "400",
+      description = "type: urn:my-finances:error:investment-holding-filter-required",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "404",
+      description =
+          "type: one of urn:my-finances:error:investment-product-not-found, "
+              + "urn:my-finances:error:account-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public List<InvestmentHoldingResponse> list(
       @RequestParam(name = "productId", required = false) UUID productId,
       @RequestParam(name = "accountId", required = false) UUID accountId) {
@@ -62,6 +76,18 @@ public class InvestmentHoldingController {
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
+  @ApiResponse(
+      responseCode = "404",
+      description =
+          "type: one of urn:my-finances:error:investment-product-not-found, "
+              + "urn:my-finances:error:account-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description =
+          "type: one of urn:my-finances:error:investment-account-required, "
+              + "urn:my-finances:error:investment-holding-already-exists",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public InvestmentHoldingResponse create(
       @Valid @RequestBody CreateInvestmentHoldingRequest request) {
     return toResponse(
@@ -69,11 +95,19 @@ public class InvestmentHoldingController {
   }
 
   @GetMapping("/{id}")
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:investment-holding-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public InvestmentHoldingResponse get(@PathVariable UUID id) {
     return toResponse(holdingService.findById(id));
   }
 
   @PatchMapping("/{id}")
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:investment-holding-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public InvestmentHoldingResponse edit(
       @PathVariable UUID id, @Valid @RequestBody UpdateInvestmentHoldingRequest request) {
     return toResponse(holdingService.editNotes(id, request.additionalNotes()));
@@ -83,6 +117,16 @@ public class InvestmentHoldingController {
    * {@code 409} while the latest snapshot is non-zero (F009/F022): record a zero snapshot first.
    */
   @PostMapping("/{id}/close")
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:investment-holding-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description =
+          "type: one of urn:my-finances:error:investment-holding-already-closed, "
+              + "urn:my-finances:error:investment-holding-not-empty",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public InvestmentHoldingResponse close(@PathVariable UUID id) {
     return toResponse(holdingService.close(id));
   }
@@ -93,6 +137,14 @@ public class InvestmentHoldingController {
    */
   @DeleteMapping("/{id}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:investment-holding-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description = "type: urn:my-finances:error:investment-holding-has-history",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public void delete(@PathVariable UUID id) {
     holdingService.delete(id);
   }

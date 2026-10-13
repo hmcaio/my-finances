@@ -15,7 +15,7 @@ import {
   seedTransfers,
   transferClosedAccountConflictHandler,
 } from '../../mocks/handlers/transfers'
-import { TRANSFER_CONFLICT_MESSAGE } from '../../api/transfers/transfers'
+import { PROBLEM_TYPE_MESSAGES } from '../../api/core/apiError'
 import { findRow, renderWithRouter, selectOption } from '../../test/testUtils'
 import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
 import { expectLoadStates } from '../../test/loadStates'
@@ -173,7 +173,11 @@ describe('TransfersPage', () => {
 
     // The error shows inside the open dialog, which stays open.
     const dialog = screen.getByRole('dialog')
-    expect(await within(dialog).findByText(TRANSFER_CONFLICT_MESSAGE)).toBeInTheDocument()
+    expect(
+      await within(dialog).findByText(
+        PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-closed'],
+      ),
+    ).toBeInTheDocument()
   })
 
   // The table's load state is `combineLoadState(accountsState, transfersState)` (F2 audit finding);
@@ -315,7 +319,11 @@ describe('TransfersPage responsive layout (F021)', () => {
       const dialog = await openAddDialog(user)
       await fillAndSubmitAddForm(user)
 
-      expect(await within(dialog).findByText(TRANSFER_CONFLICT_MESSAGE)).toBeInTheDocument()
+      expect(
+        await within(dialog).findByText(
+          PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-closed'],
+        ),
+      ).toBeInTheDocument()
     })
 
     it('Edit opens the dialog prefilled and saves through the same mutation', async () => {

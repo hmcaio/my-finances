@@ -122,18 +122,27 @@ export const investmentHoldingsHandlers = [
 ]
 
 /**
- * `409` variants (applied via `server.use(...)`): the backend sends no message text, so the
- * bodies are placeholders and what the UI shows comes from the client's own `conflictMessage`.
+ * `409` variants (applied via `server.use(...)`): what the UI shows comes from `apiError.ts`'s
+ * central `PROBLEM_TYPE_MESSAGES` map, keyed by each body's `type` (F031/ADR 0026).
  */
 export const investmentHoldingDeleteConflictHandler = http.delete(`${HOLDINGS_URL}/:id`, () =>
-  HttpResponse.json({ message: 'Holding has history' }, { status: 409 }),
+  HttpResponse.json(
+    { type: 'urn:my-finances:error:investment-holding-has-history' },
+    { status: 409 },
+  ),
 )
 
 export const investmentHoldingCloseConflictHandler = http.post(`${HOLDINGS_URL}/:id/close`, () =>
-  HttpResponse.json({ message: 'Already closed' }, { status: 409 }),
+  HttpResponse.json(
+    { type: 'urn:my-finances:error:investment-holding-already-closed' },
+    { status: 409 },
+  ),
 )
 
 /** Duplicate (product, account) pair, or a non-investment account. */
 export const investmentHoldingCreateConflictHandler = http.post(HOLDINGS_URL, () =>
-  HttpResponse.json({ message: 'Conflict' }, { status: 409 }),
+  HttpResponse.json(
+    { type: 'urn:my-finances:error:investment-holding-already-exists' },
+    { status: 409 },
+  ),
 )

@@ -210,7 +210,10 @@ class InstitutionControllerTest {
     String id = createInstitution("Used Test");
     createAccountAt(id, false);
 
-    mockMvc.perform(delete("/api/institutions/" + id)).andExpect(status().isConflict());
+    mockMvc
+        .perform(delete("/api/institutions/" + id))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.type").value("urn:my-finances:error:institution-in-use"));
   }
 
   @Test
@@ -252,7 +255,8 @@ class InstitutionControllerTest {
   void deleteOfAnUnknownIdReturns404() throws Exception {
     mockMvc
         .perform(delete("/api/institutions/" + UUID.randomUUID()))
-        .andExpect(status().isNotFound());
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.type").value("urn:my-finances:error:institution-not-found"));
   }
 
   @Test

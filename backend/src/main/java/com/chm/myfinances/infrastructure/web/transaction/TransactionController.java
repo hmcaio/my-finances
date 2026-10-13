@@ -5,6 +5,9 @@ import com.chm.myfinances.application.transaction.TransactionService;
 import com.chm.myfinances.domain.transaction.FuelDetails;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionFilter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -17,6 +20,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.data.web.PagedModel;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -81,6 +85,27 @@ public class TransactionController {
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
+  @ApiResponse(
+      responseCode = "400",
+      description =
+          "type: one of urn:my-finances:error:fuel-details-category-mismatch, "
+              + "urn:my-finances:error:investment-holding-category-mismatch",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "404",
+      description =
+          "type: one of urn:my-finances:error:category-not-found, "
+              + "urn:my-finances:error:account-not-found, "
+              + "urn:my-finances:error:payment-method-not-found, "
+              + "urn:my-finances:error:vehicle-not-found, "
+              + "urn:my-finances:error:investment-holding-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description =
+          "type: one of urn:my-finances:error:account-closed, "
+              + "urn:my-finances:error:account-type-not-allowed",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public TransactionResponse create(@Valid @RequestBody CreateTransactionRequest request) {
     Transaction transaction =
         transactionService.create(
@@ -122,11 +147,37 @@ public class TransactionController {
   }
 
   @GetMapping("/{id}")
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:transaction-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public TransactionResponse get(@PathVariable UUID id) {
     return TransactionResponse.from(transactionService.findById(id));
   }
 
   @PatchMapping("/{id}")
+  @ApiResponse(
+      responseCode = "400",
+      description =
+          "type: one of urn:my-finances:error:fuel-details-category-mismatch, "
+              + "urn:my-finances:error:investment-holding-category-mismatch",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "404",
+      description =
+          "type: one of urn:my-finances:error:transaction-not-found, "
+              + "urn:my-finances:error:category-not-found, "
+              + "urn:my-finances:error:account-not-found, "
+              + "urn:my-finances:error:payment-method-not-found, "
+              + "urn:my-finances:error:vehicle-not-found, "
+              + "urn:my-finances:error:investment-holding-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description =
+          "type: one of urn:my-finances:error:account-closed, "
+              + "urn:my-finances:error:account-type-not-allowed",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public TransactionResponse edit(
       @PathVariable UUID id, @Valid @RequestBody UpdateTransactionRequest request) {
     Transaction transaction =
@@ -146,6 +197,10 @@ public class TransactionController {
 
   @DeleteMapping("/{id}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:transaction-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public void delete(@PathVariable UUID id) {
     transactionService.delete(id);
   }

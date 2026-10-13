@@ -5,6 +5,9 @@ import com.chm.myfinances.application.budget.BudgetReportQuery;
 import com.chm.myfinances.application.budget.BudgetService;
 import com.chm.myfinances.domain.budget.Budget;
 import com.chm.myfinances.domain.budget.BudgetVersion;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import java.time.Clock;
 import java.time.YearMonth;
@@ -13,6 +16,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -50,6 +54,16 @@ public class BudgetController {
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:category-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description =
+          "type: one of urn:my-finances:error:category-not-expense, "
+              + "urn:my-finances:error:budget-already-exists",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public BudgetResponse create(@Valid @RequestBody CreateBudgetRequest request) {
     Budget budget =
         budgetService.create(request.categoryId(), request.monthlyCap(), request.effectiveFrom());
@@ -63,6 +77,10 @@ public class BudgetController {
   }
 
   @PatchMapping("/{id}/cap")
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:budget-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public BudgetResponse setCap(
       @PathVariable UUID id, @Valid @RequestBody UpdateBudgetCapRequest request) {
     budgetService.setCap(id, request.monthlyCap(), request.effectiveFrom());
@@ -74,6 +92,10 @@ public class BudgetController {
    * Resume with {@code PATCH .../cap}.
    */
   @PostMapping("/{id}/stop")
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:budget-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public BudgetResponse stop(@PathVariable UUID id, @Valid @RequestBody StopBudgetRequest request) {
     budgetService.stop(id, request.effectiveFrom());
     return toResponse(budgetService.findById(id));

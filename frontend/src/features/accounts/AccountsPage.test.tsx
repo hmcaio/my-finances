@@ -13,11 +13,7 @@ import {
   seedInvestmentAccount,
 } from '../../mocks/handlers/accounts'
 import { BUILT_IN_INSTITUTION_ID, seedInstitutions } from '../../mocks/handlers/institutions'
-import {
-  CLOSE_CONFLICT_MESSAGE,
-  DELETE_CONFLICT_MESSAGE,
-  DUPLICATE_NAME_MESSAGE,
-} from '../../api/accounts/accounts'
+import { PROBLEM_TYPE_MESSAGES } from '../../api/core/apiError'
 import { findRow, renderWithRouter } from '../../test/testUtils'
 import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
 import { AccountsPage } from './AccountsPage'
@@ -251,7 +247,11 @@ describe('AccountsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Close account' }))
 
     // The backend sends no message text, so the client supplies one covering the 409 cases.
-    expect(await screen.findByText(CLOSE_CONFLICT_MESSAGE)).toBeInTheDocument()
+    expect(
+      await screen.findByText(
+        PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-already-closed'],
+      ),
+    ).toBeInTheDocument()
     expect(screen.getByText(openAccount.name)).toBeInTheDocument()
   })
 
@@ -296,7 +296,9 @@ describe('AccountsPage', () => {
     await user.click(row.getByRole('button', { name: 'Delete' }))
     await user.click(screen.getByRole('button', { name: 'Delete account' }))
 
-    expect(await screen.findByText(DELETE_CONFLICT_MESSAGE)).toBeInTheDocument()
+    expect(
+      await screen.findByText(PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-has-history']),
+    ).toBeInTheDocument()
     expect(screen.getByText(openAccount.name)).toBeInTheDocument()
   })
 
@@ -456,7 +458,11 @@ describe('AccountsPage responsive layout (F021)', () => {
       await user.type(within(dialog).getByRole('textbox', { name: 'Name' }), 'New Wallet')
       await user.click(within(dialog).getByRole('button', { name: 'Add' }))
 
-      expect(await within(dialog).findByText(DUPLICATE_NAME_MESSAGE)).toBeInTheDocument()
+      expect(
+        await within(dialog).findByText(
+          PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-name-already-exists'],
+        ),
+      ).toBeInTheDocument()
       expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
 
@@ -511,7 +517,11 @@ describe('AccountsPage responsive layout (F021)', () => {
       await user.type(within(dialog).getByRole('textbox', { name: 'Name' }), ' 2')
       await user.click(within(dialog).getByRole('button', { name: 'Save changes' }))
 
-      expect(await within(dialog).findByText(DUPLICATE_NAME_MESSAGE)).toBeInTheDocument()
+      expect(
+        await within(dialog).findByText(
+          PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-name-already-exists'],
+        ),
+      ).toBeInTheDocument()
     })
 
     it('Cancel closes the edit dialog without saving', async () => {

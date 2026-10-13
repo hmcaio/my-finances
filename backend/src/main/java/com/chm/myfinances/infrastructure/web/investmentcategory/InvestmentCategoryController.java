@@ -2,10 +2,14 @@ package com.chm.myfinances.infrastructure.web.investmentcategory;
 
 import com.chm.myfinances.application.investmentcategory.InvestmentCategoryService;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -39,6 +43,10 @@ public class InvestmentCategoryController {
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
+  @ApiResponse(
+      responseCode = "409",
+      description = "type: urn:my-finances:error:investment-category-name-already-exists",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public InvestmentCategoryResponse create(
       @Valid @RequestBody CreateInvestmentCategoryRequest request) {
     InvestmentCategory category = categoryService.create(request.name());
@@ -46,6 +54,14 @@ public class InvestmentCategoryController {
   }
 
   @PatchMapping("/{id}")
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:investment-category-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description = "type: urn:my-finances:error:investment-category-name-already-exists",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public InvestmentCategoryResponse rename(
       @PathVariable UUID id, @Valid @RequestBody UpdateInvestmentCategoryRequest request) {
     categoryService.rename(id, request.name());
@@ -54,6 +70,14 @@ public class InvestmentCategoryController {
 
   @DeleteMapping("/{id}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:investment-category-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description = "type: urn:my-finances:error:investment-category-in-use",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public void delete(@PathVariable UUID id) {
     categoryService.delete(id);
   }
