@@ -141,7 +141,9 @@ class InvestmentSnapshotControllerTest {
 
   @Test
   void anUnknownHoldingIs404OnBothEndpoints() throws Exception {
-    recordSnapshot(UUID.randomUUID(), "2026-03-31", "1.00").andExpect(status().isNotFound());
+    recordSnapshot(UUID.randomUUID(), "2026-03-31", "1.00")
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.type").value("urn:my-finances:error:investment-holding-not-found"));
     mockMvc
         .perform(get("/api/investment-holdings/" + UUID.randomUUID() + "/snapshots"))
         .andExpect(status().isNotFound());

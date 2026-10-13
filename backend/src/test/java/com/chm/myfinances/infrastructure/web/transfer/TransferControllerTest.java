@@ -189,7 +189,8 @@ class TransferControllerTest {
 
     mockMvc
         .perform(post("/api/transfers").contentType(MediaType.APPLICATION_JSON).content(body))
-        .andExpect(status().isConflict());
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.type").value("urn:my-finances:error:account-closed"));
   }
 
   @Test
@@ -222,7 +223,10 @@ class TransferControllerTest {
 
   @Test
   void getOfUnknownIdReturns404() throws Exception {
-    mockMvc.perform(get("/api/transfers/" + UUID.randomUUID())).andExpect(status().isNotFound());
+    mockMvc
+        .perform(get("/api/transfers/" + UUID.randomUUID()))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.type").value("urn:my-finances:error:transfer-not-found"));
   }
 
   @Test
