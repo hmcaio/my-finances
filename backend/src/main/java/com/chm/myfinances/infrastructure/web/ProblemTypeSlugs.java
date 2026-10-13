@@ -2,6 +2,7 @@ package com.chm.myfinances.infrastructure.web;
 
 import java.net.URI;
 import java.util.Locale;
+import org.springframework.http.ProblemDetail;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 
@@ -19,7 +20,7 @@ import org.springframework.validation.ObjectError;
  * <p>F032 reuses the same kebab-casing transform for a second, unrelated identifier: a bean-
  * validation violation's {@code code} (e.g. {@code @NotBlank} -> {@code not-blank}), attached by
  * {@link GlobalExceptionHandler} as the {@code errors} extension member of a {@code
- * MethodArgumentNotValidException}'s {@link org.springframework.http.ProblemDetail}.
+ * MethodArgumentNotValidException}'s {@link ProblemDetail}.
  */
 public final class ProblemTypeSlugs {
 
