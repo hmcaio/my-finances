@@ -132,6 +132,9 @@ export const PROBLEM_TYPE_MESSAGES: Record<string, string> = {
   // FII allocation plan (F026)
   'urn:my-finances:error:allocation-plan-entry-not-fii':
     'Every entry must be a product classified under the "REITs (FIIs)" sub-category.',
+  'urn:my-finances:error:allocation-plan-sum-invalid': 'The entries must sum to exactly 100%.',
+  'urn:my-finances:error:allocation-plan-duplicate-product':
+    'The same product cannot appear twice in the allocation plan.',
 }
 
 /**

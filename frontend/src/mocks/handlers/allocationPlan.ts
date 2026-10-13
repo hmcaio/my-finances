@@ -68,15 +68,29 @@ export const allocationPlanHandlers = [
 
 /** `409` variant: a product isn't classified under the FII sub-category. */
 export const allocationPlanNotFiiConflictHandler = http.put(PLAN_URL, () =>
-  HttpResponse.json({ message: 'Not an FII product' }, { status: 409 }),
+  HttpResponse.json(
+    { type: 'urn:my-finances:error:allocation-plan-entry-not-fii' },
+    { status: 409 },
+  ),
 )
 
-/** `400` variant: the entries don't sum to exactly 100%, or repeat a product. */
+/** `400` variant: the entries don't sum to exactly 100%. */
 export const allocationPlanInvalidEntriesHandler = http.put(PLAN_URL, () =>
-  HttpResponse.json({ message: 'Invalid entries' }, { status: 400 }),
+  HttpResponse.json({ type: 'urn:my-finances:error:allocation-plan-sum-invalid' }, { status: 400 }),
+)
+
+/** `400` variant: the same product appears twice. */
+export const allocationPlanDuplicateProductHandler = http.put(PLAN_URL, () =>
+  HttpResponse.json(
+    { type: 'urn:my-finances:error:allocation-plan-duplicate-product' },
+    { status: 400 },
+  ),
 )
 
 /** `404` variant: an entry references an unknown product. */
 export const allocationPlanUnknownProductHandler = http.put(PLAN_URL, () =>
-  HttpResponse.json({ message: 'Unknown product' }, { status: 404 }),
+  HttpResponse.json(
+    { type: 'urn:my-finances:error:investment-product-not-found' },
+    { status: 404 },
+  ),
 )

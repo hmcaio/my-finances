@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Box, Button, Paper, TextField, Typography } from '@mui/material'
 import { defaultErrorMessage } from '../../api/core/apiError'
-import { INVALID_ENTRIES_MESSAGE, NOT_FII_MESSAGE } from '../../api/investments/allocationPlan'
 import {
   useCurrentAllocationPlan,
   useSetAllocationPlan,
@@ -67,7 +66,7 @@ export function AllocationPlanEditor({ fiiProducts }: AllocationPlanEditorProps)
       await setAllocation.mutateAsync({ entries, effectiveFrom })
       setSaved(true)
     } catch (err) {
-      setError(defaultErrorMessage(err, { 400: INVALID_ENTRIES_MESSAGE, 409: NOT_FII_MESSAGE }))
+      setError(defaultErrorMessage(err))
     } finally {
       setSaving(false)
     }

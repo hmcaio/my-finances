@@ -23,15 +23,6 @@ export interface AllocationPlanVersion {
 
 export type SetAllocationPlanRequest = components['schemas']['SetAllocationPlanRequest']
 
-// The backend sends no message text, so every expected error needs its own wording here. The two
-// 400 cases (sum != 100, a duplicate product) are indistinguishable from the response alone, so
-// one message covers both - pass it via `defaultErrorMessage(err, { 400: INVALID_ENTRIES_MESSAGE })`
-// at the call site.
-export const INVALID_ENTRIES_MESSAGE =
-  'The entries must sum to exactly 100% and must not repeat the same product.'
-export const NOT_FII_MESSAGE =
-  'Every entry must be a product classified under the "REITs (FIIs)" sub-category.'
-
 /** The version effective for the current month, or `null` if no allocation has ever been set. */
 export async function getCurrentAllocationPlan(): Promise<AllocationPlanVersion | null> {
   const response = await apiClient.get<AllocationPlanVersion>('/fii/allocation-plan', {
@@ -47,8 +38,11 @@ export async function getAllocationPlanVersions(): Promise<AllocationPlanVersion
 
 /**
  * Creates a new version, or replaces the existing one for `effectiveFrom` if one already exists
- * (same-month correction). A `409` means a product isn't classified under the FII sub-category; a
- * `400` means the entries don't sum to exactly 100% or reference the same product twice.
+ * (same-month correction). `type: urn:my-finances:error:allocation-plan-entry-not-fii` (409) means
+ * a product isn't classified under the FII sub-category; `allocation-plan-sum-invalid`/
+ * `allocation-plan-duplicate-product` (both 400) distinguish the entries not summing to exactly
+ * 100% from the same product appearing twice (F031/ADR 0026 - `apiError.ts`'s
+ * `PROBLEM_TYPE_MESSAGES` covers all three, no call-site override needed).
  */
 export async function setAllocationPlan(
   request: SetAllocationPlanRequest,
