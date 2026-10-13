@@ -65,6 +65,17 @@ Conventional Commits (ADR 0009), message via HEREDOC, staging by explicit path (
 
 Pushing is visible to others, so wait for the user to say so (approving the fix is not approval to push). Then `git push -u origin <branch>` and `gh pr create --base develop` with: `Closes #N`, a summary of what changed and why, and a checked test plan listing the commands from step 6. If step 7 added a `CHANGELOG.md` entry, add its `([#N](…))` PR link now that the number exists and push that one follow-up commit (`docs: link PR in CHANGELOG entry`; the squash-merge folds it in). Return the PR URL.
 
+## 10. Post-mortem — only when asked
+
+A merged fix answers "what was broken." A post-mortem answers "how did this get here, and could the same shape of bug slip through again." Only do this stage when the user explicitly asks for a post-mortem — it's not part of the default find-fix-ship loop, and most fixes don't warrant one.
+
+1. **Find where the regression was actually introduced**, not just when it was noticed. `git log --oneline -- <file>` across the file's whole history, then `git show <candidate>` on the commits around each suspect change, reading the feature/ADR each one belongs to. The issue that reported the bug almost never names the commit that caused it — that's usually several features earlier.
+2. **Verify the fix is complete against the full old logic, not just the one reported symptom.** Diff the fix against the code as it stood right before the regressing commit (not the regressing commit's own "intended" behavior) and enumerate every rule that old code enforced. A refactor that dropped one invariant often dropped siblings the symptom never exercised — confirm each one still exists somewhere today, or the fix is only half the fix.
+3. **Falsify the regression tests against the actual root-cause commit.** This is sharper than step 5's "restore the old code and confirm the new tests fail" habit, which only proves the test catches the *fix's own* before-state: `git show <regressing-commit>^:<path> > <path>` to restore the file to just before the regression while keeping the new tests, run them, confirm they fail, then `git checkout HEAD -- <path>` to restore the fix. If they pass against that older state too, the tests aren't guarding what the post-mortem claims they're guarding.
+4. **Write the causal chain as a comment on the issue** (`gh issue comment`) — which commits, what each one changed, and why nothing caught it in between. This is the narrative, and it belongs on the issue, never in `CLAUDE.md` (step 7 already says why: no story content there).
+5. **Only add a CLAUDE.md bullet if a genuinely generalizable rule fell out of this** — something that will bite a *different* feature doing a *different* refactor, not just "this bug happened." Phrase it as the rule, terse, the same way step 7 asks for every other CLAUDE.md addition. Most post-mortems are pure narrative (step 4) with no new rule to add; don't manufacture one.
+6. **If the fix's branch/PR already merged by the time the doc-only follow-up is ready, don't push more commits onto it** — that branch is dead the moment its PR merges. Branch fresh off `develop` (step 4) and `git cherry-pick` the doc commit onto it, then open a new PR (step 9) for just that.
+
 ## Closing message
 
 One or two sentences: what changed, what's verified, and the next step you're offering (push/PR, or the follow-up you deliberately deferred).
