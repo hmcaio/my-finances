@@ -1,6 +1,8 @@
 package com.chm.myfinances.infrastructure.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -331,5 +333,102 @@ class GlobalExceptionHandlerTest {
 
       assertThat(logs.events()).isEmpty();
     }
+  }
+
+  // --- F032: the `errors` extension member on a MethodArgumentNotValidException's 400 ----------
+
+  @Test
+  void aSingleFieldViolationReturnsOneEntryInTheErrorsExtension() throws Exception {
+    String body =
+        """
+        {"date":"2026-01-01","amount":-12.34,"description":"desc",
+         "accountId":"%1$s","categoryId":"%1$s","paymentMethodId":"%1$s"}
+        """
+            .formatted(UUID.randomUUID());
+
+    mockMvc
+        .perform(post("/api/transactions").contentType(MediaType.APPLICATION_JSON).content(body))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.type").value("urn:my-finances:error:method-argument-not-valid"))
+        .andExpect(jsonPath("$.errors", hasSize(1)))
+        .andExpect(jsonPath("$.errors[0].field").value("amount"))
+        .andExpect(jsonPath("$.errors[0].code").value("positive"))
+        .andExpect(jsonPath("$.detail").doesNotExist());
+  }
+
+  @Test
+  void severalFieldViolationsReturnOneEntryEachNeverTheMessageOrRejectedValue() throws Exception {
+    // amount violates @Positive, description is missing entirely (@NotBlank also fails for a
+    // missing/null value) - two independent violations in one request.
+    String body =
+        """
+        {"date":"2026-01-01","amount":-12.34,
+         "accountId":"%1$s","categoryId":"%1$s","paymentMethodId":"%1$s"}
+        """
+            .formatted(UUID.randomUUID());
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                post("/api/transactions").contentType(MediaType.APPLICATION_JSON).content(body))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.errors", hasSize(2)))
+            .andReturn();
+
+    String json = result.getResponse().getContentAsString();
+    assertThat(json).contains("\"field\":\"amount\"").contains("\"code\":\"positive\"");
+    assertThat(json).contains("\"field\":\"description\"").contains("\"code\":\"not-blank\"");
+    // Never Jakarta's interpolated message text or the actual rejected value (-12.34).
+    assertThat(json)
+        .doesNotContain("-12.34")
+        .doesNotContain("must be")
+        .doesNotContain("must not be blank");
+  }
+
+  @Test
+  void aTopLevelAssertTrueInvariantReturnsOneEntryWithANullFieldAndADerivedCode() throws Exception {
+    // TradeConfirmationRequest.isAtMostOneResultingBalancePerProduct: two lines for the same
+    // product both carrying a resultingBalance trips the top-level cross-line invariant - this
+    // happens before TransferController's own body ever runs (method-argument resolution), so no
+    // real account/product needs to exist.
+    UUID productId = UUID.randomUUID();
+    String body =
+        """
+        {"date":"2026-01-01","description":"buy",
+         "tradeConfirmation":{"taxes":1,"lines":[
+           {"productId":"%1$s","side":"BUY","quantity":1,"unitPrice":1,"resultingBalance":5},
+           {"productId":"%1$s","side":"BUY","quantity":1,"unitPrice":1,"resultingBalance":5}
+         ]}}
+        """
+            .formatted(productId);
+
+    mockMvc
+        .perform(post("/api/transfers").contentType(MediaType.APPLICATION_JSON).content(body))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors", hasSize(1)))
+        .andExpect(jsonPath("$.errors[0].field").value(nullValue()))
+        .andExpect(jsonPath("$.errors[0].code").value("at-most-one-resulting-balance-per-product"));
+  }
+
+  @Test
+  void aNestedIndexedFieldViolationReportsItsFullBracketedPath() throws Exception {
+    // TradeConfirmationLineRequest.quantity (@Positive) violated on the second (index 1) line of
+    // a @Valid-cascaded list - the field path must include the list index, not just "quantity".
+    String body =
+        """
+        {"date":"2026-01-01","description":"buy",
+         "tradeConfirmation":{"taxes":1,"lines":[
+           {"productId":"%1$s","side":"BUY","quantity":1,"unitPrice":1},
+           {"productId":"%2$s","side":"BUY","quantity":-1,"unitPrice":1}
+         ]}}
+        """
+            .formatted(UUID.randomUUID(), UUID.randomUUID());
+
+    mockMvc
+        .perform(post("/api/transfers").contentType(MediaType.APPLICATION_JSON).content(body))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors", hasSize(1)))
+        .andExpect(jsonPath("$.errors[0].field").value("tradeConfirmation.lines[1].quantity"))
+        .andExpect(jsonPath("$.errors[0].code").value("positive"));
   }
 }

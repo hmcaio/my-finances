@@ -39,6 +39,12 @@ public class InstitutionController {
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
   @ApiResponse(
+      responseCode = "400",
+      description =
+          "type: urn:my-finances:error:method-argument-not-valid, carrying an errors[] "
+              + "array of {field, code} with code one of: not-blank, size",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
       responseCode = "409",
       description = "type: urn:my-finances:error:institution-name-already-exists",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
@@ -48,6 +54,12 @@ public class InstitutionController {
   }
 
   @PatchMapping("/{id}")
+  @ApiResponse(
+      responseCode = "400",
+      description =
+          "type: urn:my-finances:error:method-argument-not-valid, carrying an errors[] "
+              + "array of {field, code} with code one of: not-blank, size",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   @ApiResponse(
       responseCode = "404",
       description = "type: urn:my-finances:error:institution-not-found",

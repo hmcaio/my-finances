@@ -2,6 +2,8 @@ package com.chm.myfinances.infrastructure.web;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.TypeMismatchException;
@@ -11,7 +13,10 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.FieldError;
+import org.springframework.validation.ObjectError;
 import org.springframework.web.ErrorResponse;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -56,11 +61,23 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * class name (now also the {@code type} it emits, derived from that same name - no new leak
  * surface) is the only way to see which case fired. Spring's own {@link ErrorResponse} exceptions
  * are not logged here - the access line's status is enough.
+ *
+ * <p>F032: {@link MethodArgumentNotValidException} (bean-validation {@code @Valid @RequestBody}
+ * failures) already implements {@link ErrorResponse}, so it flows through that branch above like
+ * every other such exception and gets the same {@code type}/{@code title}/{@code status}/{@code
+ * instance} (derived from its own class name - {@code urn:my-finances:error:
+ * method-argument-not-valid}). This feature adds, only for that one exception type, an {@code
+ * errors} extension member listing every violation as {@code {field, code}} - built from its {@code
+ * BindingResult}, never from the interpolated Jakarta message or the rejected value. No new branch,
+ * no new logging.
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
   private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+  /** One `errors[]` entry (F032): {@code field} is {@code null} for an `@AssertTrue` invariant. */
+  private record ValidationViolation(String field, String code) {}
 
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ProblemDetail> handleUnexpected(
@@ -104,6 +121,38 @@ public class GlobalExceptionHandler {
     problemDetail.setTitle(title);
     problemDetail.setInstance(URI.create(request.getRequestURI()));
 
+    if (exception instanceof MethodArgumentNotValidException validationException) {
+      problemDetail.setProperty("errors", violationsFor(validationException));
+    }
+
     return ResponseEntity.status(status).body(problemDetail);
+  }
+
+  /**
+   * F032: one {@link ValidationViolation} per field-level violation ({@code field} is the
+   * Hibernate-Validator-computed path, verbatim, including bracket/dot notation for a nested or
+   * indexed field) plus one per global (object-level) violation ({@code field: null}) - walking
+   * {@code BindingResult.getGlobalErrors()} is forward-compatible with a future genuine class-level
+   * constraint, even though every current {@code @AssertTrue} invariant in this codebase actually
+   * surfaces as a field-level violation whose field is a synthetic property path (see {@link
+   * ProblemTypeSlugs#isAssertTrueViolation}), not a global error. Never includes Jakarta's
+   * interpolated message or the rejected value - only {@code field}/{@code code}.
+   */
+  private static List<ValidationViolation> violationsFor(
+      MethodArgumentNotValidException exception) {
+    List<ValidationViolation> violations = new ArrayList<>();
+    for (FieldError fieldError : exception.getBindingResult().getFieldErrors()) {
+      if (ProblemTypeSlugs.isAssertTrueViolation(fieldError)) {
+        violations.add(
+            new ValidationViolation(null, ProblemTypeSlugs.codeForAssertTrue(fieldError)));
+      } else {
+        violations.add(
+            new ValidationViolation(fieldError.getField(), ProblemTypeSlugs.codeFor(fieldError)));
+      }
+    }
+    for (ObjectError objectError : exception.getBindingResult().getGlobalErrors()) {
+      violations.add(new ValidationViolation(null, ProblemTypeSlugs.codeFor(objectError)));
+    }
+    return violations;
   }
 }

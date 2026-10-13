@@ -59,6 +59,12 @@ public class InvestmentSnapshotController {
   /** {@code 201} when a snapshot was created, {@code 200} when it replaced the same-day one. */
   @PostMapping
   @ApiResponse(
+      responseCode = "400",
+      description =
+          "type: urn:my-finances:error:method-argument-not-valid, carrying an errors[] "
+              + "array of {field, code} with code one of: not-null, positive-or-zero, digits",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
       responseCode = "404",
       description = "type: urn:my-finances:error:investment-holding-not-found",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
@@ -75,6 +81,12 @@ public class InvestmentSnapshotController {
   }
 
   @PutMapping("/{snapshotId}")
+  @ApiResponse(
+      responseCode = "400",
+      description =
+          "type: urn:my-finances:error:method-argument-not-valid, carrying an errors[] "
+              + "array of {field, code} with code one of: not-null, positive-or-zero, digits",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   @ApiResponse(
       responseCode = "404",
       description =

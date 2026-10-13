@@ -8,6 +8,8 @@ import com.chm.myfinances.application.transaction.AccountTypeNotAllowedException
 import com.chm.myfinances.application.transfer.AccountClosedException;
 import java.net.URI;
 import org.junit.jupiter.api.Test;
+import org.springframework.validation.FieldError;
+import org.springframework.validation.ObjectError;
 
 /**
  * Unit test for the slug-derivation rules behind every {@code type}/{@code title} the {@link
@@ -78,5 +80,81 @@ class ProblemTypeSlugsTest {
     assertThat(ProblemTypeSlugs.INTERNAL_ERROR_TYPE)
         .isEqualTo(URI.create("urn:my-finances:error:internal-error"));
     assertThat(ProblemTypeSlugs.INTERNAL_ERROR_TITLE).isEqualTo("An unexpected error occurred");
+  }
+
+  // --- F032: bean-validation violation-code derivation ---------------------------------------
+  //
+  // Spring's SpringValidatorAdapter resolves a FieldError's/ObjectError's own getCode() to the
+  // *last* element of its message-codes array, which is always the bare constraint annotation's
+  // simple name (e.g. "NotBlank", "PositiveOrZero") with no object/field qualification - verified
+  // empirically against a real LocalValidatorFactoryBean run (see GlobalExceptionHandlerTest for
+  // the real-REST-call coverage); hand-constructing FieldError/ObjectError with that one-element
+  // codes array reproduces the exact same getCode() value without needing a validator here.
+
+  @Test
+  void codeForFieldErrorKebabCasesTheConstraintAnnotationSimpleName() {
+    assertThat(ProblemTypeSlugs.codeFor(fieldError("description", "NotBlank")))
+        .isEqualTo("not-blank");
+  }
+
+  @Test
+  void codeForFieldErrorHandlesMultiWordConstraintNames() {
+    assertThat(ProblemTypeSlugs.codeFor(fieldError("amount", "PositiveOrZero")))
+        .isEqualTo("positive-or-zero");
+    assertThat(ProblemTypeSlugs.codeFor(fieldError("targetPercentage", "DecimalMin")))
+        .isEqualTo("decimal-min");
+    assertThat(ProblemTypeSlugs.codeFor(fieldError("targetPercentage", "DecimalMax")))
+        .isEqualTo("decimal-max");
+    assertThat(ProblemTypeSlugs.codeFor(fieldError("entries", "NotEmpty"))).isEqualTo("not-empty");
+    assertThat(ProblemTypeSlugs.codeFor(fieldError("liters", "Digits"))).isEqualTo("digits");
+  }
+
+  @Test
+  void isAssertTrueViolationDetectsTheAssertTrueConstraintCodeOnly() {
+    assertThat(
+            ProblemTypeSlugs.isAssertTrueViolation(
+                fieldError("atMostOneResultingBalancePerProduct", "AssertTrue")))
+        .isTrue();
+    assertThat(ProblemTypeSlugs.isAssertTrueViolation(fieldError("amount", "Positive"))).isFalse();
+  }
+
+  @Test
+  void codeForAssertTrueDerivesFromTheSyntheticPropertyNameNotTheLiteralConstraintName() {
+    // @AssertTrue (JSR-380) can only target a method/field, never a class/record directly, so this
+    // codebase's class-level invariants are each written as an isXxx() getter
+    // (TradeConfirmationRequest.isAtMostOneResultingBalancePerProduct,
+    // TradeConfirmationLineRequest.isCloseHoldingOnlyOnSell, ...). Hibernate Validator treats that
+    // as a bean property named "xxx", so Spring's SpringValidatorAdapter reports the violation as
+    // a FieldError whose field is that synthetic property path - never a real request field, and
+    // never a global/object error with an empty path, as a naive reading of "class-level
+    // constraint" would suggest. The literal constraint code ("AssertTrue") is identical for every
+    // such invariant in the app, so the synthetic property name is the only part that
+    // distinguishes one invariant from another - that's what this method derives the code from.
+    assertThat(
+            ProblemTypeSlugs.codeForAssertTrue(
+                fieldError("atMostOneResultingBalancePerProduct", "AssertTrue")))
+        .isEqualTo("at-most-one-resulting-balance-per-product");
+
+    // Nested inside a @Valid-cascaded list (TradeConfirmationRequest.lines[0]), the synthetic
+    // property name is the path's last segment, after the index - only that segment names the
+    // invariant.
+    assertThat(
+            ProblemTypeSlugs.codeForAssertTrue(
+                fieldError("lines[0].closeHoldingOnlyOnSell", "AssertTrue")))
+        .isEqualTo("close-holding-only-on-sell");
+  }
+
+  @Test
+  void codeForObjectErrorKebabCasesItsCodeTheSameWayAsAFieldError() {
+    ObjectError objectError =
+        new ObjectError(
+            "tradeConfirmationRequest", new String[] {"SomeClassLevelCheck"}, null, "msg");
+
+    assertThat(ProblemTypeSlugs.codeFor(objectError)).isEqualTo("some-class-level-check");
+  }
+
+  private static FieldError fieldError(String field, String constraintSimpleName) {
+    return new FieldError(
+        "request", field, null, false, new String[] {constraintSimpleName}, null, "msg");
   }
 }
