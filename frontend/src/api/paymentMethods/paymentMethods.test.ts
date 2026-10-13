@@ -6,9 +6,8 @@ import {
   seedPaymentMethods,
 } from '../../mocks/handlers/paymentMethods'
 import { describeNamedEntityApi } from '../../test/apiContract'
+import { PROBLEM_TYPE_MESSAGES } from '../core/apiError'
 import {
-  CONFLICT_MESSAGE,
-  DUPLICATE_NAME_MESSAGE,
   createPaymentMethod,
   deletePaymentMethod,
   getPaymentMethods,
@@ -38,8 +37,9 @@ describeNamedEntityApi<PaymentMethod, CreatePaymentMethodRequest, UpdatePaymentM
   },
   remove: { id: 'pm-1' },
   conflict: {
-    message: CONFLICT_MESSAGE,
-    duplicateNameMessage: DUPLICATE_NAME_MESSAGE,
+    message: PROBLEM_TYPE_MESSAGES['urn:my-finances:error:payment-method-in-use'],
+    duplicateNameMessage:
+      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:payment-method-name-already-exists'],
     createHandler: paymentMethodCreateConflictHandler,
     renameHandler: paymentMethodRenameConflictHandler,
     deleteHandler: paymentMethodDeleteConflictHandler,

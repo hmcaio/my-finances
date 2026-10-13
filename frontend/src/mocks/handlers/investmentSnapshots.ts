@@ -90,7 +90,10 @@ export const investmentSnapshotsHandlers = [
         .list()
         .some((s) => s.holdingId === holdingId && s.id !== existing.id && s.date === body.date)
     )
-      return new HttpResponse(null, { status: 409 })
+      return HttpResponse.json(
+        { type: 'urn:my-finances:error:investment-snapshot-date-taken' },
+        { status: 409 },
+      )
     const updated: InvestmentSnapshot = { ...existing, date: body.date, balance: body.balance }
     snapshots.replace(existing.id, () => updated)
     syncLatestSnapshot(holdingId)

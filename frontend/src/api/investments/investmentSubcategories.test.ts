@@ -5,9 +5,8 @@ import {
   investmentSubcategoryRenameConflictHandler,
 } from '../../mocks/handlers/investmentSubcategories'
 import { describeNamedEntityApi } from '../../test/apiContract'
+import { PROBLEM_TYPE_MESSAGES } from '../core/apiError'
 import {
-  CONFLICT_MESSAGE,
-  DUPLICATE_NAME_MESSAGE,
   createInvestmentSubcategory,
   deleteInvestmentSubcategory,
   renameInvestmentSubcategory,
@@ -40,8 +39,9 @@ describeNamedEntityApi<
   },
   remove: { id: 'isub-cdb' },
   conflict: {
-    message: CONFLICT_MESSAGE,
-    duplicateNameMessage: DUPLICATE_NAME_MESSAGE,
+    message: PROBLEM_TYPE_MESSAGES['urn:my-finances:error:investment-subcategory-in-use'],
+    duplicateNameMessage:
+      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:investment-subcategory-name-already-exists'],
     createHandler: investmentSubcategoryCreateConflictHandler,
     renameHandler: investmentSubcategoryRenameConflictHandler,
     deleteHandler: investmentSubcategoryDeleteConflictHandler,

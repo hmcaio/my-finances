@@ -6,7 +6,7 @@ import { server } from '../../mocks/server'
 import { seedInvestmentAccount } from '../../mocks/handlers/accounts'
 import { seedInvestmentHoldings } from '../../mocks/handlers/investmentHoldings'
 import { investmentProductCreateConflictHandler } from '../../mocks/handlers/investmentProducts'
-import { SAVE_CONFLICT_MESSAGE } from '../../api/investments/investmentProducts'
+import { PROBLEM_TYPE_MESSAGES } from '../../api/core/apiError'
 import { findRow, renderWithRouter, selectOption } from '../../test/testUtils'
 import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
 import { InvestmentProductsSection } from './InvestmentProductsSection'
@@ -215,7 +215,11 @@ describe('InvestmentProductsSection', () => {
     await selectOption(user, 'Category', 'Crypto', dialog)
     await user.click(dialog.getByRole('button', { name: 'Add product' }))
 
-    expect(await screen.findByText(SAVE_CONFLICT_MESSAGE)).toBeInTheDocument()
+    expect(
+      await screen.findByText(
+        PROBLEM_TYPE_MESSAGES['urn:my-finances:error:investment-product-name-already-exists'],
+      ),
+    ).toBeInTheDocument()
   })
 
   it('hides the add button on a closed account', async () => {

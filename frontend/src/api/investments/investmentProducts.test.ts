@@ -8,10 +8,8 @@ import {
   seedInvestmentProducts,
 } from '../../mocks/handlers/investmentProducts'
 import { investmentHoldingsStore } from '../../mocks/handlers/investmentHoldings'
-import { ApiError } from '../core/apiError'
+import { ApiError, PROBLEM_TYPE_MESSAGES } from '../core/apiError'
 import {
-  DELETE_CONFLICT_MESSAGE,
-  SAVE_CONFLICT_MESSAGE,
   createInvestmentProduct,
   deleteInvestmentProduct,
   editInvestmentProduct,
@@ -117,7 +115,9 @@ describe('investment products API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toBe(DELETE_CONFLICT_MESSAGE)
+    expect((error as ApiError).message).toBe(
+      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:investment-product-has-holdings'],
+    )
   })
 
   it('create and edit map a 409 to the save-conflict message', async () => {
@@ -137,7 +137,9 @@ describe('investment products API client', () => {
     for (const error of [created, edited]) {
       expect(error).toBeInstanceOf(ApiError)
       expect((error as ApiError).status).toBe(409)
-      expect((error as ApiError).message).toBe(SAVE_CONFLICT_MESSAGE)
+      expect((error as ApiError).message).toBe(
+        PROBLEM_TYPE_MESSAGES['urn:my-finances:error:investment-product-name-already-exists'],
+      )
     }
   })
 })

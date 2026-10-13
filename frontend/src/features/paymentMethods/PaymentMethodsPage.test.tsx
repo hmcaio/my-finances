@@ -5,11 +5,8 @@ import {
   seedDebitCardPaymentMethod,
   seedPaymentMethods,
 } from '../../mocks/handlers/paymentMethods'
-import {
-  CONFLICT_MESSAGE,
-  DUPLICATE_NAME_MESSAGE,
-  PAYMENT_METHOD_NAME_MAX_LENGTH,
-} from '../../api/paymentMethods/paymentMethods'
+import { PAYMENT_METHOD_NAME_MAX_LENGTH } from '../../api/paymentMethods/paymentMethods'
+import { PROBLEM_TYPE_MESSAGES } from '../../api/core/apiError'
 import { describeSettingsPageOnly } from '../../test/settingsPageContract'
 import { PaymentMethodsPage } from './PaymentMethodsPage'
 
@@ -20,8 +17,14 @@ describeSettingsPageOnly('PaymentMethodsPage', {
   deleteTarget: seedCashPaymentMethod,
   newName: 'Credit Card',
   addButtonLabel: 'Add payment method',
-  conflict: { message: CONFLICT_MESSAGE, handler: paymentMethodDeleteConflictHandler },
-  duplicateName: { message: DUPLICATE_NAME_MESSAGE, handler: paymentMethodCreateConflictHandler },
+  conflict: {
+    message: PROBLEM_TYPE_MESSAGES['urn:my-finances:error:payment-method-in-use'],
+    handler: paymentMethodDeleteConflictHandler,
+  },
+  duplicateName: {
+    message: PROBLEM_TYPE_MESSAGES['urn:my-finances:error:payment-method-name-already-exists'],
+    handler: paymentMethodCreateConflictHandler,
+  },
   maxLength: PAYMENT_METHOD_NAME_MAX_LENGTH,
   loadStates: { url: '/api/payment-methods', successBody: seedPaymentMethods },
 })

@@ -75,7 +75,10 @@ describe('investment snapshots API client', () => {
   it('updateInvestmentSnapshot maps a 409 to the conflict message', async () => {
     server.use(
       http.put('/api/investment-holdings/:holdingId/snapshots/:snapshotId', () =>
-        HttpResponse.json({}, { status: 409 }),
+        HttpResponse.json(
+          { type: 'urn:my-finances:error:investment-snapshot-date-taken' },
+          { status: 409 },
+        ),
       ),
     )
 
@@ -97,7 +100,10 @@ describe('investment snapshots API client', () => {
   it('deleteInvestmentSnapshot maps a 409 to the conflict message', async () => {
     server.use(
       http.delete('/api/investment-holdings/:holdingId/snapshots/:snapshotId', () =>
-        HttpResponse.json({}, { status: 409 }),
+        HttpResponse.json(
+          { type: 'urn:my-finances:error:investment-snapshot-closed-holding' },
+          { status: 409 },
+        ),
       ),
     )
 

@@ -79,18 +79,24 @@ export const investmentCategoriesHandlers = [
 /**
  * `409` variant for deleting a category that still has sub-categories or products
  * (`InvestmentCategoryInUseException`) - applied via `server.use(...)`. The backend sends no
- * message text, so the body is a placeholder: what the UI shows comes from the client's own
- * `conflictMessage`.
+ * exception text - only the RFC 9457 `type` identifier (F031/ADR 0026) - and what the UI shows
+ * comes from `apiError.ts`'s central `PROBLEM_TYPE_MESSAGES` map.
  */
 export const investmentCategoryDeleteConflictHandler = http.delete(`${CATEGORIES_URL}/:id`, () =>
-  HttpResponse.json({ message: 'Investment category is in use' }, { status: 409 }),
+  HttpResponse.json({ type: 'urn:my-finances:error:investment-category-in-use' }, { status: 409 }),
 )
 
 /** `409` variants for the duplicate-name case on create/rename. */
 export const investmentCategoryCreateConflictHandler = http.post(CATEGORIES_URL, () =>
-  HttpResponse.json({ message: 'Name already exists' }, { status: 409 }),
+  HttpResponse.json(
+    { type: 'urn:my-finances:error:investment-category-name-already-exists' },
+    { status: 409 },
+  ),
 )
 
 export const investmentCategoryRenameConflictHandler = http.patch(`${CATEGORIES_URL}/:id`, () =>
-  HttpResponse.json({ message: 'Name already exists' }, { status: 409 }),
+  HttpResponse.json(
+    { type: 'urn:my-finances:error:investment-category-name-already-exists' },
+    { status: 409 },
+  ),
 )

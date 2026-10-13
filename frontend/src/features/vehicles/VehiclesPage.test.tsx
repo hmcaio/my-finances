@@ -5,11 +5,8 @@ import {
   vehicleCreateConflictHandler,
   vehicleDeleteConflictHandler,
 } from '../../mocks/handlers/vehicles'
-import {
-  CONFLICT_MESSAGE,
-  DUPLICATE_NAME_MESSAGE,
-  VEHICLE_NAME_MAX_LENGTH,
-} from '../../api/vehicles/vehicles'
+import { VEHICLE_NAME_MAX_LENGTH } from '../../api/vehicles/vehicles'
+import { PROBLEM_TYPE_MESSAGES } from '../../api/core/apiError'
 import { describeSettingsPageOnly } from '../../test/settingsPageContract'
 import { VehiclesPage } from './VehiclesPage'
 
@@ -20,8 +17,14 @@ describeSettingsPageOnly('VehiclesPage', {
   deleteTarget: seedCorollaVehicle,
   newName: 'Fiesta',
   addButtonLabel: 'Add vehicle',
-  conflict: { message: CONFLICT_MESSAGE, handler: vehicleDeleteConflictHandler },
-  duplicateName: { message: DUPLICATE_NAME_MESSAGE, handler: vehicleCreateConflictHandler },
+  conflict: {
+    message: PROBLEM_TYPE_MESSAGES['urn:my-finances:error:vehicle-in-use'],
+    handler: vehicleDeleteConflictHandler,
+  },
+  duplicateName: {
+    message: PROBLEM_TYPE_MESSAGES['urn:my-finances:error:vehicle-name-already-exists'],
+    handler: vehicleCreateConflictHandler,
+  },
   maxLength: VEHICLE_NAME_MAX_LENGTH,
   loadStates: { url: '/api/vehicles', successBody: seedVehicles },
 })

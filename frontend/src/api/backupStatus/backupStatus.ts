@@ -25,7 +25,7 @@ export interface BackupStatus {
   count: number
 }
 
-/** Read-only; no `conflictMessage` needed (ADR 0015, F018 spec's Frontend section). */
+/** Read-only; never a conflict case (ADR 0015, F018 spec's Frontend section). */
 export async function getBackupStatus(): Promise<BackupStatus> {
   return unwrap(apiClient.get<BackupStatus>('/backup-status'))
 }

@@ -53,12 +53,6 @@ export interface InvestmentProductPage {
   }
 }
 
-// The backend sends no message text, so every expected 409 needs its own wording here.
-export const SAVE_CONFLICT_MESSAGE =
-  'The product could not be saved: its name must already be unique, the account must be an open investment account, and the sub-category must belong to the chosen category.'
-export const DELETE_CONFLICT_MESSAGE =
-  'This product still has a holding (even a closed, empty one) and cannot be deleted - remove its holdings first.'
-
 /**
  * Fetches a filtered, paginated page of products (F023 spec: the list endpoint became paginated,
  * a breaking shape change - fine pre-1.0/local app). `page` is 0-indexed; `page`/`size` default to
@@ -98,14 +92,14 @@ export async function getInvestmentProduct(id: string): Promise<InvestmentProduc
   return unwrap(apiClient.get<InvestmentProduct>(`/investment-products/${id}`))
 }
 
-/** Creates the product and its first holding together (a two-write, `@Transactional` use case). */
+/** Creates the product and its first holding together (a two-write, `@Transactional` use case). A
+ * `409` is `InvestmentProductNameAlreadyExistsException`, `InvestmentAccountRequiredException` or
+ * `InvestmentSubcategoryMismatchException` (F031/ADR 0026, see `PROBLEM_TYPE_MESSAGES` in
+ * `apiError.ts`). */
 export async function createInvestmentProduct(
   request: CreateInvestmentProductRequest,
 ): Promise<InvestmentProduct> {
-  return unwrap(
-    apiClient.post<InvestmentProduct>('/investment-products', request),
-    SAVE_CONFLICT_MESSAGE,
-  )
+  return unwrap(apiClient.post<InvestmentProduct>('/investment-products', request))
 }
 
 /** Full replace (PATCH): reclassifying a product regroups its past allocation too (F008 spec). */
@@ -113,13 +107,11 @@ export async function editInvestmentProduct(
   id: string,
   request: UpdateInvestmentProductRequest,
 ): Promise<InvestmentProduct> {
-  return unwrap(
-    apiClient.patch<InvestmentProduct>(`/investment-products/${id}`, request),
-    SAVE_CONFLICT_MESSAGE,
-  )
+  return unwrap(apiClient.patch<InvestmentProduct>(`/investment-products/${id}`, request))
 }
 
-/** Deletes a product; only succeeds with zero holdings (a 409 means remove them first). */
+/** Deletes a product; only succeeds with zero holdings (a `409` means remove them first,
+ * `InvestmentProductHasHoldingsException`, F031/ADR 0026). */
 export async function deleteInvestmentProduct(id: string): Promise<void> {
-  await unwrap(apiClient.delete<void>(`/investment-products/${id}`), DELETE_CONFLICT_MESSAGE)
+  await unwrap(apiClient.delete<void>(`/investment-products/${id}`))
 }

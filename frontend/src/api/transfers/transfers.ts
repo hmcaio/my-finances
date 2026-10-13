@@ -59,13 +59,6 @@ export interface TransferPage {
   }
 }
 
-// The backend sends no message text, so every expected 409 needs its own wording here. A transfer's
-// 409 has several causes: a closed account, and the trade-confirmation rules (F009, generalized by
-// F027): the investment-side account must actually be INVESTMENT, the cash side must not be, and
-// every line's product needs an existing open holding at that account.
-export const TRANSFER_CONFLICT_MESSAGE =
-  'The transfer could not be saved: both accounts must be open, the investment account must be an INVESTMENT account, and every product needs an existing open holding there.'
-
 /**
  * Fetches a filtered, paginated page of transfers. `page` is 0-indexed; both `page`/`size` default
  * to the backend's own defaults (0, 20) when omitted, most recent first.
@@ -86,21 +79,21 @@ export async function getTransfer(id: string): Promise<Transfer> {
  * Creates a transfer - a trade confirmation when the request carries `cashAccountId`/
  * `investmentAccountId`/`tradeConfirmation` (F027, ADR 0024) instead of the plain `fromAccountId`/
  * `toAccountId`/`amount` shape; the backend derives `amount`/direction from the confirmation's net
- * settlement and never trusts a client-supplied figure for one. A `409` (an account closed, or a
- * trade-confirmation rule) is mapped to a friendly message, same pattern as F004's
- * `createTransaction`. The same-account case (400, F005's `SameAccountTransferException`) is
- * prevented client-side by the create form (F005 spec: "can't pick the same account twice"), so it
- * isn't given its own friendly message here.
+ * settlement and never trusts a client-supplied figure for one. A `409` is `AccountClosedException`,
+ * `InvestmentTransferInvalidException` or `InvestmentHoldingClosedException`, each with its own
+ * message in `apiError.ts`'s `PROBLEM_TYPE_MESSAGES` (F031/ADR 0026). The same-account case (400,
+ * F005's `SameAccountTransferException`) is prevented client-side by the create form (F005 spec:
+ * "can't pick the same account twice"), so it isn't given its own message here.
  */
 export async function createTransfer(request: CreateTransferRequest): Promise<Transfer> {
-  return unwrap(apiClient.post<Transfer>('/transfers', request), TRANSFER_CONFLICT_MESSAGE)
+  return unwrap(apiClient.post<Transfer>('/transfers', request))
 }
 
 /** Full-replace edit - every editable field, matching F004's PATCH convention (F005 spec). Omitting
  * `tradeConfirmation` clears it back to a plain transfer, same as the old "omitting
  * investmentProductId clears the tag" (F027). */
 export async function editTransfer(id: string, request: UpdateTransferRequest): Promise<Transfer> {
-  return unwrap(apiClient.patch<Transfer>(`/transfers/${id}`, request), TRANSFER_CONFLICT_MESSAGE)
+  return unwrap(apiClient.patch<Transfer>(`/transfers/${id}`, request))
 }
 
 export async function deleteTransfer(id: string): Promise<void> {

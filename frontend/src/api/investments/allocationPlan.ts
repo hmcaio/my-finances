@@ -53,8 +53,5 @@ export async function getAllocationPlanVersions(): Promise<AllocationPlanVersion
 export async function setAllocationPlan(
   request: SetAllocationPlanRequest,
 ): Promise<AllocationPlanVersion> {
-  return unwrap(
-    apiClient.put<AllocationPlanVersion>('/fii/allocation-plan', request),
-    NOT_FII_MESSAGE,
-  )
+  return unwrap(apiClient.put<AllocationPlanVersion>('/fii/allocation-plan', request))
 }

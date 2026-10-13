@@ -15,11 +15,6 @@ export type UpdateVehicleRequest = components['schemas']['UpdateVehicleRequest']
 /** Matches the backend's `TextFieldConstraints.MAX_NAME_LENGTH`, so inputs can cap what is typed. */
 export const VEHICLE_NAME_MAX_LENGTH = 100
 
-export const CONFLICT_MESSAGE =
-  'This vehicle is used by existing fuel transactions — reassign them before deleting it.'
-
-export const DUPLICATE_NAME_MESSAGE = 'A vehicle with this name already exists.'
-
 /** Fetches every vehicle. Used as a dropdown-options source by the Transaction form and the
  * Fuel page's vehicle selector (F024 spec). */
 export async function getVehicles(): Promise<Vehicle[]> {
@@ -27,15 +22,17 @@ export async function getVehicles(): Promise<Vehicle[]> {
 }
 
 export async function createVehicle(request: CreateVehicleRequest): Promise<Vehicle> {
-  return unwrap(apiClient.post<Vehicle>('/vehicles', request), DUPLICATE_NAME_MESSAGE)
+  return unwrap(apiClient.post<Vehicle>('/vehicles', request))
 }
 
 export async function renameVehicle(id: string, request: UpdateVehicleRequest): Promise<Vehicle> {
-  return unwrap(apiClient.patch<Vehicle>(`/vehicles/${id}`, request), DUPLICATE_NAME_MESSAGE)
+  return unwrap(apiClient.patch<Vehicle>(`/vehicles/${id}`, request))
 }
 
+/** Deletes a vehicle; a `409` means a fuel transaction still uses it (F031/ADR 0026:
+ * `VehicleInUseException`, see `PROBLEM_TYPE_MESSAGES` in `apiError.ts`). */
 export async function deleteVehicle(id: string): Promise<void> {
-  await unwrap(apiClient.delete<void>(`/vehicles/${id}`), CONFLICT_MESSAGE)
+  await unwrap(apiClient.delete<void>(`/vehicles/${id}`))
 }
 
 /** Optional date bounds for {@link getVehicleFuelHistory}; either or both may be omitted

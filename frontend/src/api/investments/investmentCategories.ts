@@ -26,12 +26,6 @@ export type CreateInvestmentCategoryRequest =
 export type UpdateInvestmentCategoryRequest =
   components['schemas']['UpdateInvestmentCategoryRequest']
 
-// The backend sends no message text, so every expected 409 needs its own wording here.
-export const CONFLICT_MESSAGE =
-  'This category still has sub-categories or is used by an investment product - delete or reclassify those first.'
-
-export const DUPLICATE_NAME_MESSAGE = 'An investment category with this name already exists.'
-
 /** Fetches every category with its sub-categories, both levels sorted by name. */
 export async function getInvestmentCategories(): Promise<InvestmentCategory[]> {
   return unwrap(apiClient.get<InvestmentCategory[]>('/investment-categories'))
@@ -40,23 +34,18 @@ export async function getInvestmentCategories(): Promise<InvestmentCategory[]> {
 export async function createInvestmentCategory(
   request: CreateInvestmentCategoryRequest,
 ): Promise<InvestmentCategory> {
-  return unwrap(
-    apiClient.post<InvestmentCategory>('/investment-categories', request),
-    DUPLICATE_NAME_MESSAGE,
-  )
+  return unwrap(apiClient.post<InvestmentCategory>('/investment-categories', request))
 }
 
 export async function renameInvestmentCategory(
   id: string,
   request: UpdateInvestmentCategoryRequest,
 ): Promise<InvestmentCategory> {
-  return unwrap(
-    apiClient.patch<InvestmentCategory>(`/investment-categories/${id}`, request),
-    DUPLICATE_NAME_MESSAGE,
-  )
+  return unwrap(apiClient.patch<InvestmentCategory>(`/investment-categories/${id}`, request))
 }
 
-/** Deletes a category; a 409 means it still has sub-categories or a product uses it. */
+/** Deletes a category; a `409` means it still has sub-categories or a product uses it
+ * (`InvestmentCategoryInUseException`, F031/ADR 0026). */
 export async function deleteInvestmentCategory(id: string): Promise<void> {
-  await unwrap(apiClient.delete<void>(`/investment-categories/${id}`), CONFLICT_MESSAGE)
+  await unwrap(apiClient.delete<void>(`/investment-categories/${id}`))
 }

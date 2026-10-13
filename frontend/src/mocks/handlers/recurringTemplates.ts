@@ -143,5 +143,5 @@ export const recurringTemplatesHandlers = [
  * `transferClosedAccountConflictHandler`.
  */
 export const recurringTemplateCreateConflictHandler = http.post(RECURRING_TEMPLATES_URL, () =>
-  HttpResponse.json({ message: 'Account is closed' }, { status: 409 }),
+  HttpResponse.json({ type: 'urn:my-finances:error:account-closed' }, { status: 409 }),
 )

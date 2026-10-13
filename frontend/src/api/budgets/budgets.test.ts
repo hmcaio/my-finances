@@ -6,15 +6,8 @@ import {
   seedBudgetReport,
   seedBudgets,
 } from '../../mocks/handlers/budgets'
-import { ApiError } from '../core/apiError'
-import {
-  CREATE_CONFLICT_MESSAGE,
-  createBudget,
-  getBudgetReport,
-  getBudgets,
-  setBudgetCap,
-  stopBudget,
-} from './budgets'
+import { ApiError, PROBLEM_TYPE_MESSAGES } from '../core/apiError'
+import { createBudget, getBudgetReport, getBudgets, setBudgetCap, stopBudget } from './budgets'
 
 describe('budgets API client', () => {
   it('getBudgets returns the seeded list', async () => {
@@ -47,7 +40,9 @@ describe('budgets API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toBe(CREATE_CONFLICT_MESSAGE)
+    expect((error as ApiError).message).toBe(
+      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:category-not-expense'],
+    )
   })
 
   it('setBudgetCap patches the cap and returns the updated budget', async () => {

@@ -1,8 +1,5 @@
-import {
-  CONFLICT_MESSAGE,
-  DUPLICATE_NAME_MESSAGE,
-  INVESTMENT_SEGMENT_NAME_MAX_LENGTH,
-} from '../../api/investments/investmentSegments'
+import { INVESTMENT_SEGMENT_NAME_MAX_LENGTH } from '../../api/investments/investmentSegments'
+import { PROBLEM_TYPE_MESSAGES } from '../../api/core/apiError'
 import {
   investmentSegmentCreateConflictHandler,
   investmentSegmentDeleteConflictHandler,
@@ -18,9 +15,12 @@ describeSettingsPageOnly('InvestmentSegmentsPage', {
   deleteTarget: seedInvestmentSegments[1],
   newName: 'Papel',
   addButtonLabel: 'Add segment',
-  conflict: { message: CONFLICT_MESSAGE, handler: investmentSegmentDeleteConflictHandler },
+  conflict: {
+    message: PROBLEM_TYPE_MESSAGES['urn:my-finances:error:investment-segment-in-use'],
+    handler: investmentSegmentDeleteConflictHandler,
+  },
   duplicateName: {
-    message: DUPLICATE_NAME_MESSAGE,
+    message: PROBLEM_TYPE_MESSAGES['urn:my-finances:error:investment-segment-name-already-exists'],
     handler: investmentSegmentCreateConflictHandler,
   },
   maxLength: INVESTMENT_SEGMENT_NAME_MAX_LENGTH,

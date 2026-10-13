@@ -63,8 +63,6 @@ export interface TransactionPage {
   }
 }
 
-export const CLOSED_ACCOUNT_MESSAGE = 'This account is closed and cannot accept new transactions.'
-
 /**
  * Fetches a filtered, paginated page of transactions. `page` is 0-indexed; both `page`/`size`
  * default to the backend's own defaults (0, 20) when omitted, most recent first.
@@ -83,8 +81,10 @@ export async function getTransaction(id: string): Promise<Transaction> {
   return unwrap(apiClient.get<Transaction>(`/transactions/${id}`))
 }
 
+/** A `409` is `AccountClosedException` or `AccountTypeNotAllowedException` (F031/ADR 0026, see
+ * `PROBLEM_TYPE_MESSAGES` in `apiError.ts`). */
 export async function createTransaction(request: CreateTransactionRequest): Promise<Transaction> {
-  return unwrap(apiClient.post<Transaction>('/transactions', request), CLOSED_ACCOUNT_MESSAGE)
+  return unwrap(apiClient.post<Transaction>('/transactions', request))
 }
 
 /** Full-replace edit - every editable field (amount/date/category/account/payment
@@ -93,10 +93,7 @@ export async function editTransaction(
   id: string,
   request: UpdateTransactionRequest,
 ): Promise<Transaction> {
-  return unwrap(
-    apiClient.patch<Transaction>(`/transactions/${id}`, request),
-    CLOSED_ACCOUNT_MESSAGE,
-  )
+  return unwrap(apiClient.patch<Transaction>(`/transactions/${id}`, request))
 }
 
 export async function deleteTransaction(id: string): Promise<void> {

@@ -53,11 +53,11 @@ export const vehiclesHandlers = [
 ]
 
 /**
- * `409` variant for the delete-conflict case (F024 spec's `conflictMessage`, backed by
- * `VehicleInUseException`) - see `categoryDeleteConflictHandler` in `categories.ts`.
+ * `409` variant for the delete-conflict case (`VehicleInUseException`, F031/ADR 0026's `type`-driven
+ * message lookup) - see `categoryDeleteConflictHandler` in `categories.ts`.
  */
 export const vehicleDeleteConflictHandler = http.delete(`${VEHICLES_URL}/:id`, () =>
-  HttpResponse.json({ message: 'Vehicle is in use' }, { status: 409 }),
+  HttpResponse.json({ type: 'urn:my-finances:error:vehicle-in-use' }, { status: 409 }),
 )
 
 /**
@@ -65,9 +65,9 @@ export const vehicleDeleteConflictHandler = http.delete(`${VEHICLES_URL}/:id`, (
  * - see `categoryCreateConflictHandler` in `categories.ts`.
  */
 export const vehicleCreateConflictHandler = http.post(VEHICLES_URL, () =>
-  HttpResponse.json({ message: 'Vehicle name already exists' }, { status: 409 }),
+  HttpResponse.json({ type: 'urn:my-finances:error:vehicle-name-already-exists' }, { status: 409 }),
 )
 
 export const vehicleRenameConflictHandler = http.patch(`${VEHICLES_URL}/:id`, () =>
-  HttpResponse.json({ message: 'Vehicle name already exists' }, { status: 409 }),
+  HttpResponse.json({ type: 'urn:my-finances:error:vehicle-name-already-exists' }, { status: 409 }),
 )

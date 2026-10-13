@@ -9,7 +9,8 @@ import {
   institutionCreateConflictHandler,
   seedInstitutions,
 } from '../../mocks/handlers/institutions'
-import { DUPLICATE_NAME_MESSAGE, type Institution } from '../../api/institutions/institutions'
+import type { Institution } from '../../api/institutions/institutions'
+import { PROBLEM_TYPE_MESSAGES } from '../../api/core/apiError'
 import { InstitutionSelect } from './InstitutionSelect'
 import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
@@ -140,7 +141,11 @@ describe('InstitutionSelect', () => {
     await user.type(input(), 'Inter')
     await user.click(await screen.findByRole('option', { name: 'Add “Inter”' }))
 
-    expect(await screen.findByText(DUPLICATE_NAME_MESSAGE)).toBeInTheDocument()
+    expect(
+      await screen.findByText(
+        PROBLEM_TYPE_MESSAGES['urn:my-finances:error:institution-name-already-exists'],
+      ),
+    ).toBeInTheDocument()
     expect(onChange).not.toHaveBeenCalled()
   })
 

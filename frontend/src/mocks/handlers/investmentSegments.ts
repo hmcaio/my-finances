@@ -52,14 +52,20 @@ export const investmentSegmentsHandlers = [
 
 /** `409` variant for deleting a segment still referenced by a product. */
 export const investmentSegmentDeleteConflictHandler = http.delete(`${SEGMENTS_URL}/:id`, () =>
-  HttpResponse.json({ message: 'Investment segment is in use' }, { status: 409 }),
+  HttpResponse.json({ type: 'urn:my-finances:error:investment-segment-in-use' }, { status: 409 }),
 )
 
 /** `409` variants for the duplicate-name case on create/rename. */
 export const investmentSegmentCreateConflictHandler = http.post(SEGMENTS_URL, () =>
-  HttpResponse.json({ message: 'Name already exists' }, { status: 409 }),
+  HttpResponse.json(
+    { type: 'urn:my-finances:error:investment-segment-name-already-exists' },
+    { status: 409 },
+  ),
 )
 
 export const investmentSegmentRenameConflictHandler = http.patch(`${SEGMENTS_URL}/:id`, () =>
-  HttpResponse.json({ message: 'Name already exists' }, { status: 409 }),
+  HttpResponse.json(
+    { type: 'urn:my-finances:error:investment-segment-name-already-exists' },
+    { status: 409 },
+  ),
 )

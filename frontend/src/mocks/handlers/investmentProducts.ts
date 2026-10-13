@@ -181,18 +181,27 @@ export const investmentProductsHandlers = [
 ]
 
 /**
- * `409` variants (applied via `server.use(...)`): the backend sends no message text, so the
- * bodies are placeholders and what the UI shows comes from the client's own `conflictMessage`.
+ * `409` variants (applied via `server.use(...)`): what the UI shows comes from `apiError.ts`'s
+ * central `PROBLEM_TYPE_MESSAGES` map, keyed by each body's `type` (F031/ADR 0026).
  */
 export const investmentProductDeleteConflictHandler = http.delete(`${PRODUCTS_URL}/:id`, () =>
-  HttpResponse.json({ message: 'Product still has a holding' }, { status: 409 }),
+  HttpResponse.json(
+    { type: 'urn:my-finances:error:investment-product-has-holdings' },
+    { status: 409 },
+  ),
 )
 
 /** Duplicate name, a non-investment account, or a mismatched sub-category. */
 export const investmentProductCreateConflictHandler = http.post(PRODUCTS_URL, () =>
-  HttpResponse.json({ message: 'Conflict' }, { status: 409 }),
+  HttpResponse.json(
+    { type: 'urn:my-finances:error:investment-product-name-already-exists' },
+    { status: 409 },
+  ),
 )
 
 export const investmentProductEditConflictHandler = http.patch(`${PRODUCTS_URL}/:id`, () =>
-  HttpResponse.json({ message: 'Conflict' }, { status: 409 }),
+  HttpResponse.json(
+    { type: 'urn:my-finances:error:investment-product-name-already-exists' },
+    { status: 409 },
+  ),
 )

@@ -21,11 +21,11 @@ One feature branch (`feature/f031-structured-error-responses`), backend first (t
 - [ ] `npm run generate-api-types` (backend running) to regenerate `frontend/src/api/generated/schema.ts`; `npm run build` to confirm it compiles.
 
 ## Phase 3 — Frontend
-- [ ] Test first: `apiError.test.ts` — a response with a known `type` maps to the matching message; an unrecognized/absent `type` falls back to the existing generic `"Request failed with status {status}"` string; `ApiError.type` is populated from the response body when present.
-- [ ] Add the `PROBLEM_TYPE_MESSAGES` map and the `type`-based lookup to `apiError.ts`; add `type?: string` to `ApiError`.
-- [ ] Remove the `conflictMessage` parameter from `unwrap()` and update all 38 call sites across the 20 `frontend/src/api/**/*.ts` files, deleting each file's now-unused message constant. Populate `PROBLEM_TYPE_MESSAGES` with every `type` those removed constants covered.
-- [ ] Grep the diff to confirm zero remaining `conflictMessage` references (call sites and the parameter itself).
-- [ ] `npm run lint && npm test && npm run build && npm run format:check`.
+- [x] Test first: `apiError.test.ts` — a response with a known `type` maps to the matching message; an unrecognized/absent `type` falls back to the existing generic `"Request failed with status {status}"` string; `ApiError.type` is populated from the response body when present.
+- [x] Add the `PROBLEM_TYPE_MESSAGES` map and the `type`-based lookup to `apiError.ts`; add `type?: string` to `ApiError`.
+- [x] Remove the `conflictMessage` parameter from `unwrap()` and update all 38 call sites across the 20 `frontend/src/api/**/*.ts` files, deleting each file's now-unused message constant. Populate `PROBLEM_TYPE_MESSAGES` with every `type` those removed constants covered.
+- [x] Grep the diff to confirm zero remaining `conflictMessage` references (call sites and the parameter itself).
+- [x] `npm run lint && npm test && npm run build && npm run format:check`.
 
 ## Phase 4 — Docs
 - [ ] Root `CLAUDE.md`: update the "backend never sends exception text" bullet to scope it to `detail`, note the new body shape otherwise.

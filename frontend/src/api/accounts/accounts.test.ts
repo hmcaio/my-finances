@@ -8,11 +8,8 @@ import {
   seedCheckingAccount,
   seedInvestmentAccount,
 } from '../../mocks/handlers/accounts'
-import { ApiError } from '../core/apiError'
+import { ApiError, PROBLEM_TYPE_MESSAGES } from '../core/apiError'
 import {
-  CLOSE_CONFLICT_MESSAGE,
-  DELETE_CONFLICT_MESSAGE,
-  DUPLICATE_NAME_MESSAGE,
   closeAccount,
   createAccount,
   deleteAccount,
@@ -89,7 +86,9 @@ describe('accounts API client', () => {
 
     const error: unknown = await closeAccount(seedInvestmentAccount.id).catch((err: unknown) => err)
 
-    expect((error as ApiError).message).toBe(CLOSE_CONFLICT_MESSAGE)
+    expect((error as ApiError).message).toBe(
+      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-already-closed'],
+    )
   })
 
   it('editAccount patches name and institution and returns the updated account', async () => {
@@ -127,7 +126,9 @@ describe('accounts API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toBe(DELETE_CONFLICT_MESSAGE)
+    expect((error as ApiError).message).toBe(
+      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-has-history'],
+    )
   })
 
   it('deleteAccount surfaces a 404 for an unknown id', async () => {
@@ -149,7 +150,9 @@ describe('accounts API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toBe(DUPLICATE_NAME_MESSAGE)
+    expect((error as ApiError).message).toBe(
+      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-name-already-exists'],
+    )
   })
 
   it('editAccount maps a 409 to the duplicate-name message', async () => {
@@ -162,6 +165,8 @@ describe('accounts API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toBe(DUPLICATE_NAME_MESSAGE)
+    expect((error as ApiError).message).toBe(
+      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-name-already-exists'],
+    )
   })
 })

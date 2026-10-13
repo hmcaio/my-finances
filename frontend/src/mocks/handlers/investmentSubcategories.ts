@@ -74,15 +74,26 @@ export const investmentSubcategoriesHandlers = [
 /** `409` variant for deleting a sub-category a product still uses (`InvestmentSubcategoryInUseException`). */
 export const investmentSubcategoryDeleteConflictHandler = http.delete(
   `${SUBCATEGORIES_URL}/:id`,
-  () => HttpResponse.json({ message: 'Sub-category is in use' }, { status: 409 }),
+  () =>
+    HttpResponse.json(
+      { type: 'urn:my-finances:error:investment-subcategory-in-use' },
+      { status: 409 },
+    ),
 )
 
 /** `409` variants for the duplicate-name case on create/rename (unique per parent category). */
 export const investmentSubcategoryCreateConflictHandler = http.post(SUBCATEGORIES_URL, () =>
-  HttpResponse.json({ message: 'Name already exists' }, { status: 409 }),
+  HttpResponse.json(
+    { type: 'urn:my-finances:error:investment-subcategory-name-already-exists' },
+    { status: 409 },
+  ),
 )
 
 export const investmentSubcategoryRenameConflictHandler = http.patch(
   `${SUBCATEGORIES_URL}/:id`,
-  () => HttpResponse.json({ message: 'Name already exists' }, { status: 409 }),
+  () =>
+    HttpResponse.json(
+      { type: 'urn:my-finances:error:investment-subcategory-name-already-exists' },
+      { status: 409 },
+    ),
 )

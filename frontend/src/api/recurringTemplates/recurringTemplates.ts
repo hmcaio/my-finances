@@ -37,25 +37,18 @@ export type UpdateRecurringTemplateCapRequest =
 export type ConfirmPendingOccurrenceRequest =
   components['schemas']['ConfirmPendingOccurrenceRequest']
 
-export const CREATE_CONFLICT_MESSAGE =
-  'This account is closed and cannot accept new recurring activity.'
-export const CONFIRM_CONFLICT_MESSAGE = 'This account is closed and cannot accept new transactions.'
-
 /** Fetches every RecurringTemplate, each with its amount/day-of-month as of the current month
  * (F007 spec). */
 export async function getRecurringTemplates(): Promise<RecurringTemplate[]> {
   return unwrap(apiClient.get<RecurringTemplate[]>('/recurring-templates'))
 }
 
-/** Creates a RecurringTemplate plus its first version (F007 spec). A `409` covers a closed target
- * account. */
+/** Creates a RecurringTemplate plus its first version (F007 spec). A `409` is `AccountClosedException`
+ * or `AccountTypeNotAllowedException` (F031/ADR 0026, see `PROBLEM_TYPE_MESSAGES` in `apiError.ts`). */
 export async function createRecurringTemplate(
   request: CreateRecurringTemplateRequest,
 ): Promise<RecurringTemplate> {
-  return unwrap(
-    apiClient.post<RecurringTemplate>('/recurring-templates', request),
-    CREATE_CONFLICT_MESSAGE,
-  )
+  return unwrap(apiClient.post<RecurringTemplate>('/recurring-templates', request))
 }
 
 /** Sets a template's amount/day-of-month, effective from the given month (F007 spec's `PATCH
@@ -95,10 +88,7 @@ export async function confirmPendingRecurringOccurrence(
   id: string,
   request: ConfirmPendingOccurrenceRequest,
 ): Promise<Transaction> {
-  return unwrap(
-    apiClient.post<Transaction>(`/recurring-templates/pending/${id}/confirm`, request),
-    CONFIRM_CONFLICT_MESSAGE,
-  )
+  return unwrap(apiClient.post<Transaction>(`/recurring-templates/pending/${id}/confirm`, request))
 }
 
 /** Dismisses a pending occurrence without confirming it - no transaction is created (F007

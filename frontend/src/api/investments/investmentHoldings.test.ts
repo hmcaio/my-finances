@@ -7,11 +7,8 @@ import {
   investmentHoldingDeleteConflictHandler,
   seedInvestmentHoldings,
 } from '../../mocks/handlers/investmentHoldings'
-import { ApiError } from '../core/apiError'
+import { ApiError, PROBLEM_TYPE_MESSAGES } from '../core/apiError'
 import {
-  CLOSE_CONFLICT_MESSAGE,
-  DELETE_CONFLICT_MESSAGE,
-  SAVE_CONFLICT_MESSAGE,
   closeInvestmentHolding,
   createInvestmentHolding,
   deleteInvestmentHolding,
@@ -86,7 +83,9 @@ describe('investment holdings API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toBe(DELETE_CONFLICT_MESSAGE)
+    expect((error as ApiError).message).toBe(
+      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:investment-holding-has-history'],
+    )
   })
 
   it('closeInvestmentHolding maps a 409 to a message pointing at the zero snapshot', async () => {
@@ -96,7 +95,9 @@ describe('investment holdings API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toBe(CLOSE_CONFLICT_MESSAGE)
+    expect((error as ApiError).message).toBe(
+      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:investment-holding-already-closed'],
+    )
   })
 
   it('createInvestmentHolding maps a 409 to the save-conflict message', async () => {
@@ -109,6 +110,8 @@ describe('investment holdings API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toBe(SAVE_CONFLICT_MESSAGE)
+    expect((error as ApiError).message).toBe(
+      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:investment-holding-already-exists'],
+    )
   })
 })

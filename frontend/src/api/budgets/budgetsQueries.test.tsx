@@ -7,7 +7,7 @@ import {
 } from '../../mocks/handlers/budgets'
 import { server } from '../../mocks/server'
 import { renderHookWithQueryClient } from '../../test/renderWithQueryClient'
-import { CREATE_CONFLICT_MESSAGE } from './budgets'
+import { PROBLEM_TYPE_MESSAGES } from '../core/apiError'
 import {
   useBudgetReport,
   useBudgets,
@@ -77,6 +77,6 @@ describe('budgets hooks', () => {
 
     await expect(
       result.current.mutateAsync({ categoryId: 'cat-1', monthlyCap: 1, effectiveFrom: '2026-09' }),
-    ).rejects.toThrow(CREATE_CONFLICT_MESSAGE)
+    ).rejects.toThrow(PROBLEM_TYPE_MESSAGES['urn:my-finances:error:category-not-expense'])
   })
 })

@@ -14,11 +14,6 @@ export type UpdatePaymentMethodRequest = components['schemas']['UpdatePaymentMet
 /** Matches the backend's `TextFieldConstraints.MAX_NAME_LENGTH`, so inputs can cap what is typed. */
 export const PAYMENT_METHOD_NAME_MAX_LENGTH = 100
 
-export const CONFLICT_MESSAGE =
-  'This payment method is used by existing transactions — reassign them before deleting it.'
-
-export const DUPLICATE_NAME_MESSAGE = 'A payment method with this name already exists.'
-
 /**
  * Fetches every payment method. Reused as a dropdown-options source by F004 (Transactions), per
  * F002 spec.
@@ -30,19 +25,18 @@ export async function getPaymentMethods(): Promise<PaymentMethod[]> {
 export async function createPaymentMethod(
   request: CreatePaymentMethodRequest,
 ): Promise<PaymentMethod> {
-  return unwrap(apiClient.post<PaymentMethod>('/payment-methods', request), DUPLICATE_NAME_MESSAGE)
+  return unwrap(apiClient.post<PaymentMethod>('/payment-methods', request))
 }
 
 export async function renamePaymentMethod(
   id: string,
   request: UpdatePaymentMethodRequest,
 ): Promise<PaymentMethod> {
-  return unwrap(
-    apiClient.patch<PaymentMethod>(`/payment-methods/${id}`, request),
-    DUPLICATE_NAME_MESSAGE,
-  )
+  return unwrap(apiClient.patch<PaymentMethod>(`/payment-methods/${id}`, request))
 }
 
+/** Deletes a payment method; a `409` means a transaction still uses it (F031/ADR 0026:
+ * `PaymentMethodInUseException`, see `PROBLEM_TYPE_MESSAGES` in `apiError.ts`). */
 export async function deletePaymentMethod(id: string): Promise<void> {
-  await unwrap(apiClient.delete<void>(`/payment-methods/${id}`), CONFLICT_MESSAGE)
+  await unwrap(apiClient.delete<void>(`/payment-methods/${id}`))
 }

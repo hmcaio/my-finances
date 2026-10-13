@@ -8,9 +8,8 @@ import {
   seedTransfers,
   transferClosedAccountConflictHandler,
 } from '../../mocks/handlers/transfers'
-import { ApiError } from '../core/apiError'
+import { ApiError, PROBLEM_TYPE_MESSAGES } from '../core/apiError'
 import {
-  TRANSFER_CONFLICT_MESSAGE,
   createTransfer,
   deleteTransfer,
   editTransfer,
@@ -73,7 +72,9 @@ describe('transfers API client', () => {
 
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
-    expect((error as ApiError).message).toBe(TRANSFER_CONFLICT_MESSAGE)
+    expect((error as ApiError).message).toBe(
+      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-closed'],
+    )
   })
 
   it('editTransfer patches every field and returns the updated transfer', async () => {

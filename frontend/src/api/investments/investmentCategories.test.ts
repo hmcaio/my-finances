@@ -6,9 +6,8 @@ import {
   seedInvestmentCategories,
 } from '../../mocks/handlers/investmentCategories'
 import { describeNamedEntityApi } from '../../test/apiContract'
+import { PROBLEM_TYPE_MESSAGES } from '../core/apiError'
 import {
-  CONFLICT_MESSAGE,
-  DUPLICATE_NAME_MESSAGE,
   createInvestmentCategory,
   deleteInvestmentCategory,
   getInvestmentCategories,
@@ -42,8 +41,9 @@ describeNamedEntityApi<
   },
   remove: { id: 'icat-crypto' },
   conflict: {
-    message: CONFLICT_MESSAGE,
-    duplicateNameMessage: DUPLICATE_NAME_MESSAGE,
+    message: PROBLEM_TYPE_MESSAGES['urn:my-finances:error:investment-category-in-use'],
+    duplicateNameMessage:
+      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:investment-category-name-already-exists'],
     createHandler: investmentCategoryCreateConflictHandler,
     renameHandler: investmentCategoryRenameConflictHandler,
     deleteHandler: investmentCategoryDeleteConflictHandler,

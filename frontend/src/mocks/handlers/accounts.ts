@@ -153,7 +153,10 @@ export const accountsHandlers = [
     const id = params.id as string
     if (!accounts.find(id)) return new HttpResponse(null, { status: 404 })
     if (seedAccountIdsWithHistory.includes(id)) {
-      return HttpResponse.json({ message: 'Account has history' }, { status: 409 })
+      return HttpResponse.json(
+        { type: 'urn:my-finances:error:account-has-history' },
+        { status: 409 },
+      )
     }
     accounts.remove(id)
     return new HttpResponse(null, { status: 204 })
@@ -165,7 +168,7 @@ export const accountsHandlers = [
  * applied via `server.use(...)` in tests that exercise that path.
  */
 export const accountAlreadyClosedConflictHandler = http.post(`${ACCOUNTS_URL}/:id/close`, () =>
-  HttpResponse.json({ message: 'Account is already closed' }, { status: 409 }),
+  HttpResponse.json({ type: 'urn:my-finances:error:account-already-closed' }, { status: 409 }),
 )
 
 /**
@@ -173,11 +176,11 @@ export const accountAlreadyClosedConflictHandler = http.post(`${ACCOUNTS_URL}/:i
  * `AccountNameAlreadyExistsException`) - see `categoryCreateConflictHandler` in `categories.ts`.
  */
 export const accountCreateConflictHandler = http.post(ACCOUNTS_URL, () =>
-  HttpResponse.json({ message: 'Account name already exists' }, { status: 409 }),
+  HttpResponse.json({ type: 'urn:my-finances:error:account-name-already-exists' }, { status: 409 }),
 )
 
 export const accountEditConflictHandler = http.patch(`${ACCOUNTS_URL}/:id`, () =>
-  HttpResponse.json({ message: 'Account name already exists' }, { status: 409 }),
+  HttpResponse.json({ type: 'urn:my-finances:error:account-name-already-exists' }, { status: 409 }),
 )
 
 /**

@@ -14,7 +14,7 @@ import {
   seedGroceriesBudget,
   seedGroceriesBudgetReportLine,
 } from '../../mocks/handlers/budgets'
-import { CREATE_CONFLICT_MESSAGE } from '../../api/budgets/budgets'
+import { PROBLEM_TYPE_MESSAGES } from '../../api/core/apiError'
 import { findRow } from '../../test/testUtils'
 import { expectLoadStates } from '../../test/loadStates'
 import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
@@ -131,7 +131,11 @@ describe('BudgetsPage', () => {
     await user.type(within(dialog).getByLabelText('Monthly cap'), '150')
     await user.click(within(dialog).getByRole('button', { name: 'Add' }))
 
-    expect(await within(dialog).findByText(CREATE_CONFLICT_MESSAGE)).toBeInTheDocument()
+    expect(
+      await within(dialog).findByText(
+        PROBLEM_TYPE_MESSAGES['urn:my-finances:error:category-not-expense'],
+      ),
+    ).toBeInTheDocument()
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
