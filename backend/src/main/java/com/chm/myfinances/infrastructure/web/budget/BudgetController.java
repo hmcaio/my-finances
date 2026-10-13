@@ -57,7 +57,7 @@ public class BudgetController {
   @ApiResponse(
       responseCode = "400",
       description =
-          "type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] "
+          "type: urn:my-finances:error:method-argument-not-valid, carrying an errors[] "
               + "array of {field, code} with code one of: not-null, positive",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   @ApiResponse(
@@ -86,7 +86,7 @@ public class BudgetController {
   @ApiResponse(
       responseCode = "400",
       description =
-          "type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] "
+          "type: urn:my-finances:error:method-argument-not-valid, carrying an errors[] "
               + "array of {field, code} with code one of: not-null, positive",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   @ApiResponse(
@@ -107,7 +107,7 @@ public class BudgetController {
   @ApiResponse(
       responseCode = "400",
       description =
-          "type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] "
+          "type: urn:my-finances:error:method-argument-not-valid, carrying an errors[] "
               + "array of {field, code} with code one of: not-null",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   @ApiResponse(

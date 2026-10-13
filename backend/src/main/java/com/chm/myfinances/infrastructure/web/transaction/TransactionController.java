@@ -90,7 +90,7 @@ public class TransactionController {
       description =
           "type: one of urn:my-finances:error:fuel-details-category-mismatch, "
               + "urn:my-finances:error:investment-holding-category-mismatch. May instead be "
-              + "urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] "
+              + "urn:my-finances:error:method-argument-not-valid, carrying an errors[] "
               + "array of {field, code} with code one of: not-null, positive, not-blank, size, "
               + "digits, fuel-fields-given-together",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
@@ -164,7 +164,7 @@ public class TransactionController {
       description =
           "type: one of urn:my-finances:error:fuel-details-category-mismatch, "
               + "urn:my-finances:error:investment-holding-category-mismatch. May instead be "
-              + "urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] "
+              + "urn:my-finances:error:method-argument-not-valid, carrying an errors[] "
               + "array of {field, code} with code one of: not-null, positive, not-blank, size, "
               + "digits, fuel-fields-given-together",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))

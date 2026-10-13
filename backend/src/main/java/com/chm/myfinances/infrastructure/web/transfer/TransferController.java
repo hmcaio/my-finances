@@ -78,7 +78,7 @@ public class TransferController {
       description =
           "type: one of urn:my-finances:error:same-account-transfer, "
               + "urn:my-finances:error:invalid-trade-confirmation. May instead be "
-              + "urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] "
+              + "urn:my-finances:error:method-argument-not-valid, carrying an errors[] "
               + "array of {field, code} with code one of: not-null, positive, not-blank, size, "
               + "positive-or-zero, digits, not-empty, "
               + "at-most-one-resulting-balance-per-product, close-holding-only-on-sell",
@@ -140,7 +140,7 @@ public class TransferController {
       description =
           "type: one of urn:my-finances:error:same-account-transfer, "
               + "urn:my-finances:error:invalid-trade-confirmation. May instead be "
-              + "urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] "
+              + "urn:my-finances:error:method-argument-not-valid, carrying an errors[] "
               + "array of {field, code} with code one of: not-null, positive, not-blank, size, "
               + "positive-or-zero, digits, not-empty, "
               + "at-most-one-resulting-balance-per-product, close-holding-only-on-sell",

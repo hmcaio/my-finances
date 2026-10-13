@@ -58,7 +58,7 @@ public class AccountController {
   @ApiResponse(
       responseCode = "400",
       description =
-          "type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] "
+          "type: urn:my-finances:error:method-argument-not-valid, carrying an errors[] "
               + "array of {field, code} with code one of: not-blank, size, not-null, "
               + "opening-fields-consistent-with-type",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
@@ -98,7 +98,7 @@ public class AccountController {
   @ApiResponse(
       responseCode = "400",
       description =
-          "type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] "
+          "type: urn:my-finances:error:method-argument-not-valid, carrying an errors[] "
               + "array of {field, code} with code one of: not-blank, size, not-null",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   @ApiResponse(

@@ -55,7 +55,7 @@ public class RecurringTemplateController {
   @ApiResponse(
       responseCode = "400",
       description =
-          "type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] "
+          "type: urn:my-finances:error:method-argument-not-valid, carrying an errors[] "
               + "array of {field, code} with code one of: not-null, not-blank, size, positive, "
               + "min, max",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
@@ -94,7 +94,7 @@ public class RecurringTemplateController {
   @ApiResponse(
       responseCode = "400",
       description =
-          "type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] "
+          "type: urn:my-finances:error:method-argument-not-valid, carrying an errors[] "
               + "array of {field, code} with code one of: not-null, positive, min, max",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   @ApiResponse(
@@ -137,7 +137,7 @@ public class RecurringTemplateController {
       responseCode = "400",
       description =
           "type: urn:my-finances:error:investment-holding-category-mismatch. May instead be "
-              + "urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] "
+              + "urn:my-finances:error:method-argument-not-valid, carrying an errors[] "
               + "array of {field, code} with code one of: not-null, size",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   @ApiResponse(

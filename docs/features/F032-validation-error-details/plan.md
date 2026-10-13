@@ -16,7 +16,7 @@ One feature branch (`feature/f032-validation-error-details`), backend first, the
 ## Phase 2 — Backend: OpenAPI
 - [x] Extend F031's `@ApiResponse` 400 descriptions (already added per-operation) to note the possible `errors[].code` values for that operation's own DTO annotations.
 
-  In practice most `@Valid @RequestBody` operations had **no** existing 400 `@ApiResponse` at all (F031 only documented a 400 where a domain exception could also produce one) - those got a brand-new 400 entry; the handful that already had one (transfers' trade-confirmation shape, the allocation plan, transactions, the recurring-template confirm endpoint) got their existing `description` text extended with a "may instead be ... method-argument-not-valid (F032)" sentence rather than a second `@ApiResponse` for the same status code.
+  In practice most `@Valid @RequestBody` operations had **no** existing 400 `@ApiResponse` at all (F031 only documented a 400 where a domain exception could also produce one) - those got a brand-new 400 entry; the handful that already had one (transfers' trade-confirmation shape, the allocation plan, transactions, the recurring-template confirm endpoint) got their existing `description` text extended with a "may instead be ... method-argument-not-valid" sentence rather than a second `@ApiResponse` for the same status code. The feature-id marker was dropped from every such description afterward - OpenAPI-facing text shouldn't cite the internal id that introduced it.
 - [x] `npm run generate-api-types` (backend running); `npm run build` to confirm `schema.ts` still compiles.
 
 ## Phase 3 — Frontend
