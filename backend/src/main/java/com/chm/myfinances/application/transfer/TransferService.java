@@ -97,6 +97,7 @@ public class TransferService {
     requireDifferentAccounts(fromAccountId, toAccountId);
     Account fromAccount = requireOpenAccount(fromAccountId);
     Account toAccount = requireOpenAccount(toAccountId);
+    requirePlainShape(fromAccount, toAccount);
     Transfer transfer =
         Transfer.create(
             idGenerator.newId(),
@@ -205,6 +206,7 @@ public class TransferService {
     requireDifferentAccounts(fromAccountId, toAccountId);
     Account fromAccount = requireOpenAccount(fromAccountId);
     Account toAccount = requireOpenAccount(toAccountId);
+    requirePlainShape(fromAccount, toAccount);
     transfer.edit(
         date, fromAccount.getId(), toAccount.getId(), amount, description, additionalNotes);
     Transfer saved = transferRepository.save(transfer);
@@ -336,6 +338,22 @@ public class TransferService {
       throw new AccountClosedException(accountId);
     }
     return account;
+  }
+
+  /**
+   * A plain transfer's two accounts must both be non-{@code INVESTMENT}: an {@code INVESTMENT}
+   * account has no cash balance of its own (its value is the sum of its holdings' latest snapshots,
+   * §5.8/§5.9), so a lineless transfer into or out of one would move cash with no trackable
+   * destination and no path to later spend it through a {@link TradeConfirmation} - {@link
+   * #requireInvestmentShape} already rejects an {@code INVESTMENT} cash side there. Money must
+   * enter/leave an {@code INVESTMENT} account only via a trade confirmation (issue #113).
+   */
+  private void requirePlainShape(Account fromAccount, Account toAccount) {
+    if (fromAccount.getType() == AccountType.INVESTMENT
+        || toAccount.getType() == AccountType.INVESTMENT) {
+      throw new InvestmentTransferInvalidException(
+          "a plain transfer can't target an INVESTMENT account - use a trade confirmation");
+    }
   }
 
   /**

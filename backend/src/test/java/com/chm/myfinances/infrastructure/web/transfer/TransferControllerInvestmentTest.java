@@ -225,6 +225,16 @@ class TransferControllerInvestmentTest {
   }
 
   @Test
+  void aPlainTransferIntoAnInvestmentAccountIsRejectedWith409() throws Exception {
+    create(plainBody(checkingId, brokerId, "10.00")).andExpect(status().isConflict());
+  }
+
+  @Test
+  void aPlainTransferOutOfAnInvestmentAccountIsRejectedWith409() throws Exception {
+    create(plainBody(brokerId, checkingId, "10.00")).andExpect(status().isConflict());
+  }
+
+  @Test
   void neitherShapeNorBothShapesIsRejectedWith400() throws Exception {
     Map<String, Object> neither = new LinkedHashMap<>();
     neither.put("date", "2026-03-15");
@@ -509,6 +519,27 @@ class TransferControllerInvestmentTest {
     edit(id, plainBody(checkingId, savingsId, "10.00"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.tradeConfirmation").doesNotExist());
+  }
+
+  @Test
+  void editRejectsClearingATradeConfirmationIntoAPlainTransferThatKeepsTheInvestmentAccount()
+      throws Exception {
+    String id =
+        JsonSupport.idOf(
+            create(
+                    body(
+                        checkingId,
+                        brokerId,
+                        confirmation(
+                            "0.00",
+                            line(
+                                "productId", productId.toString(),
+                                "side", "BUY",
+                                "quantity", "1",
+                                "unitPrice", "1.00"))))
+                .andReturn());
+
+    edit(id, plainBody(checkingId, brokerId, "10.00")).andExpect(status().isConflict());
   }
 
   @Test

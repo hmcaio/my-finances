@@ -217,8 +217,11 @@ export function TransferForm({
   const [nextLineKey, setNextLineKey] = useState(form.lines.length)
 
   const openAccounts = accounts.filter((a) => !a.closed)
-  // The cash side of a confirmation must not itself be INVESTMENT (F027/ADR 0024, same rule as
-  // F009's original "a transfer between two investment accounts is not supported").
+  // Neither a confirmation's cash side nor either side of a plain transfer may be INVESTMENT
+  // (F027/ADR 0024's "a transfer between two investment accounts is not supported", generalized
+  // to plain transfers too, issue #113: an INVESTMENT account has no cash balance of its own, so a
+  // lineless transfer into/out of one has no trackable destination - money must move in/out of it
+  // only through a trade confirmation).
   const investmentAccounts = openAccounts.filter((a) => a.type === 'INVESTMENT')
   const cashOptions = openAccounts.filter((a) => a.type !== 'INVESTMENT')
 
@@ -239,6 +242,20 @@ export function TransferForm({
   }
 
   function setMode(mode: FormMode) {
+    if (mode === 'plain') {
+      // Declassifying a trade confirmation back to plain (TransferService.edit's "clearing any
+      // trade confirmation it had") would otherwise keep the confirmation's INVESTMENT account in
+      // a now-plain fromAccountId/toAccountId - drop whichever side that is so the picker (which
+      // excludes INVESTMENT accounts) doesn't show a stale, unselectable value.
+      const fromIsInvestment = investmentAccounts.some((a) => a.id === form.fromAccountId)
+      const toIsInvestment = investmentAccounts.some((a) => a.id === form.toAccountId)
+      patch({
+        mode,
+        fromAccountId: fromIsInvestment ? '' : form.fromAccountId,
+        toAccountId: toIsInvestment ? '' : form.toAccountId,
+      })
+      return
+    }
     patch({ mode })
   }
 
@@ -433,7 +450,7 @@ export function TransferForm({
         <MenuItem value="" disabled>
           From Account
         </MenuItem>
-        {openAccounts.map((a) => (
+        {cashOptions.map((a) => (
           <MenuItem key={a.id} value={a.id}>
             {a.name}
           </MenuItem>
@@ -450,7 +467,7 @@ export function TransferForm({
         <MenuItem value="" disabled>
           To Account
         </MenuItem>
-        {openAccounts
+        {cashOptions
           .filter((a) => a.id !== form.fromAccountId)
           .map((a) => (
             <MenuItem key={a.id} value={a.id}>
