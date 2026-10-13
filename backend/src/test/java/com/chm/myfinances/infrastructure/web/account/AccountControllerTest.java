@@ -11,6 +11,7 @@ import com.chm.myfinances.domain.institution.Institution;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
+import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
@@ -570,7 +571,7 @@ class AccountControllerTest {
     UUID holdingId =
         investmentHoldingRepository
             .save(
-                com.chm.myfinances.domain.investmentholding.InvestmentHolding.create(
+                InvestmentHolding.create(
                     UUID.randomUUID(), productId, UUID.fromString(accountId), null))
             .getId();
 

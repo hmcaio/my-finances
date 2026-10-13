@@ -11,10 +11,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import com.chm.myfinances.TestcontainersConfiguration;
+import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
+import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.testsupport.LogCapture;
 import com.chm.myfinances.testsupport.web.MockMvcSupport;
+import java.net.URI;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -34,22 +38,23 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver;
 
 /**
  * REST-layer test for {@link GlobalExceptionHandler} (ADR 0026, F031): every error response - this
- * app's own {@code @ResponseStatus} exceptions, Spring's own {@link
- * org.springframework.web.ErrorResponse} exceptions, {@link HttpMessageNotReadableException}/
- * {@link TypeMismatchException}, and the generic unexpected-exception fallback - now returns an RFC
- * 9457 {@link ProblemDetail} body built by the handler itself (no more rethrow), while the original
- * security-audit guarantee (no leaked message/class name/stack trace) and the F016 logging behavior
- * stay exactly as before. Boots the real app context against Testcontainers Postgres (ADR 0010) —
- * see {@code CategoryControllerTest} for why {@link MockMvc} is built by hand here instead of via
- * {@code @AutoConfigureMockMvc} (removed in Boot 4.x) — and overrides just the one collaborator
- * ({@link CategoryRepository}) needed to force a realistic unchecked exception, exactly as a real
- * bug (e.g. a database error) would surface it.
+ * app's own {@code @ResponseStatus} exceptions, Spring's own {@link ErrorResponse} exceptions,
+ * {@link HttpMessageNotReadableException}/ {@link TypeMismatchException}, and the generic
+ * unexpected-exception fallback - now returns an RFC 9457 {@link ProblemDetail} body built by the
+ * handler itself (no more rethrow), while the original security-audit guarantee (no leaked
+ * message/class name/stack trace) and the F016 logging behavior stay exactly as before. Boots the
+ * real app context against Testcontainers Postgres (ADR 0010) — see {@code CategoryControllerTest}
+ * for why {@link MockMvc} is built by hand here instead of via {@code @AutoConfigureMockMvc}
+ * (removed in Boot 4.x) — and overrides just the one collaborator ({@link CategoryRepository})
+ * needed to force a realistic unchecked exception, exactly as a real bug (e.g. a database error)
+ * would surface it.
  */
 @Tag("integration")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
@@ -120,14 +125,9 @@ class GlobalExceptionHandlerTest {
     // the 404 case above. categoryRepository is @MockitoBean-replaced for this whole test class, so
     // stub findById to hand CategoryService a built-in Category rather than relying on seeded rows.
     UUID id = UUID.randomUUID();
-    com.chm.myfinances.domain.category.Category builtIn =
-        com.chm.myfinances.domain.category.Category.reconstitute(
-            id,
-            "Other Expense",
-            com.chm.myfinances.domain.category.CategoryType.EXPENSE,
-            true,
-            false);
-    given(categoryRepository.findById(id)).willReturn(java.util.Optional.of(builtIn));
+    Category builtIn =
+        Category.reconstitute(id, "Other Expense", CategoryType.EXPENSE, true, false);
+    given(categoryRepository.findById(id)).willReturn(Optional.of(builtIn));
 
     mockMvc
         .perform(delete("/api/categories/" + id))
@@ -240,9 +240,9 @@ class GlobalExceptionHandlerTest {
       assertThat(response.getStatusCode().value()).isEqualTo(400);
       ProblemDetail body = response.getBody();
       assertThat(body).isNotNull();
-      assertThat(body.getType()).isEqualTo(java.net.URI.create(expectedType));
+      assertThat(body.getType()).isEqualTo(URI.create(expectedType));
       assertThat(body.getDetail()).isNull();
-      assertThat(body.getInstance()).isEqualTo(java.net.URI.create("/api/anything"));
+      assertThat(body.getInstance()).isEqualTo(URI.create("/api/anything"));
 
       assertThat(logs.eventsAt(Level.ERROR)).isEmpty();
       assertThat(logs.events()).isEmpty();

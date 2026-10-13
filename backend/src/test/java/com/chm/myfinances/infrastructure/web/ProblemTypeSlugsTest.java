@@ -2,6 +2,10 @@ package com.chm.myfinances.infrastructure.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.chm.myfinances.application.account.AccountHasHistoryException;
+import com.chm.myfinances.application.category.CategoryNameAlreadyExistsException;
+import com.chm.myfinances.application.transaction.AccountTypeNotAllowedException;
+import com.chm.myfinances.application.transfer.AccountClosedException;
 import java.net.URI;
 import org.junit.jupiter.api.Test;
 
@@ -15,25 +19,19 @@ class ProblemTypeSlugsTest {
 
   @Test
   void slugForStripsExceptionSuffixAndKebabCasesTheSimpleName() {
-    assertThat(
-            ProblemTypeSlugs.slugFor(
-                com.chm.myfinances.application.account.AccountHasHistoryException.class))
+    assertThat(ProblemTypeSlugs.slugFor(AccountHasHistoryException.class))
         .isEqualTo("account-has-history");
   }
 
   @Test
   void typeUriForNamespacesTheSlugAsAMyFinancesErrorUrn() {
-    assertThat(
-            ProblemTypeSlugs.typeUriFor(
-                com.chm.myfinances.application.account.AccountHasHistoryException.class))
+    assertThat(ProblemTypeSlugs.typeUriFor(AccountHasHistoryException.class))
         .isEqualTo(URI.create("urn:my-finances:error:account-has-history"));
   }
 
   @Test
   void slugForHandlesMultiWordClassNames() {
-    assertThat(
-            ProblemTypeSlugs.slugFor(
-                com.chm.myfinances.application.category.CategoryNameAlreadyExistsException.class))
+    assertThat(ProblemTypeSlugs.slugFor(CategoryNameAlreadyExistsException.class))
         .isEqualTo("category-name-already-exists");
   }
 
@@ -41,10 +39,9 @@ class ProblemTypeSlugsTest {
   void slugForCollapsesClassesDuplicatedAcrossAggregatePackagesToTheSameSlug() {
     // AccountClosedException exists separately in application.transfer, application.transaction
     // and application.recurringtemplate only because of the no-cross-aggregate-import ArchUnit
-    // rule (ADR 0014) - same real-world condition, so the same slug is correct (ADR 0026).
-    String transferSlug =
-        ProblemTypeSlugs.slugFor(
-            com.chm.myfinances.application.transfer.AccountClosedException.class);
+    // rule (ADR 0014) - same real-world condition, so the same slug is correct (ADR 0026). All
+    // three share a simple name, so only one can be imported; the other two stay fully qualified.
+    String transferSlug = ProblemTypeSlugs.slugFor(AccountClosedException.class);
     String transactionSlug =
         ProblemTypeSlugs.slugFor(
             com.chm.myfinances.application.transaction.AccountClosedException.class);
@@ -60,9 +57,7 @@ class ProblemTypeSlugsTest {
 
   @Test
   void slugForCollapsesAccountTypeNotAllowedAcrossItsTwoPackagesToo() {
-    String transactionSlug =
-        ProblemTypeSlugs.slugFor(
-            com.chm.myfinances.application.transaction.AccountTypeNotAllowedException.class);
+    String transactionSlug = ProblemTypeSlugs.slugFor(AccountTypeNotAllowedException.class);
     String recurringTemplateSlug =
         ProblemTypeSlugs.slugFor(
             com.chm.myfinances.application.recurringtemplate.AccountTypeNotAllowedException.class);
@@ -74,9 +69,7 @@ class ProblemTypeSlugsTest {
 
   @Test
   void titleForHumanizesTheSlugWithTheFirstLetterCapitalized() {
-    assertThat(
-            ProblemTypeSlugs.titleFor(
-                com.chm.myfinances.application.account.AccountHasHistoryException.class))
+    assertThat(ProblemTypeSlugs.titleFor(AccountHasHistoryException.class))
         .isEqualTo("Account has history");
   }
 
