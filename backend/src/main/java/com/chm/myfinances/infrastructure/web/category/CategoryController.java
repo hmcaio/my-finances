@@ -68,7 +68,8 @@ public class CategoryController {
       responseCode = "409",
       description =
           "type: one of urn:my-finances:error:category-name-already-exists, "
-              + "urn:my-finances:error:fuel-category, urn:my-finances:error:dividend-category",
+              + "urn:my-finances:error:built-in-category, urn:my-finances:error:fuel-category, "
+              + "urn:my-finances:error:dividend-category",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public CategoryResponse rename(
       @PathVariable UUID id, @Valid @RequestBody UpdateCategoryRequest request) {

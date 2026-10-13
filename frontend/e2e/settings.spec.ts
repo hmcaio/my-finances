@@ -1,4 +1,10 @@
-import { expect, expectNoHorizontalOverflow, test } from './support'
+import { http, HttpResponse } from 'msw'
+import { expect, expectNoHorizontalOverflow, mockApi, test } from './support'
+import {
+  seedCategories,
+  seedDividendCategory,
+  seedFuelCategory,
+} from '../src/mocks/handlers/categories'
 
 // F021 (settings batch): categories, payment methods, institutions and investment categories at
 // each viewport project (mobile 390, tablet 768, desktop 1280). Every one of these lists has only
@@ -49,6 +55,41 @@ test.describe('settings - categories', () => {
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await expect(row.getByRole('textbox')).toBeVisible()
     await expectNoHorizontalOverflow(page)
+  })
+
+  // Issue #117 regression: a protected row's Actions cell must be exactly as tall as an ordinary
+  // row's. `CategoriesPage` renders the (hidden, inert) action buttons on every row rather than
+  // omitting them on a protected one, specifically because a `td`'s `min-height` isn't reliably
+  // honored by the table row-height algorithm - real content is what has to reserve real space.
+  // This also covers the buttons' 44px touch-target bump (`theme.ts`'s MuiIconButton override
+  // under `@media (pointer: coarse)`, F021): a size no jsdom/Vitest test can see, since jsdom
+  // never matches that media query. Real touch emulation (`hasTouch`) is required to reproduce it;
+  // the suite's `mobile`/`tablet` projects only set viewport width, not `hasTouch`, so this test
+  // sets it itself and skips `desktop` (a real desktop pointer is `fine` even on a touch-capable
+  // laptop, so forcing `hasTouch` there would test a combination no real user has).
+  test.describe('protected-row height parity (pointer: coarse)', () => {
+    test.use({ hasTouch: true })
+
+    test('a protected row is the same height as an ordinary row', async ({ page }, testInfo) => {
+      test.skip(testInfo.project.name === 'desktop', 'pointer is fine on desktop even with touch')
+      await mockApi(page, [
+        http.get('/api/categories', () =>
+          HttpResponse.json([...seedCategories, seedFuelCategory, seedDividendCategory]),
+        ),
+      ])
+      await page.goto('/settings/categories')
+      const protectedRow = page.getByRole('row', { name: /Fuel/ })
+      const ordinaryRow = page.getByRole('row', { name: /Groceries/ })
+      await expect(protectedRow).toBeVisible()
+      await expect(ordinaryRow).toBeVisible()
+
+      const [protectedBox, ordinaryBox] = await Promise.all([
+        protectedRow.boundingBox(),
+        ordinaryRow.boundingBox(),
+      ])
+
+      expect(protectedBox?.height).toBeCloseTo(ordinaryBox!.height, 0)
+    })
   })
 })
 

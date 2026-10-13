@@ -158,20 +158,21 @@ class CategoryServiceTest {
   }
 
   @Test
-  void renameIsAllowedOnABuiltInCategory() {
+  void renameRejectsABuiltInCategory() {
+    // Issue #117: built-in used to stay freely renamable; it's now protected like fuel/dividend.
     Category builtIn =
         repository.save(
             Category.reconstitute(
                 UUID.randomUUID(), "Other Expense", CategoryType.EXPENSE, true, false));
 
-    Category renamed = service.rename(builtIn.getId(), "Diversos");
-
-    assertThat(renamed.getName()).isEqualTo("Diversos");
-    assertThat(renamed.isBuiltIn()).isTrue();
+    assertThatThrownBy(() -> service.rename(builtIn.getId(), "Diversos"))
+        .isInstanceOf(BuiltInCategoryException.class);
+    assertThat(repository.findById(builtIn.getId()).orElseThrow().getName())
+        .isEqualTo("Other Expense");
   }
 
-  // F024 (ADR 0021): the fuel_category flag independently blocks both delete and rename, unlike
-  // built_in (which only blocks delete).
+  // F024 (ADR 0021)/F026 (ADR 0023): fuelCategory/dividendCategory independently block both
+  // delete and rename, same as builtIn (issue #117 unified the three).
 
   @Test
   void deleteRejectsTheFuelCategory() {

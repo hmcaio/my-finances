@@ -135,7 +135,8 @@ class CategoryControllerTest {
   }
 
   @Test
-  void aBuiltInCategoryCanBeRenamedAndStaysBuiltIn() throws Exception {
+  void renameRejectsABuiltInCategoryWith409AndKeepsItsName() throws Exception {
+    // Issue #117: built-in used to stay freely renamable; it's now protected like fuel/dividend.
     String builtInId = builtInCategoryId("Other Income");
 
     mockMvc
@@ -143,9 +144,12 @@ class CategoryControllerTest {
             patch("/api/categories/" + builtInId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(Map.of("name", "Renamed Income Test"))))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.name").value("Renamed Income Test"))
-        .andExpect(jsonPath("$.builtIn").value(true));
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.type").value("urn:my-finances:error:built-in-category"));
+
+    mockMvc
+        .perform(get("/api/categories"))
+        .andExpect(jsonPath("$[?(@.name=='Other Income')]").exists());
   }
 
   private String builtInCategoryId(String name) throws Exception {

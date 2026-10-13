@@ -21,6 +21,7 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete'
 import {
   CATEGORY_NAME_MAX_LENGTH,
+  isProtectedCategory,
   type Category,
   type CategoryType,
 } from '../../api/categories/categories'
@@ -41,9 +42,10 @@ import { sortCategories } from './sortCategories'
 /**
  * Settings-style CRUD screen for categories (F002 spec): table with name + type, inline rename,
  * add-new dialog, delete. Type is immutable after creation (PRD S5.1), so there's no type picker on
- * existing rows - only on the add dialog. The built-in fallback row of each type is listed first
- * within its type, can be renamed like any other, and has no delete action (the backend would
- * answer 409 anyway).
+ * existing rows - only on the add dialog. A protected category ({@link isProtectedCategory}: the
+ * built-in fallback row of each type, F024's dedicated fuel category, F026's dedicated dividend
+ * category - issue #117 unified the three) has neither a Rename nor a Delete action, since the
+ * backend rejects both with a 409 anyway. The built-in row is still listed first within its type.
  *
  * Responsive (F021): Name and Type are the only two data columns (the actions column doesn't
  * count), so per the spec's 1-2-column rule this stays a plain table at every size - no
@@ -151,9 +153,9 @@ export function CategoriesPage() {
         </Button>
       </Box>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Income and expense categories used to classify transactions. Renaming is always allowed;
-        type is fixed once a category is created. The built-in category of each type can be renamed
-        but not deleted.
+        Income and expense categories used to classify transactions. Type is fixed once a category
+        is created. The built-in category of each type, and the dedicated fuel/dividend categories,
+        can be neither renamed nor deleted.
       </Typography>
 
       {/* While the add dialog is open a save error shows inside it: this one sits behind it. */}
@@ -204,23 +206,34 @@ export function CategoriesPage() {
                     />
                   </TableCell>
                   <TableCell align="right">
-                    <InlineEditActions
-                      editing={editingId === category.id}
-                      onEdit={() => startEdit(category)}
-                      onSave={() => void saveEdit(category.id)}
-                      onCancel={cancelEdit}
-                      editLabel="Rename"
-                    />
-                    {editingId !== category.id && !category.builtIn && (
-                      <IconButton
-                        size="small"
-                        aria-label="Delete"
-                        disabled={pendingDeleteId === category.id}
-                        onClick={() => void handleDelete(category.id)}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    )}
+                    {/* Always rendered, hidden (not omitted) for a protected category: a `td`'s
+                        `min-height` isn't reliably honored by the table row-height algorithm, so
+                        an empty cell can render shorter than one with real buttons in it (issue
+                        #117 follow-up) - real content is what reserves real space. `visibility:
+                        hidden` (not `display: none`) keeps the buttons out of the accessibility
+                        tree and tab order, same as not rendering them. */}
+                    <Box
+                      sx={isProtectedCategory(category) ? { visibility: 'hidden' } : undefined}
+                      aria-hidden={isProtectedCategory(category) || undefined}
+                    >
+                      <InlineEditActions
+                        editing={editingId === category.id}
+                        onEdit={() => startEdit(category)}
+                        onSave={() => void saveEdit(category.id)}
+                        onCancel={cancelEdit}
+                        editLabel="Rename"
+                      />
+                      {editingId !== category.id && (
+                        <IconButton
+                          size="small"
+                          aria-label="Delete"
+                          disabled={pendingDeleteId === category.id}
+                          onClick={() => void handleDelete(category.id)}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                    </Box>
                   </TableCell>
                 </TableRow>
               ))}

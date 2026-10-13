@@ -113,6 +113,9 @@ class CategoryTest {
 
   @Test
   void renameIsAllowedOnABuiltInCategoryAndKeepsTheFlagAndType() {
+    // Domain-layer-only: Category.rename() itself never guards on any flag (same as for fuel/
+    // dividend). The "protected categories can't be renamed" rule (issue #117) is enforced one
+    // layer up, in CategoryService.requireNotProtected.
     Category category =
         Category.reconstitute(UUID.randomUUID(), "Other Income", CategoryType.INCOME, true, false);
 

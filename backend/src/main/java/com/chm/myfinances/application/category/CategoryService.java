@@ -31,11 +31,13 @@ import org.springframework.transaction.annotation.Transactional;
  * exact match, case-sensitive, backed by {@code categories.name UNIQUE} ({@code
  * V10__db_constraint_hardening.sql}), added in the same audit.
  *
- * <p>Delete, in order: unknown id (404), a built-in category (409, {@link
- * BuiltInCategoryException}), the fuel category (409, {@link FuelCategoryException} - F024,
- * independent of {@code built_in}), a category something still references (409, {@link
- * CategoryInUseException}). Rename rejects the fuel category the same way, before the
- * duplicate-name check - unlike a built-in category, which stays freely renamable.
+ * <p>Delete and rename both reject a protected category (built-in, fuel or dividend, F024/F026)
+ * before anything else, via the shared {@link #requireNotProtected}: built-in (409, {@link
+ * BuiltInCategoryException}), then fuel (409, {@link FuelCategoryException}), then dividend (409,
+ * {@link DividendCategoryException}) - same order and exceptions for both operations (issue #117
+ * unified built-in's rename behavior with fuel/dividend's; it used to stay freely renamable).
+ * Delete additionally rejects a category something still references (409, {@link
+ * CategoryInUseException}).
  */
 @Service
 public class CategoryService {
@@ -83,12 +85,7 @@ public class CategoryService {
     Category category =
         categoryRepository.findById(id).orElseThrow(() -> new CategoryNotFoundException(id));
     Map<String, Object> before = category.toAuditSnapshot();
-    if (category.isFuelCategory()) {
-      throw new FuelCategoryException(id);
-    }
-    if (category.isDividendCategory()) {
-      throw new DividendCategoryException(id);
-    }
+    requireNotProtected(category);
     if (categoryRepository.existsByNameAndIdNot(newName, id)) {
       throw new CategoryNameAlreadyExistsException(newName);
     }
@@ -103,15 +100,7 @@ public class CategoryService {
   public void delete(UUID id) {
     Category category =
         categoryRepository.findById(id).orElseThrow(() -> new CategoryNotFoundException(id));
-    if (category.isBuiltIn()) {
-      throw new BuiltInCategoryException(id);
-    }
-    if (category.isFuelCategory()) {
-      throw new FuelCategoryException(id);
-    }
-    if (category.isDividendCategory()) {
-      throw new DividendCategoryException(id);
-    }
+    requireNotProtected(category);
     if (transactionRepository.existsByCategoryId(id)
         || budgetRepository.existsByCategoryId(id)
         || recurringTemplateRepository.existsByCategoryId(id)) {
@@ -120,5 +109,21 @@ public class CategoryService {
     categoryRepository.deleteById(id);
     auditRecorder.recordDelete(
         AuditEntityType.CATEGORY, category.getId(), category.getName(), category.toAuditSnapshot());
+  }
+
+  /**
+   * Shared delete/rename guard (issue #117): a protected category (built-in, fuel or dividend)
+   * rejects both operations identically, in the same order for either caller.
+   */
+  private void requireNotProtected(Category category) {
+    if (category.isBuiltIn()) {
+      throw new BuiltInCategoryException(category.getId());
+    }
+    if (category.isFuelCategory()) {
+      throw new FuelCategoryException(category.getId());
+    }
+    if (category.isDividendCategory()) {
+      throw new DividendCategoryException(category.getId());
+    }
   }
 }

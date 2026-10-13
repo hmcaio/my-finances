@@ -16,25 +16,25 @@ import java.util.UUID;
  * simply never exposes a way to do it (see F002 spec's "type is immutable after creation").
  *
  * <p>One row per type is the built-in fallback ("Other Expense", "Other Income"), identified by
- * {@link #isBuiltIn()} rather than by its name or a hard-coded id: it can be renamed but never
- * deleted (the delete rule lives in the application service). The flag is read-only from the
+ * {@link #isBuiltIn()} rather than by its name or a hard-coded id. The flag is read-only from the
  * application's point of view - {@link #create} always yields a non-built-in category, and only
  * {@link #reconstitute} can carry the flag in from the migration's rows.
  *
  * <p>{@link #isFuelCategory()} (F024, ADR 0021) is a second, independent flag — at most one row
- * carries it (DB partial unique index, {@code V18}) — deliberately not unified with {@code
- * builtIn}, which means something else ("system default, protected from deletion, freely
- * renamable"). Unlike {@code builtIn}, the fuel category is structurally load-bearing for the
- * {@code Transaction.fuelDetails} invariant, so both delete <b>and</b> rename are blocked while it
- * is set — enforced in {@code CategoryService}, same layer as the {@code builtIn} delete guard, not
- * here: this class only carries the flag. Same read-only shape as {@code builtIn} - {@link #create}
- * always yields {@code false}, only {@link #reconstitute} can carry it in.
+ * carries it (DB partial unique index, {@code V18}). The fuel category is structurally load-bearing
+ * for the {@code Transaction.fuelDetails} invariant. Same read-only shape as {@code builtIn} -
+ * {@link #create} always yields {@code false}, only {@link #reconstitute} can carry it in.
  *
  * <p>{@link #isDividendCategory()} (F026, ADR 0023) is a third, independent flag — at most one row
- * carries it (DB partial unique index, {@code V20}) — same read-only shape and same "delete and
- * rename both blocked while set" load-bearing reasoning as {@code fuelCategory} (the {@code
- * Transaction.investmentHoldingId} invariant, enforced in {@code CategoryService}/{@code
- * TransactionService}, not here).
+ * carries it (DB partial unique index, {@code V20}) — same read-only shape as {@code builtIn}/
+ * {@code fuelCategory}, load-bearing for the {@code Transaction.investmentHoldingId} invariant.
+ *
+ * <p>All three flags are deliberately kept separate rather than collapsed into one - each still
+ * identifies a different real-world thing, and {@code isFuelCategory}/{@code isDividendCategory}
+ * are read independently by {@code Transaction}'s own invariants and by the audit snapshot. Their
+ * *behavior* is unified though: every one of them blocks both delete and rename the same way (issue
+ * #117 - {@code builtIn} used to allow rename; it no longer does), enforced by {@code
+ * CategoryService.requireNotProtected} - this class only carries the flags.
  */
 public final class Category {
 
