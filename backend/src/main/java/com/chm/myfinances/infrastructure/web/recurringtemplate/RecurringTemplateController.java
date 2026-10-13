@@ -8,11 +8,15 @@ import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersion;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.infrastructure.web.transaction.TransactionResponse;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -48,6 +52,19 @@ public class RecurringTemplateController {
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
+  @ApiResponse(
+      responseCode = "404",
+      description =
+          "type: one of urn:my-finances:error:category-not-found, "
+              + "urn:my-finances:error:account-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description =
+          "type: one of urn:my-finances:error:fuel-category-not-allowed, "
+              + "urn:my-finances:error:account-closed, "
+              + "urn:my-finances:error:account-type-not-allowed",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public RecurringTemplateResponse create(
       @Valid @RequestBody CreateRecurringTemplateRequest request) {
     RecurringTemplate template =
@@ -67,6 +84,10 @@ public class RecurringTemplateController {
   }
 
   @PatchMapping("/{id}/cap")
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:recurring-template-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public RecurringTemplateResponse setCap(
       @PathVariable UUID id, @Valid @RequestBody UpdateRecurringTemplateCapRequest request) {
     recurringTemplateService.setCap(
@@ -75,11 +96,19 @@ public class RecurringTemplateController {
   }
 
   @PostMapping("/{id}/stop")
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:recurring-template-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public RecurringTemplateResponse stop(@PathVariable UUID id) {
     return toResponse(recurringTemplateService.stop(id));
   }
 
   @PostMapping("/{id}/reactivate")
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:recurring-template-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public RecurringTemplateResponse reactivate(@PathVariable UUID id) {
     return toResponse(recurringTemplateService.reactivate(id));
   }
@@ -91,6 +120,24 @@ public class RecurringTemplateController {
   }
 
   @PostMapping("/pending/{id}/confirm")
+  @ApiResponse(
+      responseCode = "400",
+      description = "type: urn:my-finances:error:investment-holding-category-mismatch",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "404",
+      description =
+          "type: one of urn:my-finances:error:pending-recurring-occurrence-not-found, "
+              + "urn:my-finances:error:recurring-template-not-found, "
+              + "urn:my-finances:error:account-not-found, "
+              + "urn:my-finances:error:payment-method-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description =
+          "type: one of urn:my-finances:error:account-closed, "
+              + "urn:my-finances:error:account-type-not-allowed",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public TransactionResponse confirm(
       @PathVariable UUID id, @Valid @RequestBody ConfirmPendingOccurrenceRequest request) {
     Transaction transaction =
@@ -108,6 +155,10 @@ public class RecurringTemplateController {
 
   @DeleteMapping("/pending/{id}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:pending-recurring-occurrence-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public void dismiss(@PathVariable UUID id) {
     recurringTemplateService.dismissPending(id);
   }

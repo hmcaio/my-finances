@@ -2,10 +2,14 @@ package com.chm.myfinances.infrastructure.web.paymentmethod;
 
 import com.chm.myfinances.application.paymentmethod.PaymentMethodService;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -34,12 +38,24 @@ public class PaymentMethodController {
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
+  @ApiResponse(
+      responseCode = "409",
+      description = "type: urn:my-finances:error:payment-method-name-already-exists",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public PaymentMethodResponse create(@Valid @RequestBody CreatePaymentMethodRequest request) {
     PaymentMethod paymentMethod = paymentMethodService.create(request.name());
     return PaymentMethodResponse.from(paymentMethod);
   }
 
   @PatchMapping("/{id}")
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:payment-method-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description = "type: urn:my-finances:error:payment-method-name-already-exists",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public PaymentMethodResponse rename(
       @PathVariable UUID id, @Valid @RequestBody UpdatePaymentMethodRequest request) {
     PaymentMethod paymentMethod = paymentMethodService.rename(id, request.name());
@@ -48,6 +64,14 @@ public class PaymentMethodController {
 
   @DeleteMapping("/{id}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:payment-method-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description = "type: urn:my-finances:error:payment-method-in-use",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public void delete(@PathVariable UUID id) {
     paymentMethodService.delete(id);
   }

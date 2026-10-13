@@ -1,9 +1,13 @@
 package com.chm.myfinances.infrastructure.web.investmentsubcategory;
 
 import com.chm.myfinances.application.investmentsubcategory.InvestmentSubcategoryService;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,6 +33,14 @@ public class InvestmentSubcategoryController {
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:investment-category-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description = "type: urn:my-finances:error:investment-subcategory-name-already-exists",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public InvestmentSubcategoryResponse create(
       @Valid @RequestBody CreateInvestmentSubcategoryRequest request) {
     return InvestmentSubcategoryResponse.from(
@@ -36,6 +48,14 @@ public class InvestmentSubcategoryController {
   }
 
   @PatchMapping("/{id}")
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:investment-subcategory-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description = "type: urn:my-finances:error:investment-subcategory-name-already-exists",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public InvestmentSubcategoryResponse rename(
       @PathVariable UUID id, @Valid @RequestBody UpdateInvestmentSubcategoryRequest request) {
     return InvestmentSubcategoryResponse.from(subcategoryService.rename(id, request.name()));
@@ -43,6 +63,14 @@ public class InvestmentSubcategoryController {
 
   @DeleteMapping("/{id}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:investment-subcategory-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description = "type: urn:my-finances:error:investment-subcategory-in-use",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public void delete(@PathVariable UUID id) {
     subcategoryService.delete(id);
   }

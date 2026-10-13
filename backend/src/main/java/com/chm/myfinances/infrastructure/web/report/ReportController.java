@@ -1,10 +1,14 @@
 package com.chm.myfinances.infrastructure.web.report;
 
 import com.chm.myfinances.application.report.ReportService;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import java.time.Clock;
 import java.time.LocalDate;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -38,6 +42,10 @@ public class ReportController {
    * {@code types} list is {@code 400}.
    */
   @PostMapping
+  @ApiResponse(
+      responseCode = "400",
+      description = "type: urn:my-finances:error:empty-report-types",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public ResponseEntity<byte[]> generate(@RequestBody ReportRequest request) {
     ReportService.Result result =
         reportService.generate(request.types(), ReportFilterRequest.toFilter(request.filter()));

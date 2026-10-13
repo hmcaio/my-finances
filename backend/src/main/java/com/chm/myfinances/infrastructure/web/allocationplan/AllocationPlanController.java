@@ -3,11 +3,15 @@ package com.chm.myfinances.infrastructure.web.allocationplan;
 import com.chm.myfinances.application.allocationplan.AllocationPlanService;
 import com.chm.myfinances.domain.allocationplan.AllocationPlanEntry;
 import com.chm.myfinances.domain.allocationplan.AllocationPlanVersion;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import java.time.Clock;
 import java.time.YearMonth;
 import java.util.Comparator;
 import java.util.List;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -52,6 +56,20 @@ public class AllocationPlanController {
   }
 
   @PutMapping
+  @ApiResponse(
+      responseCode = "400",
+      description =
+          "type: one of urn:my-finances:error:allocation-plan-duplicate-product, "
+              + "urn:my-finances:error:allocation-plan-sum-invalid",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:investment-product-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description = "type: urn:my-finances:error:allocation-plan-entry-not-fii",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public AllocationPlanVersionResponse setAllocation(
       @Valid @RequestBody SetAllocationPlanRequest request) {
     List<AllocationPlanEntry> entries =

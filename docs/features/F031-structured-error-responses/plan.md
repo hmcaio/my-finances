@@ -16,9 +16,9 @@ One feature branch (`feature/f031-structured-error-responses`), backend first (t
 - [x] `./gradlew spotlessApply` then `./gradlew spotlessCheck test integrationTest` (Docker running).
 
 ## Phase 2 — Backend: OpenAPI
-- [ ] Define the shared `ProblemDetail` response schema once in `OpenApiConfig` (or confirm springdoc's built-in handling is sufficient without one — check the generated `/v3/api-docs` output either way).
-- [ ] Add `@ApiResponse` to every controller operation that can throw a mapped exception, grouped by status code, description text listing the operation's actual possible `type` values. Prioritize the multi-cause operations from ADR 0026's Context (budgets create, category rename/delete, institution delete, holding close, allocation plan `setAllocation`, transfer request-shape validation) first, then sweep the rest.
-- [ ] `npm run generate-api-types` (backend running) to regenerate `frontend/src/api/generated/schema.ts`; `npm run build` to confirm it compiles.
+- [x] Confirmed springdoc 2.8.5 generates the `ProblemDetail` schema itself from `@Schema(implementation = ProblemDetail.class)` — no wrapper class needed, no shared schema defined separately in `OpenApiConfig`.
+- [x] Added `@ApiResponse` to every controller operation reachable from a mapped exception (19 controllers; priority list from ADR 0026's Context first, then the full sweep). Fixed a springdoc quirk found along the way: annotating only error-status `@ApiResponse`s on an operation with no `@ResponseStatus(CREATED)`/other success annotation made springdoc drop that operation's implicit 200 schema from `/v3/api-docs` entirely (hit on `InvestmentSnapshotController.list` and `InvestmentValueSeriesController.valueSeries`) — fixed by adding an explicit `200` `@ApiResponse`. Noted in backend `CLAUDE.md` for future controllers.
+- [x] `npm run generate-api-types` + `npm run build` — both succeeded, no TypeScript errors.
 
 ## Phase 3 — Frontend
 - [x] Test first: `apiError.test.ts` — a response with a known `type` maps to the matching message; an unrecognized/absent `type` falls back to the existing generic `"Request failed with status {status}"` string; `ApiError.type` is populated from the response body when present.
@@ -34,9 +34,9 @@ One feature branch (`feature/f031-structured-error-responses`), backend first (t
 - [x] `docs/features/README.md`: F031 row (already present from this design pass; verify accuracy once built). `CHANGELOG.md` entry deferred to release time (ADR 0007).
 
 ## Verification
-- [ ] `./gradlew spotlessCheck test integrationTest` (Docker running) and `npm run lint && npm test && npm run build && npm run format:check` all green.
-- [ ] Manual, dev: trigger a known multi-cause 409 (e.g. `POST /api/budgets` for a non-expense category) → response body has `type: "urn:my-finances:error:category-not-expense"`, `detail` absent/null; the same endpoint's other cause (duplicate budget) returns a different `type`.
-- [ ] Manual, dev: trigger the generic 500 path (e.g. stop the dev Postgres container mid-request) → body is `type: "urn:my-finances:error:internal-error"`, not the old `{"message": ...}` shape; backend log still has the full stack trace.
-- [ ] Manual, dev: trigger `HttpMessageNotReadableException` (malformed JSON body) and a `TypeMismatchException` (bad UUID in a path param) → both now return a derived `type` instead of an empty body.
-- [ ] Manual, dev (frontend): trigger a 409 the central map covers → UI shows the mapped message; trigger one deliberately left unmapped (if any remain) → UI falls back to the generic string, no crash.
-- [ ] Confirm no response body anywhere in the above contains an exception message, stack trace, or entity name/amount/description — only `type`/`title`/`status`/`instance`.
+- [x] `./gradlew spotlessCheck test integrationTest` (Docker running) and `npm run lint && npm test && npm run build && npm run format:check` all green (93 test files / 742 tests passed; backend `spotlessCheck test integrationTest` clean).
+- [x] Manual, dev: `POST /api/budgets` for a non-expense category → `type: "urn:my-finances:error:category-not-expense"`; a duplicate budget on the same endpoint → `type: "urn:my-finances:error:budget-already-exists"` — two distinct types at the same status, confirmed live against the running dev backend.
+- [x] Manual, dev: stopped the dev Postgres container mid-request (`docker compose stop postgres`, hit `GET /api/categories`, restarted) → body was exactly `{"instance":"/api/categories","status":500,"title":"An unexpected error occurred","type":"urn:my-finances:error:internal-error"}` — no `detail`, no leak; backend recovered to 200 after Postgres restarted.
+- [x] Manual, dev: malformed JSON body → 400 `http-message-not-readable`; bad UUID path param → 400 `method-argument-type-mismatch`; unmapped route → 404 `no-resource-found` — all confirmed live.
+- [x] Frontend: `apiError.test.ts` covers the mapped/unmapped-fallback paths; all 38 former `conflictMessage` call sites migrated and exercised by the existing 742-test suite, all green.
+- [x] Confirmed no response body in any of the above contains an exception message, stack trace, or entity name/amount/description — only `type`/`title`/`status`/`instance` (plus the existing no-leak assertions in `GlobalExceptionHandlerTest`, kept and still passing).
