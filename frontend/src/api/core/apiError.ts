@@ -82,6 +82,10 @@ export const PROBLEM_TYPE_MESSAGES: Record<string, string> = {
   'urn:my-finances:error:budget-already-exists': 'This category already has a budget.',
 
   // Transfers (F005, F009, F027)
+  'urn:my-finances:error:same-account-transfer':
+    'The two accounts in a transfer must be different.',
+  'urn:my-finances:error:invalid-trade-confirmation':
+    "Check the trade lines: only one line per product can set a resulting balance, and the net settlement can't be zero.",
   'urn:my-finances:error:investment-transfer-invalid':
     'The investment side of this transfer must be an INVESTMENT account, and the other side must not be.',
   'urn:my-finances:error:investment-holding-closed':

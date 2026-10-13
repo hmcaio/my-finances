@@ -371,11 +371,7 @@ export function TransferForm({
         : await createMutation.mutateAsync(request)
       onSaved(saved)
     } catch (err) {
-      onError(
-        defaultErrorMessage(err, {
-          400: "Check the trade lines: only one line per product can set a resulting balance, and the net settlement can't be zero.",
-        }),
-      )
+      onError(defaultErrorMessage(err))
     } finally {
       setSaving(false)
     }
