@@ -89,7 +89,10 @@ public class TransactionController {
       responseCode = "400",
       description =
           "type: one of urn:my-finances:error:fuel-details-category-mismatch, "
-              + "urn:my-finances:error:investment-holding-category-mismatch",
+              + "urn:my-finances:error:investment-holding-category-mismatch. May instead be "
+              + "urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] "
+              + "array of {field, code} with code one of: not-null, positive, not-blank, size, "
+              + "digits, fuel-fields-given-together",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   @ApiResponse(
       responseCode = "404",
@@ -160,7 +163,10 @@ public class TransactionController {
       responseCode = "400",
       description =
           "type: one of urn:my-finances:error:fuel-details-category-mismatch, "
-              + "urn:my-finances:error:investment-holding-category-mismatch",
+              + "urn:my-finances:error:investment-holding-category-mismatch. May instead be "
+              + "urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] "
+              + "array of {field, code} with code one of: not-null, positive, not-blank, size, "
+              + "digits, fuel-fields-given-together",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   @ApiResponse(
       responseCode = "404",

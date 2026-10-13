@@ -1583,6 +1583,15 @@ export interface operations {
             };
         };
         responses: {
+            /** @description type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-null, positive-or-zero, digits */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
             /** @description type: one of urn:my-finances:error:investment-holding-not-found, urn:my-finances:error:investment-snapshot-not-found */
             404: {
                 headers: {
@@ -1675,7 +1684,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description type: one of urn:my-finances:error:allocation-plan-duplicate-product, urn:my-finances:error:allocation-plan-sum-invalid */
+            /** @description type: one of urn:my-finances:error:allocation-plan-duplicate-product, urn:my-finances:error:allocation-plan-sum-invalid. May instead be urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-empty, not-null, decimal-min, decimal-max */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1746,6 +1755,15 @@ export interface operations {
                     "*/*": components["schemas"]["VehicleResponse"];
                 };
             };
+            /** @description type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-blank, size */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
             /** @description type: urn:my-finances:error:vehicle-name-already-exists */
             409: {
                 headers: {
@@ -1805,7 +1823,7 @@ export interface operations {
                     "*/*": components["schemas"]["TransferResponse"];
                 };
             };
-            /** @description type: one of urn:my-finances:error:same-account-transfer, urn:my-finances:error:invalid-trade-confirmation */
+            /** @description type: one of urn:my-finances:error:same-account-transfer, urn:my-finances:error:invalid-trade-confirmation. May instead be urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-null, positive, not-blank, size, positive-or-zero, digits, not-empty, at-most-one-resulting-balance-per-product, close-holding-only-on-sell */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1883,7 +1901,7 @@ export interface operations {
                     "*/*": components["schemas"]["TransactionResponse"];
                 };
             };
-            /** @description type: one of urn:my-finances:error:fuel-details-category-mismatch, urn:my-finances:error:investment-holding-category-mismatch */
+            /** @description type: one of urn:my-finances:error:fuel-details-category-mismatch, urn:my-finances:error:investment-holding-category-mismatch. May instead be urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-null, positive, not-blank, size, digits, fuel-fields-given-together */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1978,6 +1996,15 @@ export interface operations {
                     "*/*": components["schemas"]["RecurringTemplateResponse"];
                 };
             };
+            /** @description type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-null, not-blank, size, positive, min, max */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
             /** @description type: one of urn:my-finances:error:category-not-found, urn:my-finances:error:account-not-found */
             404: {
                 headers: {
@@ -2057,7 +2084,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description type: urn:my-finances:error:investment-holding-category-mismatch */
+            /** @description type: urn:my-finances:error:investment-holding-category-mismatch. May instead be urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-null, size */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -2128,6 +2155,15 @@ export interface operations {
                     "*/*": components["schemas"]["PaymentMethodResponse"];
                 };
             };
+            /** @description type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-blank, size */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
             /** @description type: urn:my-finances:error:payment-method-name-already-exists */
             409: {
                 headers: {
@@ -2159,6 +2195,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["InvestmentSubcategoryResponse"];
+                };
+            };
+            /** @description type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-null, not-blank, size */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
             /** @description type: urn:my-finances:error:investment-category-not-found */
@@ -2223,6 +2268,15 @@ export interface operations {
                     "*/*": components["schemas"]["InvestmentSegmentResponse"];
                 };
             };
+            /** @description type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-blank, size */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
             /** @description type: urn:my-finances:error:investment-segment-name-already-exists */
             409: {
                 headers: {
@@ -2281,6 +2335,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["InvestmentProductResponse"];
+                };
+            };
+            /** @description type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-null, not-blank, size */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
             /** @description type: one of urn:my-finances:error:investment-category-not-found, urn:my-finances:error:investment-subcategory-not-found, urn:my-finances:error:investment-segment-not-found, urn:my-finances:error:account-not-found */
@@ -2355,6 +2418,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["InvestmentHoldingResponse"];
+                };
+            };
+            /** @description type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-null, size */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
             /** @description type: one of urn:my-finances:error:investment-product-not-found, urn:my-finances:error:account-not-found */
@@ -2454,6 +2526,15 @@ export interface operations {
             };
         };
         responses: {
+            /** @description type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-null, positive-or-zero, digits */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
             /** @description type: urn:my-finances:error:investment-holding-not-found */
             404: {
                 headers: {
@@ -2516,6 +2597,15 @@ export interface operations {
                     "*/*": components["schemas"]["InvestmentCategoryResponse"];
                 };
             };
+            /** @description type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-blank, size */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
             /** @description type: urn:my-finances:error:investment-category-name-already-exists */
             409: {
                 headers: {
@@ -2567,6 +2657,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["InstitutionResponse"];
+                };
+            };
+            /** @description type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-blank, size */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
             /** @description type: urn:my-finances:error:institution-name-already-exists */
@@ -2622,6 +2721,15 @@ export interface operations {
                     "*/*": components["schemas"]["CategoryResponse"];
                 };
             };
+            /** @description type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-blank, size, not-null */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
             /** @description type: urn:my-finances:error:category-name-already-exists */
             409: {
                 headers: {
@@ -2675,6 +2783,15 @@ export interface operations {
                     "*/*": components["schemas"]["BudgetResponse"];
                 };
             };
+            /** @description type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-null, positive */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
             /** @description type: urn:my-finances:error:category-not-found */
             404: {
                 headers: {
@@ -2710,6 +2827,15 @@ export interface operations {
             };
         };
         responses: {
+            /** @description type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-null */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
             /** @description type: urn:my-finances:error:budget-not-found */
             404: {
                 headers: {
@@ -2763,6 +2889,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AccountResponse"];
+                };
+            };
+            /** @description type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-blank, size, not-null, opening-fields-consistent-with-type */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
             /** @description type: urn:my-finances:error:institution-not-found */
@@ -2869,6 +3004,15 @@ export interface operations {
             };
         };
         responses: {
+            /** @description type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-blank, size */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
             /** @description type: urn:my-finances:error:vehicle-not-found */
             404: {
                 headers: {
@@ -2955,7 +3099,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description type: one of urn:my-finances:error:same-account-transfer, urn:my-finances:error:invalid-trade-confirmation */
+            /** @description type: one of urn:my-finances:error:same-account-transfer, urn:my-finances:error:invalid-trade-confirmation. May instead be urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-null, positive, not-blank, size, positive-or-zero, digits, not-empty, at-most-one-resulting-balance-per-product, close-holding-only-on-sell */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -3050,7 +3194,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description type: one of urn:my-finances:error:fuel-details-category-mismatch, urn:my-finances:error:investment-holding-category-mismatch */
+            /** @description type: one of urn:my-finances:error:fuel-details-category-mismatch, urn:my-finances:error:investment-holding-category-mismatch. May instead be urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-null, positive, not-blank, size, digits, fuel-fields-given-together */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -3094,6 +3238,15 @@ export interface operations {
             };
         };
         responses: {
+            /** @description type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-null, positive, min, max */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
             /** @description type: urn:my-finances:error:recurring-template-not-found */
             404: {
                 headers: {
@@ -3158,6 +3311,15 @@ export interface operations {
             };
         };
         responses: {
+            /** @description type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-blank, size */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
             /** @description type: urn:my-finances:error:payment-method-not-found */
             404: {
                 headers: {
@@ -3231,6 +3393,15 @@ export interface operations {
             };
         };
         responses: {
+            /** @description type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-blank, size */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
             /** @description type: urn:my-finances:error:investment-subcategory-not-found */
             404: {
                 headers: {
@@ -3304,6 +3475,15 @@ export interface operations {
             };
         };
         responses: {
+            /** @description type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-blank, size */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
             /** @description type: urn:my-finances:error:investment-segment-not-found */
             404: {
                 headers: {
@@ -3399,6 +3579,15 @@ export interface operations {
             };
         };
         responses: {
+            /** @description type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-null, not-blank, size */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
             /** @description type: one of urn:my-finances:error:investment-product-not-found, urn:my-finances:error:investment-category-not-found, urn:my-finances:error:investment-subcategory-not-found, urn:my-finances:error:investment-segment-not-found */
             404: {
                 headers: {
@@ -3494,6 +3683,15 @@ export interface operations {
             };
         };
         responses: {
+            /** @description type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: size */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
             /** @description type: urn:my-finances:error:investment-holding-not-found */
             404: {
                 headers: {
@@ -3558,6 +3756,15 @@ export interface operations {
             };
         };
         responses: {
+            /** @description type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-blank, size */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
             /** @description type: urn:my-finances:error:investment-category-not-found */
             404: {
                 headers: {
@@ -3631,6 +3838,15 @@ export interface operations {
             };
         };
         responses: {
+            /** @description type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-blank, size */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
             /** @description type: urn:my-finances:error:institution-not-found */
             404: {
                 headers: {
@@ -3704,6 +3920,15 @@ export interface operations {
             };
         };
         responses: {
+            /** @description type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-blank, size */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
             /** @description type: urn:my-finances:error:category-not-found */
             404: {
                 headers: {
@@ -3739,6 +3964,15 @@ export interface operations {
             };
         };
         responses: {
+            /** @description type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-null, positive */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
             /** @description type: urn:my-finances:error:budget-not-found */
             404: {
                 headers: {
@@ -3827,6 +4061,15 @@ export interface operations {
             };
         };
         responses: {
+            /** @description type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] array of {field, code} with code one of: not-blank, size, not-null */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
             /** @description type: one of urn:my-finances:error:account-not-found, urn:my-finances:error:institution-not-found */
             404: {
                 headers: {

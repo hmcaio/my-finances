@@ -55,6 +55,12 @@ public class BudgetController {
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
   @ApiResponse(
+      responseCode = "400",
+      description =
+          "type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] "
+              + "array of {field, code} with code one of: not-null, positive",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
       responseCode = "404",
       description = "type: urn:my-finances:error:category-not-found",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
@@ -78,6 +84,12 @@ public class BudgetController {
 
   @PatchMapping("/{id}/cap")
   @ApiResponse(
+      responseCode = "400",
+      description =
+          "type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] "
+              + "array of {field, code} with code one of: not-null, positive",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
       responseCode = "404",
       description = "type: urn:my-finances:error:budget-not-found",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
@@ -92,6 +104,12 @@ public class BudgetController {
    * Resume with {@code PATCH .../cap}.
    */
   @PostMapping("/{id}/stop")
+  @ApiResponse(
+      responseCode = "400",
+      description =
+          "type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] "
+              + "array of {field, code} with code one of: not-null",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   @ApiResponse(
       responseCode = "404",
       description = "type: urn:my-finances:error:budget-not-found",

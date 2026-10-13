@@ -53,6 +53,13 @@ public class RecurringTemplateController {
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
   @ApiResponse(
+      responseCode = "400",
+      description =
+          "type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] "
+              + "array of {field, code} with code one of: not-null, not-blank, size, positive, "
+              + "min, max",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
       responseCode = "404",
       description =
           "type: one of urn:my-finances:error:category-not-found, "
@@ -84,6 +91,12 @@ public class RecurringTemplateController {
   }
 
   @PatchMapping("/{id}/cap")
+  @ApiResponse(
+      responseCode = "400",
+      description =
+          "type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] "
+              + "array of {field, code} with code one of: not-null, positive, min, max",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   @ApiResponse(
       responseCode = "404",
       description = "type: urn:my-finances:error:recurring-template-not-found",
@@ -122,7 +135,10 @@ public class RecurringTemplateController {
   @PostMapping("/pending/{id}/confirm")
   @ApiResponse(
       responseCode = "400",
-      description = "type: urn:my-finances:error:investment-holding-category-mismatch",
+      description =
+          "type: urn:my-finances:error:investment-holding-category-mismatch. May instead be "
+              + "urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] "
+              + "array of {field, code} with code one of: not-null, size",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   @ApiResponse(
       responseCode = "404",

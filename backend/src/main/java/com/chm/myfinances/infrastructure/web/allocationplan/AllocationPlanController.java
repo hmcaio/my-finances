@@ -60,7 +60,10 @@ public class AllocationPlanController {
       responseCode = "400",
       description =
           "type: one of urn:my-finances:error:allocation-plan-duplicate-product, "
-              + "urn:my-finances:error:allocation-plan-sum-invalid",
+              + "urn:my-finances:error:allocation-plan-sum-invalid. May instead be "
+              + "urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] "
+              + "array of {field, code} with code one of: not-empty, not-null, decimal-min, "
+              + "decimal-max",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   @ApiResponse(
       responseCode = "404",

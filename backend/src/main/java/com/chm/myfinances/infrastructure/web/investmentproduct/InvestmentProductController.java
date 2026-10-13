@@ -65,6 +65,12 @@ public class InvestmentProductController {
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
   @ApiResponse(
+      responseCode = "400",
+      description =
+          "type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] "
+              + "array of {field, code} with code one of: not-null, not-blank, size",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
       responseCode = "404",
       description =
           "type: one of urn:my-finances:error:investment-category-not-found, "
@@ -102,6 +108,12 @@ public class InvestmentProductController {
   }
 
   @PatchMapping("/{id}")
+  @ApiResponse(
+      responseCode = "400",
+      description =
+          "type: urn:my-finances:error:method-argument-not-valid (F032), carrying an errors[] "
+              + "array of {field, code} with code one of: not-null, not-blank, size",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   @ApiResponse(
       responseCode = "404",
       description =
