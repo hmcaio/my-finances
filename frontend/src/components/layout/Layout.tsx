@@ -26,39 +26,47 @@ import { useLocale } from '../../hooks/locale/useLocale'
 const DRAWER_WIDTH = 240
 
 interface NavItem {
-  label: string
+  labelKey: string
   path: string
 }
 
 const MAIN_NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard', path: '/' },
-  { label: 'Transactions', path: '/transactions' },
-  { label: 'Fuel', path: '/fuel' },
-  { label: 'Accounts', path: '/accounts' },
-  { label: 'Transfers', path: '/transfers' },
-  { label: 'Budgets', path: '/budgets' },
-  { label: 'Recurring', path: '/recurring' },
-  { label: 'Investments', path: '/investments' },
-  { label: 'FII Portfolio', path: '/fii' },
+  { labelKey: 'nav.dashboard', path: '/' },
+  { labelKey: 'nav.transactions', path: '/transactions' },
+  { labelKey: 'nav.fuel', path: '/fuel' },
+  { labelKey: 'nav.accounts', path: '/accounts' },
+  { labelKey: 'nav.transfers', path: '/transfers' },
+  { labelKey: 'nav.budgets', path: '/budgets' },
+  { labelKey: 'nav.recurring', path: '/recurring' },
+  { labelKey: 'nav.investments', path: '/investments' },
+  { labelKey: 'nav.fiiPortfolio', path: '/fii' },
 ]
 
 const SETTINGS_NAV_ITEMS: NavItem[] = [
-  { label: 'Categories', path: '/settings/categories' },
-  { label: 'Investment Categories', path: '/settings/investment-categories' },
-  { label: 'Investment Segments', path: '/settings/investment-segments' },
-  { label: 'Institutions', path: '/settings/institutions' },
-  { label: 'Payment Methods', path: '/settings/payment-methods' },
-  { label: 'Vehicles', path: '/settings/vehicles' },
+  { labelKey: 'nav.categories', path: '/settings/categories' },
+  { labelKey: 'nav.investmentCategories', path: '/settings/investment-categories' },
+  { labelKey: 'nav.investmentSegments', path: '/settings/investment-segments' },
+  { labelKey: 'nav.institutions', path: '/settings/institutions' },
+  { labelKey: 'nav.paymentMethods', path: '/settings/payment-methods' },
+  { labelKey: 'nav.vehicles', path: '/settings/vehicles' },
 ]
 
-const ACTIVITY_NAV_ITEM: NavItem = { label: 'Activity', path: '/activity' }
-const REPORTS_NAV_ITEM: NavItem = { label: 'Reports', path: '/reports' }
+const ACTIVITY_NAV_ITEM: NavItem = { labelKey: 'nav.activity', path: '/activity' }
+const REPORTS_NAV_ITEM: NavItem = { labelKey: 'nav.reports', path: '/reports' }
 
-function NavListItem({ item, pathname }: { item: NavItem; pathname: string }) {
+function NavListItem({
+  item,
+  pathname,
+  t,
+}: {
+  item: NavItem
+  pathname: string
+  t: (key: never) => string
+}) {
   return (
     <ListItem disablePadding>
       <ListItemButton component={Link} to={item.path} selected={pathname === item.path}>
-        <ListItemText primary={item.label} />
+        <ListItemText primary={t(item.labelKey as never)} />
       </ListItemButton>
     </ListItem>
   )
@@ -93,31 +101,31 @@ export function Layout({ children }: PropsWithChildren) {
       <Divider />
       <List>
         {MAIN_NAV_ITEMS.map((item) => (
-          <NavListItem key={item.path} item={item} pathname={pathname} />
+          <NavListItem key={item.path} item={item} pathname={pathname} t={t} />
         ))}
         <ListSubheader component="div" disableSticky>
-          Settings
+          {t('nav.settingsHeading')}
         </ListSubheader>
         {SETTINGS_NAV_ITEMS.map((item) => (
-          <NavListItem key={item.path} item={item} pathname={pathname} />
+          <NavListItem key={item.path} item={item} pathname={pathname} t={t} />
         ))}
         <Divider component="li" sx={{ my: 1 }} />
-        <NavListItem item={ACTIVITY_NAV_ITEM} pathname={pathname} />
-        <NavListItem item={REPORTS_NAV_ITEM} pathname={pathname} />
+        <NavListItem item={ACTIVITY_NAV_ITEM} pathname={pathname} t={t} />
+        <NavListItem item={REPORTS_NAV_ITEM} pathname={pathname} t={t} />
       </List>
     </Fragment>
   )
 
   return (
     <Box sx={{ display: 'flex' }}>
-      <AppBar position="fixed" sx={{ zIndex: (t) => t.zIndex.drawer + 1 }}>
+      <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
         <Toolbar>
           {!isDesktop && (
             <IconButton
               color="inherit"
               edge="start"
               onClick={() => setDrawerState({ pathname, open: true })}
-              aria-label="Open navigation"
+              aria-label={t('layout.openNavigation')}
               sx={{ mr: 1 }}
             >
               <MenuIcon />
@@ -143,8 +151,8 @@ export function Layout({ children }: PropsWithChildren) {
           <IconButton
             color="inherit"
             onClick={toggleMode}
-            aria-label="Toggle dark mode"
-            title={mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label={t('layout.toggleDarkMode')}
+            title={mode === 'dark' ? t('layout.switchToLightMode') : t('layout.switchToDarkMode')}
           >
             {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
           </IconButton>

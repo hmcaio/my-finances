@@ -3,6 +3,50 @@
     "switchToEnglish": "Switch to English",
     "switchToPortuguese": "Switch to Portuguese (Brazil)"
   },
+  "nav": {
+    "dashboard": "Dashboard",
+    "transactions": "Transactions",
+    "fuel": "Fuel",
+    "accounts": "Accounts",
+    "transfers": "Transfers",
+    "budgets": "Budgets",
+    "recurring": "Recurring",
+    "investments": "Investments",
+    "fiiPortfolio": "FII Portfolio",
+    "categories": "Categories",
+    "investmentCategories": "Investment Categories",
+    "investmentSegments": "Investment Segments",
+    "institutions": "Institutions",
+    "paymentMethods": "Payment Methods",
+    "vehicles": "Vehicles",
+    "activity": "Activity",
+    "reports": "Reports",
+    "settingsHeading": "Settings"
+  },
+  "layout": {
+    "openNavigation": "Open navigation",
+    "toggleDarkMode": "Toggle dark mode",
+    "switchToLightMode": "Switch to light mode",
+    "switchToDarkMode": "Switch to dark mode"
+  },
+  "pagination": {
+    "previous": "Previous",
+    "next": "Next",
+    "pageLabel": "Page {{page}} of {{totalPages}}"
+  },
+  "filterBar": {
+    "filters": "Filters",
+    "filtersActive": "Filters, {{count}} active",
+    "clearFilters": "Clear filters",
+    "done": "Done"
+  },
+  "backupStatus": {
+    "never": "never",
+    "stale": "stale",
+    "failing": "failing",
+    "message": "Backups are {{state}} - last success: {{lastSuccess}}.",
+    "localOnly": "Backups exist only on this machine - set BACKUP_DIR to a synced folder or configure rclone for an off-machine copy."
+  },
   "actions": {
     "cancel": "Cancel",
     "delete": "Delete",

@@ -1,11 +1,18 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Alert } from '@mui/material'
 import { useBackupStatus } from '../../api/backupStatus/backupStatusQueries'
+import { useLocale, type Locale } from '../../hooks/locale/useLocale'
+import { formatDate } from '../../i18n/format'
 
 /** `lastSuccessAt` is `null` before any backup has ever succeeded. */
-function formatLastSuccess(lastSuccessAt: string | null): string {
-  if (lastSuccessAt === null) return 'never'
-  return new Date(lastSuccessAt).toLocaleString()
+function formatLastSuccess(
+  lastSuccessAt: string | null,
+  locale: Locale,
+  t: (key: string) => string,
+): string {
+  if (lastSuccessAt === null) return t('backupStatus.never')
+  return formatDate(lastSuccessAt, locale, { dateStyle: 'medium', timeStyle: 'short' })
 }
 
 /**
@@ -24,16 +31,25 @@ function formatLastSuccess(lastSuccessAt: string | null): string {
  * never remounts it, so a dismissal survives navigation without any persistence layer at all.
  */
 export function BackupStatusBanner() {
+  const { t } = useTranslation()
+  const { locale } = useLocale()
   const { data: status } = useBackupStatus()
   const [dismissed, setDismissed] = useState(false)
 
   if (dismissed || !status) return null
 
   if (status.state === 'STALE' || status.state === 'FAILING') {
-    const verb = status.state === 'FAILING' ? 'failing' : 'stale'
+    const verb = status.state === 'FAILING' ? t('backupStatus.failing') : t('backupStatus.stale')
     return (
       <Alert severity="warning" onClose={() => setDismissed(true)}>
-        Backups are {verb} - last success: {formatLastSuccess(status.lastSuccessAt)}.
+        {t('backupStatus.message', {
+          state: verb,
+          lastSuccess: formatLastSuccess(
+            status.lastSuccessAt,
+            locale,
+            t as (key: string) => string,
+          ),
+        })}
       </Alert>
     )
   }
@@ -41,8 +57,7 @@ export function BackupStatusBanner() {
   if (status.localOnly) {
     return (
       <Alert severity="info" onClose={() => setDismissed(true)}>
-        Backups exist only on this machine - set BACKUP_DIR to a synced folder or configure rclone
-        for an off-machine copy.
+        {t('backupStatus.localOnly')}
       </Alert>
     )
   }

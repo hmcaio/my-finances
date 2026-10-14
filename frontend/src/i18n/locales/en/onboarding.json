@@ -1,0 +1,6 @@
+{
+  "title": "Welcome to My Finances",
+  "intro": "Start by adding your first account, for example your main checking account. Its opening balance and date are the starting point for tracking: everything you record afterwards is added on top of it. You can add more accounts later, and pick a real institution now or keep \"No institution\".",
+  "formHeading": "Create your first account",
+  "submitLabel": "Create account"
+}

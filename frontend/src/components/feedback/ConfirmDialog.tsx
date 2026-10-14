@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from '@mui/material'
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface ConfirmDialogProps {
   open: boolean
@@ -32,6 +33,7 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const { t } = useTranslation()
   return (
     <Dialog open={open} onClose={onCancel}>
       <DialogTitle>{title}</DialogTitle>
@@ -40,7 +42,7 @@ export function ConfirmDialog({
       </DialogContent>
       <DialogActions>
         <Button onClick={onCancel} disabled={loading}>
-          Cancel
+          {t('actions.cancel')}
         </Button>
         <Button onClick={onConfirm} color="error" disabled={loading} autoFocus>
           {confirmLabel}

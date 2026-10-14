@@ -1,4 +1,5 @@
 import { Box, Button, IconButton, Typography } from '@mui/material'
+import { useTranslation } from 'react-i18next'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import { useIsMobile } from '../../hooks/useBreakpointBand'
@@ -26,8 +27,13 @@ interface PaginationControlsProps {
  * is loaded or there's only one page - same guard every call site had inline.
  */
 export function PaginationControls({ pageInfo, onPageChange, sx }: PaginationControlsProps) {
+  const { t } = useTranslation()
   const compact = useIsMobile()
   if (!pageInfo || pageInfo.totalPages <= 1) return null
+  const pageLabel = t('pagination.pageLabel', {
+    page: pageInfo.number + 1,
+    totalPages: pageInfo.totalPages,
+  })
   if (compact) {
     // Below sm (F021): icon buttons either side of the label, spread across the row so each is an
     // easy touch target. There is no page-size selector in this component to hide.
@@ -42,17 +48,15 @@ export function PaginationControls({ pageInfo, onPageChange, sx }: PaginationCon
         }}
       >
         <IconButton
-          aria-label="Previous"
+          aria-label={t('pagination.previous')}
           disabled={pageInfo.number <= 0}
           onClick={() => onPageChange((p) => Math.max(0, p - 1))}
         >
           <ChevronLeftIcon />
         </IconButton>
-        <Typography variant="body2">
-          Page {pageInfo.number + 1} of {pageInfo.totalPages}
-        </Typography>
+        <Typography variant="body2">{pageLabel}</Typography>
         <IconButton
-          aria-label="Next"
+          aria-label={t('pagination.next')}
           disabled={pageInfo.number + 1 >= pageInfo.totalPages}
           onClick={() => onPageChange((p) => p + 1)}
         >
@@ -68,17 +72,15 @@ export function PaginationControls({ pageInfo, onPageChange, sx }: PaginationCon
         disabled={pageInfo.number <= 0}
         onClick={() => onPageChange((p) => Math.max(0, p - 1))}
       >
-        Previous
+        {t('pagination.previous')}
       </Button>
-      <Typography variant="body2">
-        Page {pageInfo.number + 1} of {pageInfo.totalPages}
-      </Typography>
+      <Typography variant="body2">{pageLabel}</Typography>
       <Button
         size="small"
         disabled={pageInfo.number + 1 >= pageInfo.totalPages}
         onClick={() => onPageChange((p) => p + 1)}
       >
-        Next
+        {t('pagination.next')}
       </Button>
     </Box>
   )

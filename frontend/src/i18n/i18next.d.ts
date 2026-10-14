@@ -16,6 +16,7 @@ import type fiiEn from './locales/en/fii.json'
 import type netWorthEn from './locales/en/netWorth.json'
 import type dashboardEn from './locales/en/dashboard.json'
 import type activityEn from './locales/en/activity.json'
+import type onboardingEn from './locales/en/onboarding.json'
 
 /**
  * Types `t()` call sites against the `en` resources (the canonical key set, F033/ADR 0027) - a
@@ -45,6 +46,7 @@ declare module 'i18next' {
       netWorth: typeof netWorthEn
       dashboard: typeof dashboardEn
       activity: typeof activityEn
+      onboarding: typeof onboardingEn
     }
   }
 }

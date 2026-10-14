@@ -1,4 +1,5 @@
 import { IconButton } from '@mui/material'
+import { useTranslation } from 'react-i18next'
 import EditIcon from '@mui/icons-material/Edit'
 import CheckIcon from '@mui/icons-material/Check'
 import CloseIcon from '@mui/icons-material/Close'
@@ -27,16 +28,27 @@ export function InlineEditActions({
   onSave,
   onCancel,
   editLabel,
-  saveLabel = 'Save',
+  saveLabel,
   saving = false,
 }: InlineEditActionsProps) {
+  const { t } = useTranslation()
   if (editing) {
     return (
       <>
-        <IconButton size="small" aria-label={saveLabel} disabled={saving} onClick={onSave}>
+        <IconButton
+          size="small"
+          aria-label={saveLabel ?? t('actions.save')}
+          disabled={saving}
+          onClick={onSave}
+        >
           <CheckIcon fontSize="small" />
         </IconButton>
-        <IconButton size="small" aria-label="Cancel" disabled={saving} onClick={onCancel}>
+        <IconButton
+          size="small"
+          aria-label={t('actions.cancel')}
+          disabled={saving}
+          onClick={onCancel}
+        >
           <CloseIcon fontSize="small" />
         </IconButton>
       </>

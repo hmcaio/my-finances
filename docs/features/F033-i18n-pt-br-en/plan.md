@@ -37,8 +37,8 @@ Each area: add its `common`/`<area>` namespace entries (`en` + `pt-BR`), swap ha
 - [x] FII (`FiiPage`, `AllocationPlanEditor`, `DividendHistorySection`, `FiiNestedAllocationDonutChart`) — dividend-category seed name from `V20`.
 - [x] Net worth (`NetWorthTrendChart`) and dashboard widgets (`AccountBalancesWidget`, `SpendByCategoryWidget`), plus `DashboardPage`'s own title and section headings.
 - [x] Activity log (`groupByDay.ts`, `ActivityPage`) — replace the hardcoded `'en-US'` with the active locale, plus full string translation (filters, columns, diff table, the entity-type/action/origin enums via the new `activityEnumLabels.ts`, and every per-field label in `fieldLabels.ts`) for the same "every piece of app-owned text" completeness as every other area.
-- [ ] Shared chrome: `Layout` nav labels, `common` buttons (`ConfirmDialog`, `InlineEditActions`, `PaginationControls`, `ResponsiveFilterBar`), `BackupStatusBanner`, onboarding.
-- [ ] After each area: `npm run lint && npm test`.
+- [x] Shared chrome: `Layout` nav labels, `common` buttons (`ConfirmDialog`, `InlineEditActions`, `PaginationControls`, `ResponsiveFilterBar`), `BackupStatusBanner`, onboarding.
+- [x] After each area: `npm run lint && npm test`.
 
 ## Phase 4 — Cleanup & verification
 - [ ] Grep for any remaining `.toFixed(` or a literal hardcoded English string in `src/features`/`src/components` outside test files.
