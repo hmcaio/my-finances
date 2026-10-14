@@ -1,0 +1,65 @@
+{
+  "title": "Investimentos",
+  "description": "Onde seu dinheiro está investido, a partir do último registro de cada posição. Compre e venda a partir da página de um produto (ou da página de Transferências); seu valor só muda quando você registra um novo valor.",
+  "byCategory": "Por categoria",
+  "bySubcategory": "Por subcategoria",
+  "byAccount": "Por conta",
+  "tabsAria": "Visões de investimentos",
+  "accountsTab": "Contas",
+  "productsTab": "Produtos",
+  "investmentAccountsTitle": "Contas de investimento",
+  "accountColumn": "Conta",
+  "valueColumn": "Valor",
+  "emptyAccounts": "Nenhuma conta de investimento ainda - adicione uma na página de Contas.",
+  "productsTitle": "Produtos",
+  "allocation": {
+    "loadingAria": "Carregando alocação",
+    "loading": "Carregando…",
+    "noSubcategory": "Sem subcategoria",
+    "allCategories": "← Todas as categorias",
+    "categoryAria": "Alocação por categoria",
+    "subcategoryOfAria": "Alocação de {{category}} por subcategoria",
+    "legendAria": "Legenda de alocação",
+    "showSubcategoriesAria": "{{label}}: mostrar subcategorias",
+    "sliceTooltip": "{{label}}: {{value}} ({{percentage}}%)",
+    "emptyValues": "Nenhum valor de investimento ainda - registre um valor em um produto para ver a alocação.",
+    "staleFootnote": "* Inclui um produto com uma compra ou venda mais recente que seu último registro, então este valor pode estar desatualizado. Registre um valor no produto para atualizá-lo."
+  },
+  "flatAllocation": {
+    "loadingAria": "Carregando {{label}}",
+    "legendAriaSuffix": " legenda",
+    "sliceTooltip": "{{label}}: {{value}} ({{percentage}}%)"
+  },
+  "subcategoryChart": {
+    "ariaLabel": "Alocação por subcategoria",
+    "noSubcategory": "Sem subcategoria",
+    "emptyValues": "Nenhum valor de investimento ainda - registre um valor em um produto para ver a alocação.",
+    "staleFootnote": "* Inclui um produto com uma compra ou venda mais recente que seu último registro, então este valor pode estar desatualizado. Registre um valor no produto para atualizá-lo."
+  },
+  "accountChart": {
+    "ariaLabel": "Alocação por conta",
+    "unknownAccount": "Conta desconhecida",
+    "emptyValues": "Nenhum valor de investimento ainda - registre um valor em uma posição para ver a alocação por conta.",
+    "staleFootnote": "* Inclui uma posição com uma compra ou venda mais recente que seu último registro, então este valor pode estar desatualizado. Registre um valor nela para atualizá-la."
+  },
+  "productsList": {
+    "categoryFilterAria": "Filtro de categoria",
+    "allCategories": "Todas as categorias",
+    "subcategoryFilterAria": "Filtro de subcategoria",
+    "allSubcategories": "Todas as subcategorias",
+    "accountFilterAria": "Filtro de conta",
+    "allAccounts": "Todas as contas",
+    "statusFilterAria": "Filtro de status",
+    "statusOpen": "Aberto",
+    "statusClosed": "Encerrado",
+    "statusAll": "Todos",
+    "aria": "Produtos de investimento",
+    "emptyList": "Nenhum produto encontrado.",
+    "columns": {
+      "name": "Nome",
+      "category": "Categoria",
+      "subcategory": "Subcategoria",
+      "status": "Status"
+    }
+  }
+}

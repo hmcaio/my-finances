@@ -1,4 +1,5 @@
 import { useMemo, useState, type SyntheticEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link as RouterLink } from 'react-router-dom'
 import {
   Box,
@@ -16,6 +17,8 @@ import {
 import { useAccounts } from '../../api/accounts/accountsQueries'
 import { DataTableBody } from '../../components/table/DataTableBody'
 import { useQueryState } from '../../hooks/queryState'
+import { useLocale } from '../../hooks/locale/useLocale'
+import { formatMoney } from '../../i18n/format'
 import { InvestmentAccountAllocationChart } from './InvestmentAccountAllocationChart'
 import { InvestmentAllocationChart } from './InvestmentAllocationChart'
 import { InvestmentProductsListSection } from './InvestmentProductsListSection'
@@ -39,6 +42,8 @@ type InvestmentsTab = 'accounts' | 'products'
  * 1-2-column rule it stays a plain table rather than becoming a `ResponsiveTable`.
  */
 export function InvestmentsPage() {
+  const { t } = useTranslation('investments')
+  const { locale } = useLocale()
   const [tab, setTab] = useState<InvestmentsTab>('accounts')
   const accountsQuery = useAccounts()
   const accounts = accountsQuery.data
@@ -55,11 +60,10 @@ export function InvestmentsPage() {
   return (
     <Box sx={{ py: { xs: 2, sm: 4 } }}>
       <Typography variant="h4" component="h1" gutterBottom>
-        Investments
+        {t('title')}
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Where your money is invested, from the latest snapshot of each holding. Buy and sell from a
-        product's page (or the Transfers page); its value only changes when you record a snapshot.
+        {t('description')}
       </Typography>
 
       <Box
@@ -72,34 +76,34 @@ export function InvestmentsPage() {
       >
         <Paper variant="outlined" sx={{ p: SECTION_PADDING }}>
           <Typography variant="h6" gutterBottom>
-            By category
+            {t('byCategory')}
           </Typography>
           <InvestmentAllocationChart />
         </Paper>
         <Paper variant="outlined" sx={{ p: SECTION_PADDING }}>
           <Typography variant="h6" gutterBottom>
-            By sub-category
+            {t('bySubcategory')}
           </Typography>
           <InvestmentSubcategoryAllocationChart />
         </Paper>
         <Paper variant="outlined" sx={{ p: SECTION_PADDING }}>
           <Typography variant="h6" gutterBottom>
-            By account
+            {t('byAccount')}
           </Typography>
           <InvestmentAccountAllocationChart />
         </Paper>
       </Box>
 
-      <Tabs value={tab} onChange={handleTabChange} aria-label="Investments views">
+      <Tabs value={tab} onChange={handleTabChange} aria-label={t('tabsAria')}>
         <Tab
           value="accounts"
-          label="Accounts"
+          label={t('accountsTab')}
           id="investments-tab-accounts"
           aria-controls="investments-tabpanel-accounts"
         />
         <Tab
           value="products"
-          label="Products"
+          label={t('productsTab')}
           id="investments-tab-products"
           aria-controls="investments-tabpanel-products"
         />
@@ -115,23 +119,21 @@ export function InvestmentsPage() {
         {tab === 'accounts' && (
           <Paper variant="outlined" sx={{ p: SECTION_PADDING }}>
             <Typography variant="h6" gutterBottom>
-              Investment accounts
+              {t('investmentAccountsTitle')}
             </Typography>
             <TableContainer>
-              <Table size="small" aria-label="Investment accounts">
+              <Table size="small" aria-label={t('investmentAccountsTitle')}>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Account</TableCell>
-                    <TableCell align="right">Value</TableCell>
+                    <TableCell>{t('accountColumn')}</TableCell>
+                    <TableCell align="right">{t('valueColumn')}</TableCell>
                   </TableRow>
                 </TableHead>
                 <DataTableBody state={accountsState} onRetry={accountsState.reload} columns={2}>
                   {investmentAccounts.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={2} align="center">
-                        <Typography color="text.secondary">
-                          No investment accounts yet - add one on the Accounts page.
-                        </Typography>
+                        <Typography color="text.secondary">{t('emptyAccounts')}</Typography>
                       </TableCell>
                     </TableRow>
                   )}
@@ -146,7 +148,7 @@ export function InvestmentsPage() {
                           {account.name}
                         </MuiLink>
                       </TableCell>
-                      <TableCell align="right">{account.balance.toFixed(2)}</TableCell>
+                      <TableCell align="right">{formatMoney(account.balance, locale)}</TableCell>
                     </TableRow>
                   ))}
                 </DataTableBody>
@@ -166,7 +168,7 @@ export function InvestmentsPage() {
         {tab === 'products' && (
           <Paper variant="outlined" sx={{ p: SECTION_PADDING }}>
             <Typography variant="h6" gutterBottom>
-              Products
+              {t('productsTitle')}
             </Typography>
             <InvestmentProductsListSection />
           </Paper>

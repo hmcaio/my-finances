@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link as RouterLink } from 'react-router-dom'
 import {
   Box,
@@ -22,17 +23,18 @@ import { ResponsiveFilterBar } from '../../components/layout/ResponsiveFilterBar
 import { PaginationControls } from '../../components/table/PaginationControls'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
+import { translateSeedName } from '../../i18n/seedNames'
 import { nameLookup } from '../../utils/nameLookup'
 
 const PAGE_SIZE = 20
 
 /** A row's own derived status (the response's `closed` field, F023) - accurate under every status
  * filter, including `ALL` where rows of both statuses can appear together. */
-function statusChip(product: InvestmentProduct) {
+function statusChip(product: InvestmentProduct, t: (key: never) => string) {
   return product.closed ? (
-    <Chip label="Closed" size="small" />
+    <Chip label={t('productsList.statusClosed' as never)} size="small" />
   ) : (
-    <Chip label="Open" size="small" color="success" />
+    <Chip label={t('productsList.statusOpen' as never)} size="small" color="success" />
   )
 }
 
@@ -44,6 +46,7 @@ function statusChip(product: InvestmentProduct) {
  * Mirrors `TransactionsPage`'s filter/table/pagination structure.
  */
 export function InvestmentProductsListSection() {
+  const { t } = useTranslation('investments')
   const [page, setPage] = useState(0)
   const [filters, setFilters] = useState<InvestmentProductFilter>({ status: 'OPEN' })
   const [error, setError] = useState<string | null>(null)
@@ -85,14 +88,17 @@ export function InvestmentProductsListSection() {
     filters.name,
   ].filter(Boolean).length
 
-  const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
+  const categoryName = useMemo(
+    () => nameLookup(categories ?? [], (c) => translateSeedName('investmentCategories', c.name, t)),
+    [categories, t],
+  )
   const subcategoryName = useMemo(
     () =>
       nameLookup(
         (categories ?? []).flatMap((c) => c.subcategories),
-        (s) => s.name,
+        (s) => translateSeedName('investmentSubcategories', s.name, t),
       ),
-    [categories],
+    [categories, t],
   )
   const subcategoryOptions = useMemo(
     () => (categories ?? []).find((c) => c.id === filters.categoryId)?.subcategories ?? [],
@@ -114,19 +120,23 @@ export function InvestmentProductsListSection() {
   }
 
   const columns: ResponsiveColumn<InvestmentProduct>[] = [
-    { key: 'name', header: 'Name', render: productLink, role: 'primary' },
+    { key: 'name', header: t('productsList.columns.name'), render: productLink, role: 'primary' },
     {
       key: 'category',
-      header: 'Category',
+      header: t('productsList.columns.category'),
       render: (p) => categoryName(p.investmentCategoryId),
     },
     {
       key: 'subcategory',
-      header: 'Sub-category',
+      header: t('productsList.columns.subcategory'),
       tabletPriority: 'low',
       render: (p) => (p.investmentSubcategoryId ? subcategoryName(p.investmentSubcategoryId) : '-'),
     },
-    { key: 'status', header: 'Status', render: statusChip },
+    {
+      key: 'status',
+      header: t('productsList.columns.status'),
+      render: (p) => statusChip(p, t as (key: never) => string),
+    },
   ]
 
   return (
@@ -141,13 +151,13 @@ export function InvestmentProductsListSection() {
           onChange={(e) =>
             updateFilter({ categoryId: e.target.value || undefined, subcategoryId: undefined })
           }
-          aria-label="Category filter"
+          aria-label={t('productsList.categoryFilterAria')}
           sx={{ minWidth: 160 }}
         >
-          <MenuItem value="">All categories</MenuItem>
+          <MenuItem value="">{t('productsList.allCategories')}</MenuItem>
           {categories?.map((c) => (
             <MenuItem key={c.id} value={c.id}>
-              {c.name}
+              {translateSeedName('investmentCategories', c.name, t)}
             </MenuItem>
           ))}
         </Select>
@@ -157,13 +167,13 @@ export function InvestmentProductsListSection() {
           value={filters.subcategoryId ?? ''}
           onChange={(e) => updateFilter({ subcategoryId: e.target.value || undefined })}
           disabled={!filters.categoryId}
-          aria-label="Sub-category filter"
+          aria-label={t('productsList.subcategoryFilterAria')}
           sx={{ minWidth: 160 }}
         >
-          <MenuItem value="">All sub-categories</MenuItem>
+          <MenuItem value="">{t('productsList.allSubcategories')}</MenuItem>
           {subcategoryOptions.map((s) => (
             <MenuItem key={s.id} value={s.id}>
-              {s.name}
+              {translateSeedName('investmentSubcategories', s.name, t)}
             </MenuItem>
           ))}
         </Select>
@@ -172,10 +182,10 @@ export function InvestmentProductsListSection() {
           displayEmpty
           value={filters.accountId ?? ''}
           onChange={(e) => updateFilter({ accountId: e.target.value || undefined })}
-          aria-label="Account filter"
+          aria-label={t('productsList.accountFilterAria')}
           sx={{ minWidth: 160 }}
         >
-          <MenuItem value="">All accounts</MenuItem>
+          <MenuItem value="">{t('productsList.allAccounts')}</MenuItem>
           {investmentAccounts.map((a) => (
             <MenuItem key={a.id} value={a.id}>
               {a.name}
@@ -183,7 +193,7 @@ export function InvestmentProductsListSection() {
           ))}
         </Select>
         <TextField
-          label="Name"
+          label={t('productsList.columns.name')}
           size="small"
           value={filters.name ?? ''}
           onChange={(e) => updateFilter({ name: e.target.value || undefined })}
@@ -194,23 +204,23 @@ export function InvestmentProductsListSection() {
           onChange={(e) =>
             updateFilter({ status: e.target.value as InvestmentProductFilter['status'] })
           }
-          aria-label="Status filter"
+          aria-label={t('productsList.statusFilterAria')}
           sx={{ minWidth: 140 }}
         >
-          <MenuItem value="OPEN">Open</MenuItem>
-          <MenuItem value="CLOSED">Closed</MenuItem>
-          <MenuItem value="ALL">All</MenuItem>
+          <MenuItem value="OPEN">{t('productsList.statusOpen')}</MenuItem>
+          <MenuItem value="CLOSED">{t('productsList.statusClosed')}</MenuItem>
+          <MenuItem value="ALL">{t('productsList.statusAll')}</MenuItem>
         </Select>
       </ResponsiveFilterBar>
 
       <ResponsiveTable
-        aria-label="Investment products"
+        aria-label={t('productsList.aria')}
         columns={columns}
         rows={products}
         getRowKey={(p) => p.id}
         state={tableState}
         onRetry={retry}
-        emptyMessage="No products found."
+        emptyMessage={t('productsList.emptyList')}
         renderCard={(product) => (
           <Paper variant="outlined" sx={{ p: 1.5 }}>
             <Box
@@ -219,7 +229,7 @@ export function InvestmentProductsListSection() {
               <Typography variant="subtitle1" component="div" sx={{ overflowWrap: 'anywhere' }}>
                 {productLink(product)}
               </Typography>
-              {statusChip(product)}
+              {statusChip(product, t as (key: never) => string)}
             </Box>
             <Typography variant="body2" color="text.secondary">
               {categoryName(product.investmentCategoryId)}

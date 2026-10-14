@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Box, Button, Skeleton, Typography } from '@mui/material'
 import type { AllocationRow } from '../../api/investments/investmentAllocation'
 import { useInvestmentAllocation } from '../../api/investments/investmentAllocationQueries'
@@ -6,6 +7,9 @@ import { fadeInSx } from '../../components/feedback/fadeIn'
 import { LoadFailedNotice } from '../../components/feedback/LoadFailedNotice'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
+import { useLocale } from '../../hooks/locale/useLocale'
+import { formatMoney, formatNumber } from '../../i18n/format'
+import { translateSeedName } from '../../i18n/seedNames'
 
 // Categorical colors that stay distinguishable on both the light and the dark theme.
 const SLICE_COLORS = [
@@ -84,6 +88,8 @@ function segmentPath(start: number, end: number): string {
  * `nowrap` and a long category name would push the row wider than the screen.
  */
 export function InvestmentAllocationChart() {
+  const { t } = useTranslation('investments')
+  const { locale } = useLocale()
   const categoryQuery = useInvestmentAllocation({ groupBy: 'CATEGORY' })
   const byCategory = categoryQuery.data
   const categoryState = useQueryState(categoryQuery)
@@ -104,14 +110,18 @@ export function InvestmentAllocationChart() {
     return rows.map((row, index) => ({
       key: `${row.categoryId}/${row.subcategoryId ?? ''}`,
       label: drilledCategory
-        ? (row.subcategoryName ?? 'No sub-category')
-        : (row.categoryName ?? ''),
+        ? row.subcategoryName
+          ? translateSeedName('investmentSubcategories', row.subcategoryName, t)
+          : t('allocation.noSubcategory')
+        : row.categoryName
+          ? translateSeedName('investmentCategories', row.categoryName, t)
+          : '',
       value: row.totalValue,
       needsSnapshot: row.needsSnapshot,
       color: SLICE_COLORS[index % SLICE_COLORS.length],
       categoryId: drilledCategory ? null : row.categoryId,
     }))
-  }, [byCategory, bySubcategory, drilledCategory])
+  }, [byCategory, bySubcategory, drilledCategory, t])
 
   const total = slices.reduce((sum, slice) => sum + slice.value, 0)
   const anyStale = slices.some((slice) => slice.needsSnapshot)
@@ -140,9 +150,9 @@ export function InvestmentAllocationChart() {
   }
   if (showSkeleton) {
     return (
-      <Box role="status" aria-label="Loading allocation">
+      <Box role="status" aria-label={t('allocation.loadingAria')}>
         <Box component="span" sx={VISUALLY_HIDDEN}>
-          Loading…
+          {t('allocation.loading')}
         </Box>
         <Skeleton variant="rounded" height={SIZE} />
       </Box>
@@ -153,19 +163,23 @@ export function InvestmentAllocationChart() {
   if (byCategory.length === 0) {
     return (
       <Typography color="text.secondary" sx={fadeInSx}>
-        No investment values yet - record a snapshot on a product to see the allocation.
+        {t('allocation.emptyValues')}
       </Typography>
     )
   }
+
+  const drilledCategoryName = drilledCategory?.categoryName
+    ? translateSeedName('investmentCategories', drilledCategory.categoryName, t)
+    : ''
 
   return (
     <Box sx={fadeInSx}>
       {drilledCategory && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
           <Button size="small" onClick={() => setDrilledCategoryId(null)}>
-            &larr; All categories
+            {t('allocation.allCategories')}
           </Button>
-          <Typography variant="subtitle1">{drilledCategory.categoryName}</Typography>
+          <Typography variant="subtitle1">{drilledCategoryName}</Typography>
         </Box>
       )}
       <Box sx={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -175,13 +189,13 @@ export function InvestmentAllocationChart() {
           role="img"
           aria-label={
             drilledCategory
-              ? `Allocation of ${drilledCategory.categoryName} by sub-category`
-              : 'Allocation by category'
+              ? t('allocation.subcategoryOfAria', { category: drilledCategoryName })
+              : t('allocation.categoryAria')
           }
           sx={{ width: SIZE, height: SIZE, flexShrink: 0 }}
         >
           {arcs.map(({ slice, start, end }) => {
-            const percentage = ((slice.value / total) * 100).toFixed(1)
+            const percentage = formatNumber((slice.value / total) * 100, locale, 1)
             return (
               <path
                 key={slice.key}
@@ -193,7 +207,13 @@ export function InvestmentAllocationChart() {
                 }
                 style={{ cursor: slice.categoryId ? 'pointer' : 'default' }}
               >
-                <title>{`${slice.label}: ${slice.value.toFixed(2)} (${percentage}%)`}</title>
+                <title>
+                  {t('allocation.sliceTooltip', {
+                    label: slice.label,
+                    value: formatMoney(slice.value, locale),
+                    percentage,
+                  })}
+                </title>
               </path>
             )
           })}
@@ -205,13 +225,17 @@ export function InvestmentAllocationChart() {
             fontSize="14"
             fill="currentColor"
           >
-            {total.toFixed(2)}
+            {formatMoney(total, locale)}
           </text>
         </Box>
 
-        <Box component="ul" aria-label="Allocation legend" sx={{ listStyle: 'none', p: 0, m: 0 }}>
+        <Box
+          component="ul"
+          aria-label={t('allocation.legendAria')}
+          sx={{ listStyle: 'none', p: 0, m: 0 }}
+        >
           {slices.map((slice) => {
-            const percentage = total > 0 ? ((slice.value / total) * 100).toFixed(1) : '0.0'
+            const percentage = formatNumber(total > 0 ? (slice.value / total) * 100 : 0, locale, 1)
             const content = (
               <>
                 <Box
@@ -231,7 +255,7 @@ export function InvestmentAllocationChart() {
                   {slice.needsSnapshot ? '*' : ''}
                 </Typography>
                 <Typography component="span" color="text.secondary">
-                  {slice.value.toFixed(2)} ({percentage}%)
+                  {formatMoney(slice.value, locale)} ({percentage}%)
                 </Typography>
               </>
             )
@@ -249,7 +273,7 @@ export function InvestmentAllocationChart() {
                       whiteSpace: 'normal',
                       textAlign: 'left',
                     }}
-                    aria-label={`${slice.label}: show sub-categories`}
+                    aria-label={t('allocation.showSubcategoriesAria', { label: slice.label })}
                     onClick={() => setDrilledCategoryId(slice.categoryId)}
                   >
                     {content}
@@ -264,8 +288,7 @@ export function InvestmentAllocationChart() {
       </Box>
       {anyStale && (
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>
-          * Includes a product with a buy or sell newer than its latest snapshot, so this value may
-          be out of date. Record a snapshot on the product to refresh it.
+          {t('allocation.staleFootnote')}
         </Typography>
       )}
     </Box>

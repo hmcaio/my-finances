@@ -29,7 +29,7 @@ Each area: add its `common`/`<area>` namespace entries (`en` + `pt-BR`), swap ha
 - [x] Institutions (`InstitutionsPage`, `InstitutionSelect`): seed-name lookup from `V12`'s `'No institution'`.
 - [x] Accounts (`AccountsPage`, `AccountDetailPage`): strings + formatting.
 - [x] Investment taxonomy (`InvestmentCategoriesPage` or equivalent) + investment products (`InvestmentProductDetailPage`, `InvestmentProductsSection`, `ValueSeriesChart`): seed-name lookups from `V13`'s categories/sub-categories, plus strings/formatting.
-- [ ] Investments dashboard (`InvestmentsPage`, `InvestmentAllocationChart`, `FlatAllocationDonutChart`).
+- [x] Investments dashboard (`InvestmentsPage`, `InvestmentAllocationChart`, `FlatAllocationDonutChart`).
 - [ ] Budgets (`BudgetsPage`, `BudgetVsActualReport`).
 - [ ] Transactions (`TransactionsPage`, `AccountTransactionList`) and Transfers (`TransfersPage`, `TransferForm`, `AccountTransferList`).
 - [ ] Recurring templates (`RecurringTemplatesPage`, `PendingOccurrencesWidget`).

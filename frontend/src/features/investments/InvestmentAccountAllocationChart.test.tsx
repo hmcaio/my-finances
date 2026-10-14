@@ -3,6 +3,7 @@ import { screen, within } from '@testing-library/react'
 import { seedInvestmentAccount } from '../../mocks/handlers/accounts'
 import { seedAllocationByAccount } from '../../mocks/handlers/investmentAllocation'
 import { renderWithQueryClient } from '../../test/renderWithQueryClient'
+import { formatMoney } from '../../i18n/format'
 import { InvestmentAccountAllocationChart } from './InvestmentAccountAllocationChart'
 
 function legend() {
@@ -17,7 +18,7 @@ describe('InvestmentAccountAllocationChart', () => {
     const items = legend().getAllByRole('listitem')
     expect(items).toHaveLength(1)
     expect(items[0]).toHaveTextContent(seedInvestmentAccount.name)
-    expect(items[0]).toHaveTextContent(seedAllocationByAccount[0].totalValue.toFixed(2))
+    expect(items[0]).toHaveTextContent(formatMoney(seedAllocationByAccount[0].totalValue, 'en'))
   })
 
   it('has no clickable slices (flat, no drill-down)', async () => {

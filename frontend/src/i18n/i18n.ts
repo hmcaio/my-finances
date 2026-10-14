@@ -9,6 +9,7 @@ import institutionsEn from './locales/en/institutions.json'
 import accountsEn from './locales/en/accounts.json'
 import investmentCategoriesEn from './locales/en/investmentCategories.json'
 import investmentProductsEn from './locales/en/investmentProducts.json'
+import investmentsEn from './locales/en/investments.json'
 import commonPtBR from './locales/pt-BR/common.json'
 import errorsPtBR from './locales/pt-BR/errors.json'
 import categoriesPtBR from './locales/pt-BR/categories.json'
@@ -17,6 +18,7 @@ import institutionsPtBR from './locales/pt-BR/institutions.json'
 import accountsPtBR from './locales/pt-BR/accounts.json'
 import investmentCategoriesPtBR from './locales/pt-BR/investmentCategories.json'
 import investmentProductsPtBR from './locales/pt-BR/investmentProducts.json'
+import investmentsPtBR from './locales/pt-BR/investments.json'
 
 export const defaultNS = 'common'
 
@@ -37,6 +39,7 @@ export const resources = {
     accounts: accountsEn,
     investmentCategories: investmentCategoriesEn,
     investmentProducts: investmentProductsEn,
+    investments: investmentsEn,
   },
   'pt-BR': {
     common: commonPtBR,
@@ -47,6 +50,7 @@ export const resources = {
     accounts: accountsPtBR,
     investmentCategories: investmentCategoriesPtBR,
     investmentProducts: investmentProductsPtBR,
+    investments: investmentsPtBR,
   },
 } as const
 
