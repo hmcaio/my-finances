@@ -13,7 +13,7 @@ import {
   seedSalaryCategory,
 } from '../../mocks/handlers/categories'
 import { CATEGORY_NAME_MAX_LENGTH } from '../../api/categories/categories'
-import { PROBLEM_TYPE_MESSAGES } from '../../api/core/apiError'
+import { resolveErrorMessage } from '../../test/errorMessages'
 import { findRow } from '../../test/testUtils'
 import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 import { describeSettingsPage } from '../../test/settingsPageContract'
@@ -32,11 +32,11 @@ describe('CategoriesPage', () => {
     newName: 'Rent',
     addButtonLabel: 'Add category',
     conflict: {
-      message: PROBLEM_TYPE_MESSAGES['urn:my-finances:error:category-in-use'],
+      message: resolveErrorMessage('urn:my-finances:error:category-in-use'),
       handler: categoryDeleteConflictHandler,
     },
     duplicateName: {
-      message: PROBLEM_TYPE_MESSAGES['urn:my-finances:error:category-name-already-exists'],
+      message: resolveErrorMessage('urn:my-finances:error:category-name-already-exists'),
       handler: categoryCreateConflictHandler,
     },
     maxLength: CATEGORY_NAME_MAX_LENGTH,

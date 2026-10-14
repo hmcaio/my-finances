@@ -10,7 +10,7 @@ import {
   seedInstitutions,
 } from '../../mocks/handlers/institutions'
 import type { Institution } from '../../api/institutions/institutions'
-import { PROBLEM_TYPE_MESSAGES } from '../../api/core/apiError'
+import { resolveErrorMessage } from '../../test/errorMessages'
 import { InstitutionSelect } from './InstitutionSelect'
 import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
@@ -143,7 +143,7 @@ describe('InstitutionSelect', () => {
 
     expect(
       await screen.findByText(
-        PROBLEM_TYPE_MESSAGES['urn:my-finances:error:institution-name-already-exists'],
+        resolveErrorMessage('urn:my-finances:error:institution-name-already-exists'),
       ),
     ).toBeInTheDocument()
     expect(onChange).not.toHaveBeenCalled()

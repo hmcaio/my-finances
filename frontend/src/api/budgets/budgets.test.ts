@@ -6,7 +6,8 @@ import {
   seedBudgetReport,
   seedBudgets,
 } from '../../mocks/handlers/budgets'
-import { ApiError, PROBLEM_TYPE_MESSAGES } from '../core/apiError'
+import { ApiError } from '../core/apiError'
+import { resolveErrorMessage } from '../../test/errorMessages'
 import { createBudget, getBudgetReport, getBudgets, setBudgetCap, stopBudget } from './budgets'
 
 describe('budgets API client', () => {
@@ -41,7 +42,7 @@ describe('budgets API client', () => {
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
     expect((error as ApiError).message).toBe(
-      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:category-not-expense'],
+      resolveErrorMessage('urn:my-finances:error:category-not-expense'),
     )
   })
 

@@ -5,7 +5,7 @@ import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import { seedAccounts, seedInvestmentAccount } from '../../mocks/handlers/accounts'
 import { seedBitcoinBuyTransfer } from '../../mocks/handlers/transfers'
-import { PROBLEM_TYPE_MESSAGES } from '../../api/core/apiError'
+import { resolveErrorMessage } from '../../test/errorMessages'
 import { selectOption } from '../../test/testUtils'
 import { TransferForm, type TransferFormPreset } from './TransferForm'
 import { renderWithQueryClient } from '../../test/renderWithQueryClient'
@@ -299,7 +299,7 @@ describe('TransferForm trade confirmations', () => {
 
     await waitFor(() =>
       expect(onError).toHaveBeenCalledWith(
-        PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-closed'],
+        resolveErrorMessage('urn:my-finances:error:account-closed'),
       ),
     )
   })

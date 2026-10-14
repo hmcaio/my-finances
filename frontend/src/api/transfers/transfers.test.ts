@@ -8,7 +8,8 @@ import {
   seedTransfers,
   transferClosedAccountConflictHandler,
 } from '../../mocks/handlers/transfers'
-import { ApiError, PROBLEM_TYPE_MESSAGES } from '../core/apiError'
+import { ApiError } from '../core/apiError'
+import { resolveErrorMessage } from '../../test/errorMessages'
 import {
   createTransfer,
   deleteTransfer,
@@ -73,7 +74,7 @@ describe('transfers API client', () => {
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
     expect((error as ApiError).message).toBe(
-      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-closed'],
+      resolveErrorMessage('urn:my-finances:error:account-closed'),
     )
   })
 

@@ -12,16 +12,20 @@ import {
   investmentSubcategoryCreateConflictHandler,
   investmentSubcategoryDeleteConflictHandler,
 } from '../../mocks/handlers/investmentSubcategories'
-import { PROBLEM_TYPE_MESSAGES } from '../../api/core/apiError'
+import { resolveErrorMessage } from '../../test/errorMessages'
 
-const CATEGORY_CONFLICT_MESSAGE =
-  PROBLEM_TYPE_MESSAGES['urn:my-finances:error:investment-category-in-use']
-const CATEGORY_DUPLICATE_NAME_MESSAGE =
-  PROBLEM_TYPE_MESSAGES['urn:my-finances:error:investment-category-name-already-exists']
-const SUBCATEGORY_CONFLICT_MESSAGE =
-  PROBLEM_TYPE_MESSAGES['urn:my-finances:error:investment-subcategory-in-use']
-const SUBCATEGORY_DUPLICATE_NAME_MESSAGE =
-  PROBLEM_TYPE_MESSAGES['urn:my-finances:error:investment-subcategory-name-already-exists']
+const CATEGORY_CONFLICT_MESSAGE = resolveErrorMessage(
+  'urn:my-finances:error:investment-category-in-use',
+)
+const CATEGORY_DUPLICATE_NAME_MESSAGE = resolveErrorMessage(
+  'urn:my-finances:error:investment-category-name-already-exists',
+)
+const SUBCATEGORY_CONFLICT_MESSAGE = resolveErrorMessage(
+  'urn:my-finances:error:investment-subcategory-in-use',
+)
+const SUBCATEGORY_DUPLICATE_NAME_MESSAGE = resolveErrorMessage(
+  'urn:my-finances:error:investment-subcategory-name-already-exists',
+)
 import { findRow } from '../../test/testUtils'
 import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
 import { InvestmentCategoriesPage } from './InvestmentCategoriesPage'

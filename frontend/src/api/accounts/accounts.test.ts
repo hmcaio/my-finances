@@ -8,7 +8,8 @@ import {
   seedCheckingAccount,
   seedInvestmentAccount,
 } from '../../mocks/handlers/accounts'
-import { ApiError, PROBLEM_TYPE_MESSAGES } from '../core/apiError'
+import { ApiError } from '../core/apiError'
+import { resolveErrorMessage } from '../../test/errorMessages'
 import {
   closeAccount,
   createAccount,
@@ -87,7 +88,7 @@ describe('accounts API client', () => {
     const error: unknown = await closeAccount(seedInvestmentAccount.id).catch((err: unknown) => err)
 
     expect((error as ApiError).message).toBe(
-      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-already-closed'],
+      resolveErrorMessage('urn:my-finances:error:account-already-closed'),
     )
   })
 
@@ -127,7 +128,7 @@ describe('accounts API client', () => {
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
     expect((error as ApiError).message).toBe(
-      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-has-history'],
+      resolveErrorMessage('urn:my-finances:error:account-has-history'),
     )
   })
 
@@ -151,7 +152,7 @@ describe('accounts API client', () => {
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
     expect((error as ApiError).message).toBe(
-      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-name-already-exists'],
+      resolveErrorMessage('urn:my-finances:error:account-name-already-exists'),
     )
   })
 
@@ -166,7 +167,7 @@ describe('accounts API client', () => {
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
     expect((error as ApiError).message).toBe(
-      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-name-already-exists'],
+      resolveErrorMessage('urn:my-finances:error:account-name-already-exists'),
     )
   })
 })

@@ -1,8 +1,52 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
+import i18n from '../../i18n/i18n'
 import { apiClient } from './client'
 import { ApiError, defaultErrorMessage, unwrap } from './apiError'
+
+describe('unwrap - F033 locale-aware messages', () => {
+  afterEach(() => {
+    void i18n.changeLanguage('en')
+  })
+
+  it('resolves the same type to pt-BR text once pt-BR is the active language', async () => {
+    void i18n.changeLanguage('pt-BR')
+    server.use(
+      http.get('/api/things', () =>
+        HttpResponse.json(
+          { type: 'urn:my-finances:error:account-has-history', title: 'Account has history' },
+          { status: 409 },
+        ),
+      ),
+    )
+
+    const error: unknown = await unwrap(apiClient.get('/things')).catch((err: unknown) => err)
+
+    expect((error as ApiError).message).toBe(
+      'Esta conta tem histórico (transações, transferências, modelos recorrentes ou produtos de investimento) e não pode ser excluída - encerre-a em vez disso.',
+    )
+  })
+
+  it('resolves a validation code to pt-BR text once pt-BR is the active language', async () => {
+    void i18n.changeLanguage('pt-BR')
+    server.use(
+      http.post('/api/things', () =>
+        HttpResponse.json(
+          {
+            type: 'urn:my-finances:error:method-argument-not-valid',
+            errors: [{ field: 'description', code: 'not-blank' }],
+          },
+          { status: 400 },
+        ),
+      ),
+    )
+
+    const error: unknown = await unwrap(apiClient.post('/things')).catch((err: unknown) => err)
+
+    expect((error as ApiError).message).toBe('Este campo é obrigatório.')
+  })
+})
 
 describe('unwrap', () => {
   it('resolves with the response data on success', async () => {

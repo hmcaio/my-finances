@@ -8,7 +8,8 @@ import {
   seedInvestmentProducts,
 } from '../../mocks/handlers/investmentProducts'
 import { investmentHoldingsStore } from '../../mocks/handlers/investmentHoldings'
-import { ApiError, PROBLEM_TYPE_MESSAGES } from '../core/apiError'
+import { ApiError } from '../core/apiError'
+import { resolveErrorMessage } from '../../test/errorMessages'
 import {
   createInvestmentProduct,
   deleteInvestmentProduct,
@@ -116,7 +117,7 @@ describe('investment products API client', () => {
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
     expect((error as ApiError).message).toBe(
-      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:investment-product-has-holdings'],
+      resolveErrorMessage('urn:my-finances:error:investment-product-has-holdings'),
     )
   })
 
@@ -138,7 +139,7 @@ describe('investment products API client', () => {
       expect(error).toBeInstanceOf(ApiError)
       expect((error as ApiError).status).toBe(409)
       expect((error as ApiError).message).toBe(
-        PROBLEM_TYPE_MESSAGES['urn:my-finances:error:investment-product-name-already-exists'],
+        resolveErrorMessage('urn:my-finances:error:investment-product-name-already-exists'),
       )
     }
   })

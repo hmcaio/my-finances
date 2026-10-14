@@ -13,7 +13,7 @@ import {
   seedInvestmentAccount,
 } from '../../mocks/handlers/accounts'
 import { BUILT_IN_INSTITUTION_ID, seedInstitutions } from '../../mocks/handlers/institutions'
-import { PROBLEM_TYPE_MESSAGES } from '../../api/core/apiError'
+import { resolveErrorMessage } from '../../test/errorMessages'
 import { findRow, renderWithRouter } from '../../test/testUtils'
 import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
 import { AccountsPage } from './AccountsPage'
@@ -248,9 +248,7 @@ describe('AccountsPage', () => {
 
     // The backend sends no message text, so the client supplies one covering the 409 cases.
     expect(
-      await screen.findByText(
-        PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-already-closed'],
-      ),
+      await screen.findByText(resolveErrorMessage('urn:my-finances:error:account-already-closed')),
     ).toBeInTheDocument()
     expect(screen.getByText(openAccount.name)).toBeInTheDocument()
   })
@@ -297,7 +295,7 @@ describe('AccountsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Delete account' }))
 
     expect(
-      await screen.findByText(PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-has-history']),
+      await screen.findByText(resolveErrorMessage('urn:my-finances:error:account-has-history')),
     ).toBeInTheDocument()
     expect(screen.getByText(openAccount.name)).toBeInTheDocument()
   })
@@ -460,7 +458,7 @@ describe('AccountsPage responsive layout (F021)', () => {
 
       expect(
         await within(dialog).findByText(
-          PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-name-already-exists'],
+          resolveErrorMessage('urn:my-finances:error:account-name-already-exists'),
         ),
       ).toBeInTheDocument()
       expect(screen.getByRole('dialog')).toBeInTheDocument()
@@ -519,7 +517,7 @@ describe('AccountsPage responsive layout (F021)', () => {
 
       expect(
         await within(dialog).findByText(
-          PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-name-already-exists'],
+          resolveErrorMessage('urn:my-finances:error:account-name-already-exists'),
         ),
       ).toBeInTheDocument()
     })

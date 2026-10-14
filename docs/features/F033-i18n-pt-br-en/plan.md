@@ -20,8 +20,8 @@ One feature branch (`feature/f033-i18n-pt-br-en`), one commit per phase (per are
 - [x] `src/i18n/format.ts` (`formatMoney`, `formatNumber`, `formatDate`) with its own test file covering both locales at 2/3/1-decimal precision and date formatting.
 
 ## Phase 2 — Error messages
-- [ ] `src/api/core/apiError.ts`: convert `PROBLEM_TYPE_MESSAGES`/`VALIDATION_CODE_MESSAGES` to translation-key maps under the new `errors` namespace; `toApiError`/`summaryFor` resolve via the `i18next` singleton's `t()`. Existing `apiError.test.ts` assertions updated to the (still-English-by-default) resolved text; add a test proving the same `type`/`code` resolves differently when `i18next.changeLanguage('pt-BR')` is active.
-- [ ] `npm run lint && npm test`.
+- [x] `src/api/core/apiError.ts`: convert `PROBLEM_TYPE_MESSAGES`/`VALIDATION_CODE_MESSAGES` to translation-key maps under the new `errors` namespace; `toApiError`/`summaryFor` resolve via the `i18next` singleton's `t()`. Existing `apiError.test.ts` assertions updated to the (still-English-by-default) resolved text; add a test proving the same `type`/`code` resolves differently when `i18next.changeLanguage('pt-BR')` is active.
+- [x] `npm run lint && npm test`.
 
 ## Phase 3 — Seed-name translation + per-area string/formatting migration
 Each area: add its `common`/`<area>` namespace entries (`en` + `pt-BR`), swap hardcoded JSX strings for `t('<namespace>.key')`, swap `.toFixed()`/hardcoded-`'en-US'` calls for `src/i18n/format.ts`, update that area's existing tests for any amount fixture ≥ 1000 (new thousands separator), then commit.

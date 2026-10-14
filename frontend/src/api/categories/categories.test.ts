@@ -6,7 +6,7 @@ import {
   seedCategories,
 } from '../../mocks/handlers/categories'
 import { describeNamedEntityApi } from '../../test/apiContract'
-import { PROBLEM_TYPE_MESSAGES } from '../core/apiError'
+import { resolveErrorMessage } from '../../test/errorMessages'
 import {
   createCategory,
   deleteCategory,
@@ -37,9 +37,8 @@ describeNamedEntityApi<Category, CreateCategoryRequest, UpdateCategoryRequest>({
   },
   remove: { id: 'cat-1' },
   conflict: {
-    message: PROBLEM_TYPE_MESSAGES['urn:my-finances:error:category-in-use'],
-    duplicateNameMessage:
-      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:category-name-already-exists'],
+    message: resolveErrorMessage('urn:my-finances:error:category-in-use'),
+    duplicateNameMessage: resolveErrorMessage('urn:my-finances:error:category-name-already-exists'),
     createHandler: categoryCreateConflictHandler,
     renameHandler: categoryRenameConflictHandler,
     deleteHandler: categoryDeleteConflictHandler,
