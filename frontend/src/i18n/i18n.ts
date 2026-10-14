@@ -15,6 +15,7 @@ import transactionsEn from './locales/en/transactions.json'
 import transfersEn from './locales/en/transfers.json'
 import recurringTemplatesEn from './locales/en/recurringTemplates.json'
 import fuelEn from './locales/en/fuel.json'
+import fiiEn from './locales/en/fii.json'
 import commonPtBR from './locales/pt-BR/common.json'
 import errorsPtBR from './locales/pt-BR/errors.json'
 import categoriesPtBR from './locales/pt-BR/categories.json'
@@ -29,6 +30,7 @@ import transactionsPtBR from './locales/pt-BR/transactions.json'
 import transfersPtBR from './locales/pt-BR/transfers.json'
 import recurringTemplatesPtBR from './locales/pt-BR/recurringTemplates.json'
 import fuelPtBR from './locales/pt-BR/fuel.json'
+import fiiPtBR from './locales/pt-BR/fii.json'
 
 export const defaultNS = 'common'
 
@@ -55,6 +57,7 @@ export const resources = {
     transfers: transfersEn,
     recurringTemplates: recurringTemplatesEn,
     fuel: fuelEn,
+    fii: fiiEn,
   },
   'pt-BR': {
     common: commonPtBR,
@@ -71,6 +74,7 @@ export const resources = {
     transfers: transfersPtBR,
     recurringTemplates: recurringTemplatesPtBR,
     fuel: fuelPtBR,
+    fii: fiiPtBR,
   },
 } as const
 

@@ -31,6 +31,9 @@ const CATEGORY_SEED_NAMES: Record<string, string> = {
   // V18 (F024, ADR 0021): the dedicated fuel category, added here rather than in the initial
   // categories lookup since it belongs to the Fuel area's own phase step.
   Fuel: 'common:seedNames.categories.fuel',
+  // V20 (F026, ADR 0023): the dedicated dividend category, added here (the FII area's own phase
+  // step) for the same reason.
+  Dividends: 'common:seedNames.categories.dividends',
 }
 
 /** V2's starter payment methods. */

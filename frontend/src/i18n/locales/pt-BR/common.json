@@ -25,7 +25,8 @@
       "otherExpense": "Outras Despesas",
       "salary": "Salário",
       "otherIncome": "Outras Receitas",
-      "fuel": "Combustível"
+      "fuel": "Combustível",
+      "dividends": "Dividendos"
     },
     "paymentMethods": {
       "debitCard": "Cartão de Débito",

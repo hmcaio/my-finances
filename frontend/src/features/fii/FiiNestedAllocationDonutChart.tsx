@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Box, Skeleton, Typography } from '@mui/material'
 import type { FiiAllocationBasis, FiiAllocationRow } from '../../api/investments/fiiAllocation'
 import { useFiiAllocation } from '../../api/investments/fiiAllocationQueries'
@@ -6,6 +7,8 @@ import { fadeInSx } from '../../components/feedback/fadeIn'
 import { LoadFailedNotice } from '../../components/feedback/LoadFailedNotice'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
+import { useLocale } from '../../hooks/locale/useLocale'
+import { formatNumber } from '../../i18n/format'
 import {
   CENTER,
   SIZE,
@@ -86,6 +89,8 @@ export function FiiNestedAllocationDonutChart({
   ariaLabel,
   emptyMessage,
 }: FiiNestedAllocationDonutChartProps) {
+  const { t } = useTranslation('fii')
+  const { locale } = useLocale()
   const segmentQuery = useFiiAllocation(basis, 'SEGMENT', month)
   const tickerQuery = useFiiAllocation(basis, 'TICKER', month)
   const segmentRows = segmentQuery.data
@@ -146,9 +151,9 @@ export function FiiNestedAllocationDonutChart({
   }
   if (showSkeleton) {
     return (
-      <Box role="status" aria-label={`Loading ${ariaLabel.toLowerCase()}`}>
+      <Box role="status" aria-label={t('donut.loadingAria', { label: ariaLabel.toLowerCase() })}>
         <Box component="span" sx={VISUALLY_HIDDEN}>
-          Loading…
+          {t('donut.loading')}
         </Box>
         <Skeleton variant="rounded" height={SIZE} />
       </Box>
@@ -181,7 +186,12 @@ export function FiiNestedAllocationDonutChart({
               fill={segment.color}
               stroke="none"
             >
-              <title>{`${segment.label}: ${segment.percentage.toFixed(1)}%`}</title>
+              <title>
+                {t('donut.sliceTooltip', {
+                  label: segment.label,
+                  percentage: formatNumber(segment.percentage, locale, 1),
+                })}
+              </title>
             </path>
           ))}
           {tickerArcs.map(({ ticker, start, end }) => (
@@ -191,7 +201,12 @@ export function FiiNestedAllocationDonutChart({
               fill={ticker.color}
               stroke="none"
             >
-              <title>{`${ticker.label}: ${ticker.percentage.toFixed(1)}%`}</title>
+              <title>
+                {t('donut.sliceTooltip', {
+                  label: ticker.label,
+                  percentage: formatNumber(ticker.percentage, locale, 1),
+                })}
+              </title>
             </path>
           ))}
           <text
@@ -208,7 +223,7 @@ export function FiiNestedAllocationDonutChart({
 
         <Box
           component="ul"
-          aria-label={`${ariaLabel} legend`}
+          aria-label={`${ariaLabel}${t('donut.legendAriaSuffix')}`}
           sx={{ listStyle: 'none', p: 0, m: 0 }}
         >
           {drawnSegments.map((segment) => (
@@ -230,7 +245,7 @@ export function FiiNestedAllocationDonutChart({
                   {segment.label}
                 </Typography>
                 <Typography component="span" color="text.secondary">
-                  {segment.percentage.toFixed(1)}%
+                  {formatNumber(segment.percentage, locale, 1)}%
                 </Typography>
               </Box>
               <Box component="ul" sx={{ listStyle: 'none', p: 0, m: 0, pl: 3 }}>
@@ -252,7 +267,7 @@ export function FiiNestedAllocationDonutChart({
                       {ticker.label}
                     </Typography>
                     <Typography component="span" color="text.secondary">
-                      {ticker.percentage.toFixed(1)}%
+                      {formatNumber(ticker.percentage, locale, 1)}%
                     </Typography>
                   </Box>
                 ))}

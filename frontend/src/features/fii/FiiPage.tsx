@@ -1,4 +1,5 @@
 import { useMemo, useState, type SyntheticEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Box, Button, Grid, MenuItem, Select, Tab, Tabs, Typography } from '@mui/material'
 import { useInvestmentCategories } from '../../api/investments/investmentCategoriesQueries'
 import { useFiiPortfolio } from '../../api/investments/fiiPortfolioQueries'
@@ -7,6 +8,8 @@ import type { InvestmentProductStatus } from '../../api/investments/investmentPr
 import { useQueryState } from '../../hooks/queryState'
 import { MonthPicker } from '../../components/inputs/MonthPicker'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
+import { useLocale } from '../../hooks/locale/useLocale'
+import { formatMoney, formatNumber } from '../../i18n/format'
 import { currentMonth } from '../../utils/localDate'
 import { AllocationPlanEditor } from './AllocationPlanEditor'
 import { DividendHistorySection } from './DividendHistorySection'
@@ -32,6 +35,8 @@ type FiiTab = 'allocation' | 'dividends'
  * since it's a "today" concept the backend never recomputes against a past date.
  */
 export function FiiPage() {
+  const { t } = useTranslation('fii')
+  const { locale } = useLocale()
   const categoriesQuery = useInvestmentCategories()
   const categories = categoriesQuery.data
   const productsQuery = useInvestmentProducts()
@@ -64,32 +69,33 @@ export function FiiPage() {
   }
 
   const columns: ResponsiveColumn<FiiPortfolioRow>[] = [
-    { key: 'ticker', header: 'Ticker', render: (r) => r.ticker ?? '-', role: 'primary' },
-    { key: 'name', header: 'Name', render: (r) => r.name, role: 'secondary' },
+    { key: 'ticker', header: t('columns.ticker'), render: (r) => r.ticker ?? '-', role: 'primary' },
+    { key: 'name', header: t('columns.name'), render: (r) => r.name, role: 'secondary' },
     {
       key: 'cotas',
-      header: 'Cotas held',
-      render: (r) => r.cotasHeld.toFixed(0),
+      header: t('columns.cotas'),
+      render: (r) => formatNumber(r.cotasHeld, locale, 0),
       align: 'right',
       tabletPriority: 'low',
     },
     {
       key: 'contributed',
-      header: 'Contributed',
-      render: (r) => r.amountContributed.toFixed(2),
+      header: t('columns.contributed'),
+      render: (r) => formatMoney(r.amountContributed, locale),
       align: 'right',
       tabletPriority: 'low',
     },
     {
       key: 'value',
-      header: 'Current value',
-      render: (r) => `${r.currentValue.toFixed(2)}${r.needsSnapshot && isCurrentMonth ? ' *' : ''}`,
+      header: t('columns.value'),
+      render: (r) =>
+        `${formatMoney(r.currentValue, locale)}${r.needsSnapshot && isCurrentMonth ? ' *' : ''}`,
       align: 'right',
     },
     {
       key: 'snapshot',
-      header: 'Latest snapshot',
-      render: (r) => r.latestSnapshotDate ?? 'None yet',
+      header: t('columns.snapshot'),
+      render: (r) => r.latestSnapshotDate ?? t('noSnapshotYet'),
       align: 'right',
       tabletPriority: 'low',
     },
@@ -107,53 +113,57 @@ export function FiiPage() {
         }}
       >
         <Typography variant="h4" component="h1">
-          FII Portfolio
+          {t('title')}
         </Typography>
         <Button variant="contained" onClick={() => setRegisterOpen(true)}>
-          Register dividend
+          {t('registerDividendButton')}
         </Button>
       </Box>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        FIIs classified under the "REITs (FIIs)" sub-category: cotas held and amount contributed are
-        computed from recorded trades, never price-derived.
+        {t('description')}
       </Typography>
 
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, md: 6 }}>
           <Typography variant="h6" component="h2" sx={{ mb: 1 }}>
-            Actual allocation
+            {t('actualAllocationTitle')}
           </Typography>
           <FiiNestedAllocationDonutChart
             basis="ACTUAL"
             month={month}
-            ariaLabel="Actual allocation"
-            emptyMessage="No FII value yet."
+            ariaLabel={t('actualAllocationAria')}
+            emptyMessage={t('actualEmptyMessage')}
           />
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
           <Typography variant="h6" component="h2" sx={{ mb: 1 }}>
-            Planned allocation
+            {t('plannedAllocationTitle')}
           </Typography>
           <FiiNestedAllocationDonutChart
             basis="PLANNED"
             month={month}
-            ariaLabel="Planned allocation"
-            emptyMessage="No allocation plan set yet."
+            ariaLabel={t('plannedAllocationAria')}
+            emptyMessage={t('plannedEmptyMessage')}
           />
         </Grid>
       </Grid>
 
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mb: 2 }}>
-        <MonthPicker label="Month" value={month} onChange={setMonth} clampToCurrentMonth />
+        <MonthPicker
+          label={t('monthLabel')}
+          value={month}
+          onChange={setMonth}
+          clampToCurrentMonth
+        />
         <Select
           size="small"
           value={status}
           onChange={(e) => setStatus(e.target.value as InvestmentProductStatus)}
-          aria-label="Status"
+          aria-label={t('statusAria')}
         >
-          <MenuItem value="OPEN">Open</MenuItem>
-          <MenuItem value="CLOSED">Closed</MenuItem>
-          <MenuItem value="ALL">All</MenuItem>
+          <MenuItem value="OPEN">{t('statusOpen')}</MenuItem>
+          <MenuItem value="CLOSED">{t('statusClosed')}</MenuItem>
+          <MenuItem value="ALL">{t('statusAll')}</MenuItem>
         </Select>
       </Box>
 
@@ -162,20 +172,20 @@ export function FiiPage() {
         rows={portfolio}
         getRowKey={(r) => r.productId}
         state={portfolioState}
-        emptyMessage="No FII holdings yet."
-        aria-label="FII portfolio"
+        emptyMessage={t('emptyPortfolio')}
+        aria-label={t('portfolioAria')}
       />
 
-      <Tabs value={tab} onChange={handleTabChange} aria-label="FII views" sx={{ mt: 3 }}>
+      <Tabs value={tab} onChange={handleTabChange} aria-label={t('tabsAria')} sx={{ mt: 3 }}>
         <Tab
           value="dividends"
-          label="Dividends"
+          label={t('dividendsTab')}
           id="fii-tab-dividends"
           aria-controls="fii-tabpanel-dividends"
         />
         <Tab
           value="allocation"
-          label="Allocation Plan"
+          label={t('allocationTab')}
           id="fii-tab-allocation"
           aria-controls="fii-tabpanel-allocation"
         />

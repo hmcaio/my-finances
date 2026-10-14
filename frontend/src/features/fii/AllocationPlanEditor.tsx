@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Box, Button, Paper, TextField, Typography } from '@mui/material'
 import { defaultErrorMessage } from '../../api/core/apiError'
 import {
@@ -8,6 +9,8 @@ import {
 import type { InvestmentProduct } from '../../api/investments/investmentProducts'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { MonthPicker } from '../../components/inputs/MonthPicker'
+import { useLocale } from '../../hooks/locale/useLocale'
+import { formatNumber } from '../../i18n/format'
 import { currentMonth } from '../../utils/localDate'
 
 interface AllocationPlanEditorProps {
@@ -23,6 +26,8 @@ interface AllocationPlanEditorProps {
  * circle once saved.
  */
 export function AllocationPlanEditor({ fiiProducts }: AllocationPlanEditorProps) {
+  const { t } = useTranslation('fii')
+  const { locale } = useLocale()
   const [error, setError] = useState<string | null>(null)
   const currentPlanQuery = useCurrentAllocationPlan()
   const setAllocation = useSetAllocationPlan()
@@ -77,17 +82,17 @@ export function AllocationPlanEditor({ fiiProducts }: AllocationPlanEditorProps)
   return (
     <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
       <Typography variant="h6" component="h2" sx={{ mb: 1 }}>
-        Target allocation
+        {t('allocationPlan.title')}
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 2 }}>
-        A percentage per FII, effective from the month below. Entries must sum to exactly 100%.
+        {t('allocationPlan.description')}
       </Typography>
 
       <ErrorAlert message={error} onDismiss={() => setError(null)} />
 
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
         <MonthPicker
-          label="Effective from"
+          label={t('allocationPlan.effectiveFromLabel')}
           value={effectiveFrom}
           onChange={(v) => {
             setEffectiveFrom(v)
@@ -97,9 +102,7 @@ export function AllocationPlanEditor({ fiiProducts }: AllocationPlanEditorProps)
       </Box>
 
       {fiiProducts.length === 0 ? (
-        <Typography color="text.secondary">
-          No FII products yet - classify a product under the "REITs (FIIs)" sub-category first.
-        </Typography>
+        <Typography color="text.secondary">{t('allocationPlan.emptyProducts')}</Typography>
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 2 }}>
           {fiiProducts.map((product) => (
@@ -108,7 +111,7 @@ export function AllocationPlanEditor({ fiiProducts }: AllocationPlanEditorProps)
               <TextField
                 size="small"
                 type="number"
-                label="Target %"
+                label={t('allocationPlan.targetPercentLabel')}
                 value={valueOf(product.id)}
                 onChange={(e) => setPercentage(product.id, e.target.value)}
                 slotProps={{ htmlInput: { min: 0, max: 100, step: '0.01' } }}
@@ -120,7 +123,8 @@ export function AllocationPlanEditor({ fiiProducts }: AllocationPlanEditorProps)
       )}
 
       <Typography sx={{ mb: 2 }} color={sumIsValid ? 'success.main' : 'error.main'}>
-        Total: {roundedTotal.toFixed(2)}% {sumIsValid ? '' : '(must be exactly 100%)'}
+        {t('allocationPlan.totalLabel', { total: formatNumber(roundedTotal, locale, 2) })}{' '}
+        {sumIsValid ? '' : t('allocationPlan.mustSumTo100')}
       </Typography>
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -129,9 +133,9 @@ export function AllocationPlanEditor({ fiiProducts }: AllocationPlanEditorProps)
           disabled={saving || !sumIsValid || fiiProducts.length === 0}
           onClick={() => void handleSave()}
         >
-          Save allocation
+          {t('allocationPlan.saveButton')}
         </Button>
-        {saved && <Typography color="success.main">Saved.</Typography>}
+        {saved && <Typography color="success.main">{t('allocationPlan.savedMessage')}</Typography>}
       </Box>
     </Paper>
   )

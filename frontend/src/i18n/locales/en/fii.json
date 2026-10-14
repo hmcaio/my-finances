@@ -1,0 +1,78 @@
+{
+  "title": "FII Portfolio",
+  "registerDividendButton": "Register dividend",
+  "description": "FIIs classified under the \"REITs (FIIs)\" sub-category: cotas held and amount contributed are computed from recorded trades, never price-derived.",
+  "actualAllocationTitle": "Actual allocation",
+  "actualAllocationAria": "Actual allocation",
+  "actualEmptyMessage": "No FII value yet.",
+  "plannedAllocationTitle": "Planned allocation",
+  "plannedAllocationAria": "Planned allocation",
+  "plannedEmptyMessage": "No allocation plan set yet.",
+  "monthLabel": "Month",
+  "statusAria": "Status",
+  "statusOpen": "Open",
+  "statusClosed": "Closed",
+  "statusAll": "All",
+  "portfolioAria": "FII portfolio",
+  "emptyPortfolio": "No FII holdings yet.",
+  "columns": {
+    "ticker": "Ticker",
+    "name": "Name",
+    "cotas": "Cotas held",
+    "contributed": "Contributed",
+    "value": "Current value",
+    "snapshot": "Latest snapshot"
+  },
+  "noSnapshotYet": "None yet",
+  "tabsAria": "FII views",
+  "dividendsTab": "Dividends",
+  "allocationTab": "Allocation Plan",
+  "allocationPlan": {
+    "title": "Target allocation",
+    "description": "A percentage per FII, effective from the month below. Entries must sum to exactly 100%.",
+    "effectiveFromLabel": "Effective from",
+    "emptyProducts": "No FII products yet - classify a product under the \"REITs (FIIs)\" sub-category first.",
+    "targetPercentLabel": "Target %",
+    "totalLabel": "Total: {{total}}%",
+    "mustSumTo100": "(must be exactly 100%)",
+    "saveButton": "Save allocation",
+    "savedMessage": "Saved."
+  },
+  "dividendHistory": {
+    "title": "Dividend history",
+    "tickerAria": "Ticker",
+    "allTickers": "All tickers",
+    "fromLabel": "From",
+    "toLabel": "To",
+    "columns": {
+      "date": "Date",
+      "ticker": "Ticker",
+      "amount": "Amount"
+    },
+    "emptyList": "No dividends recorded yet.",
+    "totalsByTickerTitle": "Totals by ticker",
+    "totalsByMonthTitle": "Totals by month"
+  },
+  "donut": {
+    "loadingAria": "Loading {{label}}",
+    "loading": "Loading…",
+    "legendAriaSuffix": " legend",
+    "sliceTooltip": "{{label}}: {{percentage}}%"
+  },
+  "registerDialog": {
+    "title": "Register dividend",
+    "tickerAria": "Ticker",
+    "tickerPlaceholder": "Ticker",
+    "holdingAria": "Holding",
+    "holdingPlaceholder": "Holding",
+    "amountLabel": "Amount",
+    "dateLabel": "Date",
+    "accountAria": "Deposit into account",
+    "accountPlaceholder": "Deposit into account",
+    "paymentMethodAria": "Payment method",
+    "paymentMethodPlaceholder": "Payment method",
+    "descriptionLabel": "Description (optional)",
+    "defaultDescription": "Dividend - {{ticker}}",
+    "registerButton": "Register"
+  }
+}

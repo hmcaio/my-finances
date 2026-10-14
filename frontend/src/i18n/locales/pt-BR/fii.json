@@ -1,0 +1,78 @@
+{
+  "title": "Carteira de FIIs",
+  "registerDividendButton": "Registrar dividendo",
+  "description": "FIIs classificados na subcategoria \"REITs (FIIs)\": cotas detidas e valor aportado são calculados a partir das negociações registradas, nunca derivados do preço.",
+  "actualAllocationTitle": "Alocação atual",
+  "actualAllocationAria": "Alocação atual",
+  "actualEmptyMessage": "Nenhum valor de FII ainda.",
+  "plannedAllocationTitle": "Alocação planejada",
+  "plannedAllocationAria": "Alocação planejada",
+  "plannedEmptyMessage": "Nenhum plano de alocação definido ainda.",
+  "monthLabel": "Mês",
+  "statusAria": "Status",
+  "statusOpen": "Aberto",
+  "statusClosed": "Encerrado",
+  "statusAll": "Todos",
+  "portfolioAria": "Carteira de FIIs",
+  "emptyPortfolio": "Nenhuma posição de FII ainda.",
+  "columns": {
+    "ticker": "Ticker",
+    "name": "Nome",
+    "cotas": "Cotas detidas",
+    "contributed": "Aportado",
+    "value": "Valor atual",
+    "snapshot": "Último registro"
+  },
+  "noSnapshotYet": "Nenhum ainda",
+  "tabsAria": "Visões de FII",
+  "dividendsTab": "Dividendos",
+  "allocationTab": "Plano de Alocação",
+  "allocationPlan": {
+    "title": "Alocação alvo",
+    "description": "Uma porcentagem por FII, vigente a partir do mês abaixo. Os itens devem somar exatamente 100%.",
+    "effectiveFromLabel": "Vigente a partir de",
+    "emptyProducts": "Nenhum produto de FII ainda - classifique um produto na subcategoria \"REITs (FIIs)\" primeiro.",
+    "targetPercentLabel": "Meta %",
+    "totalLabel": "Total: {{total}}%",
+    "mustSumTo100": "(deve ser exatamente 100%)",
+    "saveButton": "Salvar alocação",
+    "savedMessage": "Salvo."
+  },
+  "dividendHistory": {
+    "title": "Histórico de dividendos",
+    "tickerAria": "Ticker",
+    "allTickers": "Todos os tickers",
+    "fromLabel": "De",
+    "toLabel": "Até",
+    "columns": {
+      "date": "Data",
+      "ticker": "Ticker",
+      "amount": "Valor"
+    },
+    "emptyList": "Nenhum dividendo registrado ainda.",
+    "totalsByTickerTitle": "Totais por ticker",
+    "totalsByMonthTitle": "Totais por mês"
+  },
+  "donut": {
+    "loadingAria": "Carregando {{label}}",
+    "loading": "Carregando…",
+    "legendAriaSuffix": " legenda",
+    "sliceTooltip": "{{label}}: {{percentage}}%"
+  },
+  "registerDialog": {
+    "title": "Registrar dividendo",
+    "tickerAria": "Ticker",
+    "tickerPlaceholder": "Ticker",
+    "holdingAria": "Posição",
+    "holdingPlaceholder": "Posição",
+    "amountLabel": "Valor",
+    "dateLabel": "Data",
+    "accountAria": "Depositar na conta",
+    "accountPlaceholder": "Depositar na conta",
+    "paymentMethodAria": "Forma de pagamento",
+    "paymentMethodPlaceholder": "Forma de pagamento",
+    "descriptionLabel": "Descrição (opcional)",
+    "defaultDescription": "Dividendo - {{ticker}}",
+    "registerButton": "Registrar"
+  }
+}

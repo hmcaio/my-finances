@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Box,
   MenuItem,
@@ -21,6 +22,8 @@ import {
 import type { InvestmentProduct } from '../../api/investments/investmentProducts'
 import { DataTableBody } from '../../components/table/DataTableBody'
 import { useQueryState } from '../../hooks/queryState'
+import { useLocale } from '../../hooks/locale/useLocale'
+import { formatMoney } from '../../i18n/format'
 
 interface DividendHistorySectionProps {
   fiiProducts: InvestmentProduct[]
@@ -31,6 +34,8 @@ interface DividendHistorySectionProps {
  * and totals grouped by ticker and by month.
  */
 export function DividendHistorySection({ fiiProducts }: DividendHistorySectionProps) {
+  const { t } = useTranslation('fii')
+  const { locale } = useLocale()
   const [productId, setProductId] = useState('')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
@@ -51,7 +56,7 @@ export function DividendHistorySection({ fiiProducts }: DividendHistorySectionPr
   return (
     <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
       <Typography variant="h6" component="h2" sx={{ mb: 1 }}>
-        Dividend history
+        {t('dividendHistory.title')}
       </Typography>
 
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
@@ -60,10 +65,10 @@ export function DividendHistorySection({ fiiProducts }: DividendHistorySectionPr
           displayEmpty
           value={productId}
           onChange={(e) => setProductId(e.target.value)}
-          aria-label="Ticker"
+          aria-label={t('dividendHistory.tickerAria')}
           sx={{ minWidth: 160 }}
         >
-          <MenuItem value="">All tickers</MenuItem>
+          <MenuItem value="">{t('dividendHistory.allTickers')}</MenuItem>
           {fiiProducts.map((product) => (
             <MenuItem key={product.id} value={product.id}>
               {product.ticker ?? product.name}
@@ -71,7 +76,7 @@ export function DividendHistorySection({ fiiProducts }: DividendHistorySectionPr
           ))}
         </Select>
         <TextField
-          label="From"
+          label={t('dividendHistory.fromLabel')}
           size="small"
           type="date"
           value={from}
@@ -79,7 +84,7 @@ export function DividendHistorySection({ fiiProducts }: DividendHistorySectionPr
           slotProps={{ inputLabel: { shrink: true } }}
         />
         <TextField
-          label="To"
+          label={t('dividendHistory.toLabel')}
           size="small"
           type="date"
           value={to}
@@ -92,16 +97,16 @@ export function DividendHistorySection({ fiiProducts }: DividendHistorySectionPr
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell>Date</TableCell>
-              <TableCell>Ticker</TableCell>
-              <TableCell align="right">Amount</TableCell>
+              <TableCell>{t('dividendHistory.columns.date')}</TableCell>
+              <TableCell>{t('dividendHistory.columns.ticker')}</TableCell>
+              <TableCell align="right">{t('dividendHistory.columns.amount')}</TableCell>
             </TableRow>
           </TableHead>
           <DataTableBody state={dividendsState} onRetry={retry} columns={3}>
             {dividends?.length === 0 && (
               <TableRow>
                 <TableCell colSpan={3} align="center">
-                  <Typography color="text.secondary">No dividends recorded yet.</Typography>
+                  <Typography color="text.secondary">{t('dividendHistory.emptyList')}</Typography>
                 </TableCell>
               </TableRow>
             )}
@@ -109,7 +114,7 @@ export function DividendHistorySection({ fiiProducts }: DividendHistorySectionPr
               <TableRow key={dividend.transactionId}>
                 <TableCell>{dividend.date}</TableCell>
                 <TableCell>{dividend.ticker ?? '-'}</TableCell>
-                <TableCell align="right">{dividend.amount.toFixed(2)}</TableCell>
+                <TableCell align="right">{formatMoney(dividend.amount, locale)}</TableCell>
               </TableRow>
             ))}
           </DataTableBody>
@@ -119,14 +124,14 @@ export function DividendHistorySection({ fiiProducts }: DividendHistorySectionPr
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
         <Box>
           <Typography variant="subtitle2" sx={{ mb: 1 }}>
-            Totals by ticker
+            {t('dividendHistory.totalsByTickerTitle')}
           </Typography>
           <Table size="small">
             <TableBody>
-              {totalsByTicker.map((t) => (
-                <TableRow key={t.productId ?? t.ticker ?? 'unknown'}>
-                  <TableCell>{t.ticker ?? '-'}</TableCell>
-                  <TableCell align="right">{t.amount.toFixed(2)}</TableCell>
+              {totalsByTicker.map((total) => (
+                <TableRow key={total.productId ?? total.ticker ?? 'unknown'}>
+                  <TableCell>{total.ticker ?? '-'}</TableCell>
+                  <TableCell align="right">{formatMoney(total.amount, locale)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -134,14 +139,14 @@ export function DividendHistorySection({ fiiProducts }: DividendHistorySectionPr
         </Box>
         <Box>
           <Typography variant="subtitle2" sx={{ mb: 1 }}>
-            Totals by month
+            {t('dividendHistory.totalsByMonthTitle')}
           </Typography>
           <Table size="small">
             <TableBody>
-              {totalsByMonth.map((t) => (
-                <TableRow key={t.month}>
-                  <TableCell>{t.month}</TableCell>
-                  <TableCell align="right">{t.amount.toFixed(2)}</TableCell>
+              {totalsByMonth.map((total) => (
+                <TableRow key={total.month}>
+                  <TableCell>{total.month}</TableCell>
+                  <TableCell align="right">{formatMoney(total.amount, locale)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

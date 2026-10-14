@@ -25,7 +25,8 @@
       "otherExpense": "Other Expense",
       "salary": "Salary",
       "otherIncome": "Other Income",
-      "fuel": "Fuel"
+      "fuel": "Fuel",
+      "dividends": "Dividends"
     },
     "paymentMethods": {
       "debitCard": "Debit Card",

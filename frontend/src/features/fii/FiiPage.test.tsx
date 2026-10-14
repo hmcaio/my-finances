@@ -13,6 +13,7 @@ import type { InvestmentCategory } from '../../api/investments/investmentCategor
 import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 import { selectOption } from '../../test/testUtils'
 import { currentMonth } from '../../utils/localDate'
+import { formatMoney } from '../../i18n/format'
 import { FiiPage } from './FiiPage'
 
 /** The month after `currentMonth()`, `YYYY-MM` (handles the December-to-January rollover). */
@@ -94,7 +95,7 @@ describe('FiiPage', () => {
     expect(table.getByText('HGLG11')).toBeInTheDocument()
     // "Contributed" is a low tablet-priority column (hidden behind the row's chevron in jsdom's
     // default tablet band) - "Current value" is always visible.
-    expect(table.getByText(seedFiiPortfolio[0].currentValue.toFixed(2))).toBeInTheDocument()
+    expect(table.getByText(formatMoney(seedFiiPortfolio[0].currentValue, 'en'))).toBeInTheDocument()
   })
 
   it('renders both nested allocation charts with tickers nested under their segment', async () => {
@@ -239,8 +240,8 @@ describe('FiiPage', () => {
     const table = portfolioTable()
     await table.findByText('HGLG11')
     // HGLG11's seed row has needsSnapshot: true, so today's value carries the "*" badge.
-    const flaggedValue = `${seedFiiPortfolio[1].currentValue.toFixed(2)} *`
-    const plainValue = seedFiiPortfolio[1].currentValue.toFixed(2)
+    const flaggedValue = `${formatMoney(seedFiiPortfolio[1].currentValue, 'en')} *`
+    const plainValue = formatMoney(seedFiiPortfolio[1].currentValue, 'en')
     expect(table.getByText(flaggedValue)).toBeInTheDocument()
 
     fireEvent.change(screen.getByLabelText('Month'), { target: { value: '2026-01' } })

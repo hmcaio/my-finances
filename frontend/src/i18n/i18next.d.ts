@@ -12,6 +12,7 @@ import type transactionsEn from './locales/en/transactions.json'
 import type transfersEn from './locales/en/transfers.json'
 import type recurringTemplatesEn from './locales/en/recurringTemplates.json'
 import type fuelEn from './locales/en/fuel.json'
+import type fiiEn from './locales/en/fii.json'
 
 /**
  * Types `t()` call sites against the `en` resources (the canonical key set, F033/ADR 0027) - a
@@ -37,6 +38,7 @@ declare module 'i18next' {
       transfers: typeof transfersEn
       recurringTemplates: typeof recurringTemplatesEn
       fuel: typeof fuelEn
+      fii: typeof fiiEn
     }
   }
 }
