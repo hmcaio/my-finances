@@ -40,6 +40,12 @@
     "clearFilters": "Clear filters",
     "done": "Done"
   },
+  "table": {
+    "noItemsFound": "No items found.",
+    "detailsColumnLabel": "Details",
+    "showDetails": "Show details",
+    "hideDetails": "Hide details"
+  },
   "errorBoundary": {
     "message": "Something went wrong on this page",
     "reload": "Reload"

@@ -40,6 +40,12 @@
     "clearFilters": "Limpar filtros",
     "done": "Concluído"
   },
+  "table": {
+    "noItemsFound": "Nenhum item encontrado.",
+    "detailsColumnLabel": "Detalhes",
+    "showDetails": "Mostrar detalhes",
+    "hideDetails": "Ocultar detalhes"
+  },
   "errorBoundary": {
     "message": "Algo deu errado nesta página",
     "reload": "Recarregar"
