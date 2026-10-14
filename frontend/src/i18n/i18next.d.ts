@@ -4,6 +4,8 @@ import type categoriesEn from './locales/en/categories.json'
 import type paymentMethodsEn from './locales/en/paymentMethods.json'
 import type institutionsEn from './locales/en/institutions.json'
 import type accountsEn from './locales/en/accounts.json'
+import type investmentCategoriesEn from './locales/en/investmentCategories.json'
+import type investmentProductsEn from './locales/en/investmentProducts.json'
 
 /**
  * Types `t()` call sites against the `en` resources (the canonical key set, F033/ADR 0027) - a
@@ -21,6 +23,8 @@ declare module 'i18next' {
       paymentMethods: typeof paymentMethodsEn
       institutions: typeof institutionsEn
       accounts: typeof accountsEn
+      investmentCategories: typeof investmentCategoriesEn
+      investmentProducts: typeof investmentProductsEn
     }
   }
 }

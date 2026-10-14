@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom'
 import {
   Alert,
@@ -63,6 +64,8 @@ import { FormGrid, ResponsiveDialog } from '../../components/feedback/Responsive
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState, type LoadState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
+import { useLocale, type Locale } from '../../hooks/locale/useLocale'
+import { formatMoney } from '../../i18n/format'
 import { nameLookup } from '../../utils/nameLookup'
 import { today } from '../../utils/localDate'
 import { TransferForm, type TransferFormPreset } from '../transfers/TransferForm'
@@ -86,6 +89,8 @@ const SECTION_PADDING = { xs: 2, sm: 3 }
  * becomes a `ResponsiveTable`.
  */
 export function InvestmentProductDetailPage() {
+  const { t } = useTranslation(['investmentProducts', 'common'])
+  const { locale } = useLocale()
   const { id } = useParams<{ id: string }>()
   const productId = id ?? ''
   const navigate = useNavigate()
@@ -94,7 +99,7 @@ export function InvestmentProductDetailPage() {
   const productQuery = useInvestmentProduct(id)
   const product = productQuery.data
   const productState = useQueryState(productQuery, undefined, (err) =>
-    defaultErrorMessage(err, { 404: 'Investment product not found.' }),
+    defaultErrorMessage(err, { 404: t('investmentProducts:detail.notFound') }),
   )
   const categoriesQuery = useInvestmentCategories()
   const categories = categoriesQuery.data
@@ -223,7 +228,7 @@ export function InvestmentProductDetailPage() {
       })
       setEditing(null)
     } catch (err) {
-      setError(defaultErrorMessage(err, { 404: 'Snapshot not found.' }))
+      setError(defaultErrorMessage(err, { 404: t('investmentProducts:detail.snapshotNotFound') }))
     } finally {
       setSavingEdit(false)
     }
@@ -239,7 +244,7 @@ export function InvestmentProductDetailPage() {
         snapshotId: deleteTarget.id,
       })
     } catch (err) {
-      setError(defaultErrorMessage(err, { 404: 'Snapshot not found.' }))
+      setError(defaultErrorMessage(err, { 404: t('investmentProducts:detail.snapshotNotFound') }))
     } finally {
       setDeleting(false)
       setDeleteTarget(null)
@@ -376,24 +381,29 @@ export function InvestmentProductDetailPage() {
   )
 
   const monthlyColumns: ResponsiveColumn<ValueSeriesPoint>[] = [
-    { key: 'month', header: 'Month', role: 'primary', render: (p) => p.month },
+    {
+      key: 'month',
+      header: t('investmentProducts:detail.monthlyColumns.month'),
+      role: 'primary',
+      render: (p) => p.month,
+    },
     {
       key: 'value',
-      header: 'Value',
+      header: t('investmentProducts:detail.monthlyColumns.value'),
       align: 'right',
-      render: (p) => (p.value === null ? '-' : p.value.toFixed(2)),
+      render: (p) => (p.value === null ? '-' : formatMoney(p.value, locale)),
     },
     {
       key: 'contributed',
-      header: 'Contributed',
+      header: t('investmentProducts:detail.monthlyColumns.contributed'),
       align: 'right',
-      render: (p) => p.contributed.toFixed(2),
+      render: (p) => formatMoney(p.contributed, locale),
     },
     ...(hasUnits
       ? ([
           {
             key: 'units',
-            header: 'Units',
+            header: t('investmentProducts:detail.monthlyColumns.units'),
             align: 'right',
             render: (p: ValueSeriesPoint) => (p.units === null ? '-' : String(p.units)),
           },
@@ -405,36 +415,54 @@ export function InvestmentProductDetailPage() {
   // confirmation's taxes cover its whole settlement, not one product. Each row links back to its
   // parent confirmation so the real total taxes stay reachable.
   type TradeRow = TradeConfirmationLineRecord & { rowKey: string }
+  const sideLabel = (side: TradeRow['side']) =>
+    side === 'BUY'
+      ? t('investmentProducts:detail.sideBuy')
+      : t('investmentProducts:detail.sideSell')
   const tradeColumns: ResponsiveColumn<TradeRow>[] = [
-    { key: 'date', header: 'Date', role: 'secondary', render: (t) => t.date },
-    { key: 'side', header: 'Side', render: (t) => (t.side === 'BUY' ? 'Buy' : 'Sell') },
+    {
+      key: 'date',
+      header: t('investmentProducts:detail.tradeColumns.date'),
+      role: 'secondary',
+      render: (trade) => trade.date,
+    },
+    {
+      key: 'side',
+      header: t('investmentProducts:detail.tradeColumns.side'),
+      render: (trade) => sideLabel(trade.side),
+    },
     {
       key: 'quantity',
-      header: 'Quantity',
+      header: t('investmentProducts:detail.tradeColumns.quantity'),
       align: 'right',
-      render: (t) => String(t.quantity),
+      render: (trade) => String(trade.quantity),
     },
     {
       key: 'unitPrice',
-      header: 'Unit price',
+      header: t('investmentProducts:detail.tradeColumns.unitPrice'),
       align: 'right',
       tabletPriority: 'low',
-      render: (t) => String(t.unitPrice),
+      render: (trade) => String(trade.unitPrice),
     },
     {
       key: 'resultingBalance',
-      header: 'Resulting balance',
+      header: t('investmentProducts:detail.tradeColumns.resultingBalance'),
       align: 'right',
       tabletPriority: 'low',
-      render: (t) => (t.resultingBalance === null ? '-' : t.resultingBalance.toFixed(2)),
+      render: (trade) =>
+        trade.resultingBalance === null ? '-' : formatMoney(trade.resultingBalance, locale),
     },
     {
       key: 'confirmation',
-      header: 'Confirmation',
+      header: t('investmentProducts:detail.tradeColumns.confirmation'),
       role: 'primary',
-      render: (t) => (
-        <MuiLink component={RouterLink} to={`/transfers?focus=${t.transferId}`} underline="hover">
-          View confirmation
+      render: (trade) => (
+        <MuiLink
+          component={RouterLink}
+          to={`/transfers?focus=${trade.transferId}`}
+          underline="hover"
+        >
+          {t('investmentProducts:detail.viewConfirmation')}
         </MuiLink>
       ),
     },
@@ -447,19 +475,24 @@ export function InvestmentProductDetailPage() {
           <Typography variant="subtitle1" component="div">
             {trade.date}
           </Typography>
-          <Chip label={trade.side === 'BUY' ? 'Buy' : 'Sell'} size="small" />
+          <Chip label={sideLabel(trade.side)} size="small" />
         </Box>
         <Typography variant="body2" color="text.secondary">
-          Quantity {trade.quantity} · Unit price {trade.unitPrice}
+          {t('investmentProducts:detail.tradeCardLine', {
+            quantity: trade.quantity,
+            price: trade.unitPrice,
+          })}
           {trade.resultingBalance !== null &&
-            ` · Resulting balance ${trade.resultingBalance.toFixed(2)}`}
+            t('investmentProducts:detail.tradeCardResultingBalance', {
+              balance: formatMoney(trade.resultingBalance, locale),
+            })}
         </Typography>
         <MuiLink
           component={RouterLink}
           to={`/transfers?focus=${trade.transferId}`}
           underline="hover"
         >
-          View confirmation
+          {t('investmentProducts:detail.viewConfirmation')}
         </MuiLink>
       </Paper>
     )
@@ -472,7 +505,7 @@ export function InvestmentProductDetailPage() {
         to={selectedHolding ? `/accounts/${selectedHolding.accountId}` : '/accounts'}
         underline="hover"
       >
-        &larr; Back to account
+        {t('investmentProducts:detail.backLink')}
       </MuiLink>
 
       {loadError && (
@@ -481,7 +514,7 @@ export function InvestmentProductDetailPage() {
         </Alert>
       )}
       {showSkeleton && (
-        <Box role="status" aria-label="Loading product" sx={{ mt: 2 }}>
+        <Box role="status" aria-label={t('investmentProducts:detail.loading')} sx={{ mt: 2 }}>
           <Skeleton variant="text" width={280} sx={{ typography: 'h4' }} />
           <Skeleton variant="rounded" height={160} sx={{ mt: 2 }} />
         </Box>
@@ -497,7 +530,7 @@ export function InvestmentProductDetailPage() {
             </Typography>
             <IconButton
               size="small"
-              aria-label="Edit product"
+              aria-label={t('investmentProducts:detail.editProductAria')}
               onClick={() => setEditProductOpen(true)}
             >
               <EditIcon fontSize="small" />
@@ -505,7 +538,7 @@ export function InvestmentProductDetailPage() {
             {(holdings?.length ?? 0) === 0 && (
               <IconButton
                 size="small"
-                aria-label="Delete product"
+                aria-label={t('investmentProducts:detail.deleteProductAria')}
                 onClick={() => setDeleteProductConfirm(true)}
               >
                 <DeleteIcon fontSize="small" />
@@ -530,14 +563,14 @@ export function InvestmentProductDetailPage() {
                 mb: 2,
               }}
             >
-              <Typography variant="h6">Holdings</Typography>
+              <Typography variant="h6">{t('investmentProducts:detail.holdingsTitle')}</Typography>
               <Button
                 variant="outlined"
                 size="small"
                 disabled={availableAccountsForNewHolding.length === 0}
                 onClick={openAddHolding}
               >
-                Add holding
+                {t('investmentProducts:detail.addHoldingButton')}
               </Button>
             </Box>
             <HoldingsTable
@@ -549,6 +582,8 @@ export function InvestmentProductDetailPage() {
               onEditNotes={(h) => setNotesEdit({ id: h.id, value: h.additionalNotes ?? '' })}
               onClose={setCloseHoldingTarget}
               onDelete={setDeleteHoldingTarget}
+              t={t as (key: string, options?: Record<string, unknown>) => string}
+              locale={locale}
             />
           </Paper>
 
@@ -557,35 +592,46 @@ export function InvestmentProductDetailPage() {
               <Paper variant="outlined" sx={{ p: SECTION_PADDING, mb: 3, maxWidth: 520 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                   <Typography variant="overline" color="text.secondary">
-                    Current value {selectedAccount ? `(${selectedAccount.name})` : ''}
+                    {t('investmentProducts:detail.currentValue')}{' '}
+                    {selectedAccount ? `(${selectedAccount.name})` : ''}
                   </Typography>
                   {selectedHolding.closed ? (
-                    <Chip label="Closed" size="small" />
+                    <Chip label={t('investmentProducts:detail.statusClosed')} size="small" />
                   ) : (
-                    <Chip label="Open" size="small" color="success" />
+                    <Chip
+                      label={t('investmentProducts:detail.statusOpen')}
+                      size="small"
+                      color="success"
+                    />
                   )}
                   {selectedHolding.needsSnapshot && (
-                    <Tooltip title="A buy or sell is newer than the latest snapshot, so the value shown may be out of date.">
-                      <Chip label="Needs snapshot" size="small" color="warning" />
+                    <Tooltip title={t('investmentProducts:detail.needsSnapshotTooltip')}>
+                      <Chip
+                        label={t('investmentProducts:detail.needsSnapshotChip')}
+                        size="small"
+                        color="warning"
+                      />
                     </Tooltip>
                   )}
                 </Box>
                 <Typography variant="h3" sx={{ mb: 1, mt: 1 }}>
                   {selectedHolding.latestSnapshot
-                    ? selectedHolding.latestSnapshot.balance.toFixed(2)
+                    ? formatMoney(selectedHolding.latestSnapshot.balance, locale)
                     : '-'}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   {selectedHolding.latestSnapshot
-                    ? `Latest snapshot ${selectedHolding.latestSnapshot.date}`
-                    : 'No snapshot yet: record one below.'}
+                    ? t('investmentProducts:detail.latestSnapshotLine', {
+                        date: selectedHolding.latestSnapshot.date,
+                      })
+                    : t('investmentProducts:detail.noSnapshotYet')}
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 2 }}>
                   <Button variant="contained" disabled={!canTrade} onClick={() => openTrade('buy')}>
-                    Buy
+                    {t('investmentProducts:detail.buyButton')}
                   </Button>
                   <Button variant="outlined" disabled={!canTrade} onClick={() => openTrade('sell')}>
-                    Sell
+                    {t('investmentProducts:detail.sellButton')}
                   </Button>
                 </Box>
               </Paper>
@@ -600,9 +646,11 @@ export function InvestmentProductDetailPage() {
                     mb: 2,
                   }}
                 >
-                  <Typography variant="h6">Snapshots</Typography>
+                  <Typography variant="h6">
+                    {t('investmentProducts:detail.snapshotsTitle')}
+                  </Typography>
                   <Button variant="contained" onClick={openSnapshotDialog}>
-                    Record snapshot
+                    {t('investmentProducts:detail.recordSnapshotButton')}
                   </Button>
                 </Box>
                 <SnapshotHistory
@@ -614,6 +662,8 @@ export function InvestmentProductDetailPage() {
                   onSaveEdit={() => void handleSaveEdit()}
                   savingEdit={savingEdit}
                   onDelete={setDeleteTarget}
+                  t={t as (key: string, options?: Record<string, unknown>) => string}
+                  locale={locale}
                 />
               </Paper>
             </>
@@ -621,7 +671,7 @@ export function InvestmentProductDetailPage() {
 
           <Paper variant="outlined" sx={{ p: SECTION_PADDING, mb: 3 }}>
             <Typography variant="h6" gutterBottom>
-              Value over time
+              {t('investmentProducts:detail.valueOverTimeTitle')}
             </Typography>
             {seriesState.loading ? (
               <Skeleton variant="rounded" height={200} />
@@ -636,7 +686,7 @@ export function InvestmentProductDetailPage() {
                     getRowKey={(p) => p.month}
                     state={seriesState}
                     onRetry={seriesState.reload}
-                    emptyMessage="No data for this period."
+                    emptyMessage={t('investmentProducts:detail.emptyMonthly')}
                   />
                 </Box>
               </>
@@ -645,17 +695,17 @@ export function InvestmentProductDetailPage() {
 
           <Paper variant="outlined" sx={{ p: SECTION_PADDING }}>
             <Typography variant="h6" gutterBottom>
-              Trades
+              {t('investmentProducts:detail.tradesTitle')}
             </Typography>
             <ResponsiveTable
-              aria-label="Trades"
+              aria-label={t('investmentProducts:detail.tradesAria')}
               columns={tradeColumns}
               rows={trades}
-              getRowKey={(t) => t.rowKey}
+              getRowKey={(trade) => trade.rowKey}
               state={tradesState}
               onRetry={tradesState.reload}
               renderCard={renderTradeCard}
-              emptyMessage="No trades yet."
+              emptyMessage={t('investmentProducts:detail.emptyTrades')}
             />
           </Paper>
         </Box>
@@ -663,9 +713,9 @@ export function InvestmentProductDetailPage() {
 
       <ConfirmDialog
         open={deleteTarget !== null}
-        title="Delete snapshot?"
-        body={`Delete the ${deleteTarget?.date ?? ''} snapshot? The holding's value falls back to its previous snapshot.`}
-        confirmLabel="Delete"
+        title={t('investmentProducts:detail.deleteSnapshotTitle')}
+        body={t('investmentProducts:detail.deleteSnapshotBody', { date: deleteTarget?.date ?? '' })}
+        confirmLabel={t('investmentProducts:detail.deleteSnapshotConfirm')}
         loading={deleting}
         onConfirm={() => void handleConfirmDelete()}
         onCancel={() => setDeleteTarget(null)}
@@ -677,24 +727,24 @@ export function InvestmentProductDetailPage() {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Record snapshot</DialogTitle>
+        <DialogTitle>{t('investmentProducts:detail.recordSnapshotDialogTitle')}</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
             <ErrorAlert message={error} onDismiss={() => setError(null)} />
             <FormGrid>
               <TextField
-                label="Snapshot date"
+                label={t('investmentProducts:detail.snapshotDateLabel')}
                 type="date"
                 value={snapshotForm.date}
                 onChange={(e) => setSnapshotForm((prev) => ({ ...prev, date: e.target.value }))}
                 slotProps={{ inputLabel: { shrink: true } }}
               />
               <TextField
-                label="Balance"
+                label={t('investmentProducts:detail.balanceLabel')}
                 type="number"
                 value={snapshotForm.balance}
                 onChange={(e) => setSnapshotForm((prev) => ({ ...prev, balance: e.target.value }))}
-                helperText="0 records a liquidated position. A second entry for the same day replaces the first."
+                helperText={t('investmentProducts:detail.balanceHelperText')}
                 slotProps={{ htmlInput: { step: '0.01', min: '0' } }}
               />
             </FormGrid>
@@ -702,7 +752,7 @@ export function InvestmentProductDetailPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={closeSnapshotDialog} disabled={recording}>
-            Cancel
+            {t('common:actions.cancel')}
           </Button>
           <Button
             variant="contained"
@@ -714,7 +764,7 @@ export function InvestmentProductDetailPage() {
             }
             onClick={() => void handleRecordSnapshot()}
           >
-            Record snapshot
+            {t('investmentProducts:detail.recordSnapshotButton')}
           </Button>
         </DialogActions>
       </ResponsiveDialog>
@@ -726,7 +776,13 @@ export function InvestmentProductDetailPage() {
         fullWidth
       >
         <DialogTitle>
-          {tradeDialog?.direction === 'sell' ? 'Sell' : 'Buy'} {product?.name}
+          {t('investmentProducts:detail.tradeDialogTitle', {
+            direction:
+              tradeDialog?.direction === 'sell'
+                ? t('investmentProducts:detail.sellButton')
+                : t('investmentProducts:detail.buyButton'),
+            product: product?.name,
+          })}
         </DialogTitle>
         {tradeDialog && accounts && (
           <TransferForm
@@ -748,7 +804,7 @@ export function InvestmentProductDetailPage() {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Edit product</DialogTitle>
+        <DialogTitle>{t('investmentProducts:detail.editProductDialogTitle')}</DialogTitle>
         {product && categories && (
           <InvestmentProductForm
             dialog
@@ -763,7 +819,7 @@ export function InvestmentProductDetailPage() {
               ticker: product.ticker ?? '',
               segmentId: product.segmentId ?? '',
             }}
-            submitLabel="Save"
+            submitLabel={t('common:actions.save')}
             submitting={savingProduct}
             onSubmit={(values) => void handleEditProduct(values)}
             onCancel={() => setEditProductOpen(false)}
@@ -773,9 +829,9 @@ export function InvestmentProductDetailPage() {
 
       <ConfirmDialog
         open={deleteProductConfirm}
-        title={`Delete ${product?.name}?`}
-        body="The product has zero holdings, so it can be deleted for good. This cannot be undone."
-        confirmLabel="Delete product"
+        title={t('investmentProducts:detail.deleteProductTitle', { name: product?.name })}
+        body={t('investmentProducts:detail.deleteProductBody')}
+        confirmLabel={t('investmentProducts:detail.deleteProductConfirm')}
         loading={deletingProduct}
         onConfirm={() => void handleDeleteProduct()}
         onCancel={() => setDeleteProductConfirm(false)}
@@ -787,7 +843,7 @@ export function InvestmentProductDetailPage() {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Add holding</DialogTitle>
+        <DialogTitle>{t('investmentProducts:detail.addHoldingDialogTitle')}</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
             <ErrorAlert message={error} onDismiss={() => setError(null)} />
@@ -797,10 +853,10 @@ export function InvestmentProductDetailPage() {
                 displayEmpty
                 value={addHoldingAccountId}
                 onChange={(e) => setAddHoldingAccountId(e.target.value)}
-                aria-label="Account"
+                aria-label={t('investmentProducts:detail.accountLabel')}
               >
                 <MenuItem value="" disabled>
-                  Account
+                  {t('investmentProducts:detail.accountLabel')}
                 </MenuItem>
                 {availableAccountsForNewHolding.map((a) => (
                   <MenuItem key={a.id} value={a.id}>
@@ -809,7 +865,7 @@ export function InvestmentProductDetailPage() {
                 ))}
               </Select>
               <TextField
-                label="Additional notes"
+                label={t('investmentProducts:detail.notesLabel')}
                 size="small"
                 multiline
                 value={addHoldingNotes}
@@ -821,14 +877,14 @@ export function InvestmentProductDetailPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAddHoldingOpen(false)} disabled={addingHolding}>
-            Cancel
+            {t('common:actions.cancel')}
           </Button>
           <Button
             variant="contained"
             disabled={addingHolding || addHoldingAccountId === ''}
             onClick={() => void handleAddHolding()}
           >
-            Add holding
+            {t('investmentProducts:detail.addHoldingButton')}
           </Button>
         </DialogActions>
       </ResponsiveDialog>
@@ -839,12 +895,12 @@ export function InvestmentProductDetailPage() {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Edit holding notes</DialogTitle>
+        <DialogTitle>{t('investmentProducts:detail.editHoldingNotesTitle')}</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
             <ErrorAlert message={error} onDismiss={() => setError(null)} />
             <TextField
-              label="Additional notes"
+              label={t('investmentProducts:detail.notesLabel')}
               size="small"
               fullWidth
               multiline
@@ -858,19 +914,21 @@ export function InvestmentProductDetailPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setNotesEdit(null)} disabled={savingNotes}>
-            Cancel
+            {t('common:actions.cancel')}
           </Button>
           <Button variant="contained" disabled={savingNotes} onClick={() => void handleSaveNotes()}>
-            Save
+            {t('common:actions.save')}
           </Button>
         </DialogActions>
       </ResponsiveDialog>
 
       <ConfirmDialog
         open={closeHoldingTarget !== null}
-        title={`Close this holding at ${closeHoldingTarget ? accountName(closeHoldingTarget.accountId) : ''}?`}
-        body="Closing a holding is not reversible through this app - there is no reopen action. It stays listed and keeps its history. A holding that still has value can't be closed: record a zero snapshot (or sell the entire position) first."
-        confirmLabel="Close holding"
+        title={t('investmentProducts:detail.closeHoldingTitle', {
+          account: closeHoldingTarget ? accountName(closeHoldingTarget.accountId) : '',
+        })}
+        body={t('investmentProducts:detail.closeHoldingBody')}
+        confirmLabel={t('investmentProducts:detail.closeHoldingConfirm')}
         loading={confirmingHolding}
         onConfirm={() => void confirmCloseHolding()}
         onCancel={() => setCloseHoldingTarget(null)}
@@ -878,9 +936,11 @@ export function InvestmentProductDetailPage() {
 
       <ConfirmDialog
         open={deleteHoldingTarget !== null}
-        title={`Delete this holding at ${deleteHoldingTarget ? accountName(deleteHoldingTarget.accountId) : ''}?`}
-        body="The holding has no history, so it can be deleted for good. This cannot be undone."
-        confirmLabel="Delete holding"
+        title={t('investmentProducts:detail.deleteHoldingTitle', {
+          account: deleteHoldingTarget ? accountName(deleteHoldingTarget.accountId) : '',
+        })}
+        body={t('investmentProducts:detail.deleteHoldingBody')}
+        confirmLabel={t('investmentProducts:detail.deleteHoldingConfirm')}
         loading={confirmingHolding}
         onConfirm={() => void confirmDeleteHolding()}
         onCancel={() => setDeleteHoldingTarget(null)}
@@ -904,6 +964,8 @@ interface SnapshotHistoryProps {
   onSaveEdit: () => void
   savingEdit: boolean
   onDelete: (snapshot: InvestmentSnapshot) => void
+  t: (key: string, options?: Record<string, unknown>) => string
+  locale: Locale
 }
 
 /**
@@ -920,22 +982,30 @@ function SnapshotHistory({
   onSaveEdit,
   savingEdit,
   onDelete,
+  t,
+  locale,
 }: SnapshotHistoryProps) {
   return (
     <TableContainer>
-      <Table size="small" aria-label="Snapshot history">
+      <Table size="small" aria-label={t('investmentProducts:detail.snapshotHistoryAria')}>
         <TableHead>
           <TableRow>
-            <TableCell>Date</TableCell>
-            <TableCell align="right">Balance</TableCell>
-            <TableCell align="right">Actions</TableCell>
+            <TableCell>{t('investmentProducts:detail.snapshotColumns.date')}</TableCell>
+            <TableCell align="right">
+              {t('investmentProducts:detail.snapshotColumns.balance')}
+            </TableCell>
+            <TableCell align="right">
+              {t('investmentProducts:detail.snapshotColumns.actions')}
+            </TableCell>
           </TableRow>
         </TableHead>
         <DataTableBody state={state} onRetry={onRetry} columns={3} actionsColumn>
           {snapshots?.length === 0 && (
             <TableRow>
               <TableCell colSpan={3} align="center">
-                <Typography color="text.secondary">No snapshots yet.</Typography>
+                <Typography color="text.secondary">
+                  {t('investmentProducts:detail.emptySnapshots')}
+                </Typography>
               </TableCell>
             </TableRow>
           )}
@@ -950,7 +1020,11 @@ function SnapshotHistory({
                       type="date"
                       value={edit.date}
                       onChange={(e) => onEditingChange({ ...edit, date: e.target.value })}
-                      slotProps={{ htmlInput: { 'aria-label': 'Edit snapshot date' } }}
+                      slotProps={{
+                        htmlInput: {
+                          'aria-label': t('investmentProducts:detail.editSnapshotDateAria'),
+                        },
+                      }}
                     />
                   ) : (
                     snapshot.date
@@ -965,14 +1039,14 @@ function SnapshotHistory({
                       onChange={(e) => onEditingChange({ ...edit, balance: e.target.value })}
                       slotProps={{
                         htmlInput: {
-                          'aria-label': 'Edit snapshot balance',
+                          'aria-label': t('investmentProducts:detail.editSnapshotBalanceAria'),
                           step: '0.01',
                           min: '0',
                         },
                       }}
                     />
                   ) : (
-                    snapshot.balance.toFixed(2)
+                    formatMoney(snapshot.balance, locale)
                   )}
                 </TableCell>
                 <TableCell align="right">
@@ -987,14 +1061,14 @@ function SnapshotHistory({
                     }
                     onSave={onSaveEdit}
                     onCancel={() => onEditingChange(null)}
-                    editLabel="Edit snapshot"
-                    saveLabel="Save snapshot"
+                    editLabel={t('investmentProducts:detail.editSnapshotAria')}
+                    saveLabel={t('investmentProducts:detail.saveSnapshotAria')}
                     saving={savingEdit}
                   />
                   {!edit && (
                     <IconButton
                       size="small"
-                      aria-label="Delete snapshot"
+                      aria-label={t('investmentProducts:detail.deleteSnapshotAria')}
                       onClick={() => onDelete(snapshot)}
                     >
                       <DeleteIcon fontSize="small" />
@@ -1019,6 +1093,8 @@ interface HoldingsTableProps {
   onEditNotes: (holding: InvestmentHolding) => void
   onClose: (holding: InvestmentHolding) => void
   onDelete: (holding: InvestmentHolding) => void
+  t: (key: string, options?: Record<string, unknown>) => string
+  locale: Locale
 }
 
 /** Every account this product is held in - the F022 holding-management panel. */
@@ -1031,23 +1107,31 @@ function HoldingsTable({
   onEditNotes,
   onClose,
   onDelete,
+  t,
+  locale,
 }: HoldingsTableProps) {
   return (
     <TableContainer>
-      <Table size="small" aria-label="Holdings">
+      <Table size="small" aria-label={t('investmentProducts:detail.holdingsTitle')}>
         <TableHead>
           <TableRow>
-            <TableCell>Account</TableCell>
-            <TableCell>Status</TableCell>
-            <TableCell align="right">Latest value</TableCell>
-            <TableCell align="right">Actions</TableCell>
+            <TableCell>{t('investmentProducts:detail.holdingsColumns.account')}</TableCell>
+            <TableCell>{t('investmentProducts:detail.holdingsColumns.status')}</TableCell>
+            <TableCell align="right">
+              {t('investmentProducts:detail.holdingsColumns.latestValue')}
+            </TableCell>
+            <TableCell align="right">
+              {t('investmentProducts:detail.holdingsColumns.actions')}
+            </TableCell>
           </TableRow>
         </TableHead>
         <DataTableBody state={state} onRetry={state.reload} columns={4} actionsColumn>
           {holdings?.length === 0 && (
             <TableRow>
               <TableCell colSpan={4} align="center">
-                <Typography color="text.secondary">No holdings yet.</Typography>
+                <Typography color="text.secondary">
+                  {t('investmentProducts:detail.emptyHoldings')}
+                </Typography>
               </TableCell>
             </TableRow>
           )}
@@ -1062,25 +1146,29 @@ function HoldingsTable({
               <TableCell>{accountName(holding.accountId)}</TableCell>
               <TableCell>
                 {holding.closed ? (
-                  <Chip label="Closed" size="small" />
+                  <Chip label={t('investmentProducts:detail.statusClosed')} size="small" />
                 ) : (
-                  <Chip label="Open" size="small" color="success" />
+                  <Chip
+                    label={t('investmentProducts:detail.statusOpen')}
+                    size="small"
+                    color="success"
+                  />
                 )}
               </TableCell>
               <TableCell align="right">
-                {holding.latestSnapshot ? holding.latestSnapshot.balance.toFixed(2) : '-'}
+                {holding.latestSnapshot ? formatMoney(holding.latestSnapshot.balance, locale) : '-'}
               </TableCell>
               <TableCell align="right" onClick={(e) => e.stopPropagation()}>
                 <IconButton
                   size="small"
-                  aria-label="Edit notes"
+                  aria-label={t('investmentProducts:detail.editNotesAria')}
                   onClick={() => onEditNotes(holding)}
                 >
                   <EditIcon fontSize="small" />
                 </IconButton>
                 <IconButton
                   size="small"
-                  aria-label="Close holding"
+                  aria-label={t('investmentProducts:detail.closeHoldingAria')}
                   disabled={holding.closed}
                   onClick={() => onClose(holding)}
                 >
@@ -1089,7 +1177,7 @@ function HoldingsTable({
                 {!holding.hasHistory && (
                   <IconButton
                     size="small"
-                    aria-label="Delete holding"
+                    aria-label={t('investmentProducts:detail.deleteHoldingAria')}
                     onClick={() => onDelete(holding)}
                   >
                     <DeleteIcon fontSize="small" />

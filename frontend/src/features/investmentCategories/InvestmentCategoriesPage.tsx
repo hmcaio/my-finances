@@ -1,4 +1,5 @@
 import { Fragment, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Box,
   Button,
@@ -40,6 +41,7 @@ import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
 import { InlineEditActions } from '../../components/table/InlineEditActions'
 import { useQueryState } from '../../hooks/queryState'
+import { translateSeedName } from '../../i18n/seedNames'
 
 /** What is being renamed inline: one row at a time, either level. */
 type Editing = { kind: 'category' | 'subcategory'; id: string } | null
@@ -66,6 +68,7 @@ type Editing = { kind: 'category' | 'subcategory'; id: string } | null
  * is left exactly as it was.
  */
 export function InvestmentCategoriesPage() {
+  const { t } = useTranslation(['investmentCategories', 'common'])
   const [error, setError] = useState<string | null>(null)
   const categoriesQuery = useInvestmentCategories()
   const categories = categoriesQuery.data
@@ -207,7 +210,11 @@ export function InvestmentCategoriesPage() {
         />
       )
     }
-    return name
+    return translateSeedName(
+      kind === 'category' ? 'investmentCategories' : 'investmentSubcategories',
+      name,
+      t,
+    )
   }
 
   return (
@@ -222,16 +229,14 @@ export function InvestmentCategoriesPage() {
         }}
       >
         <Typography variant="h4" component="h1">
-          Investment categories
+          {t('investmentCategories:title')}
         </Typography>
         <Button variant="contained" onClick={() => setAddDialogOpen(true)}>
-          Add category
+          {t('investmentCategories:addButton')}
         </Button>
       </Box>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        The two-level taxonomy used to classify investment products: a category, and optionally a
-        sub-category under it. Renaming is always allowed; a category or sub-category that products
-        still use can&apos;t be deleted.
+        {t('investmentCategories:description')}
       </Typography>
 
       {/* While the add dialog is open a save error shows inside it: this one sits behind it. */}
@@ -242,16 +247,18 @@ export function InvestmentCategoriesPage() {
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>Sub-categories</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell>{t('investmentCategories:nameColumn')}</TableCell>
+                <TableCell>{t('investmentCategories:subcategoriesColumn')}</TableCell>
+                <TableCell align="right">{t('common:actions.actions')}</TableCell>
               </TableRow>
             </TableHead>
             <DataTableBody state={categoriesState} onRetry={retry} columns={3} actionsColumn>
               {categories?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={3} align="center">
-                    <Typography color="text.secondary">No investment categories yet.</Typography>
+                    <Typography color="text.secondary">
+                      {t('investmentCategories:emptyList')}
+                    </Typography>
                   </TableCell>
                 </TableRow>
               )}
@@ -265,7 +272,12 @@ export function InvestmentCategoriesPage() {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <IconButton
                             size="small"
-                            aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${category.name}`}
+                            aria-label={t(
+                              isOpen
+                                ? 'investmentCategories:collapse'
+                                : 'investmentCategories:expand',
+                              { name: category.name },
+                            )}
                             aria-expanded={isOpen}
                             onClick={() => toggle(category.id)}
                           >
@@ -275,17 +287,20 @@ export function InvestmentCategoriesPage() {
                               <ExpandMoreIcon fontSize="small" />
                             )}
                           </IconButton>
-                          {nameCell('category', category.id, category.name, 'Category name')}
+                          {nameCell(
+                            'category',
+                            category.id,
+                            category.name,
+                            t('investmentCategories:categoryNameLabel'),
+                          )}
                         </Box>
                       </TableCell>
                       <TableCell>
                         <Chip
                           size="small"
-                          label={
-                            category.subcategories.length === 1
-                              ? '1 sub-category'
-                              : `${category.subcategories.length} sub-categories`
-                          }
+                          label={t('investmentCategories:subcategoryCount', {
+                            count: category.subcategories.length,
+                          })}
                         />
                       </TableCell>
                       <TableCell align="right">
@@ -294,12 +309,12 @@ export function InvestmentCategoriesPage() {
                           onEdit={() => startEdit('category', category.id, category.name)}
                           onSave={() => void saveEdit()}
                           onCancel={cancelEdit}
-                          editLabel="Rename"
+                          editLabel={t('common:actions.rename')}
                         />
                         {!isEditing && (
                           <IconButton
                             size="small"
-                            aria-label="Delete"
+                            aria-label={t('common:actions.delete')}
                             disabled={pendingDeleteId === category.id}
                             onClick={() => void handleDeleteCategory(category.id)}
                           >
@@ -320,7 +335,7 @@ export function InvestmentCategoriesPage() {
                                   'subcategory',
                                   subcategory.id,
                                   subcategory.name,
-                                  'Sub-category name',
+                                  t('investmentCategories:subcategoryNameLabel'),
                                 )}
                               </TableCell>
                               <TableCell align="right">
@@ -331,12 +346,12 @@ export function InvestmentCategoriesPage() {
                                   }
                                   onSave={() => void saveEdit()}
                                   onCancel={cancelEdit}
-                                  editLabel="Rename"
+                                  editLabel={t('common:actions.rename')}
                                 />
                                 {!isEditingSub && (
                                   <IconButton
                                     size="small"
-                                    aria-label="Delete"
+                                    aria-label={t('common:actions.delete')}
                                     disabled={pendingDeleteId === subcategory.id}
                                     onClick={() => void handleDeleteSubcategory(subcategory.id)}
                                   >
@@ -352,7 +367,9 @@ export function InvestmentCategoriesPage() {
                             <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
                               <TextField
                                 size="small"
-                                label={`New sub-category in ${category.name}`}
+                                label={t('investmentCategories:newSubcategoryLabel', {
+                                  category: category.name,
+                                })}
                                 value={newSubcategoryNames[category.id] ?? ''}
                                 onChange={(e) =>
                                   setNewSubcategoryNames((prev) => ({
@@ -367,14 +384,16 @@ export function InvestmentCategoriesPage() {
                               />
                               <Button
                                 variant="outlined"
-                                aria-label={`Add sub-category to ${category.name}`}
+                                aria-label={t('investmentCategories:addSubcategoryAria', {
+                                  category: category.name,
+                                })}
                                 disabled={
                                   addingSubcategoryTo === category.id ||
                                   !(newSubcategoryNames[category.id] ?? '').trim()
                                 }
                                 onClick={() => void handleAddSubcategory(category)}
                               >
-                                Add sub-category
+                                {t('investmentCategories:addSubcategoryButton')}
                               </Button>
                             </Box>
                           </TableCell>
@@ -390,13 +409,13 @@ export function InvestmentCategoriesPage() {
       </Paper>
 
       <ResponsiveDialog open={addDialogOpen} onClose={closeAddDialog}>
-        <DialogTitle>Add category</DialogTitle>
+        <DialogTitle>{t('investmentCategories:addDialogTitle')}</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
             <ErrorAlert message={error} onDismiss={() => setError(null)} />
             <FormGrid columns={1}>
               <TextField
-                label="Category name"
+                label={t('investmentCategories:categoryNameLabel')}
                 size="small"
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
@@ -411,14 +430,14 @@ export function InvestmentCategoriesPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={closeAddDialog} disabled={addingCategory}>
-            Cancel
+            {t('common:actions.cancel')}
           </Button>
           <Button
             variant="contained"
             disabled={addingCategory || !newCategoryName.trim()}
             onClick={() => void handleAddCategory()}
           >
-            Add
+            {t('common:actions.add')}
           </Button>
         </DialogActions>
       </ResponsiveDialog>

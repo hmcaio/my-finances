@@ -44,10 +44,44 @@ const INSTITUTION_SEED_NAMES: Record<string, string> = {
 }
 
 /** V13's starter investment categories. */
-const INVESTMENT_CATEGORY_SEED_NAMES: Record<string, string> = {}
+const INVESTMENT_CATEGORY_SEED_NAMES: Record<string, string> = {
+  'Fixed Income': 'common:seedNames.investmentCategories.fixedIncome',
+  'Variable Income': 'common:seedNames.investmentCategories.variableIncome',
+  Funds: 'common:seedNames.investmentCategories.funds',
+  'Pension (Previdência)': 'common:seedNames.investmentCategories.pension',
+  International: 'common:seedNames.investmentCategories.international',
+  Crypto: 'common:seedNames.investmentCategories.crypto',
+  Other: 'common:seedNames.investmentCategories.other',
+}
 
-/** V13's starter investment sub-categories (name unique per category, not globally). */
-const INVESTMENT_SUBCATEGORY_SEED_NAMES: Record<string, string> = {}
+/**
+ * V13's starter investment sub-categories (name unique per category, not globally - "ETFs" exists
+ * under both Variable Income and International, which is why this is one flat lookup rather than
+ * nested per category: both translate to the same word, so there is no collision in practice).
+ */
+const INVESTMENT_SUBCATEGORY_SEED_NAMES: Record<string, string> = {
+  'Tesouro Selic': 'common:seedNames.investmentSubcategories.tesouroSelic',
+  'Tesouro IPCA+': 'common:seedNames.investmentSubcategories.tesouroIpca',
+  'Tesouro Prefixado': 'common:seedNames.investmentSubcategories.tesouroPrefixado',
+  CDB: 'common:seedNames.investmentSubcategories.cdb',
+  LCI: 'common:seedNames.investmentSubcategories.lci',
+  LCA: 'common:seedNames.investmentSubcategories.lca',
+  CRI: 'common:seedNames.investmentSubcategories.cri',
+  CRA: 'common:seedNames.investmentSubcategories.cra',
+  Debentures: 'common:seedNames.investmentSubcategories.debentures',
+  'Savings (Poupança)': 'common:seedNames.investmentSubcategories.savings',
+  'Stocks (Ações)': 'common:seedNames.investmentSubcategories.stocksAcoes',
+  'REITs (FIIs)': 'common:seedNames.investmentSubcategories.reits',
+  ETFs: 'common:seedNames.investmentSubcategories.etfs',
+  BDRs: 'common:seedNames.investmentSubcategories.bdrs',
+  'Fixed Income Funds': 'common:seedNames.investmentSubcategories.fixedIncomeFunds',
+  Multimercado: 'common:seedNames.investmentSubcategories.multimercado',
+  'Equity Funds': 'common:seedNames.investmentSubcategories.equityFunds',
+  PGBL: 'common:seedNames.investmentSubcategories.pgbl',
+  VGBL: 'common:seedNames.investmentSubcategories.vgbl',
+  Stocks: 'common:seedNames.investmentSubcategories.stocks',
+  Bonds: 'common:seedNames.investmentSubcategories.bonds',
+}
 
 const SEED_NAMES: Record<SeedTable, Record<string, string>> = {
   categories: CATEGORY_SEED_NAMES,

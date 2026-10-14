@@ -1,6 +1,9 @@
+import { useTranslation } from 'react-i18next'
 import { Box, Typography, useTheme } from '@mui/material'
 import type { ValueSeriesPoint } from '../../api/investments/investmentValueSeries'
 import { useIsMobile } from '../../hooks/useBreakpointBand'
+import { useLocale } from '../../hooks/locale/useLocale'
+import { formatMoney, formatNumber } from '../../i18n/format'
 
 const WIDTH = 640
 const HEIGHT = 260
@@ -33,10 +36,10 @@ function niceStep(range: number, ticks: number): number {
  * un-rotated labels overlap at phone width; and the legend row below the chart gets `flexWrap` so
  * its two captions stack instead of forcing width.
  */
-export function ValueSeriesChart({
-  points,
-  label = 'Value and contributions by month',
-}: ValueSeriesChartProps) {
+export function ValueSeriesChart({ points, label }: ValueSeriesChartProps) {
+  const { t } = useTranslation('investmentProducts')
+  const { locale } = useLocale()
+  const resolvedLabel = label ?? t('chart.defaultLabel')
   const theme = useTheme()
   const isMobile = useIsMobile()
   const lineColor = theme.palette.primary.main
@@ -45,7 +48,7 @@ export function ValueSeriesChart({
   const gridColor = theme.palette.divider
 
   if (points.length === 0) {
-    return <Typography color="text.secondary">No data for this period.</Typography>
+    return <Typography color="text.secondary">{t('chart.noData')}</Typography>
   }
 
   const values = points.flatMap((p) => [p.value ?? 0, p.contributed])
@@ -83,27 +86,27 @@ export function ValueSeriesChart({
         component="svg"
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         role="img"
-        aria-label={label}
+        aria-label={resolvedLabel}
         sx={{ width: '100%', maxWidth: WIDTH, height: 'auto', display: 'block' }}
       >
-        {ticks.map((t) => (
-          <g key={t}>
+        {ticks.map((tick) => (
+          <g key={tick}>
             <line
               x1={MARGIN.left}
               x2={WIDTH - MARGIN.right}
-              y1={y(t)}
-              y2={y(t)}
+              y1={y(tick)}
+              y2={y(tick)}
               stroke={gridColor}
             />
             <text
               x={MARGIN.left - 8}
-              y={y(t)}
+              y={y(tick)}
               textAnchor="end"
               dominantBaseline="middle"
               fontSize="11"
               fill={axisColor}
             >
-              {t.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              {formatNumber(tick, locale, 0)}
             </text>
           </g>
         ))}
@@ -121,7 +124,12 @@ export function ValueSeriesChart({
                   fill={barColor}
                   opacity={0.55}
                 >
-                  <title>{`${p.month}: contributed ${p.contributed.toFixed(2)}`}</title>
+                  <title>
+                    {t('chart.contributedTooltip', {
+                      month: p.month,
+                      amount: formatMoney(p.contributed, locale),
+                    })}
+                  </title>
                 </rect>
               )}
               {(!isMobile ||
@@ -148,17 +156,22 @@ export function ValueSeriesChart({
           (p, index) =>
             p.value !== null && (
               <circle key={p.month} cx={x(index)} cy={y(p.value)} r={3.5} fill={lineColor}>
-                <title>{`${p.month}: value ${p.value.toFixed(2)}`}</title>
+                <title>
+                  {t('chart.valueTooltip', {
+                    month: p.month,
+                    amount: formatMoney(p.value, locale),
+                  })}
+                </title>
               </circle>
             ),
         )}
       </Box>
       <Box sx={{ display: 'flex', gap: 3, mt: 1, flexWrap: 'wrap' }} aria-hidden="true">
         <Typography variant="caption" sx={{ color: lineColor }}>
-          &#9679; Value (month-end snapshot)
+          {t('chart.legendValue')}
         </Typography>
         <Typography variant="caption" sx={{ color: barColor }}>
-          &#9646; Contributions (buys minus sells)
+          {t('chart.legendContributed')}
         </Typography>
       </Box>
     </Box>

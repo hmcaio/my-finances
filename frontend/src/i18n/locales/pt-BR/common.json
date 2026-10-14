@@ -33,6 +33,38 @@
     },
     "institutions": {
       "noInstitution": "Nenhuma instituição"
+    },
+    "investmentCategories": {
+      "fixedIncome": "Renda Fixa",
+      "variableIncome": "Renda Variável",
+      "funds": "Fundos",
+      "pension": "Previdência",
+      "international": "Internacional",
+      "crypto": "Criptomoedas",
+      "other": "Outros"
+    },
+    "investmentSubcategories": {
+      "tesouroSelic": "Tesouro Selic",
+      "tesouroIpca": "Tesouro IPCA+",
+      "tesouroPrefixado": "Tesouro Prefixado",
+      "cdb": "CDB",
+      "lci": "LCI",
+      "lca": "LCA",
+      "cri": "CRI",
+      "cra": "CRA",
+      "debentures": "Debêntures",
+      "savings": "Poupança",
+      "stocksAcoes": "Ações",
+      "reits": "FIIs",
+      "etfs": "ETFs",
+      "bdrs": "BDRs",
+      "fixedIncomeFunds": "Fundos de Renda Fixa",
+      "multimercado": "Multimercado",
+      "equityFunds": "Fundos de Ações",
+      "pgbl": "PGBL",
+      "vgbl": "VGBL",
+      "stocks": "Ações",
+      "bonds": "Títulos"
     }
   }
 }

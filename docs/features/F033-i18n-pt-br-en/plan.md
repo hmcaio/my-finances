@@ -28,7 +28,7 @@ Each area: add its `common`/`<area>` namespace entries (`en` + `pt-BR`), swap ha
 - [x] `src/i18n/seedNames.ts` + categories/payment methods (`CategoriesPage`, `PaymentMethodsPage`): build the seed-name lookups from `V2`'s literal strings, wire `translateSeedName` into both pages' list rendering and anywhere else a category/payment-method name renders (transaction/transfer/budget/recurring-template lists, dashboard widgets).
 - [x] Institutions (`InstitutionsPage`, `InstitutionSelect`): seed-name lookup from `V12`'s `'No institution'`.
 - [x] Accounts (`AccountsPage`, `AccountDetailPage`): strings + formatting.
-- [ ] Investment taxonomy (`InvestmentCategoriesPage` or equivalent) + investment products (`InvestmentProductDetailPage`, `InvestmentProductsSection`, `ValueSeriesChart`): seed-name lookups from `V13`'s categories/sub-categories, plus strings/formatting.
+- [x] Investment taxonomy (`InvestmentCategoriesPage` or equivalent) + investment products (`InvestmentProductDetailPage`, `InvestmentProductsSection`, `ValueSeriesChart`): seed-name lookups from `V13`'s categories/sub-categories, plus strings/formatting.
 - [ ] Investments dashboard (`InvestmentsPage`, `InvestmentAllocationChart`, `FlatAllocationDonutChart`).
 - [ ] Budgets (`BudgetsPage`, `BudgetVsActualReport`).
 - [ ] Transactions (`TransactionsPage`, `AccountTransactionList`) and Transfers (`TransfersPage`, `TransferForm`, `AccountTransferList`).
