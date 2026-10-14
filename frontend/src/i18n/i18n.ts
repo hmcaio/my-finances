@@ -6,11 +6,13 @@ import errorsEn from './locales/en/errors.json'
 import categoriesEn from './locales/en/categories.json'
 import paymentMethodsEn from './locales/en/paymentMethods.json'
 import institutionsEn from './locales/en/institutions.json'
+import accountsEn from './locales/en/accounts.json'
 import commonPtBR from './locales/pt-BR/common.json'
 import errorsPtBR from './locales/pt-BR/errors.json'
 import categoriesPtBR from './locales/pt-BR/categories.json'
 import paymentMethodsPtBR from './locales/pt-BR/paymentMethods.json'
 import institutionsPtBR from './locales/pt-BR/institutions.json'
+import accountsPtBR from './locales/pt-BR/accounts.json'
 
 export const defaultNS = 'common'
 
@@ -28,6 +30,7 @@ export const resources = {
     categories: categoriesEn,
     paymentMethods: paymentMethodsEn,
     institutions: institutionsEn,
+    accounts: accountsEn,
   },
   'pt-BR': {
     common: commonPtBR,
@@ -35,6 +38,7 @@ export const resources = {
     categories: categoriesPtBR,
     paymentMethods: paymentMethodsPtBR,
     institutions: institutionsPtBR,
+    accounts: accountsPtBR,
   },
 } as const
 

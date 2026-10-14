@@ -13,6 +13,7 @@ import {
   seedInvestmentAccount,
 } from '../../mocks/handlers/accounts'
 import { BUILT_IN_INSTITUTION_ID, seedInstitutions } from '../../mocks/handlers/institutions'
+import { formatMoney } from '../../i18n/format'
 import { resolveErrorMessage } from '../../test/errorMessages'
 import { findRow, renderWithRouter } from '../../test/testUtils'
 import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
@@ -422,7 +423,7 @@ describe('AccountsPage responsive layout (F021)', () => {
       )
       expect(card.getByText(institutionName(target.institutionId))).toBeInTheDocument()
       expect(card.getByText('Checking')).toBeInTheDocument()
-      expect(card.getByText(target.balance.toFixed(2))).toBeInTheDocument()
+      expect(card.getByText(formatMoney(target.balance, 'en'))).toBeInTheDocument()
       expect(card.getByText('Open')).toBeInTheDocument()
       for (const name of ['Edit', 'Close', 'Delete']) {
         expect(card.getByRole('button', { name })).toBeInTheDocument()

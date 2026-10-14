@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import {
   Box,
   Link as MuiLink,
@@ -14,7 +15,7 @@ import { fadeInSx } from '../../components/feedback/fadeIn'
 import { LoadFailedNotice } from '../../components/feedback/LoadFailedNotice'
 import { useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
-import { ACCOUNT_TYPE_LABELS } from '../accounts/accountTypes'
+import { accountTypeLabel } from '../accounts/accountTypes'
 
 /**
  * Balances of every open account (F012 spec, from F003's account list), each linking to its detail
@@ -22,6 +23,7 @@ import { ACCOUNT_TYPE_LABELS } from '../accounts/accountTypes'
  * fetches its own data on mount (frontend `CLAUDE.md`, "Pages that embed other pages' widgets").
  */
 export function AccountBalancesWidget() {
+  const { t } = useTranslation()
   const accountsQuery = useAccounts()
   const accounts = accountsQuery.data
   const { loading, loadError, reload } = useQueryState(accountsQuery)
@@ -49,7 +51,7 @@ export function AccountBalancesWidget() {
                 {account.name}
               </MuiLink>
             </TableCell>
-            <TableCell>{ACCOUNT_TYPE_LABELS[account.type]}</TableCell>
+            <TableCell>{accountTypeLabel(account.type, t)}</TableCell>
             <TableCell align="right">
               {account.balance.toFixed(2)}
               {account.type === 'CREDIT_CARD' && ' owed'}

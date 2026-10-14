@@ -1,0 +1,58 @@
+{
+  "title": "Accounts",
+  "description": "Checking, savings, cash, credit card, and investment accounts. Opening balance/date and type are fixed once an account is created - name and institution can still be corrected any time. An investment account has no opening balance: its value comes from snapshots of its products.",
+  "addButton": "Add account",
+  "addDialogTitle": "Add account",
+  "editDialogTitle": "Edit account",
+  "showClosed": "Show closed accounts",
+  "emptyList": "No accounts yet.",
+  "columns": {
+    "name": "Name",
+    "institution": "Institution",
+    "type": "Type",
+    "balance": "Balance",
+    "status": "Status"
+  },
+  "status": {
+    "open": "Open",
+    "closed": "Closed"
+  },
+  "accountTypes": {
+    "checking": "Checking",
+    "savings": "Savings",
+    "cashWallet": "Cash Wallet",
+    "creditCard": "Credit Card",
+    "investment": "Investment"
+  },
+  "accountTypeLabel": "Account type",
+  "editAction": "Edit",
+  "closeAction": "Close",
+  "close": {
+    "title": "Close {{name}}?",
+    "body": "Closing an account is not reversible through this app - there is no \"reopen\" action. The account will drop out of \"create new\" pickers and the live balances view, but its history stays visible. Any recurring bills posting to this account will stop generating new occurrences.",
+    "confirmLabel": "Close account"
+  },
+  "delete": {
+    "title": "Delete {{name}}?",
+    "body": "This permanently removes the account. It only works for an account with no transactions, transfers, recurring templates or investment products - otherwise close it instead. An account counts in past net worth from its opening date, so deleting one that has an opening balance also changes your past net worth figures. If this is your last account, the app returns to the welcome screen.",
+    "confirmLabel": "Delete account"
+  },
+  "saveChanges": "Save changes",
+  "createForm": {
+    "nameLabel": "Name",
+    "openingBalanceLabel": "Opening Balance",
+    "openingBalanceDateLabel": "Opening Balance Date"
+  },
+  "detail": {
+    "backLink": "← Back to accounts",
+    "notFound": "Account not found.",
+    "loading": "Loading account",
+    "runningBalance": "Running balance",
+    "openingBalanceLine": "Opening balance {{amount}} as of {{date}}",
+    "noOpeningBalance": "No opening balance: its value comes from snapshots of its products",
+    "closedSuffix": " · Closed {{date}}",
+    "products": "Products",
+    "transactions": "Transactions",
+    "transfers": "Transfers"
+  }
+}
