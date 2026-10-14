@@ -16,6 +16,8 @@ import transfersEn from './locales/en/transfers.json'
 import recurringTemplatesEn from './locales/en/recurringTemplates.json'
 import fuelEn from './locales/en/fuel.json'
 import fiiEn from './locales/en/fii.json'
+import netWorthEn from './locales/en/netWorth.json'
+import dashboardEn from './locales/en/dashboard.json'
 import commonPtBR from './locales/pt-BR/common.json'
 import errorsPtBR from './locales/pt-BR/errors.json'
 import categoriesPtBR from './locales/pt-BR/categories.json'
@@ -31,6 +33,8 @@ import transfersPtBR from './locales/pt-BR/transfers.json'
 import recurringTemplatesPtBR from './locales/pt-BR/recurringTemplates.json'
 import fuelPtBR from './locales/pt-BR/fuel.json'
 import fiiPtBR from './locales/pt-BR/fii.json'
+import netWorthPtBR from './locales/pt-BR/netWorth.json'
+import dashboardPtBR from './locales/pt-BR/dashboard.json'
 
 export const defaultNS = 'common'
 
@@ -58,6 +62,8 @@ export const resources = {
     recurringTemplates: recurringTemplatesEn,
     fuel: fuelEn,
     fii: fiiEn,
+    netWorth: netWorthEn,
+    dashboard: dashboardEn,
   },
   'pt-BR': {
     common: commonPtBR,
@@ -75,6 +81,8 @@ export const resources = {
     recurringTemplates: recurringTemplatesPtBR,
     fuel: fuelPtBR,
     fii: fiiPtBR,
+    netWorth: netWorthPtBR,
+    dashboard: dashboardPtBR,
   },
 } as const
 

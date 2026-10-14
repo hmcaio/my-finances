@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Box, Skeleton, ToggleButton, ToggleButtonGroup, Typography, useTheme } from '@mui/material'
 import type { NetWorthGranularity, NetWorthPoint } from '../../api/netWorth/netWorth'
 import { useNetWorthTrend } from '../../api/netWorth/netWorthQueries'
@@ -6,6 +7,8 @@ import { fadeInSx } from '../../components/feedback/fadeIn'
 import { LoadFailedNotice } from '../../components/feedback/LoadFailedNotice'
 import { useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
+import { useLocale, type Locale } from '../../hooks/locale/useLocale'
+import { formatMoney, formatNumber } from '../../i18n/format'
 
 const WIDTH = 640
 const HEIGHT = 260
@@ -42,10 +45,6 @@ function dateLabel(date: string, granularity: NetWorthGranularity): string {
   return granularity === 'MONTH' ? date.slice(0, 7) : date
 }
 
-function money(value: number): string {
-  return value.toFixed(2)
-}
-
 /**
  * The net worth line over time (F010 spec, PRD S5.9) with a monthly / per-change toggle. Monthly
  * points are month-ends (the current month at today) joined by straight segments; change-date
@@ -57,6 +56,8 @@ function money(value: number): string {
  * chart. Hand-drawn SVG, no chart dependency.
  */
 export function NetWorthTrendChart() {
+  const { t } = useTranslation('netWorth')
+  const { locale } = useLocale()
   const theme = useTheme()
   const [granularity, setGranularity] = useState<NetWorthGranularity>('MONTH')
   const trendQuery = useNetWorthTrend({ granularity })
@@ -69,14 +70,14 @@ export function NetWorthTrendChart() {
       size="small"
       exclusive
       value={granularity}
-      aria-label="Net worth granularity"
+      aria-label={t('granularityAria')}
       onChange={(_event, next: NetWorthGranularity | null) => {
         if (next) setGranularity(next)
       }}
       sx={{ mb: 1 }}
     >
-      <ToggleButton value="MONTH">Monthly</ToggleButton>
-      <ToggleButton value="CHANGE_DATE">Every change</ToggleButton>
+      <ToggleButton value="MONTH">{t('monthlyOption')}</ToggleButton>
+      <ToggleButton value="CHANGE_DATE">{t('everyChangeOption')}</ToggleButton>
     </ToggleButtonGroup>
   )
 
@@ -90,9 +91,9 @@ export function NetWorthTrendChart() {
   }
   if (showSkeleton) {
     return (
-      <Box role="status" aria-label="Loading net worth">
+      <Box role="status" aria-label={t('loadingAria')}>
         <Box component="span" sx={VISUALLY_HIDDEN}>
-          Loading…
+          {t('loading')}
         </Box>
         <Skeleton variant="rounded" height={HEIGHT} />
       </Box>
@@ -104,7 +105,7 @@ export function NetWorthTrendChart() {
     <Box sx={fadeInSx}>
       {toggle}
       {points.length === 0 ? (
-        <Typography color="text.secondary">No net worth data for this period.</Typography>
+        <Typography color="text.secondary">{t('emptyMessage')}</Typography>
       ) : (
         <Chart
           points={points}
@@ -112,6 +113,8 @@ export function NetWorthTrendChart() {
           lineColor={theme.palette.primary.main}
           axisColor={theme.palette.text.secondary}
           gridColor={theme.palette.divider}
+          t={t as (key: string, options?: Record<string, unknown>) => string}
+          locale={locale}
         />
       )}
     </Box>
@@ -124,9 +127,11 @@ interface ChartProps {
   lineColor: string
   axisColor: string
   gridColor: string
+  t: (key: string, options?: Record<string, unknown>) => string
+  locale: Locale
 }
 
-function Chart({ points, granularity, lineColor, axisColor, gridColor }: ChartProps) {
+function Chart({ points, granularity, lineColor, axisColor, gridColor, t, locale }: ChartProps) {
   const values = points.map((p) => p.netWorth)
   const max = Math.max(0, ...values)
   const min = Math.min(0, ...values)
@@ -172,27 +177,27 @@ function Chart({ points, granularity, lineColor, axisColor, gridColor }: ChartPr
         component="svg"
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         role="img"
-        aria-label={granularity === 'MONTH' ? 'Net worth by month' : 'Net worth at every change'}
+        aria-label={granularity === 'MONTH' ? t('chartAriaMonth') : t('chartAriaChange')}
         sx={{ width: '100%', maxWidth: WIDTH, height: 'auto', display: 'block' }}
       >
-        {ticks.map((t) => (
-          <g key={t}>
+        {ticks.map((tick) => (
+          <g key={tick}>
             <line
               x1={MARGIN.left}
               x2={WIDTH - MARGIN.right}
-              y1={y(t)}
-              y2={y(t)}
+              y1={y(tick)}
+              y2={y(tick)}
               stroke={gridColor}
             />
             <text
               x={MARGIN.left - 8}
-              y={y(t)}
+              y={y(tick)}
               textAnchor="end"
               dominantBaseline="middle"
               fontSize="11"
               fill={axisColor}
             >
-              {t.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              {formatNumber(tick, locale, 0)}
             </text>
           </g>
         ))}
@@ -220,15 +225,25 @@ function Chart({ points, granularity, lineColor, axisColor, gridColor }: ChartPr
         {points.map((p) => (
           <circle key={p.date} cx={x(p.date)} cy={y(p.netWorth)} r={3.5} fill={lineColor}>
             <title>
-              {`${p.date}: net worth ${money(p.netWorth)} (assets ${money(p.assets)}, ` +
-                `investments ${money(p.investments)}, liabilities ${money(p.liabilities)})`}
+              {t('tooltip', {
+                date: p.date,
+                netWorth: formatMoney(p.netWorth, locale),
+                assets: formatMoney(p.assets, locale),
+                investments: formatMoney(p.investments, locale),
+                liabilities: formatMoney(p.liabilities, locale),
+              })}
             </title>
           </circle>
         ))}
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-        As of {latest.date}: net worth {money(latest.netWorth)} = assets {money(latest.assets)} +
-        investments {money(latest.investments)} - liabilities {money(latest.liabilities)}
+        {t('summary', {
+          date: latest.date,
+          netWorth: formatMoney(latest.netWorth, locale),
+          assets: formatMoney(latest.assets, locale),
+          investments: formatMoney(latest.investments, locale),
+          liabilities: formatMoney(latest.liabilities, locale),
+        })}
       </Typography>
     </Box>
   )

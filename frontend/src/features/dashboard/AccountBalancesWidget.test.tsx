@@ -6,6 +6,7 @@ import { server } from '../../mocks/server'
 import { seedAccounts } from '../../mocks/handlers/accounts'
 import { AccountBalancesWidget } from './AccountBalancesWidget'
 import { renderWithQueryClient } from '../../test/renderWithQueryClient'
+import { formatMoney } from '../../i18n/format'
 
 describe('AccountBalancesWidget', () => {
   it('lists each open account with its balance, linking to its detail page', async () => {
@@ -22,7 +23,7 @@ describe('AccountBalancesWidget', () => {
         `/accounts/${account.id}`,
       )
       expect(
-        screen.getAllByText(new RegExp(`^${account.balance.toFixed(2)}`)).length,
+        screen.getAllByText(new RegExp(`^${formatMoney(account.balance, 'en')}`)).length,
       ).toBeGreaterThan(0)
     }
     for (const account of seedAccounts.filter((a) => a.closed)) {

@@ -1,0 +1,12 @@
+{
+  "monthlyOption": "Mensal",
+  "everyChangeOption": "Cada mudança",
+  "granularityAria": "Granularidade do patrimônio líquido",
+  "loadingAria": "Carregando patrimônio líquido",
+  "loading": "Carregando…",
+  "emptyMessage": "Nenhum dado de patrimônio líquido para este período.",
+  "chartAriaMonth": "Patrimônio líquido por mês",
+  "chartAriaChange": "Patrimônio líquido a cada mudança",
+  "tooltip": "{{date}}: patrimônio líquido {{netWorth}} (ativos {{assets}}, investimentos {{investments}}, passivos {{liabilities}})",
+  "summary": "Em {{date}}: patrimônio líquido {{netWorth}} = ativos {{assets}} + investimentos {{investments}} - passivos {{liabilities}}"
+}

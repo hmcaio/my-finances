@@ -1,0 +1,12 @@
+{
+  "monthlyOption": "Monthly",
+  "everyChangeOption": "Every change",
+  "granularityAria": "Net worth granularity",
+  "loadingAria": "Loading net worth",
+  "loading": "Loading…",
+  "emptyMessage": "No net worth data for this period.",
+  "chartAriaMonth": "Net worth by month",
+  "chartAriaChange": "Net worth at every change",
+  "tooltip": "{{date}}: net worth {{netWorth}} (assets {{assets}}, investments {{investments}}, liabilities {{liabilities}})",
+  "summary": "As of {{date}}: net worth {{netWorth}} = assets {{assets}} + investments {{investments}} - liabilities {{liabilities}}"
+}

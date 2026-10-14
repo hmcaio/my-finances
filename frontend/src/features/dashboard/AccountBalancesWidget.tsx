@@ -15,6 +15,8 @@ import { fadeInSx } from '../../components/feedback/fadeIn'
 import { LoadFailedNotice } from '../../components/feedback/LoadFailedNotice'
 import { useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
+import { useLocale } from '../../hooks/locale/useLocale'
+import { formatMoney } from '../../i18n/format'
 import { accountTypeLabel } from '../accounts/accountTypes'
 
 /**
@@ -23,7 +25,8 @@ import { accountTypeLabel } from '../accounts/accountTypes'
  * fetches its own data on mount (frontend `CLAUDE.md`, "Pages that embed other pages' widgets").
  */
 export function AccountBalancesWidget() {
-  const { t } = useTranslation()
+  const { t } = useTranslation(['dashboard', 'accounts'])
+  const { locale } = useLocale()
   const accountsQuery = useAccounts()
   const accounts = accountsQuery.data
   const { loading, loadError, reload } = useQueryState(accountsQuery)
@@ -32,14 +35,17 @@ export function AccountBalancesWidget() {
   if (loadError) return <LoadFailedNotice message={loadError} onRetry={reload} />
   if (accounts === undefined) {
     return showSkeleton ? (
-      <Box role="status" aria-label="Loading account balances">
+      <Box role="status" aria-label={t('dashboard:accountBalances.loadingAria')}>
         {[0, 1, 2].map((row) => (
           <Skeleton key={row} variant="text" sx={{ typography: 'body2' }} />
         ))}
       </Box>
     ) : null
   }
-  if (accounts.length === 0) return <Typography color="text.secondary">No accounts yet.</Typography>
+  if (accounts.length === 0)
+    return (
+      <Typography color="text.secondary">{t('dashboard:accountBalances.emptyList')}</Typography>
+    )
 
   return (
     <Table size="small" sx={fadeInSx}>
@@ -51,10 +57,12 @@ export function AccountBalancesWidget() {
                 {account.name}
               </MuiLink>
             </TableCell>
-            <TableCell>{accountTypeLabel(account.type, t)}</TableCell>
+            <TableCell>
+              {accountTypeLabel(account.type, t as unknown as (key: never) => string)}
+            </TableCell>
             <TableCell align="right">
-              {account.balance.toFixed(2)}
-              {account.type === 'CREDIT_CARD' && ' owed'}
+              {formatMoney(account.balance, locale)}
+              {account.type === 'CREDIT_CARD' && t('dashboard:accountBalances.owedSuffix')}
             </TableCell>
           </TableRow>
         ))}
