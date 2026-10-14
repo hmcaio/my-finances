@@ -31,6 +31,8 @@ import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
+import { useLocale } from '../../hooks/locale/useLocale'
+import { formatMoney } from '../../i18n/format'
 import { translateSeedName } from '../../i18n/seedNames'
 import { nameLookup } from '../../utils/nameLookup'
 
@@ -52,7 +54,8 @@ import { nameLookup } from '../../utils/nameLookup'
  * into a `ResponsiveDialog` (full screen below `sm`) with its fields in a `FormGrid`.
  */
 export function PendingOccurrencesWidget() {
-  const { t } = useTranslation()
+  const { t } = useTranslation(['recurringTemplates', 'common'])
+  const { locale } = useLocale()
   const [error, setError] = useState<string | null>(null)
   const templatesQuery = useRecurringTemplates()
   const templates = templatesQuery.data
@@ -163,15 +166,19 @@ export function PendingOccurrencesWidget() {
   }
 
   const columns: ResponsiveColumn<PendingRecurringOccurrence>[] = [
-    { key: 'dueDate', header: 'Due date', render: (o) => o.dueDate },
+    {
+      key: 'dueDate',
+      header: t('recurringTemplates:pending.columns.dueDate'),
+      render: (o) => o.dueDate,
+    },
     {
       key: 'description',
-      header: 'Description',
+      header: t('recurringTemplates:pending.columns.description'),
       render: (o) => templateById(o.templateId)?.description ?? '—',
     },
     {
       key: 'category',
-      header: 'Category',
+      header: t('recurringTemplates:pending.columns.category'),
       tabletPriority: 'low',
       render: (o) => {
         const template = templateById(o.templateId)
@@ -180,13 +187,18 @@ export function PendingOccurrencesWidget() {
     },
     {
       key: 'account',
-      header: 'Account',
+      header: t('recurringTemplates:pending.columns.account'),
       render: (o) => {
         const template = templateById(o.templateId)
         return template ? accountName(template.accountId) : '—'
       },
     },
-    { key: 'amount', header: 'Amount', align: 'right', render: (o) => o.amount.toFixed(2) },
+    {
+      key: 'amount',
+      header: t('recurringTemplates:pending.columns.amount'),
+      align: 'right',
+      render: (o) => formatMoney(o.amount, locale),
+    },
   ]
 
   function rowActions(occurrence: PendingRecurringOccurrence) {
@@ -194,14 +206,14 @@ export function PendingOccurrencesWidget() {
       <>
         <IconButton
           size="small"
-          aria-label="Confirm occurrence"
+          aria-label={t('recurringTemplates:pending.confirmAria')}
           onClick={() => openConfirm(occurrence)}
         >
           <CheckCircleIcon fontSize="small" />
         </IconButton>
         <IconButton
           size="small"
-          aria-label="Dismiss occurrence"
+          aria-label={t('recurringTemplates:pending.dismissAria')}
           onClick={() => setDismissTarget(occurrence)}
         >
           <CloseIcon fontSize="small" />
@@ -219,7 +231,7 @@ export function PendingOccurrencesWidget() {
             {template?.description ?? '—'}
           </Typography>
           <Typography variant="subtitle1" component="div" sx={{ flexShrink: 0, fontWeight: 600 }}>
-            {occurrence.amount.toFixed(2)}
+            {formatMoney(occurrence.amount, locale)}
           </Typography>
         </Box>
         <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
@@ -236,7 +248,7 @@ export function PendingOccurrencesWidget() {
   return (
     <Box>
       <Typography variant="h5" component="h2" gutterBottom>
-        Upcoming recurring bills
+        {t('recurringTemplates:pending.title')}
       </Typography>
 
       <ErrorAlert
@@ -245,7 +257,7 @@ export function PendingOccurrencesWidget() {
       />
 
       <ResponsiveTable
-        aria-label="Upcoming recurring bills"
+        aria-label={t('recurringTemplates:pending.aria')}
         columns={columns}
         rows={pending}
         getRowKey={(occurrence) => occurrence.id}
@@ -253,20 +265,20 @@ export function PendingOccurrencesWidget() {
         onRetry={retry}
         actions={rowActions}
         renderCard={renderCard}
-        emptyMessage="Nothing pending right now."
+        emptyMessage={t('recurringTemplates:pending.emptyList')}
       />
 
       <ResponsiveDialog
         open={confirmTarget !== null}
         onClose={confirming ? undefined : closeConfirm}
       >
-        <DialogTitle>Confirm recurring occurrence</DialogTitle>
+        <DialogTitle>{t('recurringTemplates:pending.confirmDialogTitle')}</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
             <ErrorAlert message={error} onDismiss={() => setError(null)} />
             <FormGrid>
               <TextField
-                label="Amount"
+                label={t('recurringTemplates:amountLabel')}
                 type="number"
                 size="small"
                 value={confirmAmount}
@@ -274,7 +286,7 @@ export function PendingOccurrencesWidget() {
                 slotProps={{ htmlInput: { step: '0.01', min: '0.01' } }}
               />
               <TextField
-                label="Date"
+                label={t('recurringTemplates:pending.dateLabel')}
                 type="date"
                 size="small"
                 value={confirmDate}
@@ -286,10 +298,10 @@ export function PendingOccurrencesWidget() {
                 displayEmpty
                 value={confirmAccountId}
                 onChange={(e) => setConfirmAccountId(e.target.value)}
-                aria-label="Account"
+                aria-label={t('recurringTemplates:pending.accountLabel')}
               >
                 <MenuItem value="" disabled>
-                  Account
+                  {t('recurringTemplates:pending.accountLabel')}
                 </MenuItem>
                 {accounts?.map((a) => (
                   <MenuItem key={a.id} value={a.id}>
@@ -302,14 +314,14 @@ export function PendingOccurrencesWidget() {
                 displayEmpty
                 value={confirmPaymentMethodId}
                 onChange={(e) => setConfirmPaymentMethodId(e.target.value)}
-                aria-label="Payment Method"
+                aria-label={t('recurringTemplates:pending.paymentMethodLabel')}
               >
                 <MenuItem value="" disabled>
-                  Payment Method
+                  {t('recurringTemplates:pending.paymentMethodLabel')}
                 </MenuItem>
                 {paymentMethods?.map((p) => (
                   <MenuItem key={p.id} value={p.id}>
-                    {p.name}
+                    {translateSeedName('paymentMethods', p.name, t)}
                   </MenuItem>
                 ))}
               </Select>
@@ -318,23 +330,23 @@ export function PendingOccurrencesWidget() {
         </DialogContent>
         <DialogActions>
           <Button onClick={closeConfirm} disabled={confirming}>
-            Cancel
+            {t('common:actions.cancel')}
           </Button>
           <Button
             variant="contained"
             disabled={confirming || !isConfirmValid()}
             onClick={() => void handleConfirm()}
           >
-            Confirm
+            {t('recurringTemplates:pending.confirmButton')}
           </Button>
         </DialogActions>
       </ResponsiveDialog>
 
       <ConfirmDialog
         open={dismissTarget !== null}
-        title="Dismiss this occurrence?"
-        body="No transaction will be created for it. This can't be undone, but the next catch-up run won't regenerate it either."
-        confirmLabel="Dismiss"
+        title={t('recurringTemplates:pending.dismissConfirm.title')}
+        body={t('recurringTemplates:pending.dismissConfirm.body')}
+        confirmLabel={t('recurringTemplates:pending.dismissConfirm.confirmLabel')}
         loading={dismissing}
         onConfirm={() => void handleDismiss()}
         onCancel={() => setDismissTarget(null)}

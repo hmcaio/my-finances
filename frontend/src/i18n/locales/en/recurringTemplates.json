@@ -1,0 +1,54 @@
+{
+  "title": "Recurring Templates",
+  "addButton": "Add recurring template",
+  "description": "Versioned recurring bills/income. Editing the amount or day-of-month always takes effect from the current month forward - it never rewrites past pending or confirmed occurrences.",
+  "aria": "Recurring templates",
+  "emptyList": "No recurring templates yet.",
+  "columns": {
+    "description": "Description",
+    "category": "Category",
+    "account": "Account",
+    "amount": "Amount",
+    "dayOfMonth": "Day of month",
+    "status": "Status"
+  },
+  "noCapYet": "No cap yet",
+  "statusActive": "Active",
+  "statusStopped": "Stopped",
+  "editAmountDayAction": "Edit amount and day",
+  "saveCapAction": "Save cap",
+  "stopAria": "Stop",
+  "reactivateAria": "Reactivate",
+  "dayPrefix": "Day",
+  "addDialogTitle": "Add recurring template",
+  "categoryLabel": "Category",
+  "accountLabel": "Account",
+  "descriptionLabel": "Description",
+  "amountLabel": "Amount",
+  "dayOfMonthLabel": "Day of month",
+  "editDialogTitle": "Edit amount and day",
+  "pending": {
+    "title": "Upcoming recurring bills",
+    "aria": "Upcoming recurring bills",
+    "emptyList": "Nothing pending right now.",
+    "columns": {
+      "dueDate": "Due date",
+      "description": "Description",
+      "category": "Category",
+      "account": "Account",
+      "amount": "Amount"
+    },
+    "confirmAria": "Confirm occurrence",
+    "dismissAria": "Dismiss occurrence",
+    "confirmDialogTitle": "Confirm recurring occurrence",
+    "dateLabel": "Date",
+    "accountLabel": "Account",
+    "paymentMethodLabel": "Payment Method",
+    "confirmButton": "Confirm",
+    "dismissConfirm": {
+      "title": "Dismiss this occurrence?",
+      "body": "No transaction will be created for it. This can't be undone, but the next catch-up run won't regenerate it either.",
+      "confirmLabel": "Dismiss"
+    }
+  }
+}

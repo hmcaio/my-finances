@@ -32,7 +32,7 @@ Each area: add its `common`/`<area>` namespace entries (`en` + `pt-BR`), swap ha
 - [x] Investments dashboard (`InvestmentsPage`, `InvestmentAllocationChart`, `FlatAllocationDonutChart`).
 - [x] Budgets (`BudgetsPage`, `BudgetVsActualReport`).
 - [x] Transactions (`TransactionsPage`, `AccountTransactionList`) and Transfers (`TransfersPage`, `TransferForm`, `AccountTransferList`).
-- [ ] Recurring templates (`RecurringTemplatesPage`, `PendingOccurrencesWidget`).
+- [x] Recurring templates (`RecurringTemplatesPage`, `PendingOccurrencesWidget`).
 - [ ] Fuel (`FuelPage`, `FuelTimeSeriesChart`) — fuel-category seed name from `V18`.
 - [ ] FII (`FiiPage`, `AllocationPlanEditor`, `DividendHistorySection`, `FiiNestedAllocationDonutChart`) — dividend-category seed name from `V20`.
 - [ ] Net worth (`NetWorthTrendChart`) and dashboard widgets (`AccountBalancesWidget`, `SpendByCategoryWidget`).

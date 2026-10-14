@@ -13,6 +13,7 @@ import investmentsEn from './locales/en/investments.json'
 import budgetsEn from './locales/en/budgets.json'
 import transactionsEn from './locales/en/transactions.json'
 import transfersEn from './locales/en/transfers.json'
+import recurringTemplatesEn from './locales/en/recurringTemplates.json'
 import commonPtBR from './locales/pt-BR/common.json'
 import errorsPtBR from './locales/pt-BR/errors.json'
 import categoriesPtBR from './locales/pt-BR/categories.json'
@@ -25,6 +26,7 @@ import investmentsPtBR from './locales/pt-BR/investments.json'
 import budgetsPtBR from './locales/pt-BR/budgets.json'
 import transactionsPtBR from './locales/pt-BR/transactions.json'
 import transfersPtBR from './locales/pt-BR/transfers.json'
+import recurringTemplatesPtBR from './locales/pt-BR/recurringTemplates.json'
 
 export const defaultNS = 'common'
 
@@ -49,6 +51,7 @@ export const resources = {
     budgets: budgetsEn,
     transactions: transactionsEn,
     transfers: transfersEn,
+    recurringTemplates: recurringTemplatesEn,
   },
   'pt-BR': {
     common: commonPtBR,
@@ -63,6 +66,7 @@ export const resources = {
     budgets: budgetsPtBR,
     transactions: transactionsPtBR,
     transfers: transfersPtBR,
+    recurringTemplates: recurringTemplatesPtBR,
   },
 } as const
 
