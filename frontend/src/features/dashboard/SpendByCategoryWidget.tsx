@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Box, LinearProgress, Skeleton, Typography } from '@mui/material'
 import { useCategories } from '../../api/categories/categoriesQueries'
 import { useSpendByCategory } from '../../api/transactions/transactionsQueries'
@@ -6,6 +7,7 @@ import { fadeInSx } from '../../components/feedback/fadeIn'
 import { LoadFailedNotice } from '../../components/feedback/LoadFailedNotice'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
+import { translateSeedName } from '../../i18n/seedNames'
 import { currentMonth } from '../../utils/localDate'
 import { nameLookup } from '../../utils/nameLookup'
 
@@ -16,6 +18,7 @@ import { nameLookup } from '../../utils/nameLookup'
  * report it lists every category with spending, budgeted or not.
  */
 export function SpendByCategoryWidget() {
+  const { t } = useTranslation()
   const spendQuery = useSpendByCategory(currentMonth())
   const spend = spendQuery.data
   const spendState = useQueryState(spendQuery)
@@ -25,7 +28,10 @@ export function SpendByCategoryWidget() {
   // Names are needed to render a row, so both fetches gate it (no raw ids on screen).
   const state = combineLoadState(categoriesState, spendState)
   const showSkeleton = useDelayedFlag(state.loading)
-  const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
+  const categoryName = useMemo(
+    () => nameLookup(categories ?? [], (c) => translateSeedName('categories', c.name, t)),
+    [categories, t],
+  )
 
   if (state.loadError) return <LoadFailedNotice message={state.loadError} onRetry={state.reload} />
   if (spend === undefined || categories === undefined) {

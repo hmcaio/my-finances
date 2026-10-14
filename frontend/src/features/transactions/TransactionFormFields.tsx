@@ -1,8 +1,10 @@
 import { MenuItem, Select, TextField } from '@mui/material'
+import { useTranslation } from 'react-i18next'
 import type { Account } from '../../api/accounts/accounts'
 import type { Category } from '../../api/categories/categories'
 import type { PaymentMethod } from '../../api/paymentMethods/paymentMethods'
 import type { Vehicle } from '../../api/vehicles/vehicles'
+import { translateSeedName } from '../../i18n/seedNames'
 import { FUEL_TYPES, fuelTypeLabel } from '../../utils/fuelType'
 import type { TransactionFormValues } from './transactionForm'
 
@@ -45,6 +47,7 @@ export function TransactionFormFields({
   paymentMethods,
   vehicles,
 }: TransactionFormFieldsProps) {
+  const { t } = useTranslation()
   const selectedCategory = categories?.find((c) => c.id === form.categoryId)
   const isFuelCategory = selectedCategory?.fuelCategory ?? false
 
@@ -84,7 +87,7 @@ export function TransactionFormFields({
         </MenuItem>
         {categories?.map((c) => (
           <MenuItem key={c.id} value={c.id}>
-            {c.name}
+            {translateSeedName('categories', c.name, t)}
           </MenuItem>
         ))}
       </Select>
@@ -118,7 +121,7 @@ export function TransactionFormFields({
         </MenuItem>
         {paymentMethods?.map((p) => (
           <MenuItem key={p.id} value={p.id}>
-            {p.name}
+            {translateSeedName('paymentMethods', p.name, t)}
           </MenuItem>
         ))}
       </Select>

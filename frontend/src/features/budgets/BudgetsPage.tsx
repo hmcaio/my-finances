@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Box,
   Button,
@@ -30,6 +31,7 @@ import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/R
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useIsMobile } from '../../hooks/useBreakpointBand'
 import { currentMonth } from '../../utils/localDate'
+import { translateSeedName } from '../../i18n/seedNames'
 import { nameLookup } from '../../utils/nameLookup'
 import { BudgetCapField } from './BudgetEditFields'
 import { isBudgetCapValid } from './budgetEdit'
@@ -53,6 +55,7 @@ import { BudgetVsActualReport } from './BudgetVsActualReport'
  * `ResponsiveTable`.
  */
 export function BudgetsPage() {
+  const { t } = useTranslation()
   const [error, setError] = useState<string | null>(null)
   const isMobile = useIsMobile()
   const categoriesQuery = useCategories()
@@ -79,7 +82,10 @@ export function BudgetsPage() {
 
   const [reportMonth, setReportMonth] = useState(currentMonth())
 
-  const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
+  const categoryName = useMemo(
+    () => nameLookup(categories ?? [], (c) => translateSeedName('categories', c.name, t)),
+    [categories, t],
+  )
 
   const unbudgetedExpenseCategories = useMemo(() => {
     const budgetedCategoryIds = new Set((budgets ?? []).map((b) => b.categoryId))
@@ -282,7 +288,7 @@ export function BudgetsPage() {
                 </MenuItem>
                 {unbudgetedExpenseCategories.map((c) => (
                   <MenuItem key={c.id} value={c.id}>
-                    {c.name}
+                    {translateSeedName('categories', c.name, t)}
                   </MenuItem>
                 ))}
               </Select>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type PropsWithChildren } from 'react'
+import { useLayoutEffect, useMemo, useState, type PropsWithChildren } from 'react'
 import i18n from '../../i18n/i18n'
 import { LocaleContext, type Locale, type LocaleContextValue } from './useLocale'
 
@@ -18,11 +18,14 @@ function getInitialLocale(): Locale {
  * else `en`), then persisted to `localStorage`. The one difference from `ColorModeProvider` is
  * the effect below: `i18next` is a mutable singleton outside React, so syncing it to the current
  * `locale` needs an explicit side effect rather than just feeding a value to `<ThemeProvider>`.
+ * A layout effect (not a plain effect) so it runs before the browser paints - `i18n.ts`'s own
+ * module-level `lng: 'en'` is otherwise visible for one paint on every load, including a
+ * `pt-BR`-detected one.
  */
 export function LocaleProvider({ children }: PropsWithChildren) {
   const [locale, setLocale] = useState<Locale>(getInitialLocale)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     void i18n.changeLanguage(locale)
   }, [locale])
 

@@ -2,5 +2,34 @@
   "language": {
     "switchToEnglish": "Mudar para inglês",
     "switchToPortuguese": "Mudar para português (Brasil)"
+  },
+  "actions": {
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "rename": "Renomear",
+    "save": "Salvar",
+    "add": "Adicionar",
+    "name": "Nome",
+    "actions": "Ações"
+  },
+  "seedNames": {
+    "categories": {
+      "groceries": "Mercado",
+      "rent": "Aluguel",
+      "utilities": "Utilidades",
+      "subscriptions": "Assinaturas",
+      "transport": "Transporte",
+      "dining": "Restaurantes",
+      "health": "Saúde",
+      "otherExpense": "Outras Despesas",
+      "salary": "Salário",
+      "otherIncome": "Outras Receitas"
+    },
+    "paymentMethods": {
+      "debitCard": "Cartão de Débito",
+      "creditCard": "Cartão de Crédito",
+      "pix": "PIX",
+      "cash": "Dinheiro"
+    }
   }
 }

@@ -2,5 +2,34 @@
   "language": {
     "switchToEnglish": "Switch to English",
     "switchToPortuguese": "Switch to Portuguese (Brazil)"
+  },
+  "actions": {
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "rename": "Rename",
+    "save": "Save",
+    "add": "Add",
+    "name": "Name",
+    "actions": "Actions"
+  },
+  "seedNames": {
+    "categories": {
+      "groceries": "Groceries",
+      "rent": "Rent",
+      "utilities": "Utilities",
+      "subscriptions": "Subscriptions",
+      "transport": "Transport",
+      "dining": "Dining",
+      "health": "Health",
+      "otherExpense": "Other Expense",
+      "salary": "Salary",
+      "otherIncome": "Other Income"
+    },
+    "paymentMethods": {
+      "debitCard": "Debit Card",
+      "creditCard": "Credit Card",
+      "pix": "PIX",
+      "cash": "Cash"
+    }
   }
 }

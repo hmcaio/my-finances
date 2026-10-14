@@ -3,8 +3,12 @@ import { initReactI18next } from 'react-i18next'
 
 import commonEn from './locales/en/common.json'
 import errorsEn from './locales/en/errors.json'
+import categoriesEn from './locales/en/categories.json'
+import paymentMethodsEn from './locales/en/paymentMethods.json'
 import commonPtBR from './locales/pt-BR/common.json'
 import errorsPtBR from './locales/pt-BR/errors.json'
+import categoriesPtBR from './locales/pt-BR/categories.json'
+import paymentMethodsPtBR from './locales/pt-BR/paymentMethods.json'
 
 export const defaultNS = 'common'
 
@@ -19,17 +23,28 @@ export const resources = {
   en: {
     common: commonEn,
     errors: errorsEn,
+    categories: categoriesEn,
+    paymentMethods: paymentMethodsEn,
   },
   'pt-BR': {
     common: commonPtBR,
     errors: errorsPtBR,
+    categories: categoriesPtBR,
+    paymentMethods: paymentMethodsPtBR,
   },
 } as const
 
-// Initial language is set by `LocaleProvider` right after this module is imported (`main.tsx`),
-// from `localStorage`/`navigator.language` - `fallbackLng` only matters for a key missing from the
-// active language's resources, which full-coverage-at-ship (ADR 0027) means should never happen.
+// `lng: 'en'` is this module's own synchronous starting point - `LocaleProvider` (mounted once,
+// by `App.tsx`) immediately drives the real active language from `localStorage`/
+// `navigator.language` via its layout effect, so a real page only ever shows this initial value
+// for the first (pre-effect) paint. It also matches jsdom's default `navigator.language` ('en-US')
+// and this suite's long-standing "English/dot-decimal by default" assumption for every test that
+// renders a component without wrapping it in `LocaleProvider` (most of them - only
+// Layout/App/useLocale tests do). `fallbackLng` only matters for a key missing from the active
+// language's resources, which full-coverage-at-ship (ADR 0027) means should never happen; it stays
+// `pt-BR` per ADR 0027's own "ambiguous defaults to pt-BR" rule.
 void i18n.use(initReactI18next).init({
+  lng: 'en',
   fallbackLng: 'pt-BR',
   defaultNS,
   resources,

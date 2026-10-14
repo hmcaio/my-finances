@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   Box,
@@ -34,6 +35,7 @@ import { ResponsiveFilterBar } from '../../components/layout/ResponsiveFilterBar
 import { PaginationControls } from '../../components/table/PaginationControls'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
+import { translateSeedName } from '../../i18n/seedNames'
 import { nameLookup } from '../../utils/nameLookup'
 import { TransactionFormFields } from './TransactionFormFields'
 import {
@@ -55,6 +57,7 @@ const PAGE_SIZE = 20
  * fields (`TransactionFormFields`) in a `ResponsiveDialog` (full screen below `sm`).
  */
 export function TransactionsPage() {
+  const { t } = useTranslation()
   const [page, setPage] = useState(0)
   const [filters, setFilters] = useState<TransactionFilter>({})
   const [error, setError] = useState<string | null>(null)
@@ -112,11 +115,14 @@ export function TransactionsPage() {
 
   const activeFilterCount = Object.values(filters).filter(Boolean).length
 
-  const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
+  const categoryName = useMemo(
+    () => nameLookup(categories ?? [], (c) => translateSeedName('categories', c.name, t)),
+    [categories, t],
+  )
   const accountName = useMemo(() => nameLookup(accounts ?? [], (a) => a.name), [accounts])
   const paymentMethodName = useMemo(
-    () => nameLookup(paymentMethods ?? [], (p) => p.name),
-    [paymentMethods],
+    () => nameLookup(paymentMethods ?? [], (p) => translateSeedName('paymentMethods', p.name, t)),
+    [paymentMethods, t],
   )
   // An investment account takes no transactions (money moves through transfers, F008), so the
   // form never offers one.
@@ -371,7 +377,7 @@ export function TransactionsPage() {
           <MenuItem value="">All categories</MenuItem>
           {categories?.map((c) => (
             <MenuItem key={c.id} value={c.id}>
-              {c.name}
+              {translateSeedName('categories', c.name, t)}
             </MenuItem>
           ))}
         </Select>
@@ -401,7 +407,7 @@ export function TransactionsPage() {
           <MenuItem value="">All payment methods</MenuItem>
           {paymentMethods?.map((p) => (
             <MenuItem key={p.id} value={p.id}>
-              {p.name}
+              {translateSeedName('paymentMethods', p.name, t)}
             </MenuItem>
           ))}
         </Select>

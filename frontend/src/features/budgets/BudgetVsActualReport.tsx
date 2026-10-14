@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Box, LinearProgress, Paper, Skeleton, Typography } from '@mui/material'
 import { useBudgetReport } from '../../api/budgets/budgetsQueries'
 import { useCategories } from '../../api/categories/categoriesQueries'
@@ -6,6 +7,7 @@ import { fadeInSx } from '../../components/feedback/fadeIn'
 import { LoadFailedNotice } from '../../components/feedback/LoadFailedNotice'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
+import { translateSeedName } from '../../i18n/seedNames'
 import { nameLookup } from '../../utils/nameLookup'
 
 interface BudgetVsActualReportProps {
@@ -19,6 +21,7 @@ interface BudgetVsActualReportProps {
  * data; an over-cap category is flagged in red.
  */
 export function BudgetVsActualReport({ month }: BudgetVsActualReportProps) {
+  const { t } = useTranslation()
   const categoriesQuery = useCategories()
   const categories = categoriesQuery.data
   const categoriesState = useQueryState(categoriesQuery)
@@ -29,7 +32,10 @@ export function BudgetVsActualReport({ month }: BudgetVsActualReportProps) {
   // The report also names categories, so it waits for that list too (no raw ids in the lines).
   const view = combineLoadState(categoriesState, reportState)
   const showSkeleton = useDelayedFlag(view.loading)
-  const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
+  const categoryName = useMemo(
+    () => nameLookup(categories ?? [], (c) => translateSeedName('categories', c.name, t)),
+    [categories, t],
+  )
 
   return (
     <Paper variant="outlined" sx={{ p: 2 }} aria-busy={view.loading}>

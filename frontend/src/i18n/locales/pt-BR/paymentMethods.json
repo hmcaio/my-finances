@@ -1,0 +1,7 @@
+{
+  "title": "Formas de Pagamento",
+  "description": "Por qual meio a transação foi feita (cartão de débito, PIX, dinheiro, ...) - apenas informativo, não afeta o saldo das contas.",
+  "addButton": "Adicionar forma de pagamento",
+  "addDialogTitle": "Adicionar forma de pagamento",
+  "emptyList": "Nenhuma forma de pagamento ainda."
+}

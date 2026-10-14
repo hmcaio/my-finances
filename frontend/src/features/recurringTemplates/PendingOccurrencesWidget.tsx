@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Box,
   Button,
@@ -30,6 +31,7 @@ import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
+import { translateSeedName } from '../../i18n/seedNames'
 import { nameLookup } from '../../utils/nameLookup'
 
 /**
@@ -50,6 +52,7 @@ import { nameLookup } from '../../utils/nameLookup'
  * into a `ResponsiveDialog` (full screen below `sm`) with its fields in a `FormGrid`.
  */
 export function PendingOccurrencesWidget() {
+  const { t } = useTranslation()
   const [error, setError] = useState<string | null>(null)
   const templatesQuery = useRecurringTemplates()
   const templates = templatesQuery.data
@@ -83,7 +86,10 @@ export function PendingOccurrencesWidget() {
     const map = new Map((templates ?? []).map((t) => [t.id, t]))
     return (id: string) => map.get(id)
   }, [templates])
-  const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
+  const categoryName = useMemo(
+    () => nameLookup(categories ?? [], (c) => translateSeedName('categories', c.name, t)),
+    [categories, t],
+  )
   const accountName = useMemo(() => nameLookup(accounts ?? [], (a) => a.name), [accounts])
 
   function openConfirm(occurrence: PendingRecurringOccurrence) {

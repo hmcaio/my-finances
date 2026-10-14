@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Box } from '@mui/material'
 import { useCategories } from '../../api/categories/categoriesQueries'
 import { usePaymentMethods } from '../../api/paymentMethods/paymentMethodsQueries'
@@ -8,6 +9,7 @@ import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { PaginationControls } from '../../components/table/PaginationControls'
+import { translateSeedName } from '../../i18n/seedNames'
 import { nameLookup } from '../../utils/nameLookup'
 
 const PAGE_SIZE = 10
@@ -27,6 +29,7 @@ interface AccountTransactionListProps {
  * date, then the labelled fields), the Payment Method column behind the row expander on tablet.
  */
 export function AccountTransactionList({ accountId }: AccountTransactionListProps) {
+  const { t } = useTranslation()
   const [page, setPage] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const categoriesQuery = useCategories()
@@ -45,10 +48,13 @@ export function AccountTransactionList({ accountId }: AccountTransactionListProp
     : null
   const transactionsState = useQueryState(transactionsQuery, setError)
 
-  const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
+  const categoryName = useMemo(
+    () => nameLookup(categories ?? [], (c) => translateSeedName('categories', c.name, t)),
+    [categories, t],
+  )
   const paymentMethodName = useMemo(
-    () => nameLookup(paymentMethods ?? [], (p) => p.name),
-    [paymentMethods],
+    () => nameLookup(paymentMethods ?? [], (p) => translateSeedName('paymentMethods', p.name, t)),
+    [paymentMethods, t],
   )
 
   // One load state for the table plus the lookup lists behind its name columns: rows show only

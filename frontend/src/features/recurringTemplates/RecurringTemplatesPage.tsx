@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Box,
   Button,
@@ -32,6 +33,7 @@ import { InlineEditActions } from '../../components/table/InlineEditActions'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useIsMobile } from '../../hooks/useBreakpointBand'
+import { translateSeedName } from '../../i18n/seedNames'
 import { currentMonth } from '../../utils/localDate'
 import { nameLookup } from '../../utils/nameLookup'
 import { PendingOccurrencesWidget } from './PendingOccurrencesWidget'
@@ -66,6 +68,7 @@ const EMPTY_CREATE_FORM = {
  * page's own report.
  */
 export function RecurringTemplatesPage() {
+  const { t } = useTranslation()
   const [error, setError] = useState<string | null>(null)
   const isMobile = useIsMobile()
   const categoriesQuery = useCategories()
@@ -93,7 +96,10 @@ export function RecurringTemplatesPage() {
 
   const [togglingId, setTogglingId] = useState<string | null>(null)
 
-  const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
+  const categoryName = useMemo(
+    () => nameLookup(categories ?? [], (c) => translateSeedName('categories', c.name, t)),
+    [categories, t],
+  )
   const accountName = useMemo(() => nameLookup(accounts ?? [], (a) => a.name), [accounts])
   // An investment account takes no recurring templates (money moves through transfers, F008), so
   // the form never offers one.
@@ -374,7 +380,7 @@ export function RecurringTemplatesPage() {
                 </MenuItem>
                 {templateCategories.map((c) => (
                   <MenuItem key={c.id} value={c.id}>
-                    {c.name}
+                    {translateSeedName('categories', c.name, t)}
                   </MenuItem>
                 ))}
               </Select>
