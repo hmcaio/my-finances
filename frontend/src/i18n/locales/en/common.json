@@ -30,6 +30,9 @@
       "creditCard": "Credit Card",
       "pix": "PIX",
       "cash": "Cash"
+    },
+    "institutions": {
+      "noInstitution": "No institution"
     }
   }
 }

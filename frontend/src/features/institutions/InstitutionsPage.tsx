@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Box,
   Button,
@@ -29,6 +30,7 @@ import { FormGrid, ResponsiveDialog } from '../../components/feedback/Responsive
 import { InlineEditActions } from '../../components/table/InlineEditActions'
 import { DataTableBody } from '../../components/table/DataTableBody'
 import { useQueryState } from '../../hooks/queryState'
+import { translateSeedName } from '../../i18n/seedNames'
 import { sortInstitutions } from './sortInstitutions'
 
 /**
@@ -45,6 +47,7 @@ import { sortInstitutions } from './sortInstitutions'
  * as on desktop.
  */
 export function InstitutionsPage() {
+  const { t } = useTranslation(['institutions', 'common'])
   const [error, setError] = useState<string | null>(null)
   const institutionsQuery = useInstitutions()
   const institutions = institutionsQuery.data
@@ -134,16 +137,14 @@ export function InstitutionsPage() {
         }}
       >
         <Typography variant="h4" component="h1">
-          Institutions
+          {t('institutions:title')}
         </Typography>
         <Button variant="contained" onClick={() => setAddDialogOpen(true)}>
-          Add institution
+          {t('institutions:addButton')}
         </Button>
       </Box>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        The banks, brokers and card issuers your accounts sit at. Every account has one; use "No
-        institution" for money that isn't at any (a cash wallet, for example). An institution can be
-        deleted once no account uses it.
+        {t('institutions:description')}
       </Typography>
 
       {/* While the add dialog is open a save error shows inside it: this one sits behind it. */}
@@ -154,15 +155,15 @@ export function InstitutionsPage() {
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell>{t('common:actions.name')}</TableCell>
+                <TableCell align="right">{t('common:actions.actions')}</TableCell>
               </TableRow>
             </TableHead>
             <DataTableBody state={institutionsState} onRetry={retry} columns={2} actionsColumn>
               {institutions?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={2} align="center">
-                    <Typography color="text.secondary">No institutions yet.</Typography>
+                    <Typography color="text.secondary">{t('institutions:emptyList')}</Typography>
                   </TableCell>
                 </TableRow>
               )}
@@ -182,7 +183,7 @@ export function InstitutionsPage() {
                         }}
                       />
                     ) : (
-                      institution.name
+                      translateSeedName('institutions', institution.name, t)
                     )}
                   </TableCell>
                   <TableCell align="right">
@@ -191,12 +192,12 @@ export function InstitutionsPage() {
                       onEdit={() => startEdit(institution)}
                       onSave={() => void saveEdit(institution.id)}
                       onCancel={cancelEdit}
-                      editLabel="Rename"
+                      editLabel={t('common:actions.rename')}
                     />
                     {editingId !== institution.id && !institution.builtIn && (
                       <IconButton
                         size="small"
-                        aria-label="Delete"
+                        aria-label={t('common:actions.delete')}
                         disabled={pendingDeleteId === institution.id}
                         onClick={() => void handleDelete(institution.id)}
                       >
@@ -212,13 +213,13 @@ export function InstitutionsPage() {
       </Paper>
 
       <ResponsiveDialog open={addDialogOpen} onClose={closeAddDialog}>
-        <DialogTitle>Add institution</DialogTitle>
+        <DialogTitle>{t('institutions:addDialogTitle')}</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
             <ErrorAlert message={error} onDismiss={() => setError(null)} />
             <FormGrid columns={1}>
               <TextField
-                label="Name"
+                label={t('common:actions.name')}
                 size="small"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
@@ -233,14 +234,14 @@ export function InstitutionsPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={closeAddDialog} disabled={adding}>
-            Cancel
+            {t('common:actions.cancel')}
           </Button>
           <Button
             variant="contained"
             disabled={adding || !newName.trim()}
             onClick={() => void handleAdd()}
           >
-            Add
+            {t('common:actions.add')}
           </Button>
         </DialogActions>
       </ResponsiveDialog>

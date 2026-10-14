@@ -26,7 +26,7 @@ One feature branch (`feature/f033-i18n-pt-br-en`), one commit per phase (per are
 ## Phase 3 — Seed-name translation + per-area string/formatting migration
 Each area: add its `common`/`<area>` namespace entries (`en` + `pt-BR`), swap hardcoded JSX strings for `t('<namespace>.key')`, swap `.toFixed()`/hardcoded-`'en-US'` calls for `src/i18n/format.ts`, update that area's existing tests for any amount fixture ≥ 1000 (new thousands separator), then commit.
 - [x] `src/i18n/seedNames.ts` + categories/payment methods (`CategoriesPage`, `PaymentMethodsPage`): build the seed-name lookups from `V2`'s literal strings, wire `translateSeedName` into both pages' list rendering and anywhere else a category/payment-method name renders (transaction/transfer/budget/recurring-template lists, dashboard widgets).
-- [ ] Institutions (`InstitutionsPage`, `InstitutionSelect`): seed-name lookup from `V12`'s `'No institution'`.
+- [x] Institutions (`InstitutionsPage`, `InstitutionSelect`): seed-name lookup from `V12`'s `'No institution'`.
 - [ ] Accounts (`AccountsPage`, `AccountDetailPage`): strings + formatting.
 - [ ] Investment taxonomy (`InvestmentCategoriesPage` or equivalent) + investment products (`InvestmentProductDetailPage`, `InvestmentProductsSection`, `ValueSeriesChart`): seed-name lookups from `V13`'s categories/sub-categories, plus strings/formatting.
 - [ ] Investments dashboard (`InvestmentsPage`, `InvestmentAllocationChart`, `FlatAllocationDonutChart`).

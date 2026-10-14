@@ -5,10 +5,12 @@ import commonEn from './locales/en/common.json'
 import errorsEn from './locales/en/errors.json'
 import categoriesEn from './locales/en/categories.json'
 import paymentMethodsEn from './locales/en/paymentMethods.json'
+import institutionsEn from './locales/en/institutions.json'
 import commonPtBR from './locales/pt-BR/common.json'
 import errorsPtBR from './locales/pt-BR/errors.json'
 import categoriesPtBR from './locales/pt-BR/categories.json'
 import paymentMethodsPtBR from './locales/pt-BR/paymentMethods.json'
+import institutionsPtBR from './locales/pt-BR/institutions.json'
 
 export const defaultNS = 'common'
 
@@ -25,12 +27,14 @@ export const resources = {
     errors: errorsEn,
     categories: categoriesEn,
     paymentMethods: paymentMethodsEn,
+    institutions: institutionsEn,
   },
   'pt-BR': {
     common: commonPtBR,
     errors: errorsPtBR,
     categories: categoriesPtBR,
     paymentMethods: paymentMethodsPtBR,
+    institutions: institutionsPtBR,
   },
 } as const
 

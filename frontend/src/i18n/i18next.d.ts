@@ -2,6 +2,7 @@ import type commonEn from './locales/en/common.json'
 import type errorsEn from './locales/en/errors.json'
 import type categoriesEn from './locales/en/categories.json'
 import type paymentMethodsEn from './locales/en/paymentMethods.json'
+import type institutionsEn from './locales/en/institutions.json'
 
 /**
  * Types `t()` call sites against the `en` resources (the canonical key set, F033/ADR 0027) - a
@@ -17,6 +18,7 @@ declare module 'i18next' {
       errors: typeof errorsEn
       categories: typeof categoriesEn
       paymentMethods: typeof paymentMethodsEn
+      institutions: typeof institutionsEn
     }
   }
 }

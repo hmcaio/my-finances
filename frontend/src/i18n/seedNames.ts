@@ -39,7 +39,9 @@ const PAYMENT_METHOD_SEED_NAMES: Record<string, string> = {
 }
 
 /** V12's single built-in institution. */
-const INSTITUTION_SEED_NAMES: Record<string, string> = {}
+const INSTITUTION_SEED_NAMES: Record<string, string> = {
+  'No institution': 'common:seedNames.institutions.noInstitution',
+}
 
 /** V13's starter investment categories. */
 const INVESTMENT_CATEGORY_SEED_NAMES: Record<string, string> = {}
