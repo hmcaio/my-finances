@@ -1,4 +1,5 @@
 import { Box, Button, Typography } from '@mui/material'
+import { useTranslation } from 'react-i18next'
 
 interface LoadFailedNoticeProps {
   /** What failed to load, e.g. the fetch's error message. */
@@ -11,11 +12,12 @@ interface LoadFailedNoticeProps {
  * `ErrorAlert` banner, it stays in place until a retry succeeds.
  */
 export function LoadFailedNotice({ message, onRetry }: LoadFailedNoticeProps) {
+  const { t } = useTranslation()
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-      <Typography color="text.secondary">Could not load data ({message}).</Typography>
+      <Typography color="text.secondary">{t('loadFailed.message', { error: message })}</Typography>
       <Button size="small" onClick={onRetry}>
-        Retry
+        {t('loadFailed.retry')}
       </Button>
     </Box>
   )

@@ -40,8 +40,11 @@ interface FuelTimeSeriesChartProps {
   series: FuelSeries[]
   /** Accessible name of the chart. */
   label: string
-  /** How a raw value is formatted for the axis/tooltip (e.g. 2 decimals for money, 3 for L/km). */
-  formatValue?: (value: number) => string
+  /** How a raw value is formatted for the axis/tooltip (e.g. 2 decimals for money, 3 for L/km).
+   * No locale-unaware default (F033/ADR 0027): every caller passes its own, already-locale-aware
+   * formatter (`formatMoney`/`formatNumber` from `src/i18n/format.ts`), since this component has
+   * no `locale` of its own to fall back on. */
+  formatValue: (value: number) => string
   /** Shown when every series has no points. */
   emptyMessage?: string
   /** Axis label/gridline colors - the caller passes its theme's `text.secondary`/`divider` (same
@@ -63,7 +66,7 @@ interface FuelTimeSeriesChartProps {
 export function FuelTimeSeriesChart({
   series,
   label,
-  formatValue = (v) => v.toFixed(2),
+  formatValue,
   emptyMessage,
   axisColor,
   gridColor,

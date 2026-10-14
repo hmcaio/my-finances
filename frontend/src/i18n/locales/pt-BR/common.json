@@ -40,6 +40,14 @@
     "clearFilters": "Limpar filtros",
     "done": "Concluído"
   },
+  "errorBoundary": {
+    "message": "Algo deu errado nesta página",
+    "reload": "Recarregar"
+  },
+  "loadFailed": {
+    "message": "Não foi possível carregar os dados ({{error}}).",
+    "retry": "Tentar novamente"
+  },
   "backupStatus": {
     "never": "nunca",
     "stale": "desatualizados",

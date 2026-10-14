@@ -48,6 +48,7 @@
       "units": "Units"
     },
     "emptyMonthly": "No data for this period.",
+    "monthlyValuesAria": "Monthly values",
     "tradesTitle": "Trades",
     "tradesAria": "Trades",
     "tradeColumns": {

@@ -290,7 +290,7 @@ export function AccountsPage() {
 
       <Box sx={{ mb: 3 }}>
         <ResponsiveTable
-          aria-label="Accounts"
+          aria-label={t('accounts:title')}
           columns={columns}
           rows={accounts}
           getRowKey={(account) => account.id}

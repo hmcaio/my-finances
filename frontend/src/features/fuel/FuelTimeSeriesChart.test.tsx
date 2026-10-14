@@ -25,6 +25,7 @@ describe('FuelTimeSeriesChart', () => {
         label="Km per liter"
         axisColor={axisColor}
         gridColor={gridColor}
+        formatValue={(v) => v.toFixed(2)}
       />,
     )
 
@@ -53,6 +54,7 @@ describe('FuelTimeSeriesChart', () => {
         label="Km per liter"
         axisColor={axisColor}
         gridColor={gridColor}
+        formatValue={(v) => v.toFixed(2)}
       />,
     )
     const { container: withoutZero } = render(
@@ -62,6 +64,7 @@ describe('FuelTimeSeriesChart', () => {
         axisColor={axisColor}
         gridColor={gridColor}
         zeroBaseline={false}
+        formatValue={(v) => v.toFixed(2)}
       />,
     )
 
@@ -80,6 +83,7 @@ describe('FuelTimeSeriesChart', () => {
         axisColor={axisColor}
         gridColor={gridColor}
         emptyMessage="No fills yet."
+        formatValue={(v) => v.toFixed(2)}
       />,
     )
 

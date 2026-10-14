@@ -680,7 +680,7 @@ export function InvestmentProductDetailPage() {
                 <ValueSeriesChart points={points} />
                 <Box sx={{ mt: 2 }}>
                   <ResponsiveTable
-                    aria-label="Monthly values"
+                    aria-label={t('investmentProducts:detail.monthlyValuesAria')}
                     columns={monthlyColumns}
                     rows={points}
                     getRowKey={(p) => p.month}

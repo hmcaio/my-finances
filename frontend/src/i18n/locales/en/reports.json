@@ -1,0 +1,36 @@
+{
+  "title": "Reports",
+  "subtitle": "Pick one or more reports to generate. Each is read for reading and analysis, not a backup — for that, use a database backup instead. One report downloads its own file; more than one downloads a ZIP.",
+  "types": {
+    "transactionsTransfers": "Transactions & Transfers",
+    "accountBalances": "Account balances",
+    "fiiPortfolio": "FII portfolio",
+    "fuelHistory": "Fuel history & stats",
+    "budgetsSpending": "Budgets & spending by category",
+    "investments": "Investments",
+    "netWorthTrend": "Net worth trend",
+    "recurringTemplates": "Recurring templates / fixed costs summary",
+    "investmentAllocation": "Investment allocation",
+    "dividendIncome": "Dividend income",
+    "annualSummary": "Annual summary"
+  },
+  "filters": {
+    "from": "From",
+    "to": "To",
+    "asOf": "As of",
+    "month": "Month",
+    "accountAria": "Account filter",
+    "categoryAria": "Category filter",
+    "vehicleAria": "Vehicle filter",
+    "netWorthGranularityAria": "Net worth granularity",
+    "allAccounts": "All accounts",
+    "allCategories": "All categories",
+    "allVehicles": "All vehicles",
+    "monthlyOption": "Monthly",
+    "everyChangeOption": "Every change"
+  },
+  "generateButton": "Generate",
+  "generatingButton": "Generating…",
+  "downloaded": "Report downloaded.",
+  "reversedRangeMessage": "The \"From\" date must not be after the \"To\" date."
+}

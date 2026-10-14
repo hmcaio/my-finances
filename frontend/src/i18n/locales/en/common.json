@@ -40,6 +40,14 @@
     "clearFilters": "Clear filters",
     "done": "Done"
   },
+  "errorBoundary": {
+    "message": "Something went wrong on this page",
+    "reload": "Reload"
+  },
+  "loadFailed": {
+    "message": "Could not load data ({{error}}).",
+    "retry": "Retry"
+  },
   "backupStatus": {
     "never": "never",
     "stale": "stale",

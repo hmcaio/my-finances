@@ -7,7 +7,7 @@ import { seedAccounts } from '../../mocks/handlers/accounts'
 import { seedCategories } from '../../mocks/handlers/categories'
 import { seedVehicles } from '../../mocks/handlers/vehicles'
 import { reportsBadRequestHandler } from '../../mocks/handlers/reports'
-import { REVERSED_RANGE_MESSAGE } from '../../api/reports/reports'
+import { reversedRangeMessage } from '../../api/reports/reports'
 import { selectOption } from '../../test/testUtils'
 import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
 import { ReportsPage } from './ReportsPage'
@@ -111,7 +111,7 @@ describe('ReportsPage', () => {
     await user.type(screen.getByLabelText('To'), '2026-01-01')
     await user.click(screen.getByRole('button', { name: 'Generate' }))
 
-    expect(await screen.findByText(REVERSED_RANGE_MESSAGE)).toBeInTheDocument()
+    expect(await screen.findByText(reversedRangeMessage())).toBeInTheDocument()
   })
 
   it('disables Generate until at least one type is checked', () => {

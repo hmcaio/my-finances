@@ -3,6 +3,7 @@ import { apiClient } from '../core/client'
 import { unwrap } from '../core/apiError'
 import type { NetWorthGranularity } from '../netWorth/netWorth'
 import { today } from '../../utils/localDate'
+import i18n from '../../i18n/i18n'
 
 /** The eleven curated report types (F030 spec, PRD S6.9), replacing F013's all-entity export. */
 export type ReportType =
@@ -24,7 +25,8 @@ export type ReportFilterDimension =
 
 export interface ReportTypeInfo {
   type: ReportType
-  label: string
+  /** `t()` key for the checkbox label (F033/ADR 0027 - was a literal English `label` string). */
+  labelKey: string
   /** Matches backend `ReportType.slug()` - used to name a bare (non-zip) downloaded file. */
   slug: string
   dimensions: ReportFilterDimension[]
@@ -34,67 +36,67 @@ export interface ReportTypeInfo {
 export const REPORT_TYPES: ReportTypeInfo[] = [
   {
     type: 'TRANSACTIONS_TRANSFERS',
-    label: 'Transactions & Transfers',
+    labelKey: 'reports:types.transactionsTransfers',
     slug: 'transactions-transfers',
     dimensions: ['dateRange', 'account', 'category'],
   },
   {
     type: 'ACCOUNT_BALANCES',
-    label: 'Account balances',
+    labelKey: 'reports:types.accountBalances',
     slug: 'account-balances',
     dimensions: ['asOfDate', 'account'],
   },
   {
     type: 'FII_PORTFOLIO',
-    label: 'FII portfolio',
+    labelKey: 'reports:types.fiiPortfolio',
     slug: 'fii-portfolio',
     dimensions: ['month'],
   },
   {
     type: 'FUEL_HISTORY',
-    label: 'Fuel history & stats',
+    labelKey: 'reports:types.fuelHistory',
     slug: 'fuel-history',
     dimensions: ['dateRange', 'vehicle'],
   },
   {
     type: 'BUDGETS_SPENDING',
-    label: 'Budgets & spending by category',
+    labelKey: 'reports:types.budgetsSpending',
     slug: 'budgets-spending',
     dimensions: ['month'],
   },
   {
     type: 'INVESTMENTS',
-    label: 'Investments',
+    labelKey: 'reports:types.investments',
     slug: 'investments',
     dimensions: ['asOfDate', 'dateRange'],
   },
   {
     type: 'NET_WORTH_TREND',
-    label: 'Net worth trend',
+    labelKey: 'reports:types.netWorthTrend',
     slug: 'net-worth-trend',
     dimensions: ['dateRange', 'netWorthGranularity'],
   },
   {
     type: 'RECURRING_TEMPLATES',
-    label: 'Recurring templates / fixed costs summary',
+    labelKey: 'reports:types.recurringTemplates',
     slug: 'recurring-templates',
     dimensions: ['asOfDate'],
   },
   {
     type: 'INVESTMENT_ALLOCATION',
-    label: 'Investment allocation',
+    labelKey: 'reports:types.investmentAllocation',
     slug: 'investment-allocation',
     dimensions: ['asOfDate', 'month'],
   },
   {
     type: 'DIVIDEND_INCOME',
-    label: 'Dividend income',
+    labelKey: 'reports:types.dividendIncome',
     slug: 'dividend-income',
     dimensions: ['dateRange'],
   },
   {
     type: 'ANNUAL_SUMMARY',
-    label: 'Annual summary',
+    labelKey: 'reports:types.annualSummary',
     slug: 'annual-summary',
     dimensions: ['month'],
   },
@@ -116,7 +118,11 @@ export interface ReportFilter {
   netWorthGranularity?: NetWorthGranularity
 }
 
-export const REVERSED_RANGE_MESSAGE = 'The "From" date must not be after the "To" date.'
+/** Resolved via the `i18next` singleton, not the `useTranslation()` hook (same `apiError.ts`
+ * pattern, frontend `CLAUDE.md`) - this module is plain data/HTTP, not a React component. */
+export function reversedRangeMessage(): string {
+  return i18n.t('reports:reversedRangeMessage')
+}
 
 /**
  * Generates and downloads the selected reports (F030 spec's `POST /api/reports`). Goes through
