@@ -36,7 +36,7 @@ Each area: add its `common`/`<area>` namespace entries (`en` + `pt-BR`), swap ha
 - [x] Fuel (`FuelPage`, `FuelTimeSeriesChart`) — fuel-category seed name from `V18`.
 - [x] FII (`FiiPage`, `AllocationPlanEditor`, `DividendHistorySection`, `FiiNestedAllocationDonutChart`) — dividend-category seed name from `V20`.
 - [x] Net worth (`NetWorthTrendChart`) and dashboard widgets (`AccountBalancesWidget`, `SpendByCategoryWidget`), plus `DashboardPage`'s own title and section headings.
-- [ ] Activity log (`groupByDay.ts`, `ActivityPage`) — replace the hardcoded `'en-US'` with the active locale.
+- [x] Activity log (`groupByDay.ts`, `ActivityPage`) — replace the hardcoded `'en-US'` with the active locale, plus full string translation (filters, columns, diff table, the entity-type/action/origin enums via the new `activityEnumLabels.ts`, and every per-field label in `fieldLabels.ts`) for the same "every piece of app-owned text" completeness as every other area.
 - [ ] Shared chrome: `Layout` nav labels, `common` buttons (`ConfirmDialog`, `InlineEditActions`, `PaginationControls`, `ResponsiveFilterBar`), `BackupStatusBanner`, onboarding.
 - [ ] After each area: `npm run lint && npm test`.
 

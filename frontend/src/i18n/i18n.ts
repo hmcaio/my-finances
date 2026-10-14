@@ -18,6 +18,7 @@ import fuelEn from './locales/en/fuel.json'
 import fiiEn from './locales/en/fii.json'
 import netWorthEn from './locales/en/netWorth.json'
 import dashboardEn from './locales/en/dashboard.json'
+import activityEn from './locales/en/activity.json'
 import commonPtBR from './locales/pt-BR/common.json'
 import errorsPtBR from './locales/pt-BR/errors.json'
 import categoriesPtBR from './locales/pt-BR/categories.json'
@@ -35,6 +36,7 @@ import fuelPtBR from './locales/pt-BR/fuel.json'
 import fiiPtBR from './locales/pt-BR/fii.json'
 import netWorthPtBR from './locales/pt-BR/netWorth.json'
 import dashboardPtBR from './locales/pt-BR/dashboard.json'
+import activityPtBR from './locales/pt-BR/activity.json'
 
 export const defaultNS = 'common'
 
@@ -64,6 +66,7 @@ export const resources = {
     fii: fiiEn,
     netWorth: netWorthEn,
     dashboard: dashboardEn,
+    activity: activityEn,
   },
   'pt-BR': {
     common: commonPtBR,
@@ -83,6 +86,7 @@ export const resources = {
     fii: fiiPtBR,
     netWorth: netWorthPtBR,
     dashboard: dashboardPtBR,
+    activity: activityPtBR,
   },
 } as const
 

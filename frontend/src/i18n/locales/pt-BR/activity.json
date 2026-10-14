@@ -1,0 +1,149 @@
+{
+  "title": "Atividade",
+  "subtitle": "Toda alteração registrada, mais recente primeiro - o que mudou, quando e por meio de quê (uma ação direta ou gerada pelo sistema).",
+  "filters": {
+    "from": "De",
+    "to": "Até",
+    "entityTypeAria": "Filtro de tipo de entidade",
+    "actionAria": "Filtro de ação",
+    "originAria": "Filtro de origem",
+    "allEntityTypes": "Todos os tipos de entidade",
+    "allActions": "Todas as ações",
+    "allOrigins": "Todas as origens"
+  },
+  "columns": {
+    "time": "Hora",
+    "action": "Ação",
+    "entityType": "Tipo de entidade",
+    "label": "Rótulo",
+    "origin": "Origem"
+  },
+  "expandDetails": "Expandir detalhes",
+  "collapseDetails": "Recolher detalhes",
+  "changesForAria": "Alterações em {{entityType}}",
+  "activityOnAria": "Atividade em {{date}}",
+  "diffTable": {
+    "field": "Campo",
+    "from": "De",
+    "to": "Para"
+  },
+  "noFieldChanges": "Nenhuma alteração de campo registrada.",
+  "noActivity": "Nenhuma atividade encontrada.",
+  "boolean": {
+    "yes": "Sim",
+    "no": "Não"
+  },
+  "entityTypes": {
+    "transaction": "Transação",
+    "transfer": "Transferência",
+    "account": "Conta",
+    "category": "Categoria",
+    "paymentMethod": "Forma de pagamento",
+    "institution": "Instituição",
+    "budget": "Orçamento",
+    "recurringTemplate": "Modelo recorrente",
+    "investmentCategory": "Categoria de investimento",
+    "investmentSubcategory": "Subcategoria de investimento",
+    "investmentProduct": "Produto de investimento",
+    "investmentHolding": "Posição de investimento",
+    "investmentSnapshot": "Snapshot de investimento",
+    "investmentSegment": "Segmento de investimento",
+    "allocationPlan": "Plano de alocação",
+    "vehicle": "Veículo"
+  },
+  "actions": {
+    "create": "Criar",
+    "update": "Atualizar",
+    "delete": "Excluir",
+    "close": "Fechar",
+    "reopen": "Reabrir",
+    "stopped": "Interrompido",
+    "generated": "Gerado"
+  },
+  "origins": {
+    "user": "Usuário",
+    "system": "Sistema"
+  },
+  "fields": {
+    "common": {
+      "name": "Nome",
+      "description": "Descrição",
+      "additionalNotes": "Notas adicionais",
+      "type": "Tipo",
+      "builtIn": "Padrão do sistema",
+      "active": "Ativo",
+      "closedDate": "Data de fechamento",
+      "date": "Data",
+      "effectiveFrom": "Vigente a partir de",
+      "requestId": "ID da requisição"
+    },
+    "transaction": {
+      "amount": "Valor",
+      "categoryId": "Categoria",
+      "accountId": "Conta",
+      "paymentMethodId": "Forma de pagamento",
+      "recurringTemplateVersionId": "Versão do modelo recorrente",
+      "vehicleId": "Veículo",
+      "fuelType": "Tipo de combustível",
+      "liters": "Litros",
+      "pricePerLiter": "Preço por litro",
+      "kmSinceLastFill": "Km desde o último abastecimento",
+      "odometer": "Odômetro",
+      "investmentHoldingId": "Posição de investimento"
+    },
+    "transfer": {
+      "fromAccountId": "Conta de origem",
+      "toAccountId": "Conta de destino",
+      "amount": "Valor",
+      "taxes": "Taxas",
+      "tradeConfirmationLines": "Linhas da confirmação de negociação"
+    },
+    "account": {
+      "institutionId": "Instituição",
+      "openingBalance": "Saldo de abertura",
+      "openingBalanceDate": "Data de abertura"
+    },
+    "category": {
+      "fuelCategory": "Categoria de combustível",
+      "dividendCategory": "Categoria de dividendos"
+    },
+    "budget": {
+      "budgetId": "Orçamento",
+      "monthlyCap": "Limite mensal"
+    },
+    "recurringTemplate": {
+      "categoryId": "Categoria",
+      "accountId": "Conta",
+      "templateId": "Modelo",
+      "amount": "Valor",
+      "dayOfMonth": "Dia do mês",
+      "lastGeneratedFor": "Último gerado para",
+      "count": "Ocorrências geradas",
+      "firstDate": "Primeiro vencimento",
+      "lastDate": "Último vencimento"
+    },
+    "investmentSubcategory": {
+      "investmentCategoryId": "Categoria de investimento"
+    },
+    "investmentProduct": {
+      "investmentCategoryId": "Categoria de investimento",
+      "investmentSubcategoryId": "Subcategoria de investimento",
+      "ticker": "Ticker",
+      "segmentId": "Segmento"
+    },
+    "investmentHolding": {
+      "productId": "Produto",
+      "accountId": "Conta"
+    },
+    "investmentSnapshot": {
+      "holdingId": "Posição",
+      "balance": "Saldo"
+    },
+    "allocationPlan": {
+      "planId": "Plano de alocação",
+      "entries": "Itens",
+      "investmentProductId": "Produto",
+      "targetPercentage": "Percentual-alvo"
+    }
+  }
+}
