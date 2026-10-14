@@ -6,6 +6,7 @@ import { Link, MemoryRouter } from 'react-router-dom'
 import { ThemeProvider } from '@mui/material/styles'
 import { getTheme } from '../../theme'
 import { ColorModeProvider } from '../../hooks/colorMode/ColorModeProvider'
+import { LocaleProvider } from '../../hooks/locale/LocaleProvider'
 import { restoreViewport, setViewportWidth } from '../../test/viewport'
 import { Layout } from './Layout'
 
@@ -14,7 +15,9 @@ function renderLayout({ pageContent }: { pageContent?: ReactNode } = {}) {
     <MemoryRouter initialEntries={['/']}>
       <ThemeProvider theme={getTheme('light')}>
         <ColorModeProvider>
-          <Layout>{pageContent ?? <p>page content</p>}</Layout>
+          <LocaleProvider>
+            <Layout>{pageContent ?? <p>page content</p>}</Layout>
+          </LocaleProvider>
         </ColorModeProvider>
       </ThemeProvider>
     </MemoryRouter>,
@@ -92,6 +95,23 @@ describe('Layout', () => {
       expect(screen.getByRole('button', { name: 'Toggle dark mode' })).toBeVisible()
       unmount()
     }
+  })
+
+  it('toggles the language and reflects it in the button label/aria-label', async () => {
+    setViewportWidth(1280)
+    const user = userEvent.setup({ delay: null })
+    renderLayout()
+
+    // jsdom's default navigator.language is en-US, so the initial guess is English and the
+    // button shows the language it would switch TO (same convention as the dark-mode icon).
+    const toggle = screen.getByRole('button', { name: 'Switch to Portuguese (Brazil)' })
+    expect(toggle).toHaveTextContent('PT')
+
+    await user.click(toggle)
+
+    // The label is now rendered in the language just switched TO (pt-BR), same as the button
+    // text itself: this is the toggle's "switch away from here" aria-label, now in Portuguese.
+    expect(screen.getByRole('button', { name: 'Mudar para inglês' })).toHaveTextContent('EN')
   })
 
   it('groups the settings pages under a Settings subheader and keeps Reports as a normal item', () => {

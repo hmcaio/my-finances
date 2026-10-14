@@ -10,14 +10,14 @@ One feature branch (`feature/f033-i18n-pt-br-en`), one commit per phase (per are
 - [ ] `docs/PRD.md`: three new §3 non-goals, new §6.14, two new §9 future directions.
 
 ## Phase 1 — Infrastructure
-- [ ] Add `react-i18next` + `i18next`.
-- [ ] `src/i18n/i18n.ts`: `i18next.init()` with static-imported `en`/`pt-BR` resources, `common` + `errors` namespaces first (others added as each area migrates in Phase 3); default/fallback language `pt-BR`.
-- [ ] `src/i18n/i18next.d.ts`: module augmentation typing `t()` against the `en` resources.
-- [ ] Test first: `src/i18n/localeParity.test.ts` (fails until every namespace exists with matching keys — starts passing trivially with just `common`/`errors`, grows as later phases add namespaces).
-- [ ] `src/hooks/locale/{LocaleProvider.tsx,useLocale.ts}` mirroring `ColorModeProvider`/`useColorMode`: `localStorage` key `my-finances:locale`, `navigator.language`-based initial detection (`pt*` → `pt-BR`, else `en`, default `pt-BR`), calls `i18next.changeLanguage` on change. Test first (`useLocale.test.tsx`, mirroring `useColorMode.test.tsx`).
-- [ ] Wrap `<LocaleProvider>` in `App.tsx` alongside `<ColorModeProvider>`.
-- [ ] `Layout.tsx`: second header `IconButton` next to the dark/light toggle, calling `useLocale().toggleLocale()`; icon/`aria-label` reflect current language. Update `Layout.test.tsx`.
-- [ ] `src/i18n/format.ts` (`formatMoney`, `formatNumber`, `formatDate`) with its own test file covering both locales at 2/3/1-decimal precision and date formatting.
+- [x] Add `react-i18next` + `i18next`.
+- [x] `src/i18n/i18n.ts`: `i18next.init()` with static-imported `en`/`pt-BR` resources, `common` + `errors` namespaces first (others added as each area migrates in Phase 3); default/fallback language `pt-BR`.
+- [x] `src/i18n/i18next.d.ts`: module augmentation typing `t()` against the `en` resources.
+- [x] Test first: `src/i18n/localeParity.test.ts` (fails until every namespace exists with matching keys — starts passing trivially with just `common`/`errors`, grows as later phases add namespaces).
+- [x] `src/hooks/locale/{LocaleProvider.tsx,useLocale.ts}` mirroring `ColorModeProvider`/`useColorMode`: `localStorage` key `my-finances:locale`, `navigator.language`-based initial detection (`pt*` → `pt-BR`, else `en`, default `pt-BR`), calls `i18next.changeLanguage` on change. Test first (`useLocale.test.tsx`, mirroring `useColorMode.test.tsx`).
+- [x] Wrap `<LocaleProvider>` in `App.tsx` alongside `<ColorModeProvider>`.
+- [x] `Layout.tsx`: second header `IconButton` next to the dark/light toggle, calling `useLocale().toggleLocale()`; icon/`aria-label` reflect current language. Update `Layout.test.tsx`.
+- [x] `src/i18n/format.ts` (`formatMoney`, `formatNumber`, `formatDate`) with its own test file covering both locales at 2/3/1-decimal precision and date formatting.
 
 ## Phase 2 — Error messages
 - [ ] `src/api/core/apiError.ts`: convert `PROBLEM_TYPE_MESSAGES`/`VALIDATION_CODE_MESSAGES` to translation-key maps under the new `errors` namespace; `toApiError`/`summaryFor` resolve via the `i18next` singleton's `t()`. Existing `apiError.test.ts` assertions updated to the (still-English-by-default) resolved text; add a test proving the same `type`/`code` resolves differently when `i18next.changeLanguage('pt-BR')` is active.

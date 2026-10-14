@@ -1,5 +1,6 @@
 import { Fragment, useState, type PropsWithChildren } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   AppBar,
   Box,
@@ -20,6 +21,7 @@ import MenuIcon from '@mui/icons-material/Menu'
 import DarkModeIcon from '@mui/icons-material/DarkMode'
 import LightModeIcon from '@mui/icons-material/LightMode'
 import { useColorMode } from '../../hooks/colorMode/useColorMode'
+import { useLocale } from '../../hooks/locale/useLocale'
 
 const DRAWER_WIDTH = 240
 
@@ -70,6 +72,8 @@ function NavListItem({ item, pathname }: { item: NavItem; pathname: string }) {
  */
 export function Layout({ children }: PropsWithChildren) {
   const { mode, toggleMode } = useColorMode()
+  const { locale, toggleLocale } = useLocale()
+  const { t } = useTranslation()
   const { pathname } = useLocation()
   const theme = useTheme()
   const isDesktop = useMediaQuery(theme.breakpoints.up('lg'))
@@ -122,6 +126,20 @@ export function Layout({ children }: PropsWithChildren) {
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             My Finances
           </Typography>
+          <IconButton
+            color="inherit"
+            onClick={toggleLocale}
+            aria-label={
+              locale === 'pt-BR' ? t('language.switchToEnglish') : t('language.switchToPortuguese')
+            }
+            title={
+              locale === 'pt-BR' ? t('language.switchToEnglish') : t('language.switchToPortuguese')
+            }
+          >
+            <Typography variant="button" sx={{ fontWeight: 700, lineHeight: 1 }}>
+              {locale === 'pt-BR' ? 'EN' : 'PT'}
+            </Typography>
+          </IconButton>
           <IconButton
             color="inherit"
             onClick={toggleMode}
