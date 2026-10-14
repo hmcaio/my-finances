@@ -41,9 +41,9 @@ Each area: add its `common`/`<area>` namespace entries (`en` + `pt-BR`), swap ha
 - [x] After each area: `npm run lint && npm test`.
 
 ## Phase 4 — Cleanup & verification
-- [ ] Grep for any remaining `.toFixed(` or a literal hardcoded English string in `src/features`/`src/components` outside test files.
-- [ ] `src/i18n/localeParity.test.ts` passes for every namespace now in use.
-- [ ] `npm run lint && npm test && npm run build`.
+- [x] Grep for any remaining `.toFixed(` or a literal hardcoded English string in `src/features`/`src/components` outside test files. Turned up real gaps the Phase 3 bullets never listed: `ReportsPage`/`api/reports/reports.ts` (+ its `REPORT_TYPES` labels and `REVERSED_RANGE_MESSAGE`), `VehiclesPage`, `InvestmentSegmentsPage`, and two shared components used by nearly every page - `LoadFailedNotice` ("Could not load data"/"Retry") and `ResponsiveTable`'s `actionsLabel`/`emptyMessage` defaults plus its tablet expand-chevron's "Details"/"Show details"/"Hide details" (both still live in several real pages); also a few leftover literal `aria-label`s in otherwise-translated pages (`AccountsPage`, `InvestmentProductDetailPage`), `FuelTimeSeriesChart`'s locale-unaware `formatValue` default, and the class-component `ErrorBoundary` (resolved via the `i18next` singleton, since a class component has no hooks). All fixed in their own commits (see `git log`).
+- [x] `src/i18n/localeParity.test.ts` passes for every namespace now in use (23 namespaces).
+- [x] `npm run lint && npm test && npm run build`.
 
 ## Phase 5 — Docs
 - [ ] `frontend/CLAUDE.md`: new "Internationalization" section (see spec's Docs list).
