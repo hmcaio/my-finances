@@ -28,6 +28,9 @@ const CATEGORY_SEED_NAMES: Record<string, string> = {
   'Other Expense': 'common:seedNames.categories.otherExpense',
   Salary: 'common:seedNames.categories.salary',
   'Other Income': 'common:seedNames.categories.otherIncome',
+  // V18 (F024, ADR 0021): the dedicated fuel category, added here rather than in the initial
+  // categories lookup since it belongs to the Fuel area's own phase step.
+  Fuel: 'common:seedNames.categories.fuel',
 }
 
 /** V2's starter payment methods. */

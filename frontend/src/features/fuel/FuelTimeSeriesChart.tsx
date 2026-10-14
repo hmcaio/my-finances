@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Box, Typography } from '@mui/material'
 
 const WIDTH = 640
@@ -63,16 +64,18 @@ export function FuelTimeSeriesChart({
   series,
   label,
   formatValue = (v) => v.toFixed(2),
-  emptyMessage = 'No data for this vehicle yet.',
+  emptyMessage,
   axisColor,
   gridColor,
   zeroBaseline = true,
 }: FuelTimeSeriesChartProps) {
+  const { t } = useTranslation('fuel')
+  const resolvedEmptyMessage = emptyMessage ?? t('chart.defaultEmptyMessage')
   const nonEmptySeries = series.filter((s) => s.points.length > 0)
   const allPoints = nonEmptySeries.flatMap((s) => s.points)
 
   if (allPoints.length === 0) {
-    return <Typography color="text.secondary">{emptyMessage}</Typography>
+    return <Typography color="text.secondary">{resolvedEmptyMessage}</Typography>
   }
 
   const values = allPoints.map((p) => p.value)

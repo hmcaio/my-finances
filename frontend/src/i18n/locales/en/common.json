@@ -24,7 +24,8 @@
       "health": "Health",
       "otherExpense": "Other Expense",
       "salary": "Salary",
-      "otherIncome": "Other Income"
+      "otherIncome": "Other Income",
+      "fuel": "Fuel"
     },
     "paymentMethods": {
       "debitCard": "Debit Card",

@@ -33,7 +33,7 @@ Each area: add its `common`/`<area>` namespace entries (`en` + `pt-BR`), swap ha
 - [x] Budgets (`BudgetsPage`, `BudgetVsActualReport`).
 - [x] Transactions (`TransactionsPage`, `AccountTransactionList`) and Transfers (`TransfersPage`, `TransferForm`, `AccountTransferList`).
 - [x] Recurring templates (`RecurringTemplatesPage`, `PendingOccurrencesWidget`).
-- [ ] Fuel (`FuelPage`, `FuelTimeSeriesChart`) — fuel-category seed name from `V18`.
+- [x] Fuel (`FuelPage`, `FuelTimeSeriesChart`) — fuel-category seed name from `V18`.
 - [ ] FII (`FiiPage`, `AllocationPlanEditor`, `DividendHistorySection`, `FiiNestedAllocationDonutChart`) — dividend-category seed name from `V20`.
 - [ ] Net worth (`NetWorthTrendChart`) and dashboard widgets (`AccountBalancesWidget`, `SpendByCategoryWidget`).
 - [ ] Activity log (`groupByDay.ts`, `ActivityPage`) — replace the hardcoded `'en-US'` with the active locale.

@@ -24,7 +24,8 @@
       "health": "Saúde",
       "otherExpense": "Outras Despesas",
       "salary": "Salário",
-      "otherIncome": "Outras Receitas"
+      "otherIncome": "Outras Receitas",
+      "fuel": "Combustível"
     },
     "paymentMethods": {
       "debitCard": "Cartão de Débito",
