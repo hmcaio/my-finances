@@ -7,6 +7,7 @@ import { seedAccounts, seedInvestmentAccount } from '../../mocks/handlers/accoun
 import { seedBitcoinBuyTransfer } from '../../mocks/handlers/transfers'
 import { resolveErrorMessage } from '../../test/errorMessages'
 import { selectOption } from '../../test/testUtils'
+import { formatMoney } from '../../i18n/format'
 import { TransferForm, type TransferFormPreset } from './TransferForm'
 import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
@@ -139,7 +140,7 @@ describe('TransferForm trade confirmations', () => {
     await user.type(screen.getByRole('spinbutton', { name: 'Taxes' }), '5')
 
     expect(
-      screen.getByText(`Net settlement: 1005.00 (${CHECKING} → ${BROKER})`),
+      screen.getByText(`Net settlement: ${formatMoney(1005, 'en')} (${CHECKING} → ${BROKER})`),
     ).toBeInTheDocument()
   })
 

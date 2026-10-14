@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Box } from '@mui/material'
 import { useAccounts } from '../../api/accounts/accountsQueries'
 import type { Transfer } from '../../api/transfers/transfers'
@@ -7,6 +8,8 @@ import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { PaginationControls } from '../../components/table/PaginationControls'
+import { useLocale } from '../../hooks/locale/useLocale'
+import { formatMoney } from '../../i18n/format'
 import { nameLookup } from '../../utils/nameLookup'
 
 const PAGE_SIZE = 10
@@ -27,6 +30,8 @@ interface AccountTransferListProps {
  * date, then the labelled From/To/Amount), the full table from tablet up (all five columns fit).
  */
 export function AccountTransferList({ accountId }: AccountTransferListProps) {
+  const { t } = useTranslation('transfers')
+  const { locale } = useLocale()
   const [page, setPage] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const accountsQuery = useAccounts(true)
@@ -50,11 +55,21 @@ export function AccountTransferList({ accountId }: AccountTransferListProps) {
   }
 
   const columns: ResponsiveColumn<Transfer>[] = [
-    { key: 'date', header: 'Date', role: 'secondary', render: (t) => t.date },
-    { key: 'from', header: 'From', render: (t) => accountName(t.fromAccountId) },
-    { key: 'to', header: 'To', render: (t) => accountName(t.toAccountId) },
-    { key: 'amount', header: 'Amount', align: 'right', render: (t) => t.amount.toFixed(2) },
-    { key: 'description', header: 'Description', role: 'primary', render: (t) => t.description },
+    { key: 'date', header: t('columns.date'), role: 'secondary', render: (tr) => tr.date },
+    { key: 'from', header: t('columns.from'), render: (tr) => accountName(tr.fromAccountId) },
+    { key: 'to', header: t('columns.to'), render: (tr) => accountName(tr.toAccountId) },
+    {
+      key: 'amount',
+      header: t('columns.amount'),
+      align: 'right',
+      render: (tr) => formatMoney(tr.amount, locale),
+    },
+    {
+      key: 'description',
+      header: t('columns.description'),
+      role: 'primary',
+      render: (tr) => tr.description,
+    },
   ]
 
   return (
@@ -63,13 +78,13 @@ export function AccountTransferList({ accountId }: AccountTransferListProps) {
 
       <ResponsiveTable
         embedded
-        aria-label="Account transfers"
+        aria-label={t('accountList.aria')}
         columns={columns}
         rows={transfers}
-        getRowKey={(t) => t.id}
+        getRowKey={(tr) => tr.id}
         state={tableState}
         onRetry={retry}
-        emptyMessage="No transfers yet."
+        emptyMessage={t('accountList.emptyList')}
       />
 
       <PaginationControls pageInfo={pageInfo} onPageChange={setPage} />

@@ -47,7 +47,7 @@ export function TransactionFormFields({
   paymentMethods,
   vehicles,
 }: TransactionFormFieldsProps) {
-  const { t } = useTranslation()
+  const { t } = useTranslation(['transactions', 'common'])
   const selectedCategory = categories?.find((c) => c.id === form.categoryId)
   const isFuelCategory = selectedCategory?.fuelCategory ?? false
 
@@ -59,7 +59,7 @@ export function TransactionFormFields({
   return (
     <>
       <TextField
-        label="Date"
+        label={t('transactions:form.dateLabel')}
         type="date"
         size="small"
         value={form.date}
@@ -67,7 +67,7 @@ export function TransactionFormFields({
         slotProps={{ inputLabel: { shrink: true } }}
       />
       <TextField
-        label="Amount"
+        label={t('transactions:form.amountLabel')}
         type="number"
         size="small"
         value={form.amount}
@@ -79,11 +79,11 @@ export function TransactionFormFields({
         displayEmpty
         value={form.categoryId}
         onChange={(e) => handleCategoryChange(e.target.value)}
-        aria-label="Category"
+        aria-label={t('transactions:form.categoryAria')}
         sx={{ minWidth: 160 }}
       >
         <MenuItem value="" disabled>
-          Category
+          {t('transactions:form.categoryPlaceholder')}
         </MenuItem>
         {categories?.map((c) => (
           <MenuItem key={c.id} value={c.id}>
@@ -96,11 +96,11 @@ export function TransactionFormFields({
         displayEmpty
         value={form.accountId}
         onChange={(e) => onChange({ accountId: e.target.value })}
-        aria-label="Account"
+        aria-label={t('transactions:form.accountAria')}
         sx={{ minWidth: 160 }}
       >
         <MenuItem value="" disabled>
-          Account
+          {t('transactions:form.accountPlaceholder')}
         </MenuItem>
         {accounts.map((a) => (
           <MenuItem key={a.id} value={a.id}>
@@ -113,11 +113,11 @@ export function TransactionFormFields({
         displayEmpty
         value={form.paymentMethodId}
         onChange={(e) => onChange({ paymentMethodId: e.target.value })}
-        aria-label="Payment Method"
+        aria-label={t('transactions:form.paymentMethodAria')}
         sx={{ minWidth: 160 }}
       >
         <MenuItem value="" disabled>
-          Payment Method
+          {t('transactions:form.paymentMethodPlaceholder')}
         </MenuItem>
         {paymentMethods?.map((p) => (
           <MenuItem key={p.id} value={p.id}>
@@ -126,7 +126,7 @@ export function TransactionFormFields({
         ))}
       </Select>
       <TextField
-        label="Description"
+        label={t('transactions:form.descriptionLabel')}
         size="small"
         required
         value={form.description}
@@ -135,7 +135,7 @@ export function TransactionFormFields({
         sx={{ gridColumn: '1 / -1' }}
       />
       <TextField
-        label="Additional Notes"
+        label={t('transactions:form.additionalNotesLabel')}
         size="small"
         value={form.additionalNotes}
         onChange={(e) => onChange({ additionalNotes: e.target.value })}
@@ -149,11 +149,11 @@ export function TransactionFormFields({
             displayEmpty
             value={form.vehicleId}
             onChange={(e) => onChange({ vehicleId: e.target.value })}
-            aria-label="Vehicle"
+            aria-label={t('transactions:form.vehicleAria')}
             sx={{ minWidth: 160 }}
           >
             <MenuItem value="" disabled>
-              Vehicle
+              {t('transactions:form.vehiclePlaceholder')}
             </MenuItem>
             {vehicles?.map((v) => (
               <MenuItem key={v.id} value={v.id}>
@@ -166,11 +166,11 @@ export function TransactionFormFields({
             displayEmpty
             value={form.fuelType}
             onChange={(e) => onChange({ fuelType: e.target.value })}
-            aria-label="Fuel Type"
+            aria-label={t('transactions:form.fuelTypeAria')}
             sx={{ minWidth: 160 }}
           >
             <MenuItem value="" disabled>
-              Fuel Type
+              {t('transactions:form.fuelTypePlaceholder')}
             </MenuItem>
             {FUEL_TYPES.map((f) => (
               <MenuItem key={f} value={f}>
@@ -179,7 +179,7 @@ export function TransactionFormFields({
             ))}
           </Select>
           <TextField
-            label="Liters"
+            label={t('transactions:form.litersLabel')}
             type="number"
             size="small"
             required
@@ -188,7 +188,7 @@ export function TransactionFormFields({
             slotProps={{ htmlInput: { step: '0.001', min: '0.001' } }}
           />
           <TextField
-            label="Price per Liter"
+            label={t('transactions:form.pricePerLiterLabel')}
             type="number"
             size="small"
             required
@@ -197,16 +197,16 @@ export function TransactionFormFields({
             slotProps={{ htmlInput: { step: '0.001', min: '0.001' } }}
           />
           <TextField
-            label="Km Since Last Fill"
+            label={t('transactions:form.kmSinceLastFillLabel')}
             type="number"
             size="small"
             value={form.kmSinceLastFill}
             onChange={(e) => onChange({ kmSinceLastFill: e.target.value })}
             slotProps={{ htmlInput: { step: '0.1', min: '0.1' } }}
-            helperText="Leave blank on the vehicle's first recorded fill"
+            helperText={t('transactions:form.kmSinceLastFillHelper')}
           />
           <TextField
-            label="Odometer"
+            label={t('transactions:form.odometerLabel')}
             type="number"
             size="small"
             value={form.odometer}

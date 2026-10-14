@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Box,
   Button,
@@ -24,6 +25,8 @@ import type { CreateTransferRequest, Transfer } from '../../api/transfers/transf
 import { useCreateTransfer, useEditTransfer } from '../../api/transfers/transfersQueries'
 import { FormGrid } from '../../components/feedback/ResponsiveDialog'
 import { useQueryState } from '../../hooks/queryState'
+import { useLocale } from '../../hooks/locale/useLocale'
+import { formatMoney } from '../../i18n/format'
 import { today } from '../../utils/localDate'
 import { netSettlementDirection, netSettlementPreview, type TradeSide } from './tradeMath'
 
@@ -82,7 +85,11 @@ function blankLine(key: number, productId = '', side: TradeSide = 'BUY'): LineSt
 
 /** A fresh form, built per use so its date is today's local date rather than the date the module
  * was first loaded. */
-function initialState(editing: Transfer | null, preset: TransferFormPreset | null): FormState {
+function initialState(
+  editing: Transfer | null,
+  preset: TransferFormPreset | null,
+  t: (key: never, options?: Record<string, unknown>) => string,
+): FormState {
   const blank: FormState = {
     mode: 'plain',
     date: today(),
@@ -138,7 +145,12 @@ function initialState(editing: Transfer | null, preset: TransferFormPreset | nul
       mode: 'trade',
       investmentAccountId: preset.investmentAccountId,
       lines: [blankLine(0, preset.productId, preset.direction === 'buy' ? 'BUY' : 'SELL')],
-      description: `${preset.direction === 'buy' ? 'Buy' : 'Sell'} ${preset.productName}`,
+      description: t(
+        (preset.direction === 'buy'
+          ? 'transfers:tradeLabelBuy'
+          : 'transfers:tradeLabelSell') as never,
+        { product: preset.productName },
+      ),
     }
   }
   return blank
@@ -194,8 +206,10 @@ export function TransferForm({
   dialog = false,
   banner,
 }: TransferFormProps) {
+  const { t } = useTranslation(['transfers', 'common'])
+  const { locale } = useLocale()
   const [form, setForm] = useState(() => {
-    const initial = initialState(editing, preset)
+    const initial = initialState(editing, preset, t as (key: never) => string)
     // Trade-confirmation edit: derive cashAccountId/investmentAccountId from from/to now that
     // `accounts` is available (the INVESTMENT side is whichever endpoint is an INVESTMENT account).
     if (initial.mode === 'trade' && editing?.tradeConfirmation) {
@@ -292,9 +306,12 @@ export function TransferForm({
   }))
   const netPreview = form.mode === 'trade' ? netSettlementPreview(previewInputs, taxes) : null
   const direction = netSettlementDirection(netPreview)
-  const cashAccountName = accounts.find((a) => a.id === form.cashAccountId)?.name ?? 'cash account'
+  const cashAccountName =
+    accounts.find((a) => a.id === form.cashAccountId)?.name ??
+    t('transfers:form.cashAccountFallback')
   const investmentAccountName =
-    accounts.find((a) => a.id === form.investmentAccountId)?.name ?? 'investment account'
+    accounts.find((a) => a.id === form.investmentAccountId)?.name ??
+    t('transfers:form.investmentAccountFallback')
 
   /**
    * Product ids with a `resultingBalance` set on more than one line - mirrors the backend's
@@ -410,7 +427,7 @@ export function TransferForm({
   const commonFields = (
     <>
       <TextField
-        label="Date"
+        label={t('transfers:form.dateLabel')}
         type="date"
         size="small"
         value={form.date}
@@ -418,7 +435,7 @@ export function TransferForm({
         slotProps={{ inputLabel: { shrink: true } }}
       />
       <TextField
-        label="Description"
+        label={t('transfers:form.descriptionLabel')}
         size="small"
         required
         value={form.description}
@@ -427,7 +444,7 @@ export function TransferForm({
         sx={wide}
       />
       <TextField
-        label="Additional Notes"
+        label={t('transfers:form.additionalNotesLabel')}
         size="small"
         value={form.additionalNotes}
         onChange={(e) => patch({ additionalNotes: e.target.value })}
@@ -444,11 +461,11 @@ export function TransferForm({
         displayEmpty
         value={form.fromAccountId}
         onChange={(e) => patch({ fromAccountId: e.target.value })}
-        aria-label="From Account"
+        aria-label={t('transfers:form.fromAccountLabel')}
         sx={{ minWidth: 160 }}
       >
         <MenuItem value="" disabled>
-          From Account
+          {t('transfers:form.fromAccountLabel')}
         </MenuItem>
         {cashOptions.map((a) => (
           <MenuItem key={a.id} value={a.id}>
@@ -461,11 +478,11 @@ export function TransferForm({
         displayEmpty
         value={form.toAccountId}
         onChange={(e) => patch({ toAccountId: e.target.value })}
-        aria-label="To Account"
+        aria-label={t('transfers:form.toAccountLabel')}
         sx={{ minWidth: 160 }}
       >
         <MenuItem value="" disabled>
-          To Account
+          {t('transfers:form.toAccountLabel')}
         </MenuItem>
         {cashOptions
           .filter((a) => a.id !== form.fromAccountId)
@@ -476,7 +493,7 @@ export function TransferForm({
           ))}
       </Select>
       <TextField
-        label="Amount"
+        label={t('transfers:form.amountLabel')}
         type="number"
         size="small"
         value={form.amount}
@@ -493,11 +510,11 @@ export function TransferForm({
         displayEmpty
         value={form.cashAccountId}
         onChange={(e) => patch({ cashAccountId: e.target.value })}
-        aria-label="Cash Account"
+        aria-label={t('transfers:form.cashAccountLabel')}
         sx={{ minWidth: 160 }}
       >
         <MenuItem value="" disabled>
-          Cash Account
+          {t('transfers:form.cashAccountLabel')}
         </MenuItem>
         {cashOptions
           .filter((a) => a.id !== form.investmentAccountId)
@@ -512,11 +529,11 @@ export function TransferForm({
         displayEmpty
         value={form.investmentAccountId}
         onChange={(e) => setInvestmentAccountId(e.target.value)}
-        aria-label="Investment Account"
+        aria-label={t('transfers:form.investmentAccountLabel')}
         sx={{ minWidth: 160 }}
       >
         <MenuItem value="" disabled>
-          Investment Account
+          {t('transfers:form.investmentAccountLabel')}
         </MenuItem>
         {investmentAccounts
           .filter((a) => a.id !== form.cashAccountId)
@@ -527,7 +544,7 @@ export function TransferForm({
           ))}
       </Select>
       <TextField
-        label="Taxes"
+        label={t('transfers:form.taxesLabel')}
         type="number"
         size="small"
         value={form.taxes}
@@ -552,11 +569,11 @@ export function TransferForm({
           displayEmpty
           value={holdingOptions.some((h) => h.productId === line.productId) ? line.productId : ''}
           onChange={(e) => updateLine(line.key, { productId: e.target.value })}
-          aria-label="Product"
+          aria-label={t('transfers:form.productLabel')}
           sx={{ minWidth: 180 }}
         >
           <MenuItem value="" disabled>
-            Product
+            {t('transfers:form.productLabel')}
           </MenuItem>
           {holdingOptions.map((h) => (
             <MenuItem key={h.id} value={h.productId}>
@@ -573,13 +590,13 @@ export function TransferForm({
               closeHolding: e.target.value === 'SELL' ? line.closeHolding : false,
             })
           }
-          aria-label="Side"
+          aria-label={t('transfers:form.sideAria')}
         >
-          <MenuItem value="BUY">Buy</MenuItem>
-          <MenuItem value="SELL">Sell</MenuItem>
+          <MenuItem value="BUY">{t('transfers:form.buyOption')}</MenuItem>
+          <MenuItem value="SELL">{t('transfers:form.sellOption')}</MenuItem>
         </Select>
         <TextField
-          label="Quantity"
+          label={t('transfers:form.quantityLabel')}
           type="number"
           size="small"
           value={line.quantity}
@@ -587,7 +604,7 @@ export function TransferForm({
           slotProps={{ htmlInput: { step: 'any', min: '0' } }}
         />
         <TextField
-          label="Unit price"
+          label={t('transfers:form.unitPriceLabel')}
           type="number"
           size="small"
           value={line.unitPrice}
@@ -595,7 +612,7 @@ export function TransferForm({
           slotProps={{ htmlInput: { step: 'any', min: '0' } }}
         />
         <TextField
-          label="Resulting balance"
+          label={t('transfers:form.resultingBalanceLabel')}
           type="number"
           size="small"
           value={line.resultingBalance}
@@ -603,8 +620,8 @@ export function TransferForm({
           error={hasDuplicateResultingBalance}
           helperText={
             hasDuplicateResultingBalance
-              ? 'Only one line per product can set a resulting balance - leave it blank here.'
-              : 'Optional: recorded as a snapshot on the transfer date.'
+              ? t('transfers:form.resultingBalanceDuplicateHelper')
+              : t('transfers:form.resultingBalanceHelper')
           }
           slotProps={{ htmlInput: { step: '0.01', min: '0' } }}
         />
@@ -616,13 +633,13 @@ export function TransferForm({
                 onChange={(e) => updateLine(line.key, { closeHolding: e.target.checked })}
               />
             }
-            label="Close this holding"
+            label={t('transfers:form.closeHoldingLabel')}
           />
         )}
         {form.lines.length > 1 && (
           <IconButton
             size="small"
-            aria-label="Remove line"
+            aria-label={t('transfers:form.removeLineAria')}
             onClick={() => removeLine(line.key)}
             sx={{ alignSelf: 'center' }}
           >
@@ -641,10 +658,10 @@ export function TransferForm({
         size="small"
         onChange={(_, value: FormMode | null) => value && setMode(value)}
         sx={{ mb: 2 }}
-        aria-label="Transfer type"
+        aria-label={t('transfers:form.transferTypeAria')}
       >
-        <ToggleButton value="plain">Plain transfer</ToggleButton>
-        <ToggleButton value="trade">Trade confirmation</ToggleButton>
+        <ToggleButton value="plain">{t('transfers:form.plainTransferOption')}</ToggleButton>
+        <ToggleButton value="trade">{t('transfers:form.tradeConfirmationOption')}</ToggleButton>
       </ToggleButtonGroup>
 
       {fieldRow(
@@ -662,22 +679,30 @@ export function TransferForm({
       )}
 
       {form.mode === 'trade' && (
-        <Box sx={{ mt: 2 }} role="group" aria-label="Trade lines">
+        <Box sx={{ mt: 2 }} role="group" aria-label={t('transfers:form.tradeLinesGroupAria')}>
           <Typography variant="subtitle2" gutterBottom>
-            Product lines
+            {t('transfers:form.productLinesTitle')}
           </Typography>
           {lineRows}
           <Button size="small" startIcon={<AddIcon />} onClick={addLine} sx={{ mt: 1 }}>
-            Add line
+            {t('transfers:form.addLineButton')}
           </Button>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }} aria-live="polite">
             {netPreview === null
-              ? 'Enter every line’s quantity and unit price for a settlement preview.'
+              ? t('transfers:form.previewEnterValues')
               : netPreview === 0
-                ? 'This settlement nets to exactly zero and will be rejected - check the lines.'
+                ? t('transfers:form.previewZero')
                 : direction === 'cost'
-                  ? `Net settlement: ${Math.abs(netPreview).toFixed(2)} (${cashAccountName} → ${investmentAccountName})`
-                  : `Net settlement: ${Math.abs(netPreview).toFixed(2)} (${investmentAccountName} → ${cashAccountName})`}
+                  ? t('transfers:form.previewSettlement', {
+                      amount: formatMoney(Math.abs(netPreview), locale),
+                      from: cashAccountName,
+                      to: investmentAccountName,
+                    })
+                  : t('transfers:form.previewSettlement', {
+                      amount: formatMoney(Math.abs(netPreview), locale),
+                      from: investmentAccountName,
+                      to: cashAccountName,
+                    })}
           </Typography>
         </Box>
       )}
@@ -687,7 +712,7 @@ export function TransferForm({
   const cancelButton =
     editing || onCancel ? (
       <Button onClick={onCancel} disabled={saving}>
-        Cancel
+        {t('common:actions.cancel')}
       </Button>
     ) : null
   const submitButton = (
@@ -696,7 +721,7 @@ export function TransferForm({
       disabled={saving || !isFormValid()}
       onClick={() => void handleSubmit()}
     >
-      {editing ? 'Save changes' : 'Add'}
+      {editing ? t('transfers:form.saveChanges') : t('common:actions.add')}
     </Button>
   )
 
