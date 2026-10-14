@@ -5,9 +5,9 @@
 One feature branch (`feature/f033-i18n-pt-br-en`), one commit per phase (per area in Phase 3). Old `.toFixed()`/hardcoded-English call sites are replaced area by area so the app stays fully functional (and fully translated for whatever's already migrated) after every commit.
 
 ## Phase 0 — Decision record
-- [ ] `docs/adr/0027-frontend-i18n-react-i18next.md` and its row in `docs/adr/README.md`.
-- [ ] `docs/features/F033-i18n-pt-br-en/{spec,plan}.md` and the `docs/features/README.md` row.
-- [ ] `docs/PRD.md`: three new §3 non-goals, new §6.14, two new §9 future directions.
+- [x] `docs/adr/0027-frontend-i18n-react-i18next.md` and its row in `docs/adr/README.md`.
+- [x] `docs/features/F033-i18n-pt-br-en/{spec,plan}.md` and the `docs/features/README.md` row.
+- [x] `docs/PRD.md`: three new §3 non-goals, new §6.14, two new §9 future directions.
 
 ## Phase 1 — Infrastructure
 - [x] Add `react-i18next` + `i18next`.
@@ -46,13 +46,13 @@ Each area: add its `common`/`<area>` namespace entries (`en` + `pt-BR`), swap ha
 - [x] `npm run lint && npm test && npm run build`.
 
 ## Phase 5 — Docs
-- [ ] `frontend/CLAUDE.md`: new "Internationalization" section (see spec's Docs list).
-- [ ] Root `README.md` "Project status" entry.
-- [ ] `CHANGELOG.md` `[Unreleased]` entry (`**F033 — Internationalization**`); the PR link is added in a follow-up commit once the PR is open.
-- [ ] Tick this plan.
+- [x] `frontend/CLAUDE.md`: new "Internationalization" section (see spec's Docs list).
+- [x] Root `README.md` "Project status" entry.
+- [x] `CHANGELOG.md` `[Unreleased]` entry (`**F033 — Internationalization**`); the PR link is added in a follow-up commit once the PR is open.
+- [x] Tick this plan.
 
 ## Verification
-- [ ] `npm run lint && npm test && npm run build` green.
+- [x] `npm run lint && npm test && npm run build` green.
 - [ ] Manual, dev: toggle the header language control — every page's labels, buttons, nav, and currently-visible numbers/dates switch immediately with no reload; toggling back restores English.
 - [ ] Manual: a fresh/seeded install in `pt-BR` shows translated starter category/payment-method/institution/investment-taxonomy names; renaming one of them (e.g. "Groceries" → "Mercado") shows the renamed text unchanged after toggling language either way.
 - [ ] Manual: trigger a 409 (duplicate name) and a validation 400 in each locale — the error banner text is in the active language.
