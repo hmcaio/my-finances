@@ -7,6 +7,8 @@ import { fadeInSx } from '../../components/feedback/fadeIn'
 import { LoadFailedNotice } from '../../components/feedback/LoadFailedNotice'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
+import { useLocale } from '../../hooks/locale/useLocale'
+import { formatMoney } from '../../i18n/format'
 import { translateSeedName } from '../../i18n/seedNames'
 import { nameLookup } from '../../utils/nameLookup'
 
@@ -21,7 +23,8 @@ interface BudgetVsActualReportProps {
  * data; an over-cap category is flagged in red.
  */
 export function BudgetVsActualReport({ month }: BudgetVsActualReportProps) {
-  const { t } = useTranslation()
+  const { t } = useTranslation(['budgets', 'common'])
+  const { locale } = useLocale()
   const categoriesQuery = useCategories()
   const categories = categoriesQuery.data
   const categoriesState = useQueryState(categoriesQuery)
@@ -44,7 +47,7 @@ export function BudgetVsActualReport({ month }: BudgetVsActualReportProps) {
       {report !== undefined && categories !== undefined && (
         <Box sx={fadeInSx}>
           {report.length === 0 && (
-            <Typography color="text.secondary">No active budgets for this month.</Typography>
+            <Typography color="text.secondary">{t('budgets:report.emptyMonth')}</Typography>
           )}
           {report.map((line) => {
             const overCap = line.cap !== null && line.actual > line.cap
@@ -69,15 +72,23 @@ export function BudgetVsActualReport({ month }: BudgetVsActualReportProps) {
                     color={overCap ? 'error' : 'text.secondary'}
                     sx={{ fontWeight: overCap ? 'bold' : undefined, overflowWrap: 'anywhere' }}
                   >
-                    {line.actual.toFixed(2)} / {line.cap !== null ? line.cap.toFixed(2) : 'no cap'}
-                    {overCap && ' — over budget'}
+                    {t('budgets:report.lineAmounts', {
+                      actual: formatMoney(line.actual, locale),
+                      cap:
+                        line.cap !== null
+                          ? formatMoney(line.cap, locale)
+                          : t('budgets:report.noCap'),
+                    })}
+                    {overCap && t('budgets:report.overBudgetSuffix')}
                   </Typography>
                 </Box>
                 <LinearProgress
                   variant="determinate"
                   value={progress}
                   color={overCap ? 'error' : 'primary'}
-                  aria-label={`${categoryName(line.categoryId)} budget usage`}
+                  aria-label={t('budgets:report.usageAria', {
+                    category: categoryName(line.categoryId),
+                  })}
                 />
               </Box>
             )
@@ -90,8 +101,9 @@ export function BudgetVsActualReport({ month }: BudgetVsActualReportProps) {
 
 /** Placeholder for the budget-vs-actual report, sized like three report lines. */
 function BudgetReportSkeleton() {
+  const { t } = useTranslation('budgets')
   return (
-    <Box role="status" aria-label="Loading budget report">
+    <Box role="status" aria-label={t('report.loadingAria')}>
       {[0, 1, 2].map((line) => (
         <Box key={line} sx={{ mb: 2 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>

@@ -30,7 +30,7 @@ Each area: add its `common`/`<area>` namespace entries (`en` + `pt-BR`), swap ha
 - [x] Accounts (`AccountsPage`, `AccountDetailPage`): strings + formatting.
 - [x] Investment taxonomy (`InvestmentCategoriesPage` or equivalent) + investment products (`InvestmentProductDetailPage`, `InvestmentProductsSection`, `ValueSeriesChart`): seed-name lookups from `V13`'s categories/sub-categories, plus strings/formatting.
 - [x] Investments dashboard (`InvestmentsPage`, `InvestmentAllocationChart`, `FlatAllocationDonutChart`).
-- [ ] Budgets (`BudgetsPage`, `BudgetVsActualReport`).
+- [x] Budgets (`BudgetsPage`, `BudgetVsActualReport`).
 - [ ] Transactions (`TransactionsPage`, `AccountTransactionList`) and Transfers (`TransfersPage`, `TransferForm`, `AccountTransferList`).
 - [ ] Recurring templates (`RecurringTemplatesPage`, `PendingOccurrencesWidget`).
 - [ ] Fuel (`FuelPage`, `FuelTimeSeriesChart`) — fuel-category seed name from `V18`.

@@ -31,6 +31,8 @@ import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/R
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useIsMobile } from '../../hooks/useBreakpointBand'
 import { currentMonth } from '../../utils/localDate'
+import { useLocale } from '../../hooks/locale/useLocale'
+import { formatMoney } from '../../i18n/format'
 import { translateSeedName } from '../../i18n/seedNames'
 import { nameLookup } from '../../utils/nameLookup'
 import { BudgetCapField } from './BudgetEditFields'
@@ -55,7 +57,8 @@ import { BudgetVsActualReport } from './BudgetVsActualReport'
  * `ResponsiveTable`.
  */
 export function BudgetsPage() {
-  const { t } = useTranslation()
+  const { t } = useTranslation(['budgets', 'common'])
+  const { locale } = useLocale()
   const [error, setError] = useState<string | null>(null)
   const isMobile = useIsMobile()
   const categoriesQuery = useCategories()
@@ -175,32 +178,32 @@ export function BudgetsPage() {
   const columns: ResponsiveColumn<Budget>[] = [
     {
       key: 'category',
-      header: 'Category',
+      header: t('budgets:columns.category'),
       role: 'primary',
       render: (budget) => categoryName(budget.categoryId),
     },
     {
       key: 'cap',
-      header: 'Current cap',
+      header: t('budgets:columns.currentCap'),
       align: 'right',
       render: (budget) =>
         editingId === budget.id && !isMobile ? (
           <BudgetCapField value={editingCap} onChange={setEditingCap} autoFocus />
         ) : budget.stopped ? (
           <Typography color="text.secondary" component="span">
-            Stopped
+            {t('budgets:stopped')}
           </Typography>
         ) : budget.currentCap !== null ? (
-          budget.currentCap.toFixed(2)
+          formatMoney(budget.currentCap, locale)
         ) : (
           <Typography color="text.secondary" component="span">
-            No cap yet
+            {t('budgets:noCapYet')}
           </Typography>
         ),
     },
     {
       key: 'effectiveFrom',
-      header: 'Effective from',
+      header: t('budgets:columns.effectiveFrom'),
       render: (budget) => budget.currentCapEffectiveFrom ?? '—',
     },
   ]
@@ -214,12 +217,16 @@ export function BudgetsPage() {
           onEdit={() => startEditCap(budget)}
           onSave={() => void saveEditCap(budget.id)}
           onCancel={cancelEditCap}
-          editLabel={budget.stopped ? 'Resume budget' : 'Edit cap'}
-          saveLabel={budget.stopped ? 'Resume with this cap' : 'Save cap'}
+          editLabel={budget.stopped ? t('budgets:resumeBudgetAction') : t('budgets:editCapAction')}
+          saveLabel={budget.stopped ? t('budgets:resumeWithCapAction') : t('budgets:saveCapAction')}
           saving={savingCap}
         />
         {!budget.stopped && !editingInline && (
-          <IconButton size="small" aria-label="Stop budget" onClick={() => setStopTarget(budget)}>
+          <IconButton
+            size="small"
+            aria-label={t('budgets:stopBudgetAria')}
+            onClick={() => setStopTarget(budget)}
+          >
             <StopCircleOutlinedIcon fontSize="small" />
           </IconButton>
         )}
@@ -239,16 +246,14 @@ export function BudgetsPage() {
         }}
       >
         <Typography variant="h4" component="h1">
-          Budgets
+          {t('budgets:title')}
         </Typography>
         <Button variant="contained" onClick={() => setAddDialogOpen(true)}>
-          Add budget
+          {t('budgets:addButton')}
         </Button>
       </Box>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Monthly spending caps per expense category. Editing a cap (or adding a new budget) always
-        takes effect from the current month forward - prior months keep showing whatever cap was
-        actually in effect then.
+        {t('budgets:description')}
       </Typography>
 
       {/* While a dialog is open a save error shows inside it: this one sits behind it. */}
@@ -259,19 +264,19 @@ export function BudgetsPage() {
 
       <Box sx={{ mb: 3 }}>
         <ResponsiveTable
-          aria-label="Budgets"
+          aria-label={t('budgets:title')}
           columns={columns}
           rows={budgets}
           getRowKey={(budget) => budget.id}
           state={tableState}
           onRetry={retry}
           actions={rowActions}
-          emptyMessage="No budgets yet."
+          emptyMessage={t('budgets:emptyList')}
         />
       </Box>
 
       <ResponsiveDialog open={addDialogOpen} onClose={closeAddDialog}>
-        <DialogTitle>Add budget</DialogTitle>
+        <DialogTitle>{t('budgets:addDialogTitle')}</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
             <ErrorAlert message={error} onDismiss={() => setError(null)} />
@@ -281,10 +286,10 @@ export function BudgetsPage() {
                 displayEmpty
                 value={newCategoryId}
                 onChange={(e) => setNewCategoryId(e.target.value)}
-                aria-label="Category"
+                aria-label={t('budgets:categoryLabel')}
               >
                 <MenuItem value="" disabled>
-                  Category
+                  {t('budgets:categoryLabel')}
                 </MenuItem>
                 {unbudgetedExpenseCategories.map((c) => (
                   <MenuItem key={c.id} value={c.id}>
@@ -293,7 +298,7 @@ export function BudgetsPage() {
                 ))}
               </Select>
               <TextField
-                label="Monthly cap"
+                label={t('budgets:monthlyCapLabel')}
                 type="number"
                 size="small"
                 value={newCap}
@@ -303,28 +308,30 @@ export function BudgetsPage() {
             </FormGrid>
             {unbudgetedExpenseCategories.length === 0 && categories !== undefined && (
               <Typography color="text.secondary" variant="body2" sx={{ mt: 1 }}>
-                Every expense category already has a budget.
+                {t('budgets:everyExpenseBudgeted')}
               </Typography>
             )}
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={closeAddDialog} disabled={adding}>
-            Cancel
+            {t('common:actions.cancel')}
           </Button>
           <Button
             variant="contained"
             disabled={adding || !newCategoryId || !isBudgetCapValid(newCap)}
             onClick={() => void handleAdd()}
           >
-            Add
+            {t('common:actions.add')}
           </Button>
         </DialogActions>
       </ResponsiveDialog>
 
       <ResponsiveDialog open={editDialogOpen} onClose={savingCap ? undefined : cancelEditCap}>
         <DialogTitle>
-          {editingBudget?.stopped ? 'Resume budget' : 'Edit budget cap'}
+          {editingBudget?.stopped
+            ? t('budgets:resumeBudgetAction')
+            : t('budgets:editBudgetCapTitle')}
           {editingBudget ? ` — ${categoryName(editingBudget.categoryId)}` : ''}
         </DialogTitle>
         <DialogContent>
@@ -337,40 +344,39 @@ export function BudgetsPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={cancelEditCap} disabled={savingCap}>
-            Cancel
+            {t('common:actions.cancel')}
           </Button>
           <Button
             variant="contained"
             disabled={savingCap || !isBudgetCapValid(editingCap)}
             onClick={() => editingId && void saveEditCap(editingId)}
           >
-            {editingBudget?.stopped ? 'Resume with this cap' : 'Save cap'}
+            {editingBudget?.stopped ? t('budgets:resumeWithCapAction') : t('budgets:saveCapAction')}
           </Button>
         </DialogActions>
       </ResponsiveDialog>
 
       <ConfirmDialog
         open={stopTarget !== null}
-        title={`Stop budgeting ${stopTarget ? categoryName(stopTarget.categoryId) : ''}?`}
-        body={
-          <>
-            Budgeting stops from the current month: this category no longer appears in the
-            budget-vs-actual report from now on. Past months keep the cap they had. You can resume
-            it later from the row&apos;s &quot;Resume budget&quot; action; the months in between
-            stay without a budget.
-          </>
-        }
-        confirmLabel="Stop budget"
+        title={t('budgets:stop.title', {
+          category: stopTarget ? categoryName(stopTarget.categoryId) : '',
+        })}
+        body={t('budgets:stop.body')}
+        confirmLabel={t('budgets:stop.confirmLabel')}
         loading={stopping}
         onConfirm={() => void handleStop()}
         onCancel={() => setStopTarget(null)}
       />
 
       <Typography variant="h5" component="h2" gutterBottom>
-        Budget vs. actual
+        {t('budgets:reportTitle')}
       </Typography>
       <Box sx={{ mb: 2 }}>
-        <MonthPicker label="Month" value={reportMonth} onChange={setReportMonth} />
+        <MonthPicker
+          label={t('budgets:monthLabel')}
+          value={reportMonth}
+          onChange={setReportMonth}
+        />
       </Box>
 
       <BudgetVsActualReport month={reportMonth} />
