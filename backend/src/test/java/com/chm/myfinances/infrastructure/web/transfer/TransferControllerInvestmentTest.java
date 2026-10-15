@@ -71,7 +71,7 @@ class TransferControllerInvestmentTest {
     otherBrokerId = account("Other Broker Trade Web Test", AccountType.INVESTMENT);
     categoryId =
         categoryRepository
-            .save(InvestmentCategory.create(UUID.randomUUID(), "Category Trade Web Test"))
+            .save(InvestmentCategory.reconstitute(UUID.randomUUID(), "Category Trade Web Test"))
             .getId();
     productId = product("Product Trade Web Test");
     holdingId = holding(productId, brokerId);

@@ -10,64 +10,43 @@ import org.junit.jupiter.api.Test;
 /**
  * Domain-level unit tests for {@link PaymentMethod} (PRD S5.2, F002 spec). Pure JUnit — no Spring
  * context, no database (ADR 0004).
+ *
+ * <p>F034/ADR 0028: {@code create}/{@code rename} were deleted — every row is now fixed,
+ * migration-seeded content, reconstituted from persistence only. These tests now exercise {@link
+ * PaymentMethod#reconstitute} directly for the same validation {@code create} used to cover.
  */
 class PaymentMethodTest {
 
   @Test
-  void createsWithGivenIdAndName() {
+  void reconstitutesWithGivenIdAndName() {
     UUID id = UUID.randomUUID();
 
-    PaymentMethod paymentMethod = PaymentMethod.create(id, "Debit Card");
+    PaymentMethod paymentMethod = PaymentMethod.reconstitute(id, "Debit Card");
 
     assertThat(paymentMethod.getId()).isEqualTo(id);
     assertThat(paymentMethod.getName()).isEqualTo("Debit Card");
   }
 
   @Test
-  void renameChangesName() {
-    PaymentMethod paymentMethod = PaymentMethod.create(UUID.randomUUID(), "Debit Card");
-
-    paymentMethod.rename("Debit Card (Itau)");
-
-    assertThat(paymentMethod.getName()).isEqualTo("Debit Card (Itau)");
-  }
-
-  @Test
-  void createRejectsBlankName() {
-    assertThatThrownBy(() -> PaymentMethod.create(UUID.randomUUID(), " "))
+  void reconstituteRejectsBlankName() {
+    assertThatThrownBy(() -> PaymentMethod.reconstitute(UUID.randomUUID(), " "))
         .isInstanceOf(IllegalArgumentException.class);
   }
 
   @Test
-  void renameRejectsBlankName() {
-    PaymentMethod paymentMethod = PaymentMethod.create(UUID.randomUUID(), "Debit Card");
-
-    assertThatThrownBy(() -> paymentMethod.rename("")).isInstanceOf(IllegalArgumentException.class);
-  }
-
-  @Test
-  void createAcceptsNameAtMaxLength() {
+  void reconstituteAcceptsNameAtMaxLength() {
     String maxLengthName = "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH);
 
-    PaymentMethod paymentMethod = PaymentMethod.create(UUID.randomUUID(), maxLengthName);
+    PaymentMethod paymentMethod = PaymentMethod.reconstitute(UUID.randomUUID(), maxLengthName);
 
     assertThat(paymentMethod.getName()).isEqualTo(maxLengthName);
   }
 
   @Test
-  void createRejectsNameOverMaxLength() {
+  void reconstituteRejectsNameOverMaxLength() {
     String tooLongName = "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1);
 
-    assertThatThrownBy(() -> PaymentMethod.create(UUID.randomUUID(), tooLongName))
-        .isInstanceOf(IllegalArgumentException.class);
-  }
-
-  @Test
-  void renameRejectsNameOverMaxLength() {
-    PaymentMethod paymentMethod = PaymentMethod.create(UUID.randomUUID(), "Debit Card");
-    String tooLongName = "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1);
-
-    assertThatThrownBy(() -> paymentMethod.rename(tooLongName))
+    assertThatThrownBy(() -> PaymentMethod.reconstitute(UUID.randomUUID(), tooLongName))
         .isInstanceOf(IllegalArgumentException.class);
   }
 }

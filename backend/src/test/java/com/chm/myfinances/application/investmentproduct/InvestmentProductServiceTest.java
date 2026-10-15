@@ -88,13 +88,15 @@ class InvestmentProductServiceTest {
   private final UUID nuAccountId = saveInvestmentAccount("Nubank Test").getId();
   private final UUID fixedIncomeId =
       categoryRepository
-          .save(InvestmentCategory.create(UUID.randomUUID(), "Fixed Income Test"))
+          .save(InvestmentCategory.reconstitute(UUID.randomUUID(), "Fixed Income Test"))
           .getId();
   private final UUID cryptoId =
-      categoryRepository.save(InvestmentCategory.create(UUID.randomUUID(), "Crypto Test")).getId();
+      categoryRepository
+          .save(InvestmentCategory.reconstitute(UUID.randomUUID(), "Crypto Test"))
+          .getId();
   private final UUID cdbId =
       subcategoryRepository
-          .save(InvestmentSubcategory.create(UUID.randomUUID(), fixedIncomeId, "CDB Test"))
+          .save(InvestmentSubcategory.reconstitute(UUID.randomUUID(), fixedIncomeId, "CDB Test"))
           .getId();
 
   private Account saveInvestmentAccount(String name) {
@@ -526,7 +528,7 @@ class InvestmentProductServiceTest {
     UUID segmentId =
         segmentRepository
             .save(
-                com.chm.myfinances.domain.investmentsegment.InvestmentSegment.create(
+                com.chm.myfinances.domain.investmentsegment.InvestmentSegment.reconstitute(
                     UUID.randomUUID(), "Shoppings Test"))
             .getId();
 
@@ -560,7 +562,7 @@ class InvestmentProductServiceTest {
     UUID segmentId =
         segmentRepository
             .save(
-                com.chm.myfinances.domain.investmentsegment.InvestmentSegment.create(
+                com.chm.myfinances.domain.investmentsegment.InvestmentSegment.reconstitute(
                     UUID.randomUUID(), "Logistica Test"))
             .getId();
     InvestmentProduct created =

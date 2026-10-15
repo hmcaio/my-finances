@@ -100,7 +100,7 @@ class AuditReferenceLabelsTest {
   @Test
   void resolvesPaymentMethodIdToItsName() {
     PaymentMethod paymentMethod =
-        paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), "Credit card"));
+        paymentMethodRepository.save(PaymentMethod.reconstitute(UUID.randomUUID(), "Credit card"));
 
     assertThat(referenceLabels.labelFor("paymentMethodId", paymentMethod.getId().toString()))
         .contains("Credit card");
@@ -116,7 +116,8 @@ class AuditReferenceLabelsTest {
   @Test
   void resolvesInvestmentCategoryIdToItsName() {
     InvestmentCategory category =
-        investmentCategoryRepository.save(InvestmentCategory.create(UUID.randomUUID(), "FII"));
+        investmentCategoryRepository.save(
+            InvestmentCategory.reconstitute(UUID.randomUUID(), "FII"));
 
     assertThat(referenceLabels.labelFor("investmentCategoryId", category.getId().toString()))
         .contains("FII");
@@ -126,7 +127,7 @@ class AuditReferenceLabelsTest {
   void resolvesInvestmentSubcategoryIdToItsName() {
     InvestmentSubcategory subcategory =
         investmentSubcategoryRepository.save(
-            InvestmentSubcategory.create(UUID.randomUUID(), UUID.randomUUID(), "Papel"));
+            InvestmentSubcategory.reconstitute(UUID.randomUUID(), UUID.randomUUID(), "Papel"));
 
     assertThat(referenceLabels.labelFor("investmentSubcategoryId", subcategory.getId().toString()))
         .contains("Papel");
@@ -135,7 +136,8 @@ class AuditReferenceLabelsTest {
   @Test
   void resolvesSegmentIdToTheInvestmentSegmentsName() {
     InvestmentSegment segment =
-        investmentSegmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Logistics"));
+        investmentSegmentRepository.save(
+            InvestmentSegment.reconstitute(UUID.randomUUID(), "Logistics"));
 
     assertThat(referenceLabels.labelFor("segmentId", segment.getId().toString()))
         .contains("Logistics");

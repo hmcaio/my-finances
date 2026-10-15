@@ -155,7 +155,7 @@ class TransactionRepositoryAdapterTest {
   void savesAndReloadsAnInvestmentHoldingId() {
     InvestmentCategory category =
         investmentCategoryRepository.save(
-            InvestmentCategory.create(UUID.randomUUID(), "Variable Income Txn Repo Test"));
+            InvestmentCategory.reconstitute(UUID.randomUUID(), "Variable Income Txn Repo Test"));
     InvestmentProduct product =
         investmentProductRepository.save(
             InvestmentProduct.create(

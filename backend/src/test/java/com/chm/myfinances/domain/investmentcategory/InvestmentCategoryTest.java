@@ -8,76 +8,51 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 /**
- * Domain-level unit tests for {@link InvestmentCategory} (F008 spec): a flat, user-editable
- * top-level taxonomy entry, same shape as F002's {@code Category}. Pure JUnit (ADR 0004), written
- * before the class itself.
+ * Domain-level unit tests for {@link InvestmentCategory} (F008 spec): a flat, fixed top-level
+ * taxonomy entry, same shape as F002's {@code Category}. Pure JUnit (ADR 0004).
+ *
+ * <p>F034/ADR 0028: {@code create}/{@code rename} were deleted — every row is now fixed,
+ * migration-seeded content, reconstituted from persistence only. These tests now exercise {@link
+ * InvestmentCategory#reconstitute} directly for the same validation {@code create} used to cover.
  */
 class InvestmentCategoryTest {
 
   @Test
-  void createsWithGivenIdAndName() {
+  void reconstitutesWithGivenIdAndName() {
     UUID id = UUID.randomUUID();
 
-    InvestmentCategory category = InvestmentCategory.create(id, "Fixed Income");
+    InvestmentCategory category = InvestmentCategory.reconstitute(id, "Fixed Income");
 
     assertThat(category.getId()).isEqualTo(id);
     assertThat(category.getName()).isEqualTo("Fixed Income");
   }
 
   @Test
-  void reconstitutePreservesState() {
-    UUID id = UUID.randomUUID();
-
-    InvestmentCategory category = InvestmentCategory.reconstitute(id, "Crypto");
-
-    assertThat(category.getId()).isEqualTo(id);
-    assertThat(category.getName()).isEqualTo("Crypto");
-  }
-
-  @Test
-  void renameChangesTheName() {
-    InvestmentCategory category = InvestmentCategory.create(UUID.randomUUID(), "Funds");
-
-    category.rename("Investment Funds");
-
-    assertThat(category.getName()).isEqualTo("Investment Funds");
-  }
-
-  @Test
-  void createRejectsNullId() {
-    assertThatThrownBy(() -> InvestmentCategory.create(null, "Funds"))
+  void reconstituteRejectsNullId() {
+    assertThatThrownBy(() -> InvestmentCategory.reconstitute(null, "Funds"))
         .isInstanceOf(NullPointerException.class);
   }
 
   @Test
-  void createRejectsBlankName() {
-    assertThatThrownBy(() -> InvestmentCategory.create(UUID.randomUUID(), "  "))
+  void reconstituteRejectsBlankName() {
+    assertThatThrownBy(() -> InvestmentCategory.reconstitute(UUID.randomUUID(), "  "))
         .isInstanceOf(IllegalArgumentException.class);
   }
 
   @Test
-  void createRejectsNullName() {
-    assertThatThrownBy(() -> InvestmentCategory.create(UUID.randomUUID(), null))
+  void reconstituteRejectsNullName() {
+    assertThatThrownBy(() -> InvestmentCategory.reconstitute(UUID.randomUUID(), null))
         .isInstanceOf(IllegalArgumentException.class);
   }
 
   @Test
-  void renameRejectsBlankNameAndKeepsTheOldOne() {
-    InvestmentCategory category = InvestmentCategory.create(UUID.randomUUID(), "Funds");
-
-    assertThatThrownBy(() -> category.rename(" ")).isInstanceOf(IllegalArgumentException.class);
-    assertThat(category.getName()).isEqualTo("Funds");
-  }
-
-  @Test
-  void acceptsNameAtMaxLengthAndRejectsOverIt() {
+  void reconstituteAcceptsNameAtMaxLengthAndRejectsOverIt() {
     String atMax = "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH);
     String overMax = "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1);
 
-    assertThat(InvestmentCategory.create(UUID.randomUUID(), atMax).getName()).isEqualTo(atMax);
-    assertThatThrownBy(() -> InvestmentCategory.create(UUID.randomUUID(), overMax))
+    assertThat(InvestmentCategory.reconstitute(UUID.randomUUID(), atMax).getName())
+        .isEqualTo(atMax);
+    assertThatThrownBy(() -> InvestmentCategory.reconstitute(UUID.randomUUID(), overMax))
         .isInstanceOf(IllegalArgumentException.class);
-    InvestmentCategory category = InvestmentCategory.create(UUID.randomUUID(), "Funds");
-    assertThatThrownBy(() -> category.rename(overMax)).isInstanceOf(IllegalArgumentException.class);
   }
 }

@@ -101,7 +101,9 @@ class FiiAllocationControllerTest {
   void actualByTickerRowSerializesItsOwnSegmentId() throws Exception {
     UUID segmentId =
         segmentRepository
-            .save(InvestmentSegment.create(UUID.randomUUID(), "Allocation Controller Test Segment"))
+            .save(
+                InvestmentSegment.reconstitute(
+                    UUID.randomUUID(), "Allocation Controller Test Segment"))
             .getId();
     InvestmentProduct fii =
         productRepository.save(

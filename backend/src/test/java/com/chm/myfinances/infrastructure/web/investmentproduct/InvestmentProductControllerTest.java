@@ -68,16 +68,17 @@ class InvestmentProductControllerTest {
     checkingId = saveAccount("Checking Product Test", AccountType.CHECKING);
     fixedIncomeId =
         categoryRepository
-            .save(InvestmentCategory.create(UUID.randomUUID(), "Fixed Income Product Test"))
+            .save(InvestmentCategory.reconstitute(UUID.randomUUID(), "Fixed Income Product Test"))
             .getId();
     cryptoId =
         categoryRepository
-            .save(InvestmentCategory.create(UUID.randomUUID(), "Crypto Product Test"))
+            .save(InvestmentCategory.reconstitute(UUID.randomUUID(), "Crypto Product Test"))
             .getId();
     cdbId =
         subcategoryRepository
             .save(
-                InvestmentSubcategory.create(UUID.randomUUID(), fixedIncomeId, "CDB Product Test"))
+                InvestmentSubcategory.reconstitute(
+                    UUID.randomUUID(), fixedIncomeId, "CDB Product Test"))
             .getId();
   }
 

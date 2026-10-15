@@ -43,15 +43,17 @@ class InvestmentProductRepositoryAdapterTest {
   void setUp() {
     fixedIncomeId =
         categoryRepository
-            .save(InvestmentCategory.create(UUID.randomUUID(), "Fixed Income Repo Test"))
+            .save(InvestmentCategory.reconstitute(UUID.randomUUID(), "Fixed Income Repo Test"))
             .getId();
     cryptoId =
         categoryRepository
-            .save(InvestmentCategory.create(UUID.randomUUID(), "Crypto Repo Test"))
+            .save(InvestmentCategory.reconstitute(UUID.randomUUID(), "Crypto Repo Test"))
             .getId();
     cdbId =
         subcategoryRepository
-            .save(InvestmentSubcategory.create(UUID.randomUUID(), fixedIncomeId, "CDB Repo Test"))
+            .save(
+                InvestmentSubcategory.reconstitute(
+                    UUID.randomUUID(), fixedIncomeId, "CDB Repo Test"))
             .getId();
   }
 
@@ -164,7 +166,7 @@ class InvestmentProductRepositoryAdapterTest {
   void savesAndReloadsTickerAndSegmentId() {
     UUID segmentId =
         segmentRepository
-            .save(InvestmentSegment.create(UUID.randomUUID(), "Shoppings Repo Test"))
+            .save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Shoppings Repo Test"))
             .getId();
     InvestmentProduct product =
         InvestmentProduct.create(
@@ -193,7 +195,7 @@ class InvestmentProductRepositoryAdapterTest {
   void existsBySegmentIdBacksTheSegmentDeleteGuard() {
     UUID segmentId =
         segmentRepository
-            .save(InvestmentSegment.create(UUID.randomUUID(), "Logistica Repo Test"))
+            .save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Logistica Repo Test"))
             .getId();
     assertThat(productRepository.existsBySegmentId(segmentId)).isFalse();
 

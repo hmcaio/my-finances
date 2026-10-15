@@ -86,7 +86,7 @@ class FiiAllocationQueryTest {
   private final UUID fiiSubcategoryId =
       subcategoryRepository
           .save(
-              InvestmentSubcategory.create(
+              InvestmentSubcategory.reconstitute(
                   UUID.randomUUID(), UUID.randomUUID(), AllocationPlanService.FII_SUBCATEGORY_NAME))
           .getId();
 
@@ -142,7 +142,7 @@ class FiiAllocationQueryTest {
   void actualByTickerRowsCarryTheirOwnSegmentIdAndSegmentRowsDoNot() {
     UUID segmentId =
         segmentRepository
-            .save(InvestmentSegment.create(UUID.randomUUID(), "Shoppings Test"))
+            .save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Shoppings Test"))
             .getId();
     InvestmentProduct segmented = fiiProduct("KNRI11 Fund", "KNRI11", segmentId);
     InvestmentProduct unsegmented = fiiProduct("HGLG11 Fund", "HGLG11", null);
@@ -170,9 +170,13 @@ class FiiAllocationQueryTest {
   @Test
   void actualByTickerClustersBySegmentSizeThenByTickerSizeWithinSegment() {
     UUID segmentA =
-        segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Segment A")).getId();
+        segmentRepository
+            .save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Segment A"))
+            .getId();
     UUID segmentB =
-        segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Segment B")).getId();
+        segmentRepository
+            .save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Segment B"))
+            .getId();
     InvestmentProduct x = fiiProduct("X Fund", "TICKX", segmentA);
     InvestmentProduct y = fiiProduct("Y Fund", "TICKY", segmentA);
     InvestmentProduct w = fiiProduct("W Fund", "TICKW", null);
@@ -197,7 +201,7 @@ class FiiAllocationQueryTest {
   void anUnsegmentedProductGroupsUnderNoSegmentInTheActualSegmentChart() {
     UUID segmentId =
         segmentRepository
-            .save(InvestmentSegment.create(UUID.randomUUID(), "Shoppings Test"))
+            .save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Shoppings Test"))
             .getId();
     InvestmentProduct segmented = fiiProduct("KNRI11 Fund", "KNRI11", segmentId);
     InvestmentProduct unsegmented = fiiProduct("HGLG11 Fund", "HGLG11", null);
@@ -221,11 +225,13 @@ class FiiAllocationQueryTest {
   @Test
   void actualBySegmentSortsBySizeThenAlphabeticallyOnTies() {
     UUID alpha =
-        segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Alpha")).getId();
-    UUID beta = segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Beta")).getId();
+        segmentRepository.save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Alpha")).getId();
+    UUID beta =
+        segmentRepository.save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Beta")).getId();
     UUID gamma =
-        segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Gamma")).getId();
-    UUID zeta = segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Zeta")).getId();
+        segmentRepository.save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Gamma")).getId();
+    UUID zeta =
+        segmentRepository.save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Zeta")).getId();
     withSnapshot(fiiProduct("Alpha Fund", "ALPHA11", alpha), "300.00");
     withSnapshot(fiiProduct("Beta Fund", "BETA11", beta), "200.00");
     withSnapshot(fiiProduct("Gamma Fund", "GAMMA11", gamma), "150.00");
@@ -279,7 +285,7 @@ class FiiAllocationQueryTest {
   void plannedByTickerRowsCarryTheirOwnSegmentIdAndSegmentRowsDoNot() {
     UUID segmentId =
         segmentRepository
-            .save(InvestmentSegment.create(UUID.randomUUID(), "Shoppings Test"))
+            .save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Shoppings Test"))
             .getId();
     InvestmentProduct segmented = fiiProduct("KNRI11 Fund", "KNRI11", segmentId);
     InvestmentProduct unsegmented = fiiProduct("HGLG11 Fund", "HGLG11", null);
@@ -310,9 +316,13 @@ class FiiAllocationQueryTest {
   @Test
   void plannedByTickerClustersBySegmentSizeThenByTickerSizeWithinSegment() {
     UUID segmentA =
-        segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Segment A")).getId();
+        segmentRepository
+            .save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Segment A"))
+            .getId();
     UUID segmentB =
-        segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Segment B")).getId();
+        segmentRepository
+            .save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Segment B"))
+            .getId();
     InvestmentProduct x = fiiProduct("X Fund", "TICKX", segmentA);
     InvestmentProduct y = fiiProduct("Y Fund", "TICKY", segmentA);
     InvestmentProduct w = fiiProduct("W Fund", "TICKW", null);
@@ -340,7 +350,7 @@ class FiiAllocationQueryTest {
   void plannedBySegmentSumsCorrectly() {
     UUID segmentId =
         segmentRepository
-            .save(InvestmentSegment.create(UUID.randomUUID(), "Shoppings Test"))
+            .save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Shoppings Test"))
             .getId();
     InvestmentProduct knri = fiiProduct("KNRI11 Fund", "KNRI11", segmentId);
     InvestmentProduct hglg = fiiProduct("HGLG11 Fund", "HGLG11", segmentId);
@@ -371,11 +381,13 @@ class FiiAllocationQueryTest {
   @Test
   void plannedBySegmentSortsBySizeThenAlphabeticallyOnTies() {
     UUID alpha =
-        segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Alpha")).getId();
-    UUID beta = segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Beta")).getId();
+        segmentRepository.save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Alpha")).getId();
+    UUID beta =
+        segmentRepository.save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Beta")).getId();
     UUID gamma =
-        segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Gamma")).getId();
-    UUID zeta = segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Zeta")).getId();
+        segmentRepository.save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Gamma")).getId();
+    UUID zeta =
+        segmentRepository.save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Zeta")).getId();
     InvestmentProduct a = fiiProduct("Alpha Fund", "ALPHA11", alpha);
     InvestmentProduct b = fiiProduct("Beta Fund", "BETA11", beta);
     InvestmentProduct g = fiiProduct("Gamma Fund", "GAMMA11", gamma);

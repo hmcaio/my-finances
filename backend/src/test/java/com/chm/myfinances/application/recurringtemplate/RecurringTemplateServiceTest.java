@@ -114,7 +114,9 @@ class RecurringTemplateServiceTest {
             .getId();
     accountId = accountRepository.save(AccountMother.checking().build()).getId();
     paymentMethodId =
-        paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), "Debit")).getId();
+        paymentMethodRepository
+            .save(PaymentMethod.reconstitute(UUID.randomUUID(), "Debit"))
+            .getId();
   }
 
   @Test

@@ -136,7 +136,7 @@ class RealAccountUsageCheckerTest {
             accountRepository, institutionRepository, "Usage Broker", AccountType.INVESTMENT);
     InvestmentCategory category =
         investmentCategoryRepository.save(
-            InvestmentCategory.create(UUID.randomUUID(), "Usage Invest Test"));
+            InvestmentCategory.reconstitute(UUID.randomUUID(), "Usage Invest Test"));
     InvestmentProduct product =
         investmentProductRepository.save(
             InvestmentProductMother.product()
