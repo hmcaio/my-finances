@@ -102,7 +102,7 @@ class DividendControllerTest {
     UUID categoryId =
         investmentCategoryRepository
             .save(
-                InvestmentCategory.create(
+                InvestmentCategory.reconstitute(
                     UUID.randomUUID(), "Variable Income Dividend Test " + UUID.randomUUID()))
             .getId();
     InvestmentProduct product =

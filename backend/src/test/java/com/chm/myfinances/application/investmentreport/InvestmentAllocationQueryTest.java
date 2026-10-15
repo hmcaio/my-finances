@@ -81,12 +81,14 @@ class InvestmentAllocationQueryTest {
   private final UUID stocks = subcategory(variableIncome, "Stocks");
 
   private UUID category(String name) {
-    return categoryRepository.save(InvestmentCategory.create(UUID.randomUUID(), name)).getId();
+    return categoryRepository
+        .save(InvestmentCategory.reconstitute(UUID.randomUUID(), name))
+        .getId();
   }
 
   private UUID subcategory(UUID categoryId, String name) {
     return subcategoryRepository
-        .save(InvestmentSubcategory.create(UUID.randomUUID(), categoryId, name))
+        .save(InvestmentSubcategory.reconstitute(UUID.randomUUID(), categoryId, name))
         .getId();
   }
 

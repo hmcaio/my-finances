@@ -67,7 +67,7 @@ class FiiPortfolioQueryTest {
   private final UUID fiiSubcategoryId =
       subcategoryRepository
           .save(
-              InvestmentSubcategory.create(
+              InvestmentSubcategory.reconstitute(
                   UUID.randomUUID(), UUID.randomUUID(), AllocationPlanService.FII_SUBCATEGORY_NAME))
           .getId();
 

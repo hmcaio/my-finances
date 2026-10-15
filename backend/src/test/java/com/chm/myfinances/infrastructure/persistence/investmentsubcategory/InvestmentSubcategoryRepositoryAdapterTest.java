@@ -34,18 +34,18 @@ class InvestmentSubcategoryRepositoryAdapterTest {
   void setUp() {
     categoryId =
         categoryRepository
-            .save(InvestmentCategory.create(UUID.randomUUID(), "Parent Test"))
+            .save(InvestmentCategory.reconstitute(UUID.randomUUID(), "Parent Test"))
             .getId();
     otherCategoryId =
         categoryRepository
-            .save(InvestmentCategory.create(UUID.randomUUID(), "Other Parent Test"))
+            .save(InvestmentCategory.reconstitute(UUID.randomUUID(), "Other Parent Test"))
             .getId();
   }
 
   @Test
   void savesAndReloadsASubcategory() {
     InvestmentSubcategory subcategory =
-        InvestmentSubcategory.create(UUID.randomUUID(), categoryId, "CDB Test");
+        InvestmentSubcategory.reconstitute(UUID.randomUUID(), categoryId, "CDB Test");
 
     subcategoryRepository.save(subcategory);
 
@@ -56,18 +56,17 @@ class InvestmentSubcategoryRepositoryAdapterTest {
   }
 
   @Test
-  void renamePersistsAndKeepsTheParent() {
-    InvestmentSubcategory subcategory =
-        subcategoryRepository.save(
-            InvestmentSubcategory.create(UUID.randomUUID(), categoryId, "Original Test"));
+  void savingAgainWithTheSameIdUpdatesTheRowAndKeepsTheParent() {
+    // F034/ADR 0028: rename() was deleted (the row is now fixed content) - this still proves
+    // save() is an upsert-by-id, re-saving a freshly reconstituted instance for the same id.
+    UUID id = UUID.randomUUID();
+    subcategoryRepository.save(InvestmentSubcategory.reconstitute(id, categoryId, "Original Test"));
 
-    subcategory.rename("Renamed Test");
-    subcategoryRepository.save(subcategory);
+    subcategoryRepository.save(InvestmentSubcategory.reconstitute(id, categoryId, "Renamed Test"));
     entityManager.flush();
     entityManager.clear();
 
-    InvestmentSubcategory reloaded =
-        subcategoryRepository.findById(subcategory.getId()).orElseThrow();
+    InvestmentSubcategory reloaded = subcategoryRepository.findById(id).orElseThrow();
     assertThat(reloaded.getName()).isEqualTo("Renamed Test");
     assertThat(reloaded.getInvestmentCategoryId()).isEqualTo(categoryId);
   }
@@ -76,7 +75,7 @@ class InvestmentSubcategoryRepositoryAdapterTest {
   void deleteRemovesTheSubcategory() {
     InvestmentSubcategory subcategory =
         subcategoryRepository.save(
-            InvestmentSubcategory.create(UUID.randomUUID(), categoryId, "Temp Test"));
+            InvestmentSubcategory.reconstitute(UUID.randomUUID(), categoryId, "Temp Test"));
 
     subcategoryRepository.deleteById(subcategory.getId());
 
@@ -88,7 +87,7 @@ class InvestmentSubcategoryRepositoryAdapterTest {
     assertThat(subcategoryRepository.existsByInvestmentCategoryId(categoryId)).isFalse();
 
     subcategoryRepository.save(
-        InvestmentSubcategory.create(UUID.randomUUID(), categoryId, "Child Test"));
+        InvestmentSubcategory.reconstitute(UUID.randomUUID(), categoryId, "Child Test"));
 
     assertThat(subcategoryRepository.existsByInvestmentCategoryId(categoryId)).isTrue();
     assertThat(subcategoryRepository.existsByInvestmentCategoryId(otherCategoryId)).isFalse();
@@ -98,7 +97,7 @@ class InvestmentSubcategoryRepositoryAdapterTest {
   void nameUniquenessIsScopedToTheParentCategory() {
     InvestmentSubcategory etfs =
         subcategoryRepository.save(
-            InvestmentSubcategory.create(UUID.randomUUID(), categoryId, "ETFs Test"));
+            InvestmentSubcategory.reconstitute(UUID.randomUUID(), categoryId, "ETFs Test"));
 
     assertThat(subcategoryRepository.existsByInvestmentCategoryIdAndName(categoryId, "ETFs Test"))
         .isTrue();
@@ -118,9 +117,9 @@ class InvestmentSubcategoryRepositoryAdapterTest {
   @Test
   void theSameNameCanLiveUnderTwoCategories() {
     subcategoryRepository.save(
-        InvestmentSubcategory.create(UUID.randomUUID(), categoryId, "ETFs Test"));
+        InvestmentSubcategory.reconstitute(UUID.randomUUID(), categoryId, "ETFs Test"));
     subcategoryRepository.save(
-        InvestmentSubcategory.create(UUID.randomUUID(), otherCategoryId, "ETFs Test"));
+        InvestmentSubcategory.reconstitute(UUID.randomUUID(), otherCategoryId, "ETFs Test"));
 
     entityManager.flush();
   }
@@ -128,11 +127,11 @@ class InvestmentSubcategoryRepositoryAdapterTest {
   @Test
   void theDatabaseRejectsADuplicateNameWithinACategory() {
     subcategoryRepository.save(
-        InvestmentSubcategory.create(UUID.randomUUID(), categoryId, "Twice Test"));
+        InvestmentSubcategory.reconstitute(UUID.randomUUID(), categoryId, "Twice Test"));
     entityManager.flush();
 
     subcategoryRepository.save(
-        InvestmentSubcategory.create(UUID.randomUUID(), categoryId, "Twice Test"));
+        InvestmentSubcategory.reconstitute(UUID.randomUUID(), categoryId, "Twice Test"));
 
     assertThatThrownBy(() -> entityManager.flush())
         .hasStackTraceContaining("uq_investment_subcategories_category_name");
@@ -141,7 +140,7 @@ class InvestmentSubcategoryRepositoryAdapterTest {
   @Test
   void theDatabaseRejectsAnUnknownParent() {
     subcategoryRepository.save(
-        InvestmentSubcategory.create(UUID.randomUUID(), UUID.randomUUID(), "Orphan Test"));
+        InvestmentSubcategory.reconstitute(UUID.randomUUID(), UUID.randomUUID(), "Orphan Test"));
 
     assertThatThrownBy(() -> entityManager.flush())
         .hasStackTraceContaining("investment_subcategories_investment_category_id_fkey");

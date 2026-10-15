@@ -1,33 +1,9 @@
-import { afterEach, describe, expect, it } from 'vitest'
-import { screen, waitFor, within } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
+import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { delay, http, HttpResponse } from 'msw'
-import { server } from '../../mocks/server'
-import {
-  investmentCategoryCreateConflictHandler,
-  investmentCategoryDeleteConflictHandler,
-  seedInvestmentCategories,
-} from '../../mocks/handlers/investmentCategories'
-import {
-  investmentSubcategoryCreateConflictHandler,
-  investmentSubcategoryDeleteConflictHandler,
-} from '../../mocks/handlers/investmentSubcategories'
-import { resolveErrorMessage } from '../../test/errorMessages'
-
-const CATEGORY_CONFLICT_MESSAGE = resolveErrorMessage(
-  'urn:my-finances:error:investment-category-in-use',
-)
-const CATEGORY_DUPLICATE_NAME_MESSAGE = resolveErrorMessage(
-  'urn:my-finances:error:investment-category-name-already-exists',
-)
-const SUBCATEGORY_CONFLICT_MESSAGE = resolveErrorMessage(
-  'urn:my-finances:error:investment-subcategory-in-use',
-)
-const SUBCATEGORY_DUPLICATE_NAME_MESSAGE = resolveErrorMessage(
-  'urn:my-finances:error:investment-subcategory-name-already-exists',
-)
+import { seedInvestmentCategories } from '../../mocks/handlers/investmentCategories'
+import { expectLoadStates } from '../../test/loadStates'
 import { findRow } from '../../test/testUtils'
-import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
 import { InvestmentCategoriesPage } from './InvestmentCategoriesPage'
 import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
@@ -38,8 +14,13 @@ async function expand(user: ReturnType<typeof userEvent.setup>, name: string) {
   await user.click(await screen.findByRole('button', { name: `Expand ${name}` }))
 }
 
+/**
+ * F034/ADR 0028: InvestmentCategoriesPage (and its nested sub-categories) lost every mutation
+ * affordance - every row at both levels is fixed, migration-seeded content. Expand/collapse per
+ * category is the only interaction left.
+ */
 describe('InvestmentCategoriesPage', () => {
-  it('renders the seeded categories collapsed, with their sub-category counts', async () => {
+  it('renders the seeded categories collapsed, with their sub-category counts, and no mutation affordance', async () => {
     renderWithQueryClient(<InvestmentCategoriesPage />)
 
     for (const category of seedInvestmentCategories) {
@@ -48,6 +29,9 @@ describe('InvestmentCategoriesPage', () => {
     expect((await findRow('Fixed Income')).getByText('2 sub-categories')).toBeInTheDocument()
     expect((await findRow('Crypto')).getByText('0 sub-categories')).toBeInTheDocument()
     expect(screen.queryByText('CDB')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /add/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Rename' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
   })
 
   it('expands a category to show its sub-categories and collapses it again', async () => {
@@ -66,189 +50,23 @@ describe('InvestmentCategoriesPage', () => {
     expect(screen.queryByText('CDB')).not.toBeInTheDocument()
   })
 
-  it('adds a category through the header dialog', async () => {
+  it('expanding one category does not affect another', async () => {
     const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<InvestmentCategoriesPage />)
-    await screen.findByText(CRYPTO.name)
 
-    await user.click(screen.getByRole('button', { name: 'Add category' }))
-    const dialog = screen.getByRole('dialog')
-    await user.type(within(dialog).getByRole('textbox', { name: 'Category name' }), 'Real Estate')
-    await user.click(within(dialog).getByRole('button', { name: 'Add' }))
-
-    expect(await screen.findByText('Real Estate')).toBeInTheDocument()
-  })
-
-  it('adds a sub-category under its category', async () => {
-    const user = userEvent.setup({ delay: null })
-    renderWithQueryClient(<InvestmentCategoriesPage />)
     await expand(user, 'Fixed Income')
+    expect(screen.getByText('CDB')).toBeInTheDocument()
+    expect(screen.queryByText('ETFs')).not.toBeInTheDocument()
 
-    await user.type(screen.getByLabelText('New sub-category in Fixed Income'), 'LCI')
-    await user.click(screen.getByRole('button', { name: 'Add sub-category to Fixed Income' }))
-
-    expect(await screen.findByText('LCI')).toBeInTheDocument()
-    // The category's counter follows.
-    expect((await findRow('Fixed Income')).getByText('3 sub-categories')).toBeInTheDocument()
-  })
-
-  it('renames a category inline', async () => {
-    const user = userEvent.setup({ delay: null })
-    renderWithQueryClient(<InvestmentCategoriesPage />)
-    await screen.findByText(CRYPTO.name)
-
-    const row = await findRow('Crypto')
-    await user.click(row.getByRole('button', { name: 'Rename' }))
-    const input = row.getByRole('textbox', { name: 'Category name' })
-    await user.clear(input)
-    await user.type(input, 'Digital Assets')
-    await user.click(row.getByRole('button', { name: 'Save' }))
-
-    expect(await screen.findByText('Digital Assets')).toBeInTheDocument()
-    expect(screen.queryByText('Crypto')).not.toBeInTheDocument()
-  })
-
-  it('renames a sub-category inline', async () => {
-    const user = userEvent.setup({ delay: null })
-    renderWithQueryClient(<InvestmentCategoriesPage />)
-    await expand(user, 'Fixed Income')
-
-    const row = await findRow('CDB')
-    await user.click(row.getByRole('button', { name: 'Rename' }))
-    const input = row.getByRole('textbox', { name: 'Sub-category name' })
-    await user.clear(input)
-    await user.type(input, 'CDB / RDB')
-    await user.click(row.getByRole('button', { name: 'Save' }))
-
-    expect(await screen.findByText('CDB / RDB')).toBeInTheDocument()
-    expect(screen.queryByText('CDB')).not.toBeInTheDocument()
-  })
-
-  it('deletes a category', async () => {
-    const user = userEvent.setup({ delay: null })
-    renderWithQueryClient(<InvestmentCategoriesPage />)
-    await screen.findByText(CRYPTO.name)
-
-    await user.click((await findRow('Crypto')).getByRole('button', { name: 'Delete' }))
-
-    await waitFor(() => expect(screen.queryByText('Crypto')).not.toBeInTheDocument())
-  })
-
-  it('deletes a sub-category', async () => {
-    const user = userEvent.setup({ delay: null })
-    renderWithQueryClient(<InvestmentCategoriesPage />)
-    await expand(user, 'Fixed Income')
-
-    await user.click((await findRow('CDB')).getByRole('button', { name: 'Delete' }))
-
-    await waitFor(() => expect(screen.queryByText('CDB')).not.toBeInTheDocument())
-    expect(screen.getByText('Tesouro Selic')).toBeInTheDocument()
-  })
-
-  it('surfaces the category 409 message and keeps the row when delete is refused', async () => {
-    server.use(investmentCategoryDeleteConflictHandler)
-    const user = userEvent.setup({ delay: null })
-    renderWithQueryClient(<InvestmentCategoriesPage />)
-    await screen.findByText(FIXED.name)
-
-    await user.click((await findRow('Fixed Income')).getByRole('button', { name: 'Delete' }))
-
-    expect(await screen.findByText(CATEGORY_CONFLICT_MESSAGE)).toBeInTheDocument()
-    expect(screen.getByText('Fixed Income')).toBeInTheDocument()
-  })
-
-  it('surfaces the sub-category 409 message and keeps the row when delete is refused', async () => {
-    server.use(investmentSubcategoryDeleteConflictHandler)
-    const user = userEvent.setup({ delay: null })
-    renderWithQueryClient(<InvestmentCategoriesPage />)
-    await expand(user, 'Fixed Income')
-
-    await user.click((await findRow('CDB')).getByRole('button', { name: 'Delete' }))
-
-    expect(await screen.findByText(SUBCATEGORY_CONFLICT_MESSAGE)).toBeInTheDocument()
+    await expand(user, 'Variable Income')
+    expect(screen.getByText('ETFs')).toBeInTheDocument()
     expect(screen.getByText('CDB')).toBeInTheDocument()
   })
 
-  it('surfaces the duplicate-name 409 on add for both levels', async () => {
-    server.use(investmentCategoryCreateConflictHandler, investmentSubcategoryCreateConflictHandler)
-    const user = userEvent.setup({ delay: null })
-    renderWithQueryClient(<InvestmentCategoriesPage />)
-    await expand(user, 'Fixed Income')
-
-    await user.type(screen.getByLabelText('New sub-category in Fixed Income'), 'CDB')
-    await user.click(screen.getByRole('button', { name: 'Add sub-category to Fixed Income' }))
-    expect(await screen.findByText(SUBCATEGORY_DUPLICATE_NAME_MESSAGE)).toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: 'Add category' }))
-    const dialog = screen.getByRole('dialog')
-    await user.type(within(dialog).getByRole('textbox', { name: 'Category name' }), 'Crypto')
-    await user.click(within(dialog).getByRole('button', { name: 'Add' }))
-    expect(await screen.findByText(CATEGORY_DUPLICATE_NAME_MESSAGE)).toBeInTheDocument()
-  })
-
-  it('keeps a sub-category draft per category', async () => {
-    const user = userEvent.setup({ delay: null })
-    renderWithQueryClient(<InvestmentCategoriesPage />)
-    await expand(user, 'Fixed Income')
-    await expand(user, 'Variable Income')
-
-    await user.type(screen.getByLabelText('New sub-category in Fixed Income'), 'LCA')
-
-    expect(screen.getByLabelText('New sub-category in Variable Income')).toHaveValue('')
-  })
-
-  it('shows a loading skeleton only when the first fetch is slow, then the rows', async () => {
-    server.use(
-      http.get('/api/investment-categories', async () => {
-        await delay(400)
-        return HttpResponse.json(seedInvestmentCategories)
-      }),
-    )
-    renderWithQueryClient(<InvestmentCategoriesPage />)
-
-    expect(await screen.findByText('Loading…')).toBeInTheDocument()
-    expect(await screen.findByText(CRYPTO.name)).toBeInTheDocument()
-    expect(screen.queryByText('Loading…')).not.toBeInTheDocument()
-  })
-
-  it('shows a retryable notice when the list cannot be loaded', async () => {
-    server.use(
-      http.get('/api/investment-categories', () => new HttpResponse(null, { status: 500 })),
-    )
-    const user = userEvent.setup({ delay: null })
-    renderWithQueryClient(<InvestmentCategoriesPage />)
-
-    expect(await screen.findByText(/Could not load data/)).toBeInTheDocument()
-    server.resetHandlers()
-    await user.click(screen.getByRole('button', { name: 'Retry' }))
-
-    expect(await screen.findByText(CRYPTO.name)).toBeInTheDocument()
-  })
-})
-
-describe('InvestmentCategoriesPage responsive layout (F021)', () => {
-  afterEach(restoreViewport)
-
-  it('keeps the per-category add-sub-category form inline, not in a dialog, at every size', async () => {
-    setViewportWidth(VIEWPORT.mobile)
-    const user = userEvent.setup({ delay: null })
-    renderWithQueryClient(<InvestmentCategoriesPage />)
-    await expand(user, 'Fixed Income')
-
-    expect(screen.getByLabelText('New sub-category in Fixed Income')).toBeInTheDocument()
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-  })
-
-  it('renames a category inline at every size (the table never becomes cards)', async () => {
-    setViewportWidth(VIEWPORT.mobile)
-    const user = userEvent.setup({ delay: null })
-    renderWithQueryClient(<InvestmentCategoriesPage />)
-    await screen.findByText(CRYPTO.name)
-
-    const row = await findRow('Crypto')
-    await user.click(row.getByRole('button', { name: 'Rename' }))
-
-    expect(row.getByRole('textbox', { name: 'Category name' })).toBeInTheDocument()
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  expectLoadStates({
+    render: () => renderWithQueryClient(<InvestmentCategoriesPage />),
+    url: '/api/investment-categories',
+    successBody: seedInvestmentCategories,
+    loadedText: CRYPTO.name,
   })
 })

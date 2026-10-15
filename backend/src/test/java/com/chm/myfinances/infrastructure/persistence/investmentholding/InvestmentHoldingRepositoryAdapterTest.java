@@ -49,7 +49,9 @@ class InvestmentHoldingRepositoryAdapterTest {
     otherAccountId = saveInvestmentAccount("Nubank Holding Repo Test");
     UUID categoryId =
         categoryRepository
-            .save(InvestmentCategory.create(UUID.randomUUID(), "Fixed Income Holding Repo Test"))
+            .save(
+                InvestmentCategory.reconstitute(
+                    UUID.randomUUID(), "Fixed Income Holding Repo Test"))
             .getId();
     productId =
         productRepository

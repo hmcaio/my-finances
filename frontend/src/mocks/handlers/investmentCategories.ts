@@ -26,11 +26,7 @@ export const seedInvestmentCategories: InvestmentCategory[] = [
 
 const CATEGORIES_URL = '/api/investment-categories'
 
-interface CategoryRequestBody {
-  name: string
-}
-
-/** Shared with the sub-category handlers, which edit the nested rows. */
+/** Read-only, like the backend store it mirrors (F034/ADR 0028) - no handler writes through it. */
 export const investmentCategoriesStore = createStore(seedInvestmentCategories)
 
 const byName = <T extends { name: string }>(a: T, b: T) =>
@@ -45,58 +41,13 @@ function sortedCategories(): InvestmentCategory[] {
 }
 
 /**
- * Default success-path handlers for the investment categories endpoints (F008's REST API), backed
+ * Default success-path handler for the investment categories endpoint (F008's REST API), backed
  * by an in-memory store restored after each test (see `categories.ts`).
+ *
+ * F034/ADR 0028: read-only - the POST/PATCH/DELETE handlers and their 409 conflict variants (here
+ * and on the now-deleted standalone investment-subcategories endpoints) were removed along with
+ * the backend's write endpoints; every row (both levels) is fixed, migration-seeded content.
  */
 export const investmentCategoriesHandlers = [
   http.get(CATEGORIES_URL, () => HttpResponse.json(sortedCategories())),
-
-  http.post(CATEGORIES_URL, async ({ request }) => {
-    const body = (await request.json()) as CategoryRequestBody
-    const created = investmentCategoriesStore.add({
-      id: investmentCategoriesStore.nextId('icat'),
-      name: body.name,
-      subcategories: [],
-    })
-    return HttpResponse.json(created, { status: 201 })
-  }),
-
-  http.patch(`${CATEGORIES_URL}/:id`, async ({ request, params }) => {
-    const body = (await request.json()) as CategoryRequestBody
-    const updated = investmentCategoriesStore.replace(params.id as string, (row) => ({
-      ...row,
-      name: body.name,
-    }))
-    return updated ? HttpResponse.json(updated) : new HttpResponse(null, { status: 404 })
-  }),
-
-  http.delete(`${CATEGORIES_URL}/:id`, ({ params }) => {
-    investmentCategoriesStore.remove(params.id as string)
-    return new HttpResponse(null, { status: 204 })
-  }),
 ]
-
-/**
- * `409` variant for deleting a category that still has sub-categories or products
- * (`InvestmentCategoryInUseException`) - applied via `server.use(...)`. The backend sends no
- * exception text - only the RFC 9457 `type` identifier (F031/ADR 0026) - and what the UI shows
- * comes from `apiError.ts`'s central `PROBLEM_TYPE_MESSAGES` map.
- */
-export const investmentCategoryDeleteConflictHandler = http.delete(`${CATEGORIES_URL}/:id`, () =>
-  HttpResponse.json({ type: 'urn:my-finances:error:investment-category-in-use' }, { status: 409 }),
-)
-
-/** `409` variants for the duplicate-name case on create/rename. */
-export const investmentCategoryCreateConflictHandler = http.post(CATEGORIES_URL, () =>
-  HttpResponse.json(
-    { type: 'urn:my-finances:error:investment-category-name-already-exists' },
-    { status: 409 },
-  ),
-)
-
-export const investmentCategoryRenameConflictHandler = http.patch(`${CATEGORIES_URL}/:id`, () =>
-  HttpResponse.json(
-    { type: 'urn:my-finances:error:investment-category-name-already-exists' },
-    { status: 409 },
-  ),
-)

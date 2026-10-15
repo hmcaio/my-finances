@@ -141,13 +141,28 @@ class InstitutionServiceTest {
   }
 
   @Test
-  void renameOfTheBuiltInRowIsAllowedAndKeepsItBuiltIn() {
+  void renameOfTheBuiltInRowIsRejected() {
+    // F034/ADR 0028: closes the same rename gap Category closed in issue #117 - the built-in row
+    // kept its original name (today "No institution") exactly as the built-in category keeps
+    // "Other Expense"/"Other Income".
     Institution builtIn = seedBuiltIn();
 
-    Institution renamed = service.rename(builtIn.getId(), "Sem instituicao");
+    assertThatThrownBy(() -> service.rename(builtIn.getId(), "Sem instituicao"))
+        .isInstanceOf(BuiltInInstitutionException.class);
+    assertThat(repository.findById(builtIn.getId()))
+        .get()
+        .extracting(Institution::getName)
+        .isEqualTo("No institution");
+  }
 
-    assertThat(renamed.getName()).isEqualTo("Sem instituicao");
-    assertThat(renamed.isBuiltIn()).isTrue();
+  @Test
+  void renameOfANonBuiltInRowStaysAllowed() {
+    Institution created = service.create("Nubank");
+
+    Institution renamed = service.rename(created.getId(), "Nu Pagamentos");
+
+    assertThat(renamed.getName()).isEqualTo("Nu Pagamentos");
+    assertThat(renamed.isBuiltIn()).isFalse();
   }
 
   @Test
@@ -181,9 +196,9 @@ class InstitutionServiceTest {
   }
 
   @Test
-  void deleteOfTheBuiltInRowStaysRejectedAfterARename() {
+  void deleteOfTheBuiltInRowStaysRejectedRegardlessOfTheRejectedRenameAttempt() {
     Institution builtIn = seedBuiltIn();
-    service.rename(builtIn.getId(), "Sem instituicao");
+    assertThatThrownBy(() -> service.rename(builtIn.getId(), "Sem instituicao"));
 
     assertThatThrownBy(() -> service.delete(builtIn.getId()))
         .isInstanceOf(BuiltInInstitutionException.class);

@@ -94,7 +94,7 @@ class TransactionServiceTest {
     closedAccount.close(LocalDate.now());
     accountRepository.save(closedAccount);
     paymentMethod =
-        paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), "Debit Card"));
+        paymentMethodRepository.save(PaymentMethod.reconstitute(UUID.randomUUID(), "Debit Card"));
     vehicle = vehicleRepository.save(Vehicle.create(UUID.randomUUID(), "Civic"));
     holding =
         investmentHoldingRepository.save(

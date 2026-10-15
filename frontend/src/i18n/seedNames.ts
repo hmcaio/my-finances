@@ -4,6 +4,7 @@ export type SeedTable =
   | 'institutions'
   | 'investmentCategories'
   | 'investmentSubcategories'
+  | 'investmentSegments'
 
 /**
  * Exact-string-match seed-name lookups (F033/ADR 0027): a row whose *current* name matches one of
@@ -15,7 +16,10 @@ export type SeedTable =
  * unless an income row already held that name - see V14's own migration comment for the adoption
  * rules), since that's the name a fresh install actually ends up with. V18's "Fuel" and V20's
  * "Dividends" are added by the fuel/FII feature areas' own phase steps, not here, even though they
- * also seed into this same `categories` table.
+ * also seed into this same `categories` table. `investmentSegments` holds V24's nine B3 FII
+ * sectors (F034/ADR 0028) - unlike every other table here, every one of its rows is permanently
+ * protected (no create/rename/delete endpoint exists at all), so this is the one lookup that can
+ * never fall through to the verbatim-name branch.
  */
 const CATEGORY_SEED_NAMES: Record<string, string> = {
   Groceries: 'common:seedNames.categories.groceries',
@@ -89,12 +93,30 @@ const INVESTMENT_SUBCATEGORY_SEED_NAMES: Record<string, string> = {
   Bonds: 'common:seedNames.investmentSubcategories.bonds',
 }
 
+/**
+ * V24's starter investment segments (F034/ADR 0028 - the B3 FII sector list, migration-seeded and
+ * never user-created/renamed, so every row is always a match here; nothing ever falls through to
+ * the verbatim branch).
+ */
+const INVESTMENT_SEGMENT_SEED_NAMES: Record<string, string> = {
+  'Lajes Corporativas': 'common:seedNames.investmentSegments.lajesCorporativas',
+  Shoppings: 'common:seedNames.investmentSegments.shoppings',
+  Logística: 'common:seedNames.investmentSegments.logistica',
+  'Papel (Recebíveis)': 'common:seedNames.investmentSegments.papel',
+  Híbrido: 'common:seedNames.investmentSegments.hibrido',
+  Fiagro: 'common:seedNames.investmentSegments.fiagro',
+  Hospitalar: 'common:seedNames.investmentSegments.hospitalar',
+  Residencial: 'common:seedNames.investmentSegments.residencial',
+  Outros: 'common:seedNames.investmentSegments.outros',
+}
+
 const SEED_NAMES: Record<SeedTable, Record<string, string>> = {
   categories: CATEGORY_SEED_NAMES,
   paymentMethods: PAYMENT_METHOD_SEED_NAMES,
   institutions: INSTITUTION_SEED_NAMES,
   investmentCategories: INVESTMENT_CATEGORY_SEED_NAMES,
   investmentSubcategories: INVESTMENT_SUBCATEGORY_SEED_NAMES,
+  investmentSegments: INVESTMENT_SEGMENT_SEED_NAMES,
 }
 
 /**

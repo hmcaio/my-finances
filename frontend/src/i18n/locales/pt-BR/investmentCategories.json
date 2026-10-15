@@ -1,18 +1,11 @@
 {
   "title": "Categorias de investimento",
-  "description": "A taxonomia de dois níveis usada para classificar produtos de investimento: uma categoria, e opcionalmente uma subcategoria dentro dela. Renomear é sempre permitido; uma categoria ou subcategoria ainda usada por produtos não pode ser excluída.",
-  "addButton": "Adicionar categoria",
-  "addDialogTitle": "Adicionar categoria",
+  "description": "A taxonomia de dois níveis usada para classificar produtos de investimento: uma categoria, e opcionalmente uma subcategoria dentro dela. Conteúdo fixo, definido pelo sistema - não editável.",
   "nameColumn": "Nome",
   "subcategoriesColumn": "Subcategorias",
   "emptyList": "Nenhuma categoria de investimento ainda.",
   "subcategoryCount_one": "{{count}} subcategoria",
   "subcategoryCount_other": "{{count}} subcategorias",
   "collapse": "Recolher {{name}}",
-  "expand": "Expandir {{name}}",
-  "categoryNameLabel": "Nome da categoria",
-  "subcategoryNameLabel": "Nome da subcategoria",
-  "newSubcategoryLabel": "Nova subcategoria em {{category}}",
-  "addSubcategoryAria": "Adicionar subcategoria a {{category}}",
-  "addSubcategoryButton": "Adicionar subcategoria"
+  "expand": "Expandir {{name}}"
 }

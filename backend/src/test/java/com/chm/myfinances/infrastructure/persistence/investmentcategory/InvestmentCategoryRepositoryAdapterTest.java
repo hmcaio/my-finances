@@ -26,7 +26,7 @@ class InvestmentCategoryRepositoryAdapterTest {
 
   @Test
   void savesAndReloadsACategory() {
-    InvestmentCategory category = InvestmentCategory.create(UUID.randomUUID(), "Bonds Test");
+    InvestmentCategory category = InvestmentCategory.reconstitute(UUID.randomUUID(), "Bonds Test");
 
     categoryRepository.save(category);
 
@@ -36,20 +36,20 @@ class InvestmentCategoryRepositoryAdapterTest {
   }
 
   @Test
-  void renamePersists() {
-    InvestmentCategory category = InvestmentCategory.create(UUID.randomUUID(), "Original Test");
-    categoryRepository.save(category);
+  void savingAgainWithTheSameIdUpdatesTheRow() {
+    // F034/ADR 0028: rename() was deleted (the row is now fixed content) - this still proves
+    // save() is an upsert-by-id, re-saving a freshly reconstituted instance for the same id.
+    UUID id = UUID.randomUUID();
+    categoryRepository.save(InvestmentCategory.reconstitute(id, "Original Test"));
 
-    category.rename("Renamed Test");
-    categoryRepository.save(category);
+    categoryRepository.save(InvestmentCategory.reconstitute(id, "Renamed Test"));
 
-    assertThat(categoryRepository.findById(category.getId()).orElseThrow().getName())
-        .isEqualTo("Renamed Test");
+    assertThat(categoryRepository.findById(id).orElseThrow().getName()).isEqualTo("Renamed Test");
   }
 
   @Test
   void deleteRemovesTheCategory() {
-    InvestmentCategory category = InvestmentCategory.create(UUID.randomUUID(), "Temp Test");
+    InvestmentCategory category = InvestmentCategory.reconstitute(UUID.randomUUID(), "Temp Test");
     categoryRepository.save(category);
 
     categoryRepository.deleteById(category.getId());
@@ -59,7 +59,7 @@ class InvestmentCategoryRepositoryAdapterTest {
 
   @Test
   void existsByNameIsTrueOnlyForAnExactMatch() {
-    categoryRepository.save(InvestmentCategory.create(UUID.randomUUID(), "Unique Name Test"));
+    categoryRepository.save(InvestmentCategory.reconstitute(UUID.randomUUID(), "Unique Name Test"));
 
     assertThat(categoryRepository.existsByName("Unique Name Test")).isTrue();
     assertThat(categoryRepository.existsByName("unique name test")).isFalse();
@@ -69,7 +69,8 @@ class InvestmentCategoryRepositoryAdapterTest {
   @Test
   void existsByNameAndIdNotExcludesTheGivenId() {
     InvestmentCategory category =
-        categoryRepository.save(InvestmentCategory.create(UUID.randomUUID(), "Exclude Self Test"));
+        categoryRepository.save(
+            InvestmentCategory.reconstitute(UUID.randomUUID(), "Exclude Self Test"));
 
     assertThat(categoryRepository.existsByNameAndIdNot("Exclude Self Test", category.getId()))
         .isFalse();
@@ -79,10 +80,10 @@ class InvestmentCategoryRepositoryAdapterTest {
 
   @Test
   void theDatabaseRejectsADuplicateNameEvenIfTheServiceCheckIsBypassed() {
-    categoryRepository.save(InvestmentCategory.create(UUID.randomUUID(), "Twice Test"));
+    categoryRepository.save(InvestmentCategory.reconstitute(UUID.randomUUID(), "Twice Test"));
     entityManager.flush();
 
-    categoryRepository.save(InvestmentCategory.create(UUID.randomUUID(), "Twice Test"));
+    categoryRepository.save(InvestmentCategory.reconstitute(UUID.randomUUID(), "Twice Test"));
 
     assertThatThrownBy(() -> entityManager.flush())
         .hasStackTraceContaining("uq_investment_categories_name");

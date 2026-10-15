@@ -43,7 +43,9 @@ class AllocationPlanVersionRepositoryAdapterTest {
     planId = planRepository.save(AllocationPlan.create(UUID.randomUUID())).getId();
     UUID categoryId =
         categoryRepository
-            .save(InvestmentCategory.create(UUID.randomUUID(), "Variable Income Plan Repo Test"))
+            .save(
+                InvestmentCategory.reconstitute(
+                    UUID.randomUUID(), "Variable Income Plan Repo Test"))
             .getId();
     productAId =
         productRepository

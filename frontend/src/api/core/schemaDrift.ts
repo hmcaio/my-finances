@@ -11,7 +11,6 @@ import type { AllocationRow } from '../investments/investmentAllocation'
 import type { InvestmentHolding } from '../investments/investmentHoldings'
 import type { InvestmentProduct, InvestmentProductPage } from '../investments/investmentProducts'
 import type { InvestmentSnapshot } from '../investments/investmentSnapshots'
-import type { InvestmentSubcategory } from '../investments/investmentSubcategories'
 import type { ProductValueSeries, ValueSeriesPoint } from '../investments/investmentValueSeries'
 import type { NetWorthPoint } from '../netWorth/netWorth'
 import type { PaymentMethod } from '../paymentMethods/paymentMethods'
@@ -82,9 +81,9 @@ export type ProductValueSeriesKeys = Assert<
 export type ValueSeriesPointKeys = Assert<
   SameKeys<ValueSeriesPoint, Schemas['SeriesPointResponse']>
 >
-export type InvestmentSubcategoryKeys = Assert<
-  SameKeys<InvestmentSubcategory, Schemas['InvestmentSubcategoryResponse']>
->
+// F034/ADR 0028: InvestmentSubcategory lost its standalone REST endpoints and response schema -
+// it's read only nested under InvestmentCategory (InvestmentSubcategoryEntryKeys above covers
+// that shape), so there is no longer a standalone InvestmentSubcategoryResponse to drift-check.
 export type NetWorthPointKeys = Assert<SameKeys<NetWorthPoint, Schemas['NetWorthPointResponse']>>
 export type PaymentMethodKeys = Assert<SameKeys<PaymentMethod, Schemas['PaymentMethodResponse']>>
 export type PendingRecurringOccurrenceKeys = Assert<

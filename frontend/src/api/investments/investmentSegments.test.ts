@@ -1,55 +1,15 @@
-import { expect } from 'vitest'
-import {
-  investmentSegmentCreateConflictHandler,
-  investmentSegmentDeleteConflictHandler,
-  investmentSegmentRenameConflictHandler,
-  seedInvestmentSegments,
-} from '../../mocks/handlers/investmentSegments'
-import { describeNamedEntityApi } from '../../test/apiContract'
-import { resolveErrorMessage } from '../../test/errorMessages'
-import {
-  createInvestmentSegment,
-  deleteInvestmentSegment,
-  getInvestmentSegments,
-  renameInvestmentSegment,
-  type CreateInvestmentSegmentRequest,
-  type InvestmentSegment,
-  type UpdateInvestmentSegmentRequest,
-} from './investmentSegments'
+import { describe, expect, it } from 'vitest'
+import { seedInvestmentSegments } from '../../mocks/handlers/investmentSegments'
+import { getInvestmentSegments } from './investmentSegments'
 
-describeNamedEntityApi<
-  InvestmentSegment,
-  CreateInvestmentSegmentRequest,
-  UpdateInvestmentSegmentRequest
->({
-  label: 'investment segments',
-  api: {
-    get: getInvestmentSegments,
-    create: createInvestmentSegment,
-    rename: renameInvestmentSegment,
-    remove: deleteInvestmentSegment,
-  },
-  seedList: seedInvestmentSegments,
-  create: {
-    request: { name: 'Papel' },
-    expect: { name: 'Papel', id: expect.any(String) },
-  },
-  rename: {
-    id: 'iseg-shoppings',
-    request: { name: 'Shopping Centers' },
-    expect: { id: 'iseg-shoppings', name: 'Shopping Centers' },
-  },
-  remove: { id: 'iseg-logistica' },
-  conflict: {
-    message: resolveErrorMessage('urn:my-finances:error:investment-segment-in-use'),
-    duplicateNameMessage: resolveErrorMessage(
-      'urn:my-finances:error:investment-segment-name-already-exists',
-    ),
-    createHandler: investmentSegmentCreateConflictHandler,
-    renameHandler: investmentSegmentRenameConflictHandler,
-    deleteHandler: investmentSegmentDeleteConflictHandler,
-    createRequest: { name: 'Shoppings' },
-    renameId: 'iseg-logistica',
-    renameRequest: { name: 'Shoppings' },
-  },
+/**
+ * F034/ADR 0028: InvestmentSegment lost create/rename/delete - every row is fixed,
+ * migration-seeded content. Only the read path is left to test.
+ */
+describe('investment segments API client', () => {
+  it('getInvestmentSegments returns every seeded segment', async () => {
+    const segments = await getInvestmentSegments()
+
+    expect(segments).toEqual(seedInvestmentSegments)
+  })
 })

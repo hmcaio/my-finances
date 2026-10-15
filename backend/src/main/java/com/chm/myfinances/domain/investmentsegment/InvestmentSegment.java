@@ -7,12 +7,16 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Investment segment aggregate (F026 spec, ADR 0023): a flat, user-editable taxonomy entry
- * describing what kind of real estate an FII holds (Shoppings, Logistica, Papel, Lajes
- * Corporativas, ...), same shape as {@code InvestmentCategory}. Orthogonal to the
- * category/sub-category taxonomy - a sub-category like "REITs (FIIs)" is an asset class, a segment
- * is what kind of real estate it holds - so this is a new, independent aggregate, not a third
- * taxonomy tier. No import of any other aggregate's domain package.
+ * Investment segment aggregate (F026 spec, ADR 0023): a flat taxonomy entry describing what kind of
+ * real estate an FII holds (Shoppings, Logistica, Papel, Lajes Corporativas, ...), same shape as
+ * {@code InvestmentCategory}. Orthogonal to the category/sub-category taxonomy - a sub-category
+ * like "REITs (FIIs)" is an asset class, a segment is what kind of real estate it holds - so this
+ * is a new, independent aggregate, not a third taxonomy tier. No import of any other aggregate's
+ * domain package.
+ *
+ * <p>F034/ADR 0028: every row is fixed, migration-seeded content - no user customization of any
+ * kind. {@code create}/{@code rename} were deleted; {@link #reconstitute} is the only factory, used
+ * solely to rebuild an instance from a persisted row.
  */
 public final class InvestmentSegment {
 
@@ -24,18 +28,9 @@ public final class InvestmentSegment {
     this.name = requireValidName(name);
   }
 
-  /** Creates a brand-new segment. {@code id} must come from the {@code IdGenerator} port. */
-  public static InvestmentSegment create(UUID id, String name) {
-    return new InvestmentSegment(id, name);
-  }
-
   /** Rebuilds a segment from already-validated persisted state. */
   public static InvestmentSegment reconstitute(UUID id, String name) {
     return new InvestmentSegment(id, name);
-  }
-
-  public void rename(String newName) {
-    this.name = requireValidName(newName);
   }
 
   private static String requireValidName(String value) {

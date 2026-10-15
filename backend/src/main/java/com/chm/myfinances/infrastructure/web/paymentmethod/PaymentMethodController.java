@@ -1,26 +1,17 @@
 package com.chm.myfinances.infrastructure.web.paymentmethod;
 
 import com.chm.myfinances.application.paymentmethod.PaymentMethodService;
-import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import jakarta.validation.Valid;
 import java.util.List;
-import java.util.UUID;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-/** REST API for {@code PaymentMethod} (F002 spec). */
+/**
+ * REST API for {@code PaymentMethod} (F002 spec).
+ *
+ * <p>F034/ADR 0028: read-only — {@code POST}/{@code PATCH}/{@code DELETE} were removed, every row
+ * is fixed, migration-seeded content.
+ */
 @RestController
 @RequestMapping("/api/payment-methods")
 public class PaymentMethodController {
@@ -34,57 +25,5 @@ public class PaymentMethodController {
   @GetMapping
   public List<PaymentMethodResponse> list() {
     return paymentMethodService.findAll().stream().map(PaymentMethodResponse::from).toList();
-  }
-
-  @PostMapping
-  @ResponseStatus(HttpStatus.CREATED)
-  @ApiResponse(
-      responseCode = "400",
-      description =
-          "type: urn:my-finances:error:method-argument-not-valid, carrying an errors[] "
-              + "array of {field, code} with code one of: not-blank, size",
-      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
-  @ApiResponse(
-      responseCode = "409",
-      description = "type: urn:my-finances:error:payment-method-name-already-exists",
-      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
-  public PaymentMethodResponse create(@Valid @RequestBody CreatePaymentMethodRequest request) {
-    PaymentMethod paymentMethod = paymentMethodService.create(request.name());
-    return PaymentMethodResponse.from(paymentMethod);
-  }
-
-  @PatchMapping("/{id}")
-  @ApiResponse(
-      responseCode = "400",
-      description =
-          "type: urn:my-finances:error:method-argument-not-valid, carrying an errors[] "
-              + "array of {field, code} with code one of: not-blank, size",
-      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
-  @ApiResponse(
-      responseCode = "404",
-      description = "type: urn:my-finances:error:payment-method-not-found",
-      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
-  @ApiResponse(
-      responseCode = "409",
-      description = "type: urn:my-finances:error:payment-method-name-already-exists",
-      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
-  public PaymentMethodResponse rename(
-      @PathVariable UUID id, @Valid @RequestBody UpdatePaymentMethodRequest request) {
-    PaymentMethod paymentMethod = paymentMethodService.rename(id, request.name());
-    return PaymentMethodResponse.from(paymentMethod);
-  }
-
-  @DeleteMapping("/{id}")
-  @ResponseStatus(HttpStatus.NO_CONTENT)
-  @ApiResponse(
-      responseCode = "404",
-      description = "type: urn:my-finances:error:payment-method-not-found",
-      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
-  @ApiResponse(
-      responseCode = "409",
-      description = "type: urn:my-finances:error:payment-method-in-use",
-      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
-  public void delete(@PathVariable UUID id) {
-    paymentMethodService.delete(id);
   }
 }

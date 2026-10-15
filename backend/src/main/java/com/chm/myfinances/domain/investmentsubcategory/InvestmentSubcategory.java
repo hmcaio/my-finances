@@ -10,10 +10,13 @@ import java.util.UUID;
  * Investment sub-category aggregate (PRD S5.8, F008 spec): the second level of the investment
  * taxonomy, always under exactly one category (CDB and LCI under Fixed Income, ...).
  *
- * <p>{@code investmentCategoryId} is fixed at creation and deliberately has no mutator anywhere on
- * this class - re-parenting would silently reclassify every product beneath the sub-category. The
- * parent is held by id only: this class doesn't import {@code domain/investmentcategory}, and that
- * the parent exists is checked in {@code InvestmentSubcategoryService}.
+ * <p>{@code investmentCategoryId} is fixed at reconstitution and has no mutator anywhere on this
+ * class - re-parenting would silently reclassify every product beneath the sub-category. The parent
+ * is held by id only: this class doesn't import {@code domain/investmentcategory}.
+ *
+ * <p>F034/ADR 0028: every row is fixed, migration-seeded content - no user customization of any
+ * kind. {@code create}/{@code rename} were deleted; {@link #reconstitute} is the only factory, used
+ * solely to rebuild an instance from a persisted row.
  */
 public final class InvestmentSubcategory {
 
@@ -28,19 +31,10 @@ public final class InvestmentSubcategory {
     this.name = requireValidName(name);
   }
 
-  /** Creates a brand-new sub-category. {@code id} must come from the {@code IdGenerator} port. */
-  public static InvestmentSubcategory create(UUID id, UUID investmentCategoryId, String name) {
-    return new InvestmentSubcategory(id, investmentCategoryId, name);
-  }
-
   /** Rebuilds a sub-category from already-validated persisted state. */
   public static InvestmentSubcategory reconstitute(
       UUID id, UUID investmentCategoryId, String name) {
     return new InvestmentSubcategory(id, investmentCategoryId, name);
-  }
-
-  public void rename(String newName) {
-    this.name = requireValidName(newName);
   }
 
   private static String requireValidName(String value) {

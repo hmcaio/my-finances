@@ -66,7 +66,7 @@ class InvestmentSnapshotControllerTest {
             .getId();
     UUID categoryId =
         categoryRepository
-            .save(InvestmentCategory.create(UUID.randomUUID(), "Category Snapshot Web Test"))
+            .save(InvestmentCategory.reconstitute(UUID.randomUUID(), "Category Snapshot Web Test"))
             .getId();
     productId =
         productRepository

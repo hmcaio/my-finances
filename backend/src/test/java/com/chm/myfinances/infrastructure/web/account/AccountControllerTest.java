@@ -557,7 +557,7 @@ class AccountControllerTest {
     String accountId = createInvestmentAccount("XP Close Test");
     UUID categoryId =
         investmentCategoryRepository
-            .save(InvestmentCategory.create(UUID.randomUUID(), "Crypto Close Test"))
+            .save(InvestmentCategory.reconstitute(UUID.randomUUID(), "Crypto Close Test"))
             .getId();
     UUID productId =
         investmentProductRepository

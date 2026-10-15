@@ -176,7 +176,7 @@ class AuditSnapshotCompletenessTest {
     Set<String> persisted = declaredFieldNames(PaymentMethodJpaEntity.class);
     persisted.removeAll(technicalFields());
 
-    PaymentMethod paymentMethod = PaymentMethod.create(UUID.randomUUID(), "Debit Card");
+    PaymentMethod paymentMethod = PaymentMethod.reconstitute(UUID.randomUUID(), "Debit Card");
 
     assertThat(paymentMethod.toAuditSnapshot().keySet()).containsAll(persisted);
   }
@@ -206,7 +206,7 @@ class AuditSnapshotCompletenessTest {
     Set<String> persisted = declaredFieldNames(InvestmentSegmentJpaEntity.class);
     persisted.removeAll(technicalFields());
 
-    InvestmentSegment segment = InvestmentSegment.create(UUID.randomUUID(), "Shoppings");
+    InvestmentSegment segment = InvestmentSegment.reconstitute(UUID.randomUUID(), "Shoppings");
 
     assertThat(segment.toAuditSnapshot().keySet()).containsAll(persisted);
   }
@@ -216,7 +216,8 @@ class AuditSnapshotCompletenessTest {
     Set<String> persisted = declaredFieldNames(InvestmentCategoryJpaEntity.class);
     persisted.removeAll(technicalFields());
 
-    InvestmentCategory category = InvestmentCategory.create(UUID.randomUUID(), "Fixed Income");
+    InvestmentCategory category =
+        InvestmentCategory.reconstitute(UUID.randomUUID(), "Fixed Income");
 
     assertThat(category.toAuditSnapshot().keySet()).containsAll(persisted);
   }
@@ -227,7 +228,7 @@ class AuditSnapshotCompletenessTest {
     persisted.removeAll(technicalFields());
 
     InvestmentSubcategory subcategory =
-        InvestmentSubcategory.create(UUID.randomUUID(), UUID.randomUUID(), "CDB");
+        InvestmentSubcategory.reconstitute(UUID.randomUUID(), UUID.randomUUID(), "CDB");
 
     assertThat(subcategory.toAuditSnapshot().keySet()).containsAll(persisted);
   }

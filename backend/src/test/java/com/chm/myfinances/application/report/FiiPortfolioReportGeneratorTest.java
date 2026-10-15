@@ -70,7 +70,7 @@ class FiiPortfolioReportGeneratorTest {
   private final UUID fiiSubcategoryId =
       subcategoryRepository
           .save(
-              InvestmentSubcategory.create(
+              InvestmentSubcategory.reconstitute(
                   UUID.randomUUID(), UUID.randomUUID(), AllocationPlanService.FII_SUBCATEGORY_NAME))
           .getId();
 
@@ -78,7 +78,7 @@ class FiiPortfolioReportGeneratorTest {
   void rendersCsvAndPdfForTheSelectedMonthWithSegmentNamesResolved() {
     UUID segmentId =
         segmentRepository
-            .save(InvestmentSegment.create(UUID.randomUUID(), "Shoppings R Test"))
+            .save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Shoppings R Test"))
             .getId();
     InvestmentProduct product =
         productRepository.save(

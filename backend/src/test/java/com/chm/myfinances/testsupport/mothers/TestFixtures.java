@@ -73,6 +73,6 @@ public final class TestFixtures {
   /** Persists and returns a {@link PaymentMethod} with the given name. */
   public static PaymentMethod paymentMethod(
       PaymentMethodRepository paymentMethodRepository, String name) {
-    return paymentMethodRepository.save(PaymentMethod.create(UUID.randomUUID(), name));
+    return paymentMethodRepository.save(PaymentMethod.reconstitute(UUID.randomUUID(), name));
   }
 }

@@ -8,9 +8,12 @@ import java.util.UUID;
 
 /**
  * Investment category aggregate (PRD S5.8, F008 spec): the top level of the two-level investment
- * taxonomy (Fixed Income, Variable Income, ...). A flat, user-editable entry, same shape as F002's
- * {@code Category} but a separate entity/table - "category", not "type", because {@code type}
+ * taxonomy (Fixed Income, Variable Income, ...) - "category", not "type", because {@code type}
  * already means a fixed enum elsewhere in this codebase (ADR 0012).
+ *
+ * <p>F034/ADR 0028: every row is fixed, migration-seeded content - no user customization of any
+ * kind. {@code create}/{@code rename} were deleted; {@link #reconstitute} is the only factory, used
+ * solely to rebuild an instance from a persisted row.
  */
 public final class InvestmentCategory {
 
@@ -22,18 +25,9 @@ public final class InvestmentCategory {
     this.name = requireValidName(name);
   }
 
-  /** Creates a brand-new category. {@code id} must come from the {@code IdGenerator} port. */
-  public static InvestmentCategory create(UUID id, String name) {
-    return new InvestmentCategory(id, name);
-  }
-
   /** Rebuilds a category from already-validated persisted state. */
   public static InvestmentCategory reconstitute(UUID id, String name) {
     return new InvestmentCategory(id, name);
-  }
-
-  public void rename(String newName) {
-    this.name = requireValidName(newName);
   }
 
   private static String requireValidName(String value) {

@@ -81,12 +81,12 @@ class InvestmentReportControllerTest {
             .getId();
     reportCategoryId =
         categoryRepository
-            .save(InvestmentCategory.create(UUID.randomUUID(), "Alloc Category Report Test"))
+            .save(InvestmentCategory.reconstitute(UUID.randomUUID(), "Alloc Category Report Test"))
             .getId();
     reportSubcategoryId =
         subcategoryRepository
             .save(
-                InvestmentSubcategory.create(
+                InvestmentSubcategory.reconstitute(
                     UUID.randomUUID(), reportCategoryId, "Alloc Sub Report Test"))
             .getId();
     cdbProductId = product("CDB Report Test", reportSubcategoryId);

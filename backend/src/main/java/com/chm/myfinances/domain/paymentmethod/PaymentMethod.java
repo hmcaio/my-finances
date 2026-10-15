@@ -7,9 +7,13 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * PaymentMethod aggregate (PRD S5.2, F002 spec). A flat, user-editable taxonomy entry recording
- * which rail (debit card, PIX, cash, ...) a transaction went through — informational only, does not
- * affect balance math. No invariants beyond a non-blank name.
+ * PaymentMethod aggregate (PRD S5.2, F002 spec). A flat taxonomy entry recording which rail (debit
+ * card, PIX, cash, ...) a transaction went through — informational only, does not affect balance
+ * math.
+ *
+ * <p>F034/ADR 0028: every row is fixed, migration-seeded content — no user customization of any
+ * kind. {@code create}/{@code rename} were deleted; {@link #reconstitute} is the only factory, used
+ * solely to rebuild an instance from a persisted row.
  */
 public final class PaymentMethod {
 
@@ -21,18 +25,9 @@ public final class PaymentMethod {
     this.name = requireNonBlank(name);
   }
 
-  /** Creates a brand-new PaymentMethod. {@code id} must come from the {@code IdGenerator} port. */
-  public static PaymentMethod create(UUID id, String name) {
-    return new PaymentMethod(id, name);
-  }
-
   /** Rebuilds a PaymentMethod from already-validated persisted state. */
   public static PaymentMethod reconstitute(UUID id, String name) {
     return new PaymentMethod(id, name);
-  }
-
-  public void rename(String newName) {
-    this.name = requireNonBlank(newName);
   }
 
   private static String requireNonBlank(String value) {

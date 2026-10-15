@@ -1,12 +1,6 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { API_KEY_ROOT, STALE_TIME } from '../core/queryClient'
-import {
-  createInvestmentCategory,
-  deleteInvestmentCategory,
-  getInvestmentCategories,
-  renameInvestmentCategory,
-  type UpdateInvestmentCategoryRequest,
-} from './investmentCategories'
+import { getInvestmentCategories } from './investmentCategories'
 
 export const investmentCategoryKeys = {
   all: [API_KEY_ROOT, 'investment-categories'] as const,
@@ -20,19 +14,4 @@ export function useInvestmentCategories() {
     queryFn: getInvestmentCategories,
     staleTime: STALE_TIME.reference,
   })
-}
-
-export function useCreateInvestmentCategory() {
-  return useMutation({ mutationFn: createInvestmentCategory })
-}
-
-export function useRenameInvestmentCategory() {
-  return useMutation({
-    mutationFn: ({ id, ...request }: UpdateInvestmentCategoryRequest & { id: string }) =>
-      renameInvestmentCategory(id, request),
-  })
-}
-
-export function useDeleteInvestmentCategory() {
-  return useMutation({ mutationFn: deleteInvestmentCategory })
 }

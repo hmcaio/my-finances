@@ -114,7 +114,7 @@ class InvestmentAllocationReportGeneratorTest {
   private final UUID fiiSubcategoryId =
       subcategoryRepository
           .save(
-              InvestmentSubcategory.create(
+              InvestmentSubcategory.reconstitute(
                   UUID.randomUUID(), UUID.randomUUID(), AllocationPlanService.FII_SUBCATEGORY_NAME))
           .getId();
 
@@ -130,7 +130,7 @@ class InvestmentAllocationReportGeneratorTest {
                 .build());
     UUID segmentId =
         segmentRepository
-            .save(InvestmentSegment.create(UUID.randomUUID(), "Shoppings R Test"))
+            .save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Shoppings R Test"))
             .getId();
     InvestmentProduct fii =
         productRepository.save(

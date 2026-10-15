@@ -34,11 +34,12 @@ class PaymentMethodRepositoryAdapterTest {
   }
 
   @Test
-  void renamePersists() {
+  void savingAgainWithTheSameIdUpdatesTheRow() {
+    // F034/ADR 0028: rename() was deleted (the row is now fixed content) - this still proves
+    // save() is an upsert-by-id, re-saving a freshly reconstituted instance for the same id.
     PaymentMethod paymentMethod = TestFixtures.paymentMethod(paymentMethodRepository, "Original");
 
-    paymentMethod.rename("Renamed");
-    paymentMethodRepository.save(paymentMethod);
+    paymentMethodRepository.save(PaymentMethod.reconstitute(paymentMethod.getId(), "Renamed"));
 
     Optional<PaymentMethod> reloaded = paymentMethodRepository.findById(paymentMethod.getId());
     assertThat(reloaded).isPresent();

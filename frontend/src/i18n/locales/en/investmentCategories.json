@@ -1,18 +1,11 @@
 {
   "title": "Investment categories",
-  "description": "The two-level taxonomy used to classify investment products: a category, and optionally a sub-category under it. Renaming is always allowed; a category or sub-category that products still use can't be deleted.",
-  "addButton": "Add category",
-  "addDialogTitle": "Add category",
+  "description": "The two-level taxonomy used to classify investment products: a category, and optionally a sub-category under it. Fixed, system-defined content - not editable.",
   "nameColumn": "Name",
   "subcategoriesColumn": "Sub-categories",
   "emptyList": "No investment categories yet.",
   "subcategoryCount_one": "{{count}} sub-category",
   "subcategoryCount_other": "{{count}} sub-categories",
   "collapse": "Collapse {{name}}",
-  "expand": "Expand {{name}}",
-  "categoryNameLabel": "Category name",
-  "subcategoryNameLabel": "Sub-category name",
-  "newSubcategoryLabel": "New sub-category in {{category}}",
-  "addSubcategoryAria": "Add sub-category to {{category}}",
-  "addSubcategoryButton": "Add sub-category"
+  "expand": "Expand {{name}}"
 }

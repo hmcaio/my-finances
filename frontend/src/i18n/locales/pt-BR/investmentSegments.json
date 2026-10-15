@@ -1,7 +1,5 @@
 {
   "title": "Segmentos de investimento",
-  "description": "Que tipo de imóvel um FII possui (Shoppings, Logística, Papel, ...) - independente da taxonomia de categoria/subcategoria. Um segmento ainda usado por um produto de investimento não pode ser excluído.",
-  "addButton": "Adicionar segmento",
-  "addDialogTitle": "Adicionar segmento",
+  "description": "Que tipo de imóvel um FII possui (Shoppings, Logística, Papel, ...) - independente da taxonomia de categoria/subcategoria. Conteúdo fixo, definido pelo sistema - não editável.",
   "emptyList": "Nenhum segmento de investimento ainda."
 }

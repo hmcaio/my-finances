@@ -24,7 +24,7 @@ class InvestmentSegmentRepositoryAdapterTest {
 
   @Test
   void savesAndReloadsASegment() {
-    InvestmentSegment segment = InvestmentSegment.create(UUID.randomUUID(), "Shoppings Test");
+    InvestmentSegment segment = InvestmentSegment.reconstitute(UUID.randomUUID(), "Shoppings Test");
 
     segmentRepository.save(segment);
 
@@ -34,20 +34,20 @@ class InvestmentSegmentRepositoryAdapterTest {
   }
 
   @Test
-  void renamePersists() {
-    InvestmentSegment segment = InvestmentSegment.create(UUID.randomUUID(), "Original Test");
-    segmentRepository.save(segment);
+  void savingAgainWithTheSameIdUpdatesTheRow() {
+    // F034/ADR 0028: rename() was deleted (the row is now fixed content) - this still proves
+    // save() is an upsert-by-id, re-saving a freshly reconstituted instance for the same id.
+    UUID id = UUID.randomUUID();
+    segmentRepository.save(InvestmentSegment.reconstitute(id, "Original Test"));
 
-    segment.rename("Renamed Test");
-    segmentRepository.save(segment);
+    segmentRepository.save(InvestmentSegment.reconstitute(id, "Renamed Test"));
 
-    assertThat(segmentRepository.findById(segment.getId()).orElseThrow().getName())
-        .isEqualTo("Renamed Test");
+    assertThat(segmentRepository.findById(id).orElseThrow().getName()).isEqualTo("Renamed Test");
   }
 
   @Test
   void deleteRemovesTheSegment() {
-    InvestmentSegment segment = InvestmentSegment.create(UUID.randomUUID(), "Temp Test");
+    InvestmentSegment segment = InvestmentSegment.reconstitute(UUID.randomUUID(), "Temp Test");
     segmentRepository.save(segment);
 
     segmentRepository.deleteById(segment.getId());
@@ -57,7 +57,7 @@ class InvestmentSegmentRepositoryAdapterTest {
 
   @Test
   void existsByNameIsTrueOnlyForAnExactMatch() {
-    segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Unique Name Test"));
+    segmentRepository.save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Unique Name Test"));
 
     assertThat(segmentRepository.existsByName("Unique Name Test")).isTrue();
     assertThat(segmentRepository.existsByName("unique name test")).isFalse();
@@ -66,7 +66,8 @@ class InvestmentSegmentRepositoryAdapterTest {
   @Test
   void existsByNameAndIdNotExcludesTheGivenId() {
     InvestmentSegment segment =
-        segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Exclude Self Test"));
+        segmentRepository.save(
+            InvestmentSegment.reconstitute(UUID.randomUUID(), "Exclude Self Test"));
 
     assertThat(segmentRepository.existsByNameAndIdNot("Exclude Self Test", segment.getId()))
         .isFalse();
@@ -76,10 +77,10 @@ class InvestmentSegmentRepositoryAdapterTest {
 
   @Test
   void theDatabaseRejectsADuplicateNameEvenIfTheServiceCheckIsBypassed() {
-    segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Twice Test"));
+    segmentRepository.save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Twice Test"));
     entityManager.flush();
 
-    segmentRepository.save(InvestmentSegment.create(UUID.randomUUID(), "Twice Test"));
+    segmentRepository.save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Twice Test"));
 
     assertThatThrownBy(() -> entityManager.flush())
         .hasStackTraceContaining("uq_investment_segments_name");

@@ -18,6 +18,7 @@
     "investmentSegments": "Investment Segments",
     "institutions": "Institutions",
     "paymentMethods": "Payment Methods",
+    "systemValues": "System values",
     "vehicles": "Vehicles",
     "activity": "Activity",
     "reports": "Reports",
@@ -126,6 +127,17 @@
       "vgbl": "VGBL",
       "stocks": "Stocks",
       "bonds": "Bonds"
+    },
+    "investmentSegments": {
+      "lajesCorporativas": "Corporate Offices",
+      "shoppings": "Shopping Malls",
+      "logistica": "Logistics",
+      "papel": "Paper (Receivables)",
+      "hibrido": "Hybrid",
+      "fiagro": "Fiagro",
+      "hospitalar": "Healthcare",
+      "residencial": "Residential",
+      "outros": "Other"
     }
   }
 }

@@ -63,14 +63,16 @@ class AllocationPlanServiceTest {
     fiiId =
         subcategoryRepository
             .save(
-                InvestmentSubcategory.create(
+                InvestmentSubcategory.reconstitute(
                     UUID.randomUUID(),
                     variableIncomeId,
                     AllocationPlanService.FII_SUBCATEGORY_NAME))
             .getId();
     UUID otherSubcategoryId =
         subcategoryRepository
-            .save(InvestmentSubcategory.create(UUID.randomUUID(), variableIncomeId, "Stocks Test"))
+            .save(
+                InvestmentSubcategory.reconstitute(
+                    UUID.randomUUID(), variableIncomeId, "Stocks Test"))
             .getId();
 
     knri11Id =

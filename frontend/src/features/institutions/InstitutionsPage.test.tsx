@@ -54,51 +54,30 @@ describe('InstitutionsPage', () => {
     expect(within(rows[3]).getByText(regular[1].name)).toBeInTheDocument()
   })
 
-  it('offers no delete action on the built-in row, only rename', async () => {
+  it('offers neither rename nor delete on the built-in row (F034/ADR 0028)', async () => {
     renderWithQueryClient(<InstitutionsPage />)
     await screen.findByText(builtIn.name)
 
     const row = await findRow(builtIn.name)
-    expect(row.getByRole('button', { name: 'Rename' })).toBeInTheDocument()
+    expect(row.queryByRole('button', { name: 'Rename' })).not.toBeInTheDocument()
     expect(row.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
-    // Every other row does have one.
-    expect(
-      (await findRow(regular[0].name)).getByRole('button', { name: 'Delete' }),
-    ).toBeInTheDocument()
-  })
-
-  it('renames the built-in row, which stays first and still has no delete action', async () => {
-    const user = userEvent.setup({ delay: null })
-    renderWithQueryClient(<InstitutionsPage />)
-    await screen.findByText(builtIn.name)
-
-    const row = await findRow(builtIn.name)
-    await user.click(row.getByRole('button', { name: 'Rename' }))
-    const input = row.getByRole('textbox')
-    await user.clear(input)
-    await user.type(input, 'Zzz Sem instituicao')
-    await user.click(row.getByRole('button', { name: 'Save' }))
-
-    expect(await screen.findByText('Zzz Sem instituicao')).toBeInTheDocument()
-    expect(
-      within(screen.getAllByRole('row')[1]).getByText('Zzz Sem instituicao'),
-    ).toBeInTheDocument()
-    expect(
-      (await findRow('Zzz Sem instituicao')).queryByRole('button', { name: 'Delete' }),
-    ).not.toBeInTheDocument()
+    // Every other row has both.
+    const otherRow = await findRow(regular[0].name)
+    expect(otherRow.getByRole('button', { name: 'Rename' })).toBeInTheDocument()
+    expect(otherRow.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
   })
 })
 
 describe('InstitutionsPage responsive layout (F021)', () => {
   afterEach(restoreViewport)
 
-  it('keeps the built-in row renamed inline at every size (the table never becomes cards)', async () => {
+  it('renames a regular row inline at every size (the table never becomes cards)', async () => {
     setViewportWidth(VIEWPORT.mobile)
     const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<InstitutionsPage />)
-    await screen.findByText(builtIn.name)
+    await screen.findByText(regular[0].name)
 
-    const row = await findRow(builtIn.name)
+    const row = await findRow(regular[0].name)
     await user.click(row.getByRole('button', { name: 'Rename' }))
 
     expect(row.getByRole('textbox')).toBeInTheDocument()
