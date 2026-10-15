@@ -40,13 +40,13 @@ One feature branch (`feature/f036-remote-access-authentication`), backend first 
 - [ ] Manual check: `docker compose --profile full up -d` with `BIND_ADDR` unset still behaves exactly as before (loopback-only); setting it to another local interface IP makes the app (but not Postgres/pgAdmin) reachable there.
 
 ## Phase 6 — Frontend
-- [ ] Test first: a route-guard test — an unauthenticated session-check redirects to `/login` and stores the attempted path; a successful login redirects back to it.
-- [ ] Add `/login` route (lazy-loaded, matching the existing per-route convention), the route guard, and `src/api/auth/authQueries.ts` (`useLogin`, `useLogout`, a session-check hook).
-- [ ] `apiClient`: add `withCredentials: true`, `withXSRFToken: true`.
-- [ ] Add the `unauthenticated`, `access-denied`, and `too-many-login-attempts` entries to `PROBLEM_TYPE_MESSAGES` (`apiError.ts`).
-- [ ] Logout action in `Layout`'s nav.
-- [ ] Test first: MSW handler for `/api/auth/*`; a test asserting a 401 from any API call (not just the login form) redirects to `/login`.
-- [ ] `npm run lint && npm test && npm run build && npm run format:check`.
+- [x] Test first: a route-guard test — an unauthenticated session-check redirects to `/login` and stores the attempted path; a successful login redirects back to it.
+- [x] Add `/login` route (lazy-loaded, matching the existing per-route convention), the route guard, and `src/api/auth/authQueries.ts` (`useLogin`, `useLogout`, a session-check hook).
+- [x] `apiClient`: add `withCredentials: true`, `withXSRFToken: true`.
+- [x] Add the `unauthenticated`, `access-denied`, and `too-many-login-attempts` entries to `PROBLEM_TYPE_MESSAGES` (`apiError.ts`).
+- [x] Logout action in `Layout`'s nav.
+- [x] Test first: MSW handler for `/api/auth/*`; a test asserting a 401 from any API call (not just the login form) redirects to `/login`.
+- [x] `npm run lint && npm test && npm run build && npm run format:check`.
 
 ## Phase 7 — Docs
 - [ ] Root `CLAUDE.md`: `BIND_ADDR` env var, "every controller sits behind authentication by default" note.

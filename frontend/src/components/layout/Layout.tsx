@@ -21,8 +21,10 @@ import { useTheme } from '@mui/material/styles'
 import MenuIcon from '@mui/icons-material/Menu'
 import DarkModeIcon from '@mui/icons-material/DarkMode'
 import LightModeIcon from '@mui/icons-material/LightMode'
+import LogoutIcon from '@mui/icons-material/Logout'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import { useLogout } from '../../api/auth/authQueries'
 import { useColorMode } from '../../hooks/colorMode/useColorMode'
 import { useLocale } from '../../hooks/locale/useLocale'
 
@@ -101,6 +103,7 @@ export function Layout({ children }: PropsWithChildren) {
   const { mode, toggleMode } = useColorMode()
   const { locale, toggleLocale } = useLocale()
   const { t } = useTranslation()
+  const logout = useLogout()
   const { pathname } = useLocation()
   const theme = useTheme()
   const isDesktop = useMediaQuery(theme.breakpoints.up('lg'))
@@ -197,6 +200,16 @@ export function Layout({ children }: PropsWithChildren) {
             title={mode === 'dark' ? t('layout.switchToLightMode') : t('layout.switchToDarkMode')}
           >
             {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+          </IconButton>
+          {/* F036: ends the session; the route guard then sends the user to /login. */}
+          <IconButton
+            color="inherit"
+            onClick={() => logout.mutate()}
+            disabled={logout.isPending}
+            aria-label={t('layout.logout')}
+            title={t('layout.logout')}
+          >
+            <LogoutIcon />
           </IconButton>
         </Toolbar>
       </AppBar>

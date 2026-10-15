@@ -1,6 +1,7 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 
+import authEn from './locales/en/auth.json'
 import commonEn from './locales/en/common.json'
 import errorsEn from './locales/en/errors.json'
 import categoriesEn from './locales/en/categories.json'
@@ -23,6 +24,7 @@ import onboardingEn from './locales/en/onboarding.json'
 import reportsEn from './locales/en/reports.json'
 import vehiclesEn from './locales/en/vehicles.json'
 import investmentSegmentsEn from './locales/en/investmentSegments.json'
+import authPtBR from './locales/pt-BR/auth.json'
 import commonPtBR from './locales/pt-BR/common.json'
 import errorsPtBR from './locales/pt-BR/errors.json'
 import categoriesPtBR from './locales/pt-BR/categories.json'
@@ -58,6 +60,7 @@ export const defaultNS = 'common'
 export const resources = {
   en: {
     common: commonEn,
+    auth: authEn,
     errors: errorsEn,
     categories: categoriesEn,
     paymentMethods: paymentMethodsEn,
@@ -82,6 +85,7 @@ export const resources = {
   },
   'pt-BR': {
     common: commonPtBR,
+    auth: authPtBR,
     errors: errorsPtBR,
     categories: categoriesPtBR,
     paymentMethods: paymentMethodsPtBR,

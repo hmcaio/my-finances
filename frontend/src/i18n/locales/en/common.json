@@ -25,6 +25,7 @@
     "settingsHeading": "Settings"
   },
   "layout": {
+    "logout": "Log out",
     "openNavigation": "Open navigation",
     "toggleDarkMode": "Toggle dark mode",
     "switchToLightMode": "Switch to light mode",

@@ -1,6 +1,7 @@
 import { accountsHandlers } from './handlers/accounts'
 import { allocationPlanHandlers } from './handlers/allocationPlan'
 import { auditLogHandlers } from './handlers/auditLog'
+import { authHandlers } from './handlers/auth'
 import { backupStatusHandlers } from './handlers/backupStatus'
 import { budgetsHandlers } from './handlers/budgets'
 import { categoriesHandlers } from './handlers/categories'
@@ -36,6 +37,7 @@ export const handlers = [
   ...accountsHandlers,
   ...allocationPlanHandlers,
   ...auditLogHandlers,
+  ...authHandlers,
   ...backupStatusHandlers,
   ...budgetsHandlers,
   ...categoriesHandlers,

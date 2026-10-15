@@ -1,3 +1,4 @@
+import type authEn from './locales/en/auth.json'
 import type commonEn from './locales/en/common.json'
 import type errorsEn from './locales/en/errors.json'
 import type categoriesEn from './locales/en/categories.json'
@@ -32,6 +33,7 @@ declare module 'i18next' {
     defaultNS: 'common'
     resources: {
       common: typeof commonEn
+      auth: typeof authEn
       errors: typeof errorsEn
       categories: typeof categoriesEn
       paymentMethods: typeof paymentMethodsEn

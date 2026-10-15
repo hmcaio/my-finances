@@ -2,6 +2,28 @@ import axios, { isAxiosError, isCancel, type InternalAxiosRequestConfig } from '
 import { logger } from '../../utils/logger'
 
 /**
+ * Dev only: the configured `http://localhost:8080/api` assumes the page itself was opened on
+ * `localhost`. When the dev stack is reached on another host (F036: `BIND_ADDR` on a private
+ * network interface), the API is on that same host, so swap the hostname - the session cookie is
+ * scoped to the host the page was served from, which a hard-coded `localhost` would never match.
+ * A relative URL (prod, tests, e2e) is returned untouched.
+ */
+function resolveBaseUrl(configured: string | undefined): string | undefined {
+  if (!configured || !import.meta.env.DEV || typeof window === 'undefined') return configured
+  const pageHost = window.location.hostname
+  try {
+    const url = new URL(configured)
+    if (url.hostname === 'localhost' && pageHost && pageHost !== 'localhost') {
+      url.hostname = pageHost
+      return url.toString().replace(/\/$/, '')
+    }
+  } catch {
+    // Not an absolute URL (e.g. `/api`): nothing to rewrite.
+  }
+  return configured
+}
+
+/**
  * Single Axios instance shared by every typed client under `src/api` — the one place that owns
  * the backend's base URL (including the `/api` prefix, so call sites use bare relative paths like
  * `/categories`). Configurable via `VITE_API_BASE_URL` (see `.env.development`/`.env.production`,
@@ -9,8 +31,14 @@ import { logger } from '../../utils/logger'
  * nginx reverse-proxies same-origin (no CORS needed in prod).
  */
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: resolveBaseUrl(import.meta.env.VITE_API_BASE_URL),
   headers: { 'Content-Type': 'application/json' },
+  // F036, ADR 0029: the session cookie must travel (cross-origin in dev: Vite :5173 -> backend
+  // :8080, same site), and axios echoes the `XSRF-TOKEN` cookie back as `X-XSRF-TOKEN` itself.
+  // `withXSRFToken: true` (not the default same-origin-only behavior) is what makes it do so on
+  // dev's cross-origin calls; prod is same-origin through nginx either way.
+  withCredentials: true,
+  withXSRFToken: true,
 })
 
 const REQUEST_ID_HEADER = 'X-Request-Id'
