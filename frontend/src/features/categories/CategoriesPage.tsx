@@ -201,7 +201,11 @@ export function CategoriesPage() {
                   </TableCell>
                   <TableCell>
                     <Chip
-                      label={category.type}
+                      label={
+                        category.type === 'INCOME'
+                          ? t('categories:typeIncome')
+                          : t('categories:typeExpense')
+                      }
                       size="small"
                       color={category.type === 'INCOME' ? 'success' : 'default'}
                     />
