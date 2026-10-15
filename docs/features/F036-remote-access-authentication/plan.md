@@ -31,7 +31,7 @@ One feature branch (`feature/f036-remote-access-authentication`), backend first 
 - [x] `./gradlew spotlessCheck test integrationTest`.
 
 ## Phase 4 — Backend: dev CORS
-- [ ] Update `WebConfig`: `allowCredentials(true)` with an explicit configured dev origin, replacing the current `allowedOriginPatterns("http://localhost:*")` wildcard (incompatible with credentials).
+- [x] Update `WebConfig`: `allowCredentials(true)` with an explicit configured dev origin, replacing the current `allowedOriginPatterns("http://localhost:*")` wildcard (incompatible with credentials).
 - [ ] Manual check, dev (`docker compose --profile full up -d`): confirm a cross-origin login from the Vite dev server to the backend actually sets and later sends the session cookie, and that the CSRF cookie/header pairing works end to end.
 
 ## Phase 5 — Deployment/network
