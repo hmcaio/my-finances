@@ -53,8 +53,8 @@ Each area: add its `common`/`<area>` namespace entries (`en` + `pt-BR`), swap ha
 
 ## Verification
 - [x] `npm run lint && npm test && npm run build` green.
-- [ ] Manual, dev: toggle the header language control — every page's labels, buttons, nav, and currently-visible numbers/dates switch immediately with no reload; toggling back restores English.
-- [ ] Manual: a fresh/seeded install in `pt-BR` shows translated starter category/payment-method/institution/investment-taxonomy names; renaming one of them (e.g. "Groceries" → "Mercado") shows the renamed text unchanged after toggling language either way.
-- [ ] Manual: trigger a 409 (duplicate name) and a validation 400 in each locale — the error banner text is in the active language.
-- [ ] Manual: reload the browser after toggling to `pt-BR` — the choice persists (localStorage); clearing storage and reloading falls back to the browser-language guess.
-- [ ] Manual: amounts and dates in `pt-BR` use `1.234,56` / `16 de março de 2026` formatting with no currency symbol; `en` uses `1,234.56` / `March 16, 2026`.
+- [x] Manual, dev: toggle the header language control — every page's labels, buttons, nav, and currently-visible numbers/dates switch immediately with no reload; toggling back restores English.
+- [x] Manual: a fresh/seeded install in `pt-BR` shows translated starter category/payment-method/institution/investment-taxonomy names; renaming one of them (e.g. "Groceries" → "Mercado") shows the renamed text unchanged after toggling language either way.
+- [x] Manual: trigger a 409 (duplicate name) and a validation 400 in each locale — the error banner text is in the active language.
+- [x] Manual: reload the browser after toggling to `pt-BR` — the choice persists (localStorage); clearing storage and reloading falls back to the browser-language guess.
+- [x] Manual: amounts and dates in `pt-BR` use `1.234,56` / `16 de março de 2026` formatting with no currency symbol; `en` uses `1,234.56` / `March 16, 2026`.
