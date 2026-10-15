@@ -5,11 +5,11 @@
 ## Backend
 - [x] Write tests for `InstitutionService`'s new `requireNotProtected` guard: rename on the built-in row rejected (409, `BuiltInInstitutionException`), rename on any other row still allowed, delete behavior unchanged, then implement.
 - [x] Delete `create`/`rename` from `PaymentMethod`/`InvestmentCategory`/`InvestmentSubcategory`/`InvestmentSegment` domain classes; update/delete their now-dead unit tests.
-- [ ] Delete `create`/`rename`/`delete` (and their dedicated exceptions) from `PaymentMethodService`/`InvestmentCategoryService`/`InvestmentSubcategoryService`/`InvestmentSegmentService`; update/delete their now-dead tests, keep `findAll` tests.
-- [ ] Delete the `POST`/`PATCH`/`DELETE` handlers from the four controllers; update/delete their now-dead controller tests, keep `GET` tests.
-- [ ] Flyway migration (next free `V` number): seed `investment_segments` with Lajes Corporativas, Shoppings, Logística, Papel (Recebíveis), Híbrido, Fiagro, Hospitalar, Residencial, Outros. Migration test confirming the fresh table ends up with exactly these nine rows and nothing else changes.
+- [x] Delete `create`/`rename`/`delete` (and their dedicated exceptions) from `PaymentMethodService`/`InvestmentCategoryService`/`InvestmentSubcategoryService`/`InvestmentSegmentService`; update/delete their now-dead tests, keep `findAll` tests. (`InvestmentSubcategoryService` had no standalone `findAll` - sub-categories are read only nested under their category - so it and its controller are deleted outright rather than kept empty; see spec/CLAUDE.md corrections.)
+- [x] Delete the `POST`/`PATCH`/`DELETE` handlers from the four controllers; update/delete their now-dead controller tests, keep `GET` tests.
+- [x] Flyway migration (next free `V` number): seed `investment_segments` with Lajes Corporativas, Shoppings, Logística, Papel (Recebíveis), Híbrido, Fiagro, Hospitalar, Residencial, Outros. Migration test confirming the fresh table ends up with exactly these nine rows and nothing else changes. (`V24` - `V23` was already taken by F032's audit log migration by the time this landed.)
 - [ ] Regenerate `frontend/src/api/generated/schema.ts`.
-- [ ] Update root `CLAUDE.md`/backend `CLAUDE.md` if either documents the removed CRUD endpoints anywhere.
+- [x] Update root `CLAUDE.md`/backend `CLAUDE.md` if either documents the removed CRUD endpoints anywhere. (Neither documented the removed endpoints directly; backend `CLAUDE.md`'s seed-row/UNIQUE-constraint testing note is extended to cover `V24`'s new `investment_segments` seed.)
 
 ## Frontend
 - [ ] `InstitutionsPage.tsx`: hide Rename alongside Delete for the built-in row (rendered-hidden, row-height parity).
