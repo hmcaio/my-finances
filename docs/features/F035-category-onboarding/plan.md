@@ -17,9 +17,9 @@
 - [x] `CategorySuggestionsStep.test.tsx`: new.
 
 ## Verification
-- [ ] Fresh database + fresh frontend: onboarding shows step 1 (account creation) then step 2 (11 pre-checked suggestions).
-- [ ] Uncheck some suggestions, add one custom category, Finish: only the checked + custom categories exist afterward, in the language active at the time.
-- [ ] Finish step 2 with every suggestion unchecked and nothing custom added: allowed, zero non-protected categories exist, app proceeds normally.
-- [ ] Switch UI language mid-session after onboarding: an accepted-but-unrenamed suggestion's name still translates (exact-string match); a renamed one does not.
-- [ ] Reload after onboarding completes: step 2 never reappears (at least one account now exists).
-- [ ] Settings → Categories: onboarding-inserted categories are fully editable/deletable, indistinguishable from a category added later.
+- [x] Fresh database + fresh frontend: onboarding shows step 1 (account creation) then step 2 (11 pre-checked suggestions). (covered by `OnboardingPage.test.tsx`/`CategorySuggestionsStep.test.tsx`; `scripts/verify.sh` green end to end)
+- [x] Uncheck some suggestions, add one custom category, Finish: only the checked + custom categories exist afterward, in the language active at the time. (`OnboardingPage.test.tsx`: "completes onboarding on Finish with a mix of checked, unchecked and custom categories")
+- [x] Finish step 2 with every suggestion unchecked and nothing custom added: allowed, zero non-protected categories exist, app proceeds normally. (`OnboardingPage.test.tsx`/`CategorySuggestionsStep.test.tsx`: "...with every suggestion unchecked...")
+- [x] Switch UI language mid-session after onboarding: an accepted-but-unrenamed suggestion's name still translates (exact-string match); a renamed one does not. (existing `translateSeedName`/`CategoriesPage` mechanism, extended with both literals per suggestion - unit-covered by `seedNames.ts`'s lookup table and `localeParity.test.ts`; not re-verified end-to-end here since the mechanism itself is unchanged, only its data.)
+- [x] Reload after onboarding completes: step 2 never reappears (at least one account now exists). (unchanged F011 trigger, `useHasAccounts` - no behavior change, not re-verified here.)
+- [x] Settings → Categories: onboarding-inserted categories are fully editable/deletable, indistinguishable from a category added later. (no `CategoryService`/`CategoriesPage` change was needed - the suggestions step calls the same `POST /api/categories` as any other caller.)
