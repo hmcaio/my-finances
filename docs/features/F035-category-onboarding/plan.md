@@ -8,13 +8,13 @@
 - [x] Confirm no other backend test fixture relied on the eight removed rows existing by default (grep test setup for their literal names); fix any that do. (`CategoryRepositoryAdapterTest.theTwoBuiltInFallbackCategoriesFromTheMigrationAreSeeded`, `BuiltInCategoriesMigrationTest.theSchemaRefusesASecondBuiltInCategoryOfTheSameType`, `CategoryControllerTest.listExposesTheBuiltInFlagAndCreatedCategoriesAreNotBuiltIn` all updated - see spec/report for detail.)
 
 ## Frontend
-- [ ] `suggestedCategories.ts`: the 11-entry `{translationKey, type}` list.
+- [x] `suggestedCategories.ts`: the 11-entry `{translationKey, type}` list.
 - [ ] `OnboardingPage.tsx`: `Stepper` with "Account"/"Categories" steps, `activeStep` state, existing `AccountCreateForm` as step 1 unchanged.
-- [ ] `CategorySuggestionsStep.tsx`: pre-checked suggestion checkboxes grouped by type, add-your-own repeatable row, always-enabled Finish, `POST /api/categories` per selection, banner+retry on failure, calls `onCompleted` on success.
-- [ ] `seedNames.ts`: English + Portuguese literal entries for all 11 suggestions (3 new translation keys for Entertainment/Education/Insurance, 8 existing keys gain a Portuguese-literal lookup entry).
-- [ ] New `en`/`pt-BR` strings: step 2 heading/intro, "edit anytime later" note, add-your-own control labels.
+- [x] `CategorySuggestionsStep.tsx`: pre-checked suggestion checkboxes grouped by type, add-your-own repeatable row, always-enabled Finish, `POST /api/categories` per selection, banner+retry on failure, calls `onCompleted` on success.
+- [x] `seedNames.ts`: English + Portuguese literal entries for all 11 suggestions (3 new translation keys for Entertainment/Education/Insurance, 8 existing keys gain a Portuguese-literal lookup entry).
+- [x] New `en`/`pt-BR` strings: step 2 heading/intro, "edit anytime later" note, add-your-own control labels.
 - [ ] `OnboardingPage.test.tsx`: two-step flow, Finish with mixed selections, Finish with zero selections.
-- [ ] `CategorySuggestionsStep.test.tsx`: new.
+- [x] `CategorySuggestionsStep.test.tsx`: new.
 
 ## Verification
 - [ ] Fresh database + fresh frontend: onboarding shows step 1 (account creation) then step 2 (11 pre-checked suggestions).
