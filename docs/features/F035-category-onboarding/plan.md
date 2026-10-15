@@ -3,9 +3,9 @@
 **Depends on**: F011, F002 (both built). See [ADR 0028](../../adr/0028-fixed-taxonomy-values-and-onboarding-seeded-categories.md).
 
 ## Backend
-- [ ] Edit `V2__categories_and_payment_methods.sql`: remove the Groceries/Rent/Utilities/Subscriptions/Transport/Dining/Health/Salary inserts, keep `Other`/`Other Income`.
-- [ ] Migration test: fresh `categories` after `V2` has exactly `Other`/`Other Income`; after migrating through `V14`/`V18`/`V20`, the protected set is still exactly Other Expense/Other Income/Fuel/Dividends.
-- [ ] Confirm no other backend test fixture relied on the eight removed rows existing by default (grep test setup for their literal names); fix any that do.
+- [x] Edit `V2__categories_and_payment_methods.sql`: remove the Groceries/Rent/Utilities/Subscriptions/Transport/Dining/Health/Salary inserts, keep `Other`/`Other Income`.
+- [x] Migration test: fresh `categories` after `V2` has exactly `Other`/`Other Income`; after migrating through `V14`/`V18`/`V20`, the protected set is still exactly Other Expense/Other Income/Fuel/Dividends. (`V2CategorySeedMigrationTest`)
+- [x] Confirm no other backend test fixture relied on the eight removed rows existing by default (grep test setup for their literal names); fix any that do. (`CategoryRepositoryAdapterTest.theTwoBuiltInFallbackCategoriesFromTheMigrationAreSeeded`, `BuiltInCategoriesMigrationTest.theSchemaRefusesASecondBuiltInCategoryOfTheSameType`, `CategoryControllerTest.listExposesTheBuiltInFlagAndCreatedCategoriesAreNotBuiltIn` all updated - see spec/report for detail.)
 
 ## Frontend
 - [ ] `suggestedCategories.ts`: the 11-entry `{translationKey, type}` list.

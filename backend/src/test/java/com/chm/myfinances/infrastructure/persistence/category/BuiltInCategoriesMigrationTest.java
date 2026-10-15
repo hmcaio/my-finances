@@ -67,14 +67,20 @@ class BuiltInCategoriesMigrationTest extends AbstractMigrationTest {
   void theSchemaRefusesASecondBuiltInCategoryOfTheSameType() throws Exception {
     flyway("14").migrate();
 
-    try (Connection connection = connection();
-        Statement statement = connection.createStatement()) {
-      assertThatThrownBy(
-              () ->
-                  statement.executeUpdate(
-                      "UPDATE categories SET built_in = true WHERE name = 'Groceries'"))
-          .isInstanceOf(SQLException.class)
-          .hasMessageContaining("uq_categories_single_built_in_per_type");
+    try (Connection connection = connection()) {
+      // F035/ADR 0028: V2 no longer seeds a regular EXPENSE category by default, so insert one of
+      // our own to attempt flagging as a second built-in row of the same type.
+      insertCategory(connection, "Another Expense Category", "EXPENSE");
+
+      try (Statement statement = connection.createStatement()) {
+        assertThatThrownBy(
+                () ->
+                    statement.executeUpdate(
+                        "UPDATE categories SET built_in = true"
+                            + " WHERE name = 'Another Expense Category'"))
+            .isInstanceOf(SQLException.class)
+            .hasMessageContaining("uq_categories_single_built_in_per_type");
+      }
     }
   }
 

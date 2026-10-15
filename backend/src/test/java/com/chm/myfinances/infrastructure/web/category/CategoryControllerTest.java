@@ -102,12 +102,14 @@ class CategoryControllerTest {
 
   @Test
   void listExposesTheBuiltInFlagAndCreatedCategoriesAreNotBuiltIn() throws Exception {
+    // F035/ADR 0028: V2 no longer seeds a regular category by default, so this list-level check
+    // only asserts on the two rows that are always present (the built-in fallbacks); the
+    // not-built-in assertion comes from a category this test creates itself.
     mockMvc
         .perform(get("/api/categories"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[?(@.name=='Other Expense')].builtIn").value(true))
-        .andExpect(jsonPath("$[?(@.name=='Other Income')].builtIn").value(true))
-        .andExpect(jsonPath("$[?(@.name=='Groceries')].builtIn").value(false));
+        .andExpect(jsonPath("$[?(@.name=='Other Income')].builtIn").value(true));
 
     mockMvc
         .perform(
