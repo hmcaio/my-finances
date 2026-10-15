@@ -127,6 +127,17 @@
       "vgbl": "VGBL",
       "stocks": "Ações",
       "bonds": "Títulos"
+    },
+    "investmentSegments": {
+      "lajesCorporativas": "Lajes Corporativas",
+      "shoppings": "Shoppings",
+      "logistica": "Logística",
+      "papel": "Papel (Recebíveis)",
+      "hibrido": "Híbrido",
+      "fiagro": "Fiagro",
+      "hospitalar": "Hospitalar",
+      "residencial": "Residencial",
+      "outros": "Outros"
     }
   }
 }

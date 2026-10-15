@@ -18,6 +18,7 @@
 - [x] `Layout.tsx`: new collapsible "System values" nav section (collapsed by default) holding Payment Methods / Investment Categories / Investment Segments; Categories/Institutions/Vehicles stay flat.
 - [x] New `en`/`pt-BR` translation keys for the group label and any removed-button copy cleanup.
 - [x] Update/delete tests for the three pages' now-removed mutation UI; add a test for the new collapsible nav group's default-collapsed state and toggle.
+- [x] Add `InvestmentSegment` to `src/i18n/seedNames.ts`'s seed-name translation mechanism (new `investmentSegments` `SeedTable` + `INVESTMENT_SEGMENT_SEED_NAMES`, en/pt-BR keys for the nine `V24` names) and render through `translateSeedName` in `InvestmentSegmentsPage.tsx`. (Gap found after the initial implementation: the table had no seed data when F033 shipped, so it was never added then; now that `V24` seeds real content it follows the same pattern as the other five taxonomies. `InvestmentSegmentsPage.test.tsx` updated to assert translated text, resolved via a fixed `en` `t()` same as `test/errorMessages.ts`.)
 
 ## Verification
 - [x] Attempt to rename or delete Institution's "No institution" row: both rejected (409); renaming/deleting any other institution still works. (`InstitutionServiceTest`, `InstitutionControllerTest`.)

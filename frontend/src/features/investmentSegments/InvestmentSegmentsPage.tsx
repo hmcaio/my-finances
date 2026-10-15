@@ -14,6 +14,7 @@ import { useInvestmentSegments } from '../../api/investments/investmentSegmentsQ
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { DataTableBody } from '../../components/table/DataTableBody'
 import { useQueryState } from '../../hooks/queryState'
+import { translateSeedName } from '../../i18n/seedNames'
 
 /**
  * Read-only list of investment segments (F026 spec, ADR 0023; F034/ADR 0028): every row is fixed,
@@ -67,7 +68,7 @@ export function InvestmentSegmentsPage() {
               )}
               {segments?.map((segment) => (
                 <TableRow key={segment.id}>
-                  <TableCell>{segment.name}</TableCell>
+                  <TableCell>{translateSeedName('investmentSegments', segment.name, t)}</TableCell>
                 </TableRow>
               ))}
             </DataTableBody>
