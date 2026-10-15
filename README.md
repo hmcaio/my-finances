@@ -100,7 +100,7 @@ Built:
 - **F008** — investment accounts, products and taxonomy (`INVESTMENT` accounts; a two-level category/sub-category taxonomy, fixed/migration-seeded content as of F034)
 - **F009** — investment trades, snapshots and reports (manual value snapshots as the sole source of worth; buy/sell as a tagged `Transfer`; allocation view)
 - **F010** — net worth (computed on read, never stored: assets + investments − credit card balances; point and trend endpoints)
-- **F011** — onboarding (frontend only: a first-run account-creation screen while no account exists)
+- **F011** — onboarding (frontend only: a first-run, two-step flow while no account exists — create the first account, then accept/reject/add starter categories, as of F035)
 - **F012** — dashboard (a grid of widgets, each fetching its own data; no composed dashboard endpoint)
 - **F013** — data export (`GET /api/export`: a ZIP of per-entity CSVs) — **superseded by F030**, documented below
 - **F014** — CI/CD and production packaging
@@ -122,11 +122,11 @@ Built:
 - **F032** — validation error details (per-field `errors` array on a bean-validation 400, extending F031's `ProblemDetail` body)
 - **F033** — internationalization (English / Brazilian Portuguese UI language toggle, `react-i18next`, locale-aware number/date formatting; [ADR 0027](docs/adr/0027-frontend-i18n-react-i18next.md))
 - **F034** — taxonomy lockdown (closes Institution's rename gap; removes user customization from Payment Method, Investment Category/Sub-category and Investment Segment; [ADR 0028](docs/adr/0028-fixed-taxonomy-values-and-onboarding-seeded-categories.md))
+- **F035** — category onboarding (stops migration-seeding Category's regular starter rows in favor of a localized, two-step onboarding suggestion step the user can accept, reject or supplement; depends on F034's ADR 0028)
 
 Documented and next up:
 - **F028** — investment splits, backend (a product-level `InvestmentSplit` event, applied as a read-side adjustment to held units; [ADR 0025](docs/adr/0025-investment-split-as-read-side-adjustment.md))
 - **F029** — investment splits, frontend (the product-detail split-history panel and record/delete dialog for F028)
-- **F035** — category onboarding (stops migration-seeding Category's regular starter rows in favor of a localized onboarding suggestion step; depends on F034's ADR 0028)
 - **F036** — remote access & authentication (single shared-credential session-cookie login; a generic `BIND_ADDR` env var for exposing the app over any private network without pinning to a specific product; [ADR 0029](docs/adr/0029-session-auth-and-generic-network-binding.md))
 
 See [docs/features/](docs/features/) for the full breakdown, in build order, with each feature's spec and its dependencies on the others.

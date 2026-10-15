@@ -109,8 +109,47 @@ describe('App', () => {
       await user.type(screen.getByLabelText('Name'), 'Main checking')
       await user.click(screen.getByRole('button', { name: 'Create account' }))
 
+      expect(await screen.findByRole('button', { name: 'Finish' })).toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: 'Dashboard' })).not.toBeInTheDocument()
+    })
+
+    // F035: creating the account alone already flips `hasAccounts` to `true` (every mutation
+    // invalidates every query, frontend CLAUDE.md), well before the category-suggestions step
+    // finishes. Without App.tsx's own `inOnboarding` latch, that refetch would swap onboarding
+    // for the dashboard mid-flow and silently skip step 2 - this proves step 2 actually survives
+    // the `hasAccounts` flip, and only the user finishing it (not the mutation) leaves onboarding.
+    it('stays on the category-suggestions step after account creation, until Finish is clicked', async () => {
+      stubMatchMedia()
+      let created = false
+      const categoriesCreated: string[] = []
+      server.use(
+        http.get('/api/accounts', () => (created ? undefined : HttpResponse.json([]))),
+        http.post('/api/accounts', () => {
+          created = true
+        }),
+        http.post('/api/categories', async ({ request }) => {
+          const body = (await request.json()) as { name: string }
+          categoriesCreated.push(body.name)
+          return HttpResponse.json({ id: body.name, ...body, builtIn: false }, { status: 201 })
+        }),
+      )
+      const user = userEvent.setup({ delay: null })
+      renderWithQueryClient(<App />)
+
+      await screen.findByRole('heading', { name: /welcome/i })
+      await screen.findByRole('combobox', { name: 'Institution' })
+      await user.type(screen.getByLabelText('Name'), 'Main checking')
+      await user.click(screen.getByRole('button', { name: 'Create account' }))
+
+      // Step 2 is up, hasAccounts has already flipped true in the background - onboarding must
+      // not have been swapped out for the dashboard.
+      expect(await screen.findByText('Suggested categories')).toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: 'Dashboard' })).not.toBeInTheDocument()
+
+      await user.click(screen.getByRole('button', { name: 'Finish' }))
+
       expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
-      expect(screen.queryByRole('heading', { name: /welcome/i })).not.toBeInTheDocument()
+      expect(categoriesCreated.length).toBeGreaterThan(0)
     })
 
     it('shows a retryable load error, not onboarding, when the accounts check fails', async () => {

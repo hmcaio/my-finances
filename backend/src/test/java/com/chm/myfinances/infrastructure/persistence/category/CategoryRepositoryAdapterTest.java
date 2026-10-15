@@ -83,12 +83,14 @@ class CategoryRepositoryAdapterTest {
   }
 
   @Test
-  void starterCategoriesFromTheMigrationAreSeeded() {
+  void theTwoBuiltInFallbackCategoriesFromTheMigrationAreSeeded() {
+    // F035/ADR 0028: V2 seeds only the two rows V14 adopts as built-in; the regular starter
+    // categories (Groceries, Salary, ...) are no longer migration data - they come from onboarding.
     List<Category> all = categoryRepository.findAll();
 
-    assertThat(all).extracting(Category::getName).contains("Groceries", "Salary", "Other Income");
+    assertThat(all).extracting(Category::getName).contains("Other Expense", "Other Income");
     assertThat(all)
-        .filteredOn(c -> c.getName().equals("Salary"))
+        .filteredOn(c -> c.getName().equals("Other Income"))
         .extracting(Category::getType)
         .containsExactly(CategoryType.INCOME);
   }

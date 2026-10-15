@@ -2,5 +2,17 @@
   "title": "Bem-vindo ao My Finances",
   "intro": "Comece adicionando sua primeira conta, por exemplo sua conta corrente principal. O saldo e a data de abertura são o ponto de partida do controle: tudo que você registrar depois é somado a partir deles. Você pode adicionar mais contas depois, e escolher uma instituição real agora ou manter \"Nenhuma instituição\".",
   "formHeading": "Crie sua primeira conta",
-  "submitLabel": "Criar conta"
+  "submitLabel": "Criar conta",
+  "steps": {
+    "account": "Conta",
+    "categories": "Categorias"
+  },
+  "categoriesHeading": "Categorias sugeridas",
+  "categoriesIntro": "Aqui estão algumas categorias comuns para começar, já marcadas. Desmarque as que não quiser e adicione as suas próprias abaixo.",
+  "editLaterNote": "Você pode adicionar, renomear ou remover categorias a qualquer momento depois, em Configurações.",
+  "addCustomHeading": "Adicione as suas",
+  "customCategoryTypeLabel": "Tipo da categoria",
+  "addCustomButton": "Adicionar",
+  "finishButton": "Concluir",
+  "removeCustomCategory": "Remover {{name}}"
 }

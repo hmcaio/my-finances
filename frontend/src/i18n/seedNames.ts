@@ -12,25 +12,47 @@ export type SeedTable =
  * renamed it, or it's their own data) renders verbatim. No schema change, no `built_in`-flag
  * dependency - this degrades gracefully the moment a seeded row is renamed, which is the point.
  *
- * `categories` holds V2's starter names as adopted/renamed by V14 ("Other" -> "Other Expense",
- * unless an income row already held that name - see V14's own migration comment for the adoption
- * rules), since that's the name a fresh install actually ends up with. V18's "Fuel" and V20's
- * "Dividends" are added by the fuel/FII feature areas' own phase steps, not here, even though they
- * also seed into this same `categories` table. `investmentSegments` holds V24's nine B3 FII
- * sectors (F034/ADR 0028) - unlike every other table here, every one of its rows is permanently
- * protected (no create/rename/delete endpoint exists at all), so this is the one lookup that can
- * never fall through to the verbatim-name branch.
+ * `categories` holds V14's "Other Expense"/"Other Income" built-in rows (V2 seeds only their
+ * pre-adoption names, "Other"/"Other Income" - see V14's own migration comment for the adoption
+ * rules), V18's "Fuel" and V20's "Dividends" (added by the fuel/FII feature areas' own phase
+ * steps, not here, even though they also seed into this same `categories` table), plus the 11
+ * onboarding suggestions (F035/ADR 0028: the regular starter categories stopped being migration
+ * data and moved to a localized onboarding step - `features/onboarding/suggestedCategories.ts`).
+ * This is the first table with **two literals mapping to the same translation key**: onboarding
+ * inserts whichever language was active at the time, so both the English and Portuguese literal
+ * of each of its 8 pre-existing names (Groceries/Rent/Utilities/Subscriptions/Transport/
+ * Dining/Health/Salary) need an entry here, reusing the one translation key each already had from
+ * the old migration seed - `Record<string, string>` supports two keys sharing one value with no
+ * change to the lookup mechanism itself. `investmentSegments` holds V24's nine B3 FII sectors
+ * (F034/ADR 0028) - unlike every other table here, every one of its rows is permanently protected
+ * (no create/rename/delete endpoint exists at all), so this is the one lookup that can never fall
+ * through to the verbatim-name branch.
  */
 const CATEGORY_SEED_NAMES: Record<string, string> = {
   Groceries: 'common:seedNames.categories.groceries',
+  Mercado: 'common:seedNames.categories.groceries',
   Rent: 'common:seedNames.categories.rent',
+  Aluguel: 'common:seedNames.categories.rent',
   Utilities: 'common:seedNames.categories.utilities',
+  Utilidades: 'common:seedNames.categories.utilities',
   Subscriptions: 'common:seedNames.categories.subscriptions',
+  Assinaturas: 'common:seedNames.categories.subscriptions',
   Transport: 'common:seedNames.categories.transport',
+  Transporte: 'common:seedNames.categories.transport',
   Dining: 'common:seedNames.categories.dining',
+  Restaurantes: 'common:seedNames.categories.dining',
   Health: 'common:seedNames.categories.health',
+  Saúde: 'common:seedNames.categories.health',
+  // F035/ADR 0028: three brand-new onboarding suggestions, not part of the original migration seed.
+  Entertainment: 'common:seedNames.categories.entertainment',
+  Entretenimento: 'common:seedNames.categories.entertainment',
+  Education: 'common:seedNames.categories.education',
+  Educação: 'common:seedNames.categories.education',
+  Insurance: 'common:seedNames.categories.insurance',
+  Seguro: 'common:seedNames.categories.insurance',
   'Other Expense': 'common:seedNames.categories.otherExpense',
   Salary: 'common:seedNames.categories.salary',
+  Salário: 'common:seedNames.categories.salary',
   'Other Income': 'common:seedNames.categories.otherIncome',
   // V18 (F024, ADR 0021): the dedicated fuel category, added here rather than in the initial
   // categories lookup since it belongs to the Fuel area's own phase step.
