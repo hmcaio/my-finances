@@ -35,9 +35,9 @@ import { sortInstitutions } from './sortInstitutions'
 
 /**
  * Settings-style CRUD screen for institutions (F017 spec): table with name, inline rename,
- * add-new dialog, delete. Same pattern as PaymentMethodsPage. The built-in "No institution" row is
- * listed first, can be renamed like any other, and has no delete action (the backend would answer
- * 409 anyway) - unchanged by this batch, only its responsive presentation is.
+ * add-new dialog, delete. The built-in "No institution" row is listed first and has both Rename
+ * and Delete hidden (F034/ADR 0028: the backend now rejects both with 409, mirroring Category's
+ * built-in-row guard) - every other row stays fully editable.
  *
  * Responsive (F021): Name is the only data column, so per the spec's 1-2-column rule this stays a
  * plain table at every size. The header's Add button opens a single Name field in a
@@ -187,23 +187,33 @@ export function InstitutionsPage() {
                     )}
                   </TableCell>
                   <TableCell align="right">
-                    <InlineEditActions
-                      editing={editingId === institution.id}
-                      onEdit={() => startEdit(institution)}
-                      onSave={() => void saveEdit(institution.id)}
-                      onCancel={cancelEdit}
-                      editLabel={t('common:actions.rename')}
-                    />
-                    {editingId !== institution.id && !institution.builtIn && (
-                      <IconButton
-                        size="small"
-                        aria-label={t('common:actions.delete')}
-                        disabled={pendingDeleteId === institution.id}
-                        onClick={() => void handleDelete(institution.id)}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    )}
+                    {/* F034/ADR 0028: closes the same rename gap Category already closed (issue
+                        #117) - both Rename and Delete are rendered-but-hidden for the built-in
+                        row, not omitted, so the row height matches every other row (`visibility:
+                        hidden`, not `display: none`, keeps them out of the accessibility tree and
+                        tab order, same as not rendering them). */}
+                    <Box
+                      sx={institution.builtIn ? { visibility: 'hidden' } : undefined}
+                      aria-hidden={institution.builtIn || undefined}
+                    >
+                      <InlineEditActions
+                        editing={editingId === institution.id}
+                        onEdit={() => startEdit(institution)}
+                        onSave={() => void saveEdit(institution.id)}
+                        onCancel={cancelEdit}
+                        editLabel={t('common:actions.rename')}
+                      />
+                      {editingId !== institution.id && (
+                        <IconButton
+                          size="small"
+                          aria-label={t('common:actions.delete')}
+                          disabled={pendingDeleteId === institution.id}
+                          onClick={() => void handleDelete(institution.id)}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                    </Box>
                   </TableCell>
                 </TableRow>
               ))}

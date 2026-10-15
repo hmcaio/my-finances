@@ -164,54 +164,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/payment-methods": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["paymentMethod_list"];
-        put?: never;
-        post: operations["paymentMethod_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/investment-subcategories": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["investmentSubcategory_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/investment-segments": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["investmentSegment_list"];
-        put?: never;
-        post: operations["investmentSegment_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/investment-products": {
         parameters: {
             query?: never;
@@ -270,22 +222,6 @@ export interface paths {
         get: operations["investmentSnapshot_list"];
         put?: never;
         post: operations["investmentSnapshot_record"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/investment-categories": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["investmentCategory_list"];
-        put?: never;
-        post: operations["investmentCategory_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -452,54 +388,6 @@ export interface paths {
         patch: operations["recurringTemplate_setCap"];
         trace?: never;
     };
-    "/api/payment-methods/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["paymentMethod_delete"];
-        options?: never;
-        head?: never;
-        patch: operations["paymentMethod_rename"];
-        trace?: never;
-    };
-    "/api/investment-subcategories/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["investmentSubcategory_delete"];
-        options?: never;
-        head?: never;
-        patch: operations["investmentSubcategory_rename"];
-        trace?: never;
-    };
-    "/api/investment-segments/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["investmentSegment_delete"];
-        options?: never;
-        head?: never;
-        patch: operations["investmentSegment_rename"];
-        trace?: never;
-    };
     "/api/investment-products/{id}": {
         parameters: {
             query?: never;
@@ -530,22 +418,6 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["investmentHolding_edit"];
-        trace?: never;
-    };
-    "/api/investment-categories/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["investmentCategory_delete"];
-        options?: never;
-        head?: never;
-        patch: operations["investmentCategory_rename"];
         trace?: never;
     };
     "/api/institutions/{id}": {
@@ -676,6 +548,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/payment-methods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["paymentMethod_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/net-worth": {
         parameters: {
             query?: never;
@@ -732,6 +620,38 @@ export interface paths {
             cookie?: never;
         };
         get: operations["investmentAllocation_allocation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/investment-segments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["investmentSegment_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/investment-categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["investmentCategory_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1109,34 +1029,6 @@ export interface components {
             description?: string;
             additionalNotes?: string;
         };
-        CreatePaymentMethodRequest: {
-            name: string;
-        };
-        PaymentMethodResponse: {
-            /** Format: uuid */
-            id?: string;
-            name?: string;
-        };
-        CreateInvestmentSubcategoryRequest: {
-            /** Format: uuid */
-            investmentCategoryId: string;
-            name: string;
-        };
-        InvestmentSubcategoryResponse: {
-            /** Format: uuid */
-            id?: string;
-            /** Format: uuid */
-            investmentCategoryId?: string;
-            name?: string;
-        };
-        CreateInvestmentSegmentRequest: {
-            name: string;
-        };
-        InvestmentSegmentResponse: {
-            /** Format: uuid */
-            id?: string;
-            name?: string;
-        };
         CreateInvestmentProductRequest: {
             /** Format: uuid */
             accountId: string;
@@ -1195,20 +1087,6 @@ export interface components {
             /** Format: date */
             date: string;
             balance: number;
-        };
-        CreateInvestmentCategoryRequest: {
-            name: string;
-        };
-        InvestmentCategoryResponse: {
-            /** Format: uuid */
-            id?: string;
-            name?: string;
-            subcategories?: components["schemas"]["InvestmentSubcategoryEntry"][];
-        };
-        InvestmentSubcategoryEntry: {
-            /** Format: uuid */
-            id?: string;
-            name?: string;
         };
         CreateInstitutionRequest: {
             name: string;
@@ -1326,15 +1204,6 @@ export interface components {
             dayOfMonth?: number;
             effectiveFrom: string;
         };
-        UpdatePaymentMethodRequest: {
-            name: string;
-        };
-        UpdateInvestmentSubcategoryRequest: {
-            name: string;
-        };
-        UpdateInvestmentSegmentRequest: {
-            name: string;
-        };
         UpdateInvestmentProductRequest: {
             /** Format: uuid */
             investmentCategoryId: string;
@@ -1348,9 +1217,6 @@ export interface components {
         };
         UpdateInvestmentHoldingRequest: {
             additionalNotes?: string;
-        };
-        UpdateInvestmentCategoryRequest: {
-            name: string;
         };
         UpdateInstitutionRequest: {
             name: string;
@@ -1408,6 +1274,11 @@ export interface components {
             dueDate?: string;
             amount?: number;
         };
+        PaymentMethodResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+        };
         NetWorthPointResponse: {
             /** Format: date */
             date?: string;
@@ -1443,6 +1314,11 @@ export interface components {
             totalValue?: number;
             needsSnapshot?: boolean;
         };
+        InvestmentSegmentResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+        };
         PagedModelInvestmentProductResponse: {
             content?: components["schemas"]["InvestmentProductResponse"][];
             page?: components["schemas"]["PageMetadata"];
@@ -1455,6 +1331,17 @@ export interface components {
             /** Format: date */
             date?: string;
             balance?: number;
+        };
+        InvestmentCategoryResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            subcategories?: components["schemas"]["InvestmentSubcategoryEntry"][];
+        };
+        InvestmentSubcategoryEntry: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
         };
         FiiPortfolioRowResponse: {
             /** Format: uuid */
@@ -2113,181 +2000,6 @@ export interface operations {
             };
         };
     };
-    paymentMethod_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PaymentMethodResponse"][];
-                };
-            };
-        };
-    };
-    paymentMethod_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreatePaymentMethodRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PaymentMethodResponse"];
-                };
-            };
-            /** @description type: urn:my-finances:error:method-argument-not-valid, carrying an errors[] array of {field, code} with code one of: not-blank, size */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-            /** @description type: urn:my-finances:error:payment-method-name-already-exists */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-        };
-    };
-    investmentSubcategory_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateInvestmentSubcategoryRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["InvestmentSubcategoryResponse"];
-                };
-            };
-            /** @description type: urn:my-finances:error:method-argument-not-valid, carrying an errors[] array of {field, code} with code one of: not-null, not-blank, size */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-            /** @description type: urn:my-finances:error:investment-category-not-found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-            /** @description type: urn:my-finances:error:investment-subcategory-name-already-exists */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-        };
-    };
-    investmentSegment_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["InvestmentSegmentResponse"][];
-                };
-            };
-        };
-    };
-    investmentSegment_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateInvestmentSegmentRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["InvestmentSegmentResponse"];
-                };
-            };
-            /** @description type: urn:my-finances:error:method-argument-not-valid, carrying an errors[] array of {field, code} with code one of: not-blank, size */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-            /** @description type: urn:my-finances:error:investment-segment-name-already-exists */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-        };
-    };
     investmentProduct_list: {
         parameters: {
             query: {
@@ -2545,68 +2257,6 @@ export interface operations {
                 };
             };
             /** @description type: urn:my-finances:error:investment-snapshot-date-taken */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-        };
-    };
-    investmentCategory_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["InvestmentCategoryResponse"][];
-                };
-            };
-        };
-    };
-    investmentCategory_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateInvestmentCategoryRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["InvestmentCategoryResponse"];
-                };
-            };
-            /** @description type: urn:my-finances:error:method-argument-not-valid, carrying an errors[] array of {field, code} with code one of: not-blank, size */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-            /** @description type: urn:my-finances:error:investment-category-name-already-exists */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -3258,252 +2908,6 @@ export interface operations {
             };
         };
     };
-    paymentMethod_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description type: urn:my-finances:error:payment-method-not-found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-            /** @description type: urn:my-finances:error:payment-method-in-use */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-        };
-    };
-    paymentMethod_rename: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdatePaymentMethodRequest"];
-            };
-        };
-        responses: {
-            /** @description type: urn:my-finances:error:method-argument-not-valid, carrying an errors[] array of {field, code} with code one of: not-blank, size */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-            /** @description type: urn:my-finances:error:payment-method-not-found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-            /** @description type: urn:my-finances:error:payment-method-name-already-exists */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-        };
-    };
-    investmentSubcategory_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description type: urn:my-finances:error:investment-subcategory-not-found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-            /** @description type: urn:my-finances:error:investment-subcategory-in-use */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-        };
-    };
-    investmentSubcategory_rename: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateInvestmentSubcategoryRequest"];
-            };
-        };
-        responses: {
-            /** @description type: urn:my-finances:error:method-argument-not-valid, carrying an errors[] array of {field, code} with code one of: not-blank, size */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-            /** @description type: urn:my-finances:error:investment-subcategory-not-found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-            /** @description type: urn:my-finances:error:investment-subcategory-name-already-exists */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-        };
-    };
-    investmentSegment_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description type: urn:my-finances:error:investment-segment-not-found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-            /** @description type: urn:my-finances:error:investment-segment-in-use */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-        };
-    };
-    investmentSegment_rename: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateInvestmentSegmentRequest"];
-            };
-        };
-        responses: {
-            /** @description type: urn:my-finances:error:method-argument-not-valid, carrying an errors[] array of {field, code} with code one of: not-blank, size */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-            /** @description type: urn:my-finances:error:investment-segment-not-found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-            /** @description type: urn:my-finances:error:investment-segment-name-already-exists */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-        };
-    };
     investmentProduct_get: {
         parameters: {
             query?: never;
@@ -3703,88 +3107,6 @@ export interface operations {
             };
         };
     };
-    investmentCategory_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description type: urn:my-finances:error:investment-category-not-found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-            /** @description type: urn:my-finances:error:investment-category-in-use */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-        };
-    };
-    investmentCategory_rename: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateInvestmentCategoryRequest"];
-            };
-        };
-        responses: {
-            /** @description type: urn:my-finances:error:method-argument-not-valid, carrying an errors[] array of {field, code} with code one of: not-blank, size */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-            /** @description type: urn:my-finances:error:investment-category-not-found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-            /** @description type: urn:my-finances:error:investment-category-name-already-exists */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
-                };
-            };
-        };
-    };
     institution_delete: {
         parameters: {
             query?: never;
@@ -3938,7 +3260,7 @@ export interface operations {
                     "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
-            /** @description type: one of urn:my-finances:error:category-name-already-exists, urn:my-finances:error:fuel-category, urn:my-finances:error:dividend-category */
+            /** @description type: one of urn:my-finances:error:category-name-already-exists, urn:my-finances:error:built-in-category, urn:my-finances:error:fuel-category, urn:my-finances:error:dividend-category */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -4179,6 +3501,26 @@ export interface operations {
             };
         };
     };
+    paymentMethod_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PaymentMethodResponse"][];
+                };
+            };
+        };
+    };
     netWorth_netWorth: {
         parameters: {
             query?: {
@@ -4277,6 +3619,46 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AllocationRowResponse"][];
+                };
+            };
+        };
+    };
+    investmentSegment_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvestmentSegmentResponse"][];
+                };
+            };
+        };
+    };
+    investmentCategory_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvestmentCategoryResponse"][];
                 };
             };
         };
