@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import {
   AppBar,
   Box,
+  Collapse,
   Divider,
   Drawer,
   IconButton,
@@ -20,6 +21,8 @@ import { useTheme } from '@mui/material/styles'
 import MenuIcon from '@mui/icons-material/Menu'
 import DarkModeIcon from '@mui/icons-material/DarkMode'
 import LightModeIcon from '@mui/icons-material/LightMode'
+import ExpandLessIcon from '@mui/icons-material/ExpandLess'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { useColorMode } from '../../hooks/colorMode/useColorMode'
 import { useLocale } from '../../hooks/locale/useLocale'
 
@@ -42,13 +45,22 @@ const MAIN_NAV_ITEMS: NavItem[] = [
   { labelKey: 'nav.fiiPortfolio', path: '/fii' },
 ]
 
+// Categories/Institutions/Vehicles stay flat, fully-editable nav items - only specific rows on
+// those are protected (F034/ADR 0028), the rest of each list is still real user data.
 const SETTINGS_NAV_ITEMS: NavItem[] = [
   { labelKey: 'nav.categories', path: '/settings/categories' },
+  { labelKey: 'nav.institutions', path: '/settings/institutions' },
+  { labelKey: 'nav.vehicles', path: '/settings/vehicles' },
+]
+
+// F034/ADR 0028: these three lists lost every mutation affordance - every row is fixed,
+// migration-seeded content - grouped together under a collapsed-by-default "System values"
+// section so the flat nav doesn't grow for lists nobody edits anymore. Still useful to browse
+// (the app still picks from them elsewhere), just not worth a top-level flat entry each.
+const SYSTEM_VALUES_NAV_ITEMS: NavItem[] = [
+  { labelKey: 'nav.paymentMethods', path: '/settings/payment-methods' },
   { labelKey: 'nav.investmentCategories', path: '/settings/investment-categories' },
   { labelKey: 'nav.investmentSegments', path: '/settings/investment-segments' },
-  { labelKey: 'nav.institutions', path: '/settings/institutions' },
-  { labelKey: 'nav.paymentMethods', path: '/settings/payment-methods' },
-  { labelKey: 'nav.vehicles', path: '/settings/vehicles' },
 ]
 
 const ACTIVITY_NAV_ITEM: NavItem = { labelKey: 'nav.activity', path: '/activity' }
@@ -58,14 +70,21 @@ function NavListItem({
   item,
   pathname,
   t,
+  indent,
 }: {
   item: NavItem
   pathname: string
   t: (key: never) => string
+  indent?: boolean
 }) {
   return (
     <ListItem disablePadding>
-      <ListItemButton component={Link} to={item.path} selected={pathname === item.path}>
+      <ListItemButton
+        component={Link}
+        to={item.path}
+        selected={pathname === item.path}
+        sx={indent ? { pl: 4 } : undefined}
+      >
         <ListItemText primary={t(item.labelKey as never)} />
       </ListItemButton>
     </ListItem>
@@ -94,6 +113,9 @@ export function Layout({ children }: PropsWithChildren) {
     setDrawerState({ pathname, open: false })
   }
   const navOpen = drawerState.open
+  // Collapsed by default, local state only - not persisted to localStorage, same as every other
+  // nav state in this app (F034/ADR 0028). Resets on reload.
+  const [systemValuesOpen, setSystemValuesOpen] = useState(false)
 
   const nav = (
     <Fragment>
@@ -109,6 +131,26 @@ export function Layout({ children }: PropsWithChildren) {
         {SETTINGS_NAV_ITEMS.map((item) => (
           <NavListItem key={item.path} item={item} pathname={pathname} t={t} />
         ))}
+        <ListItem disablePadding>
+          <ListItemButton
+            onClick={() => setSystemValuesOpen((prev) => !prev)}
+            aria-expanded={systemValuesOpen}
+          >
+            <ListItemText primary={t('nav.systemValues')} />
+            {systemValuesOpen ? (
+              <ExpandLessIcon fontSize="small" />
+            ) : (
+              <ExpandMoreIcon fontSize="small" />
+            )}
+          </ListItemButton>
+        </ListItem>
+        <Collapse in={systemValuesOpen} unmountOnExit>
+          <List component="div" disablePadding>
+            {SYSTEM_VALUES_NAV_ITEMS.map((item) => (
+              <NavListItem key={item.path} item={item} pathname={pathname} t={t} indent />
+            ))}
+          </List>
+        </Collapse>
         <Divider component="li" sx={{ my: 1 }} />
         <NavListItem item={ACTIVITY_NAV_ITEM} pathname={pathname} t={t} />
         <NavListItem item={REPORTS_NAV_ITEM} pathname={pathname} t={t} />

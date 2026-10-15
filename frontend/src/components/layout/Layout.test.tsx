@@ -119,18 +119,40 @@ describe('Layout', () => {
     renderLayout()
 
     expect(screen.getByText('Settings')).toBeVisible()
-    for (const label of [
-      'Categories',
-      'Investment Categories',
-      'Institutions',
-      'Payment Methods',
-      'Reports',
-    ]) {
+    for (const label of ['Categories', 'Institutions', 'Vehicles', 'Reports']) {
       expect(screen.getByRole('link', { name: label })).toBeVisible()
+    }
+  })
+
+  it('renders the "System values" nav group collapsed by default (F034/ADR 0028)', () => {
+    setViewportWidth(1280)
+    renderLayout()
+
+    expect(screen.getByRole('button', { name: 'System values' })).toBeVisible()
+    for (const label of ['Payment Methods', 'Investment Categories', 'Investment Segments']) {
+      expect(screen.queryByRole('link', { name: label })).not.toBeInTheDocument()
+    }
+  })
+
+  it('expands and collapses the "System values" nav group on click', async () => {
+    setViewportWidth(1280)
+    const user = userEvent.setup({ delay: null })
+    renderLayout()
+
+    await user.click(screen.getByRole('button', { name: 'System values' }))
+
+    for (const label of ['Payment Methods', 'Investment Categories', 'Investment Segments']) {
+      expect(await screen.findByRole('link', { name: label })).toBeVisible()
     }
     expect(screen.getByRole('link', { name: 'Payment Methods' })).toHaveAttribute(
       'href',
       '/settings/payment-methods',
+    )
+
+    await user.click(screen.getByRole('button', { name: 'System values' }))
+
+    await waitFor(() =>
+      expect(screen.queryByRole('link', { name: 'Payment Methods' })).not.toBeInTheDocument(),
     )
   })
 
