@@ -28,7 +28,7 @@ describe('groupEntriesByLocalDay', () => {
       entry('a1', '2026-03-15T09:15:00Z'),
     ]
 
-    const groups = groupEntriesByLocalDay(entries)
+    const groups = groupEntriesByLocalDay(entries, 'en')
 
     expect(groups).toHaveLength(2)
     expect(groups[0].entries.map((e) => e.id)).toEqual(['a3', 'a2'])
@@ -36,10 +36,17 @@ describe('groupEntriesByLocalDay', () => {
   })
 
   it('labels each group with a human-readable date', () => {
-    const groups = groupEntriesByLocalDay([entry('a1', '2026-03-16T14:30:00Z')])
+    const groups = groupEntriesByLocalDay([entry('a1', '2026-03-16T14:30:00Z')], 'en')
 
     expect(groups[0].label).toContain('2026')
     expect(groups[0].label).toContain('March')
+  })
+
+  it('labels each group in the active locale', () => {
+    const groups = groupEntriesByLocalDay([entry('a1', '2026-03-16T14:30:00Z')], 'pt-BR')
+
+    expect(groups[0].label).toContain('2026')
+    expect(groups[0].label).toContain('março')
   })
 
   it('groups an entry near UTC midnight onto the viewer local day, not the UTC day', () => {
@@ -48,12 +55,12 @@ describe('groupEntriesByLocalDay', () => {
     // the zone) - 2026-03-16T02:00:00Z is 2026-03-15 23:00 in UTC-3, a full day earlier.
     vi.stubEnv('TZ', 'America/Sao_Paulo')
 
-    const groups = groupEntriesByLocalDay([entry('a1', '2026-03-16T02:00:00Z')])
+    const groups = groupEntriesByLocalDay([entry('a1', '2026-03-16T02:00:00Z')], 'en')
 
     expect(groups[0].dateKey).toBe('2026-03-15')
   })
 
   it('returns no groups for an empty page', () => {
-    expect(groupEntriesByLocalDay([])).toEqual([])
+    expect(groupEntriesByLocalDay([], 'en')).toEqual([])
   })
 })

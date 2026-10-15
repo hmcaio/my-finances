@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { Box, Button, MenuItem, Paper, Select, Typography, useTheme } from '@mui/material'
 import type { Theme } from '@mui/material/styles'
@@ -8,6 +9,8 @@ import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { LoadFailedNotice } from '../../components/feedback/LoadFailedNotice'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
+import { useLocale } from '../../hooks/locale/useLocale'
+import { formatMoney, formatNumber } from '../../i18n/format'
 import { fuelTypeLabel } from '../../utils/fuelType'
 import type { Transaction } from '../../api/transactions/transactions'
 import { FuelTimeSeriesChart, type FuelSeries } from './FuelTimeSeriesChart'
@@ -31,6 +34,8 @@ function fuelTypeColors(theme: Theme): Record<string, string> {
  * with the fuel category pre-selected via navigation state.
  */
 export function FuelPage() {
+  const { t } = useTranslation('fuel')
+  const { locale } = useLocale()
   const theme = useTheme()
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
@@ -82,66 +87,76 @@ export function FuelPage() {
   const kmPerLiterSeries: FuelSeries[] = useMemo(
     () => [
       {
-        label: 'km/L',
+        label: t('kmPerLiterSeriesLabel'),
         color: theme.palette.primary.main,
         points: (history ?? [])
           .filter((t) => t.kmPerLiter !== null)
           .map((t) => ({ date: t.date, value: t.kmPerLiter! })),
       },
     ],
-    [history, theme],
+    [history, theme, t],
   )
 
   const spendPerKmSeries: FuelSeries[] = useMemo(
     () => [
       {
-        label: 'Spend/km',
+        label: t('spendPerKmSeriesLabel'),
         color: theme.palette.primary.main,
         points: (history ?? [])
           .filter((t) => t.amountPerKm !== null)
           .map((t) => ({ date: t.date, value: t.amountPerKm! })),
       },
     ],
-    [history, theme],
+    [history, theme, t],
   )
 
   const columns: ResponsiveColumn<Transaction>[] = [
-    { key: 'date', header: 'Date', render: (t) => t.date, role: 'secondary' },
+    { key: 'date', header: t('columns.date'), render: (tx) => tx.date, role: 'secondary' },
     {
       key: 'fuelType',
-      header: 'Fuel Type',
-      render: (t) => fuelTypeLabel(t.fuelType),
+      header: t('columns.fuelType'),
+      render: (tx) => fuelTypeLabel(tx.fuelType),
       role: 'primary',
     },
-    { key: 'liters', header: 'Liters', render: (t) => t.liters?.toFixed(3) ?? '' },
+    {
+      key: 'liters',
+      header: t('columns.liters'),
+      render: (tx) => (tx.liters !== null ? formatNumber(tx.liters, locale, 3) : ''),
+    },
     {
       key: 'pricePerLiter',
-      header: 'Price/Liter',
-      render: (t) => t.pricePerLiter?.toFixed(3) ?? '',
+      header: t('columns.pricePerLiter'),
+      render: (tx) => (tx.pricePerLiter !== null ? formatNumber(tx.pricePerLiter, locale, 3) : ''),
     },
-    { key: 'amount', header: 'Amount', align: 'right', render: (t) => t.amount.toFixed(2) },
+    {
+      key: 'amount',
+      header: t('columns.amount'),
+      align: 'right',
+      render: (tx) => formatMoney(tx.amount, locale),
+    },
     {
       key: 'kmPerLiter',
-      header: 'Km/L',
-      render: (t) => t.kmPerLiter?.toFixed(2) ?? '—',
+      header: t('columns.kmPerLiter'),
+      render: (tx) => (tx.kmPerLiter !== null ? formatNumber(tx.kmPerLiter, locale, 2) : '—'),
       tabletPriority: 'low',
     },
     {
       key: 'amountPerKm',
-      header: 'Spend/km',
-      render: (t) => t.amountPerKm?.toFixed(2) ?? '—',
+      header: t('columns.amountPerKm'),
+      render: (tx) => (tx.amountPerKm !== null ? formatMoney(tx.amountPerKm, locale) : '—'),
       tabletPriority: 'low',
     },
     {
       key: 'kmSinceLastFill',
-      header: 'Km Since Last Fill',
-      render: (t) => t.kmSinceLastFill?.toFixed(1) ?? '—',
+      header: t('columns.kmSinceLastFill'),
+      render: (tx) =>
+        tx.kmSinceLastFill !== null ? formatNumber(tx.kmSinceLastFill, locale, 1) : '—',
       tabletPriority: 'low',
     },
     {
       key: 'odometer',
-      header: 'Odometer',
-      render: (t) => t.odometer?.toFixed(1) ?? '—',
+      header: t('columns.odometer'),
+      render: (tx) => (tx.odometer !== null ? formatNumber(tx.odometer, locale, 1) : '—'),
       tabletPriority: 'low',
     },
   ]
@@ -164,14 +179,14 @@ export function FuelPage() {
         }}
       >
         <Typography variant="h4" component="h1">
-          Fuel
+          {t('title')}
         </Typography>
         <Button variant="contained" onClick={addFuelTransaction} disabled={!fuelCategory}>
-          Add fuel transaction
+          {t('addFuelTransactionButton')}
         </Button>
       </Box>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Per-vehicle fuel purchase history and derived km/L, spend/km and L/km ratios.
+        {t('description')}
       </Typography>
 
       <ErrorAlert message={error} onDismiss={() => setError(null)} />
@@ -179,16 +194,14 @@ export function FuelPage() {
       {vehiclesState.loadError ? (
         <LoadFailedNotice message={vehiclesState.loadError} onRetry={retry} />
       ) : vehicles?.length === 0 ? (
-        <Typography color="text.secondary">
-          No vehicles yet - add one under Settings &gt; Vehicles first.
-        </Typography>
+        <Typography color="text.secondary">{t('emptyVehicles')}</Typography>
       ) : (
         <>
           <Select
             size="small"
             value={selectedVehicleId ?? ''}
             onChange={(e) => setVehicleId(e.target.value)}
-            aria-label="Vehicle"
+            aria-label={t('vehicleAria')}
             sx={{ minWidth: 200, mb: 3 }}
           >
             {vehicles?.map((v) => (
@@ -200,12 +213,12 @@ export function FuelPage() {
 
           <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
             <Typography variant="h6" sx={{ mb: 1 }}>
-              Price per liter
+              {t('pricePerLiterTitle')}
             </Typography>
             <FuelTimeSeriesChart
               series={priceByFuelType}
-              label="Price per liter by fuel type"
-              formatValue={(v) => v.toFixed(2)}
+              label={t('pricePerLiterChartLabel')}
+              formatValue={(v) => formatMoney(v, locale)}
               axisColor={theme.palette.text.secondary}
               gridColor={theme.palette.divider}
               zeroBaseline={false}
@@ -214,12 +227,12 @@ export function FuelPage() {
 
           <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
             <Typography variant="h6" sx={{ mb: 1 }}>
-              Km per liter
+              {t('kmPerLiterTitle')}
             </Typography>
             <FuelTimeSeriesChart
               series={kmPerLiterSeries}
-              label="Km per liter over time"
-              formatValue={(v) => v.toFixed(1)}
+              label={t('kmPerLiterChartLabel')}
+              formatValue={(v) => formatNumber(v, locale, 1)}
               axisColor={theme.palette.text.secondary}
               gridColor={theme.palette.divider}
               zeroBaseline={false}
@@ -228,12 +241,12 @@ export function FuelPage() {
 
           <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
             <Typography variant="h6" sx={{ mb: 1 }}>
-              Spend per km
+              {t('spendPerKmTitle')}
             </Typography>
             <FuelTimeSeriesChart
               series={spendPerKmSeries}
-              label="Spend per km over time"
-              formatValue={(v) => v.toFixed(2)}
+              label={t('spendPerKmChartLabel')}
+              formatValue={(v) => formatMoney(v, locale)}
               axisColor={theme.palette.text.secondary}
               gridColor={theme.palette.divider}
               zeroBaseline={false}
@@ -241,13 +254,13 @@ export function FuelPage() {
           </Paper>
 
           <ResponsiveTable
-            aria-label="Fuel history"
+            aria-label={t('historyAria')}
             columns={columns}
             rows={historyNewestFirst}
-            getRowKey={(t) => t.id}
+            getRowKey={(tx) => tx.id}
             state={tableState}
             onRetry={retry}
-            emptyMessage="No fuel purchases recorded for this vehicle yet."
+            emptyMessage={t('emptyHistory')}
           />
         </>
       )}

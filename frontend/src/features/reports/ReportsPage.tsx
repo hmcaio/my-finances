@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Alert,
   Box,
@@ -20,7 +21,7 @@ import { useVehicles } from '../../api/vehicles/vehiclesQueries'
 import { defaultErrorMessage } from '../../api/core/apiError'
 import {
   REPORT_TYPES,
-  REVERSED_RANGE_MESSAGE,
+  reversedRangeMessage,
   type ReportFilter,
   type ReportFilterDimension,
   type ReportType,
@@ -39,6 +40,7 @@ import { useQueryState } from '../../hooks/queryState'
  * spending), download a ZIP - the backend decides which, this page just triggers the request.
  */
 export function ReportsPage() {
+  const { t } = useTranslation('reports')
   const [selected, setSelected] = useState<ReportType[]>([])
   const [filter, setFilter] = useState<ReportFilter>({})
   const [error, setError] = useState<string | null>(null)
@@ -86,7 +88,7 @@ export function ReportsPage() {
     setError(null)
     setDownloaded(false)
     if (filter.dateFrom && filter.dateTo && filter.dateFrom > filter.dateTo) {
-      setError(REVERSED_RANGE_MESSAGE)
+      setError(reversedRangeMessage())
       return
     }
     try {
@@ -100,12 +102,10 @@ export function ReportsPage() {
   return (
     <Box sx={{ py: { xs: 2, sm: 4 } }}>
       <Typography variant="h4" component="h1" gutterBottom>
-        Reports
+        {t('title')}
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Pick one or more reports to generate. Each is read for reading and analysis, not a backup —
-        for that, use a database backup instead. One report downloads its own file; more than one
-        downloads a ZIP.
+        {t('subtitle')}
       </Typography>
 
       <ErrorAlert message={error} onDismiss={() => setError(null)} />
@@ -120,7 +120,7 @@ export function ReportsPage() {
                 onChange={(e) => toggleType(info.type, e.target.checked)}
               />
             }
-            label={info.label}
+            label={t(info.labelKey as never)}
           />
         ))}
       </FormGroup>
@@ -130,7 +130,7 @@ export function ReportsPage() {
           {activeDimensions.has('dateRange') && (
             <>
               <TextField
-                label="From"
+                label={t('filters.from')}
                 type="date"
                 size="small"
                 value={filter.dateFrom ?? ''}
@@ -138,7 +138,7 @@ export function ReportsPage() {
                 slotProps={{ inputLabel: { shrink: true } }}
               />
               <TextField
-                label="To"
+                label={t('filters.to')}
                 type="date"
                 size="small"
                 value={filter.dateTo ?? ''}
@@ -149,7 +149,7 @@ export function ReportsPage() {
           )}
           {activeDimensions.has('asOfDate') && (
             <TextField
-              label="As of"
+              label={t('filters.asOf')}
               type="date"
               size="small"
               value={filter.asOfDate ?? ''}
@@ -159,7 +159,7 @@ export function ReportsPage() {
           )}
           {activeDimensions.has('month') && (
             <MonthPicker
-              label="Month"
+              label={t('filters.month')}
               value={filter.month ?? ''}
               onChange={(value) => update({ month: value || undefined })}
             />
@@ -170,10 +170,10 @@ export function ReportsPage() {
               displayEmpty
               value={filter.accountId ?? ''}
               onChange={(e) => update({ accountId: e.target.value || undefined })}
-              aria-label="Account filter"
+              aria-label={t('filters.accountAria')}
               sx={{ minWidth: 180 }}
             >
-              <MenuItem value="">All accounts</MenuItem>
+              <MenuItem value="">{t('filters.allAccounts')}</MenuItem>
               {accounts?.map((a) => (
                 <MenuItem key={a.id} value={a.id}>
                   {a.name}
@@ -187,10 +187,10 @@ export function ReportsPage() {
               displayEmpty
               value={filter.categoryId ?? ''}
               onChange={(e) => update({ categoryId: e.target.value || undefined })}
-              aria-label="Category filter"
+              aria-label={t('filters.categoryAria')}
               sx={{ minWidth: 180 }}
             >
-              <MenuItem value="">All categories</MenuItem>
+              <MenuItem value="">{t('filters.allCategories')}</MenuItem>
               {categories?.map((c) => (
                 <MenuItem key={c.id} value={c.id}>
                   {c.name}
@@ -204,10 +204,10 @@ export function ReportsPage() {
               displayEmpty
               value={filter.vehicleId ?? ''}
               onChange={(e) => update({ vehicleId: e.target.value || undefined })}
-              aria-label="Vehicle filter"
+              aria-label={t('filters.vehicleAria')}
               sx={{ minWidth: 180 }}
             >
-              <MenuItem value="">All vehicles</MenuItem>
+              <MenuItem value="">{t('filters.allVehicles')}</MenuItem>
               {vehicles?.map((v) => (
                 <MenuItem key={v.id} value={v.id}>
                   {v.name}
@@ -220,13 +220,13 @@ export function ReportsPage() {
               size="small"
               exclusive
               value={filter.netWorthGranularity ?? 'CHANGE_DATE'}
-              aria-label="Net worth granularity"
+              aria-label={t('filters.netWorthGranularityAria')}
               onChange={(_e, next) => {
                 if (next) update({ netWorthGranularity: next })
               }}
             >
-              <ToggleButton value="MONTH">Monthly</ToggleButton>
-              <ToggleButton value="CHANGE_DATE">Every change</ToggleButton>
+              <ToggleButton value="MONTH">{t('filters.monthlyOption')}</ToggleButton>
+              <ToggleButton value="CHANGE_DATE">{t('filters.everyChangeOption')}</ToggleButton>
             </ToggleButtonGroup>
           )}
         </ResponsiveFilterBar>
@@ -238,11 +238,11 @@ export function ReportsPage() {
         onClick={handleGenerate}
         disabled={selected.length === 0 || downloadMutation.isPending}
       >
-        {downloadMutation.isPending ? 'Generating…' : 'Generate'}
+        {downloadMutation.isPending ? t('generatingButton') : t('generateButton')}
       </Button>
       {downloaded && (
         <Alert severity="success" sx={{ mt: 2 }}>
-          Report downloaded.
+          {t('downloaded')}
         </Alert>
       )}
     </Box>

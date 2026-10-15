@@ -20,7 +20,7 @@ import {
   transactionClosedAccountConflictHandler,
 } from '../../mocks/handlers/transactions'
 import { seedCivicVehicle } from '../../mocks/handlers/vehicles'
-import { PROBLEM_TYPE_MESSAGES } from '../../api/core/apiError'
+import { resolveErrorMessage } from '../../test/errorMessages'
 import { findRow, renderWithRouter, selectOption } from '../../test/testUtils'
 import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
 import { TransactionsPage } from './TransactionsPage'
@@ -146,7 +146,7 @@ describe('TransactionsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Add' }))
 
     expect(
-      await screen.findByText(PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-closed']),
+      await screen.findByText(resolveErrorMessage('urn:my-finances:error:account-closed')),
     ).toBeInTheDocument()
   })
 
@@ -303,7 +303,7 @@ describe('TransactionsPage responsive layout (F021)', () => {
       const dialog = screen.getByRole('dialog')
       expect(
         await within(dialog).findByText(
-          PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-closed'],
+          resolveErrorMessage('urn:my-finances:error:account-closed'),
         ),
       ).toBeInTheDocument()
     })

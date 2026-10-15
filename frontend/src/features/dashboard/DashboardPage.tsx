@@ -1,4 +1,5 @@
 import type { PropsWithChildren } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Box, Paper, Typography } from '@mui/material'
 import { currentMonth } from '../../utils/localDate'
 import { BudgetVsActualReport } from '../budgets/BudgetVsActualReport'
@@ -26,10 +27,11 @@ function Section({ title, children }: PropsWithChildren<{ title: string }>) {
  * successful write refetches every widget through the global query invalidation (F019).
  */
 export function DashboardPage() {
+  const { t } = useTranslation('dashboard')
   return (
     <Box sx={{ py: { xs: 2, sm: 4 } }}>
       <Typography variant="h4" component="h1" gutterBottom>
-        Dashboard
+        {t('title')}
       </Typography>
 
       {/* Fluid widget grid (F021 spec): 1 column below `sm`, 2 from `sm` to `lg`, 3 from `lg` up -
@@ -46,30 +48,30 @@ export function DashboardPage() {
           },
         }}
       >
-        <Section title="Spend by category">
+        <Section title={t('sections.spendByCategory')}>
           <Paper variant="outlined" sx={{ p: 2 }}>
             <SpendByCategoryWidget />
           </Paper>
         </Section>
 
-        <Section title="Budget vs. actual">
+        <Section title={t('sections.budgetVsActual')}>
           <BudgetVsActualReport month={currentMonth()} />
         </Section>
 
-        <Section title="Account balances">
+        <Section title={t('sections.accountBalances')}>
           <Paper variant="outlined" sx={{ p: 1 }}>
             <AccountBalancesWidget />
           </Paper>
         </Section>
 
-        <Section title="Investment allocation">
+        <Section title={t('sections.investmentAllocation')}>
           <Paper variant="outlined" sx={{ p: 2 }}>
             <InvestmentAllocationChart />
           </Paper>
         </Section>
 
         <Box sx={{ gridColumn: { sm: '1 / -1' } }}>
-          <Section title="Net worth">
+          <Section title={t('sections.netWorth')}>
             <Paper variant="outlined" sx={{ p: 2 }}>
               <NetWorthTrendChart />
             </Paper>

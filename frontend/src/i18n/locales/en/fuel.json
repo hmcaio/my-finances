@@ -1,0 +1,31 @@
+{
+  "title": "Fuel",
+  "addFuelTransactionButton": "Add fuel transaction",
+  "description": "Per-vehicle fuel purchase history and derived km/L, spend/km and L/km ratios.",
+  "emptyVehicles": "No vehicles yet - add one under Settings > Vehicles first.",
+  "vehicleAria": "Vehicle",
+  "pricePerLiterTitle": "Price per liter",
+  "pricePerLiterChartLabel": "Price per liter by fuel type",
+  "kmPerLiterTitle": "Km per liter",
+  "kmPerLiterChartLabel": "Km per liter over time",
+  "kmPerLiterSeriesLabel": "km/L",
+  "spendPerKmTitle": "Spend per km",
+  "spendPerKmChartLabel": "Spend per km over time",
+  "spendPerKmSeriesLabel": "Spend/km",
+  "historyAria": "Fuel history",
+  "emptyHistory": "No fuel purchases recorded for this vehicle yet.",
+  "columns": {
+    "date": "Date",
+    "fuelType": "Fuel Type",
+    "liters": "Liters",
+    "pricePerLiter": "Price/Liter",
+    "amount": "Amount",
+    "kmPerLiter": "Km/L",
+    "amountPerKm": "Spend/km",
+    "kmSinceLastFill": "Km Since Last Fill",
+    "odometer": "Odometer"
+  },
+  "chart": {
+    "defaultEmptyMessage": "No data for this vehicle yet."
+  }
+}

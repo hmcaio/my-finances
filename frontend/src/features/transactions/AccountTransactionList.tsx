@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Box } from '@mui/material'
 import { useCategories } from '../../api/categories/categoriesQueries'
 import { usePaymentMethods } from '../../api/paymentMethods/paymentMethodsQueries'
@@ -8,6 +9,9 @@ import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { PaginationControls } from '../../components/table/PaginationControls'
+import { useLocale } from '../../hooks/locale/useLocale'
+import { formatMoney } from '../../i18n/format'
+import { translateSeedName } from '../../i18n/seedNames'
 import { nameLookup } from '../../utils/nameLookup'
 
 const PAGE_SIZE = 10
@@ -27,6 +31,8 @@ interface AccountTransactionListProps {
  * date, then the labelled fields), the Payment Method column behind the row expander on tablet.
  */
 export function AccountTransactionList({ accountId }: AccountTransactionListProps) {
+  const { t } = useTranslation(['transactions', 'common'])
+  const { locale } = useLocale()
   const [page, setPage] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const categoriesQuery = useCategories()
@@ -45,10 +51,13 @@ export function AccountTransactionList({ accountId }: AccountTransactionListProp
     : null
   const transactionsState = useQueryState(transactionsQuery, setError)
 
-  const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
+  const categoryName = useMemo(
+    () => nameLookup(categories ?? [], (c) => translateSeedName('categories', c.name, t)),
+    [categories, t],
+  )
   const paymentMethodName = useMemo(
-    () => nameLookup(paymentMethods ?? [], (p) => p.name),
-    [paymentMethods],
+    () => nameLookup(paymentMethods ?? [], (p) => translateSeedName('paymentMethods', p.name, t)),
+    [paymentMethods, t],
   )
 
   // One load state for the table plus the lookup lists behind its name columns: rows show only
@@ -60,21 +69,35 @@ export function AccountTransactionList({ accountId }: AccountTransactionListProp
   }
 
   const columns: ResponsiveColumn<Transaction>[] = [
-    { key: 'date', header: 'Date', role: 'secondary', render: (t) => t.date },
-    { key: 'category', header: 'Category', render: (t) => categoryName(t.categoryId) },
+    {
+      key: 'date',
+      header: t('transactions:columns.date'),
+      role: 'secondary',
+      render: (tx) => tx.date,
+    },
+    {
+      key: 'category',
+      header: t('transactions:columns.category'),
+      render: (tx) => categoryName(tx.categoryId),
+    },
     {
       key: 'paymentMethod',
-      header: 'Payment Method',
-      render: (t) => paymentMethodName(t.paymentMethodId),
+      header: t('transactions:columns.paymentMethod'),
+      render: (tx) => paymentMethodName(tx.paymentMethodId),
       tabletPriority: 'low',
     },
     {
       key: 'amount',
-      header: 'Amount',
+      header: t('transactions:columns.amount'),
       align: 'right',
-      render: (t) => `${t.type === 'EXPENSE' ? '-' : '+'}${t.amount.toFixed(2)}`,
+      render: (tx) => `${tx.type === 'EXPENSE' ? '-' : '+'}${formatMoney(tx.amount, locale)}`,
     },
-    { key: 'description', header: 'Description', role: 'primary', render: (t) => t.description },
+    {
+      key: 'description',
+      header: t('transactions:columns.description'),
+      role: 'primary',
+      render: (tx) => tx.description,
+    },
   ]
 
   return (
@@ -83,13 +106,13 @@ export function AccountTransactionList({ accountId }: AccountTransactionListProp
 
       <ResponsiveTable
         embedded
-        aria-label="Account transactions"
+        aria-label={t('transactions:accountList.aria')}
         columns={columns}
         rows={transactions}
-        getRowKey={(t) => t.id}
+        getRowKey={(tx) => tx.id}
         state={tableState}
         onRetry={retry}
-        emptyMessage="No transactions yet."
+        emptyMessage={t('transactions:accountList.emptyList')}
       />
 
       <PaginationControls pageInfo={pageInfo} onPageChange={setPage} />

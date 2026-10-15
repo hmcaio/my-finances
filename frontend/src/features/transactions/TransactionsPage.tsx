@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   Box,
@@ -34,6 +35,9 @@ import { ResponsiveFilterBar } from '../../components/layout/ResponsiveFilterBar
 import { PaginationControls } from '../../components/table/PaginationControls'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
+import { useLocale } from '../../hooks/locale/useLocale'
+import { formatMoney } from '../../i18n/format'
+import { translateSeedName } from '../../i18n/seedNames'
 import { nameLookup } from '../../utils/nameLookup'
 import { TransactionFormFields } from './TransactionFormFields'
 import {
@@ -55,6 +59,8 @@ const PAGE_SIZE = 20
  * fields (`TransactionFormFields`) in a `ResponsiveDialog` (full screen below `sm`).
  */
 export function TransactionsPage() {
+  const { t } = useTranslation(['transactions', 'common'])
+  const { locale } = useLocale()
   const [page, setPage] = useState(0)
   const [filters, setFilters] = useState<TransactionFilter>({})
   const [error, setError] = useState<string | null>(null)
@@ -112,11 +118,14 @@ export function TransactionsPage() {
 
   const activeFilterCount = Object.values(filters).filter(Boolean).length
 
-  const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
+  const categoryName = useMemo(
+    () => nameLookup(categories ?? [], (c) => translateSeedName('categories', c.name, t)),
+    [categories, t],
+  )
   const accountName = useMemo(() => nameLookup(accounts ?? [], (a) => a.name), [accounts])
   const paymentMethodName = useMemo(
-    () => nameLookup(paymentMethods ?? [], (p) => p.name),
-    [paymentMethods],
+    () => nameLookup(paymentMethods ?? [], (p) => translateSeedName('paymentMethods', p.name, t)),
+    [paymentMethods, t],
   )
   // An investment account takes no transactions (money moves through transfers, F008), so the
   // form never offers one.
@@ -242,31 +251,51 @@ export function TransactionsPage() {
   }
 
   const columns: ResponsiveColumn<Transaction>[] = [
-    { key: 'date', header: 'Date', render: (t) => t.date },
-    { key: 'category', header: 'Category', render: (t) => categoryName(t.categoryId) },
-    { key: 'account', header: 'Account', render: (t) => accountName(t.accountId) },
+    { key: 'date', header: t('transactions:columns.date'), render: (tx) => tx.date },
+    {
+      key: 'category',
+      header: t('transactions:columns.category'),
+      render: (tx) => categoryName(tx.categoryId),
+    },
+    {
+      key: 'account',
+      header: t('transactions:columns.account'),
+      render: (tx) => accountName(tx.accountId),
+    },
     {
       key: 'paymentMethod',
-      header: 'Payment Method',
-      render: (t) => paymentMethodName(t.paymentMethodId),
+      header: t('transactions:columns.paymentMethod'),
+      render: (tx) => paymentMethodName(tx.paymentMethodId),
       tabletPriority: 'low',
     },
     {
       key: 'amount',
-      header: 'Amount',
+      header: t('transactions:columns.amount'),
       align: 'right',
-      render: (t) => `${t.type === 'EXPENSE' ? '-' : '+'}${t.amount.toFixed(2)}`,
+      render: (tx) => `${tx.type === 'EXPENSE' ? '-' : '+'}${formatMoney(tx.amount, locale)}`,
     },
-    { key: 'description', header: 'Description', render: (t) => t.description },
+    {
+      key: 'description',
+      header: t('transactions:columns.description'),
+      render: (tx) => tx.description,
+    },
   ]
 
   function rowActions(transaction: Transaction) {
     return (
       <>
-        <IconButton size="small" aria-label="Edit" onClick={() => startEdit(transaction)}>
+        <IconButton
+          size="small"
+          aria-label={t('transactions:editAction')}
+          onClick={() => startEdit(transaction)}
+        >
           <EditIcon fontSize="small" />
         </IconButton>
-        <IconButton size="small" aria-label="Delete" onClick={() => setDeleteTarget(transaction)}>
+        <IconButton
+          size="small"
+          aria-label={t('transactions:deleteAction')}
+          onClick={() => setDeleteTarget(transaction)}
+        >
           <DeleteIcon fontSize="small" />
         </IconButton>
       </>
@@ -292,7 +321,7 @@ export function TransactionsPage() {
             }}
           >
             {expense ? '-' : '+'}
-            {transaction.amount.toFixed(2)}
+            {formatMoney(transaction.amount, locale)}
           </Typography>
         </Box>
         <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
@@ -306,7 +335,7 @@ export function TransactionsPage() {
     )
   }
 
-  const submitLabel = editingId ? 'Save changes' : 'Add'
+  const submitLabel = editingId ? t('transactions:saveChanges') : t('common:actions.add')
   const submitButton = (
     <Button
       variant="contained"
@@ -329,15 +358,14 @@ export function TransactionsPage() {
         }}
       >
         <Typography variant="h4" component="h1">
-          Transactions
+          {t('transactions:title')}
         </Typography>
         <Button variant="contained" onClick={() => startAdd()}>
-          Add transaction
+          {t('transactions:addButton')}
         </Button>
       </Box>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Every income and expense entry, filterable by date range, category, account, and payment
-        method.
+        {t('transactions:description')}
       </Typography>
 
       {/* While the dialog is open a save error shows inside it: this one sits behind it. */}
@@ -345,7 +373,7 @@ export function TransactionsPage() {
 
       <ResponsiveFilterBar activeCount={activeFilterCount} onClear={clearFilters}>
         <TextField
-          label="From"
+          label={t('transactions:fromLabel')}
           type="date"
           size="small"
           value={filters.dateFrom ?? ''}
@@ -353,7 +381,7 @@ export function TransactionsPage() {
           slotProps={{ inputLabel: { shrink: true } }}
         />
         <TextField
-          label="To"
+          label={t('transactions:toLabel')}
           type="date"
           size="small"
           value={filters.dateTo ?? ''}
@@ -365,13 +393,13 @@ export function TransactionsPage() {
           displayEmpty
           value={filters.categoryId ?? ''}
           onChange={(e) => updateFilter({ categoryId: e.target.value || undefined })}
-          aria-label="Category filter"
+          aria-label={t('transactions:categoryFilterAria')}
           sx={{ minWidth: 160 }}
         >
-          <MenuItem value="">All categories</MenuItem>
+          <MenuItem value="">{t('transactions:allCategories')}</MenuItem>
           {categories?.map((c) => (
             <MenuItem key={c.id} value={c.id}>
-              {c.name}
+              {translateSeedName('categories', c.name, t)}
             </MenuItem>
           ))}
         </Select>
@@ -380,10 +408,10 @@ export function TransactionsPage() {
           displayEmpty
           value={filters.accountId ?? ''}
           onChange={(e) => updateFilter({ accountId: e.target.value || undefined })}
-          aria-label="Account filter"
+          aria-label={t('transactions:accountFilterAria')}
           sx={{ minWidth: 160 }}
         >
-          <MenuItem value="">All accounts</MenuItem>
+          <MenuItem value="">{t('transactions:allAccounts')}</MenuItem>
           {accounts?.map((a) => (
             <MenuItem key={a.id} value={a.id}>
               {a.name}
@@ -395,13 +423,13 @@ export function TransactionsPage() {
           displayEmpty
           value={filters.paymentMethodId ?? ''}
           onChange={(e) => updateFilter({ paymentMethodId: e.target.value || undefined })}
-          aria-label="Payment method filter"
+          aria-label={t('transactions:paymentMethodFilterAria')}
           sx={{ minWidth: 160 }}
         >
-          <MenuItem value="">All payment methods</MenuItem>
+          <MenuItem value="">{t('transactions:allPaymentMethods')}</MenuItem>
           {paymentMethods?.map((p) => (
             <MenuItem key={p.id} value={p.id}>
-              {p.name}
+              {translateSeedName('paymentMethods', p.name, t)}
             </MenuItem>
           ))}
         </Select>
@@ -409,22 +437,24 @@ export function TransactionsPage() {
 
       <Box sx={{ mb: 2 }}>
         <ResponsiveTable
-          aria-label="Transactions"
+          aria-label={t('transactions:aria')}
           columns={columns}
           rows={transactions}
-          getRowKey={(t) => t.id}
+          getRowKey={(tx) => tx.id}
           state={tableState}
           onRetry={retry}
           actions={rowActions}
           renderCard={renderCard}
-          emptyMessage="No transactions found."
+          emptyMessage={t('transactions:emptyList')}
         />
       </Box>
 
       <PaginationControls pageInfo={pageInfo} onPageChange={setPage} sx={{ mt: 0, mb: 3 }} />
 
       <ResponsiveDialog open={formDialogOpen} onClose={saving ? undefined : cancelEdit}>
-        <DialogTitle>{editingId ? 'Edit transaction' : 'Add transaction'}</DialogTitle>
+        <DialogTitle>
+          {editingId ? t('transactions:editDialogTitle') : t('transactions:addDialogTitle')}
+        </DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
             <ErrorAlert message={error} onDismiss={() => setError(null)} />
@@ -442,7 +472,7 @@ export function TransactionsPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={cancelEdit} disabled={saving}>
-            Cancel
+            {t('common:actions.cancel')}
           </Button>
           {submitButton}
         </DialogActions>
@@ -450,9 +480,9 @@ export function TransactionsPage() {
 
       <ConfirmDialog
         open={deleteTarget !== null}
-        title="Delete this transaction?"
-        body="This permanently removes the transaction and cannot be undone."
-        confirmLabel="Delete transaction"
+        title={t('transactions:deleteConfirm.title')}
+        body={t('transactions:deleteConfirm.body')}
+        confirmLabel={t('transactions:deleteConfirm.confirmLabel')}
         loading={deleting}
         onConfirm={() => void confirmDelete()}
         onCancel={() => setDeleteTarget(null)}

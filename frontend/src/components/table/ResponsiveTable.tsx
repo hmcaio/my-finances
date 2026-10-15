@@ -1,4 +1,5 @@
 import { Fragment, useId, useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Box,
   Collapse,
@@ -77,13 +78,16 @@ export function ResponsiveTable<T>({
   state,
   onRetry,
   actions,
-  actionsLabel = 'Actions',
-  emptyMessage = 'No items found.',
+  actionsLabel,
+  emptyMessage,
   renderCard,
   skeletonRows,
   embedded = false,
   'aria-label': ariaLabel,
 }: ResponsiveTableProps<T>) {
+  const { t } = useTranslation()
+  const resolvedActionsLabel = actionsLabel ?? t('actions.actions')
+  const resolvedEmptyMessage = emptyMessage ?? t('table.noItemsFound')
   const band = useBreakpointBand()
   const idPrefix = useId()
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
@@ -94,7 +98,7 @@ export function ResponsiveTable<T>({
       <Box sx={fadeInSx}>
         {rows?.length === 0 ? (
           <Typography color="text.secondary" align="center" sx={{ py: 2 }}>
-            {emptyMessage}
+            {resolvedEmptyMessage}
           </Typography>
         ) : (
           <Box
@@ -153,7 +157,7 @@ export function ResponsiveTable<T>({
               {expandable && (
                 <TableCell padding="checkbox">
                   <Box component="span" sx={VISUALLY_HIDDEN}>
-                    Details
+                    {t('table.detailsColumnLabel')}
                   </Box>
                 </TableCell>
               )}
@@ -162,7 +166,7 @@ export function ResponsiveTable<T>({
                   {column.header}
                 </TableCell>
               ))}
-              {actions && <TableCell align="right">{actionsLabel}</TableCell>}
+              {actions && <TableCell align="right">{resolvedActionsLabel}</TableCell>}
             </TableRow>
           </TableHead>
         )}
@@ -176,7 +180,7 @@ export function ResponsiveTable<T>({
           {rows?.length === 0 && (
             <TableRow>
               <TableCell colSpan={bodyColumns} align="center">
-                <Typography color="text.secondary">{emptyMessage}</Typography>
+                <Typography color="text.secondary">{resolvedEmptyMessage}</Typography>
               </TableCell>
             </TableRow>
           )}
@@ -191,7 +195,7 @@ export function ResponsiveTable<T>({
                     <TableCell padding="checkbox">
                       <IconButton
                         size="small"
-                        aria-label={open ? 'Hide details' : 'Show details'}
+                        aria-label={open ? t('table.hideDetails') : t('table.showDetails')}
                         aria-expanded={open}
                         aria-controls={detailId}
                         onClick={() => toggle(key)}

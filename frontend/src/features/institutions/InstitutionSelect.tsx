@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Autocomplete, Box, createFilterOptions, Skeleton, TextField } from '@mui/material'
 import { INSTITUTION_NAME_MAX_LENGTH, type Institution } from '../../api/institutions/institutions'
 import { useCreateInstitution, useInstitutions } from '../../api/institutions/institutionsQueries'
@@ -6,6 +7,7 @@ import { defaultErrorMessage } from '../../api/core/apiError'
 import { LoadFailedNotice } from '../../components/feedback/LoadFailedNotice'
 import { useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
+import { translateSeedName } from '../../i18n/seedNames'
 import { sortInstitutions } from './sortInstitutions'
 
 /** A real institution, or the synthetic "Add “X”" entry offered for a name that doesn't exist. */
@@ -43,10 +45,12 @@ export function InstitutionSelect({
   value,
   onChange,
   onCreated,
-  label = 'Institution',
+  label,
   disabled = false,
   fullWidth = false,
 }: InstitutionSelectProps) {
+  const { t } = useTranslation(['institutions', 'common'])
+  const resolvedLabel = label ?? t('institutions:defaultSelectLabel')
   const institutionsQuery = useInstitutions()
   const institutions = institutionsQuery.data
   const { loading, loadError, reload } = useQueryState(institutionsQuery)
@@ -103,7 +107,11 @@ export function InstitutionSelect({
       options={options}
       value={selected}
       isOptionEqualToValue={(option, current) => option.id === current.id}
-      getOptionLabel={(option) => (option.isNew ? `Add “${option.name}”` : option.name)}
+      getOptionLabel={(option) =>
+        option.isNew
+          ? t('institutions:addNewOption', { name: option.name })
+          : translateSeedName('institutions', option.name, t)
+      }
       filterOptions={(all, params) => {
         const filtered = filter(all, params)
         const typed = params.inputValue.trim()
@@ -117,7 +125,7 @@ export function InstitutionSelect({
       renderInput={(params) => (
         <TextField
           {...params}
-          label={label}
+          label={resolvedLabel}
           error={createError !== null}
           helperText={createError}
           slotProps={{

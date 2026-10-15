@@ -1,4 +1,17 @@
 import { isAxiosError } from 'axios'
+import i18n from '../../i18n/i18n'
+
+/**
+ * `PROBLEM_TYPE_MESSAGES`/`VALIDATION_CODE_MESSAGES` are deliberately `Record<string, string>`
+ * (keyed by a backend-controlled URN/code, not a literal union this module should enumerate), so
+ * their values don't type-check as one of `i18next`'s known key literals without a cast - this
+ * wrapper centralizes that one cast instead of repeating it at each `i18n.t()` call site below.
+ */
+const translateUnsafe = i18n.t as (key: string, options?: Record<string, unknown>) => string
+
+function translate(key: string, options?: Record<string, unknown>): string {
+  return translateUnsafe(key, options)
+}
 
 /**
  * Shared error type for every typed API client under `src/api` (established here in F002, reused
@@ -35,149 +48,144 @@ export class ApiError extends Error {
 }
 
 /**
- * Central `type → message` lookup (F031/ADR 0026), replacing the 38 per-call-site `conflictMessage`
- * hardcodes `unwrap()` used to take: every `type` the backend can emit for a conflict/validation
- * case that previously had one of those overrides. Several distinct `type`s intentionally share
- * the same text where the old code already bundled their causes under one message (e.g. every
- * cause of a settings page's delete-conflict 409); a `type` collapsed across aggregate packages by
- * the backend's own slug derivation (`AccountClosedException` in `transfer`/`transaction`/
- * `recurringtemplate`) gets exactly one entry here too, for the same reason. A `type` absent from
- * this map (bean-validation 400s, F032; the generic `internal-error` 500; any 404) falls back to
- * the generic `Request failed with status {status}` string, same as before this feature.
+ * Central `type → translation key` lookup (F031/ADR 0026, keys added by F033/ADR 0027), replacing
+ * the 38 per-call-site `conflictMessage` hardcodes `unwrap()` used to take: every `type` the
+ * backend can emit for a conflict/validation case that previously had one of those overrides.
+ * Several distinct `type`s intentionally share the same key where the old code already bundled
+ * their causes under one message (e.g. every cause of a settings page's delete-conflict 409); a
+ * `type` collapsed across aggregate packages by the backend's own slug derivation
+ * (`AccountClosedException` in `transfer`/`transaction`/`recurringtemplate`) gets exactly one
+ * entry here too, for the same reason. A `type` absent from this map (bean-validation 400s, F032;
+ * the generic `internal-error` 500; any 404) falls back to the generic
+ * `Request failed with status {status}` string, same as before this feature. Resolved to text by
+ * calling the `i18next` singleton's `t()` directly in {@link toApiError} (not the `useTranslation`
+ * hook: this module has no React dependency and shouldn't gain one) - `i18next.t()` reads whatever
+ * language is currently active, so the message is still correct no matter which locale triggered
+ * the error.
  */
 export const PROBLEM_TYPE_MESSAGES: Record<string, string> = {
   // Categories (F002, F024, F026)
-  'urn:my-finances:error:category-name-already-exists': 'A category with this name already exists.',
-  'urn:my-finances:error:category-in-use':
-    'This category is used by existing transactions, budgets, or recurring templates — reassign them before deleting it.',
-  'urn:my-finances:error:built-in-category': 'A built-in category cannot be deleted.',
-  'urn:my-finances:error:fuel-category':
-    'The dedicated fuel category cannot be renamed or deleted.',
-  'urn:my-finances:error:dividend-category':
-    'The dedicated dividend category cannot be renamed or deleted.',
+  'urn:my-finances:error:category-name-already-exists':
+    'errors:problemType.categoryNameAlreadyExists',
+  'urn:my-finances:error:category-in-use': 'errors:problemType.categoryInUse',
+  'urn:my-finances:error:built-in-category': 'errors:problemType.builtInCategory',
+  'urn:my-finances:error:fuel-category': 'errors:problemType.fuelCategory',
+  'urn:my-finances:error:dividend-category': 'errors:problemType.dividendCategory',
 
   // Accounts (F003, F008, ADR 0017)
-  'urn:my-finances:error:account-name-already-exists': 'An account with this name already exists.',
-  'urn:my-finances:error:account-already-closed':
-    'This account could not be closed: it is already closed, or it is an investment account that still has open products - close those first.',
+  'urn:my-finances:error:account-name-already-exists':
+    'errors:problemType.accountNameAlreadyExists',
+  'urn:my-finances:error:account-already-closed': 'errors:problemType.accountAlreadyClosed',
   'urn:my-finances:error:investment-account-has-open-holdings':
-    'This investment account still has open products - close those first.',
-  'urn:my-finances:error:account-has-history':
-    'This account has history (transactions, transfers, recurring templates or investment products) and cannot be deleted - close it instead.',
+    'errors:problemType.investmentAccountHasOpenHoldings',
+  'urn:my-finances:error:account-has-history': 'errors:problemType.accountHasHistory',
 
   // Shared across the transaction/recurringtemplate/transfer packages (ADR 0026's deliberate
   // cross-aggregate-duplicate collapse: one real-world condition, one `type`, one message).
-  'urn:my-finances:error:account-closed':
-    'This account is closed and cannot accept new transactions.',
-  'urn:my-finances:error:account-type-not-allowed': 'An investment account cannot be used here.',
+  'urn:my-finances:error:account-closed': 'errors:problemType.accountClosed',
+  'urn:my-finances:error:account-type-not-allowed': 'errors:problemType.accountTypeNotAllowed',
 
   // Vehicles (F024)
-  'urn:my-finances:error:vehicle-name-already-exists': 'A vehicle with this name already exists.',
-  'urn:my-finances:error:vehicle-in-use':
-    'This vehicle is used by existing fuel transactions — reassign them before deleting it.',
+  'urn:my-finances:error:vehicle-name-already-exists':
+    'errors:problemType.vehicleNameAlreadyExists',
+  'urn:my-finances:error:vehicle-in-use': 'errors:problemType.vehicleInUse',
 
   // Payment methods (F002)
   'urn:my-finances:error:payment-method-name-already-exists':
-    'A payment method with this name already exists.',
-  'urn:my-finances:error:payment-method-in-use':
-    'This payment method is used by existing transactions — reassign them before deleting it.',
+    'errors:problemType.paymentMethodNameAlreadyExists',
+  'urn:my-finances:error:payment-method-in-use': 'errors:problemType.paymentMethodInUse',
 
   // Institutions (F017)
   'urn:my-finances:error:institution-name-already-exists':
-    'An institution with this name already exists.',
-  'urn:my-finances:error:built-in-institution': 'The built-in institution cannot be deleted.',
-  'urn:my-finances:error:institution-in-use':
-    'This institution is still used by an account — move its accounts to another institution before deleting it.',
+    'errors:problemType.institutionNameAlreadyExists',
+  'urn:my-finances:error:built-in-institution': 'errors:problemType.builtInInstitution',
+  'urn:my-finances:error:institution-in-use': 'errors:problemType.institutionInUse',
 
   // Budgets (F006)
-  'urn:my-finances:error:category-not-expense':
-    'This category cannot be budgeted - it may already have a budget, or not be an expense category.',
-  'urn:my-finances:error:budget-already-exists': 'This category already has a budget.',
+  'urn:my-finances:error:category-not-expense': 'errors:problemType.categoryNotExpense',
+  'urn:my-finances:error:budget-already-exists': 'errors:problemType.budgetAlreadyExists',
 
   // Transfers (F005, F009, F027)
-  'urn:my-finances:error:same-account-transfer':
-    'The two accounts in a transfer must be different.',
-  'urn:my-finances:error:invalid-trade-confirmation':
-    "Check the trade lines: only one line per product can set a resulting balance, and the net settlement can't be zero.",
+  'urn:my-finances:error:same-account-transfer': 'errors:problemType.sameAccountTransfer',
+  'urn:my-finances:error:invalid-trade-confirmation': 'errors:problemType.invalidTradeConfirmation',
   'urn:my-finances:error:investment-transfer-invalid':
-    "A trade confirmation's investment side must be an INVESTMENT account and its cash side must not be; a plain transfer can't target an INVESTMENT account at all - use a trade confirmation instead.",
-  'urn:my-finances:error:investment-holding-closed':
-    'Every product in this transfer needs an existing open holding in the investment account.',
+    'errors:problemType.investmentTransferInvalid',
+  'urn:my-finances:error:investment-holding-closed': 'errors:problemType.investmentHoldingClosed',
 
   // Investment categories / sub-categories (F008)
   'urn:my-finances:error:investment-category-name-already-exists':
-    'An investment category with this name already exists.',
-  'urn:my-finances:error:investment-category-in-use':
-    'This category still has sub-categories or is used by an investment product - delete or reclassify those first.',
+    'errors:problemType.investmentCategoryNameAlreadyExists',
+  'urn:my-finances:error:investment-category-in-use': 'errors:problemType.investmentCategoryInUse',
   'urn:my-finances:error:investment-subcategory-name-already-exists':
-    'This category already has a sub-category with this name.',
+    'errors:problemType.investmentSubcategoryNameAlreadyExists',
   'urn:my-finances:error:investment-subcategory-in-use':
-    'This sub-category is used by an investment product - reclassify those products before deleting it.',
+    'errors:problemType.investmentSubcategoryInUse',
 
   // Investment products (F008, F022)
   'urn:my-finances:error:investment-product-name-already-exists':
-    'The product could not be saved: its name must already be unique, the account must be an open investment account, and the sub-category must belong to the chosen category.',
+    'errors:problemType.investmentProductNameAlreadyExists',
   'urn:my-finances:error:investment-account-required':
-    'The account must be an open investment account.',
+    'errors:problemType.investmentAccountRequired',
   'urn:my-finances:error:investment-subcategory-mismatch':
-    'The sub-category must belong to the chosen category.',
+    'errors:problemType.investmentSubcategoryMismatch',
   'urn:my-finances:error:investment-product-has-holdings':
-    'This product still has a holding (even a closed, empty one) and cannot be deleted - remove its holdings first.',
+    'errors:problemType.investmentProductHasHoldings',
 
   // Investment holdings (F022)
   'urn:my-finances:error:investment-holding-already-exists':
-    'This holding could not be saved: the account must be an open investment account, and this product already has a holding in it.',
+    'errors:problemType.investmentHoldingAlreadyExists',
   'urn:my-finances:error:investment-holding-already-closed':
-    'This holding could not be closed: it is already closed, or its latest snapshot still has value. Record a zero snapshot (or sell the entire position) first.',
+    'errors:problemType.investmentHoldingAlreadyClosed',
   'urn:my-finances:error:investment-holding-not-empty':
-    "This holding's latest snapshot still has value - record a zero snapshot (or sell the entire position) first.",
+    'errors:problemType.investmentHoldingNotEmpty',
   'urn:my-finances:error:investment-holding-has-history':
-    'This holding has history (snapshots or trades) and cannot be deleted - close it instead.',
+    'errors:problemType.investmentHoldingHasHistory',
 
   // Investment snapshots (F009)
   'urn:my-finances:error:investment-snapshot-date-taken':
-    'Could not save: another snapshot already has that date, or the holding is closed and this would leave it with a non-zero latest snapshot.',
+    'errors:problemType.investmentSnapshotDateTaken',
   'urn:my-finances:error:investment-snapshot-closed-holding':
-    'Could not delete: the holding is closed and its latest snapshot would no longer be zero.',
+    'errors:problemType.investmentSnapshotClosedHolding',
 
   // Investment segments (F026)
   'urn:my-finances:error:investment-segment-name-already-exists':
-    'An investment segment with this name already exists.',
-  'urn:my-finances:error:investment-segment-in-use':
-    'This segment is still used by an investment product - reclassify it first.',
+    'errors:problemType.investmentSegmentNameAlreadyExists',
+  'urn:my-finances:error:investment-segment-in-use': 'errors:problemType.investmentSegmentInUse',
 
   // FII allocation plan (F026)
   'urn:my-finances:error:allocation-plan-entry-not-fii':
-    'Every entry must be a product classified under the "REITs (FIIs)" sub-category.',
-  'urn:my-finances:error:allocation-plan-sum-invalid': 'The entries must sum to exactly 100%.',
+    'errors:problemType.allocationPlanEntryNotFii',
+  'urn:my-finances:error:allocation-plan-sum-invalid':
+    'errors:problemType.allocationPlanSumInvalid',
   'urn:my-finances:error:allocation-plan-duplicate-product':
-    'The same product cannot appear twice in the allocation plan.',
+    'errors:problemType.allocationPlanDuplicateProduct',
 }
 
 /**
- * Central `code → message` lookup for a bean-validation violation (F032), mirroring {@link
- * PROBLEM_TYPE_MESSAGES}'s pattern but keyed by the `errors[].code` the backend derives from a
- * Jakarta constraint annotation's simple name (kebab-cased, `GlobalExceptionHandler`/
- * `ProblemTypeSlugs`) - never by `field`, since the same `code` recurs across many fields and
- * forms (e.g. every mandatory text field fails `@NotBlank`). A `code` absent from this map (a
- * constraint not yet given its own wording, or one of this codebase's per-invariant `@AssertTrue`
- * codes like `at-most-one-resulting-balance-per-product`) is simply skipped when building the
- * joined summary in {@link toApiError} - if every code in a response is unmapped, the summary
- * falls back to the same generic `Request failed with status {status}` text as an unmapped
- * `type` (see {@link PROBLEM_TYPE_MESSAGES}).
+ * Central `code → translation key` lookup for a bean-validation violation (F032, keys added by
+ * F033/ADR 0027), mirroring {@link PROBLEM_TYPE_MESSAGES}'s pattern but keyed by the
+ * `errors[].code` the backend derives from a Jakarta constraint annotation's simple name
+ * (kebab-cased, `GlobalExceptionHandler`/`ProblemTypeSlugs`) - never by `field`, since the same
+ * `code` recurs across many fields and forms (e.g. every mandatory text field fails `@NotBlank`).
+ * A `code` absent from this map (a constraint not yet given its own wording, or one of this
+ * codebase's per-invariant `@AssertTrue` codes like `at-most-one-resulting-balance-per-product`)
+ * is simply skipped when building the joined summary in {@link toApiError} - if every code in a
+ * response is unmapped, the summary falls back to the same generic
+ * `Request failed with status {status}` text as an unmapped `type` (see
+ * {@link PROBLEM_TYPE_MESSAGES}).
  */
 export const VALIDATION_CODE_MESSAGES: Record<string, string> = {
-  'not-blank': 'This field is required.',
-  'not-null': 'This field is required.',
-  'not-empty': 'At least one entry is required.',
-  size: 'This field is too long.',
-  positive: 'This value must be greater than zero.',
-  'positive-or-zero': "This value can't be negative.",
-  digits: 'This value has too many digits.',
-  'decimal-min': 'This value is below the allowed minimum.',
-  'decimal-max': 'This value is above the allowed maximum.',
-  min: 'This value is below the allowed minimum.',
-  max: 'This value is above the allowed maximum.',
+  'not-blank': 'errors:validationCode.notBlank',
+  'not-null': 'errors:validationCode.notNull',
+  'not-empty': 'errors:validationCode.notEmpty',
+  size: 'errors:validationCode.size',
+  positive: 'errors:validationCode.positive',
+  'positive-or-zero': 'errors:validationCode.positiveOrZero',
+  digits: 'errors:validationCode.digits',
+  'decimal-min': 'errors:validationCode.decimalMin',
+  'decimal-max': 'errors:validationCode.decimalMax',
+  min: 'errors:validationCode.min',
+  max: 'errors:validationCode.max',
 }
 
 /**
@@ -213,7 +221,7 @@ export function defaultErrorMessage(
     return err.message
   }
   if (err instanceof Error) return err.message
-  return 'Something went wrong.'
+  return i18n.t('errors:defaultErrorMessage')
 }
 
 function toApiError(error: unknown): ApiError {
@@ -221,7 +229,7 @@ function toApiError(error: unknown): ApiError {
     const status = error.response?.status
     if (status === undefined) {
       // Request never reached the server (network error, CORS, backend down, ...).
-      return new ApiError(0, error.message || 'Network error')
+      return new ApiError(0, error.message || i18n.t('errors:networkError'))
     }
     const data = error.response?.data as
       { type?: string; errors?: { field: string | null; code: string }[] } | undefined
@@ -230,10 +238,11 @@ function toApiError(error: unknown): ApiError {
     const message =
       fieldErrors && fieldErrors.length > 0
         ? summaryFor(fieldErrors, status)
-        : (type && PROBLEM_TYPE_MESSAGES[type]) || `Request failed with status ${status}`
+        : (type && PROBLEM_TYPE_MESSAGES[type] && translate(PROBLEM_TYPE_MESSAGES[type])) ||
+          i18n.t('errors:requestFailed', { status })
     return new ApiError(status, message, type, fieldErrors)
   }
-  return new ApiError(0, error instanceof Error ? error.message : 'Unknown error')
+  return new ApiError(0, error instanceof Error ? error.message : i18n.t('errors:unknownError'))
 }
 
 /**
@@ -244,6 +253,13 @@ function toApiError(error: unknown): ApiError {
  * used for an unmapped `type` when none of the violations' codes are in the map.
  */
 function summaryFor(errors: { field: string | null; code: string }[], status: number): string {
-  const messages = [...new Set(errors.map((e) => VALIDATION_CODE_MESSAGES[e.code]).filter(Boolean))]
-  return messages.length > 0 ? messages.join(' ') : `Request failed with status ${status}`
+  const messages = [
+    ...new Set(
+      errors
+        .map((e) => VALIDATION_CODE_MESSAGES[e.code])
+        .filter(Boolean)
+        .map((key) => translate(key)),
+    ),
+  ]
+  return messages.length > 0 ? messages.join(' ') : i18n.t('errors:requestFailed', { status })
 }

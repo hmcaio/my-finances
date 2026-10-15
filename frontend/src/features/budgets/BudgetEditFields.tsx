@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { TextField } from '@mui/material'
 
 interface BudgetCapFieldProps {
@@ -13,11 +14,12 @@ interface BudgetCapFieldProps {
  * parent supplies the surrounding label/button text, which differs between the two.
  */
 export function BudgetCapField({ value, onChange, autoFocus }: BudgetCapFieldProps) {
+  const { t } = useTranslation('budgets')
   return (
     <TextField
       size="small"
       type="number"
-      label="Monthly cap"
+      label={t('monthlyCapLabel')}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       slotProps={{ htmlInput: { step: '0.01', min: '0.01' } }}

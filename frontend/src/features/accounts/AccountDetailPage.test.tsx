@@ -9,6 +9,7 @@ import { BUILT_IN_INSTITUTION_ID, seedInstitutions } from '../../mocks/handlers/
 import { seedTransactions } from '../../mocks/handlers/transactions'
 import { seedTransfers } from '../../mocks/handlers/transfers'
 import { renderWithRouter } from '../../test/testUtils'
+import { formatMoney } from '../../i18n/format'
 import { AccountDetailPage } from './AccountDetailPage'
 
 function renderDetail(id: string) {
@@ -32,7 +33,7 @@ describe('AccountDetailPage', () => {
     renderDetail(account.id)
 
     expect(await screen.findByRole('heading', { name: account.name })).toBeInTheDocument()
-    expect(screen.getByText(account.balance.toFixed(2))).toBeInTheDocument()
+    expect(screen.getByText(formatMoney(account.balance, 'en'))).toBeInTheDocument()
     // The institution name (looked up from the institutions list) and type render as one line
     // ("Itau · Checking") - the account name itself also
     // contains "Itau", so match the full line rather than the institution substring alone.

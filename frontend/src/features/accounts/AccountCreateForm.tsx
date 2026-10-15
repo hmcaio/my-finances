@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Box,
   Button,
@@ -14,7 +15,7 @@ import { defaultErrorMessage } from '../../api/core/apiError'
 import { FormGrid } from '../../components/feedback/ResponsiveDialog'
 import { today } from '../../utils/localDate'
 import { InstitutionSelect } from '../institutions/InstitutionSelect'
-import { ACCOUNT_TYPE_LABELS } from './accountTypes'
+import { ACCOUNT_TYPES, accountTypeLabel } from './accountTypes'
 
 interface AccountCreateFormProps {
   /** Called with the created account once the backend accepted it. Lists refetch on their own. */
@@ -46,11 +47,13 @@ interface AccountCreateFormProps {
 export function AccountCreateForm({
   onCreated,
   onError,
-  submitLabel = 'Add',
+  submitLabel,
   dialog = false,
   banner,
   onCancel,
 }: AccountCreateFormProps) {
+  const { t } = useTranslation(['accounts', 'common'])
+  const resolvedSubmitLabel = submitLabel ?? t('common:actions.add')
   const [name, setName] = useState('')
   // `undefined` until InstitutionSelect reports its default (the built-in "No institution" row).
   const [institutionId, setInstitutionId] = useState<string | undefined>()
@@ -88,7 +91,7 @@ export function AccountCreateForm({
   const fields = (
     <>
       <TextField
-        label="Name"
+        label={t('accounts:createForm.nameLabel')}
         size="small"
         value={name}
         onChange={(e) => setName(e.target.value)}
@@ -99,18 +102,18 @@ export function AccountCreateForm({
         size="small"
         value={type}
         onChange={(e) => setType(e.target.value as AccountType)}
-        aria-label="Account type"
+        aria-label={t('accounts:accountTypeLabel')}
       >
-        {Object.entries(ACCOUNT_TYPE_LABELS).map(([value, label]) => (
+        {ACCOUNT_TYPES.map((value) => (
           <MenuItem key={value} value={value}>
-            {label}
+            {accountTypeLabel(value, t)}
           </MenuItem>
         ))}
       </Select>
       {type !== 'INVESTMENT' && (
         <>
           <TextField
-            label="Opening Balance"
+            label={t('accounts:createForm.openingBalanceLabel')}
             size="small"
             type="number"
             value={openingBalance}
@@ -118,7 +121,7 @@ export function AccountCreateForm({
             slotProps={{ htmlInput: { step: '0.01' } }}
           />
           <TextField
-            label="Opening Balance Date"
+            label={t('accounts:createForm.openingBalanceDateLabel')}
             size="small"
             type="date"
             value={openingBalanceDate}
@@ -135,7 +138,7 @@ export function AccountCreateForm({
       disabled={adding || !name.trim() || !institutionId}
       onClick={() => void handleAdd()}
     >
-      {submitLabel}
+      {resolvedSubmitLabel}
     </Button>
   )
 
@@ -151,7 +154,7 @@ export function AccountCreateForm({
         <DialogActions>
           {onCancel && (
             <Button onClick={onCancel} disabled={adding}>
-              Cancel
+              {t('common:actions.cancel')}
             </Button>
           )}
           {submitButton}

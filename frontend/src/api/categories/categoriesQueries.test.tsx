@@ -4,7 +4,7 @@ import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import { categoryCreateConflictHandler, seedCategories } from '../../mocks/handlers/categories'
 import { renderHookWithQueryClient } from '../../test/renderWithQueryClient'
-import { PROBLEM_TYPE_MESSAGES } from '../core/apiError'
+import { resolveErrorMessage } from '../../test/errorMessages'
 import { useCategories, useCreateCategory } from './categoriesQueries'
 
 describe('categories hooks', () => {
@@ -66,7 +66,7 @@ describe('categories hooks', () => {
 
     await expect(
       result.current.create.mutateAsync({ name: 'Groceries', type: 'EXPENSE' }),
-    ).rejects.toThrow(PROBLEM_TYPE_MESSAGES['urn:my-finances:error:category-name-already-exists'])
+    ).rejects.toThrow(resolveErrorMessage('urn:my-finances:error:category-name-already-exists'))
 
     expect(requests).toBe(1)
   })

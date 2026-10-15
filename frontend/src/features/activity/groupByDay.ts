@@ -1,9 +1,11 @@
 import type { AuditLogEntry } from '../../api/auditLog/auditLog'
+import type { Locale } from '../../hooks/locale/useLocale'
+import { formatDate } from '../../i18n/format'
 
 export interface AuditLogDayGroup {
   /** `YYYY-MM-DD` in the viewer's local time zone - a stable React key, not shown. */
   dateKey: string
-  /** Human-readable heading for the group, e.g. "March 16, 2026". */
+  /** Human-readable heading for the group, e.g. "March 16, 2026" / "16 de março de 2026". */
   label: string
   entries: AuditLogEntry[]
 }
@@ -16,12 +18,6 @@ function localDateKey(date: Date): string {
   return `${year}-${month}-${day}`
 }
 
-const DAY_LABEL_FORMAT: Intl.DateTimeFormatOptions = {
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric',
-}
-
 /**
  * Groups a page of audit entries by day in the viewer's local time zone (F025 spec's Activity
  * page, PRD S6.12: "grouped by day in the viewer's local time zone") - `occurredAt` is a UTC
@@ -30,11 +26,14 @@ const DAY_LABEL_FORMAT: Intl.DateTimeFormatOptions = {
  * group's entries keep their relative order.
  *
  * <p>The day *boundary* follows the viewer's local time zone (via plain {@link Date} getters,
- * which read the runtime's zone - `TZ`); the *label* is always formatted in `en-US`, like every
- * other piece of UI text in this app, rather than the runtime's default locale (which in a
- * `pt-BR`-flavored environment would otherwise render e.g. "16 de março de 2026").
+ * which read the runtime's zone - `TZ`); the *label* follows `locale` via `formatDate` (F033/ADR
+ * 0027 - was always formatted in hardcoded `en-US` before this feature, regardless of the active
+ * UI language).
  */
-export function groupEntriesByLocalDay(entries: AuditLogEntry[]): AuditLogDayGroup[] {
+export function groupEntriesByLocalDay(
+  entries: AuditLogEntry[],
+  locale: Locale,
+): AuditLogDayGroup[] {
   const groups: AuditLogDayGroup[] = []
   for (const entry of entries) {
     const occurredAt = new Date(entry.occurredAt)
@@ -45,7 +44,7 @@ export function groupEntriesByLocalDay(entries: AuditLogEntry[]): AuditLogDayGro
     } else {
       groups.push({
         dateKey,
-        label: occurredAt.toLocaleDateString('en-US', DAY_LABEL_FORMAT),
+        label: formatDate(occurredAt, locale),
         entries: [entry],
       })
     }

@@ -7,7 +7,8 @@ import {
   investmentHoldingDeleteConflictHandler,
   seedInvestmentHoldings,
 } from '../../mocks/handlers/investmentHoldings'
-import { ApiError, PROBLEM_TYPE_MESSAGES } from '../core/apiError'
+import { ApiError } from '../core/apiError'
+import { resolveErrorMessage } from '../../test/errorMessages'
 import {
   closeInvestmentHolding,
   createInvestmentHolding,
@@ -84,7 +85,7 @@ describe('investment holdings API client', () => {
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
     expect((error as ApiError).message).toBe(
-      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:investment-holding-has-history'],
+      resolveErrorMessage('urn:my-finances:error:investment-holding-has-history'),
     )
   })
 
@@ -96,7 +97,7 @@ describe('investment holdings API client', () => {
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
     expect((error as ApiError).message).toBe(
-      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:investment-holding-already-closed'],
+      resolveErrorMessage('urn:my-finances:error:investment-holding-already-closed'),
     )
   })
 
@@ -111,7 +112,7 @@ describe('investment holdings API client', () => {
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
     expect((error as ApiError).message).toBe(
-      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:investment-holding-already-exists'],
+      resolveErrorMessage('urn:my-finances:error:investment-holding-already-exists'),
     )
   })
 })

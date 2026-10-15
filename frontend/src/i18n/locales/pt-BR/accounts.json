@@ -1,0 +1,58 @@
+{
+  "title": "Contas",
+  "description": "Contas corrente, poupança, carteira em dinheiro, cartão de crédito e investimento. A data/saldo de abertura e o tipo são fixos depois que a conta é criada - nome e instituição ainda podem ser corrigidos a qualquer momento. Uma conta de investimento não tem saldo de abertura: seu valor vem dos registros de seus produtos.",
+  "addButton": "Adicionar conta",
+  "addDialogTitle": "Adicionar conta",
+  "editDialogTitle": "Editar conta",
+  "showClosed": "Mostrar contas encerradas",
+  "emptyList": "Nenhuma conta ainda.",
+  "columns": {
+    "name": "Nome",
+    "institution": "Instituição",
+    "type": "Tipo",
+    "balance": "Saldo",
+    "status": "Status"
+  },
+  "status": {
+    "open": "Aberta",
+    "closed": "Encerrada"
+  },
+  "accountTypes": {
+    "checking": "Conta Corrente",
+    "savings": "Poupança",
+    "cashWallet": "Carteira",
+    "creditCard": "Cartão de Crédito",
+    "investment": "Investimento"
+  },
+  "accountTypeLabel": "Tipo de conta",
+  "editAction": "Editar",
+  "closeAction": "Encerrar",
+  "close": {
+    "title": "Encerrar {{name}}?",
+    "body": "Encerrar uma conta não é reversível neste app - não há ação de \"reabrir\". A conta deixará de aparecer nos seletores de \"criar novo\" e na visão de saldos atuais, mas seu histórico permanece visível. Qualquer conta recorrente que lance nesta conta deixará de gerar novas ocorrências.",
+    "confirmLabel": "Encerrar conta"
+  },
+  "delete": {
+    "title": "Excluir {{name}}?",
+    "body": "Isso remove a conta permanentemente. Só funciona para uma conta sem transações, transferências, modelos recorrentes ou produtos de investimento - caso contrário, encerre-a em vez disso. Uma conta entra no patrimônio líquido passado a partir da sua data de abertura, então excluir uma que tenha saldo de abertura também muda seus números de patrimônio líquido passados. Se esta for sua última conta, o app volta à tela de boas-vindas.",
+    "confirmLabel": "Excluir conta"
+  },
+  "saveChanges": "Salvar alterações",
+  "createForm": {
+    "nameLabel": "Nome",
+    "openingBalanceLabel": "Saldo de Abertura",
+    "openingBalanceDateLabel": "Data de Abertura"
+  },
+  "detail": {
+    "backLink": "← Voltar para contas",
+    "notFound": "Conta não encontrada.",
+    "loading": "Carregando conta",
+    "runningBalance": "Saldo atual",
+    "openingBalanceLine": "Saldo de abertura {{amount}} em {{date}}",
+    "noOpeningBalance": "Sem saldo de abertura: seu valor vem dos registros de seus produtos",
+    "closedSuffix": " · Encerrada em {{date}}",
+    "products": "Produtos",
+    "transactions": "Transações",
+    "transfers": "Transferências"
+  }
+}

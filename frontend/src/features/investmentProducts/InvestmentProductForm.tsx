@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Box,
   Button,
@@ -14,6 +15,7 @@ import {
 } from '../../api/investments/investmentCategories'
 import type { InvestmentSegment } from '../../api/investments/investmentSegments'
 import { FormGrid } from '../../components/feedback/ResponsiveDialog'
+import { translateSeedName } from '../../i18n/seedNames'
 
 /**
  * What the form collects; an empty `subcategoryId` means "no sub-category", an empty `ticker`
@@ -69,6 +71,7 @@ export function InvestmentProductForm({
   dialog = false,
   banner,
 }: InvestmentProductFormProps) {
+  const { t } = useTranslation(['investmentProducts', 'common'])
   const [name, setName] = useState(initial?.name ?? '')
   const [categoryId, setCategoryId] = useState(initial?.categoryId ?? '')
   const [subcategoryId, setSubcategoryId] = useState(initial?.subcategoryId ?? '')
@@ -86,7 +89,7 @@ export function InvestmentProductForm({
   const fields = (
     <>
       <TextField
-        label="Product name"
+        label={t('investmentProducts:form.nameLabel')}
         size="small"
         value={name}
         onChange={(e) => setName(e.target.value)}
@@ -98,15 +101,15 @@ export function InvestmentProductForm({
         displayEmpty
         value={categoryId}
         onChange={(e) => changeCategory(e.target.value)}
-        aria-label="Category"
+        aria-label={t('investmentProducts:form.categoryLabel')}
         sx={dialog ? undefined : { minWidth: 180 }}
       >
         <MenuItem value="" disabled>
-          Category
+          {t('investmentProducts:form.categoryLabel')}
         </MenuItem>
         {categories.map((category) => (
           <MenuItem key={category.id} value={category.id}>
-            {category.name}
+            {translateSeedName('investmentCategories', category.name, t)}
           </MenuItem>
         ))}
       </Select>
@@ -116,18 +119,18 @@ export function InvestmentProductForm({
         value={subcategoryId}
         onChange={(e) => setSubcategoryId(e.target.value)}
         disabled={!categoryId}
-        aria-label="Sub-category"
+        aria-label={t('investmentProducts:form.subcategoryLabel')}
         sx={dialog ? undefined : { minWidth: 180 }}
       >
-        <MenuItem value="">No sub-category</MenuItem>
+        <MenuItem value="">{t('investmentProducts:form.noSubcategoryOption')}</MenuItem>
         {subcategories.map((subcategory) => (
           <MenuItem key={subcategory.id} value={subcategory.id}>
-            {subcategory.name}
+            {translateSeedName('investmentSubcategories', subcategory.name, t)}
           </MenuItem>
         ))}
       </Select>
       <TextField
-        label="Ticker"
+        label={t('investmentProducts:form.tickerLabel')}
         size="small"
         value={ticker}
         onChange={(e) => setTicker(e.target.value)}
@@ -139,10 +142,10 @@ export function InvestmentProductForm({
         displayEmpty
         value={segmentId}
         onChange={(e) => setSegmentId(e.target.value)}
-        aria-label="Segment"
+        aria-label={t('investmentProducts:form.segmentLabel')}
         sx={dialog ? undefined : { minWidth: 180 }}
       >
-        <MenuItem value="">No segment</MenuItem>
+        <MenuItem value="">{t('investmentProducts:form.noSegmentOption')}</MenuItem>
         {segments.map((segment) => (
           <MenuItem key={segment.id} value={segment.id}>
             {segment.name}
@@ -150,7 +153,7 @@ export function InvestmentProductForm({
         ))}
       </Select>
       <TextField
-        label="Additional notes"
+        label={t('investmentProducts:form.notesLabel')}
         size="small"
         multiline
         value={additionalNotes}
@@ -180,7 +183,7 @@ export function InvestmentProductForm({
   )
   const cancelButton = onCancel && (
     <Button disabled={submitting} onClick={onCancel}>
-      Cancel
+      {t('common:actions.cancel')}
     </Button>
   )
 

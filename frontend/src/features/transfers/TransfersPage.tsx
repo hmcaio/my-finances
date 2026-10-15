@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import {
   Box,
@@ -25,6 +26,8 @@ import { ResponsiveFilterBar } from '../../components/layout/ResponsiveFilterBar
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { PaginationControls } from '../../components/table/PaginationControls'
+import { useLocale } from '../../hooks/locale/useLocale'
+import { formatMoney } from '../../i18n/format'
 import { nameLookup } from '../../utils/nameLookup'
 import { TransferForm } from './TransferForm'
 
@@ -44,6 +47,8 @@ const PAGE_SIZE = 20
  * link) opens that transfer's edit dialog directly, regardless of the list's current page/filters.
  */
 export function TransfersPage() {
+  const { t } = useTranslation(['transfers', 'common'])
+  const { locale } = useLocale()
   const [page, setPage] = useState(0)
   const [filters, setFilters] = useState<TransferFilter>({})
   const [error, setError] = useState<string | null>(null)
@@ -115,7 +120,7 @@ export function TransfersPage() {
     } else if (focusQuery.isError) {
       setError(
         defaultErrorMessage(focusQuery.error, {
-          404: 'The linked transfer could not be found - it may have been deleted.',
+          404: t('transfers:focusNotFound'),
         }),
       )
       setSearchParams({}, { replace: true })
@@ -160,12 +165,17 @@ export function TransfersPage() {
       ...new Set(
         lines.map((line) => {
           const product = productsById.get(line.productId)
-          return `${line.side === 'BUY' ? 'Buy' : 'Sell'} ${product?.name ?? '…'}`
+          return t(line.side === 'BUY' ? 'transfers:tradeLabelBuy' : 'transfers:tradeLabelSell', {
+            product: product?.name ?? '…',
+          })
         }),
       ),
     ]
     if (labels.length <= MAX_TRADE_CHIPS) return labels
-    return [...labels.slice(0, MAX_TRADE_CHIPS), `+${labels.length - MAX_TRADE_CHIPS} more`]
+    return [
+      ...labels.slice(0, MAX_TRADE_CHIPS),
+      t('transfers:moreChips', { count: labels.length - MAX_TRADE_CHIPS }),
+    ]
   }
 
   // One load state for the table plus the lookup lists behind its name columns: rows show only
@@ -177,18 +187,32 @@ export function TransfersPage() {
   }
 
   const columns: ResponsiveColumn<Transfer>[] = [
-    { key: 'date', header: 'Date', role: 'secondary', render: (t) => t.date },
-    { key: 'from', header: 'From', render: (t) => accountName(t.fromAccountId) },
-    { key: 'to', header: 'To', render: (t) => accountName(t.toAccountId) },
-    { key: 'amount', header: 'Amount', align: 'right', render: (t) => t.amount.toFixed(2) },
+    {
+      key: 'date',
+      header: t('transfers:columns.date'),
+      role: 'secondary',
+      render: (tr) => tr.date,
+    },
+    {
+      key: 'from',
+      header: t('transfers:columns.from'),
+      render: (tr) => accountName(tr.fromAccountId),
+    },
+    { key: 'to', header: t('transfers:columns.to'), render: (tr) => accountName(tr.toAccountId) },
+    {
+      key: 'amount',
+      header: t('transfers:columns.amount'),
+      align: 'right',
+      render: (tr) => formatMoney(tr.amount, locale),
+    },
     {
       key: 'description',
-      header: 'Description',
+      header: t('transfers:columns.description'),
       role: 'primary',
-      render: (t) => (
+      render: (tr) => (
         <>
-          {t.description}
-          {tradeLabels(t).map((label, i) => (
+          {tr.description}
+          {tradeLabels(tr).map((label, i) => (
             <Chip key={i} label={label} size="small" sx={{ ml: 1, mt: 0.5 }} />
           ))}
         </>
@@ -199,10 +223,18 @@ export function TransfersPage() {
   function rowActions(transfer: Transfer) {
     return (
       <>
-        <IconButton size="small" aria-label="Edit" onClick={() => startEdit(transfer)}>
+        <IconButton
+          size="small"
+          aria-label={t('common:actions.edit')}
+          onClick={() => startEdit(transfer)}
+        >
           <EditIcon fontSize="small" />
         </IconButton>
-        <IconButton size="small" aria-label="Delete" onClick={() => setDeleteTarget(transfer)}>
+        <IconButton
+          size="small"
+          aria-label={t('common:actions.delete')}
+          onClick={() => setDeleteTarget(transfer)}
+        >
           <DeleteIcon fontSize="small" />
         </IconButton>
       </>
@@ -221,16 +253,14 @@ export function TransfersPage() {
         }}
       >
         <Typography variant="h4" component="h1">
-          Transfers
+          {t('transfers:title')}
         </Typography>
         <Button variant="contained" onClick={startAdd}>
-          Add transfer
+          {t('transfers:addButton')}
         </Button>
       </Box>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Money moved between your own accounts - most commonly paying a credit card statement from
-        checking, or buying into and selling out of an investment product. Transfers are never
-        categorized and don't count toward budgets.
+        {t('transfers:description')}
       </Typography>
 
       {/* While the dialog is open a save error shows inside it: this one sits behind it. */}
@@ -238,7 +268,7 @@ export function TransfersPage() {
 
       <ResponsiveFilterBar activeCount={activeFilterCount} onClear={clearFilters}>
         <TextField
-          label="From"
+          label={t('transfers:fromLabel')}
           type="date"
           size="small"
           value={filters.dateFrom ?? ''}
@@ -246,7 +276,7 @@ export function TransfersPage() {
           slotProps={{ inputLabel: { shrink: true } }}
         />
         <TextField
-          label="To"
+          label={t('transfers:toLabel')}
           type="date"
           size="small"
           value={filters.dateTo ?? ''}
@@ -258,10 +288,10 @@ export function TransfersPage() {
           displayEmpty
           value={filters.accountId ?? ''}
           onChange={(e) => updateFilter({ accountId: e.target.value || undefined })}
-          aria-label="Account filter"
+          aria-label={t('transfers:accountFilterAria')}
           sx={{ minWidth: 160 }}
         >
-          <MenuItem value="">All accounts</MenuItem>
+          <MenuItem value="">{t('transfers:allAccounts')}</MenuItem>
           {accounts?.map((a) => (
             <MenuItem key={a.id} value={a.id}>
               {a.name}
@@ -272,21 +302,23 @@ export function TransfersPage() {
 
       <Box sx={{ mb: 2 }}>
         <ResponsiveTable
-          aria-label="Transfers"
+          aria-label={t('transfers:aria')}
           columns={columns}
           rows={transfers}
-          getRowKey={(t) => t.id}
+          getRowKey={(tr) => tr.id}
           state={tableState}
           onRetry={retry}
           actions={rowActions}
-          emptyMessage="No transfers found."
+          emptyMessage={t('transfers:emptyList')}
         />
       </Box>
 
       <PaginationControls pageInfo={pageInfo} onPageChange={setPage} sx={{ mt: 0, mb: 3 }} />
 
       <ResponsiveDialog open={formDialogOpen} onClose={closeForm} fullWidth maxWidth="md">
-        <DialogTitle>{editing ? 'Edit transfer' : 'Add transfer'}</DialogTitle>
+        <DialogTitle>
+          {editing ? t('transfers:editDialogTitle') : t('transfers:addDialogTitle')}
+        </DialogTitle>
         <TransferForm
           key={formKey}
           dialog
@@ -301,9 +333,9 @@ export function TransfersPage() {
 
       <ConfirmDialog
         open={deleteTarget !== null}
-        title="Delete this transfer?"
-        body="This permanently removes the transfer and cannot be undone."
-        confirmLabel="Delete transfer"
+        title={t('transfers:deleteConfirm.title')}
+        body={t('transfers:deleteConfirm.body')}
+        confirmLabel={t('transfers:deleteConfirm.confirmLabel')}
         loading={deleting}
         onConfirm={() => void confirmDelete()}
         onCancel={() => setDeleteTarget(null)}

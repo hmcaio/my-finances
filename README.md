@@ -120,11 +120,11 @@ Built:
 - **F030** — reports (eleven curated, on-demand reports replacing F013's all-entity export)
 - **F031** — structured error responses (RFC 9457 Problem Details body with a `type` auto-derived from the exception class, replacing the status-code-only contract; [ADR 0026](docs/adr/0026-structured-error-responses-rfc9457.md))
 - **F032** — validation error details (per-field `errors` array on a bean-validation 400, extending F031's `ProblemDetail` body)
+- **F033** — internationalization (English / Brazilian Portuguese UI language toggle, `react-i18next`, locale-aware number/date formatting; [ADR 0027](docs/adr/0027-frontend-i18n-react-i18next.md))
 
 Documented and next up:
 - **F028** — investment splits, backend (a product-level `InvestmentSplit` event, applied as a read-side adjustment to held units; [ADR 0025](docs/adr/0025-investment-split-as-read-side-adjustment.md))
 - **F029** — investment splits, frontend (the product-detail split-history panel and record/delete dialog for F028)
-- **F033** — internationalization (English / Brazilian Portuguese UI language toggle, `react-i18next`, locale-aware number/date formatting; [ADR 0027](docs/adr/0027-frontend-i18n-react-i18next.md))
 
 See [docs/features/](docs/features/) for the full breakdown, in build order, with each feature's spec and its dependencies on the others.
 

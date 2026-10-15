@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Box,
   Button,
@@ -31,8 +32,11 @@ import { InlineEditActions } from '../../components/table/InlineEditActions'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useIsMobile } from '../../hooks/useBreakpointBand'
+import { useLocale } from '../../hooks/locale/useLocale'
+import { formatMoney } from '../../i18n/format'
+import { translateSeedName } from '../../i18n/seedNames'
 import { nameLookup } from '../../utils/nameLookup'
-import { ACCOUNT_TYPE_LABELS } from './accountTypes'
+import { accountTypeLabel } from './accountTypes'
 import { InstitutionSelect } from '../institutions/InstitutionSelect'
 import { AccountCreateForm } from './AccountCreateForm'
 import { isAccountEditValid } from './accountEdit'
@@ -51,6 +55,8 @@ import { AccountEditFields, AccountNameField } from './AccountEditFields'
  * tablet/desktop; on mobile the card's Edit opens the same fields in a full-screen dialog.
  */
 export function AccountsPage() {
+  const { t } = useTranslation(['accounts', 'common'])
+  const { locale } = useLocale()
   const [includeClosed, setIncludeClosed] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const isMobile = useIsMobile()
@@ -64,8 +70,8 @@ export function AccountsPage() {
   const closeMutation = useCloseAccount()
   const deleteMutation = useDeleteAccount()
   const institutionName = useMemo(
-    () => nameLookup(institutions ?? [], (i) => i.name),
-    [institutions],
+    () => nameLookup(institutions ?? [], (i) => translateSeedName('institutions', i.name, t)),
+    [institutions, t],
   )
 
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -157,7 +163,7 @@ export function AccountsPage() {
   const columns: ResponsiveColumn<Account>[] = [
     {
       key: 'name',
-      header: 'Name',
+      header: t('accounts:columns.name'),
       role: 'primary',
       render: (account) =>
         editingId === account.id && !isMobile ? (
@@ -178,7 +184,7 @@ export function AccountsPage() {
     },
     {
       key: 'institution',
-      header: 'Institution',
+      header: t('accounts:columns.institution'),
       role: 'secondary',
       render: (account) =>
         editingId === account.id && !isMobile ? (
@@ -189,25 +195,25 @@ export function AccountsPage() {
     },
     {
       key: 'type',
-      header: 'Type',
+      header: t('accounts:columns.type'),
       role: 'secondary',
       tabletPriority: 'low',
-      render: (account) => ACCOUNT_TYPE_LABELS[account.type],
+      render: (account) => accountTypeLabel(account.type, t),
     },
     {
       key: 'balance',
-      header: 'Balance',
+      header: t('accounts:columns.balance'),
       align: 'right',
-      render: (account) => account.balance.toFixed(2),
+      render: (account) => formatMoney(account.balance, locale),
     },
     {
       key: 'status',
-      header: 'Status',
+      header: t('accounts:columns.status'),
       render: (account) =>
         account.closed ? (
-          <Chip label="Closed" size="small" />
+          <Chip label={t('accounts:status.closed')} size="small" />
         ) : (
-          <Chip label="Open" size="small" color="success" />
+          <Chip label={t('accounts:status.open')} size="small" color="success" />
         ),
     },
   ]
@@ -221,12 +227,12 @@ export function AccountsPage() {
           onEdit={() => startEdit(account)}
           onSave={() => void saveEdit(account.id)}
           onCancel={cancelEdit}
-          editLabel="Edit"
+          editLabel={t('accounts:editAction')}
         />
         {!editingInline && (
           <IconButton
             size="small"
-            aria-label="Close"
+            aria-label={t('accounts:closeAction')}
             disabled={account.closed}
             onClick={() => setCloseTarget(account)}
           >
@@ -234,7 +240,11 @@ export function AccountsPage() {
           </IconButton>
         )}
         {!editingInline && (
-          <IconButton size="small" aria-label="Delete" onClick={() => setDeleteTarget(account)}>
+          <IconButton
+            size="small"
+            aria-label={t('common:actions.delete')}
+            onClick={() => setDeleteTarget(account)}
+          >
             <DeleteIcon fontSize="small" />
           </IconButton>
         )}
@@ -254,17 +264,14 @@ export function AccountsPage() {
         }}
       >
         <Typography variant="h4" component="h1">
-          Accounts
+          {t('accounts:title')}
         </Typography>
         <Button variant="contained" onClick={() => setAddDialogOpen(true)}>
-          Add account
+          {t('accounts:addButton')}
         </Button>
       </Box>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Checking, savings, cash, credit card, and investment accounts. Opening balance/date and type
-        are fixed once an account is created - name and institution can still be corrected any time.
-        An investment account has no opening balance: its value comes from snapshots of its
-        products.
+        {t('accounts:description')}
       </Typography>
 
       {/* While a dialog is open a save error shows inside it: this one sits behind it. */}
@@ -277,25 +284,25 @@ export function AccountsPage() {
         control={
           <Switch checked={includeClosed} onChange={(e) => setIncludeClosed(e.target.checked)} />
         }
-        label="Show closed accounts"
+        label={t('accounts:showClosed')}
         sx={{ mb: 2 }}
       />
 
       <Box sx={{ mb: 3 }}>
         <ResponsiveTable
-          aria-label="Accounts"
+          aria-label={t('accounts:title')}
           columns={columns}
           rows={accounts}
           getRowKey={(account) => account.id}
           state={tableState}
           onRetry={retry}
           actions={rowActions}
-          emptyMessage="No accounts yet."
+          emptyMessage={t('accounts:emptyList')}
         />
       </Box>
 
       <ResponsiveDialog open={addDialogOpen} onClose={closeAddDialog} fullWidth maxWidth="sm">
-        <DialogTitle>Add account</DialogTitle>
+        <DialogTitle>{t('accounts:addDialogTitle')}</DialogTitle>
         <AccountCreateForm
           dialog
           banner={<ErrorAlert message={error} onDismiss={() => setError(null)} />}
@@ -306,7 +313,7 @@ export function AccountsPage() {
       </ResponsiveDialog>
 
       <ResponsiveDialog open={editDialogOpen} onClose={savingEdit ? undefined : cancelEdit}>
-        <DialogTitle>Edit account</DialogTitle>
+        <DialogTitle>{t('accounts:editDialogTitle')}</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
             <ErrorAlert message={error} onDismiss={() => setError(null)} />
@@ -323,30 +330,23 @@ export function AccountsPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={cancelEdit} disabled={savingEdit}>
-            Cancel
+            {t('common:actions.cancel')}
           </Button>
           <Button
             variant="contained"
             disabled={savingEdit || !isAccountEditValid(editingName, editingInstitutionId)}
             onClick={() => editingId && void saveEdit(editingId)}
           >
-            Save changes
+            {t('accounts:saveChanges')}
           </Button>
         </DialogActions>
       </ResponsiveDialog>
 
       <ConfirmDialog
         open={closeTarget !== null}
-        title={`Close ${closeTarget?.name}?`}
-        body={
-          <>
-            Closing an account is not reversible through this app - there is no "reopen" action. The
-            account will drop out of "create new" pickers and the live balances view, but its
-            history stays visible. Any recurring bills posting to this account will stop generating
-            new occurrences.
-          </>
-        }
-        confirmLabel="Close account"
+        title={t('accounts:close.title', { name: closeTarget?.name })}
+        body={t('accounts:close.body')}
+        confirmLabel={t('accounts:close.confirmLabel')}
         loading={closing}
         onConfirm={() => void confirmClose()}
         onCancel={() => setCloseTarget(null)}
@@ -354,17 +354,9 @@ export function AccountsPage() {
 
       <ConfirmDialog
         open={deleteTarget !== null}
-        title={`Delete ${deleteTarget?.name}?`}
-        body={
-          <>
-            This permanently removes the account. It only works for an account with no transactions,
-            transfers, recurring templates or investment products - otherwise close it instead. An
-            account counts in past net worth from its opening date, so deleting one that has an
-            opening balance also changes your past net worth figures. If this is your last account,
-            the app returns to the welcome screen.
-          </>
-        }
-        confirmLabel="Delete account"
+        title={t('accounts:delete.title', { name: deleteTarget?.name })}
+        body={t('accounts:delete.body')}
+        confirmLabel={t('accounts:delete.confirmLabel')}
         loading={deleting}
         onConfirm={() => void confirmDelete()}
         onCancel={() => setDeleteTarget(null)}

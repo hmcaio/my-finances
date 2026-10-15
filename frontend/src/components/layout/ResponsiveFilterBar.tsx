@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Badge, Box, Button, DialogActions, DialogContent, DialogTitle } from '@mui/material'
 import FilterListIcon from '@mui/icons-material/FilterList'
 import { useIsMobile } from '../../hooks/useBreakpointBand'
@@ -21,6 +22,7 @@ interface ResponsiveFilterBarProps {
  * state), so the sheet has no Apply step: "Done" just closes it, "Clear" calls `onClear`.
  */
 export function ResponsiveFilterBar({ children, activeCount, onClear }: ResponsiveFilterBarProps) {
+  const { t } = useTranslation()
   const isMobile = useIsMobile()
   const [open, setOpen] = useState(false)
 
@@ -28,7 +30,9 @@ export function ResponsiveFilterBar({ children, activeCount, onClear }: Responsi
     return (
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', mb: 2 }}>
         {children}
-        {onClear && activeCount > 0 && <Button onClick={onClear}>Clear filters</Button>}
+        {onClear && activeCount > 0 && (
+          <Button onClick={onClear}>{t('filterBar.clearFilters')}</Button>
+        )}
       </Box>
     )
   }
@@ -42,24 +46,28 @@ export function ResponsiveFilterBar({ children, activeCount, onClear }: Responsi
             <FilterListIcon />
           </Badge>
         }
-        aria-label={activeCount > 0 ? `Filters, ${activeCount} active` : 'Filters'}
+        aria-label={
+          activeCount > 0
+            ? t('filterBar.filtersActive', { count: activeCount })
+            : t('filterBar.filters')
+        }
         onClick={() => setOpen(true)}
       >
-        Filters
+        {t('filterBar.filters')}
       </Button>
       <ResponsiveDialog open={open} onClose={() => setOpen(false)}>
-        <DialogTitle>Filters</DialogTitle>
+        <DialogTitle>{t('filterBar.filters')}</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>{children}</Box>
         </DialogContent>
         <DialogActions>
           {onClear && (
             <Button onClick={onClear} disabled={activeCount === 0}>
-              Clear filters
+              {t('filterBar.clearFilters')}
             </Button>
           )}
           <Button onClick={() => setOpen(false)} variant="contained">
-            Done
+            {t('filterBar.done')}
           </Button>
         </DialogActions>
       </ResponsiveDialog>

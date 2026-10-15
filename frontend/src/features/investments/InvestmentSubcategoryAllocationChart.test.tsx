@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { screen, within } from '@testing-library/react'
 import { seedAllocationBySubcategory } from '../../mocks/handlers/investmentAllocation'
 import { renderWithQueryClient } from '../../test/renderWithQueryClient'
+import { formatMoney } from '../../i18n/format'
 import { InvestmentSubcategoryAllocationChart } from './InvestmentSubcategoryAllocationChart'
 
 function legend() {
@@ -29,6 +30,6 @@ describe('InvestmentSubcategoryAllocationChart', () => {
     await screen.findByRole('img', { name: 'Allocation by sub-category' })
 
     const total = seedAllocationBySubcategory.reduce((sum, row) => sum + row.totalValue, 0)
-    expect(screen.getByText(total.toFixed(2))).toBeInTheDocument()
+    expect(screen.getByText(formatMoney(total, 'en'))).toBeInTheDocument()
   })
 })

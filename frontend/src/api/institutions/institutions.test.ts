@@ -6,7 +6,7 @@ import {
   seedInstitutions,
 } from '../../mocks/handlers/institutions'
 import { describeNamedEntityApi } from '../../test/apiContract'
-import { PROBLEM_TYPE_MESSAGES } from '../core/apiError'
+import { resolveErrorMessage } from '../../test/errorMessages'
 import {
   createInstitution,
   deleteInstitution,
@@ -37,9 +37,10 @@ describeNamedEntityApi<Institution, CreateInstitutionRequest, UpdateInstitutionR
   },
   remove: { id: 'inst-1' },
   conflict: {
-    message: PROBLEM_TYPE_MESSAGES['urn:my-finances:error:institution-in-use'],
-    duplicateNameMessage:
-      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:institution-name-already-exists'],
+    message: resolveErrorMessage('urn:my-finances:error:institution-in-use'),
+    duplicateNameMessage: resolveErrorMessage(
+      'urn:my-finances:error:institution-name-already-exists',
+    ),
     createHandler: institutionCreateConflictHandler,
     renameHandler: institutionRenameConflictHandler,
     deleteHandler: institutionDeleteConflictHandler,

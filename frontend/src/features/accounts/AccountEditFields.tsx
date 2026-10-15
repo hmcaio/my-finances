@@ -1,4 +1,5 @@
 import type { KeyboardEventHandler } from 'react'
+import { useTranslation } from 'react-i18next'
 import { TextField } from '@mui/material'
 import { InstitutionSelect } from '../institutions/InstitutionSelect'
 
@@ -11,10 +12,11 @@ interface AccountNameFieldProps {
 
 /** The name input of an account edit: rendered in the table cell inline, and inside the dialog. */
 export function AccountNameField({ value, onChange, onKeyDown, autoFocus }: AccountNameFieldProps) {
+  const { t } = useTranslation()
   return (
     <TextField
       size="small"
-      label="Name"
+      label={t('actions.name')}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       autoFocus={autoFocus}

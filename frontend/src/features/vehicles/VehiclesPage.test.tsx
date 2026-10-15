@@ -6,7 +6,7 @@ import {
   vehicleDeleteConflictHandler,
 } from '../../mocks/handlers/vehicles'
 import { VEHICLE_NAME_MAX_LENGTH } from '../../api/vehicles/vehicles'
-import { PROBLEM_TYPE_MESSAGES } from '../../api/core/apiError'
+import { resolveErrorMessage } from '../../test/errorMessages'
 import { describeSettingsPageOnly } from '../../test/settingsPageContract'
 import { VehiclesPage } from './VehiclesPage'
 
@@ -18,11 +18,11 @@ describeSettingsPageOnly('VehiclesPage', {
   newName: 'Fiesta',
   addButtonLabel: 'Add vehicle',
   conflict: {
-    message: PROBLEM_TYPE_MESSAGES['urn:my-finances:error:vehicle-in-use'],
+    message: resolveErrorMessage('urn:my-finances:error:vehicle-in-use'),
     handler: vehicleDeleteConflictHandler,
   },
   duplicateName: {
-    message: PROBLEM_TYPE_MESSAGES['urn:my-finances:error:vehicle-name-already-exists'],
+    message: resolveErrorMessage('urn:my-finances:error:vehicle-name-already-exists'),
     handler: vehicleCreateConflictHandler,
   },
   maxLength: VEHICLE_NAME_MAX_LENGTH,

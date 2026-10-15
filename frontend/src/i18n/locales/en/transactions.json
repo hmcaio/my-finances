@@ -1,0 +1,58 @@
+{
+  "title": "Transactions",
+  "addButton": "Add transaction",
+  "description": "Every income and expense entry, filterable by date range, category, account, and payment method.",
+  "fromLabel": "From",
+  "toLabel": "To",
+  "categoryFilterAria": "Category filter",
+  "allCategories": "All categories",
+  "accountFilterAria": "Account filter",
+  "allAccounts": "All accounts",
+  "paymentMethodFilterAria": "Payment method filter",
+  "allPaymentMethods": "All payment methods",
+  "aria": "Transactions",
+  "emptyList": "No transactions found.",
+  "columns": {
+    "date": "Date",
+    "category": "Category",
+    "account": "Account",
+    "paymentMethod": "Payment Method",
+    "amount": "Amount",
+    "description": "Description"
+  },
+  "editAction": "Edit",
+  "deleteAction": "Delete",
+  "editDialogTitle": "Edit transaction",
+  "addDialogTitle": "Add transaction",
+  "saveChanges": "Save changes",
+  "deleteConfirm": {
+    "title": "Delete this transaction?",
+    "body": "This permanently removes the transaction and cannot be undone.",
+    "confirmLabel": "Delete transaction"
+  },
+  "accountList": {
+    "aria": "Account transactions",
+    "emptyList": "No transactions yet."
+  },
+  "form": {
+    "dateLabel": "Date",
+    "amountLabel": "Amount",
+    "categoryAria": "Category",
+    "categoryPlaceholder": "Category",
+    "accountAria": "Account",
+    "accountPlaceholder": "Account",
+    "paymentMethodAria": "Payment Method",
+    "paymentMethodPlaceholder": "Payment Method",
+    "descriptionLabel": "Description",
+    "additionalNotesLabel": "Additional Notes",
+    "vehicleAria": "Vehicle",
+    "vehiclePlaceholder": "Vehicle",
+    "fuelTypeAria": "Fuel Type",
+    "fuelTypePlaceholder": "Fuel Type",
+    "litersLabel": "Liters",
+    "pricePerLiterLabel": "Price per Liter",
+    "kmSinceLastFillLabel": "Km Since Last Fill",
+    "kmSinceLastFillHelper": "Leave blank on the vehicle's first recorded fill",
+    "odometerLabel": "Odometer"
+  }
+}

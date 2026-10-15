@@ -8,6 +8,7 @@ import {
   seedAllocationBySubcategory,
 } from '../../mocks/handlers/investmentAllocation'
 import { expectLoadStates } from '../../test/loadStates'
+import { formatMoney } from '../../i18n/format'
 import { InvestmentAllocationChart } from './InvestmentAllocationChart'
 import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
@@ -22,10 +23,10 @@ describe('InvestmentAllocationChart', () => {
     expect(await screen.findByRole('img', { name: 'Allocation by category' })).toBeInTheDocument()
     const items = legend().getAllByRole('listitem')
     expect(items).toHaveLength(2)
-    expect(items[0]).toHaveTextContent('Crypto900.00 (23.1%)')
+    expect(items[0]).toHaveTextContent(`Crypto${formatMoney(900, 'en')} (23.1%)`)
     // Fixed Income has a stale product: starred.
-    expect(items[1]).toHaveTextContent('Fixed Income*3000.00 (76.9%)')
-    expect(screen.getByText('3900.00')).toBeInTheDocument()
+    expect(items[1]).toHaveTextContent(`Fixed Income*${formatMoney(3000, 'en')} (76.9%)`)
+    expect(screen.getByText(formatMoney(3900, 'en'))).toBeInTheDocument()
   })
 
   it('explains the star in a footnote', async () => {
@@ -61,10 +62,10 @@ describe('InvestmentAllocationChart', () => {
     ).toBeInTheDocument()
     const items = legend().getAllByRole('listitem')
     expect(items).toHaveLength(2)
-    expect(items[0]).toHaveTextContent('CDB*1000.00 (33.3%)')
-    expect(items[1]).toHaveTextContent('Tesouro Selic2000.00 (66.7%)')
+    expect(items[0]).toHaveTextContent(`CDB*${formatMoney(1000, 'en')} (33.3%)`)
+    expect(items[1]).toHaveTextContent(`Tesouro Selic${formatMoney(2000, 'en')} (66.7%)`)
     // The middle shows the category's total: the sum of its sub-category rows.
-    expect(screen.getByText('3000.00')).toBeInTheDocument()
+    expect(screen.getByText(formatMoney(3000, 'en'))).toBeInTheDocument()
     // Other categories are gone, and sub-category slices don't drill any further.
     expect(screen.queryByText('Crypto')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /show sub-categories/ })).not.toBeInTheDocument()

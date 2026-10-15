@@ -5,7 +5,8 @@ import {
   seedPendingRecurringOccurrences,
   seedRecurringTemplates,
 } from '../../mocks/handlers/recurringTemplates'
-import { ApiError, PROBLEM_TYPE_MESSAGES } from '../core/apiError'
+import { ApiError } from '../core/apiError'
+import { resolveErrorMessage } from '../../test/errorMessages'
 import {
   confirmPendingRecurringOccurrence,
   createRecurringTemplate,
@@ -56,7 +57,7 @@ describe('recurringTemplates API client', () => {
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
     expect((error as ApiError).message).toBe(
-      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-closed'],
+      resolveErrorMessage('urn:my-finances:error:account-closed'),
     )
   })
 

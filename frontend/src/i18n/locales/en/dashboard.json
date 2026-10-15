@@ -1,0 +1,21 @@
+{
+  "title": "Dashboard",
+  "sections": {
+    "spendByCategory": "Spend by category",
+    "budgetVsActual": "Budget vs. actual",
+    "accountBalances": "Account balances",
+    "investmentAllocation": "Investment allocation",
+    "netWorth": "Net worth"
+  },
+  "accountBalances": {
+    "loadingAria": "Loading account balances",
+    "emptyList": "No accounts yet.",
+    "owedSuffix": " owed"
+  },
+  "spendByCategory": {
+    "loadingAria": "Loading spend by category",
+    "emptyList": "Nothing spent this month yet.",
+    "totalLabel": "Total {{total}}",
+    "spendAriaSuffix": " spend"
+  }
+}

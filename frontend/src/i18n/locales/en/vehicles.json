@@ -1,0 +1,7 @@
+{
+  "title": "Vehicles",
+  "description": "Which car a fuel purchase belongs to - a plain label, not a valued asset (net worth is unaffected).",
+  "addButton": "Add vehicle",
+  "addDialogTitle": "Add vehicle",
+  "emptyList": "No vehicles yet."
+}

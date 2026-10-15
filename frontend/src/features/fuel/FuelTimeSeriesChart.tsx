@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Box, Typography } from '@mui/material'
 
 const WIDTH = 640
@@ -39,8 +40,11 @@ interface FuelTimeSeriesChartProps {
   series: FuelSeries[]
   /** Accessible name of the chart. */
   label: string
-  /** How a raw value is formatted for the axis/tooltip (e.g. 2 decimals for money, 3 for L/km). */
-  formatValue?: (value: number) => string
+  /** How a raw value is formatted for the axis/tooltip (e.g. 2 decimals for money, 3 for L/km).
+   * No locale-unaware default (F033/ADR 0027): every caller passes its own, already-locale-aware
+   * formatter (`formatMoney`/`formatNumber` from `src/i18n/format.ts`), since this component has
+   * no `locale` of its own to fall back on. */
+  formatValue: (value: number) => string
   /** Shown when every series has no points. */
   emptyMessage?: string
   /** Axis label/gridline colors - the caller passes its theme's `text.secondary`/`divider` (same
@@ -62,17 +66,19 @@ interface FuelTimeSeriesChartProps {
 export function FuelTimeSeriesChart({
   series,
   label,
-  formatValue = (v) => v.toFixed(2),
-  emptyMessage = 'No data for this vehicle yet.',
+  formatValue,
+  emptyMessage,
   axisColor,
   gridColor,
   zeroBaseline = true,
 }: FuelTimeSeriesChartProps) {
+  const { t } = useTranslation('fuel')
+  const resolvedEmptyMessage = emptyMessage ?? t('chart.defaultEmptyMessage')
   const nonEmptySeries = series.filter((s) => s.points.length > 0)
   const allPoints = nonEmptySeries.flatMap((s) => s.points)
 
   if (allPoints.length === 0) {
-    return <Typography color="text.secondary">{emptyMessage}</Typography>
+    return <Typography color="text.secondary">{resolvedEmptyMessage}</Typography>
   }
 
   const values = allPoints.map((p) => p.value)

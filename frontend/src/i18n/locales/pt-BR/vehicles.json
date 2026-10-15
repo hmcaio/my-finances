@@ -1,0 +1,7 @@
+{
+  "title": "Veículos",
+  "description": "A qual carro pertence um abastecimento - um rótulo simples, não um ativo avaliado (o patrimônio líquido não é afetado).",
+  "addButton": "Adicionar veículo",
+  "addDialogTitle": "Adicionar veículo",
+  "emptyList": "Nenhum veículo ainda."
+}

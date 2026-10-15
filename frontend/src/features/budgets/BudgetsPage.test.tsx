@@ -14,7 +14,7 @@ import {
   seedGroceriesBudget,
   seedGroceriesBudgetReportLine,
 } from '../../mocks/handlers/budgets'
-import { PROBLEM_TYPE_MESSAGES } from '../../api/core/apiError'
+import { resolveErrorMessage } from '../../test/errorMessages'
 import { findRow } from '../../test/testUtils'
 import { expectLoadStates } from '../../test/loadStates'
 import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
@@ -133,7 +133,7 @@ describe('BudgetsPage', () => {
 
     expect(
       await within(dialog).findByText(
-        PROBLEM_TYPE_MESSAGES['urn:my-finances:error:category-not-expense'],
+        resolveErrorMessage('urn:my-finances:error:category-not-expense'),
       ),
     ).toBeInTheDocument()
     expect(screen.getByRole('dialog')).toBeInTheDocument()

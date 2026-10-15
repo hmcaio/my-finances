@@ -12,7 +12,7 @@ import {
   useInvestmentProduct,
   useInvestmentProducts,
 } from './investmentProductsQueries'
-import { PROBLEM_TYPE_MESSAGES } from '../core/apiError'
+import { resolveErrorMessage } from '../../test/errorMessages'
 
 describe('investment taxonomy and product hooks', () => {
   it('loads the taxonomy and refetches it after a category or sub-category is created', async () => {
@@ -79,7 +79,7 @@ describe('investment taxonomy and product hooks', () => {
         name: 'LCI',
       }),
     ).rejects.toThrow(
-      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:investment-product-name-already-exists'],
+      resolveErrorMessage('urn:my-finances:error:investment-product-name-already-exists'),
     )
   })
 })

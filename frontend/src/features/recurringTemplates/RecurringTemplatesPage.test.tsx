@@ -21,6 +21,7 @@ import {
 import { findRow } from '../../test/testUtils'
 import { expectLoadStates } from '../../test/loadStates'
 import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
+import { formatMoney } from '../../i18n/format'
 import { RecurringTemplatesPage } from './RecurringTemplatesPage'
 import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
@@ -51,7 +52,9 @@ describe('RecurringTemplatesPage', () => {
     renderWithQueryClient(<RecurringTemplatesPage />)
 
     const row = await findRow(seedRentRecurringTemplate.description, templatesTable())
-    expect(row.getByText(seedRentRecurringTemplate.currentAmount!.toFixed(2))).toBeInTheDocument()
+    expect(
+      row.getByText(formatMoney(seedRentRecurringTemplate.currentAmount!, 'en')),
+    ).toBeInTheDocument()
     expect(row.getByText(String(seedRentRecurringTemplate.currentDayOfMonth))).toBeInTheDocument()
     expect(row.getByText('Active')).toBeInTheDocument()
   })
@@ -123,7 +126,7 @@ describe('RecurringTemplatesPage', () => {
     await user.type(amountInput, '1750')
     await user.click(row.getByRole('button', { name: 'Save cap' }))
 
-    expect(await templatesTable().findByText('1750.00')).toBeInTheDocument()
+    expect(await templatesTable().findByText(formatMoney(1750, 'en'))).toBeInTheDocument()
   })
 
   it('refreshes the pending-occurrences widget after creating a new template', async () => {
@@ -174,7 +177,7 @@ describe('RecurringTemplatesPage', () => {
     const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<RecurringTemplatesPage />)
     const row = await findRow(seedRentRecurringTemplate.description, templatesTable())
-    expect(await pendingWidgetTable().findByText('1500.00')).toBeInTheDocument()
+    expect(await pendingWidgetTable().findByText(formatMoney(1500, 'en'))).toBeInTheDocument()
 
     await user.click(row.getByRole('button', { name: 'Edit amount and day' }))
     const amountInput = row.getByLabelText('Amount')
@@ -182,7 +185,7 @@ describe('RecurringTemplatesPage', () => {
     await user.type(amountInput, '1750')
     await user.click(row.getByRole('button', { name: 'Save cap' }))
 
-    expect(await pendingWidgetTable().findByText('1750.00')).toBeInTheDocument()
+    expect(await pendingWidgetTable().findByText(formatMoney(1750, 'en'))).toBeInTheDocument()
   })
 
   it('stops an active template', async () => {
@@ -270,7 +273,7 @@ describe('RecurringTemplatesPage responsive layout (F021)', () => {
       expect(
         card.getByText(
           new RegExp(
-            `${seedRentRecurringTemplate.currentAmount!.toFixed(2).replace('.', '\\.')}.*Day.*${seedRentRecurringTemplate.currentDayOfMonth}`,
+            `${formatMoney(seedRentRecurringTemplate.currentAmount!, 'en').replace('.', '\\.')}.*Day.*${seedRentRecurringTemplate.currentDayOfMonth}`,
           ),
         ),
       ).toBeInTheDocument()
@@ -304,8 +307,10 @@ describe('RecurringTemplatesPage responsive layout (F021)', () => {
       await user.type(amountInput, '1750')
       await user.click(within(dialog).getByRole('button', { name: 'Save cap' }))
 
-      // The card's amount/day share one line ("1750.00 · Day 5"), so match by regex.
-      expect(await screen.findByText(/1750\.00/)).toBeInTheDocument()
+      // The card's amount/day share one line ("1,750.00 · Day 5"), so match by regex.
+      expect(
+        await screen.findByText(new RegExp(formatMoney(1750, 'en').replace('.', '\\.'))),
+      ).toBeInTheDocument()
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     })
   })

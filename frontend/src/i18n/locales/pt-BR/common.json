@@ -1,0 +1,131 @@
+{
+  "language": {
+    "switchToEnglish": "Mudar para inglês",
+    "switchToPortuguese": "Mudar para português (Brasil)"
+  },
+  "nav": {
+    "dashboard": "Painel",
+    "transactions": "Transações",
+    "fuel": "Combustível",
+    "accounts": "Contas",
+    "transfers": "Transferências",
+    "budgets": "Orçamentos",
+    "recurring": "Recorrentes",
+    "investments": "Investimentos",
+    "fiiPortfolio": "Carteira de FIIs",
+    "categories": "Categorias",
+    "investmentCategories": "Categorias de Investimento",
+    "investmentSegments": "Segmentos de Investimento",
+    "institutions": "Instituições",
+    "paymentMethods": "Formas de Pagamento",
+    "vehicles": "Veículos",
+    "activity": "Atividade",
+    "reports": "Relatórios",
+    "settingsHeading": "Configurações"
+  },
+  "layout": {
+    "openNavigation": "Abrir navegação",
+    "toggleDarkMode": "Alternar modo escuro",
+    "switchToLightMode": "Mudar para modo claro",
+    "switchToDarkMode": "Mudar para modo escuro"
+  },
+  "pagination": {
+    "previous": "Anterior",
+    "next": "Próxima",
+    "pageLabel": "Página {{page}} de {{totalPages}}"
+  },
+  "filterBar": {
+    "filters": "Filtros",
+    "filtersActive": "Filtros, {{count}} ativos",
+    "clearFilters": "Limpar filtros",
+    "done": "Concluído"
+  },
+  "table": {
+    "noItemsFound": "Nenhum item encontrado.",
+    "detailsColumnLabel": "Detalhes",
+    "showDetails": "Mostrar detalhes",
+    "hideDetails": "Ocultar detalhes"
+  },
+  "errorBoundary": {
+    "message": "Algo deu errado nesta página",
+    "reload": "Recarregar"
+  },
+  "loadFailed": {
+    "message": "Não foi possível carregar os dados ({{error}}).",
+    "retry": "Tentar novamente"
+  },
+  "backupStatus": {
+    "never": "nunca",
+    "stale": "desatualizados",
+    "failing": "falhando",
+    "message": "Os backups estão {{state}} - último sucesso: {{lastSuccess}}.",
+    "localOnly": "Os backups existem apenas nesta máquina - defina BACKUP_DIR para uma pasta sincronizada ou configure o rclone para uma cópia fora da máquina."
+  },
+  "actions": {
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "rename": "Renomear",
+    "save": "Salvar",
+    "add": "Adicionar",
+    "edit": "Editar",
+    "name": "Nome",
+    "actions": "Ações"
+  },
+  "seedNames": {
+    "categories": {
+      "groceries": "Mercado",
+      "rent": "Aluguel",
+      "utilities": "Utilidades",
+      "subscriptions": "Assinaturas",
+      "transport": "Transporte",
+      "dining": "Restaurantes",
+      "health": "Saúde",
+      "otherExpense": "Outras Despesas",
+      "salary": "Salário",
+      "otherIncome": "Outras Receitas",
+      "fuel": "Combustível",
+      "dividends": "Dividendos"
+    },
+    "paymentMethods": {
+      "debitCard": "Cartão de Débito",
+      "creditCard": "Cartão de Crédito",
+      "pix": "PIX",
+      "cash": "Dinheiro"
+    },
+    "institutions": {
+      "noInstitution": "Nenhuma instituição"
+    },
+    "investmentCategories": {
+      "fixedIncome": "Renda Fixa",
+      "variableIncome": "Renda Variável",
+      "funds": "Fundos",
+      "pension": "Previdência",
+      "international": "Internacional",
+      "crypto": "Criptomoedas",
+      "other": "Outros"
+    },
+    "investmentSubcategories": {
+      "tesouroSelic": "Tesouro Selic",
+      "tesouroIpca": "Tesouro IPCA+",
+      "tesouroPrefixado": "Tesouro Prefixado",
+      "cdb": "CDB",
+      "lci": "LCI",
+      "lca": "LCA",
+      "cri": "CRI",
+      "cra": "CRA",
+      "debentures": "Debêntures",
+      "savings": "Poupança",
+      "stocksAcoes": "Ações",
+      "reits": "FIIs",
+      "etfs": "ETFs",
+      "bdrs": "BDRs",
+      "fixedIncomeFunds": "Fundos de Renda Fixa",
+      "multimercado": "Multimercado",
+      "equityFunds": "Fundos de Ações",
+      "pgbl": "PGBL",
+      "vgbl": "VGBL",
+      "stocks": "Ações",
+      "bonds": "Títulos"
+    }
+  }
+}

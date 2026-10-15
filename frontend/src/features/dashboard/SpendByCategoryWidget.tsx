@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Box, LinearProgress, Skeleton, Typography } from '@mui/material'
 import { useCategories } from '../../api/categories/categoriesQueries'
 import { useSpendByCategory } from '../../api/transactions/transactionsQueries'
@@ -6,6 +7,9 @@ import { fadeInSx } from '../../components/feedback/fadeIn'
 import { LoadFailedNotice } from '../../components/feedback/LoadFailedNotice'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
+import { useLocale } from '../../hooks/locale/useLocale'
+import { formatMoney } from '../../i18n/format'
+import { translateSeedName } from '../../i18n/seedNames'
 import { currentMonth } from '../../utils/localDate'
 import { nameLookup } from '../../utils/nameLookup'
 
@@ -16,6 +20,8 @@ import { nameLookup } from '../../utils/nameLookup'
  * report it lists every category with spending, budgeted or not.
  */
 export function SpendByCategoryWidget() {
+  const { t } = useTranslation('dashboard')
+  const { locale } = useLocale()
   const spendQuery = useSpendByCategory(currentMonth())
   const spend = spendQuery.data
   const spendState = useQueryState(spendQuery)
@@ -25,12 +31,15 @@ export function SpendByCategoryWidget() {
   // Names are needed to render a row, so both fetches gate it (no raw ids on screen).
   const state = combineLoadState(categoriesState, spendState)
   const showSkeleton = useDelayedFlag(state.loading)
-  const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
+  const categoryName = useMemo(
+    () => nameLookup(categories ?? [], (c) => translateSeedName('categories', c.name, t)),
+    [categories, t],
+  )
 
   if (state.loadError) return <LoadFailedNotice message={state.loadError} onRetry={state.reload} />
   if (spend === undefined || categories === undefined) {
     return showSkeleton ? (
-      <Box role="status" aria-label="Loading spend by category">
+      <Box role="status" aria-label={t('spendByCategory.loadingAria')}>
         {[0, 1, 2].map((row) => (
           <Skeleton key={row} variant="text" sx={{ typography: 'body2' }} />
         ))}
@@ -38,7 +47,7 @@ export function SpendByCategoryWidget() {
     ) : null
   }
   if (spend.length === 0) {
-    return <Typography color="text.secondary">Nothing spent this month yet.</Typography>
+    return <Typography color="text.secondary">{t('spendByCategory.emptyList')}</Typography>
   }
 
   const max = Math.max(...spend.map((row) => row.total))
@@ -50,18 +59,18 @@ export function SpendByCategoryWidget() {
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
             <Typography variant="body2">{categoryName(row.categoryId)}</Typography>
             <Typography variant="body2" color="text.secondary">
-              {row.total.toFixed(2)}
+              {formatMoney(row.total, locale)}
             </Typography>
           </Box>
           <LinearProgress
             variant="determinate"
             value={max > 0 ? (row.total / max) * 100 : 0}
-            aria-label={`${categoryName(row.categoryId)} spend`}
+            aria-label={`${categoryName(row.categoryId)}${t('spendByCategory.spendAriaSuffix')}`}
           />
         </Box>
       ))}
       <Typography variant="body2" sx={{ fontWeight: 'bold', textAlign: 'right' }}>
-        Total {total.toFixed(2)}
+        {t('spendByCategory.totalLabel', { total: formatMoney(total, locale) })}
       </Typography>
     </Box>
   )

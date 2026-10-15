@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Box,
   Button,
@@ -32,6 +33,7 @@ import { FormGrid, ResponsiveDialog } from '../../components/feedback/Responsive
 import { InlineEditActions } from '../../components/table/InlineEditActions'
 import { DataTableBody } from '../../components/table/DataTableBody'
 import { useQueryState } from '../../hooks/queryState'
+import { translateSeedName } from '../../i18n/seedNames'
 
 /**
  * Settings-style CRUD screen for payment methods (F002 spec): table with name, inline rename,
@@ -46,6 +48,7 @@ import { useQueryState } from '../../hooks/queryState'
  * phone as on desktop.
  */
 export function PaymentMethodsPage() {
+  const { t } = useTranslation(['paymentMethods', 'common'])
   const [error, setError] = useState<string | null>(null)
   const paymentMethodsQuery = usePaymentMethods()
   const paymentMethods = paymentMethodsQuery.data
@@ -134,15 +137,14 @@ export function PaymentMethodsPage() {
         }}
       >
         <Typography variant="h4" component="h1">
-          Payment Methods
+          {t('paymentMethods:title')}
         </Typography>
         <Button variant="contained" onClick={() => setAddDialogOpen(true)}>
-          Add payment method
+          {t('paymentMethods:addButton')}
         </Button>
       </Box>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Which rail a transaction went through (debit card, PIX, cash, ...) - informational only,
-        doesn't affect account balances.
+        {t('paymentMethods:description')}
       </Typography>
 
       {/* While the add dialog is open a save error shows inside it: this one sits behind it. */}
@@ -153,15 +155,15 @@ export function PaymentMethodsPage() {
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell>{t('common:actions.name')}</TableCell>
+                <TableCell align="right">{t('common:actions.actions')}</TableCell>
               </TableRow>
             </TableHead>
             <DataTableBody state={paymentMethodsState} onRetry={retry} columns={2} actionsColumn>
               {paymentMethods?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={2} align="center">
-                    <Typography color="text.secondary">No payment methods yet.</Typography>
+                    <Typography color="text.secondary">{t('paymentMethods:emptyList')}</Typography>
                   </TableCell>
                 </TableRow>
               )}
@@ -181,7 +183,7 @@ export function PaymentMethodsPage() {
                         }}
                       />
                     ) : (
-                      paymentMethod.name
+                      translateSeedName('paymentMethods', paymentMethod.name, t)
                     )}
                   </TableCell>
                   <TableCell align="right">
@@ -190,12 +192,12 @@ export function PaymentMethodsPage() {
                       onEdit={() => startEdit(paymentMethod)}
                       onSave={() => void saveEdit(paymentMethod.id)}
                       onCancel={cancelEdit}
-                      editLabel="Rename"
+                      editLabel={t('common:actions.rename')}
                     />
                     {editingId !== paymentMethod.id && (
                       <IconButton
                         size="small"
-                        aria-label="Delete"
+                        aria-label={t('common:actions.delete')}
                         disabled={pendingDeleteId === paymentMethod.id}
                         onClick={() => void handleDelete(paymentMethod.id)}
                       >
@@ -211,13 +213,13 @@ export function PaymentMethodsPage() {
       </Paper>
 
       <ResponsiveDialog open={addDialogOpen} onClose={closeAddDialog}>
-        <DialogTitle>Add payment method</DialogTitle>
+        <DialogTitle>{t('paymentMethods:addDialogTitle')}</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
             <ErrorAlert message={error} onDismiss={() => setError(null)} />
             <FormGrid columns={1}>
               <TextField
-                label="Name"
+                label={t('common:actions.name')}
                 size="small"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
@@ -232,14 +234,14 @@ export function PaymentMethodsPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={closeAddDialog} disabled={adding}>
-            Cancel
+            {t('common:actions.cancel')}
           </Button>
           <Button
             variant="contained"
             disabled={adding || !newName.trim()}
             onClick={() => void handleAdd()}
           >
-            Add
+            {t('common:actions.add')}
           </Button>
         </DialogActions>
       </ResponsiveDialog>

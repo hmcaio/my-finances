@@ -1,0 +1,38 @@
+{
+  "title": "Orçamentos",
+  "addButton": "Adicionar orçamento",
+  "description": "Limites mensais de gastos por categoria de despesa. Editar um limite (ou adicionar um novo orçamento) sempre entra em vigor a partir do mês atual em diante - meses anteriores continuam mostrando o limite que estava realmente em vigor na época.",
+  "columns": {
+    "category": "Categoria",
+    "currentCap": "Limite atual",
+    "effectiveFrom": "Vigente desde"
+  },
+  "stopped": "Interrompido",
+  "noCapYet": "Sem limite ainda",
+  "editCapAction": "Editar limite",
+  "resumeBudgetAction": "Retomar orçamento",
+  "saveCapAction": "Salvar limite",
+  "resumeWithCapAction": "Retomar com este limite",
+  "stopBudgetAria": "Interromper orçamento",
+  "emptyList": "Nenhum orçamento ainda.",
+  "addDialogTitle": "Adicionar orçamento",
+  "categoryLabel": "Categoria",
+  "monthlyCapLabel": "Limite mensal",
+  "everyExpenseBudgeted": "Todas as categorias de despesa já têm um orçamento.",
+  "editBudgetCapTitle": "Editar limite do orçamento",
+  "stop": {
+    "title": "Interromper orçamento de {{category}}?",
+    "body": "O orçamento é interrompido a partir do mês atual: esta categoria deixa de aparecer no relatório de orçado vs. realizado a partir de agora. Meses anteriores mantêm o limite que tinham. Você pode retomá-lo depois pela ação \"Retomar orçamento\" da linha; os meses entre os dois ficam sem orçamento.",
+    "confirmLabel": "Interromper orçamento"
+  },
+  "reportTitle": "Orçado vs. realizado",
+  "monthLabel": "Mês",
+  "report": {
+    "emptyMonth": "Nenhum orçamento ativo para este mês.",
+    "noCap": "sem limite",
+    "lineAmounts": "{{actual}} / {{cap}}",
+    "overBudgetSuffix": " — acima do orçamento",
+    "usageAria": "Uso do orçamento de {{category}}",
+    "loadingAria": "Carregando relatório de orçamento"
+  }
+}

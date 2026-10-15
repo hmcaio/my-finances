@@ -1,0 +1,10 @@
+{
+  "title": "Categorias",
+  "description": "Categorias de receita e despesa usadas para classificar transações. O tipo é fixo depois que uma categoria é criada. A categoria integrada de cada tipo, e as categorias dedicadas de combustível/dividendos, não podem ser renomeadas nem excluídas.",
+  "addButton": "Adicionar categoria",
+  "addDialogTitle": "Adicionar categoria",
+  "typeColumn": "Tipo",
+  "emptyList": "Nenhuma categoria ainda.",
+  "typeExpense": "Despesa",
+  "typeIncome": "Receita"
+}

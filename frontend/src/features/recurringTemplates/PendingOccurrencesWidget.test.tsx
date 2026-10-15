@@ -8,6 +8,7 @@ import { seedRentPendingOccurrence } from '../../mocks/handlers/recurringTemplat
 import { findRow } from '../../test/testUtils'
 import { expectLoadStates } from '../../test/loadStates'
 import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
+import { formatMoney } from '../../i18n/format'
 import { PendingOccurrencesWidget } from './PendingOccurrencesWidget'
 import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
@@ -21,7 +22,7 @@ describe('PendingOccurrencesWidget', () => {
     renderWithQueryClient(<PendingOccurrencesWidget />)
 
     const row = await findRow('Rent')
-    expect(row.getByText(seedRentPendingOccurrence.amount.toFixed(2))).toBeInTheDocument()
+    expect(row.getByText(formatMoney(seedRentPendingOccurrence.amount, 'en'))).toBeInTheDocument()
     expect(row.getByText(seedRentPendingOccurrence.dueDate)).toBeInTheDocument()
   })
 
@@ -100,7 +101,9 @@ describe('PendingOccurrencesWidget responsive layout (F021)', () => {
       ).toBeInTheDocument()
       expect(card.getByText(seedGroceriesCategory.name, { exact: false })).toBeInTheDocument()
       expect(card.getByText(seedCheckingAccount.name)).toBeInTheDocument()
-      expect(card.getByText(seedRentPendingOccurrence.amount.toFixed(2))).toBeInTheDocument()
+      expect(
+        card.getByText(formatMoney(seedRentPendingOccurrence.amount, 'en')),
+      ).toBeInTheDocument()
       expect(card.getByRole('button', { name: 'Confirm occurrence' })).toBeInTheDocument()
       expect(card.getByRole('button', { name: 'Dismiss occurrence' })).toBeInTheDocument()
     })

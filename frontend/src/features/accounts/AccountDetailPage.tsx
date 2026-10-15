@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link as RouterLink, useParams } from 'react-router-dom'
 import { Alert, Box, Chip, Link as MuiLink, Paper, Skeleton, Typography } from '@mui/material'
 import { useAccount } from '../../api/accounts/accountsQueries'
@@ -7,8 +8,11 @@ import { useInstitutions } from '../../api/institutions/institutionsQueries'
 import { fadeInSx } from '../../components/feedback/fadeIn'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
+import { useLocale } from '../../hooks/locale/useLocale'
+import { formatMoney } from '../../i18n/format'
+import { translateSeedName } from '../../i18n/seedNames'
 import { nameLookup } from '../../utils/nameLookup'
-import { ACCOUNT_TYPE_LABELS } from './accountTypes'
+import { accountTypeLabel } from './accountTypes'
 import { InvestmentProductsSection } from '../investmentProducts/InvestmentProductsSection'
 import { AccountTransactionList } from '../transactions/AccountTransactionList'
 import { AccountTransferList } from '../transfers/AccountTransferList'
@@ -24,18 +28,20 @@ const SECTION_PADDING = { xs: 2, sm: 3 }
  * contributing to the same running-balance timeline").
  */
 export function AccountDetailPage() {
+  const { t } = useTranslation(['accounts', 'common'])
+  const { locale } = useLocale()
   const { id } = useParams<{ id: string }>()
   const accountQuery = useAccount(id)
   const account = accountQuery.data
   const accountState = useQueryState(accountQuery, undefined, (err) =>
-    defaultErrorMessage(err, { 404: 'Account not found.' }),
+    defaultErrorMessage(err, { 404: t('accounts:detail.notFound') }),
   )
   const institutionsQuery = useInstitutions()
   const institutions = institutionsQuery.data
   const institutionsState = useQueryState(institutionsQuery)
   const institutionName = useMemo(
-    () => nameLookup(institutions ?? [], (i) => i.name),
-    [institutions],
+    () => nameLookup(institutions ?? [], (i) => translateSeedName('institutions', i.name, t)),
+    [institutions, t],
   )
   // The header names the institution, so the page stays in its skeleton until both have loaded.
   const { loading, loadError: error } = combineLoadState(accountState, institutionsState)
@@ -44,7 +50,7 @@ export function AccountDetailPage() {
   return (
     <Box sx={{ py: { xs: 2, sm: 4 } }}>
       <MuiLink component={RouterLink} to="/accounts" underline="hover">
-        &larr; Back to accounts
+        {t('accounts:detail.backLink')}
       </MuiLink>
 
       {error && (
@@ -63,24 +69,33 @@ export function AccountDetailPage() {
             <Typography variant="h4" component="h1" sx={{ overflowWrap: 'anywhere' }}>
               {account.name}
             </Typography>
-            {account.closed ? <Chip label="Closed" /> : <Chip label="Open" color="success" />}
+            {account.closed ? (
+              <Chip label={t('accounts:status.closed')} />
+            ) : (
+              <Chip label={t('accounts:status.open')} color="success" />
+            )}
           </Box>
           <Typography color="text.secondary" sx={{ mb: 3, overflowWrap: 'anywhere' }}>
-            {institutionName(account.institutionId)} &middot; {ACCOUNT_TYPE_LABELS[account.type]}
+            {institutionName(account.institutionId)} &middot; {accountTypeLabel(account.type, t)}
           </Typography>
 
           <Paper variant="outlined" sx={{ p: SECTION_PADDING, mb: 3, maxWidth: 480 }}>
             <Typography variant="overline" color="text.secondary">
-              Running balance
+              {t('accounts:detail.runningBalance')}
             </Typography>
             <Typography variant="h3" sx={{ mb: 2, overflowWrap: 'anywhere' }}>
-              {account.balance.toFixed(2)}
+              {formatMoney(account.balance, locale)}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               {account.openingBalance !== null && account.openingBalanceDate !== null
-                ? `Opening balance ${account.openingBalance.toFixed(2)} as of ${account.openingBalanceDate}`
-                : 'No opening balance: its value comes from snapshots of its products'}
-              {account.closedDate ? ` · Closed ${account.closedDate}` : ''}
+                ? t('accounts:detail.openingBalanceLine', {
+                    amount: formatMoney(account.openingBalance, locale),
+                    date: account.openingBalanceDate,
+                  })
+                : t('accounts:detail.noOpeningBalance')}
+              {account.closedDate
+                ? t('accounts:detail.closedSuffix', { date: account.closedDate })
+                : ''}
             </Typography>
           </Paper>
 
@@ -89,14 +104,14 @@ export function AccountDetailPage() {
             // products are listed instead (F008 spec).
             <Paper variant="outlined" sx={{ p: SECTION_PADDING, mb: 3 }}>
               <Typography variant="h6" gutterBottom>
-                Products
+                {t('accounts:detail.products')}
               </Typography>
               <InvestmentProductsSection accountId={account.id} accountClosed={account.closed} />
             </Paper>
           ) : (
             <Paper variant="outlined" sx={{ p: SECTION_PADDING, mb: 3 }}>
               <Typography variant="h6" gutterBottom>
-                Transactions
+                {t('accounts:detail.transactions')}
               </Typography>
               <AccountTransactionList accountId={account.id} />
             </Paper>
@@ -104,7 +119,7 @@ export function AccountDetailPage() {
 
           <Paper variant="outlined" sx={{ p: SECTION_PADDING }}>
             <Typography variant="h6" gutterBottom>
-              Transfers
+              {t('accounts:detail.transfers')}
             </Typography>
             <AccountTransferList accountId={account.id} />
           </Paper>
@@ -116,8 +131,9 @@ export function AccountDetailPage() {
 
 /** Placeholder laid out like the loaded page: header, subtitle, balance card, two list sections. */
 function AccountDetailSkeleton() {
+  const { t } = useTranslation('accounts')
   return (
-    <Box role="status" aria-label="Loading account">
+    <Box role="status" aria-label={t('detail.loading')}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2, mb: 1 }}>
         <Skeleton variant="text" width={240} sx={{ typography: 'h4', maxWidth: '60%' }} />
         <Skeleton variant="rounded" width={60} height={32} />

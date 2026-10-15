@@ -1,0 +1,10 @@
+{
+  "title": "Categories",
+  "description": "Income and expense categories used to classify transactions. Type is fixed once a category is created. The built-in category of each type, and the dedicated fuel/dividend categories, can be neither renamed nor deleted.",
+  "addButton": "Add category",
+  "addDialogTitle": "Add category",
+  "typeColumn": "Type",
+  "emptyList": "No categories yet.",
+  "typeExpense": "Expense",
+  "typeIncome": "Income"
+}

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { Box, CssBaseline, Skeleton, ThemeProvider } from '@mui/material'
 import { ColorModeProvider } from './hooks/colorMode/ColorModeProvider'
 import { useColorMode } from './hooks/colorMode/useColorMode'
+import { LocaleProvider } from './hooks/locale/LocaleProvider'
 import { useHasAccounts } from './hooks/useHasAccounts'
 import { getTheme } from './theme'
 import { Layout } from './components/layout/Layout'
@@ -182,7 +183,9 @@ function ThemedApp() {
 function App() {
   return (
     <ColorModeProvider>
-      <ThemedApp />
+      <LocaleProvider>
+        <ThemedApp />
+      </LocaleProvider>
     </ColorModeProvider>
   )
 }

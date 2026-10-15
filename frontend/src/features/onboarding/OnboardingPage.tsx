@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Box, Paper, Typography } from '@mui/material'
 import type { Account } from '../../api/accounts/accounts'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
@@ -22,30 +23,28 @@ interface OnboardingPageProps {
  * with the button below it, so the form genuinely stacks on a phone instead of just wrapping.
  */
 export function OnboardingPage({ onCompleted }: OnboardingPageProps) {
+  const { t } = useTranslation('onboarding')
   const [error, setError] = useState<string | null>(null)
 
   return (
     <Box sx={{ maxWidth: 720, mx: 'auto', px: 2, py: { xs: 4, sm: 6 } }}>
       <Typography variant="h4" component="h1" gutterBottom>
-        Welcome to My Finances
+        {t('title')}
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Start by adding your first account, for example your main checking account. Its opening
-        balance and date are the starting point for tracking: everything you record afterwards is
-        added on top of it. You can add more accounts later, and pick a real institution now or keep
-        "No institution".
+        {t('intro')}
       </Typography>
 
       <ErrorAlert message={error} onDismiss={() => setError(null)} />
 
       <Paper variant="outlined" sx={{ p: 2 }}>
         <Typography variant="subtitle1" gutterBottom>
-          Create your first account
+          {t('formHeading')}
         </Typography>
         <AccountCreateForm
           onCreated={(account) => onCompleted?.(account)}
           onError={setError}
-          submitLabel="Create account"
+          submitLabel={t('submitLabel')}
         />
       </Paper>
     </Box>

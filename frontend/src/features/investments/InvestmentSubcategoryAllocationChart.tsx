@@ -1,4 +1,6 @@
+import { useTranslation } from 'react-i18next'
 import type { AllocationRow } from '../../api/investments/investmentAllocation'
+import { translateSeedName } from '../../i18n/seedNames'
 import { FlatAllocationDonutChart } from './FlatAllocationDonutChart'
 
 /**
@@ -12,14 +14,19 @@ import { FlatAllocationDonutChart } from './FlatAllocationDonutChart'
  * A prop-less widget that fetches its own data on mount, like `InvestmentAllocationChart`.
  */
 export function InvestmentSubcategoryAllocationChart() {
+  const { t } = useTranslation('investments')
   return (
     <FlatAllocationDonutChart
       groupBy="SUBCATEGORY"
-      ariaLabel="Allocation by sub-category"
+      ariaLabel={t('subcategoryChart.ariaLabel')}
       getKey={(row: AllocationRow) => `${row.categoryId}/${row.subcategoryId ?? ''}`}
-      getLabel={(row: AllocationRow) => row.subcategoryName ?? 'No sub-category'}
-      emptyMessage="No investment values yet - record a snapshot on a product to see the allocation."
-      staleFootnote="* Includes a product with a buy or sell newer than its latest snapshot, so this value may be out of date. Record a snapshot on the product to refresh it."
+      getLabel={(row: AllocationRow) =>
+        row.subcategoryName
+          ? translateSeedName('investmentSubcategories', row.subcategoryName, t)
+          : t('subcategoryChart.noSubcategory')
+      }
+      emptyMessage={t('subcategoryChart.emptyValues')}
+      staleFootnote={t('subcategoryChart.staleFootnote')}
     />
   )
 }

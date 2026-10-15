@@ -10,6 +10,7 @@ import type { Transaction } from '../../api/transactions/transactions'
 import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 import { renderWithRouter, selectOption } from '../../test/testUtils'
 import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
+import { formatNumber } from '../../i18n/format'
 import { FuelPage } from './FuelPage'
 
 function fuelTransaction(overrides: Partial<Transaction>): Transaction {
@@ -89,7 +90,7 @@ describe('FuelPage', () => {
     expect(await within(table).findAllByText('Gasolina')).toHaveLength(2)
     expect(within(table).getByText('10.00')).toBeInTheDocument()
     expect(within(table).getByText('400.0')).toBeInTheDocument()
-    expect(within(table).getByText('1400.0')).toBeInTheDocument()
+    expect(within(table).getByText(formatNumber(1400, 'en', 1))).toBeInTheDocument()
 
     // Newest fill (2026-01-20) renders before the older one (2026-01-01).
     const rows = within(table).getAllByRole('row')

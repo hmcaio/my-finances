@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Box,
   Button,
@@ -32,6 +33,9 @@ import { InlineEditActions } from '../../components/table/InlineEditActions'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useIsMobile } from '../../hooks/useBreakpointBand'
+import { useLocale } from '../../hooks/locale/useLocale'
+import { formatMoney } from '../../i18n/format'
+import { translateSeedName } from '../../i18n/seedNames'
 import { currentMonth } from '../../utils/localDate'
 import { nameLookup } from '../../utils/nameLookup'
 import { PendingOccurrencesWidget } from './PendingOccurrencesWidget'
@@ -66,6 +70,8 @@ const EMPTY_CREATE_FORM = {
  * page's own report.
  */
 export function RecurringTemplatesPage() {
+  const { t } = useTranslation(['recurringTemplates', 'common'])
+  const { locale } = useLocale()
   const [error, setError] = useState<string | null>(null)
   const isMobile = useIsMobile()
   const categoriesQuery = useCategories()
@@ -93,7 +99,10 @@ export function RecurringTemplatesPage() {
 
   const [togglingId, setTogglingId] = useState<string | null>(null)
 
-  const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
+  const categoryName = useMemo(
+    () => nameLookup(categories ?? [], (c) => translateSeedName('categories', c.name, t)),
+    [categories, t],
+  )
   const accountName = useMemo(() => nameLookup(accounts ?? [], (a) => a.name), [accounts])
   // An investment account takes no recurring templates (money moves through transfers, F008), so
   // the form never offers one.
@@ -201,57 +210,69 @@ export function RecurringTemplatesPage() {
   const editDialogOpen = isMobile && editingId !== null
 
   const columns: ResponsiveColumn<RecurringTemplate>[] = [
-    { key: 'description', header: 'Description', render: (t) => t.description },
+    {
+      key: 'description',
+      header: t('recurringTemplates:columns.description'),
+      render: (template) => template.description,
+    },
     {
       key: 'category',
-      header: 'Category',
+      header: t('recurringTemplates:columns.category'),
       tabletPriority: 'low',
-      render: (t) => categoryName(t.categoryId),
+      render: (template) => categoryName(template.categoryId),
     },
-    { key: 'account', header: 'Account', render: (t) => accountName(t.accountId) },
+    {
+      key: 'account',
+      header: t('recurringTemplates:columns.account'),
+      render: (template) => accountName(template.accountId),
+    },
     {
       key: 'amount',
-      header: 'Amount',
+      header: t('recurringTemplates:columns.amount'),
       align: 'right',
-      render: (t) =>
-        editingId === t.id && !isMobile ? (
+      render: (template) =>
+        editingId === template.id && !isMobile ? (
           <RecurringTemplateAmountField
             value={editAmount}
             onChange={setEditAmount}
             autoFocus
             sx={{ width: 110 }}
           />
-        ) : t.currentAmount !== null ? (
-          t.currentAmount.toFixed(2)
+        ) : template.currentAmount !== null ? (
+          formatMoney(template.currentAmount, locale)
         ) : (
           <Typography color="text.secondary" component="span">
-            No cap yet
+            {t('recurringTemplates:noCapYet')}
           </Typography>
         ),
     },
     {
       key: 'dayOfMonth',
-      header: 'Day of month',
+      header: t('recurringTemplates:columns.dayOfMonth'),
       align: 'right',
-      render: (t) =>
-        editingId === t.id && !isMobile ? (
+      render: (template) =>
+        editingId === template.id && !isMobile ? (
           <RecurringTemplateDayOfMonthField
             value={editDayOfMonth}
             onChange={setEditDayOfMonth}
             sx={{ width: 80 }}
           />
         ) : (
-          (t.currentDayOfMonth ?? '—')
+          (template.currentDayOfMonth ?? '—')
         ),
     },
     {
       key: 'status',
-      header: 'Status',
-      render: (t) => (
+      header: t('recurringTemplates:columns.status'),
+      render: (template) => (
         <Chip
           size="small"
-          label={t.active ? 'Active' : 'Stopped'}
-          color={t.active ? 'success' : 'default'}
+          label={
+            template.active
+              ? t('recurringTemplates:statusActive')
+              : t('recurringTemplates:statusStopped')
+          }
+          color={template.active ? 'success' : 'default'}
         />
       ),
     },
@@ -266,14 +287,18 @@ export function RecurringTemplatesPage() {
           onEdit={() => startEditCap(template)}
           onSave={() => void saveEditCap(template.id)}
           onCancel={cancelEditCap}
-          editLabel="Edit amount and day"
-          saveLabel="Save cap"
+          editLabel={t('recurringTemplates:editAmountDayAction')}
+          saveLabel={t('recurringTemplates:saveCapAction')}
           saving={savingCap}
         />
         {!editingInline && (
           <IconButton
             size="small"
-            aria-label={template.active ? 'Stop' : 'Reactivate'}
+            aria-label={
+              template.active
+                ? t('recurringTemplates:stopAria')
+                : t('recurringTemplates:reactivateAria')
+            }
             disabled={togglingId === template.id}
             onClick={() => void toggleActive(template)}
           >
@@ -295,7 +320,11 @@ export function RecurringTemplatesPage() {
           </Typography>
           <Chip
             size="small"
-            label={template.active ? 'Active' : 'Stopped'}
+            label={
+              template.active
+                ? t('recurringTemplates:statusActive')
+                : t('recurringTemplates:statusStopped')
+            }
             color={template.active ? 'success' : 'default'}
           />
         </Box>
@@ -303,8 +332,10 @@ export function RecurringTemplatesPage() {
           {categoryName(template.categoryId)} · {accountName(template.accountId)}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          {template.currentAmount !== null ? template.currentAmount.toFixed(2) : 'No cap yet'} · Day{' '}
-          {template.currentDayOfMonth ?? '—'}
+          {template.currentAmount !== null
+            ? formatMoney(template.currentAmount, locale)
+            : t('recurringTemplates:noCapYet')}{' '}
+          · {t('recurringTemplates:dayPrefix')} {template.currentDayOfMonth ?? '—'}
         </Typography>
         {actions && (
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>{actions}</Box>
@@ -325,15 +356,14 @@ export function RecurringTemplatesPage() {
         }}
       >
         <Typography variant="h4" component="h1">
-          Recurring Templates
+          {t('recurringTemplates:title')}
         </Typography>
         <Button variant="contained" onClick={() => setAddDialogOpen(true)}>
-          Add recurring template
+          {t('recurringTemplates:addButton')}
         </Button>
       </Box>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Versioned recurring bills/income. Editing the amount or day-of-month always takes effect
-        from the current month forward - it never rewrites past pending or confirmed occurrences.
+        {t('recurringTemplates:description')}
       </Typography>
 
       {/* While a dialog is open a save error shows inside it: this one sits behind it. */}
@@ -344,7 +374,7 @@ export function RecurringTemplatesPage() {
 
       <Box sx={{ mb: 3 }}>
         <ResponsiveTable
-          aria-label="Recurring templates"
+          aria-label={t('recurringTemplates:aria')}
           columns={columns}
           rows={templates}
           getRowKey={(template) => template.id}
@@ -352,12 +382,12 @@ export function RecurringTemplatesPage() {
           onRetry={retry}
           actions={rowActions}
           renderCard={renderCard}
-          emptyMessage="No recurring templates yet."
+          emptyMessage={t('recurringTemplates:emptyList')}
         />
       </Box>
 
       <ResponsiveDialog open={addDialogOpen} onClose={closeAddDialog}>
-        <DialogTitle>Add recurring template</DialogTitle>
+        <DialogTitle>{t('recurringTemplates:addDialogTitle')}</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
             <ErrorAlert message={error} onDismiss={() => setError(null)} />
@@ -367,14 +397,14 @@ export function RecurringTemplatesPage() {
                 displayEmpty
                 value={createForm.categoryId}
                 onChange={(e) => setCreateForm((prev) => ({ ...prev, categoryId: e.target.value }))}
-                aria-label="Category"
+                aria-label={t('recurringTemplates:categoryLabel')}
               >
                 <MenuItem value="" disabled>
-                  Category
+                  {t('recurringTemplates:categoryLabel')}
                 </MenuItem>
                 {templateCategories.map((c) => (
                   <MenuItem key={c.id} value={c.id}>
-                    {c.name}
+                    {translateSeedName('categories', c.name, t)}
                   </MenuItem>
                 ))}
               </Select>
@@ -383,10 +413,10 @@ export function RecurringTemplatesPage() {
                 displayEmpty
                 value={createForm.accountId}
                 onChange={(e) => setCreateForm((prev) => ({ ...prev, accountId: e.target.value }))}
-                aria-label="Account"
+                aria-label={t('recurringTemplates:accountLabel')}
               >
                 <MenuItem value="" disabled>
-                  Account
+                  {t('recurringTemplates:accountLabel')}
                 </MenuItem>
                 {templateAccounts.map((a) => (
                   <MenuItem key={a.id} value={a.id}>
@@ -395,7 +425,7 @@ export function RecurringTemplatesPage() {
                 ))}
               </Select>
               <TextField
-                label="Description"
+                label={t('recurringTemplates:descriptionLabel')}
                 size="small"
                 value={createForm.description}
                 onChange={(e) =>
@@ -405,7 +435,7 @@ export function RecurringTemplatesPage() {
                 sx={{ gridColumn: '1 / -1' }}
               />
               <TextField
-                label="Amount"
+                label={t('recurringTemplates:amountLabel')}
                 type="number"
                 size="small"
                 value={createForm.amount}
@@ -413,7 +443,7 @@ export function RecurringTemplatesPage() {
                 slotProps={{ htmlInput: { step: '0.01', min: '0.01' } }}
               />
               <TextField
-                label="Day of month"
+                label={t('recurringTemplates:dayOfMonthLabel')}
                 type="number"
                 size="small"
                 value={createForm.dayOfMonth}
@@ -425,20 +455,20 @@ export function RecurringTemplatesPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={closeAddDialog} disabled={creating}>
-            Cancel
+            {t('common:actions.cancel')}
           </Button>
           <Button
             variant="contained"
             disabled={creating || !isCreateFormValid()}
             onClick={() => void handleCreate()}
           >
-            Add
+            {t('common:actions.add')}
           </Button>
         </DialogActions>
       </ResponsiveDialog>
 
       <ResponsiveDialog open={editDialogOpen} onClose={savingCap ? undefined : cancelEditCap}>
-        <DialogTitle>Edit amount and day</DialogTitle>
+        <DialogTitle>{t('recurringTemplates:editDialogTitle')}</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
             <ErrorAlert message={error} onDismiss={() => setError(null)} />
@@ -454,14 +484,14 @@ export function RecurringTemplatesPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={cancelEditCap} disabled={savingCap}>
-            Cancel
+            {t('common:actions.cancel')}
           </Button>
           <Button
             variant="contained"
             disabled={savingCap || !isRecurringTemplateEditValid(editAmount, editDayOfMonth)}
             onClick={() => editingId && void saveEditCap(editingId)}
           >
-            Save cap
+            {t('recurringTemplates:saveCapAction')}
           </Button>
         </DialogActions>
       </ResponsiveDialog>

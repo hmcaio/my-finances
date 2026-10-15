@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link as RouterLink } from 'react-router-dom'
 import {
   Box,
@@ -21,6 +22,9 @@ import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
+import { useLocale } from '../../hooks/locale/useLocale'
+import { formatMoney } from '../../i18n/format'
+import { translateSeedName } from '../../i18n/seedNames'
 import { nameLookup } from '../../utils/nameLookup'
 import { InvestmentProductForm, type InvestmentProductFormValues } from './InvestmentProductForm'
 
@@ -45,6 +49,8 @@ export function InvestmentProductsSection({
   accountId,
   accountClosed,
 }: InvestmentProductsSectionProps) {
+  const { t } = useTranslation(['investmentProducts', 'common'])
+  const { locale } = useLocale()
   const [error, setError] = useState<string | null>(null)
   const holdingsQuery = useInvestmentHoldingsByAccount(accountId)
   const holdings = holdingsQuery.data
@@ -64,14 +70,17 @@ export function InvestmentProductsSection({
     const map = new Map((products ?? []).map((p) => [p.id, p]))
     return (productId: string) => map.get(productId)
   }, [products])
-  const categoryName = useMemo(() => nameLookup(categories ?? [], (c) => c.name), [categories])
+  const categoryName = useMemo(
+    () => nameLookup(categories ?? [], (c) => translateSeedName('investmentCategories', c.name, t)),
+    [categories, t],
+  )
   const subcategoryName = useMemo(
     () =>
       nameLookup(
         (categories ?? []).flatMap((c) => c.subcategories),
-        (s) => s.name,
+        (s) => translateSeedName('investmentSubcategories', s.name, t),
       ),
-    [categories],
+    [categories, t],
   )
 
   const [addDialogOpen, setAddDialogOpen] = useState(false)
@@ -135,13 +144,18 @@ export function InvestmentProductsSection({
     return (
       <>
         {holding.closed ? (
-          <Chip label="Closed" size="small" />
+          <Chip label={t('investmentProducts:detail.statusClosed')} size="small" />
         ) : (
-          <Chip label="Open" size="small" color="success" />
+          <Chip label={t('investmentProducts:detail.statusOpen')} size="small" color="success" />
         )}
         {holding.needsSnapshot && (
-          <Tooltip title="A buy or sell is newer than the latest snapshot: the value may be out of date.">
-            <Chip label="Needs snapshot" size="small" color="warning" sx={{ ml: 1 }} />
+          <Tooltip title={t('investmentProducts:section.needsSnapshotTooltip')}>
+            <Chip
+              label={t('investmentProducts:detail.needsSnapshotChip')}
+              size="small"
+              color="warning"
+              sx={{ ml: 1 }}
+            />
           </Tooltip>
         )}
       </>
@@ -149,10 +163,14 @@ export function InvestmentProductsSection({
   }
 
   const columns: ResponsiveColumn<InvestmentHolding>[] = [
-    { key: 'product', header: 'Product', render: productLink },
+    {
+      key: 'product',
+      header: t('investmentProducts:section.columns.product'),
+      render: productLink,
+    },
     {
       key: 'category',
-      header: 'Category',
+      header: t('investmentProducts:section.columns.category'),
       render: (h) => {
         const product = productOf(h.productId)
         return product ? categoryName(product.investmentCategoryId) : ''
@@ -160,7 +178,7 @@ export function InvestmentProductsSection({
     },
     {
       key: 'subcategory',
-      header: 'Sub-category',
+      header: t('investmentProducts:section.columns.subcategory'),
       tabletPriority: 'low',
       render: (h) => {
         const product = productOf(h.productId)
@@ -171,18 +189,22 @@ export function InvestmentProductsSection({
     },
     {
       key: 'latestValue',
-      header: 'Latest value',
+      header: t('investmentProducts:section.columns.latestValue'),
       align: 'right',
       render: (h) =>
         h.latestSnapshot ? (
-          <Tooltip title={`Snapshot of ${h.latestSnapshot.date}`}>
-            <span>{h.latestSnapshot.balance.toFixed(2)}</span>
+          <Tooltip
+            title={t('investmentProducts:section.snapshotTooltip', {
+              date: h.latestSnapshot.date,
+            })}
+          >
+            <span>{formatMoney(h.latestSnapshot.balance, locale)}</span>
           </Tooltip>
         ) : (
           '-'
         ),
     },
-    { key: 'status', header: 'Status', render: statusChips },
+    { key: 'status', header: t('investmentProducts:section.columns.status'), render: statusChips },
   ]
 
   // The card leads with the product name (linked) and its status, then category/sub-category, then
@@ -205,8 +227,10 @@ export function InvestmentProductsSection({
         </Typography>
         <Typography variant="body2" color="text.secondary">
           {holding.latestSnapshot
-            ? `Latest value ${holding.latestSnapshot.balance.toFixed(2)}`
-            : 'No snapshot yet'}
+            ? t('investmentProducts:section.cardLatestValueLine', {
+                value: formatMoney(holding.latestSnapshot.balance, locale),
+              })
+            : t('investmentProducts:section.cardNoSnapshot')}
         </Typography>
         {actions && (
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>{actions}</Box>
@@ -220,7 +244,7 @@ export function InvestmentProductsSection({
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
         {!accountClosed && (
           <Button variant="contained" onClick={openAddDialog}>
-            Add product
+            {t('investmentProducts:section.addButton')}
           </Button>
         )}
       </Box>
@@ -228,7 +252,7 @@ export function InvestmentProductsSection({
       <ErrorAlert message={addDialogOpen ? null : error} onDismiss={() => setError(null)} />
 
       <ResponsiveTable
-        aria-label="Investment holdings"
+        aria-label={t('investmentProducts:section.aria')}
         embedded
         columns={columns}
         rows={holdings}
@@ -236,11 +260,11 @@ export function InvestmentProductsSection({
         state={tableState}
         onRetry={retry}
         renderCard={renderCard}
-        emptyMessage="No products yet."
+        emptyMessage={t('investmentProducts:section.emptyList')}
       />
 
       <ResponsiveDialog open={addDialogOpen} onClose={closeAddDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>Add product</DialogTitle>
+        <DialogTitle>{t('investmentProducts:section.addDialogTitle')}</DialogTitle>
         {categories && (
           <InvestmentProductForm
             key={formKey}
@@ -248,7 +272,7 @@ export function InvestmentProductsSection({
             banner={<ErrorAlert message={error} onDismiss={() => setError(null)} />}
             categories={categories}
             segments={segments ?? []}
-            submitLabel="Add product"
+            submitLabel={t('investmentProducts:section.addButton')}
             submitting={adding}
             onSubmit={(values) => void handleAdd(values)}
             onCancel={closeAddDialog}

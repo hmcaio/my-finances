@@ -23,7 +23,7 @@ describe('NetWorthTrendChart', () => {
 
     expect(
       await screen.findByText(
-        'As of 2026-08-31: net worth 1700.00 = assets 1000.00 + investments 800.00 - liabilities 100.00',
+        'As of 2026-08-31: net worth 1,700.00 = assets 1,000.00 + investments 800.00 - liabilities 100.00',
       ),
     ).toBeInTheDocument()
   })

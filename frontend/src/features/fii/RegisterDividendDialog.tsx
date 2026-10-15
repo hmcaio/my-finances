@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Button,
   DialogActions,
@@ -17,6 +18,7 @@ import type { InvestmentProduct } from '../../api/investments/investmentProducts
 import { usePaymentMethods } from '../../api/paymentMethods/paymentMethodsQueries'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
+import { translateSeedName } from '../../i18n/seedNames'
 import { today } from '../../utils/localDate'
 import { nameLookup } from '../../utils/nameLookup'
 
@@ -44,6 +46,7 @@ export function RegisterDividendDialog({
   onClose,
   fiiProducts,
 }: RegisterDividendDialogProps) {
+  const { t } = useTranslation(['fii', 'common'])
   const [error, setError] = useState<string | null>(null)
   const categoriesQuery = useCategories()
   const dividendCategory = categoriesQuery.data?.find((c) => c.dividendCategory)
@@ -105,7 +108,9 @@ export function RegisterDividendDialog({
         paymentMethodId,
         description:
           description.trim() ||
-          `Dividend - ${selectedProduct?.ticker ?? selectedProduct?.name ?? ''}`,
+          t('registerDialog.defaultDescription', {
+            ticker: selectedProduct?.ticker ?? selectedProduct?.name ?? '',
+          }),
         investmentHoldingId: holdingId,
       })
       handleClose()
@@ -122,7 +127,7 @@ export function RegisterDividendDialog({
 
   return (
     <ResponsiveDialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Register dividend</DialogTitle>
+      <DialogTitle>{t('registerDialog.title')}</DialogTitle>
       <DialogContent>
         <ErrorAlert message={error} onDismiss={() => setError(null)} />
         <FormGrid>
@@ -131,10 +136,10 @@ export function RegisterDividendDialog({
             displayEmpty
             value={productId}
             onChange={(e) => changeProduct(e.target.value)}
-            aria-label="Ticker"
+            aria-label={t('registerDialog.tickerAria')}
           >
             <MenuItem value="" disabled>
-              Ticker
+              {t('registerDialog.tickerPlaceholder')}
             </MenuItem>
             {fiiProducts.map((product) => (
               <MenuItem key={product.id} value={product.id}>
@@ -148,10 +153,10 @@ export function RegisterDividendDialog({
             value={holdingId}
             onChange={(e) => setHoldingId(e.target.value)}
             disabled={!productId}
-            aria-label="Holding"
+            aria-label={t('registerDialog.holdingAria')}
           >
             <MenuItem value="" disabled>
-              Holding
+              {t('registerDialog.holdingPlaceholder')}
             </MenuItem>
             {holdings.map((holding) => (
               <MenuItem key={holding.id} value={holding.id}>
@@ -160,7 +165,7 @@ export function RegisterDividendDialog({
             ))}
           </Select>
           <TextField
-            label="Amount"
+            label={t('registerDialog.amountLabel')}
             size="small"
             type="number"
             value={amount}
@@ -168,7 +173,7 @@ export function RegisterDividendDialog({
             slotProps={{ htmlInput: { min: 0, step: '0.01' } }}
           />
           <TextField
-            label="Date"
+            label={t('registerDialog.dateLabel')}
             size="small"
             type="date"
             value={date}
@@ -180,10 +185,10 @@ export function RegisterDividendDialog({
             displayEmpty
             value={accountId}
             onChange={(e) => setAccountId(e.target.value)}
-            aria-label="Deposit into account"
+            aria-label={t('registerDialog.accountAria')}
           >
             <MenuItem value="" disabled>
-              Deposit into account
+              {t('registerDialog.accountPlaceholder')}
             </MenuItem>
             {accounts.map((account) => (
               <MenuItem key={account.id} value={account.id}>
@@ -196,19 +201,19 @@ export function RegisterDividendDialog({
             displayEmpty
             value={paymentMethodId}
             onChange={(e) => setPaymentMethodId(e.target.value)}
-            aria-label="Payment method"
+            aria-label={t('registerDialog.paymentMethodAria')}
           >
             <MenuItem value="" disabled>
-              Payment method
+              {t('registerDialog.paymentMethodPlaceholder')}
             </MenuItem>
             {paymentMethods.map((paymentMethod) => (
               <MenuItem key={paymentMethod.id} value={paymentMethod.id}>
-                {paymentMethod.name}
+                {translateSeedName('paymentMethods', paymentMethod.name, t)}
               </MenuItem>
             ))}
           </Select>
           <TextField
-            label="Description (optional)"
+            label={t('registerDialog.descriptionLabel')}
             size="small"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -218,14 +223,14 @@ export function RegisterDividendDialog({
       </DialogContent>
       <DialogActions>
         <Button onClick={handleClose} disabled={saving}>
-          Cancel
+          {t('common:actions.cancel')}
         </Button>
         <Button
           variant="contained"
           disabled={saving || !canSubmit}
           onClick={() => void handleSubmit()}
         >
-          Register
+          {t('registerDialog.registerButton')}
         </Button>
       </DialogActions>
     </ResponsiveDialog>

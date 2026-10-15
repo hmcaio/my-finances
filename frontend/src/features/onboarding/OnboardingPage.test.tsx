@@ -5,7 +5,7 @@ import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import { accountCreateConflictHandler } from '../../mocks/handlers/accounts'
 import { BUILT_IN_INSTITUTION_ID } from '../../mocks/handlers/institutions'
-import { PROBLEM_TYPE_MESSAGES } from '../../api/core/apiError'
+import { resolveErrorMessage } from '../../test/errorMessages'
 import { OnboardingPage } from './OnboardingPage'
 import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 
@@ -66,7 +66,7 @@ describe('OnboardingPage', () => {
 
     expect(
       await screen.findByText(
-        PROBLEM_TYPE_MESSAGES['urn:my-finances:error:account-name-already-exists'],
+        resolveErrorMessage('urn:my-finances:error:account-name-already-exists'),
       ),
     ).toBeInTheDocument()
     expect(onCompleted).not.toHaveBeenCalled()

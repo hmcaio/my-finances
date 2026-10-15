@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { TextField, type SxProps, type Theme } from '@mui/material'
 
 interface AmountFieldProps {
@@ -10,11 +11,12 @@ interface AmountFieldProps {
 /** The amount input of a recurring template's cap edit (F021 row-edit pattern): narrow (`sx`) when
  * inline in the table cell, full width in the mobile dialog via {@link RecurringTemplateEditFields}. */
 export function RecurringTemplateAmountField({ value, onChange, autoFocus, sx }: AmountFieldProps) {
+  const { t } = useTranslation('recurringTemplates')
   return (
     <TextField
       size="small"
       type="number"
-      label="Amount"
+      label={t('amountLabel')}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       slotProps={{ htmlInput: { step: '0.01', min: '0.01' } }}
@@ -33,11 +35,12 @@ interface DayOfMonthFieldProps {
 /** The day-of-month input of a recurring template's cap edit; same reuse as {@link
  * RecurringTemplateAmountField}. */
 export function RecurringTemplateDayOfMonthField({ value, onChange, sx }: DayOfMonthFieldProps) {
+  const { t } = useTranslation('recurringTemplates')
   return (
     <TextField
       size="small"
       type="number"
-      label="Day of month"
+      label={t('dayOfMonthLabel')}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       slotProps={{ htmlInput: { min: 1, max: 31 } }}

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Box,
   Button,
@@ -43,6 +44,7 @@ import { useQueryState } from '../../hooks/queryState'
  * plain table at every size.
  */
 export function InvestmentSegmentsPage() {
+  const { t } = useTranslation(['investmentSegments', 'common'])
   const [error, setError] = useState<string | null>(null)
   const segmentsQuery = useInvestmentSegments()
   const segments = segmentsQuery.data
@@ -131,16 +133,14 @@ export function InvestmentSegmentsPage() {
         }}
       >
         <Typography variant="h4" component="h1">
-          Investment segments
+          {t('investmentSegments:title')}
         </Typography>
         <Button variant="contained" onClick={() => setAddDialogOpen(true)}>
-          Add segment
+          {t('investmentSegments:addButton')}
         </Button>
       </Box>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        What kind of real estate an FII holds (Shoppings, Logistica, Papel, ...) - orthogonal to the
-        category/sub-category taxonomy. A segment still used by an investment product can&apos;t be
-        deleted.
+        {t('investmentSegments:description')}
       </Typography>
 
       {/* While the add dialog is open a save error shows inside it: this one sits behind it. */}
@@ -151,15 +151,17 @@ export function InvestmentSegmentsPage() {
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell>{t('common:actions.name')}</TableCell>
+                <TableCell align="right">{t('common:actions.actions')}</TableCell>
               </TableRow>
             </TableHead>
             <DataTableBody state={segmentsState} onRetry={retry} columns={2} actionsColumn>
               {segments?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={2} align="center">
-                    <Typography color="text.secondary">No investment segments yet.</Typography>
+                    <Typography color="text.secondary">
+                      {t('investmentSegments:emptyList')}
+                    </Typography>
                   </TableCell>
                 </TableRow>
               )}
@@ -190,12 +192,12 @@ export function InvestmentSegmentsPage() {
                       onEdit={() => startEdit(segment)}
                       onSave={() => void saveEdit(segment.id)}
                       onCancel={cancelEdit}
-                      editLabel="Rename"
+                      editLabel={t('common:actions.rename')}
                     />
                     {editingId !== segment.id && (
                       <IconButton
                         size="small"
-                        aria-label="Delete"
+                        aria-label={t('common:actions.delete')}
                         disabled={pendingDeleteId === segment.id}
                         onClick={() => void handleDelete(segment.id)}
                       >
@@ -211,13 +213,13 @@ export function InvestmentSegmentsPage() {
       </Paper>
 
       <ResponsiveDialog open={addDialogOpen} onClose={closeAddDialog}>
-        <DialogTitle>Add segment</DialogTitle>
+        <DialogTitle>{t('investmentSegments:addDialogTitle')}</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
             <ErrorAlert message={error} onDismiss={() => setError(null)} />
             <FormGrid columns={1}>
               <TextField
-                label="Name"
+                label={t('common:actions.name')}
                 size="small"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
@@ -232,14 +234,14 @@ export function InvestmentSegmentsPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={closeAddDialog} disabled={adding}>
-            Cancel
+            {t('common:actions.cancel')}
           </Button>
           <Button
             variant="contained"
             disabled={adding || !newName.trim()}
             onClick={() => void handleAdd()}
           >
-            Add
+            {t('common:actions.add')}
           </Button>
         </DialogActions>
       </ResponsiveDialog>

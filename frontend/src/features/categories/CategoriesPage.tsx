@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Box,
   Button,
@@ -37,6 +38,7 @@ import { FormGrid, ResponsiveDialog } from '../../components/feedback/Responsive
 import { InlineEditActions } from '../../components/table/InlineEditActions'
 import { DataTableBody } from '../../components/table/DataTableBody'
 import { useQueryState } from '../../hooks/queryState'
+import { translateSeedName } from '../../i18n/seedNames'
 import { sortCategories } from './sortCategories'
 
 /**
@@ -56,6 +58,7 @@ import { sortCategories } from './sortCategories'
  * mobile edit dialog would add a surface for no benefit.
  */
 export function CategoriesPage() {
+  const { t } = useTranslation(['categories', 'common'])
   const [error, setError] = useState<string | null>(null)
   const categoriesQuery = useCategories()
   const categories = categoriesQuery.data
@@ -146,16 +149,14 @@ export function CategoriesPage() {
         }}
       >
         <Typography variant="h4" component="h1">
-          Categories
+          {t('categories:title')}
         </Typography>
         <Button variant="contained" onClick={() => setAddDialogOpen(true)}>
-          Add category
+          {t('categories:addButton')}
         </Button>
       </Box>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Income and expense categories used to classify transactions. Type is fixed once a category
-        is created. The built-in category of each type, and the dedicated fuel/dividend categories,
-        can be neither renamed nor deleted.
+        {t('categories:description')}
       </Typography>
 
       {/* While the add dialog is open a save error shows inside it: this one sits behind it. */}
@@ -166,16 +167,16 @@ export function CategoriesPage() {
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell>{t('common:actions.name')}</TableCell>
+                <TableCell>{t('categories:typeColumn')}</TableCell>
+                <TableCell align="right">{t('common:actions.actions')}</TableCell>
               </TableRow>
             </TableHead>
             <DataTableBody state={categoriesState} onRetry={retry} columns={3} actionsColumn>
               {categories?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={3} align="center">
-                    <Typography color="text.secondary">No categories yet.</Typography>
+                    <Typography color="text.secondary">{t('categories:emptyList')}</Typography>
                   </TableCell>
                 </TableRow>
               )}
@@ -195,12 +196,16 @@ export function CategoriesPage() {
                         }}
                       />
                     ) : (
-                      category.name
+                      translateSeedName('categories', category.name, t)
                     )}
                   </TableCell>
                   <TableCell>
                     <Chip
-                      label={category.type}
+                      label={
+                        category.type === 'INCOME'
+                          ? t('categories:typeIncome')
+                          : t('categories:typeExpense')
+                      }
                       size="small"
                       color={category.type === 'INCOME' ? 'success' : 'default'}
                     />
@@ -221,12 +226,12 @@ export function CategoriesPage() {
                         onEdit={() => startEdit(category)}
                         onSave={() => void saveEdit(category.id)}
                         onCancel={cancelEdit}
-                        editLabel="Rename"
+                        editLabel={t('common:actions.rename')}
                       />
                       {editingId !== category.id && (
                         <IconButton
                           size="small"
-                          aria-label="Delete"
+                          aria-label={t('common:actions.delete')}
                           disabled={pendingDeleteId === category.id}
                           onClick={() => void handleDelete(category.id)}
                         >
@@ -243,13 +248,13 @@ export function CategoriesPage() {
       </Paper>
 
       <ResponsiveDialog open={addDialogOpen} onClose={closeAddDialog}>
-        <DialogTitle>Add category</DialogTitle>
+        <DialogTitle>{t('categories:addDialogTitle')}</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
             <ErrorAlert message={error} onDismiss={() => setError(null)} />
             <FormGrid>
               <TextField
-                label="Name"
+                label={t('common:actions.name')}
                 size="small"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
@@ -264,22 +269,22 @@ export function CategoriesPage() {
                 value={newType}
                 onChange={(e) => setNewType(e.target.value as CategoryType)}
               >
-                <MenuItem value="EXPENSE">Expense</MenuItem>
-                <MenuItem value="INCOME">Income</MenuItem>
+                <MenuItem value="EXPENSE">{t('categories:typeExpense')}</MenuItem>
+                <MenuItem value="INCOME">{t('categories:typeIncome')}</MenuItem>
               </Select>
             </FormGrid>
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={closeAddDialog} disabled={adding}>
-            Cancel
+            {t('common:actions.cancel')}
           </Button>
           <Button
             variant="contained"
             disabled={adding || !newName.trim()}
             onClick={() => void handleAdd()}
           >
-            Add
+            {t('common:actions.add')}
           </Button>
         </DialogActions>
       </ResponsiveDialog>

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Box,
   Chip,
@@ -34,6 +35,9 @@ import { PaginationControls } from '../../components/table/PaginationControls'
 import { useIsMobile } from '../../hooks/useBreakpointBand'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { useQueryState } from '../../hooks/queryState'
+import { useLocale, type Locale } from '../../hooks/locale/useLocale'
+import { formatDate, formatNumber } from '../../i18n/format'
+import { actionLabel, entityTypeLabel, originLabel } from './activityEnumLabels'
 import { fieldLabel } from './fieldLabels'
 import { groupEntriesByLocalDay } from './groupByDay'
 
@@ -70,12 +74,6 @@ const ACTIONS: AuditAction[] = [
 
 const ORIGINS: AuditOrigin[] = ['USER', 'SYSTEM']
 
-/** Title-cases an enum constant for display, e.g. `PAYMENT_METHOD` -> "Payment method". */
-function enumLabel(value: string): string {
-  const words = value.toLowerCase().split('_')
-  return words.map((w, i) => (i === 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w)).join(' ')
-}
-
 /** A reference field's value once the backend has resolved its label (see `AuditReferenceLabels`). */
 interface ReferenceValue {
   id: string
@@ -97,10 +95,15 @@ function isReferenceValue(value: unknown): value is ReferenceValue {
  * "Label (id)" (falling back to the bare id when the backend had no label for it, e.g. an older
  * audit row predating label resolution, or a deleted referenced entity), everything else as-is.
  */
-function formatDiffValue(value: unknown): string {
+function formatDiffValue(
+  value: unknown,
+  locale: Locale,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string {
   if (value === null || value === undefined) return '—'
-  if (typeof value === 'boolean') return value ? 'Yes' : 'No'
-  if (typeof value === 'number') return Number.isInteger(value) ? String(value) : value.toFixed(2)
+  if (typeof value === 'boolean') return value ? t('boolean.yes') : t('boolean.no')
+  if (typeof value === 'number')
+    return Number.isInteger(value) ? String(value) : formatNumber(value, locale, 2)
   if (isReferenceValue(value)) return value.label ? `${value.label} (${value.id})` : value.id
   if (typeof value === 'object') return JSON.stringify(value)
   return String(value)
@@ -110,39 +113,46 @@ function originColor(origin: AuditOrigin): 'primary' | 'default' {
   return origin === 'USER' ? 'primary' : 'default'
 }
 
+type ActivityT = (key: string, options?: Record<string, unknown>) => string
+
 interface EntryRowProps {
   entry: AuditLogEntry
   expanded: boolean
   onToggle: () => void
+  t: ActivityT
+  locale: Locale
 }
 
-function DiffTable({ entry }: { entry: AuditLogEntry }) {
+function DiffTable({ entry, t, locale }: { entry: AuditLogEntry; t: ActivityT; locale: Locale }) {
   const fields = Object.keys(entry.changes)
   if (fields.length === 0) {
     return (
       <Typography variant="body2" color="text.secondary" sx={{ p: 1 }}>
-        No field changes recorded.
+        {t('noFieldChanges')}
       </Typography>
     )
   }
   return (
-    <Table size="small" aria-label={`Changes for ${entry.entityType}`}>
+    <Table
+      size="small"
+      aria-label={t('changesForAria', { entityType: entityTypeLabel(entry.entityType, t) })}
+    >
       <TableHead>
         <TableRow>
-          <TableCell>Field</TableCell>
-          <TableCell>From</TableCell>
-          <TableCell>To</TableCell>
+          <TableCell>{t('diffTable.field')}</TableCell>
+          <TableCell>{t('diffTable.from')}</TableCell>
+          <TableCell>{t('diffTable.to')}</TableCell>
         </TableRow>
       </TableHead>
       <TableBody>
         {fields.map((field) => (
           <TableRow key={field}>
-            <TableCell>{fieldLabel(entry.entityType, field)}</TableCell>
+            <TableCell>{fieldLabel(entry.entityType, field, t)}</TableCell>
             <TableCell sx={{ overflowWrap: 'anywhere' }}>
-              {formatDiffValue(entry.changes[field].from)}
+              {formatDiffValue(entry.changes[field].from, locale, t)}
             </TableCell>
             <TableCell sx={{ overflowWrap: 'anywhere' }}>
-              {formatDiffValue(entry.changes[field].to)}
+              {formatDiffValue(entry.changes[field].to, locale, t)}
             </TableCell>
           </TableRow>
         ))}
@@ -152,16 +162,16 @@ function DiffTable({ entry }: { entry: AuditLogEntry }) {
 }
 
 /** One activity entry, as a table row (desktop/tablet) or a card (mobile) with an expand toggle. */
-function EntryRow({ entry, expanded, onToggle }: EntryRowProps) {
+function EntryRow({ entry, expanded, onToggle, t, locale }: EntryRowProps) {
   const isMobile = useIsMobile()
-  const time = new Date(entry.occurredAt).toLocaleTimeString('en-US', {
+  const time = formatDate(new Date(entry.occurredAt), locale, {
     hour: '2-digit',
     minute: '2-digit',
   })
   const expandButton = (
     <IconButton
       size="small"
-      aria-label={expanded ? 'Collapse details' : 'Expand details'}
+      aria-label={expanded ? t('collapseDetails') : t('expandDetails')}
       aria-expanded={expanded}
       // The desktop row below also toggles on click; without this, a click on the button bubbles
       // up to the row's own handler and the two toggles cancel each other out.
@@ -181,14 +191,14 @@ function EntryRow({ entry, expanded, onToggle }: EntryRowProps) {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <Box sx={{ minWidth: 0 }}>
             <Typography variant="subtitle2" sx={{ overflowWrap: 'anywhere' }}>
-              {entry.entityLabel ?? enumLabel(entry.entityType)}
+              {entry.entityLabel ?? entityTypeLabel(entry.entityType, t)}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {time} · {enumLabel(entry.entityType)} · {enumLabel(entry.action)}
+              {time} · {entityTypeLabel(entry.entityType, t)} · {actionLabel(entry.action, t)}
             </Typography>
             <Chip
               size="small"
-              label={enumLabel(entry.origin)}
+              label={originLabel(entry.origin, t)}
               color={originColor(entry.origin)}
               sx={{ mt: 0.5 }}
             />
@@ -197,7 +207,7 @@ function EntryRow({ entry, expanded, onToggle }: EntryRowProps) {
         </Box>
         <Collapse in={expanded} unmountOnExit>
           <Box sx={{ mt: 1 }}>
-            <DiffTable entry={entry} />
+            <DiffTable entry={entry} t={t} locale={locale} />
           </Box>
         </Collapse>
       </Paper>
@@ -208,13 +218,17 @@ function EntryRow({ entry, expanded, onToggle }: EntryRowProps) {
     <>
       <TableRow hover onClick={onToggle} sx={{ cursor: 'pointer' }}>
         <TableCell>{time}</TableCell>
-        <TableCell>{enumLabel(entry.action)}</TableCell>
-        <TableCell>{enumLabel(entry.entityType)}</TableCell>
+        <TableCell>{actionLabel(entry.action, t)}</TableCell>
+        <TableCell>{entityTypeLabel(entry.entityType, t)}</TableCell>
         <TableCell sx={{ overflowWrap: 'anywhere' }}>
           {entry.entityLabel ?? <Typography color="text.secondary">—</Typography>}
         </TableCell>
         <TableCell>
-          <Chip size="small" label={enumLabel(entry.origin)} color={originColor(entry.origin)} />
+          <Chip
+            size="small"
+            label={originLabel(entry.origin, t)}
+            color={originColor(entry.origin)}
+          />
         </TableCell>
         <TableCell align="right">{expandButton}</TableCell>
       </TableRow>
@@ -222,7 +236,7 @@ function EntryRow({ entry, expanded, onToggle }: EntryRowProps) {
         <TableCell colSpan={6} sx={{ p: 0, border: expanded ? undefined : 'none' }}>
           <Collapse in={expanded} unmountOnExit>
             <Box sx={{ p: 2 }}>
-              <DiffTable entry={entry} />
+              <DiffTable entry={entry} t={t} locale={locale} />
             </Box>
           </Collapse>
         </TableCell>
@@ -238,6 +252,8 @@ function EntryRow({ entry, expanded, onToggle }: EntryRowProps) {
  * here - the log can't be written to from the app.
  */
 export function ActivityPage() {
+  const { t } = useTranslation('activity')
+  const { locale } = useLocale()
   const [page, setPage] = useState(0)
   const [filters, setFilters] = useState<AuditLogFilter>({})
   const [error, setError] = useState<string | null>(null)
@@ -252,7 +268,7 @@ export function ActivityPage() {
   const state = useQueryState(query, setError)
   const showSkeleton = useDelayedFlag(state.loading)
 
-  const groups = useMemo(() => groupEntriesByLocalDay(entries ?? []), [entries])
+  const groups = useMemo(() => groupEntriesByLocalDay(entries ?? [], locale), [entries, locale])
 
   function updateFilter(patch: Partial<AuditLogFilter>) {
     setFilters((prev) => ({ ...prev, ...patch }))
@@ -278,18 +294,17 @@ export function ActivityPage() {
   return (
     <Box sx={{ py: { xs: 2, sm: 4 } }}>
       <Typography variant="h4" component="h1" sx={{ mb: 1 }}>
-        Activity
+        {t('title')}
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Every committed change, newest first - what changed, when, and by what (a direct action or a
-        system-generated one).
+        {t('subtitle')}
       </Typography>
 
       <ErrorAlert message={error} onDismiss={() => setError(null)} />
 
       <ResponsiveFilterBar activeCount={activeFilterCount} onClear={clearFilters}>
         <TextField
-          label="From"
+          label={t('filters.from')}
           type="date"
           size="small"
           value={filters.from?.slice(0, 10) ?? ''}
@@ -299,7 +314,7 @@ export function ActivityPage() {
           slotProps={{ inputLabel: { shrink: true } }}
         />
         <TextField
-          label="To"
+          label={t('filters.to')}
           type="date"
           size="small"
           value={filters.to?.slice(0, 10) ?? ''}
@@ -315,13 +330,13 @@ export function ActivityPage() {
           onChange={(e) =>
             updateFilter({ entityType: (e.target.value || undefined) as AuditEntityType })
           }
-          aria-label="Entity type filter"
+          aria-label={t('filters.entityTypeAria')}
           sx={{ minWidth: 160 }}
         >
-          <MenuItem value="">All entity types</MenuItem>
-          {ENTITY_TYPES.map((t) => (
-            <MenuItem key={t} value={t}>
-              {enumLabel(t)}
+          <MenuItem value="">{t('filters.allEntityTypes')}</MenuItem>
+          {ENTITY_TYPES.map((entityType) => (
+            <MenuItem key={entityType} value={entityType}>
+              {entityTypeLabel(entityType, t)}
             </MenuItem>
           ))}
         </Select>
@@ -330,13 +345,13 @@ export function ActivityPage() {
           displayEmpty
           value={filters.action ?? ''}
           onChange={(e) => updateFilter({ action: (e.target.value || undefined) as AuditAction })}
-          aria-label="Action filter"
+          aria-label={t('filters.actionAria')}
           sx={{ minWidth: 140 }}
         >
-          <MenuItem value="">All actions</MenuItem>
-          {ACTIONS.map((a) => (
-            <MenuItem key={a} value={a}>
-              {enumLabel(a)}
+          <MenuItem value="">{t('filters.allActions')}</MenuItem>
+          {ACTIONS.map((action) => (
+            <MenuItem key={action} value={action}>
+              {actionLabel(action, t)}
             </MenuItem>
           ))}
         </Select>
@@ -345,13 +360,13 @@ export function ActivityPage() {
           displayEmpty
           value={filters.origin ?? ''}
           onChange={(e) => updateFilter({ origin: (e.target.value || undefined) as AuditOrigin })}
-          aria-label="Origin filter"
+          aria-label={t('filters.originAria')}
           sx={{ minWidth: 120 }}
         >
-          <MenuItem value="">All origins</MenuItem>
-          {ORIGINS.map((o) => (
-            <MenuItem key={o} value={o}>
-              {enumLabel(o)}
+          <MenuItem value="">{t('filters.allOrigins')}</MenuItem>
+          {ORIGINS.map((origin) => (
+            <MenuItem key={origin} value={origin}>
+              {originLabel(origin, t)}
             </MenuItem>
           ))}
         </Select>
@@ -367,7 +382,7 @@ export function ActivityPage() {
         </Box>
       ) : entries && entries.length === 0 ? (
         <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
-          No activity found.
+          {t('noActivity')}
         </Typography>
       ) : (
         <Box sx={fadeInSx}>
@@ -383,17 +398,19 @@ export function ActivityPage() {
                     entry={entry}
                     expanded={expandedId === entry.id}
                     onToggle={() => toggle(entry.id)}
+                    t={t as ActivityT}
+                    locale={locale}
                   />
                 ))
               ) : (
-                <Table size="small" aria-label={`Activity on ${group.label}`}>
+                <Table size="small" aria-label={t('activityOnAria', { date: group.label })}>
                   <TableHead>
                     <TableRow>
-                      <TableCell>Time</TableCell>
-                      <TableCell>Action</TableCell>
-                      <TableCell>Entity type</TableCell>
-                      <TableCell>Label</TableCell>
-                      <TableCell>Origin</TableCell>
+                      <TableCell>{t('columns.time')}</TableCell>
+                      <TableCell>{t('columns.action')}</TableCell>
+                      <TableCell>{t('columns.entityType')}</TableCell>
+                      <TableCell>{t('columns.label')}</TableCell>
+                      <TableCell>{t('columns.origin')}</TableCell>
                       <TableCell align="right" />
                     </TableRow>
                   </TableHead>
@@ -404,6 +421,8 @@ export function ActivityPage() {
                         entry={entry}
                         expanded={expandedId === entry.id}
                         onToggle={() => toggle(entry.id)}
+                        t={t as ActivityT}
+                        locale={locale}
                       />
                     ))}
                   </TableBody>

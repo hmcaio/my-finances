@@ -10,6 +10,7 @@ import { seedBitcoinSnapshots } from '../../mocks/handlers/investmentSnapshots'
 import { seedBitcoinBuyTransfer, seedBitcoinSellTransfer } from '../../mocks/handlers/transfers'
 import { renderWithRouter, selectOption } from '../../test/testUtils'
 import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
+import { formatMoney } from '../../i18n/format'
 import { InvestmentProductDetailPage } from './InvestmentProductDetailPage'
 
 const bitcoin = seedInvestmentProducts.find((p) => p.id === 'iprod-btc')!
@@ -116,7 +117,7 @@ describe('InvestmentProductDetailPage', () => {
     await user.type(dialog.getByRole('spinbutton', { name: 'Balance' }), '1234.5')
     await user.click(dialog.getByRole('button', { name: 'Record snapshot' }))
 
-    expect(await within(history).findByText('1234.50')).toBeInTheDocument()
+    expect(await within(history).findByText(formatMoney(1234.5, 'en'))).toBeInTheDocument()
     expect(sent).toEqual({ date: '2026-09-01', balance: 1234.5 })
     // The dialog closes on success, restoring the page to the accessibility tree.
     await waitFor(() =>

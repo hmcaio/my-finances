@@ -6,7 +6,7 @@ import {
   vehicleRenameConflictHandler,
 } from '../../mocks/handlers/vehicles'
 import { describeNamedEntityApi } from '../../test/apiContract'
-import { PROBLEM_TYPE_MESSAGES } from '../core/apiError'
+import { resolveErrorMessage } from '../../test/errorMessages'
 import {
   createVehicle,
   deleteVehicle,
@@ -37,9 +37,8 @@ describeNamedEntityApi<Vehicle, CreateVehicleRequest, UpdateVehicleRequest>({
   },
   remove: { id: 'veh-1' },
   conflict: {
-    message: PROBLEM_TYPE_MESSAGES['urn:my-finances:error:vehicle-in-use'],
-    duplicateNameMessage:
-      PROBLEM_TYPE_MESSAGES['urn:my-finances:error:vehicle-name-already-exists'],
+    message: resolveErrorMessage('urn:my-finances:error:vehicle-in-use'),
+    duplicateNameMessage: resolveErrorMessage('urn:my-finances:error:vehicle-name-already-exists'),
     createHandler: vehicleCreateConflictHandler,
     renameHandler: vehicleRenameConflictHandler,
     deleteHandler: vehicleDeleteConflictHandler,

@@ -67,7 +67,7 @@ describe('DashboardPage', () => {
     await user.click(await screen.findByRole('option', { name: seedDebitCardPaymentMethod.name }))
     await user.click(screen.getByRole('button', { name: 'Confirm' }))
 
-    expect(await within(spend).findByText('Total 1692.50')).toBeInTheDocument()
+    expect(await within(spend).findByText('Total 1,692.50')).toBeInTheDocument()
     expect(screen.getByText('Nothing pending right now.')).toBeInTheDocument()
   })
 

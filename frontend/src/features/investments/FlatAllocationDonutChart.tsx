@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Box, Skeleton, Typography } from '@mui/material'
 import type { AllocationGrouping, AllocationRow } from '../../api/investments/investmentAllocation'
 import { useInvestmentAllocation } from '../../api/investments/investmentAllocationQueries'
@@ -6,6 +7,8 @@ import { fadeInSx } from '../../components/feedback/fadeIn'
 import { LoadFailedNotice } from '../../components/feedback/LoadFailedNotice'
 import { useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
+import { useLocale } from '../../hooks/locale/useLocale'
+import { formatMoney, formatNumber } from '../../i18n/format'
 import { CENTER, SIZE, SLICE_COLORS, VISUALLY_HIDDEN, segmentPath } from './donutGeometry'
 
 interface Slice {
@@ -44,6 +47,8 @@ export function FlatAllocationDonutChart({
   emptyMessage,
   staleFootnote,
 }: FlatAllocationDonutChartProps) {
+  const { t } = useTranslation('investments')
+  const { locale } = useLocale()
   const query = useInvestmentAllocation({ groupBy })
   const rows = query.data
   const state = useQueryState(query)
@@ -88,9 +93,12 @@ export function FlatAllocationDonutChart({
   }
   if (showSkeleton) {
     return (
-      <Box role="status" aria-label={`Loading ${ariaLabel.toLowerCase()}`}>
+      <Box
+        role="status"
+        aria-label={t('flatAllocation.loadingAria', { label: ariaLabel.toLowerCase() })}
+      >
         <Box component="span" sx={VISUALLY_HIDDEN}>
-          Loading…
+          {t('allocation.loading')}
         </Box>
         <Skeleton variant="rounded" height={SIZE} />
       </Box>
@@ -117,10 +125,16 @@ export function FlatAllocationDonutChart({
           sx={{ width: SIZE, height: SIZE, flexShrink: 0 }}
         >
           {arcs.map(({ slice, start, end }) => {
-            const percentage = ((slice.value / total) * 100).toFixed(1)
+            const percentage = formatNumber((slice.value / total) * 100, locale, 1)
             return (
               <path key={slice.key} d={segmentPath(start, end)} fill={slice.color} stroke="none">
-                <title>{`${slice.label}: ${slice.value.toFixed(2)} (${percentage}%)`}</title>
+                <title>
+                  {t('flatAllocation.sliceTooltip', {
+                    label: slice.label,
+                    value: formatMoney(slice.value, locale),
+                    percentage,
+                  })}
+                </title>
               </path>
             )
           })}
@@ -132,17 +146,17 @@ export function FlatAllocationDonutChart({
             fontSize="14"
             fill="currentColor"
           >
-            {total.toFixed(2)}
+            {formatMoney(total, locale)}
           </text>
         </Box>
 
         <Box
           component="ul"
-          aria-label={`${ariaLabel} legend`}
+          aria-label={`${ariaLabel}${t('flatAllocation.legendAriaSuffix')}`}
           sx={{ listStyle: 'none', p: 0, m: 0 }}
         >
           {slices.map((slice) => {
-            const percentage = total > 0 ? ((slice.value / total) * 100).toFixed(1) : '0.0'
+            const percentage = formatNumber(total > 0 ? (slice.value / total) * 100 : 0, locale, 1)
             return (
               <Box component="li" key={slice.key} sx={{ py: 0.25, px: 1 }}>
                 <Box
@@ -162,7 +176,7 @@ export function FlatAllocationDonutChart({
                   {slice.needsSnapshot ? '*' : ''}
                 </Typography>
                 <Typography component="span" color="text.secondary">
-                  {slice.value.toFixed(2)} ({percentage}%)
+                  {formatMoney(slice.value, locale)} ({percentage}%)
                 </Typography>
               </Box>
             )

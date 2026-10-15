@@ -6,7 +6,7 @@ import { server } from '../../mocks/server'
 import { seedInvestmentAccount } from '../../mocks/handlers/accounts'
 import { seedInvestmentHoldings } from '../../mocks/handlers/investmentHoldings'
 import { investmentProductCreateConflictHandler } from '../../mocks/handlers/investmentProducts'
-import { PROBLEM_TYPE_MESSAGES } from '../../api/core/apiError'
+import { resolveErrorMessage } from '../../test/errorMessages'
 import { findRow, renderWithRouter, selectOption } from '../../test/testUtils'
 import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
 import { InvestmentProductsSection } from './InvestmentProductsSection'
@@ -217,7 +217,7 @@ describe('InvestmentProductsSection', () => {
 
     expect(
       await screen.findByText(
-        PROBLEM_TYPE_MESSAGES['urn:my-finances:error:investment-product-name-already-exists'],
+        resolveErrorMessage('urn:my-finances:error:investment-product-name-already-exists'),
       ),
     ).toBeInTheDocument()
   })

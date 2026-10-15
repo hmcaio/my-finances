@@ -2,6 +2,7 @@ import type { ReactElement, ReactNode } from 'react'
 import { render, renderHook, type RenderResult } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createQueryClient } from '../api/core/queryClient'
+import { LocaleProvider } from '../hooks/locale/LocaleProvider'
 
 /** A fresh client with the app's mutation-invalidation rules but `gcTime: 0`, so nothing leaks
  * between tests. */
@@ -10,8 +11,16 @@ export function createTestQueryClient(): QueryClient {
 }
 
 function wrapperFor(client: QueryClient) {
+  // F033/ADR 0027: any page using formatMoney/formatNumber/formatDate or translateSeedName calls
+  // useLocale(), which throws outside a LocaleProvider - wrapped here so every existing
+  // renderWithQueryClient/renderWithRouter/renderHookWithQueryClient call site keeps working with
+  // no per-test change, the same way QueryClientProvider already is.
   return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    return (
+      <LocaleProvider>
+        <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      </LocaleProvider>
+    )
   }
 }
 

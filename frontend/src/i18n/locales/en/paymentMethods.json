@@ -1,0 +1,7 @@
+{
+  "title": "Payment Methods",
+  "description": "Which rail a transaction went through (debit card, PIX, cash, ...) - informational only, doesn't affect account balances.",
+  "addButton": "Add payment method",
+  "addDialogTitle": "Add payment method",
+  "emptyList": "No payment methods yet."
+}
