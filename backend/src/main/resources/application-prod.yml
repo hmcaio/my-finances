@@ -11,6 +11,13 @@
 server:
   address: 0.0.0.0
 
+myfinances:
+  auth:
+    # F036, ADR 0029: the backend is reachable only through nginx here, which overwrites X-Real-IP
+    # with the real peer address (frontend/nginx.conf) - so the login rate limiter can key on it
+    # instead of seeing every client as the nginx container.
+    client-ip-header: X-Real-IP
+
 spring:
   datasource:
     url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}

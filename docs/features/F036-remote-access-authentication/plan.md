@@ -16,19 +16,19 @@ One feature branch (`feature/f036-remote-access-authentication`), backend first 
 - [x] Add the one-off Gradle task that prints an Argon2 hash for a given plaintext password, using the same encoder configuration the app verifies with. Document its invocation in backend `CLAUDE.md` and the README.
 
 ## Phase 2 — Backend: `SecurityFilterChain`, login/logout/session endpoints
-- [ ] Test first (`@SpringBootTest`/`MockMvc`, per this repo's REST test convention): `POST /api/auth/login` with correct credentials sets a session cookie and returns 200; wrong credentials return 401 via the new `ProblemDetail` shape; `GET /api/auth/session` returns 401 unauthenticated, 200 once logged in; `POST /api/auth/logout` invalidates the session (`GET /api/auth/session` returns 401 again afterward); every other existing endpoint returns 401 without a session and succeeds with one.
-- [ ] Implement `SecurityFilterChain`: `permitAll` for `/api/auth/login` and `/actuator/health`, authenticated for everything else; the three auth endpoints themselves.
-- [ ] Wire CSRF: `CookieCsrfTokenRepository.withHttpOnlyFalse()`.
-- [ ] Test first: a state-changing request without a CSRF token/header is rejected; with the cookie-sourced token, it succeeds.
-- [ ] `./gradlew spotlessApply` then `./gradlew spotlessCheck test integrationTest` (Docker running).
+- [x] Test first (`@SpringBootTest`/`MockMvc`, per this repo's REST test convention): `POST /api/auth/login` with correct credentials sets a session cookie and returns 200; wrong credentials return 401 via the new `ProblemDetail` shape; `GET /api/auth/session` returns 401 unauthenticated, 200 once logged in; `POST /api/auth/logout` invalidates the session (`GET /api/auth/session` returns 401 again afterward); every other existing endpoint returns 401 without a session and succeeds with one.
+- [x] Implement `SecurityFilterChain`: `permitAll` for `/api/auth/login` and `/actuator/health`, authenticated for everything else; the three auth endpoints themselves.
+- [x] Wire CSRF: `CookieCsrfTokenRepository.withHttpOnlyFalse()`.
+- [x] Test first: a state-changing request without a CSRF token/header is rejected; with the cookie-sourced token, it succeeds.
+- [x] `./gradlew spotlessApply` then `./gradlew spotlessCheck test integrationTest` (Docker running).
 
 ## Phase 3 — Backend: error wiring, rate limiting
-- [ ] Test first: hitting any endpoint unauthenticated returns the `unauthenticated` `ProblemDetail` slug (401); a request past an authorization boundary (if any exists yet) returns `access-denied` (403) — both in the standard `type`/`title`/`status`/`instance` shape, `detail` null.
-- [ ] Implement `ProblemDetailAuthenticationEntryPoint`/`ProblemDetailAccessDeniedHandler`, registered on the `SecurityFilterChain`. Add both new slugs to wherever `ProblemTypeSlugs`'s fixed constants are documented.
-- [ ] Test first: N failed logins from the same source within the configured window trip a cooldown; the next attempt (even with correct credentials) returns 429 with the `too-many-login-attempts` slug; after the window elapses, a correct login succeeds again.
-- [ ] Implement the in-memory per-IP `LoginAttemptTracker`, wired into the login failure/success path.
-- [ ] Confirm login attempts are logged as outcome/count only — grep the diff for any line that could log the username or password; there must be none.
-- [ ] `./gradlew spotlessCheck test integrationTest`.
+- [x] Test first: hitting any endpoint unauthenticated returns the `unauthenticated` `ProblemDetail` slug (401); a request past an authorization boundary (if any exists yet) returns `access-denied` (403) — both in the standard `type`/`title`/`status`/`instance` shape, `detail` null.
+- [x] Implement `ProblemDetailAuthenticationEntryPoint`/`ProblemDetailAccessDeniedHandler`, registered on the `SecurityFilterChain`. Add both new slugs to wherever `ProblemTypeSlugs`'s fixed constants are documented.
+- [x] Test first: N failed logins from the same source within the configured window trip a cooldown; the next attempt (even with correct credentials) returns 429 with the `too-many-login-attempts` slug; after the window elapses, a correct login succeeds again.
+- [x] Implement the in-memory per-IP `LoginAttemptTracker`, wired into the login failure/success path.
+- [x] Confirm login attempts are logged as outcome/count only — grep the diff for any line that could log the username or password; there must be none.
+- [x] `./gradlew spotlessCheck test integrationTest`.
 
 ## Phase 4 — Backend: dev CORS
 - [ ] Update `WebConfig`: `allowCredentials(true)` with an explicit configured dev origin, replacing the current `allowedOriginPatterns("http://localhost:*")` wildcard (incompatible with credentials).

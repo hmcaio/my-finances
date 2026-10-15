@@ -35,6 +35,30 @@ public final class ProblemTypeSlugs {
   /** Fixed title paired with {@link #INTERNAL_ERROR_TYPE}. */
   public static final String INTERNAL_ERROR_TITLE = "An unexpected error occurred";
 
+  /**
+   * Fixed slug for a request that needs a session and has none (F036, ADR 0029). Emitted by {@code
+   * infrastructure/auth/ProblemDetailAuthenticationEntryPoint}, not by {@link
+   * GlobalExceptionHandler}: Spring Security's filter chain rejects the request before MVC
+   * dispatch, so no {@code @ControllerAdvice} ever sees it. Same shape as {@code
+   * INTERNAL_ERROR_TYPE}: fixed, never derived from a class. (The third F036 slug, {@code
+   * too-many-login-attempts}, <em>is</em> derived normally from {@code
+   * TooManyLoginAttemptsException}.)
+   */
+  public static final URI UNAUTHENTICATED_TYPE =
+      URI.create("urn:my-finances:error:unauthenticated");
+
+  /** Fixed title paired with {@link #UNAUTHENTICATED_TYPE}. */
+  public static final String UNAUTHENTICATED_TITLE = "Unauthenticated";
+
+  /**
+   * Fixed slug for an authenticated-but-refused request (F036) - in practice a failed CSRF check,
+   * since the app has a single role. Emitted by {@code ProblemDetailAccessDeniedHandler}.
+   */
+  public static final URI ACCESS_DENIED_TYPE = URI.create("urn:my-finances:error:access-denied");
+
+  /** Fixed title paired with {@link #ACCESS_DENIED_TYPE}. */
+  public static final String ACCESS_DENIED_TITLE = "Access denied";
+
   private ProblemTypeSlugs() {}
 
   /**
