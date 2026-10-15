@@ -35,8 +35,8 @@ One feature branch (`feature/f036-remote-access-authentication`), backend first 
 - [ ] Manual check, dev (`docker compose --profile full up -d`): confirm a cross-origin login from the Vite dev server to the backend actually sets and later sends the session cookie, and that the CSRF cookie/header pairing works end to end.
 
 ## Phase 5 — Deployment/network
-- [ ] Add `BIND_ADDR` (default `127.0.0.1`) to `docker-compose.yml`'s `full` profile (`backend`, `frontend`) and `docker-compose.prod.yml`'s `frontend`, replacing the hardcoded `127.0.0.1` prefixes. Document it in `.env.example`.
-- [ ] Pin `docker-compose.yml`'s `postgres` (`"5432:5432"` → `"127.0.0.1:5432:5432"`) and `pgadmin` (`"5050:80"` → `"127.0.0.1:5050:80"`) unconditionally — not controlled by `BIND_ADDR`.
+- [x] Add `BIND_ADDR` (default `127.0.0.1`) to `docker-compose.yml`'s `full` profile (`backend`, `frontend`) and `docker-compose.prod.yml`'s `frontend`, replacing the hardcoded `127.0.0.1` prefixes. Document it in `.env.example`.
+- [x] Pin `docker-compose.yml`'s `postgres` (`"5432:5432"` → `"127.0.0.1:5432:5432"`) and `pgadmin` (`"5050:80"` → `"127.0.0.1:5050:80"`) unconditionally — not controlled by `BIND_ADDR`.
 - [ ] Manual check: `docker compose --profile full up -d` with `BIND_ADDR` unset still behaves exactly as before (loopback-only); setting it to another local interface IP makes the app (but not Postgres/pgAdmin) reachable there.
 
 ## Phase 6 — Frontend

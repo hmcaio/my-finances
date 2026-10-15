@@ -8,7 +8,10 @@ services:
       POSTGRES_USER: myfinances
       POSTGRES_PASSWORD: myfinances
     ports:
-      - "5432:5432"
+      # Host loopback only, regardless of BIND_ADDR (F036, ADR 0029): there is no legitimate reason
+      # for the database to be reachable from another machine, and BIND_ADDR exists to expose the
+      # (authenticated) app - not this.
+      - "127.0.0.1:5432:5432"
     volumes:
       - my-finances-postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -28,7 +31,8 @@ services:
       PGADMIN_DEFAULT_PASSWORD: myfinances
     ports:
       # http://localhost:5050 - log in with PGADMIN_DEFAULT_EMAIL / PGADMIN_DEFAULT_PASSWORD above.
-      - "5050:80"
+      # Host loopback only, regardless of BIND_ADDR (F036, ADR 0029) - same reason as postgres.
+      - "127.0.0.1:5050:80"
     volumes:
       - my-finances-pgadmin-data:/var/lib/pgadmin
     configs:
@@ -59,11 +63,21 @@ services:
       # its own local time - keep them equal by setting TZ in .env. Same variable as prod.
       TZ: ${TZ:-UTC}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/myfinances
+      # F036, ADR 0029: the single shared login, required in dev too (no bypass). From .env (see
+      # .env.example); the backend refuses to start without them and says why. The password hash
+      # contains $ characters, so it must be single-quoted in .env.
+      AUTH_USERNAME: ${AUTH_USERNAME:-}
+      AUTH_PASSWORD_HASH: ${AUTH_PASSWORD_HASH:-}
+      # Credentialed CORS needs exact origins: the Vite dev server on localhost, and on BIND_ADDR
+      # when the dev stack is exposed there (the SPA then calls the API on the host it was served
+      # from - see frontend/src/api/core/client.ts).
+      MYFINANCES_CORS_ALLOWED_ORIGINS: http://localhost:5173,http://${BIND_ADDR:-127.0.0.1}:5173
       # Optional remote debugger: publish 5005 below and attach an IDE "Remote JVM Debug" config.
       # JAVA_TOOL_OPTIONS: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
     ports:
-      # Host loopback only (PRD S7.1); the browser calls the API directly (VITE_API_BASE_URL).
-      - "127.0.0.1:8080:8080"
+      # Host loopback by default (PRD S7.1); BIND_ADDR (F036, ADR 0029) is the one knob that moves
+      # it to a private-network interface. The browser calls the API directly (VITE_API_BASE_URL).
+      - "${BIND_ADDR:-127.0.0.1}:8080:8080"
     volumes:
       - ./backend:/workspace
       - my-finances-gradle-cache:/root/.gradle
@@ -89,7 +103,8 @@ services:
       # Bind mounts from a Windows host don't deliver file-change events; see vite.config.ts.
       VITE_USE_POLLING: "true"
     ports:
-      - "127.0.0.1:5173:5173"
+      # Same BIND_ADDR knob as the backend above (F036, ADR 0029).
+      - "${BIND_ADDR:-127.0.0.1}:5173:5173"
     volumes:
       - ./frontend:/app
       - my-finances-frontend-node-modules:/app/node_modules
