@@ -31,6 +31,7 @@ One file per decision, numbered sequentially, never renumbered or edited to chan
 | [0025](0025-investment-split-as-read-side-adjustment.md) | Model a stock/FII split as a product-level event, applied as a read-side quantity adjustment | Accepted |
 | [0026](0026-structured-error-responses-rfc9457.md) | Replace status-code-only error responses with RFC 9457 Problem Details bodies, `type` auto-derived from exception class name | Accepted |
 | [0027](0027-frontend-i18n-react-i18next.md) | Frontend-only i18n with react-i18next: client-only locale, English + Brazilian Portuguese, locale-aware formatting | Accepted |
+| [0028](0028-fixed-taxonomy-values-and-onboarding-seeded-categories.md) | Lock PaymentMethod/InvestmentCategory/InvestmentSubcategory/InvestmentSegment to fixed system values, close Institution's rename gap, and seed Category defaults through onboarding instead of migration | Accepted |
 
 Template:
 ```
