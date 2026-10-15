@@ -21,12 +21,18 @@ function getInitialLocale(): Locale {
  * A layout effect (not a plain effect) so it runs before the browser paints - `i18n.ts`'s own
  * module-level `lng: 'en'` is otherwise visible for one paint on every load, including a
  * `pt-BR`-detected one.
+ *
+ * Also syncs `<html lang>` to the active locale: correct a11y practice regardless, and the reason
+ * Chromium's native `<input type="date">`/`type="month">` picker (month names, date order) follows
+ * this app's language instead of just the OS locale - Firefox/Safari don't honor `lang` for that
+ * and keep following OS settings regardless (accepted gap, F033 spec's Non-goals).
  */
 export function LocaleProvider({ children }: PropsWithChildren) {
   const [locale, setLocale] = useState<Locale>(getInitialLocale)
 
   useLayoutEffect(() => {
     void i18n.changeLanguage(locale)
+    document.documentElement.lang = locale
   }, [locale])
 
   const value = useMemo<LocaleContextValue>(

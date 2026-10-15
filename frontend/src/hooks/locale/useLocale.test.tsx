@@ -51,12 +51,14 @@ describe('useLocale', () => {
     expect(result.current.locale).toBe('pt-BR')
     expect(localStorage.getItem(STORAGE_KEY)).toBe('pt-BR')
     await waitFor(() => expect(i18n.language).toBe('pt-BR'))
+    expect(document.documentElement.lang).toBe('pt-BR')
 
     act(() => result.current.toggleLocale())
 
     expect(result.current.locale).toBe('en')
     expect(localStorage.getItem(STORAGE_KEY)).toBe('en')
     await waitFor(() => expect(i18n.language).toBe('en'))
+    expect(document.documentElement.lang).toBe('en')
   })
 
   it('throws when used outside a LocaleProvider', () => {
