@@ -127,6 +127,7 @@ Documented and next up:
 - **F028** — investment splits, backend (a product-level `InvestmentSplit` event, applied as a read-side adjustment to held units; [ADR 0025](docs/adr/0025-investment-split-as-read-side-adjustment.md))
 - **F029** — investment splits, frontend (the product-detail split-history panel and record/delete dialog for F028)
 - **F035** — category onboarding (stops migration-seeding Category's regular starter rows in favor of a localized onboarding suggestion step; depends on F034's ADR 0028)
+- **F036** — remote access & authentication (single shared-credential session-cookie login; a generic `BIND_ADDR` env var for exposing the app over any private network without pinning to a specific product; [ADR 0029](docs/adr/0029-session-auth-and-generic-network-binding.md))
 
 See [docs/features/](docs/features/) for the full breakdown, in build order, with each feature's spec and its dependencies on the others.
 

@@ -24,7 +24,7 @@ Designed for solo use today, with a data model that can extend to household/mult
 - No *computed* investment math: a buy/sell records its quantity, unit price and taxes as plain data (§5.5), but nothing price-derived is computed from them — no live or computed market prices, no automatic gain/loss calculation. Investment values are always manually entered as snapshots (§5.8). Running totals of plain recorded fields — cotas held and amount contributed per FII product (§5.13) — are sums of `quantity`/`amount`, the same computed-not-stored style as §5.8's existing monthly `units`/`contributed` value-series fields, not a price-derived valuation, so they stay outside this non-goal.
 - No manual physical assets (real estate, vehicles) in net worth — the `Vehicle` entity introduced for fuel-transaction tracking (§5.11) is a plain label for grouping fuel purchases, not a valued asset counted in net worth.
 - No user-editable fuel types — Etanol, Etanol Aditivado, Gasolina and Gasolina Aditivada are a fixed list (§5.11); adding others (e.g. electric) is a future direction (§9).
-- No authentication — app is single-user and bound to localhost only, not exposed to LAN or internet.
+- No multi-user accounts or per-user data scoping — a single shared credential gates access (§6.15), the app remains single-user (§4), and the network it's reachable on (localhost, LAN, a private overlay network, a VPS) is an environment-level choice, not something the app models or depends on (§7.1, [ADR 0029](../adr/0029-session-auth-and-generic-network-binding.md)).
 - No automatic bank statement reconciliation/matching — account balances are whatever the logged transactions and transfers compute to; there is no import-and-match step.
 - No interest/fee accrual modeling on credit card liabilities — the balance owed only reflects logged expenses and payment transfers, not statement interest or fees.
 - No loan amortization schedules — only checking/savings/cash/credit-card/investment account types are modeled (see §5.4); a general "loan" account type is a future direction.
@@ -32,7 +32,7 @@ Designed for solo use today, with a data model that can extend to household/mult
 - No rebalance-suggestion amounts (how much to buy/sell to hit the allocation plan's target) — the FII page (§6.13) only compares target vs. actual percentages.
 - No scheduled or emailed report generation, and reports (§6.9) are not a backup/disaster-recovery mechanism — generation is on-demand and user-triggered only, consistent with the app not running continuously (§7.3); real backups are F018's job.
 - No UI language beyond English and Brazilian Portuguese (pt-BR, §6.14) — a third language is a future direction (§9).
-- No per-request or multi-user locale — the UI language is a single client-side preference (no backend involvement, consistent with the single-user/no-auth scope above); the backend itself never sends translatable text regardless (ADR 0011, ADR 0026).
+- No per-request or multi-user locale — the UI language is a single client-side preference (no backend involvement, consistent with the single-user scope above); the backend itself never sends translatable text regardless (ADR 0011, ADR 0026).
 - No currency symbol introduced by the UI language toggle (§6.14) — amounts stay symbol-less in both languages, consistent with the single-currency stance above.
 - No user customization of Payment Method, Investment Category/Sub-category, or Investment Segment (§5.2, §5.8, §5.13) — all four are fixed, migration-seeded reference lists with no create/rename/delete of any kind ([ADR 0028](../adr/0028-fixed-taxonomy-values-and-onboarding-seeded-categories.md)); unlike Category (§5.1), none of these is treated as personal data. Reintroducing customization if a real gap in a fixed list appears is a future direction (§9).
 
@@ -351,6 +351,12 @@ Eleven curated, human-readable reports a user generates on demand, superseding t
 - Every label, button, nav item and validation/error message switches with it; so does number, date and money formatting (decimal/thousands separator, date order) — amounts never gain a currency symbol in either language (§3).
 - User-entered text (category/account/institution names, transaction descriptions and notes, etc.) is never translated. A migration-seeded row (§5.1's four protected categories, §5.2, §5.8, §5.10's built-in institution, §5.13's segments) displays translated by exact-name match; the fixed entities (§5.2, §5.8, §5.13) are never renamable so stay translated permanently, while a protected category or the built-in institution displays translated regardless of rename since those specific rows can't be renamed either (§5.1, §5.10). An onboarding-accepted or custom category (§6.7) is translated the same way only until renamed, same as any other seeded-but-ordinary row.
 
+### 6.15 Authentication
+- A single shared credential (username + password, set via environment variables) gates every page and API call — not a per-user account system (§3, §4). Logging in sets a session cookie; logging out clears it. A session stays valid for 30 days of inactivity.
+- Required in every environment the app runs in, with no exceptions for local development — the same login screen appears whether the app is reached at `localhost`, over a home network, or through a private overlay network (§7.1).
+- Repeated failed login attempts are throttled; past a threshold, further attempts are rejected for a cooldown period rather than retried indefinitely.
+- No password reset flow, no "forgot password" email (there is no email anywhere in this app) — the credential is rotated by changing the environment variable and restarting the app ([ADR 0029](../adr/0029-session-auth-and-generic-network-binding.md)).
+
 ## 7. Technical Design
 
 ### 7.1 Stack
@@ -358,8 +364,8 @@ Eleven curated, human-readable reports a user generates on demand, superseding t
 - **Database migrations**: Flyway.
 - **Frontend**: React + TypeScript, built with Vite, Material UI (MUI) for components/theming, React Router for client-side routing.
 - **Database**: PostgreSQL, run via Docker (Docker Compose for local dev: db + backend, at minimum).
-- **Auth**: none. App assumes a trusted single user on a trusted machine.
-- **Network exposure**: backend/frontend bound to `localhost` only — not exposed to LAN or internet in this version.
+- **Auth**: single shared-credential session-cookie login (§6.15) gates access — still single-user, no accounts, no per-user permissions ([ADR 0029](../adr/0029-session-auth-and-generic-network-binding.md)).
+- **Network exposure**: defaults to `localhost` only, same as before, but the bind address is now an environment-level setting — reachable over a LAN, a private overlay network (e.g. Tailscale, WireGuard, or any equivalent — the app doesn't depend on or assume a specific one), or eventually a VPS, is an operator choice rather than something the app hardcodes. TLS termination, if used, is likewise an operator-level concern, not bundled with any particular network tool.
 
 ### 7.2 Architecture & Methodology
 - **Domain-Driven Design**: entity clusters in §5 map to aggregates/bounded contexts — e.g. Account + Transfer, Budget + BudgetVersion, RecurringTemplate + RecurringTemplateVersion, the Investment* cluster — each with its own consistency rules (e.g. a transfer's two-sided balance update, a budget version's forward-only effective date).
@@ -398,7 +404,6 @@ These are low-level choices left to implementation rather than product decisions
 - Auto-computing `km_since_last_fill` from consecutive odometer readings, or validating `amount` against `liters × price_per_liter` — both are recorded independently and trusted as entered (§5.11).
 - Generalizing the FII page (§6.13), the allocation plan and the ticker/segment fields (§5.13) to other ticker-based assets (stocks, ETFs) — the data model is deliberately generic, but the UI and the plan's product-membership validation are FII-only for v1.
 - Cash-in-lieu handling for a fractional split remainder ("sobra de desdobramento", §5.14) — recorded as an ordinary transfer for now, not a dedicated field on `InvestmentSplit`.
-- Remote/LAN access with authentication.
 - Notifications (email/push) for budget overages or pending recurring bills.
 - Additional UI languages beyond English and Brazilian Portuguese (§6.14); server-side/multi-user locale (today it's a single client-side preference, no backend involvement).
 - Currency symbol display (§6.14) — tied to the existing no-multi-currency-support non-goal (§3), not introduced by the language toggle.
