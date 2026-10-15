@@ -93,32 +93,22 @@ test.describe('settings - categories', () => {
   })
 })
 
+// F034/ADR 0028: payment methods lost every mutation affordance - every row is fixed,
+// migration-seeded content, so there is no add/rename/delete flow left to check, only the
+// read-only list's layout.
 test.describe('settings - payment methods', () => {
-  test('lists payment methods in a plain table without horizontal overflow', async ({ page }) => {
+  test('lists payment methods in a plain table without horizontal overflow, no add/rename/delete', async ({
+    page,
+  }) => {
     await page.goto('/settings/payment-methods')
 
     await expect(page.getByRole('heading', { name: 'Payment Methods', level: 1 })).toBeVisible()
     await expect(page.getByRole('table')).toBeVisible()
     await page.waitForLoadState('networkidle')
 
-    await expectNoHorizontalOverflow(page)
-  })
-
-  test('adds through the header dialog, full screen only on mobile', async ({ page }, testInfo) => {
-    const mobile = testInfo.project.name === 'mobile'
-    await page.goto('/settings/payment-methods')
-    await expect(page.getByRole('table')).toBeVisible()
-
-    await page.getByRole('button', { name: 'Add payment method' }).click()
-    const dialog = page.getByRole('dialog')
-    await expect(dialog.getByLabel('Name')).toBeVisible()
-    const box = await dialog.boundingBox()
-    const viewport = page.viewportSize()!
-    if (mobile) {
-      expect(box?.width).toBeGreaterThanOrEqual(viewport.width)
-    } else {
-      expect(box?.width).toBeLessThan(viewport.width)
-    }
+    await expect(page.getByRole('button', { name: /add/i })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Rename' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Delete' })).toHaveCount(0)
     await expectNoHorizontalOverflow(page)
   })
 })
@@ -152,19 +142,26 @@ test.describe('settings - institutions', () => {
     await expectNoHorizontalOverflow(page)
   })
 
-  test('the built-in row still has no delete action, at every size', async ({ page }) => {
+  // F034/ADR 0028: closes the same rename gap already closed for Category - the built-in row now
+  // hides Rename alongside Delete (rendered-hidden, not omitted, for row-height parity).
+  test('the built-in row offers neither rename nor delete, at every size', async ({ page }) => {
     await page.goto('/settings/institutions')
     const row = page.getByRole('row', { name: /No institution/ })
     await expect(row).toBeVisible()
 
-    await expect(row.getByRole('button', { name: 'Rename' })).toBeVisible()
+    await expect(row.getByRole('button', { name: 'Rename' })).toHaveCount(0)
     await expect(row.getByRole('button', { name: 'Delete' })).toHaveCount(0)
     await expectNoHorizontalOverflow(page)
   })
 })
 
+// F034/ADR 0028: investment categories (and their nested sub-categories) lost every mutation
+// affordance - every row at both levels is fixed, migration-seeded content. Expand/collapse is
+// the only interaction left.
 test.describe('settings - investment categories', () => {
-  test('lists categories in a plain table without horizontal overflow', async ({ page }) => {
+  test('lists categories in a plain table without horizontal overflow, no add/rename/delete', async ({
+    page,
+  }) => {
     await page.goto('/settings/investment-categories')
 
     await expect(
@@ -173,36 +170,16 @@ test.describe('settings - investment categories', () => {
     await expect(page.getByRole('table')).toBeVisible()
     await page.waitForLoadState('networkidle')
 
+    await expect(page.getByRole('button', { name: /add/i })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Rename' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Delete' })).toHaveCount(0)
     await expectNoHorizontalOverflow(page)
   })
 
-  test('adds a category through the header dialog, full screen only on mobile', async ({
-    page,
-  }, testInfo) => {
-    const mobile = testInfo.project.name === 'mobile'
-    await page.goto('/settings/investment-categories')
-    await expect(page.getByRole('table')).toBeVisible()
-
-    await page.getByRole('button', { name: 'Add category' }).click()
-    const dialog = page.getByRole('dialog')
-    await expect(dialog.getByLabel('Category name')).toBeVisible()
-    const box = await dialog.boundingBox()
-    const viewport = page.viewportSize()!
-    if (mobile) {
-      expect(box?.width).toBeGreaterThanOrEqual(viewport.width)
-    } else {
-      expect(box?.width).toBeLessThan(viewport.width)
-    }
-    await expectNoHorizontalOverflow(page)
-  })
-
-  test('expands a category and adds a sub-category inline, with no dialog, at every size', async ({
-    page,
-  }) => {
+  test('expands a category to show its sub-categories, at every size', async ({ page }) => {
     await page.goto('/settings/investment-categories')
     await page.getByRole('button', { name: 'Expand Fixed Income' }).click()
 
-    await expect(page.getByLabel('New sub-category in Fixed Income')).toBeVisible()
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await expectNoHorizontalOverflow(page)
   })
