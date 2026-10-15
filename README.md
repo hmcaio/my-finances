@@ -61,6 +61,19 @@ Before pushing, `scripts/verify.sh` runs the same checks CI does (pinned version
 
 A production-shaped smoke test (Docker images end to end, no cloud involved) is also documented in `CLAUDE.md`.
 
+## Login
+
+Every page and API call sits behind a single shared login (F036, [ADR 0029](docs/adr/0029-session-auth-and-generic-network-binding.md)): one username and one password, in dev and in prod, no bypass. Set the credential once in `.env` (gitignored; see `.env.example`) before starting any stack, dev or prod. The password itself is never stored, only its Argon2 hash:
+
+```bash
+cd backend
+read -rs AUTH_PASSWORD && export AUTH_PASSWORD   # type it silently; keeps it out of shell history
+./gradlew -q generateAuthHash                     # prints the AUTH_PASSWORD_HASH='...' line for .env
+unset AUTH_PASSWORD
+```
+
+Without `AUTH_PASSWORD` set, `./gradlew -q generateAuthHash` prompts for the password on stdin instead (the typed text echoes there). Put the printed line in `.env` next to `AUTH_USERNAME=<your username>`, **keeping the single quotes**: the hash contains `$` characters that Docker Compose would otherwise try to expand. The backend refuses to start with a missing or malformed credential, and says which. To change the password, regenerate the hash and restart. A login session lasts 30 days idle.
+
 ## Backups
 
 The production stack (`docker-compose.prod.yml`) runs a `backup` sidecar that takes encrypted `pg_dump` backups on a catch-up schedule (on start if the last success is older than `BACKUP_MAX_AGE_HOURS`, then hourly while the stack is up) with GFS retention (7 daily / 5 weekly / 12 monthly). See [ADR 0015](docs/adr/0015-automated-encrypted-backups-sidecar.md) for the full design. The dev stack is never backed up — it's not in scope.

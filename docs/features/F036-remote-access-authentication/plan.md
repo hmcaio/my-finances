@@ -9,11 +9,11 @@ One feature branch (`feature/f036-remote-access-authentication`), backend first 
 - [x] Update `docs/PRD.md`: §3 non-goal reworded, new §6.15 Authentication, §7.1 Auth/Network exposure rewritten, §9's graduated future direction removed.
 
 ## Phase 1 — Backend: credential, hashing tool, `UserDetailsService`
-- [ ] Add `spring-boot-starter-security` (and whichever Bouncy Castle artifact `Argon2PasswordEncoder` needs) to `backend/build.gradle`, pinned explicitly.
-- [ ] `AUTH_USERNAME`/`AUTH_PASSWORD_HASH` env-backed configuration properties.
-- [ ] Test first: a `UserDetailsService` unit test — the configured username authenticates against the configured Argon2 hash; a wrong password fails; a wrong username fails without revealing which was wrong.
-- [ ] Implement the single-user `UserDetailsService`.
-- [ ] Add the one-off Gradle task that prints an Argon2 hash for a given plaintext password, using the same encoder configuration the app verifies with. Document its invocation in backend `CLAUDE.md` and the README.
+- [x] Add `spring-boot-starter-security` (and whichever Bouncy Castle artifact `Argon2PasswordEncoder` needs) to `backend/build.gradle`, pinned explicitly.
+- [x] `AUTH_USERNAME`/`AUTH_PASSWORD_HASH` env-backed configuration properties.
+- [x] Test first: a `UserDetailsService` unit test — the configured username authenticates against the configured Argon2 hash; a wrong password fails; a wrong username fails without revealing which was wrong.
+- [x] Implement the single-user `UserDetailsService`.
+- [x] Add the one-off Gradle task that prints an Argon2 hash for a given plaintext password, using the same encoder configuration the app verifies with. Document its invocation in backend `CLAUDE.md` and the README.
 
 ## Phase 2 — Backend: `SecurityFilterChain`, login/logout/session endpoints
 - [ ] Test first (`@SpringBootTest`/`MockMvc`, per this repo's REST test convention): `POST /api/auth/login` with correct credentials sets a session cookie and returns 200; wrong credentials return 401 via the new `ProblemDetail` shape; `GET /api/auth/session` returns 401 unauthenticated, 200 once logged in; `POST /api/auth/logout` invalidates the session (`GET /api/auth/session` returns 401 again afterward); every other existing endpoint returns 401 without a session and succeeds with one.
