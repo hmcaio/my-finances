@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, type PropsWithChildren } from 'react'
+import { lazy, Suspense, useMemo, useState, type PropsWithChildren } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Box, CssBaseline, Skeleton, ThemeProvider } from '@mui/material'
 import { ColorModeProvider } from './hooks/colorMode/ColorModeProvider'
@@ -114,13 +114,36 @@ function ThemedApp() {
   const { hasAccounts, loading, loadError, reload } = useHasAccounts()
   const showSkeleton = useDelayedFlag(loading)
 
+  // F035: onboarding is now two steps (account, then category suggestions), but creating the
+  // account alone already flips `hasAccounts` to `true` - every mutation invalidates every query
+  // (frontend CLAUDE.md), so the accounts list refetches and resolves non-empty the instant step 1
+  // succeeds, well before `OnboardingPage`'s own `activeStep` state renders step 2. Gating purely
+  // on `hasAccounts` would swap onboarding for the dashboard mid-flow, silently skipping step 2.
+  // `inOnboarding` latches "we entered onboarding" the first time `hasAccounts` resolves `false`
+  // and only releases on `OnboardingPage`'s own `onCompleted` (step 2 finishing, not `hasAccounts`
+  // flipping) - not persisted anywhere, just render-session state, consistent with this feature's
+  // "no new persisted flag" decision (ADR 0028): a reload mid-flow re-derives from `hasAccounts`
+  // alone and lands on the dashboard, same as finishing onboarding normally.
+  //
+  // Adjusted during render (React's documented pattern for state derived from a prop/other state
+  // change), not in a `useEffect`, so the latch is already set on the very render that observes
+  // `hasAccounts` turn `false` - an effect would only run after that render committed, one tick
+  // too late for `showOnboarding` below to reflect it on the same render.
+  const [prevHasAccounts, setPrevHasAccounts] = useState(hasAccounts)
+  const [inOnboarding, setInOnboarding] = useState(hasAccounts === false)
+  if (hasAccounts !== prevHasAccounts) {
+    setPrevHasAccounts(hasAccounts)
+    if (hasAccounts === false) setInOnboarding(true)
+  }
+  const showOnboarding = inOnboarding || hasAccounts === false
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       {/* F018: not behind the onboarding gate below, so it shows regardless of whether
           onboarding has happened yet or which page (if any) is open. */}
       <BackupStatusBanner />
-      {hasAccounts === null ? (
+      {hasAccounts === null && !inOnboarding ? (
         <Box sx={{ maxWidth: 720, mx: 'auto', px: 2, py: 6 }}>
           {loadError !== null ? (
             <LoadFailedNotice message={loadError} onRetry={reload} />
@@ -133,7 +156,7 @@ function ThemedApp() {
             )
           )}
         </Box>
-      ) : hasAccounts ? (
+      ) : !showOnboarding ? (
         <BrowserRouter>
           <Layout>
             <PageErrorBoundary>
@@ -174,7 +197,7 @@ function ThemedApp() {
           </Layout>
         </BrowserRouter>
       ) : (
-        <OnboardingPage />
+        <OnboardingPage onCompleted={() => setInOnboarding(false)} />
       )}
     </ThemeProvider>
   )
