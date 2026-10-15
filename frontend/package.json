@@ -12,7 +12,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "generate-api-types": "openapi-typescript http://localhost:8080/v3/api-docs -o src/api/generated/schema.ts",
+    "generate-api-types": "node scripts/generateApiTypes.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
