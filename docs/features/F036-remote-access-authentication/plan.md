@@ -32,12 +32,12 @@ One feature branch (`feature/f036-remote-access-authentication`), backend first 
 
 ## Phase 4 — Backend: dev CORS
 - [x] Update `WebConfig`: `allowCredentials(true)` with an explicit configured dev origin, replacing the current `allowedOriginPatterns("http://localhost:*")` wildcard (incompatible with credentials).
-- [ ] Manual check, dev (`docker compose --profile full up -d`): confirm a cross-origin login from the Vite dev server to the backend actually sets and later sends the session cookie, and that the CSRF cookie/header pairing works end to end.
+- [x] Manual check, dev (`docker compose --profile full up -d`): confirm a cross-origin login from the Vite dev server to the backend actually sets and later sends the session cookie, and that the CSRF cookie/header pairing works end to end.
 
 ## Phase 5 — Deployment/network
 - [x] Add `BIND_ADDR` (default `127.0.0.1`) to `docker-compose.yml`'s `full` profile (`backend`, `frontend`) and `docker-compose.prod.yml`'s `frontend`, replacing the hardcoded `127.0.0.1` prefixes. Document it in `.env.example`.
 - [x] Pin `docker-compose.yml`'s `postgres` (`"5432:5432"` → `"127.0.0.1:5432:5432"`) and `pgadmin` (`"5050:80"` → `"127.0.0.1:5050:80"`) unconditionally — not controlled by `BIND_ADDR`.
-- [ ] Manual check: `docker compose --profile full up -d` with `BIND_ADDR` unset still behaves exactly as before (loopback-only); setting it to another local interface IP makes the app (but not Postgres/pgAdmin) reachable there.
+- [x] Manual check: `docker compose --profile full up -d` with `BIND_ADDR` unset still behaves exactly as before (loopback-only); setting it to another local interface IP makes the app (but not Postgres/pgAdmin) reachable there.
 
 ## Phase 6 — Frontend
 - [x] Test first: a route-guard test — an unauthenticated session-check redirects to `/login` and stores the attempted path; a successful login redirects back to it.
@@ -49,15 +49,15 @@ One feature branch (`feature/f036-remote-access-authentication`), backend first 
 - [x] `npm run lint && npm test && npm run build && npm run format:check`.
 
 ## Phase 7 — Docs
-- [ ] Root `CLAUDE.md`: `BIND_ADDR` env var, "every controller sits behind authentication by default" note.
-- [ ] Backend `CLAUDE.md`: `infrastructure/auth` package shape, the `AuthenticationEntryPoint`/`AccessDeniedHandler` exception to the single-`GlobalExceptionHandler` rule (with the filter-chain-runs-before-MVC-dispatch reason), the two new fixed slugs, the hash-generation Gradle task invocation.
-- [ ] Frontend `CLAUDE.md`: `/login` route + route-guard pattern, `apiClient`'s new `withCredentials`/`withXSRFToken` config.
-- [ ] `docs/features/README.md`: F036 row. Root `README.md`'s "Documented and next up" → "Built" once this ships.
-- [ ] README: document `BIND_ADDR`, the Postgres/pgAdmin loopback pinning, and the hash-generation task's exact invocation for setting `AUTH_PASSWORD_HASH`.
+- [x] Root `CLAUDE.md`: `BIND_ADDR` env var, "every controller sits behind authentication by default" note.
+- [x] Backend `CLAUDE.md`: `infrastructure/auth` package shape, the `AuthenticationEntryPoint`/`AccessDeniedHandler` exception to the single-`GlobalExceptionHandler` rule (with the filter-chain-runs-before-MVC-dispatch reason), the two new fixed slugs, the hash-generation Gradle task invocation.
+- [x] Frontend `CLAUDE.md`: `/login` route + route-guard pattern, `apiClient`'s new `withCredentials`/`withXSRFToken` config.
+- [x] `docs/features/README.md`: F036 row. Root `README.md`'s "Documented and next up" → "Built" once this ships.
+- [x] README: document `BIND_ADDR`, the Postgres/pgAdmin loopback pinning, and the hash-generation task's exact invocation for setting `AUTH_PASSWORD_HASH`.
 
 ## Verification
-- [ ] `./gradlew spotlessCheck test integrationTest` (Docker running) and `npm run lint && npm test && npm run build && npm run format:check` all green.
-- [ ] Manual, dev (`full` profile): fresh login works; wrong password fails without revealing which field was wrong; 5+ rapid wrong attempts trip the 429 cooldown; logout clears the session; closing and reopening the browser within 30 days stays logged in; every existing page/API call requires login first.
-- [ ] Manual: set `BIND_ADDR` to another local network interface's IP, confirm the app is reachable from a second device on that interface and still requires login there; confirm Postgres/pgAdmin are **not** reachable from that second device regardless of `BIND_ADDR`.
-- [ ] Manual, prod stack (`docker-compose.prod.yml`): login works same-origin through nginx with no CORS issues; `/actuator/health` still answers unauthenticated (healthcheck keeps passing).
-- [ ] Confirm no log line anywhere (backend or frontend) ever contains the username or password, across a mix of successful and failed login attempts.
+- [x] `./gradlew spotlessCheck test integrationTest` (Docker running) and `npm run lint && npm test && npm run build && npm run format:check` all green.
+- [x] Manual, dev (`full` profile): fresh login works; wrong password fails without revealing which field was wrong; 5+ rapid wrong attempts trip the 429 cooldown; logout clears the session; closing and reopening the browser within 30 days stays logged in; every existing page/API call requires login first.
+- [ ] Manual: set `BIND_ADDR` to another local network interface's IP, confirm the app is reachable from a second device on that interface and still requires login there; confirm Postgres/pgAdmin are **not** reachable from that second device regardless of `BIND_ADDR`. _Driven against this machine's own LAN interface (192.168.0.204) from this machine only: with `BIND_ADDR` set there, `:8080`/`:5173` answer on that IP (and no longer on loopback), `/api/*` returns 401 without a session, a browser sign-in at `http://192.168.0.204:5173` works end to end, and `192.168.0.204:5432`/`:5050` refuse connections while `127.0.0.1` still answers. Not checked from a second physical device - still open._
+- [x] Manual, prod stack (`docker-compose.prod.yml`): login works same-origin through nginx with no CORS issues; `/actuator/health` still answers unauthenticated (healthcheck keeps passing).
+- [x] Confirm no log line anywhere (backend or frontend) ever contains the username or password, across a mix of successful and failed login attempts.

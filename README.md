@@ -1,6 +1,6 @@
 # My Finances
 
-A personal finance manager, built for exactly one user, running on exactly one trusted machine, with no cloud, no login screen, and no ambiguity about who owns the data. It tracks transactions across named accounts (checking, savings, credit card, cash), enforces monthly category budgets, and computes net worth as assets minus credit card liabilities plus investments — with the accounting done properly: a credit card purchase increases what you owe, and paying the statement is a transfer between accounts rather than a second expense, so spend and debt never double-count.
+A personal finance manager, built for exactly one user, running on exactly one trusted machine, with no cloud, one shared login instead of accounts, and no ambiguity about who owns the data. It tracks transactions across named accounts (checking, savings, credit card, cash), enforces monthly category budgets, and computes net worth as assets minus credit card liabilities plus investments — with the accounting done properly: a credit card purchase increases what you owe, and paying the statement is a transfer between accounts rather than a second expense, so spend and debt never double-count.
 
 Manual entry only. There's no bank sync, because there's no server to sync to — the app runs on-demand on your own machine and shuts down when you're not using it.
 
@@ -43,17 +43,17 @@ CLAUDE.md                 Working guidance for AI coding agents (cross-stack; ba
 Local dev needs only Docker. The default is to run everything in containers with hot reload, so the toolchain versions are the pinned ones CI and production use:
 
 ```bash
-docker compose --profile full up -d   # Postgres, pgAdmin (localhost:5050), API at localhost:8080, UI at localhost:5173
+docker compose --profile full up -d   # Postgres, pgAdmin (localhost:5050), API at localhost:8080, UI at localhost:5173 (needs AUTH_USERNAME/AUTH_PASSWORD_HASH in .env, see Login)
 docker compose --profile full down
 ```
 
-The first start downloads Gradle and npm dependencies (a couple of minutes). Set `TZ` in `.env` (see `.env.example`) to your own time zone so the API's "today" matches your browser's.
+The first start downloads Gradle and npm dependencies (a couple of minutes). Set the login credential (see [Login](#login)) and `TZ` in `.env` (see `.env.example`); `TZ` should be your own time zone so the API's "today" matches your browser's.
 
 To run the apps natively instead (fastest loop, IDE debugging), you need a JDK 21 and the Node version in `frontend/.nvmrc` (`npm` refuses another major), and you must not run the `full` profile at the same time: both use ports 8080 and 5173. See [backend/CLAUDE.md](backend/CLAUDE.md) and [frontend/CLAUDE.md](frontend/CLAUDE.md) for the exact commands (build, lint, test, run). The short version:
 
 ```bash
 docker compose up -d      # start local Postgres only (+ pgAdmin at localhost:5050)
-cd backend && ./gradlew bootRun    # API at localhost:8080
+cd backend && ./gradlew bootRun    # API at localhost:8080 (export AUTH_USERNAME / AUTH_PASSWORD_HASH in this shell first)
 cd frontend && npm install && npm run dev  # UI at localhost:5173
 ```
 
@@ -72,7 +72,11 @@ read -rs AUTH_PASSWORD && export AUTH_PASSWORD   # type it silently; keeps it ou
 unset AUTH_PASSWORD
 ```
 
-Without `AUTH_PASSWORD` set, `./gradlew -q generateAuthHash` prompts for the password on stdin instead (the typed text echoes there). Put the printed line in `.env` next to `AUTH_USERNAME=<your username>`, **keeping the single quotes**: the hash contains `$` characters that Docker Compose would otherwise try to expand. The backend refuses to start with a missing or malformed credential, and says which. To change the password, regenerate the hash and restart. A login session lasts 30 days idle.
+Without `AUTH_PASSWORD` set, `./gradlew -q generateAuthHash` prompts for the password on stdin instead (the typed text echoes there). Put the printed line in `.env` next to `AUTH_USERNAME=<your username>`, **keeping the single quotes**: the hash contains `$` characters that Docker Compose would otherwise try to expand. The backend refuses to start with a missing or malformed credential, and says which. To change the password, regenerate the hash and restart. A login session lasts 30 days idle and survives closing the browser; sessions live in backend memory, so a backend restart signs you out. Five wrong passwords in a row from one client pause login attempts for 15 minutes.
+
+### Reaching the app from other devices
+
+By default every published port is bound to `127.0.0.1`, so only this machine can reach the app. To reach it from a phone or laptop, set `BIND_ADDR` in `.env` to the IP of the network interface you want it on: a LAN address, or the address your private-network tool (Tailscale, WireGuard, ZeroTier, ...) gives this machine; the app doesn't care which. It applies to the dev `full` profile's backend (`:8080`) and frontend (`:5173`) and to the prod stack's nginx port (`FRONTEND_PORT`, default `8081`). Open the app at that IP (not a hostname Vite's dev server doesn't know); the login gates every request there too. Postgres and pgAdmin in `docker-compose.yml` are always published on `127.0.0.1` only, whatever `BIND_ADDR` says. TLS is not part of this: on a network you don't fully trust, terminate it in front of nginx yourself (a reverse proxy such as Caddy), and set `SERVER_SERVLET_SESSION_COOKIE_SECURE=true` on the backend once the app is only reachable over HTTPS.
 
 ## Backups
 
@@ -98,7 +102,7 @@ docker compose -f docker-compose.prod.yml start backend frontend
 
 The private key is supplied at run time — mounted for this one-off container only — never stored in `.env`. A wrong key or a corrupt file fails before anything in the database is touched. **Restoring onto a new machine**: copy `docker-compose.prod.yml` and `.env` over, create the backups volume (or point `BACKUP_DIR` at wherever the synced folder landed on the new machine), start the stack, then run the same `restore.sh` command against whichever `.dump.age` file came with it.
 
-**This app has no authentication** (PRD §7.3) and backups don't change that. Everything above assumes a trusted machine you control. Running the stack on a VPS instead of your own computer means that machine needs to be made private on its own — a VPN, an SSH tunnel, or an authenticated reverse proxy in front of it — before putting any real data on it; exposing it directly to the internet exposes your financial data to the internet. That's a separate, future concern this feature only documents, not solves.
+Backups don't change who can reach the app: that is the login above plus the network it is published on (next section). Running the stack on a VPS instead of your own computer means making that machine private on its own — a VPN or overlay network, an SSH tunnel — and putting TLS in front of it if the network isn't already encrypted, before putting any real data on it; the login alone is a lock on the door, not a reason to publish the port to the internet.
 
 ## Project status
 
@@ -136,11 +140,11 @@ Built:
 - **F033** — internationalization (English / Brazilian Portuguese UI language toggle, `react-i18next`, locale-aware number/date formatting; [ADR 0027](docs/adr/0027-frontend-i18n-react-i18next.md))
 - **F034** — taxonomy lockdown (closes Institution's rename gap; removes user customization from Payment Method, Investment Category/Sub-category and Investment Segment; [ADR 0028](docs/adr/0028-fixed-taxonomy-values-and-onboarding-seeded-categories.md))
 - **F035** — category onboarding (stops migration-seeding Category's regular starter rows in favor of a localized, two-step onboarding suggestion step the user can accept, reject or supplement; depends on F034's ADR 0028)
+- **F036** — remote access & authentication (a single shared-credential, Argon2-hashed session-cookie login required in dev and prod, with cookie CSRF and login rate limiting; a generic `BIND_ADDR` env var for exposing the app over any private network without pinning to a specific product, with Postgres/pgAdmin pinned to loopback; [ADR 0029](docs/adr/0029-session-auth-and-generic-network-binding.md))
 
 Documented and next up:
 - **F028** — investment splits, backend (a product-level `InvestmentSplit` event, applied as a read-side adjustment to held units; [ADR 0025](docs/adr/0025-investment-split-as-read-side-adjustment.md))
 - **F029** — investment splits, frontend (the product-detail split-history panel and record/delete dialog for F028)
-- **F036** — remote access & authentication (single shared-credential session-cookie login; a generic `BIND_ADDR` env var for exposing the app over any private network without pinning to a specific product; [ADR 0029](docs/adr/0029-session-auth-and-generic-network-binding.md))
 
 See [docs/features/](docs/features/) for the full breakdown, in build order, with each feature's spec and its dependencies on the others.
 
