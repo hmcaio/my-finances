@@ -24,6 +24,10 @@ import org.springframework.transaction.annotation.Transactional;
  * BuiltInInstitutionException}), an institution some account still references (409, {@link
  * InstitutionInUseException}). F008 adds the investment-account reference check when that table
  * exists.
+ *
+ * <p>Rename and delete both reject the built-in row first via the shared {@link
+ * #requireNotProtected} (F034/ADR 0028, mirroring {@code CategoryService}'s guard, issue #117) -
+ * closes the gap where rename had no check at all.
  */
 @Service
 public class InstitutionService {
@@ -68,6 +72,7 @@ public class InstitutionService {
     Institution institution =
         institutionRepository.findById(id).orElseThrow(() -> new InstitutionNotFoundException(id));
     Map<String, Object> before = institution.toAuditSnapshot();
+    requireNotProtected(institution);
     if (institutionRepository.existsByNameAndIdNot(newName, id)) {
       throw new InstitutionNameAlreadyExistsException(newName);
     }
@@ -86,9 +91,7 @@ public class InstitutionService {
   public void delete(UUID id) {
     Institution institution =
         institutionRepository.findById(id).orElseThrow(() -> new InstitutionNotFoundException(id));
-    if (institution.isBuiltIn()) {
-      throw new BuiltInInstitutionException(id);
-    }
+    requireNotProtected(institution);
     if (accountRepository.existsByInstitutionId(id)) {
       throw new InstitutionInUseException(id);
     }
@@ -98,5 +101,15 @@ public class InstitutionService {
         institution.getId(),
         institution.getName(),
         institution.toAuditSnapshot());
+  }
+
+  /**
+   * Shared rename/delete guard (F034/ADR 0028, mirroring {@code CategoryService}'s {@code
+   * requireNotProtected}): the built-in row rejects both operations identically.
+   */
+  private void requireNotProtected(Institution institution) {
+    if (institution.isBuiltIn()) {
+      throw new BuiltInInstitutionException(institution.getId());
+    }
   }
 }

@@ -3,8 +3,8 @@
 **Depends on**: F002, F008, F017, F026 (all built). See [ADR 0028](../../adr/0028-fixed-taxonomy-values-and-onboarding-seeded-categories.md).
 
 ## Backend
-- [ ] Write tests for `InstitutionService`'s new `requireNotProtected` guard: rename on the built-in row rejected (409, `BuiltInInstitutionException`), rename on any other row still allowed, delete behavior unchanged, then implement.
-- [ ] Delete `create`/`rename` from `PaymentMethod`/`InvestmentCategory`/`InvestmentSubcategory`/`InvestmentSegment` domain classes; update/delete their now-dead unit tests.
+- [x] Write tests for `InstitutionService`'s new `requireNotProtected` guard: rename on the built-in row rejected (409, `BuiltInInstitutionException`), rename on any other row still allowed, delete behavior unchanged, then implement.
+- [x] Delete `create`/`rename` from `PaymentMethod`/`InvestmentCategory`/`InvestmentSubcategory`/`InvestmentSegment` domain classes; update/delete their now-dead unit tests.
 - [ ] Delete `create`/`rename`/`delete` (and their dedicated exceptions) from `PaymentMethodService`/`InvestmentCategoryService`/`InvestmentSubcategoryService`/`InvestmentSegmentService`; update/delete their now-dead tests, keep `findAll` tests.
 - [ ] Delete the `POST`/`PATCH`/`DELETE` handlers from the four controllers; update/delete their now-dead controller tests, keep `GET` tests.
 - [ ] Flyway migration (next free `V` number): seed `investment_segments` with Lajes Corporativas, Shoppings, Logística, Papel (Recebíveis), Híbrido, Fiagro, Hospitalar, Residencial, Outros. Migration test confirming the fresh table ends up with exactly these nine rows and nothing else changes.

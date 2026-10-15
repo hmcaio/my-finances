@@ -147,15 +147,16 @@ class InstitutionControllerTest {
   }
 
   @Test
-  void theBuiltInInstitutionCanBeRenamedAndStaysBuiltIn() throws Exception {
+  void renameOfTheBuiltInInstitutionIsRejectedWith409() throws Exception {
+    // F034/ADR 0028: closes the Institution rename gap the same way issue #117 closed it for
+    // Category - the built-in row ("No institution") can no longer be renamed away.
     mockMvc
         .perform(
             patch("/api/institutions/" + builtInId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(Map.of("name", "Sem instituicao Test"))))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.name").value("Sem instituicao Test"))
-        .andExpect(jsonPath("$.builtIn").value(true));
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.type").value("urn:my-finances:error:built-in-institution"));
   }
 
   @Test
@@ -230,13 +231,13 @@ class InstitutionControllerTest {
   }
 
   @Test
-  void renamedBuiltInInstitutionStillCannotBeDeleted() throws Exception {
+  void theBuiltInInstitutionStaysUndeletableAfterARejectedRenameAttempt() throws Exception {
     mockMvc
         .perform(
             patch("/api/institutions/" + builtInId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(Map.of("name", "Renamed Built-in Test"))))
-        .andExpect(status().isOk());
+        .andExpect(status().isConflict());
 
     mockMvc.perform(delete("/api/institutions/" + builtInId())).andExpect(status().isConflict());
   }
