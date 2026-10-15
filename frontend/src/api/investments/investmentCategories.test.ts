@@ -1,64 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import {
-  investmentCategoryCreateConflictHandler,
-  investmentCategoryDeleteConflictHandler,
-  investmentCategoryRenameConflictHandler,
-  seedInvestmentCategories,
-} from '../../mocks/handlers/investmentCategories'
-import { describeNamedEntityApi } from '../../test/apiContract'
-import { resolveErrorMessage } from '../../test/errorMessages'
-import {
-  createInvestmentCategory,
-  deleteInvestmentCategory,
-  getInvestmentCategories,
-  renameInvestmentCategory,
-  type CreateInvestmentCategoryRequest,
-  type InvestmentCategory,
-  type UpdateInvestmentCategoryRequest,
-} from './investmentCategories'
+import { seedInvestmentCategories } from '../../mocks/handlers/investmentCategories'
+import { getInvestmentCategories } from './investmentCategories'
 
-describeNamedEntityApi<
-  InvestmentCategory,
-  CreateInvestmentCategoryRequest,
-  UpdateInvestmentCategoryRequest
->({
-  label: 'investment categories',
-  api: {
-    get: getInvestmentCategories,
-    create: createInvestmentCategory,
-    rename: renameInvestmentCategory,
-    remove: deleteInvestmentCategory,
-  },
-  seedList: seedInvestmentCategories,
-  create: {
-    request: { name: 'Real Estate' },
-    expect: { name: 'Real Estate', subcategories: [], id: expect.any(String) },
-  },
-  rename: {
-    id: 'icat-fixed',
-    request: { name: 'Renda Fixa' },
-    expect: { id: 'icat-fixed', name: 'Renda Fixa' },
-  },
-  remove: { id: 'icat-crypto' },
-  conflict: {
-    message: resolveErrorMessage('urn:my-finances:error:investment-category-in-use'),
-    duplicateNameMessage: resolveErrorMessage(
-      'urn:my-finances:error:investment-category-name-already-exists',
-    ),
-    createHandler: investmentCategoryCreateConflictHandler,
-    renameHandler: investmentCategoryRenameConflictHandler,
-    deleteHandler: investmentCategoryDeleteConflictHandler,
-    createRequest: { name: 'Crypto' },
-    renameId: 'icat-fixed',
-    renameRequest: { name: 'Crypto' },
-  },
-})
-
-// Bespoke: the categories response nests sub-categories, unlike any other flat-taxonomy entity.
-describe('investment categories API client - nested sub-categories', () => {
+/**
+ * F034/ADR 0028: InvestmentCategory (and InvestmentSubcategory, nested under it) lost
+ * create/rename/delete - every row at both levels is fixed, migration-seeded content. Only the
+ * nested read is left to test.
+ */
+describe('investment categories API client', () => {
   it('getInvestmentCategories returns the categories with their sub-categories nested', async () => {
     const categories = await getInvestmentCategories()
 
+    // The seed array is already in the backend's sorted order (both levels by name).
+    expect(categories).toEqual(seedInvestmentCategories)
     expect(categories.find((c) => c.name === 'Fixed Income')?.subcategories.length).toBeGreaterThan(
       0,
     )

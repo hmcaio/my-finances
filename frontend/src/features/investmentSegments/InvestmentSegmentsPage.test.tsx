@@ -1,28 +1,32 @@
-import { INVESTMENT_SEGMENT_NAME_MAX_LENGTH } from '../../api/investments/investmentSegments'
-import { resolveErrorMessage } from '../../test/errorMessages'
-import {
-  investmentSegmentCreateConflictHandler,
-  investmentSegmentDeleteConflictHandler,
-  seedInvestmentSegments,
-} from '../../mocks/handlers/investmentSegments'
-import { describeSettingsPageOnly } from '../../test/settingsPageContract'
+import { describe, expect, it } from 'vitest'
+import { screen } from '@testing-library/react'
+import { seedInvestmentSegments } from '../../mocks/handlers/investmentSegments'
+import { expectLoadStates } from '../../test/loadStates'
+import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 import { InvestmentSegmentsPage } from './InvestmentSegmentsPage'
 
-describeSettingsPageOnly('InvestmentSegmentsPage', {
-  page: <InvestmentSegmentsPage />,
-  seedRows: seedInvestmentSegments,
-  renameTarget: seedInvestmentSegments[0],
-  deleteTarget: seedInvestmentSegments[1],
-  newName: 'Papel',
-  addButtonLabel: 'Add segment',
-  conflict: {
-    message: resolveErrorMessage('urn:my-finances:error:investment-segment-in-use'),
-    handler: investmentSegmentDeleteConflictHandler,
-  },
-  duplicateName: {
-    message: resolveErrorMessage('urn:my-finances:error:investment-segment-name-already-exists'),
-    handler: investmentSegmentCreateConflictHandler,
-  },
-  maxLength: INVESTMENT_SEGMENT_NAME_MAX_LENGTH,
-  loadStates: { url: '/api/investment-segments', successBody: seedInvestmentSegments },
+/**
+ * F034/ADR 0028: InvestmentSegmentsPage lost every mutation affordance - every row is now fixed,
+ * migration-seeded content (the nine B3 FII sectors). This replaces the old `describeSettingsPage`
+ * CRUD contract with a plain read-only check plus the shared load-state cases.
+ */
+describe('InvestmentSegmentsPage', () => {
+  it('renders the seeded segments with no add/rename/delete affordance', async () => {
+    renderWithQueryClient(<InvestmentSegmentsPage />)
+
+    for (const segment of seedInvestmentSegments) {
+      expect(await screen.findByText(segment.name)).toBeInTheDocument()
+    }
+    expect(screen.queryByRole('button', { name: /add/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Rename' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+  })
+
+  expectLoadStates({
+    render: () => renderWithQueryClient(<InvestmentSegmentsPage />),
+    url: '/api/investment-segments',
+    successBody: seedInvestmentSegments,
+    loadedText: seedInvestmentSegments[0].name,
+  })
 })

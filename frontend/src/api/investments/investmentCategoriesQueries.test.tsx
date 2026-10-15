@@ -2,11 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
-import { seedInvestmentCategories } from '../../mocks/handlers/investmentCategories'
 import { seedInvestmentProducts } from '../../mocks/handlers/investmentProducts'
 import { renderHookWithQueryClient } from '../../test/renderWithQueryClient'
-import { useCreateInvestmentCategory, useInvestmentCategories } from './investmentCategoriesQueries'
-import { useCreateInvestmentSubcategory } from './investmentSubcategoriesQueries'
 import {
   useCreateInvestmentProduct,
   useInvestmentProduct,
@@ -14,30 +11,10 @@ import {
 } from './investmentProductsQueries'
 import { resolveErrorMessage } from '../../test/errorMessages'
 
-describe('investment taxonomy and product hooks', () => {
-  it('loads the taxonomy and refetches it after a category or sub-category is created', async () => {
-    const { result } = renderHookWithQueryClient(() => ({
-      list: useInvestmentCategories(),
-      createCategory: useCreateInvestmentCategory(),
-      createSubcategory: useCreateInvestmentSubcategory(),
-    }))
-    await waitFor(() => expect(result.current.list.data).toEqual(seedInvestmentCategories))
-
-    await result.current.createCategory.mutateAsync({ name: 'Real Estate' })
-    await result.current.createSubcategory.mutateAsync({
-      investmentCategoryId: 'icat-crypto',
-      name: 'Stablecoins',
-    })
-
-    await waitFor(() => {
-      const list = result.current.list.data ?? []
-      expect(list.map((c) => c.name)).toContain('Real Estate')
-      expect(list.find((c) => c.id === 'icat-crypto')?.subcategories.map((s) => s.name)).toEqual([
-        'Stablecoins',
-      ])
-    })
-  })
-
+// F034/ADR 0028: InvestmentCategory/InvestmentSubcategory lost create/rename/delete - every row
+// is fixed, migration-seeded content, so there is no mutation left to exercise a refetch through.
+// The read side (`useInvestmentCategories`) is covered by `investmentCategories.test.ts` instead.
+describe('investment product hooks', () => {
   it('lists every product and loads one by id', async () => {
     const { result } = renderHookWithQueryClient(() => ({
       list: useInvestmentProducts(),

@@ -1,7 +1,5 @@
 {
   "title": "Investment segments",
-  "description": "What kind of real estate an FII holds (Shoppings, Logistica, Papel, ...) - orthogonal to the category/sub-category taxonomy. A segment still used by an investment product can't be deleted.",
-  "addButton": "Add segment",
-  "addDialogTitle": "Add segment",
+  "description": "What kind of real estate an FII holds (Shoppings, Logística, Papel, ...) - orthogonal to the category/sub-category taxonomy. Fixed, system-defined content - not editable.",
   "emptyList": "No investment segments yet."
 }
