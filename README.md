@@ -97,7 +97,7 @@ Built:
 - **F005** — transfers (`Transfer` between two accounts, e.g. paying a credit card statement from checking, folded into the running balance alongside transactions)
 - **F006** — budgets (`Budget`+`BudgetVersion`, versioned monthly caps per expense category, budget-vs-actual reporting using each month's historically correct cap)
 - **F007** — recurring templates (`RecurringTemplate`+`RecurringTemplateVersion`, lazy/catch-up pending-occurrence generation since the app isn't always running, confirm-to-transaction flow with per-occurrence overrides, auto-deactivation when the target account closes)
-- **F008** — investment accounts, products and taxonomy (`INVESTMENT` accounts; a two-level, user-editable category/sub-category taxonomy)
+- **F008** — investment accounts, products and taxonomy (`INVESTMENT` accounts; a two-level category/sub-category taxonomy, fixed/migration-seeded content as of F034)
 - **F009** — investment trades, snapshots and reports (manual value snapshots as the sole source of worth; buy/sell as a tagged `Transfer`; allocation view)
 - **F010** — net worth (computed on read, never stored: assets + investments − credit card balances; point and trend endpoints)
 - **F011** — onboarding (frontend only: a first-run account-creation screen while no account exists)
@@ -121,11 +121,11 @@ Built:
 - **F031** — structured error responses (RFC 9457 Problem Details body with a `type` auto-derived from the exception class, replacing the status-code-only contract; [ADR 0026](docs/adr/0026-structured-error-responses-rfc9457.md))
 - **F032** — validation error details (per-field `errors` array on a bean-validation 400, extending F031's `ProblemDetail` body)
 - **F033** — internationalization (English / Brazilian Portuguese UI language toggle, `react-i18next`, locale-aware number/date formatting; [ADR 0027](docs/adr/0027-frontend-i18n-react-i18next.md))
+- **F034** — taxonomy lockdown (closes Institution's rename gap; removes user customization from Payment Method, Investment Category/Sub-category and Investment Segment; [ADR 0028](docs/adr/0028-fixed-taxonomy-values-and-onboarding-seeded-categories.md))
 
 Documented and next up:
 - **F028** — investment splits, backend (a product-level `InvestmentSplit` event, applied as a read-side adjustment to held units; [ADR 0025](docs/adr/0025-investment-split-as-read-side-adjustment.md))
 - **F029** — investment splits, frontend (the product-detail split-history panel and record/delete dialog for F028)
-- **F034** — taxonomy lockdown (closes Institution's rename gap; removes user customization from Payment Method, Investment Category/Sub-category and Investment Segment; [ADR 0028](docs/adr/0028-fixed-taxonomy-values-and-onboarding-seeded-categories.md))
 - **F035** — category onboarding (stops migration-seeding Category's regular starter rows in favor of a localized onboarding suggestion step; depends on F034's ADR 0028)
 
 See [docs/features/](docs/features/) for the full breakdown, in build order, with each feature's spec and its dependencies on the others.
