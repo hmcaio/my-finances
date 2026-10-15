@@ -34,6 +34,7 @@ Designed for solo use today, with a data model that can extend to household/mult
 - No UI language beyond English and Brazilian Portuguese (pt-BR, §6.14) — a third language is a future direction (§9).
 - No per-request or multi-user locale — the UI language is a single client-side preference (no backend involvement, consistent with the single-user/no-auth scope above); the backend itself never sends translatable text regardless (ADR 0011, ADR 0026).
 - No currency symbol introduced by the UI language toggle (§6.14) — amounts stay symbol-less in both languages, consistent with the single-currency stance above.
+- No user customization of Payment Method, Investment Category/Sub-category, or Investment Segment (§5.2, §5.8, §5.13) — all four are fixed, migration-seeded reference lists with no create/rename/delete of any kind ([ADR 0028](../adr/0028-fixed-taxonomy-values-and-onboarding-seeded-categories.md)); unlike Category (§5.1), none of these is treated as personal data. Reintroducing customization if a real gap in a fixed list appears is a future direction (§9).
 
 ## 4. Users
 
@@ -45,15 +46,16 @@ Single user (the app's owner). Household/multi-user support is a possible future
 - `id`
 - `name`
 - `type`: `INCOME` | `EXPENSE`
-- `built_in` — true for exactly one row per type, "Other Expense" (`EXPENSE`) and "Other Income" (`INCOME`), the fallback for anything that fits nowhere else. Like the built-in institution (§5.10), it can be renamed but never deleted; identity is the flag, not the name. Set by the schema migration only; users can't create built-in rows.
+- `built_in` — true for exactly one row per type, "Other Expense" (`EXPENSE`) and "Other Income" (`INCOME`), the fallback for anything that fits nowhere else. Like the built-in institution (§5.10), identity is the flag, not the name — but unlike the institution, it can be **neither renamed nor deleted** (issue #117 unified this with the `fuel_category`/`dividend_category` flags below, which already blocked both). Set by the schema migration only; users can't create built-in rows.
+- `fuel_category` / `dividend_category` — see §5.11 / §5.13. Independent of `built_in` and of each other; each caps at exactly one row, globally, and blocks both rename and delete the same way `built_in` does.
 - Flat list — no subcategories.
-- Predefined starter set, fully editable (rename/add/remove) by the user, except that the two built-in rows can't be removed.
+- Fully editable (rename/add/remove) by the user, except the four protected rows above (`built_in` ×2, `fuel_category`, `dividend_category`), which are migration-seeded once and can be neither. No other starter data is migration-seeded ([ADR 0028](../adr/0028-fixed-taxonomy-values-and-onboarding-seeded-categories.md)) — the regular starter categories a fresh install offers are presented and inserted during onboarding instead (§6.7), as ordinary, unprotected rows chosen in the user's own language.
 
 ### 5.2 Payment Method
 - `id`
 - `name`
 - Flat list — no subcategories.
-- Predefined starter set (Debit Card, Credit Card, PIX, Cash), fully editable (rename/add/remove) by the user — same pattern as Category (§5.1).
+- Fixed system list, seeded once by migration: Debit Card, Credit Card, PIX, Cash. Never user-created, renamed or deleted ([ADR 0028](../adr/0028-fixed-taxonomy-values-and-onboarding-seeded-categories.md)) — unlike Category (§5.1), this isn't personal data, so there's no onboarding step or customization for it.
 - Orthogonal to Account (§5.4): a checking account can be moved via debit card or PIX; this field records which rail was used, the account records which pot of money it hit. Informational only — does not affect balance math.
 
 ### 5.3 Transaction
@@ -149,8 +151,8 @@ Represents money moving between two accounts you own — most commonly paying a 
 
 Investments live in accounts of type `INVESTMENT` (§5.4) — there is no separate investment-account entity, so one account list, one institution link and one closing rule cover cash and investments alike. What is specific to investments is below; valuation stays manual (snapshots), and buys/sells are transfers (§5.5).
 
-- `InvestmentCategory`: `id`, `name` — the top level of a two-level, user-editable taxonomy. Seeded with Brazilian defaults: Fixed Income, Variable Income, Funds, Pension (Previdência), International, Crypto, Other.
-- `InvestmentSubcategory`: `id`, `investment_category_id` (required, fixed once created — re-parenting would silently reclassify every product below it), `name` — the instrument class within a category. Names are unique **per category**, not globally ("ETFs" and "Stocks" exist under both Variable Income and International). Seeded defaults:
+- `InvestmentCategory`: `id`, `name` — the top level of a two-level, fixed system taxonomy, seeded once by migration and never user-created, renamed or deleted ([ADR 0028](../adr/0028-fixed-taxonomy-values-and-onboarding-seeded-categories.md)): Fixed Income, Variable Income, Funds, Pension (Previdência), International, Crypto, Other.
+- `InvestmentSubcategory`: `id`, `investment_category_id` (fixed by the seed), `name` — the instrument class within a category, same fixed/migration-only treatment as `InvestmentCategory`. Names are unique **per category**, not globally ("ETFs" and "Stocks" exist under both Variable Income and International). Seeded defaults:
   - Fixed Income: Tesouro Selic, Tesouro IPCA+, Tesouro Prefixado, CDB, LCI, LCA, CRI, CRA, Debentures, Savings (Poupança)
   - Variable Income: Stocks (Ações), REITs (FIIs), ETFs, BDRs
   - Funds: Fixed Income Funds, Multimercado, Equity Funds
@@ -163,7 +165,7 @@ Investments live in accounts of type `INVESTMENT` (§5.4) — there is no separa
 - Latest snapshot per holding = current value of that holding. A product's total value (used in the category/sub-category allocation views) is the sum of its holdings' latest snapshots; an `INVESTMENT` account's balance is the sum of the latest snapshots of the holdings pointing at it (both rollups computed on read, not stored).
 - **Keeping snapshots fresh.** Because a buy or sell (§5.5) changes cash immediately but a holding's value only when a snapshot is recorded, a holding whose latest transfer is dated after its latest snapshot (or that has a trade but no snapshot) is flagged as needing a snapshot, in the product list and on the allocation view. A trade can carry an optional resulting balance, which records that snapshot in the same step ("Sold entire position" records `0`). A holding can only be closed while its latest snapshot is `0` or absent, so a closed holding never keeps counting a stale value.
 - Reclassifying a product changes how past dates group it in allocation views, since grouping uses its current category and sub-category.
-- **Delete safety** — `INVESTMENT` accounts follow the `Account` rule (§5.4): closed once they have history, hard-deleted only while nothing references them. A holding with any snapshot or buy/sell transfer can't be hard-deleted either (it would orphan that history and break past net worth/allocation calculations) — it can only be closed (`closed_date` set), which drops it from "add a trade" pickers and live views while its history stays intact and exportable. Hard delete is only allowed for a holding with zero history. A product can only be hard-deleted while it has zero holdings at all. A category that still has sub-categories or products, or a sub-category that still has products, can't be deleted either.
+- **Delete safety** — `INVESTMENT` accounts follow the `Account` rule (§5.4): closed once they have history, hard-deleted only while nothing references them. A holding with any snapshot or buy/sell transfer can't be hard-deleted either (it would orphan that history and break past net worth/allocation calculations) — it can only be closed (`closed_date` set), which drops it from "add a trade" pickers and live views while its history stays intact and exportable. Hard delete is only allowed for a holding with zero history. A product can only be hard-deleted while it has zero holdings at all. Category and sub-category are both fixed system taxonomy now (above) — neither is ever deletable, so there is no in-use guard to speak of for them.
 
 ### 5.9 Net Worth (computed, not stored)
 `net_worth(as_of_date)` = Σ asset account balances (`CHECKING`/`SAVINGS`/`CASH_WALLET`, as_of_date) + Σ investment account balances (`INVESTMENT`, as_of_date; each the sum of the latest snapshots of the holdings it contains) − Σ credit card account balances (as_of_date)
@@ -175,9 +177,9 @@ A time series for the net worth trend chart is computed either by evaluating thi
 ### 5.10 Institution
 - `id`
 - `name` (e.g. "Nubank", "Itaú", "XP") — unique, flat and user-editable, same pattern as categories (§5.1). No type, no `closed_date`: it is a label, not something with a lifecycle.
-- `built_in` — true for exactly one seeded row, "No institution", which stands in for money that isn't at any institution (cash wallet, a private pension). It can be renamed but never deleted, and it is the default when picking an institution. Set by the schema migration only; users can't create built-in rows.
+- `built_in` — true for exactly one seeded row, "No institution", which stands in for money that isn't at any institution (cash wallet, a private pension). It is the default when picking an institution and can be **neither renamed nor deleted** ([ADR 0028](../adr/0028-fixed-taxonomy-values-and-onboarding-seeded-categories.md) — the same rule as Category's `built_in`, §5.1). Set by the schema migration only; users can't create built-in rows.
 
-An `Account` (§5.4, of any type including `INVESTMENT`) points at exactly one institution, so the same institution can group a checking account, a credit card and a brokerage account, and every account always has a value to group by. An institution that any account (open or closed) references can't be deleted — only renamed; re-pointing those accounts to another institution frees it. This is what makes "how much do I have at Nubank" answerable as a single grouping over §5.4 (see §9).
+An `Account` (§5.4, of any type including `INVESTMENT`) points at exactly one institution, so the same institution can group a checking account, a credit card and a brokerage account, and every account always has a value to group by. Institution itself otherwise stays fully user-editable — only the one built-in row is protected. An institution that any account (open or closed) references can't be deleted — only renamed; re-pointing those accounts to another institution frees it. This is what makes "how much do I have at Nubank" answerable as a single grouping over §5.4 (see §9).
 
 ### 5.11 Vehicle & Fuel Details
 
@@ -214,7 +216,7 @@ Versioned entities (§5.6, §5.7) log as an `UPDATE` on the logical entity, diff
 
 **InvestmentSegment**
 - `id`
-- `name` (e.g. "Shoppings", "Logística", "Papel", "Lajes Corporativas") — flat, user-editable, same pattern as `InvestmentCategory` (§5.8), but orthogonal to the category/sub-category taxonomy: a sub-category like "REITs (FIIs)" is an asset class, a segment is what kind of real estate it holds. A segment referenced by any investment product can't be deleted — only renamed.
+- `name` — flat, fixed system taxonomy, same treatment as `InvestmentCategory`/`InvestmentSubcategory` (§5.8): seeded once by migration, never user-created, renamed or deleted ([ADR 0028](../adr/0028-fixed-taxonomy-values-and-onboarding-seeded-categories.md)). Orthogonal to the category/sub-category taxonomy: a sub-category like "REITs (FIIs)" is an asset class, a segment is what kind of real estate it holds. Seeded with common B3 FII sectors: Lajes Corporativas, Shoppings, Logística, Papel (Recebíveis), Híbrido, Fiagro, Hospitalar, Residencial, Outros.
 
 **InvestmentProduct gains** (§5.8) — generalized beyond FIIs, so a future ticker-based asset (stocks, ETFs) reuses the same fields without a migration, even though the FII page (§6.13) is the only UI that manages them for v1:
 - `ticker` (optional, e.g. "KNRI11") — distinct from `name`, which stays the descriptive label (e.g. "Kinea Renda Imobiliária").
@@ -266,8 +268,8 @@ Versioned entities (§5.6, §5.7) log as an `UPDATE` on the logical entity, diff
 - Delete an account that has no history at all (§5.4, ADR 0017), open or closed; an account with any transaction, transfer, recurring template or investment holding can only be closed. The confirmation warns that deleting an account with an opening balance changes past net worth.
 
 ### 6.3 Categories & Payment Methods
-- CRUD on categories (name, type). ~~Deleting a category with existing transactions should be blocked or require reassignment (implementation detail, decide at build time — flagged here as an edge case to resolve, not a new open decision for this PRD stage).~~ Decided in F002's spec: blocked with `409` when referenced by a transaction, budget or recurring template; the UI surfaces it as "reassign them first" rather than a generic error.
-- CRUD on payment methods (name), same reassignment/blocking consideration on delete as categories.
+- CRUD on categories (name, type), except the four protected rows (§5.1), which can be neither renamed nor deleted. ~~Deleting a category with existing transactions should be blocked or require reassignment (implementation detail, decide at build time — flagged here as an edge case to resolve, not a new open decision for this PRD stage).~~ Decided in F002's spec: blocked with `409` when referenced by a transaction, budget or recurring template; the UI surfaces it as "reassign them first" rather than a generic error.
+- Payment methods are a fixed, read-only system list (§5.2) — no create, rename or delete. Displayed in a Settings reference list only.
 
 ### 6.4 Budgets
 - Set a monthly cap per expense category.
@@ -284,7 +286,7 @@ Versioned entities (§5.6, §5.7) log as an `UPDATE` on the logical entity, diff
 - Confirming an occurrence creates a linked transaction; user may adjust the amount/date/account at confirmation time without creating a new template version (one-off variance on an otherwise-recurring bill).
 
 ### 6.6 Investments
-- CRUD on investment categories and, under each, sub-categories (name), from a settings screen. A category with sub-categories or products, or a sub-category with products, can't be deleted; renaming is always allowed.
+- Investment categories and, under each, sub-categories (name) are a fixed, read-only system taxonomy (§5.8) — no create, rename or delete; displayed in a Settings reference list only.
 - Investment accounts are ordinary accounts of type `INVESTMENT` (§6.2). Create an investment product (name, category, optional sub-category, optional notes) together with its first holding (an `INVESTMENT` account); add further holdings for the same product in other accounts later. Edit a product's taxonomy/notes at any time. Close a holding instead of deleting it once it has any snapshot or buy/sell history — delete is only offered while it still has zero history; a holding can only be closed while its latest snapshot is `0` or absent. A product itself can only be hard-deleted while it has zero holdings.
 - Buy or sell products held in a given account via a trade confirmation (§5.5): the transfer form's trade mode (§6.2), picking the cash account and the `INVESTMENT` account, then one or more lines (product, side, quantity, unit price, optional resulting balance, optional "Sold entire position" close-holding flag on a sell line) and one shared taxes figure; the backend computes and enforces the settlement amount/direction. Each line's product must already have a holding in that account. Record-keeping only — quantity and price never affect computed value beyond deriving the settlement amount.
 - Add a balance snapshot (date + balance) to any holding; a second one for the same date replaces the first. Edit a snapshot's date and balance or delete it from the holding's snapshot history (refused when it would clash with another snapshot's date, or leave a closed holding with a non-zero latest snapshot).
@@ -294,7 +296,7 @@ Versioned entities (§5.6, §5.7) log as an `UPDATE` on the logical entity, diff
 - Record a split or reverse split (desdobramento/grupamento) on a product: ratio (e.g. "1 : 10") and effective date, deletable; view a product's split history (§5.14). Changes only the derived cotas-held/units totals — past buy/sell records keep their originally recorded quantity and price unchanged.
 
 ### 6.7 Onboarding
-- First-run flow: create at least one account, setting its opening balance and opening balance date (and its institution, which defaults to "No institution"; a new one can be created inline).
+- First-run, two-step flow while no account exists yet. Step 1: create at least one account, setting its opening balance and opening balance date (and its institution, which defaults to "No institution"; a new one can be created inline). Step 2: a list of suggested starter categories (§5.1), presented and, if accepted, inserted in the current UI language (§6.14) — every suggestion pre-selected, the user can uncheck any and add their own custom categories by name and type. Finishing is always allowed regardless of how many (including zero) are selected; a note reminds the user categories can be added, renamed or removed anytime later from Settings. Accepted/custom categories are inserted as ordinary categories, indistinguishable from anything added later.
 
 ### 6.8 Dashboard
 - Monthly spend by category (current month, chart or table).
@@ -323,7 +325,7 @@ Eleven curated, human-readable reports a user generates on demand, superseding t
 ### 6.10 Institutions
 - CRUD on institutions (name), from a settings screen next to categories and payment methods.
 - An account (of any type, including `INVESTMENT`) always has an institution: it picks one from that list (defaulting to the seeded "No institution" row) and can change it; typing a new name in the picker creates the institution inline.
-- "No institution" can be renamed but not deleted. Deleting any other institution referenced by an account (open or closed) is blocked; renaming is always allowed.
+- "No institution" can be neither renamed nor deleted. Deleting any other institution referenced by an account (open or closed) is blocked; renaming is always allowed.
 
 ### 6.11 Fuel Tracking
 - CRUD on vehicles (name), from a settings screen next to categories, payment methods and institutions. A vehicle referenced by any fuel transaction can't be deleted; renaming is always allowed.
@@ -338,7 +340,7 @@ Eleven curated, human-readable reports a user generates on demand, superseding t
 ### 6.13 FII Portfolio
 - A dedicated page, scoped to investment products classified under the "REITs (FIIs)" sub-category (§5.8).
 - List every held FII: one row per product, aggregated across every account holding it (closed holdings hidden by default, with a filter to reveal them) — ticker, name, segment, cotas currently held, amount contributed, current value, latest snapshot date (§5.13).
-- CRUD on investment segments (name), from a settings screen alongside investment categories (§6.6); assign a segment to a product from the product's existing edit form.
+- Investment segments are a fixed, read-only system taxonomy (§5.13), displayed in a Settings reference list alongside investment categories (§6.6); assign one to a product from the product's existing edit form. No creation, rename or delete.
 - Set/edit the allocation plan: target percentage per FII product, must sum to 100%, versioned by month like a budget (§6.4) — editing creates a new version effective going forward; correcting the current month's own version replaces it in place.
 - Four pie charts: actual allocation by ticker, actual allocation by segment, planned allocation by ticker, planned allocation by segment (a product with no segment groups under "No segment" in both).
 - Register a dividend via a dedicated form (pick the FII/holding, amount, date) that creates a transaction with the dividend category (§5.13) and the holding reference — distinct from the generic transaction form (§6.1).
@@ -347,7 +349,7 @@ Eleven curated, human-readable reports a user generates on demand, superseding t
 ### 6.14 Language / Localization
 - Toggle the UI language (English / Portuguese (Brazil)) from a header control; defaults to the browser's reported language on first load (Portuguese unless the browser reports English), persisted per-device thereafter — no account/backend involvement.
 - Every label, button, nav item and validation/error message switches with it; so does number, date and money formatting (decimal/thousands separator, date order) — amounts never gain a currency symbol in either language (§3).
-- User-entered text (category/account/institution names, transaction descriptions and notes, etc.) is never translated. A seeded starter category/payment method/institution/investment-taxonomy row (§5.1, §5.2, §5.8, §5.10) displays translated only until renamed — once a user changes its name, it is ordinary user data in whatever language they typed.
+- User-entered text (category/account/institution names, transaction descriptions and notes, etc.) is never translated. A migration-seeded row (§5.1's four protected categories, §5.2, §5.8, §5.10's built-in institution, §5.13's segments) displays translated by exact-name match; the fixed entities (§5.2, §5.8, §5.13) are never renamable so stay translated permanently, while a protected category or the built-in institution displays translated regardless of rename since those specific rows can't be renamed either (§5.1, §5.10). An onboarding-accepted or custom category (§6.7) is translated the same way only until renamed, same as any other seeded-but-ordinary row.
 
 ## 7. Technical Design
 
@@ -372,7 +374,7 @@ Eleven curated, human-readable reports a user generates on demand, superseding t
 ## 8. Open Implementation Details (not blocking, decide during build)
 
 These are low-level choices left to implementation rather than product decisions:
-- Exact predefined starter category and payment method lists.
+- ~~Exact predefined starter category and payment method lists.~~ Payment method's fixed list decided in F002's spec (§5.2); category's onboarding-suggestion list decided in F035's spec (§5.1, §6.7).
 - ~~Category/payment-method deletion/reassignment behavior when transactions reference it.~~ Decided in F002's spec (§6.3).
 - Currency precision/rounding rules.
 - ~~Exact CSV column ordering/naming and ZIP file naming convention for data export (§6.9).~~ Decided in F013's spec (superseded by F030).
@@ -400,3 +402,4 @@ These are low-level choices left to implementation rather than product decisions
 - Notifications (email/push) for budget overages or pending recurring bills.
 - Additional UI languages beyond English and Brazilian Portuguese (§6.14); server-side/multi-user locale (today it's a single client-side preference, no backend involvement).
 - Currency symbol display (§6.14) — tied to the existing no-multi-currency-support non-goal (§3), not introduced by the language toggle.
+- Reintroducing user customization of Payment Method, Investment Category/Sub-category, or Investment Segment (§3, §5.2, §5.8, §5.13) if a real gap in a fixed list ever appears ([ADR 0028](../adr/0028-fixed-taxonomy-values-and-onboarding-seeded-categories.md)).
