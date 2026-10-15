@@ -9,11 +9,11 @@
 
 ## Frontend
 - [x] `suggestedCategories.ts`: the 11-entry `{translationKey, type}` list.
-- [ ] `OnboardingPage.tsx`: `Stepper` with "Account"/"Categories" steps, `activeStep` state, existing `AccountCreateForm` as step 1 unchanged.
+- [x] `OnboardingPage.tsx`: `Stepper` with "Account"/"Categories" steps, `activeStep` state, existing `AccountCreateForm` as step 1 unchanged.
 - [x] `CategorySuggestionsStep.tsx`: pre-checked suggestion checkboxes grouped by type, add-your-own repeatable row, always-enabled Finish, `POST /api/categories` per selection, banner+retry on failure, calls `onCompleted` on success.
 - [x] `seedNames.ts`: English + Portuguese literal entries for all 11 suggestions (3 new translation keys for Entertainment/Education/Insurance, 8 existing keys gain a Portuguese-literal lookup entry).
 - [x] New `en`/`pt-BR` strings: step 2 heading/intro, "edit anytime later" note, add-your-own control labels.
-- [ ] `OnboardingPage.test.tsx`: two-step flow, Finish with mixed selections, Finish with zero selections.
+- [x] `OnboardingPage.test.tsx`: two-step flow, Finish with mixed selections, Finish with zero selections.
 - [x] `CategorySuggestionsStep.test.tsx`: new.
 
 ## Verification
