@@ -42,6 +42,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-flyway'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.flywaydb:flyway-database-postgresql'
+    // F036 (ADR 0029): session-cookie authentication + CSRF; the Argon2 encoder needs Bouncy Castle.
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation libs.bouncycastle.bcprov
     implementation libs.springdoc.openapi.starter.webmvc.ui
     // F030: PdfReportWriter (application/report) renders the FII portfolio and budgets reports' PDFs.
     implementation libs.openpdf
@@ -54,6 +57,7 @@ dependencies {
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
     // Testcontainers 2.x (pulled in via the testcontainers-bom import above) renamed these
     // modules from the old `junit-jupiter`/`postgresql` artifact ids to `testcontainers-*`.
     testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
@@ -62,6 +66,18 @@ dependencies {
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+// F036 (ADR 0029): one-off setup tool that turns a typed password into the Argon2 hash for
+// AUTH_PASSWORD_HASH, using the same encoder the app verifies logins with. Reads the AUTH_PASSWORD
+// environment variable if set, otherwise prompts on stdin. Use -q so only the hash line is printed:
+//   ./gradlew -q generateAuthHash
+tasks.register('generateAuthHash', JavaExec) {
+    description = 'Prints the Argon2 hash of a password, for AUTH_PASSWORD_HASH (F036).'
+    group = 'application'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.chm.myfinances.infrastructure.auth.AuthHashGenerator'
+    standardInput = System.in
 }
 
 // Two tiers, split by the JUnit tag `integration` (carried by every @SpringBootTest class, enforced
@@ -93,6 +109,12 @@ tasks.withType(Test).configureEach {
     // backend/logs/. System properties outrank config files, and Spring Boot treats an empty
     // name as "no log file" (F016).
     systemProperty 'logging.file.name', ''
+    // F036: the app refuses to start without a credential. Tests log in as test-user /
+    // test-password-f036 (testsupport/web/TestCredentials) against this Argon2 hash. System
+    // properties outrank application.yml's ${AUTH_USERNAME:}/${AUTH_PASSWORD_HASH:} placeholders.
+    systemProperty 'myfinances.auth.username', 'test-user'
+    systemProperty 'myfinances.auth.password-hash',
+        '$argon2id$v=19$m=16384,t=2,p=1$C0t+EgaETT/HWBygrtWqjA$q6cCFV9puHfa2kbXHTHss3z8e2IKHh8nuJLtVTktQVY'
     // Pinned non-UTC zone (CI runs in UTC, dev machines don't), so a UTC-vs-local bug fails here
     // too instead of only on someone's laptop in the evening (issue #73). A JVM arg, not a system
     // property, so it applies before anything caches the default zone. Frontend: `test.env.TZ` in vite.config.ts.

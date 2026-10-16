@@ -123,6 +123,11 @@ services:
       # Backend log level (INFO by default; DEBUG when chasing something) - Spring's relaxed
       # binding maps this onto logging.level.com.chm.myfinances without a rebuild.
       LOGGING_LEVEL_COM_CHM_MYFINANCES: ${LOG_LEVEL:-INFO}
+      # F036, ADR 0029: the single shared login. Required - compose refuses to start the stack
+      # without them. AUTH_PASSWORD_HASH is the Argon2 hash from `./gradlew -q generateAuthHash`
+      # (backend/), never the plaintext, and must be single-quoted in .env (it contains $).
+      AUTH_USERNAME: ${AUTH_USERNAME:?set AUTH_USERNAME in .env (see .env.example)}
+      AUTH_PASSWORD_HASH: ${AUTH_PASSWORD_HASH:?set AUTH_PASSWORD_HASH in .env (see .env.example)}
     volumes:
       - my-finances-logs-prod:/var/log/my-finances
       # Read-only (F018): the backend only ever reads status.json through this mount, never writes
@@ -150,7 +155,9 @@ services:
     container_name: my-finances-frontend-prod
     restart: unless-stopped
     ports:
-      - "127.0.0.1:${FRONTEND_PORT:-8081}:80"
+      # BIND_ADDR (F036, ADR 0029) defaults to host loopback; set it to a private-network
+      # interface address to reach the app from other devices. The login gates every request.
+      - "${BIND_ADDR:-127.0.0.1}:${FRONTEND_PORT:-8081}:80"
     logging: *default-logging
     depends_on:
       backend:

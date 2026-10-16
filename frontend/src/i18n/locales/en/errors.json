@@ -1,5 +1,8 @@
 {
   "problemType": {
+    "unauthenticated": "Your session has expired. Sign in again.",
+    "accessDenied": "That request was refused. Reload the page and try again.",
+    "tooManyLoginAttempts": "Too many failed sign-in attempts. Wait a few minutes and try again.",
     "categoryNameAlreadyExists": "A category with this name already exists.",
     "categoryInUse": "This category is used by existing transactions, budgets, or recurring templates — reassign them before deleting it.",
     "builtInCategory": "A built-in category cannot be deleted.",

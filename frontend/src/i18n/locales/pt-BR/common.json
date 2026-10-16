@@ -25,6 +25,7 @@
     "settingsHeading": "Configurações"
   },
   "layout": {
+    "logout": "Sair",
     "openNavigation": "Abrir navegação",
     "toggleDarkMode": "Alternar modo escuro",
     "switchToLightMode": "Mudar para modo claro",

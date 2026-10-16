@@ -13,9 +13,13 @@ import { LoadFailedNotice } from './components/feedback/LoadFailedNotice'
 import { fadeInSx } from './components/feedback/fadeIn'
 import { useDelayedFlag } from './hooks/useDelayedFlag'
 import { OnboardingPage } from './features/onboarding/OnboardingPage'
+import { RequireAuth } from './features/auth/RequireAuth'
 
 // Route-level code splitting: each page is its own chunk, fetched on first navigation instead of
 // all being bundled into one >500kB entry chunk. Named exports, so each needs its own `.then`.
+const LoginPage = lazy(() =>
+  import('./features/auth/LoginPage').then((m) => ({ default: m.LoginPage })),
+)
 const DashboardPage = lazy(() =>
   import('./features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })),
 )
@@ -105,9 +109,11 @@ function PageErrorBoundary({ children }: PropsWithChildren) {
   return <ErrorBoundary key={pathname}>{children}</ErrorBoundary>
 }
 
-function ThemedApp() {
-  const { mode } = useColorMode()
-  const theme = useMemo(() => getTheme(mode), [mode])
+/**
+ * Everything behind the login (F036, ADR 0029): mounted only once `RequireAuth` has a session, so
+ * none of its data hooks (accounts gate, backup banner, pages) fire while signed out.
+ */
+function AuthenticatedApp() {
   // Onboarding (F011) is not part of the route tree: it's a top-level check gating whether
   // the router+layout shell renders at all. `hasAccounts` stays null while the check is loading
   // or failed, so neither the shell nor onboarding renders on a guess.
@@ -138,8 +144,7 @@ function ThemedApp() {
   const showOnboarding = inOnboarding || hasAccounts === false
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
+    <>
       {/* F018: not behind the onboarding gate below, so it shows regardless of whether
           onboarding has happened yet or which page (if any) is open. */}
       <BackupStatusBanner />
@@ -157,48 +162,71 @@ function ThemedApp() {
           )}
         </Box>
       ) : !showOnboarding ? (
-        <BrowserRouter>
-          <Layout>
-            <PageErrorBoundary>
-              <Suspense fallback={<RouteFallback />}>
-                <Routes>
-                  <Route path="/" element={<DashboardPage />} />
-                  <Route path="/transactions" element={<TransactionsPage />} />
-                  <Route path="/fuel" element={<FuelPage />} />
-                  <Route path="/accounts" element={<AccountsPage />} />
-                  <Route path="/accounts/:id" element={<AccountDetailPage />} />
-                  <Route
-                    path="/investment-products/:id"
-                    element={<InvestmentProductDetailPage />}
-                  />
-                  <Route path="/transfers" element={<TransfersPage />} />
-                  <Route path="/budgets" element={<BudgetsPage />} />
-                  <Route path="/recurring" element={<RecurringTemplatesPage />} />
-                  <Route path="/investments" element={<InvestmentsPage />} />
-                  <Route path="/fii" element={<FiiPage />} />
-                  <Route path="/settings/categories" element={<CategoriesPage />} />
-                  <Route path="/settings/institutions" element={<InstitutionsPage />} />
-                  <Route
-                    path="/settings/investment-categories"
-                    element={<InvestmentCategoriesPage />}
-                  />
-                  <Route
-                    path="/settings/investment-segments"
-                    element={<InvestmentSegmentsPage />}
-                  />
-                  <Route path="/settings/payment-methods" element={<PaymentMethodsPage />} />
-                  <Route path="/settings/vehicles" element={<VehiclesPage />} />
-                  <Route path="/reports" element={<ReportsPage />} />
-                  <Route path="/activity" element={<ActivityPage />} />
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </Suspense>
-            </PageErrorBoundary>
-          </Layout>
-        </BrowserRouter>
+        <Layout>
+          <PageErrorBoundary>
+            <Suspense fallback={<RouteFallback />}>
+              <Routes>
+                <Route path="/" element={<DashboardPage />} />
+                <Route path="/transactions" element={<TransactionsPage />} />
+                <Route path="/fuel" element={<FuelPage />} />
+                <Route path="/accounts" element={<AccountsPage />} />
+                <Route path="/accounts/:id" element={<AccountDetailPage />} />
+                <Route path="/investment-products/:id" element={<InvestmentProductDetailPage />} />
+                <Route path="/transfers" element={<TransfersPage />} />
+                <Route path="/budgets" element={<BudgetsPage />} />
+                <Route path="/recurring" element={<RecurringTemplatesPage />} />
+                <Route path="/investments" element={<InvestmentsPage />} />
+                <Route path="/fii" element={<FiiPage />} />
+                <Route path="/settings/categories" element={<CategoriesPage />} />
+                <Route path="/settings/institutions" element={<InstitutionsPage />} />
+                <Route
+                  path="/settings/investment-categories"
+                  element={<InvestmentCategoriesPage />}
+                />
+                <Route path="/settings/investment-segments" element={<InvestmentSegmentsPage />} />
+                <Route path="/settings/payment-methods" element={<PaymentMethodsPage />} />
+                <Route path="/settings/vehicles" element={<VehiclesPage />} />
+                <Route path="/reports" element={<ReportsPage />} />
+                <Route path="/activity" element={<ActivityPage />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
+          </PageErrorBoundary>
+        </Layout>
       ) : (
         <OnboardingPage onCompleted={() => setInOnboarding(false)} />
       )}
+    </>
+  )
+}
+
+function ThemedApp() {
+  const { mode } = useColorMode()
+  const theme = useMemo(() => getTheme(mode), [mode])
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <BrowserRouter>
+        <Routes>
+          {/* The one route reachable without a session; everything else is behind the guard. */}
+          <Route
+            path="/login"
+            element={
+              <Suspense fallback={<RouteFallback />}>
+                <LoginPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="*"
+            element={
+              <RequireAuth>
+                <AuthenticatedApp />
+              </RequireAuth>
+            }
+          />
+        </Routes>
+      </BrowserRouter>
     </ThemeProvider>
   )
 }

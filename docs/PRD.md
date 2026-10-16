@@ -206,7 +206,7 @@ An append-only record of one committed change (ADR 0022). Not part of net worth 
 - `occurred_at` (timestamp, from the application clock)
 - `entity_type`, `entity_id` (no foreign key — a deleted entity's entries remain) and `entity_label` (a snapshot of the entity's name or description at the time, so a deleted entity is still readable)
 - `action`: `CREATE`, `UPDATE`, `DELETE`, `CLOSE`, `REOPEN`, `STOPPED` (a budget stopped from a month on) or `GENERATED` (recurring catch-up summary)
-- `origin`: `USER` or `SYSTEM` (lazy recurring generation and cascades such as closing an account deactivating its templates). There is no actor: the app has no authentication (§3).
+- `origin`: `USER` or `SYSTEM` (lazy recurring generation and cascades such as closing an account deactivating its templates). There is no actor: the app's one shared login (§6.15) is a lock on the door, not an identity to attribute changes to (§3).
 - `changes`: field → `{from, to}` diff
 - `request_id`: ties together the entries one click produced
 
@@ -352,7 +352,7 @@ Eleven curated, human-readable reports a user generates on demand, superseding t
 - User-entered text (category/account/institution names, transaction descriptions and notes, etc.) is never translated. A migration-seeded row (§5.1's four protected categories, §5.2, §5.8, §5.10's built-in institution, §5.13's segments) displays translated by exact-name match; the fixed entities (§5.2, §5.8, §5.13) are never renamable so stay translated permanently, while a protected category or the built-in institution displays translated regardless of rename since those specific rows can't be renamed either (§5.1, §5.10). An onboarding-accepted or custom category (§6.7) is translated the same way only until renamed, same as any other seeded-but-ordinary row.
 
 ### 6.15 Authentication
-- A single shared credential (username + password, set via environment variables) gates every page and API call — not a per-user account system (§3, §4). Logging in sets a session cookie; logging out clears it. A session stays valid for 30 days of inactivity.
+- A single shared credential (username + password, set via environment variables - the password only as an Argon2 hash, never in plaintext) gates every page and API call — not a per-user account system (§3, §4). Logging in sets a session cookie; logging out clears it. A session stays valid for 30 days of inactivity.
 - Required in every environment the app runs in, with no exceptions for local development — the same login screen appears whether the app is reached at `localhost`, over a home network, or through a private overlay network (§7.1).
 - Repeated failed login attempts are throttled; past a threshold, further attempts are rejected for a cooldown period rather than retried indefinitely.
 - No password reset flow, no "forgot password" email (there is no email anywhere in this app) — the credential is rotated by changing the environment variable and restarting the app ([ADR 0029](../adr/0029-session-auth-and-generic-network-binding.md)).

@@ -16,6 +16,11 @@ export interface Store<T extends { id: string }> {
   nextId: (prefix: string) => string
 }
 
+/** Registers a reset for module-level mock state that isn't a row store (e.g. the mock session). */
+export function onResetStores(reset: () => void): void {
+  resetters.push(reset)
+}
+
 export function createStore<T extends { id: string }>(seed: readonly T[]): Store<T> {
   let rows: T[] = structuredClone([...seed])
   let created = 0

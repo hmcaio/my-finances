@@ -64,6 +64,12 @@ export class ApiError extends Error {
  * the error.
  */
 export const PROBLEM_TYPE_MESSAGES: Record<string, string> = {
+  // Authentication (F036, ADR 0029). `unauthenticated` is the generic "no session" wording; the
+  // login form overrides its own 401 with "incorrect username or password" (`statusOverrides`).
+  'urn:my-finances:error:unauthenticated': 'errors:problemType.unauthenticated',
+  'urn:my-finances:error:access-denied': 'errors:problemType.accessDenied',
+  'urn:my-finances:error:too-many-login-attempts': 'errors:problemType.tooManyLoginAttempts',
+
   // Categories (F002, F024, F026)
   'urn:my-finances:error:category-name-already-exists':
     'errors:problemType.categoryNameAlreadyExists',

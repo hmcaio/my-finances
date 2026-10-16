@@ -4,6 +4,8 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Link, MemoryRouter } from 'react-router-dom'
 import { ThemeProvider } from '@mui/material/styles'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { createTestQueryClient } from '../../test/renderWithQueryClient'
 import { getTheme } from '../../theme'
 import { ColorModeProvider } from '../../hooks/colorMode/ColorModeProvider'
 import { LocaleProvider } from '../../hooks/locale/LocaleProvider'
@@ -12,15 +14,17 @@ import { Layout } from './Layout'
 
 function renderLayout({ pageContent }: { pageContent?: ReactNode } = {}) {
   return render(
-    <MemoryRouter initialEntries={['/']}>
-      <ThemeProvider theme={getTheme('light')}>
-        <ColorModeProvider>
-          <LocaleProvider>
-            <Layout>{pageContent ?? <p>page content</p>}</Layout>
-          </LocaleProvider>
-        </ColorModeProvider>
-      </ThemeProvider>
-    </MemoryRouter>,
+    <QueryClientProvider client={createTestQueryClient()}>
+      <MemoryRouter initialEntries={['/']}>
+        <ThemeProvider theme={getTheme('light')}>
+          <ColorModeProvider>
+            <LocaleProvider>
+              <Layout>{pageContent ?? <p>page content</p>}</Layout>
+            </LocaleProvider>
+          </ColorModeProvider>
+        </ThemeProvider>
+      </MemoryRouter>
+    </QueryClientProvider>,
   )
 }
 

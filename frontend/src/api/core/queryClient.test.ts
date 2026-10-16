@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createQueryClient } from './queryClient'
+import { ApiError } from './apiError'
+import { createQueryClient, SESSION_QUERY_KEY } from './queryClient'
 
 describe('createQueryClient', () => {
   it('sets the documented defaults', () => {
@@ -69,5 +70,67 @@ describe('createQueryClient', () => {
       .execute(undefined)
 
     expect(spy).not.toHaveBeenCalled()
+  })
+  describe('session expiry (F036)', () => {
+    const unauthenticated = new ApiError(401, 'x', 'urn:my-finances:error:unauthenticated')
+
+    it('marks the session signed out and drops app data when a query answers 401', async () => {
+      const client = createQueryClient()
+      client.setQueryData(SESSION_QUERY_KEY, { authenticated: true })
+      client.setQueryData(['api', 'accounts', 'list'], [{ id: 'a' }])
+
+      await client
+        .fetchQuery({
+          queryKey: ['api', 'transactions'],
+          queryFn: () => Promise.reject(unauthenticated),
+        })
+        .catch(() => undefined)
+
+      expect(client.getQueryData(SESSION_QUERY_KEY)).toEqual({ authenticated: false })
+      expect(client.getQueryData(['api', 'accounts', 'list'])).toBeUndefined()
+    })
+
+    it('does the same when a mutation answers 401', async () => {
+      const client = createQueryClient()
+      client.setQueryData(SESSION_QUERY_KEY, { authenticated: true })
+
+      await client
+        .getMutationCache()
+        .build(client, { mutationFn: () => Promise.reject(unauthenticated) })
+        .execute(undefined)
+        .catch(() => undefined)
+
+      expect(client.getQueryData(SESSION_QUERY_KEY)).toEqual({ authenticated: false })
+    })
+
+    it('leaves the session alone for a mutation that handles its own 401 (the login form)', async () => {
+      const client = createQueryClient()
+      client.setQueryData(SESSION_QUERY_KEY, { authenticated: true })
+
+      await client
+        .getMutationCache()
+        .build(client, {
+          mutationFn: () => Promise.reject(unauthenticated),
+          meta: { skipSessionExpiry: true },
+        })
+        .execute(undefined)
+        .catch(() => undefined)
+
+      expect(client.getQueryData(SESSION_QUERY_KEY)).toEqual({ authenticated: true })
+    })
+
+    it('ignores non-401 failures', async () => {
+      const client = createQueryClient()
+      client.setQueryData(SESSION_QUERY_KEY, { authenticated: true })
+
+      await client
+        .fetchQuery({
+          queryKey: ['api', 'transactions'],
+          queryFn: () => Promise.reject(new ApiError(500, 'boom')),
+        })
+        .catch(() => undefined)
+
+      expect(client.getQueryData(SESSION_QUERY_KEY)).toEqual({ authenticated: true })
+    })
   })
 })
