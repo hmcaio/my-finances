@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# Local pre-commit guardrail: runs the mechanical formatter/lint gates CI would run, but only for the
+# stacks the commit touches, so a stray blank line in an import block fails here instead of in CI.
+# Docs-only / scripts-only commits touch nothing and exit immediately (no Gradle/npm startup).
+# Enable once with `scripts/setup-hooks.sh`; bypass in an emergency with `git commit --no-verify`.
+# `scripts/verify.sh` stays the full definition of the checks; this is its fast, staged-aware subset.
+set -u
+cd "$(git rev-parse --show-toplevel)"
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -z "$staged" ] && exit 0
+
+# Spotless only targets backend/src/**/*.java (backend/build.gradle).
+has_backend=$(printf '%s\n' "$staged" | grep -E '^backend/src/.*\.java$' | head -n 1)
+# Prettier/ESLint cover these under frontend/, minus the ignored generated/build output.
+has_frontend=$(printf '%s\n' "$staged" \
+  | grep -E '^frontend/.*\.(ts|tsx|js|jsx|mjs|cjs|json|css|html|md|yml|yaml)$' \
+  | grep -vE '^frontend/(dist|src/api/generated|playwright-report|e2e-results)/' | head -n 1)
+
+[ -z "$has_backend$has_frontend" ] && exit 0
+
+ran=()
+
+if [ -n "$has_backend" ]; then
+  if ! (cd backend && ./gradlew -q spotlessCheck); then
+    cat >&2 <<'MSG'
+
+pre-commit: backend formatting (Spotless / google-java-format) failed. Fix it with:
+
+    cd backend && ./gradlew spotlessApply
+
+then re-stage the changed files (git add <files>) and commit again.
+MSG
+    exit 1
+  fi
+  ran+=("spotlessCheck")
+fi
+
+if [ -n "$has_frontend" ]; then
+  if [ ! -d frontend/node_modules ]; then
+    echo "pre-commit: frontend/node_modules missing, skipping prettier/eslint (run 'cd frontend && npm ci')"
+  else
+    if ! (cd frontend && npm run --silent format:check); then
+      cat >&2 <<'MSG'
+
+pre-commit: frontend formatting (Prettier) failed. Fix it with:
+
+    cd frontend && npm run format
+
+then re-stage the changed files (git add <files>) and commit again.
+MSG
+      exit 1
+    fi
+    if ! (cd frontend && npm run --silent lint); then
+      echo >&2
+      echo "pre-commit: frontend lint (ESLint) failed. Fix the reported problems (or 'cd frontend && npx eslint --fix .'), re-stage and commit again." >&2
+      exit 1
+    fi
+    ran+=("prettier" "eslint")
+  fi
+fi
+
+[ ${#ran[@]} -gt 0 ] && echo "pre-commit: ok (${ran[*]})"
+exit 0

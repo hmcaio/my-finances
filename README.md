@@ -59,6 +59,8 @@ cd frontend && npm install && npm run dev  # UI at localhost:5173
 
 Before pushing, `scripts/verify.sh` runs the same checks CI does (pinned versions, backend spotless + tests, frontend lint, format, build, tests); it needs Docker running and `npm ci` done in `frontend/`.
 
+One-time setup: run `scripts/setup-hooks.sh` to enable the local pre-commit hook, which runs Spotless (backend) and Prettier + ESLint (frontend) on the stacks a commit touches, so formatting slips fail at commit time instead of in CI. It sets the repo-wide `core.hooksPath` (shared by all worktrees); `--uninstall` undoes it.
+
 A production-shaped smoke test (Docker images end to end, no cloud involved) is also documented in [docs/conventions/tooling.md](docs/conventions/tooling.md).
 
 ## Login
