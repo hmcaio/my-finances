@@ -40,7 +40,9 @@ if [ -n "$has_frontend" ]; then
   if [ ! -d frontend/node_modules ]; then
     echo "pre-commit: frontend/node_modules missing, skipping prettier/eslint (run 'cd frontend && npm ci')"
   else
-    if ! (cd frontend && npm run --silent format:check); then
+    # Output is buffered so a passing run stays silent (only the final summary line prints).
+    if ! out=$(cd frontend && npm run --silent format:check 2>&1); then
+      printf '%s\n' "$out" >&2
       cat >&2 <<'MSG'
 
 pre-commit: frontend formatting (Prettier) failed. Fix it with:
@@ -51,7 +53,8 @@ then re-stage the changed files (git add <files>) and commit again.
 MSG
       exit 1
     fi
-    if ! (cd frontend && npm run --silent lint); then
+    if ! out=$(cd frontend && npm run --silent lint 2>&1); then
+      printf '%s\n' "$out" >&2
       echo >&2
       echo "pre-commit: frontend lint (ESLint) failed. Fix the reported problems (or 'cd frontend && npx eslint --fix .'), re-stage and commit again." >&2
       exit 1
