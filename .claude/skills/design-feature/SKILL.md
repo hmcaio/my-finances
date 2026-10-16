@@ -27,9 +27,41 @@ State these three decisions to the user as part of the Phase 1 summary (or a sho
 
 ## 3. Write the docs
 
-Find the next free id(s) first: `ls docs/features` for the highest `FXXX`, `ls docs/adr` for the highest ADR number (if writing one). Never reuse or guess a number — collisions silently shadow another feature's folder.
+### Ids
 
-Before writing, **read one recent, similarly-shaped feature's actual `spec.md`/`plan.md`** (and its ADR, if it has one) in full as the template — don't write from a mental template of the format. A frontend-only feature should look like F019's spec (no `## Backend` section, a `## Non-goals` section); a feature with real domain/schema work should look like F026/F027's shape (`Summary`/`Scope`/`Decisions`/`Backend`/`Frontend`/`Dependencies`). Match structure, heading names and the level of specificity (file paths, package names, exact migration/table shapes, exact REST verbs/paths) — a spec vague about *where* code goes is far less useful to whoever runs `implement-feature` against it later.
+`git fetch origin`, then read the next free id(s) from `origin/develop`, which is where the docs branch starts: `git ls-tree --name-only origin/develop docs/features/ docs/adr/` — the highest `F`-prefixed `FXXX` folder (`_template` is not an id) and, if writing an ADR, the highest ADR number. Never reuse or guess a number — collisions silently shadow another feature's folder.
+
+### Workspace
+
+Create the docs workspace before the first file is written, so every file lands on the docs branch:
+
+- **Default: a sibling worktree** — `git worktree add -b docs/<short-slug> ../my-finances-<id>-docs origin/develop` (`<id>` lowercase, e.g. `f024`; the first id of a split pair). Use it whenever the current checkout is not a clean `develop` (another branch checked out, or uncommitted work, including an `implement-feature` branch in progress). The checkout and its branch stay untouched. Run Phase 3 and Phase 4 inside the worktree.
+- **Clean `develop`** (`git status` clean, `git branch --show-current` is `develop`, local `develop` equal to `origin/develop`): `git checkout -b docs/<short-slug>` here.
+
+The branch is `docs/`-prefixed per [ADR 0008](../../../docs/adr/0008-github-flow-with-develop-branch.md): docs-only work, the same prefix `audit-and-fix` uses for doc-only changes. The `feature/` prefix belongs to the `implement-feature` run that builds this later.
+
+### Template
+
+Copy `docs/features/_template/spec.md` and `plan.md` into `docs/features/FXXX-slug/`: the template is the concrete format, so the headings, their order and the per-section guidance in its comments are the contract, not a format recalled from memory. A frontend-only feature drops `## Backend` and keeps `## Non-goals`.
+
+Read a finished feature's spec only for the sections the new feature shares with it, not in full:
+
+| New feature is | Read |
+|---|---|
+| Rules-heavy domain/schema work | F027 `spec.md` `## Backend` (Domain, Application, Persistence, API) and its `plan.md` test-first items |
+| Cross-cutting infrastructure | F031 or F036 `spec.md` (one `###` per mechanism) |
+| Frontend-only | F019 `spec.md` (`## Decisions`, `## Structure`, `## Testing`, `## Non-goals`) |
+
+Match each section's level of specificity (file paths, package names, exact migration/table shapes, exact REST verbs/paths) — a spec vague about *where* code goes is far less useful to whoever runs `implement-feature` against it later.
+
+### Verify library claims
+
+Before the first spec, ADR or PRD sentence is written, list **every** claim the design makes about how a library, framework or tool behaves — each statement of the form "X can/cannot/does/requires Y" about a dependency, a framework option, a Docker/compose/Gradle/npm feature (a Spring Security setting, an axios option, a Flyway rule). Give each claim one disposition:
+
+- **Verified**, with its evidence: the dependency's own source or javadoc (the sources jar under `~/.gradle/caches/modules-2/files-2.1/<group>/<artifact>`, or `node_modules/<pkg>`), or the official docs page fetched with `WebFetch` (cite the URL). A background sub-agent can run the lookups, the way Phase 1 does for repo facts.
+- **Unverified**: written verbatim as `unverified - confirm during implementation: <claim>` under the spec's `## Open questions`, and any decision whose "Why" rests on it points there instead of stating the claim as fact.
+
+An unlisted claim counts as unverified. Close Phase 3 with a summary to the user: the files written, then the full claim list, one line per claim (`claim — verified: <evidence>` or `claim — unverified, in Open questions`), or the sentence "no library-behavior claims" when the design has none. The F036 design stated that a wildcard CORS `allowedOriginPatterns` cannot be combined with credentials; it can, and the implementation had to correct the spec.
 
 Write, in this order:
 1. The ADR, if Phase 2 decided one's needed (`docs/adr/NNNN-slug.md`, the `## Context`/`## Decision`/`## Consequences` template already at the bottom of `docs/adr/README.md`), plus its index row.
@@ -38,16 +70,17 @@ Write, in this order:
 4. `docs/features/README.md`'s table (one row per new feature, in id order) and, if the feature introduces a new cross-cutting convention, the "Cross-cutting conventions" section below it.
 5. Root `README.md`'s "Project status" — append to the "Documented and next up" sentence (new features aren't built yet; don't add them to the "Built" list).
 
+Phase 3 is done when `grep -nE '<!--|FXXX|NNNN' docs/features/<FXXX>-*/*.md` is empty and the summary above, with its claim list, has gone to the user.
+
 ## 4. Ship
 
-Per [ADR 0008](../../../docs/adr/0008-github-flow-with-develop-branch.md), work branches off `develop`. This is docs-only, so it gets the `docs/` prefix the `audit-and-fix` skill already uses for doc-only work, not `feature/` (that prefix is for the `implement-feature` run that actually builds this later, on its own branch per feature id).
+Ship from the Phase 3 workspace (its branch is already `docs/<short-slug>`).
 
-1. `git status` clean, `git fetch origin`, confirm local `develop` is current.
-2. `git checkout -b docs/<short-slug>` (e.g. `docs/investment-splits`) off `develop`.
-3. Stage exactly the files this skill touched — explicit paths, never `-A`/`.` (`git status` after to confirm nothing stray got swept in).
-4. Commit with Conventional Commits (ADR 0009), type `docs`, scope the feature id(s) (`docs(F028-F029): ...`), **and append `[skip ci]` to the end of the commit subject line**. GitHub Actions natively skips both `push`- and `pull_request`-triggered runs when the head commit message carries that marker — no `ci.yml` change needed, and this repo's workflow has no path filter that would otherwise skip a docs-only diff on its own (`.github/workflows/ci.yml` runs on every push/PR unconditionally). No `CHANGELOG.md` entry: `docs` commits aren't user-visible changes (ADR 0009's type table).
-5. **Push and open the PR only when the user says so** — same rule `audit-and-fix` follows; confirming the design in Phase 1 is not the same as approving a push. When asked: `git push -u origin docs/<slug>` and `gh pr create --base develop` with a summary of what was added (ADR / which `FXXX` folders / PRD sections) and a test plan noting this is docs-only (nothing to run; `implement-feature <FXXX>` is the next step). Return the PR URL.
+1. Stage exactly the files this skill touched — explicit paths, never `-A`/`.` (`git status` after to confirm nothing stray got swept in).
+2. Commit with Conventional Commits (ADR 0009), type `docs`, scope the feature id(s) (`docs(F028-F029): ...`), **and append `[skip ci]` to the end of the commit subject line**. GitHub Actions natively skips both `push`- and `pull_request`-triggered runs when the head commit message carries that marker — no `ci.yml` change needed, and this repo's workflow has no path filter that would otherwise skip a docs-only diff on its own (`.github/workflows/ci.yml` runs on every push/PR unconditionally). No `CHANGELOG.md` entry: `docs` commits aren't user-visible changes (ADR 0009's type table).
+3. **Push and open the PR only when the user says so** — same rule `audit-and-fix` follows; confirming the design in Phase 1 is not the same as approving a push. When asked: `git push -u origin docs/<slug>` and `gh pr create --base develop` with a summary of what was added (ADR / which `FXXX` folders / PRD sections) and a test plan noting this is docs-only (nothing to run; `implement-feature <FXXX>` is the next step). Return the PR URL.
+4. **Clean up after the merge**, when the user says the docs PR is merged or `gh pr view` reports `MERGED`, and the workspace was a worktree. From the original checkout: `git worktree remove ../my-finances-<id>-docs`, `git branch -D docs/<slug>` (a squash-merge leaves the branch unmerged in git's view, so `-d` refuses), `git worktree prune`. Done when `git worktree list` shows no entry for `my-finances-<id>-docs`.
 
 ## Closing message
 
-One or two sentences after Phase 1's confirmation and again after Phase 4: what got written (or shipped) and the next concrete step (`implement-feature <FXXX>`, or push/PR if not done yet).
+One or two sentences after Phase 1's confirmation and again after Phase 4: what got written (or shipped) and the next concrete step (`implement-feature <FXXX>`, or push/PR if not done yet, or the worktree cleanup once merged).
