@@ -34,11 +34,10 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties("myfinances.auth")
 public record AuthProperties(
-    @NotBlank(message = "AUTH_USERNAME must be set (F036, ADR 0029)") String username,
+    @NotBlank(message = "AUTH_USERNAME must be set") String username,
     @NotBlank(
             message =
-                "AUTH_PASSWORD_HASH must be set - generate one with ./gradlew generateAuthHash"
-                    + " (F036, ADR 0029)")
+                "AUTH_PASSWORD_HASH must be set - generate one with ./gradlew generateAuthHash")
         @Pattern(
             regexp = "^\\$argon2(id|i|d)\\$.+",
             message =

@@ -4,6 +4,7 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 import jakarta.servlet.http.Cookie;
+import java.util.ArrayList;
 import java.util.List;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -68,7 +69,7 @@ public final class MockMvcSupport {
   }
 
   private static Cookie[] appendCookie(Cookie[] existing) {
-    java.util.ArrayList<Cookie> cookies = new java.util.ArrayList<>();
+    ArrayList<Cookie> cookies = new ArrayList<>();
     if (existing != null) {
       cookies.addAll(List.of(existing));
     }
