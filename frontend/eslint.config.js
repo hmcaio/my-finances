@@ -6,6 +6,21 @@ import tseslint from 'typescript-eslint'
 import pluginQuery from '@tanstack/eslint-plugin-query'
 import prettierConfig from 'eslint-config-prettier'
 
+const useBreakpointMessage =
+  'Use hooks/useBreakpointBand (or theme.breakpoints in sx) instead of a raw useMediaQuery.'
+
+const rawMediaQueryImports = [
+  { name: '@mui/material', importNames: ['useMediaQuery'], message: useBreakpointMessage },
+  { name: '@mui/material/useMediaQuery', message: useBreakpointMessage },
+]
+
+const rawQueryImport = {
+  name: '@tanstack/react-query',
+  importNames: ['useQuery', 'useQueries', 'useInfiniteQuery', 'useSuspenseQuery', 'useMutation'],
+  message:
+    'Use the area hooks from src/api/<area>/<area>Queries instead of a raw query hook (F019).',
+}
+
 export default tseslint.config(
   {
     ignores: [
@@ -42,8 +57,20 @@ export default tseslint.config(
   },
   ...pluginQuery.configs['flat/recommended'],
   {
+    // Breakpoint logic (F021, ADR 0019): `hooks/useBreakpointBand` is the one place that reads
+    // viewport width; `Layout` (the nav switch at `lg`) is the one other reader. Everything else
+    // uses the hook or `theme.breakpoints` in `sx`. Features get this same restriction again
+    // below, because a later `no-restricted-imports` entry replaces an earlier one for its files.
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/hooks/useBreakpointBand.ts', 'src/components/layout/Layout.tsx'],
+    rules: {
+      'no-restricted-imports': ['error', { paths: rawMediaQueryImports }],
+    },
+  },
+  {
     // Layering (F019, ADR 0016): feature code reaches the backend only through the `<area>Queries`
-    // hooks, never by calling an `src/api/<area>/<area>` HTTP function itself. Types, constants and the
+    // hooks, never by calling an `src/api/<area>/<area>` HTTP function itself and never with a raw
+    // `useQuery`/`useMutation` (a hand-built key breaks request sharing). Types, constants and the
     // conflict messages can still be imported from the area module.
     files: ['src/features/**/*.{ts,tsx}'],
     ignores: ['**/*.test.{ts,tsx}'],
@@ -51,6 +78,7 @@ export default tseslint.config(
       'no-restricted-imports': [
         'error',
         {
+          paths: [...rawMediaQueryImports, rawQueryImport],
           patterns: [
             {
               group: [
