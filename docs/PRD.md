@@ -257,12 +257,12 @@ Versioned entities (§5.6, §5.7) log as an `UPDATE` on the logical entity, diff
 
 ### 6.1 Transactions
 - Create/edit/delete a transaction: date, amount, category, account, payment method, optional note.
-- List/filter transactions by date range, category, account, and payment method.
+- List/filter transactions by date range, category, account, and payment method. The list lives in the unified Ledger (§6.16), which interleaves them with transfers and adds month navigation, a summary and text search.
 - View running balance per account.
 
 ### 6.2 Accounts & Transfers
 - CRUD on accounts (name, institution picked from §6.10 — defaults to "No institution", type, opening balance, opening balance date). For an `INVESTMENT` account the opening balance and date are not asked for (§5.4).
-- View an account's running balance and its transaction/transfer history.
+- View an account's running balance and its transaction/transfer history: one month-scoped Ledger section on the account page, read-only (§6.16).
 - Create a transfer between two accounts (date, from, to, amount, optional note); view transfer history. A trade on an `INVESTMENT` account is instead entered as a trade confirmation: a shared cash account and `INVESTMENT` account, one or more product lines (quantity, unit price, optional resulting balance), and one shared taxes figure — the backend derives the settlement amount and direction (§5.5, §6.6).
 - Close an account (sets `closed_date`; auto-deactivates any recurring templates pointing at it). Closed accounts are excluded from "create new" pickers and the live balances widget, but remain browsable/exportable with their full history. An `INVESTMENT` account can only be closed once all its holdings are closed.
 - Delete an account that has no history at all (§5.4, ADR 0017), open or closed; an account with any transaction, transfer, recurring template or investment holding can only be closed. The confirmation warns that deleting an account with an opening balance changes past net worth.
@@ -357,6 +357,17 @@ Eleven curated, human-readable reports a user generates on demand, superseding t
 - Repeated failed login attempts are throttled; past a threshold, further attempts are rejected for a cooldown period rather than retried indefinitely.
 - No password reset flow, no "forgot password" email (there is no email anywhere in this app) — the credential is rotated by changing the environment variable and restarting the app ([ADR 0029](../adr/0029-session-auth-and-generic-network-binding.md)).
 
+### 6.16 Ledger
+One page, the Ledger, replaces the separate Transactions and Transfers pages. It lists transactions and transfers together as one chronological list (newest first), month by month ([ADR 0030](../adr/0030-postgres-unaccent-for-accent-insensitive-search.md) for search).
+- **Month first.** A `‹ October 2026 ›` navigator with a month picker scopes the list; it defaults to the current month and future months are allowed. An "All time / custom range" choice replaces the month with explicit from/to dates. The whole scope loads at once, capped at 1,000 rows; when more match, a notice says the list is truncated. There is no pagination.
+- **Row types are visually distinct.** Income is a green `+` amount with an up-arrow icon; expense is a red `-` amount with a down-arrow icon; a transfer is a neutral unsigned amount with a swap icon and a `From → To` account cell (category and payment method show `—`; a buy/sell trade confirmation keeps its Buy/Sell chips). Color is never the only signal (icon and sign carry it too). Transfers are never signed, because a sign relative to an account would be wrong for a credit card (§5.5).
+- **Filters:** type (All / Income / Expense / Transfer), account (a transfer matches either side; closed accounts included), category, payment method, and text search. A transfer has no category or payment method (§5.5), so setting either hides transfers; choosing the Transfer type disables both.
+- **Text search** matches the description and notes of both transactions and transfers, ignoring case and accents ("cafe" finds "Café"), within the active month or range; an empty result offers a one-click "Search all time". It does not match category, account or product names, and does not highlight.
+- **Summary:** income, expense and net for the whole filtered scope (not just the visible rows). Transfers are excluded from all three, consistent with §5.5 (a credit card payment is a transfer, not spend).
+- **Adding and editing:** a split "Add" button offers "New transaction" and "New transfer" (the existing forms, including trade confirmations and fuel details); a row opens its own edit form. Month, range and filters live in the URL, so a link or refresh restores the view.
+- **Account page:** the account detail page shows the same Ledger, scoped to that account, read-only, with the month navigator and summary and a link to the full Ledger. An `INVESTMENT` account keeps its products section above it and, since it takes no transactions (§5.4), lists only transfers.
+- Not in v1 (§9): a running balance per row, user-selectable sort, search on names or tickers, match highlighting. The reports (§6.9) remain the export path.
+
 ## 7. Technical Design
 
 ### 7.1 Stack
@@ -405,6 +416,7 @@ These are low-level choices left to implementation rather than product decisions
 - Generalizing the FII page (§6.13), the allocation plan and the ticker/segment fields (§5.13) to other ticker-based assets (stocks, ETFs) — the data model is deliberately generic, but the UI and the plan's product-membership validation are FII-only for v1.
 - Cash-in-lieu handling for a fractional split remainder ("sobra de desdobramento", §5.14) — recorded as an ordinary transfer for now, not a dedicated field on `InvestmentSplit`.
 - Notifications (email/push) for budget overages or pending recurring bills.
+- Ledger refinements (§6.16): a running balance column per row, user-selectable sort, text search that also matches category/account/product names or trade-line tickers, and match highlighting.
 - Additional UI languages beyond English and Brazilian Portuguese (§6.14); server-side/multi-user locale (today it's a single client-side preference, no backend involvement).
 - Currency symbol display (§6.14) — tied to the existing no-multi-currency-support non-goal (§3), not introduced by the language toggle.
 - Reintroducing user customization of Payment Method, Investment Category/Sub-category, or Investment Segment (§3, §5.2, §5.8, §5.13) if a real gap in a fixed list ever appears ([ADR 0028](../adr/0028-fixed-taxonomy-values-and-onboarding-seeded-categories.md)).
