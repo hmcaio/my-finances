@@ -1,6 +1,6 @@
 # Features
 
-Each feature below has its own folder with a `spec.md` (technical specification) and `plan.md` (action plan). All features derive from [../PRD.md](../PRD.md) — read that first for the full data model and rationale; these docs only add implementation-level detail and don't repeat product reasoning already settled there.
+Each feature below has its own folder with a `spec.md` (technical specification) and `plan.md` (action plan). All features derive from [../PRD.md](../PRD.md) — read that first for the full data model and rationale; these docs only add implementation-level detail and don't repeat product reasoning already settled there. A new feature's `spec.md` and `plan.md` start from the headings and per-section guidance in [`_template/`](_template/spec.md) (not a feature folder: it carries no `FXXX` id).
 
 | Feature | Summary |
 |---|---|
