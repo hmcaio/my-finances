@@ -25,4 +25,3 @@ Add a file here when an area's mechanics would otherwise grow a `CLAUDE.md`, and
 | [frontend-i18n.md](frontend-i18n.md) | a user-visible string, translation namespace, seeded-name or enum label, formatted number/date/money |
 | [frontend-testing.md](frontend-testing.md) | a Vitest test, MSW handler, seed fixture |
 | [frontend-e2e.md](frontend-e2e.md) | a Playwright spec, a jsdom test that renders `Layout` |
-| [MIGRATION-MAP.md](MIGRATION-MAP.md) | reviewing the CLAUDE.md restructure only; deletable after review |
