@@ -37,7 +37,7 @@ Per ADR 0008, work branches off `develop`, and PRs target `develop` (never commi
 
 Write tests alongside each fix, following the existing layers: unit tests against the `testsupport/Fake*Repository` fakes for application logic, `@SpringBootTest` adapter/controller tests for persistence and REST, and MSW + React Testing Library on the frontend. Keep extractions behavior-preserving — when de-duplicating, check each call site for small variations (margins, disabled states, labels, dismissibility) and parameterize or leave the outlier alone rather than silently unifying it.
 
-Before writing tests, read `docs/conventions/backend-testing.md` and `docs/conventions/frontend-testing.md` (for whichever stack you're touching) and the rules in the root `CLAUDE.md` — the repo-specific traps live there, so they apply to every task, not only audits. The ones these audits hit most: transaction-boundary tests must *not* be `@Transactional` themselves (the general rule says the opposite), V2 seed rows collide with new `UNIQUE` constraints in real-DB fixtures, a new `@ResponseStatus` exception the user should see explained needs a `PROBLEM_TYPE_MESSAGES` entry in `apiError.ts` because the backend never sends exception text, and frontend tests have no Node types (run `npm run build`, not just `npm test`).
+Before writing tests, read `docs/conventions/backend-testing.md` and `docs/conventions/frontend-testing.md` (for whichever stack you're touching) and the rules in the root `CLAUDE.md` — the repo-specific traps live in those files, so they apply to every task, not only audits. The ones these audits hit most: transaction-boundary tests must *not* be `@Transactional` themselves (the general rule says the opposite), V2 seed rows collide with new `UNIQUE` constraints in real-DB fixtures, a new `@ResponseStatus` exception the user should see explained needs a `PROBLEM_TYPE_MESSAGES` entry in `apiError.ts` because the backend never sends exception text, and frontend tests have no Node types (run `npm run build`, not just `npm test`).
 
 One habit worth keeping on top of those: for a bug fix, temporarily restore the old code and confirm the new tests fail against it. A test that passes both before and after guards nothing — date/time fixes are the classic case, since CI runs in UTC and hides a UTC-vs-local bug unless the test pins another zone.
 
@@ -59,7 +59,7 @@ If many tests fail after one change, look for one shared root cause (a seed-name
 
 ## 8. Commit
 
-Conventional Commits (ADR 0009), message via HEREDOC, staging by explicit path (`git add -A -- backend frontend CLAUDE.md`, then check `git status`). Explain the *why* in the body and put `Closes #N` in it. Honor an explicit "don't commit yet" from the user. Never amend or force-push unless asked.
+Conventional Commits (ADR 0009), message via HEREDOC, staging by explicit path (`git add -A -- backend frontend CLAUDE.md docs/conventions CODING_STANDARDS.md`, then check `git status`). Explain the *why* in the body and put `Closes #N` in it. Honor an explicit "don't commit yet" from the user. Never amend or force-push unless asked.
 
 ## 9. Push and PR — only when asked
 

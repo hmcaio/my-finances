@@ -9,6 +9,7 @@ The review checklist for a diff in this repo. Read it after the code is written 
   - Frontend: the shared components (`docs/conventions/frontend-components.md`, `frontend-responsive.md`) instead of re-inlined markup; `MonthPicker`, `DataTableBody`, `ConfirmDialog`, `ResponsiveTable`/`ResponsiveDialog`; `donutGeometry.ts` + `FlatAllocationDonutChart` for a new donut (`frontend-charts.md`); `formatMoney`/`formatNumber`/`formatDate` instead of `.toFixed()`.
   - Backend: `TextFieldConstraints` constants for every text limit, the existing ports/queries for a new report, an existing exception (and its `type` message) before a new one.
 - **A new exception to a rule is stated where the rule lives** (the `data-constraints.md` list, the conventions file, an ADR), with its reason. An unexplained deviation from a neighbour is a review finding.
+- **Point at a file, never at a heading**: a code comment, spec, plan or skill that cites a rule names the path (`docs/conventions/<topic>.md`), an ADR id or the class of the check that enforces it, not "CLAUDE.md's Testing section". Headings move silently when a file is reorganised; a path breaks loudly and can be grepped. A comment that cites a moved or removed rule is a review finding.
 
 ## Changes that travel together
 

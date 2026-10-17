@@ -10,7 +10,7 @@
 - [ ] JPA entity, repository, adapter for `InvestmentSplit`; Flyway migration `V23__investment_splits.sql` (table + `CHECK` constraints + `ON DELETE CASCADE`).
 - [ ] REST: `InvestmentSplitController` (`POST`/`GET ?productId=`/`DELETE /{id}`), request/response DTOs, controller tests for the 201/200/204/400/404 cases. Regenerate `frontend/src/api/generated/schema.ts` against a locally run backend.
 - [ ] `DataExportService.writeInvestmentSplits` → `investment_splits.csv`; update `DataExportServiceTest`'s fixed file list/count and `DataExportControllerTest`.
-- [ ] Update root `CLAUDE.md`'s "money columns" bullet if `before_units`/`after_units` need calling out (they're plain integers, not money — confirm no new exception needed) and backend `CLAUDE.md` with the "any future read site summing trade-line quantities must call `InvestmentSplitAdjustment`" risk note (ADR 0025's Consequences).
+- [ ] Update the money-column exception list in `docs/conventions/data-constraints.md` if `before_units`/`after_units` need calling out (they're plain integers, not money — confirm no new exception needed) and `docs/conventions/accounts-and-investments.md` with the "any future read site summing trade-line quantities must call `InvestmentSplitAdjustment`" risk note (ADR 0025's Consequences).
 
 ## Docs
 - [ ] `docs/features/README.md` row for F028 (and F029 once it exists).
