@@ -15,7 +15,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 /**
  * Base for every {@code *ServiceTransactionalTest}: proves a service's {@code @Transactional}
  * boundary by stubbing the second write of a use case to throw, so it must carry no
- * {@code @Transactional} of its own (backend {@code CLAUDE.md}, Testing).
+ * {@code @Transactional} of its own ({@code docs/conventions/backend-testing.md}).
  *
  * <p>Declares every spy those tests need in one place. Spring's context cache keys on the set of
  * bean overrides, so five classes each spying a different repository used to build five contexts;

@@ -14,10 +14,11 @@ import org.springframework.data.repository.query.Param;
  * to match against - same pattern as {@code AllocationPlanEntryJpaRepository}.
  *
  * <p>{@link #deleteByTransferId} is a bulk {@code @Modifying} query, not a derived {@code
- * deleteBy...} method: backend {@code CLAUDE.md}'s "replacing a value-object child table wholesale
- * must delete via a bulk query" rule - a derived delete only schedules entity-by-entity removal for
- * the next flush, and Hibernate flushes pending inserts before pending deletes, so the fresh rows
- * this adapter inserts right after would hit the still-present old rows' unique constraints.
+ * deleteBy...} method: {@code docs/conventions/backend-structure.md}'s "replacing a value-object
+ * child table wholesale must delete via a bulk query" rule - a derived delete only schedules
+ * entity-by-entity removal for the next flush, and Hibernate flushes pending inserts before pending
+ * deletes, so the fresh rows this adapter inserts right after would hit the still-present old rows'
+ * unique constraints.
  */
 interface TransferTradeLineJpaRepository extends JpaRepository<TransferTradeLineJpaEntity, UUID> {
 

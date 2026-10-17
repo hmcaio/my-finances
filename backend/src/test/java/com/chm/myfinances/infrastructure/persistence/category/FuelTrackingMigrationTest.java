@@ -17,11 +17,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 
 /**
- * Proves {@code V18__fuel_tracking.sql} against pre-existing data (backend {@code CLAUDE.md}'s
- * migration-testing pattern) - the case a fresh-database migration run can't show: the
- * adopt-or-insert "Fuel" category seed, the new transaction columns/CHECKs against existing rows,
- * and the partial unique index. Runs Flyway by hand in its own schema of the shared Testcontainers
- * Postgres, same setup as {@code BuiltInCategoriesMigrationTest}.
+ * Proves {@code V18__fuel_tracking.sql} against pre-existing data ({@code
+ * docs/conventions/backend-testing.md}'s migration-testing pattern) - the case a fresh-database
+ * migration run can't show: the adopt-or-insert "Fuel" category seed, the new transaction
+ * columns/CHECKs against existing rows, and the partial unique index. Runs Flyway by hand in its
+ * own schema of the shared Testcontainers Postgres, same setup as {@code
+ * BuiltInCategoriesMigrationTest}.
  */
 @Tag("integration")
 @SpringBootTest

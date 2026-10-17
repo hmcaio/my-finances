@@ -124,8 +124,9 @@ public class RecurringOccurrenceCatchUpService {
    * One {@code GENERATED} summary entry per template per run (PRD S5.12, ADR 0022) - never one
    * entry per occurrence. Deliberately not wrapped in the same transaction as the occurrences it
    * summarizes: this whole method is intentionally not {@code @Transactional} (a broken template
-   * must not roll back every other template's catch-up, backend {@code CLAUDE.md}), so the audit
-   * write for one template's summary follows the same per-template, not-all-or-nothing shape.
+   * must not roll back every other template's catch-up, {@code
+   * docs/conventions/versioned-history-and-recurring.md}), so the audit write for one template's
+   * summary follows the same per-template, not-all-or-nothing shape.
    */
   private void recordGeneratedSummary(RecurringTemplate template, List<LocalDate> generatedDates) {
     LocalDate first = generatedDates.stream().min(Comparator.naturalOrder()).orElseThrow();

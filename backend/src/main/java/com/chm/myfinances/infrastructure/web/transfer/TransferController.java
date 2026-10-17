@@ -35,8 +35,8 @@ import org.springframework.web.bind.annotation.RestController;
  * check the create/edit mutual-exclusivity rule ({@code
  * TransferService.requireExactlyOneRequestShape}), then dispatch to whichever of {@code
  * TransferService}'s create/edit overloads matches - never through a shared self-invoking wrapper,
- * so each overload's own {@code @Transactional} boundary is honored (backend {@code CLAUDE.md},
- * "Transactions": a self-call bypasses the Spring proxy).
+ * so each overload's own {@code @Transactional} boundary is honored ({@code
+ * docs/conventions/transactions-and-audit.md}: a self-call bypasses the Spring proxy).
  */
 @RestController
 @RequestMapping("/api/transfers")

@@ -15,12 +15,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 
 /**
- * Proves {@code V24__seed_investment_segments.sql} against pre-existing data (backend {@code
- * CLAUDE.md}'s migration-testing pattern, F034 spec/ADR 0028): the fresh table (empty since V20)
- * ends up with exactly the nine seeded B3 FII sector names and nothing else, and an
- * already-existing, unrelated segment row (the only kind of pre-existing data this table could have
- * before the lockdown) is left untouched. Same Flyway-by-hand-into-a-throwaway-schema setup as
- * {@code FiiPortfolioMigrationTest}.
+ * Proves {@code V24__seed_investment_segments.sql} against pre-existing data ({@code
+ * docs/conventions/backend-testing.md}'s migration-testing pattern, F034 spec/ADR 0028): the fresh
+ * table (empty since V20) ends up with exactly the nine seeded B3 FII sector names and nothing
+ * else, and an already-existing, unrelated segment row (the only kind of pre-existing data this
+ * table could have before the lockdown) is left untouched. Same
+ * Flyway-by-hand-into-a-throwaway-schema setup as {@code FiiPortfolioMigrationTest}.
  */
 @Tag("integration")
 @SpringBootTest

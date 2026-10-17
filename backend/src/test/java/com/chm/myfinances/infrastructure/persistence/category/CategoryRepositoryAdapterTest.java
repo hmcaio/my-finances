@@ -19,7 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * Postgres via Testcontainers (ADR 0010) instead of an in-memory substitute, so Flyway's {@code
  * V2__categories_and_payment_methods.sql} runs for real too.
  *
- * <p>See backend/CLAUDE.md's Testing section for why this is a full {@code @SpringBootTest} +
+ * <p>See docs/conventions/backend-testing.md for why this is a full {@code @SpringBootTest} +
  * {@code @Import(TestcontainersConfiguration.class)} rather than {@code @DataJpaTest} (removed in
  * Spring Boot 4.x). {@code @Transactional} rolls back each test's writes so tests don't interfere
  * with each other or with the migration's seed data.

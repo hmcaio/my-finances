@@ -47,13 +47,13 @@ import org.springframework.transaction.annotation.Transactional;
  * InvestmentHolding} (404/409, generalizing F009/F022's single-product check), then write the
  * {@link Transfer} (amount/direction derived from {@link TradeConfirmation#netCost}) and, per line,
  * replace a same-day snapshot ({@code resultingBalance}) and/or close the holding ({@code
- * closeHolding}) - all inside one {@code @Transactional} use case (backend CLAUDE.md,
- * "Transactions"). {@link #requireExactlyOneRequestShape} is the create/edit mutual-exclusivity
- * rule between the plain {@code {fromAccountId, toAccountId, amount}} shape and the confirmation
- * shape (spec's Decisions) - called by {@code TransferController} before it decides which create/
- * edit overload to invoke, so each stays its own clean, directly {@code @Transactional} entry point
- * (no self-invocation, which would silently skip the Spring proxy and the transaction boundary it
- * provides).
+ * closeHolding}) - all inside one {@code @Transactional} use case ({@code
+ * docs/conventions/transactions-and-audit.md}). {@link #requireExactlyOneRequestShape} is the
+ * create/edit mutual-exclusivity rule between the plain {@code {fromAccountId, toAccountId,
+ * amount}} shape and the confirmation shape (spec's Decisions) - called by {@code
+ * TransferController} before it decides which create/ edit overload to invoke, so each stays its
+ * own clean, directly {@code @Transactional} entry point (no self-invocation, which would silently
+ * skip the Spring proxy and the transaction boundary it provides).
  */
 @Service
 public class TransferService {

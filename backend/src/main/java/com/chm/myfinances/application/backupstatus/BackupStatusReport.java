@@ -7,7 +7,8 @@ import java.time.Instant;
  * is none) plus the two values {@link BackupStateDeriver} computes from them - F018 spec's Backend
  * section ("the marker fields plus a derived state ... and localOnly"). The controller's {@code
  * BackupStatusResponse} is a near-identical DTO, kept separate per the usual hexagonal boundary
- * (backend {@code CLAUDE.md}: application never depends on the web layer).
+ * (layering: {@code docs/conventions/backend-structure.md}; application never depends on the web
+ * layer).
  */
 public record BackupStatusReport(
     BackupState state,

@@ -5,7 +5,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 /**
- * Package-private Spring Data repository for {@link AuditLogJpaEntity} (backend {@code CLAUDE.md}).
+ * Package-private Spring Data repository for {@link AuditLogJpaEntity} (enforced by {@code
+ * ArchitectureTest}).
  */
 interface AuditLogJpaRepository
     extends JpaRepository<AuditLogJpaEntity, UUID>, JpaSpecificationExecutor<AuditLogJpaEntity> {}

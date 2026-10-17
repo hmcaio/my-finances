@@ -23,8 +23,9 @@ import java.util.UUID;
  * line up with the target category being the dedicated fuel category is a {@code
  * TransactionService} concern ({@code FuelDetailsCategoryMismatchException}). {@code liters}/{@code
  * pricePerLiter} ({@code numeric(19,3)}) and {@code kmSinceLastFill}/{@code odometer} ({@code
- * numeric(19,1)}) carry {@code @Digits} matching those column scales (root {@code CLAUDE.md}'s
- * precision-exception list), so an out-of-range number is a 400, not a database error.
+ * numeric(19,1)}) carry {@code @Digits} matching those column scales ({@code
+ * docs/conventions/data-constraints.md}'s precision-exception list), so an out-of-range number is a
+ * 400, not a database error.
  */
 public record CreateTransactionRequest(
     @NotNull LocalDate date,

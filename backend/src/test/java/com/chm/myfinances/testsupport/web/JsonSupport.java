@@ -8,7 +8,7 @@ import org.springframework.test.web.servlet.MvcResult;
 /**
  * Shared JSON plumbing for REST-layer tests (issue #31, B7): one {@link ObjectMapper} instead of a
  * {@code new ObjectMapper()} per controller test class (there's no {@code ObjectMapper} bean - see
- * {@code backend/CLAUDE.md}'s Testing section), and a drop-in for the {@code
+ * {@code docs/conventions/backend-testing.md}), and a drop-in for the {@code
  * readTree(...).get("id").asText()} pattern repeated after every {@code POST}.
  */
 public final class JsonSupport {
