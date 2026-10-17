@@ -16,7 +16,7 @@ docker compose --profile full down
 docker compose up -d      # Postgres only (+ pgAdmin at http://localhost:5050), for running the apps natively; data persists in a named volume
 docker compose down
 ```
-`full` and native `bootRun`/`npm run dev` both bind 8080/5173: use one. `scripts/verify.sh [versions|backend|frontend|e2e|backup]` is the one definition of the checks (CI calls it); change a check there, not only in `ci.yml`. Backend and frontend commands: their own `CLAUDE.md`.
+`full` and native `bootRun`/`npm run dev` both bind 8080/5173: use one. `scripts/verify.sh [versions|backend|frontend|e2e|backup]` is the one definition of the checks (CI calls it); change a check there, not only in `ci.yml`. Run `scripts/setup-hooks.sh` once to install the local pre-commit format check. Backend and frontend commands: their own `CLAUDE.md`.
 
 ## Workflow
 
