@@ -2,7 +2,7 @@
 
 Spring Boot REST API for My Finances: Java, Gradle, PostgreSQL via Flyway. Hexagonal Architecture + Domain-Driven Design ([ADR 0004](../docs/adr/0004-hexagonal-ddd-tdd.md)) — `domain/` is framework-free business logic and repository ports, `application/` holds use-case services, `infrastructure/` is everything that talks to Spring, JPA or the outside world.
 
-See [CLAUDE.md](CLAUDE.md) for the full command list, package layout, error/transaction conventions and testing setup. The product spec (data model, functional requirements, non-goals) is [docs/PRD.md](../docs/PRD.md); every non-obvious architectural call is an [ADR](../docs/adr/).
+See [CLAUDE.md](CLAUDE.md) for the command list and the rules every backend task needs, and [docs/conventions/](../docs/conventions/README.md) for the package layout, error/transaction conventions and testing setup. The product spec (data model, functional requirements, non-goals) is [docs/PRD.md](../docs/PRD.md); every non-obvious architectural call is an [ADR](../docs/adr/).
 
 ## Running it
 
@@ -24,4 +24,4 @@ Running the whole stack in containers instead (`docker compose --profile full up
 ./gradlew spotlessCheck   # google-java-format; spotlessApply to fix
 ```
 
-Two tiers by design (ADR 0013, ADR 0010): fast fakes for business logic, real Postgres only for what actually needs it. `backend/CLAUDE.md`'s Testing section has the fixture/seed-data gotchas that aren't obvious from the test code alone.
+Two tiers by design (ADR 0013, ADR 0010): fast fakes for business logic, real Postgres only for what actually needs it. [docs/conventions/backend-testing.md](../docs/conventions/backend-testing.md) has the fixture/seed-data gotchas that aren't obvious from the test code alone.

@@ -36,8 +36,8 @@ interface FlatAllocationDonutChartProps {
  * legend. Kept as its own component (rather than folded into `InvestmentAllocationChart`, which
  * stays unchanged) so that chart's tests and behavior are untouched.
  *
- * Hand-drawn SVG donut sharing `donutGeometry`'s pure geometry helpers - no chart library (frontend
- * `CLAUDE.md`'s "Charts" section).
+ * Hand-drawn SVG donut sharing `donutGeometry`'s pure geometry helpers - no chart library
+ * (`docs/conventions/frontend-charts.md`).
  */
 export function FlatAllocationDonutChart({
   groupBy,

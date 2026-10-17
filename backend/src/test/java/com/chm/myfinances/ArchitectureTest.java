@@ -5,6 +5,7 @@ import static com.tngtech.archunit.core.domain.properties.CanBeAnnotated.Predica
 import static com.tngtech.archunit.lang.conditions.ArchConditions.callMethod;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMembers;
 
 import com.chm.myfinances.application.auditlog.AuditLog;
 import com.chm.myfinances.application.auditlog.AuditRecorder;
@@ -25,21 +26,28 @@ import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
- * Pins rules that otherwise live only in prose in {@code backend/CLAUDE.md} (issue #31, B15):
- * domain never logs and never imports another aggregate's package (with one documented exception),
- * a single {@code @RestControllerAdvice} handles exceptions, new error cases never add another
- * {@code @ExceptionHandler}, ids only ever come from {@code IdGenerator}, every JPA entity extends
- * {@code AuditableEntity}, {@code JpaRepository} interfaces stay package-private, and domain never
- * depends on Spring/Jakarta/Lombok (with one documented exception). Scans only main sources ({@link
- * ImportOption.DoNotIncludeTests}) - these rules are about production code, not the test tree.
+ * Pins the backend's mechanical architecture rules, which are therefore not restated in prose in
+ * {@code backend/CLAUDE.md} (issue #31, B15; overview in {@code
+ * docs/conventions/backend-structure.md}): domain never logs and never imports another aggregate's
+ * package (with one documented exception), a single {@code @RestControllerAdvice} handles
+ * exceptions, new error cases never add another {@code @ExceptionHandler}, ids only ever come from
+ * {@code IdGenerator} and never from {@code @GeneratedValue}, every JPA entity extends {@code
+ * AuditableEntity}, {@code JpaRepository} interfaces stay package-private, a controller's handler
+ * method names are unique (operation ids), and domain never depends on Spring/Jakarta/Lombok (with
+ * one documented exception). Scans only main sources ({@link ImportOption.DoNotIncludeTests}) -
+ * these rules are about production code, not the test tree.
  */
 @AnalyzeClasses(
     packages = "com.chm.myfinances",
@@ -49,11 +57,11 @@ class ArchitectureTest {
   private static final String DOMAIN_PACKAGE = "com.chm.myfinances.domain";
 
   /**
-   * "Never log in domain/" (root {@code CLAUDE.md}, Logging). Checked as "no dependency on {@code
-   * org.slf4j..}" rather than only forbidding the {@code @Slf4j} annotation directly, because
-   * Lombok's {@code @Slf4j} lowers, at compile time, to a field of type {@code org.slf4j.Logger}
-   * initialized via {@code org.slf4j.LoggerFactory} - so this one dependency check catches both a
-   * hand-written {@code Logger} field and {@code @Slf4j}.
+   * "Never log in domain/" (ADR 0011, {@code docs/conventions/logging.md}). Checked as "no
+   * dependency on {@code org.slf4j..}" rather than only forbidding the {@code @Slf4j} annotation
+   * directly, because Lombok's {@code @Slf4j} lowers, at compile time, to a field of type {@code
+   * org.slf4j.Logger} initialized via {@code org.slf4j.LoggerFactory} - so this one dependency
+   * check catches both a hand-written {@code Logger} field and {@code @Slf4j}.
    */
   @ArchTest
   static final ArchRule domainClassesDoNotLog =
@@ -65,12 +73,11 @@ class ArchitectureTest {
           .resideInAPackage("org.slf4j..");
 
   /**
-   * "Domain packages never import another aggregate's package" (backend {@code CLAUDE.md}, Layout
-   * and shapes), with the one documented exception that rule's own wording now carries: {@link
-   * Transaction} depends on {@link CategoryType}. See {@code Transaction}'s own javadoc for why -
-   * {@code type} is captured at creation, denormalized from the category's own (already-immutable)
-   * type, so a stable, redundant data-integrity check is available even though {@code
-   * Category.type} can never itself change.
+   * "Domain packages never import another aggregate's package" (ADR 0004/0014), with one documented
+   * exception: {@link Transaction} depends on {@link CategoryType}. See {@code Transaction}'s own
+   * javadoc for why - {@code type} is captured at creation, denormalized from the category's own
+   * (already-immutable) type, so a stable, redundant data-integrity check is available even though
+   * {@code Category.type} can never itself change.
    *
    * <p>Classes in {@code domain.shared} are not "another aggregate" - every aggregate is expected
    * to depend on the shared kernel ({@code TextFieldConstraints}, {@code AuditableEntity}, ...) -
@@ -93,8 +100,9 @@ class ArchitectureTest {
 
   /**
    * "One cross-cutting {@code @RestControllerAdvice} exists, {@code
-   * infrastructure/web/GlobalExceptionHandler}, and there should never be another" (backend {@code
-   * CLAUDE.md}, Errors).
+   * infrastructure/web/GlobalExceptionHandler}, and there should never be another" (ADR 0026,
+   * {@code docs/conventions/errors.md}). The filter-chain 401/403 writers in {@code
+   * infrastructure/auth} are plain components, not advices, so they don't trip this rule.
    */
   @ArchTest
   static final ArchRule onlyOneRestControllerAdviceExists =
@@ -106,7 +114,7 @@ class ArchitectureTest {
 
   /**
    * "A new expected error case gets its own {@code @ResponseStatus}-annotated exception - never a
-   * new {@code @ExceptionHandler}" (backend {@code CLAUDE.md}, Errors) - so no class other than
+   * new {@code @ExceptionHandler}" ({@code docs/conventions/errors.md}) - so no class other than
    * {@link GlobalExceptionHandler} declares one.
    */
   @ArchTest
@@ -118,10 +126,10 @@ class ArchitectureTest {
 
   /**
    * "{@code domain/shared} holds the {@code IdGenerator} port (ADR 0005 - ids never come from
-   * {@code @GeneratedValue} or ad hoc {@code UUID.randomUUID()})" (backend {@code CLAUDE.md},
-   * Layout and shapes). {@link RandomUuidGenerator} is the one {@code IdGenerator} implementation
-   * allowed to call {@code UUID.randomUUID()} directly; everything else - domain, application and
-   * every other infrastructure class - must go through the port.
+   * {@code @GeneratedValue} or ad hoc {@code UUID.randomUUID()})". {@link RandomUuidGenerator} is
+   * the one {@code IdGenerator} implementation allowed to call {@code UUID.randomUUID()} directly;
+   * everything else - domain, application and every other infrastructure class - must go through
+   * the port.
    */
   @ArchTest
   static final ArchRule onlyRandomUuidGeneratorCallsUuidRandomUuid =
@@ -131,10 +139,29 @@ class ArchitectureTest {
           .should(callMethod(UUID.class, "randomUUID"));
 
   /**
+   * The other half of ADR 0005: no field or method anywhere carries {@code @GeneratedValue} - ids
+   * are assigned by {@code IdGenerator} before the entity is saved, never by the database or the
+   * JPA provider.
+   */
+  @ArchTest
+  static final ArchRule noGeneratedValueIds =
+      noMembers().should().beAnnotatedWith(GeneratedValue.class);
+
+  /**
+   * "Never overload a handler method name within a controller" (operation ids): {@code
+   * OpenApiConfig} pins each operation id to {@code <controller>_<method>}, so two handlers sharing
+   * a method name in one controller would collapse to one id and silently drop an operation from
+   * the generated {@code schema.ts}. Handler = any method meta-annotated with {@link
+   * RequestMapping} ({@code @GetMapping}, {@code @PatchMapping}, ...).
+   */
+  @ArchTest
+  static final ArchRule controllerHandlerMethodNamesAreUnique =
+      classes().that().areAnnotatedWith(RestController.class).should(haveUniqueHandlerNames());
+
+  /**
    * "{@code infrastructure/persistence} holds the {@code AuditableEntity} base every table-backed
-   * entity extends" (backend {@code CLAUDE.md}, Layout and shapes). {@link AuditableEntity} itself
-   * is a {@code @MappedSuperclass}, not a {@code @Entity}, so it's never a target of its own rule
-   * and needs no self-exclusion.
+   * entity extends". {@link AuditableEntity} itself is a {@code @MappedSuperclass}, not a
+   * {@code @Entity}, so it's never a target of its own rule and needs no self-exclusion.
    */
   @ArchTest
   static final ArchRule everyEntityExtendsAuditableEntity =
@@ -145,8 +172,8 @@ class ArchitectureTest {
           .beAssignableTo(AuditableEntity.class);
 
   /**
-   * "package-private Spring Data {@code JpaRepository}" (backend {@code CLAUDE.md}, Layout and
-   * shapes, Repository adapter).
+   * "package-private Spring Data {@code JpaRepository}": only the repository adapter in the same
+   * package may use it.
    */
   @ArchTest
   static final ArchRule jpaRepositoriesAreNotPublic =
@@ -244,6 +271,25 @@ class ArchitectureTest {
 
   private static String allowlistRegex() {
     return String.join("|", AUDIT_LOG_ALLOWLIST);
+  }
+
+  private static ArchCondition<JavaClass> haveUniqueHandlerNames() {
+    return new ArchCondition<>("declare each request-handler method name only once") {
+      @Override
+      public void check(JavaClass controller, ConditionEvents events) {
+        Set<String> seen = new HashSet<>();
+        for (JavaMethod method : controller.getMethods()) {
+          if (method.isMetaAnnotatedWith(RequestMapping.class) && !seen.add(method.getName())) {
+            events.add(
+                SimpleConditionEvent.violated(
+                    method,
+                    String.format(
+                        "%s has more than one handler named '%s' (duplicate operation id)",
+                        controller.getFullName(), method.getName())));
+          }
+        }
+      }
+    };
   }
 
   private static ArchCondition<JavaClass> notDependOnAnotherAggregatesDomainPackage() {

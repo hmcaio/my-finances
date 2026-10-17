@@ -12,8 +12,8 @@ import org.springframework.stereotype.Component;
  * Adapter implementing the domain's {@link TransferTradeLineRepository} port (F027 spec, ADR 0024):
  * reads {@code transfer_trade_lines} directly, denormalizing each line with its parent {@code
  * transfers} row's date/accounts in memory (a local, single-user app never has enough trade rows
- * for the extra round trip to matter, backend {@code CLAUDE.md}'s "filter in memory" convention)
- * rather than a joined projection query.
+ * for the extra round trip to matter, {@code docs/conventions/backend-structure.md}'s "filter in
+ * memory" convention) rather than a joined projection query.
  */
 @Component
 public class TransferTradeLineRepositoryAdapter implements TransferTradeLineRepository {

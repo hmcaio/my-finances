@@ -20,7 +20,7 @@ A small standalone image — `postgres:17.11-alpine` + `age` + `rclone` + shell 
 ./test/e2e.sh         # builds the real image, dumps/encrypts/restores against throwaway Postgres containers
 ```
 
-All three run as part of `scripts/verify.sh backup` from the repo root (what CI runs); `decide.bats`/`prune.bats` need `bats` (bats-core) on `PATH`, `e2e.sh` needs Docker. Root `CLAUDE.md`'s Commands section has the local one-off-container option for running bats without installing it.
+All three run as part of `scripts/verify.sh backup` from the repo root (what CI runs); `decide.bats`/`prune.bats` need `bats` (bats-core) on `PATH`, `e2e.sh` needs Docker. [docs/conventions/tooling.md](../docs/conventions/tooling.md) has the local one-off-container option for running bats without installing it.
 
 ## Logging and secrets
 

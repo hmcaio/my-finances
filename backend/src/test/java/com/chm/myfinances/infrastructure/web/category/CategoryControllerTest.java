@@ -35,7 +35,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 /**
  * REST-layer integration test for {@link CategoryController}, against a real Testcontainers
- * Postgres (ADR 0010). See backend/CLAUDE.md's Testing section for why {@link MockMvc} is built by
+ * Postgres (ADR 0010). See docs/conventions/backend-testing.md for why {@link MockMvc} is built by
  * hand from the {@link WebApplicationContext} here instead of via
  * {@code @AutoConfigureMockMvc}/{@code @WebMvcTest} (removed in Boot 4.x).
  *

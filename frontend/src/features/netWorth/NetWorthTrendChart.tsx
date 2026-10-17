@@ -50,8 +50,8 @@ function dateLabel(date: string, granularity: NetWorthGranularity): string {
  * points are month-ends (the current month at today) joined by straight segments; change-date
  * points are drawn as a step line, since net worth holds its value until the next change. Points
  * are placed proportionally to their dates, so an inflection sits where the transaction, transfer
- * or snapshot really is. A prop-less widget that fetches its own data on mount (frontend
- * `CLAUDE.md`, "Pages that embed other pages' widgets"), so F012's dashboard can drop it in. The
+ * or snapshot really is. A prop-less widget that fetches its own data on mount (`docs/conventions/frontend-data-loading.md`,
+ * embedded widgets), so F012's dashboard can drop it in. The
  * assets / investments / liabilities split is in each point's tooltip and the latest one below the
  * chart. Hand-drawn SVG, no chart dependency.
  */

@@ -33,13 +33,13 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>Create and edit (PATCH is a full replace, so it can reclassify a product) verify, in order:
  * the category exists (404); the sub-category, when given, exists (404) and belongs to that
  * category (409, {@link InvestmentSubcategoryMismatchException}); and the name is globally unique
- * (409, F022). {@link #create} is a two-write {@code @Transactional} use case (backend CLAUDE.md
- * "Transactions" rule): the product, then its first holding via {@link InvestmentHoldingService} -
- * a failure between the two must not leave a holding-less product or an orphaned holding. There is
- * no {@code close()} here any more; holdings close, not products (F022). {@link #delete} is only
- * allowed while the product has zero holdings (not zero history - even a closed, empty holding
- * still counts), via {@link InvestmentHoldingRepository#existsByProductId}; otherwise the user
- * removes its holdings first.
+ * (409, F022). {@link #create} is a two-write {@code @Transactional} use case (backend/CLAUDE.md's
+ * multi-write {@code @Transactional} rule): the product, then its first holding via {@link
+ * InvestmentHoldingService} - a failure between the two must not leave a holding-less product or an
+ * orphaned holding. There is no {@code close()} here any more; holdings close, not products (F022).
+ * {@link #delete} is only allowed while the product has zero holdings (not zero history - even a
+ * closed, empty holding still counts), via {@link InvestmentHoldingRepository#existsByProductId};
+ * otherwise the user removes its holdings first.
  */
 @Service
 public class InvestmentProductService {

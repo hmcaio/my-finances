@@ -12,8 +12,9 @@ import org.junit.jupiter.api.Test;
 /**
  * Tests for {@link CsvSectionWriter} (F030), written first (ADR 0004): a {@code null} cell stays
  * empty rather than being formula-guarded, and a negative {@link BigDecimal} amount is never
- * mistaken for guardable text (backend {@code CLAUDE.md}'s "pass amounts as their own types" rule)
- * - the reason this writer takes typed {@code Object} rows instead of pre-stringified ones.
+ * mistaken for guardable text ({@code docs/conventions/csv-output.md}'s "pass amounts as their own
+ * types" rule) - the reason this writer takes typed {@code Object} rows instead of pre-stringified
+ * ones.
  */
 class CsvSectionWriterTest {
 

@@ -15,8 +15,8 @@ import java.util.List;
  * a {@link java.time.LocalDate}/{@link java.time.YearMonth}, or a {@code String}) rather than being
  * pre-formatted to text: {@link CsvWriter}'s formula-injection guard only applies to {@code String}
  * cells, so a pre-stringified negative amount (leading {@code -}) would otherwise be guarded into
- * text (backend {@code CLAUDE.md}'s "pass amounts, dates and ids as their own types, never
- * pre-formatted strings" rule).
+ * text ({@code docs/conventions/csv-output.md}: pass amounts, dates and ids as their own types,
+ * never pre-formatted strings).
  */
 public final class CsvSectionWriter {
 

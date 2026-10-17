@@ -22,7 +22,7 @@ import { accountTypeLabel } from '../accounts/accountTypes'
 /**
  * Balances of every open account (F012 spec, from F003's account list), each linking to its detail
  * page. A credit card's figure is the amount owed, as on the accounts page. A prop-less widget that
- * fetches its own data on mount (frontend `CLAUDE.md`, "Pages that embed other pages' widgets").
+ * fetches its own data on mount (`docs/conventions/frontend-data-loading.md`, embedded widgets).
  */
 export function AccountBalancesWidget() {
   const { t } = useTranslation(['dashboard', 'accounts'])

@@ -12,7 +12,7 @@
 # Every stage runs even if an earlier one fails (like Gradle's --continue), and the exit code is
 # non-zero if any failed. Backend integration tests need Docker running (Testcontainers, ADR 0010).
 # `backup` needs Docker running and `bats` on PATH (bats-core; not installed by this script -
-# see backup/CLAUDE.md for how CI and local dev get it). Dependencies are not installed here: run
+# see docs/conventions/tooling.md for how CI and local dev get it). Dependencies are not installed here: run
 # `npm ci`/`npm install` in frontend/ first.
 set -u
 cd "$(dirname "$0")/.."

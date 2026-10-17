@@ -37,7 +37,7 @@ Per ADR 0008, work branches off `develop`, and PRs target `develop` (never commi
 
 Write tests alongside each fix, following the existing layers: unit tests against the `testsupport/Fake*Repository` fakes for application logic, `@SpringBootTest` adapter/controller tests for persistence and REST, and MSW + React Testing Library on the frontend. Keep extractions behavior-preserving — when de-duplicating, check each call site for small variations (margins, disabled states, labels, dismissibility) and parameterize or leave the outlier alone rather than silently unifying it.
 
-Before writing tests, re-read the "Testing" sections of `backend/CLAUDE.md` and `frontend/CLAUDE.md` (for whichever stack you're touching) and the cross-stack conventions in the root `CLAUDE.md` — the repo-specific traps live there, so they apply to every task, not only audits. The ones these audits hit most: transaction-boundary tests must *not* be `@Transactional` themselves (the general rule says the opposite), V2 seed rows collide with new `UNIQUE` constraints in real-DB fixtures, a new 409 needs a frontend `conflictMessage` because the backend never sends exception text, and frontend tests have no Node types (run `npm run build`, not just `npm test`).
+Before writing tests, read `docs/conventions/backend-testing.md` and `docs/conventions/frontend-testing.md` (for whichever stack you're touching) and the rules in the root `CLAUDE.md` — the repo-specific traps live in those files, so they apply to every task, not only audits. The ones these audits hit most: transaction-boundary tests must *not* be `@Transactional` themselves (the general rule says the opposite), V2 seed rows collide with new `UNIQUE` constraints in real-DB fixtures, a new `@ResponseStatus` exception the user should see explained needs a `PROBLEM_TYPE_MESSAGES` entry in `apiError.ts` because the backend never sends exception text, and frontend tests have no Node types (run `npm run build`, not just `npm test`).
 
 One habit worth keeping on top of those: for a bug fix, temporarily restore the old code and confirm the new tests fail against it. A test that passes both before and after guards nothing — date/time fixes are the classic case, since CI runs in UTC and hides a UTC-vs-local bug unless the test pins another zone.
 
@@ -50,16 +50,18 @@ Run everything the CI runs, and fix rather than skip failures. `scripts/verify.s
 
 If many tests fail after one change, look for one shared root cause (a seed-name collision, a changed constructor) before fixing files individually.
 
+Then read `CODING_STANDARDS.md` against your diff and fix what it flags: it holds the judgement calls no check catches (changes that must travel together, invariants dropped when a method is split).
+
 ## 7. Docs
 
-- `CLAUDE.md` files (root for rules that span both stacks, `backend/CLAUDE.md` or `frontend/CLAUDE.md` for one): add a bullet only if the work produced a *rule or gotcha* that can't be derived from the code and would cost time to rediscover — and phrase it as the rule, not the story. What changed, why, and any deliberate non-fix belong in the commit body and PR description (and the feature's `spec.md` if behavior changed). Narrative paragraphs in CLAUDE.md are what bloated it to 33 KB of mostly-history, and it loads into every session.
+- Steering files (area mechanics in `docs/conventions/<topic>.md`; a rule needed on every task in the root `CLAUDE.md` or the stack's `backend/CLAUDE.md`/`frontend/CLAUDE.md`; review judgement in `CODING_STANDARDS.md`): add a line only if the work produced a *rule or gotcha* that can't be derived from the code and would cost time to rediscover — and phrase it as the rule, not the story. A rule a check can enforce becomes an ArchUnit/ESLint/script check instead of prose. What changed, why, and any deliberate non-fix belong in the commit body and PR description (and the feature's `spec.md` if behavior changed). Narrative paragraphs in CLAUDE.md are what bloated it to 33 KB of mostly-history, and it loads into every session.
 - `docs/features/FXXX/spec.md`: update when observable behavior or schema for that feature changed. Not needed for pure defense-in-depth constraints that only the migration header documents.
 - `CHANGELOG.md`: per the root `CLAUDE.md` rule "CHANGELOG entries ship with the PR", a fix or change users would notice gets one plain bullet under `## [Unreleased]` (`### Fixed` / `### Changed`, citing the issue as `closes [#N](…)`), plus an `Upgrade:` sub-line if it changes how someone runs or upgrades the stack (a new migration or constraint that can fail on existing data, a compose/env change). No entry for defense-in-depth-only, test-only or purely internal work — say so in the closing message instead. Include the edit in the fix commit (step 8), and leave the PR link off for now (step 9 adds it).
 - `docs/PRD.md`: only when a product decision changed or was newly made. `README.md`: rarely.
 
 ## 8. Commit
 
-Conventional Commits (ADR 0009), message via HEREDOC, staging by explicit path (`git add -A -- backend frontend CLAUDE.md`, then check `git status`). Explain the *why* in the body and put `Closes #N` in it. Honor an explicit "don't commit yet" from the user. Never amend or force-push unless asked.
+Conventional Commits (ADR 0009), message via HEREDOC, staging by explicit path (`git add -A -- backend frontend CLAUDE.md docs/conventions CODING_STANDARDS.md`, then check `git status`). Explain the *why* in the body and put `Closes #N` in it. Honor an explicit "don't commit yet" from the user. Never amend or force-push unless asked.
 
 ## 9. Push and PR — only when asked
 

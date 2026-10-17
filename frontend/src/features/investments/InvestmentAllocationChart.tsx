@@ -75,7 +75,7 @@ function segmentPath(start: number, end: number): string {
 /**
  * Allocation of investments by category, drilling into sub-categories on click (F009 spec): the
  * latest snapshot of every product, grouped. A prop-less widget that fetches its own data on mount
- * (frontend `CLAUDE.md`, "Pages that embed other pages' widgets"), so F012's dashboard can drop it
+ * (`docs/conventions/frontend-data-loading.md`, embedded widgets), so F012's dashboard can drop it
  * in. A footnote explains the asterisk on any slice with a product whose latest trade is newer
  * than its latest snapshot (`needsSnapshot`), i.e. whose value may be out of date.
  *

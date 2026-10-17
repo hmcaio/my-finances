@@ -29,7 +29,8 @@ public class FileBackupStatusAdapter implements BackupStatusPort {
   private static final Logger log = LoggerFactory.getLogger(FileBackupStatusAdapter.class);
 
   // Built locally rather than @Autowired: this app has no general-purpose ObjectMapper bean
-  // (backend CLAUDE.md, Testing - the same reason REST-layer tests build their own by hand), so
+  // (docs/conventions/backend-testing.md - the same reason REST-layer tests build their own by
+  // hand), so
   // this is the one place a BackupStatus needs deserializing. JavaTimeModule is registered
   // explicitly for the marker's Instant fields - a bare `new ObjectMapper()` can't parse those.
   private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());

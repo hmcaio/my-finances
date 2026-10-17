@@ -16,7 +16,7 @@ import { nameLookup } from '../../utils/nameLookup'
 /**
  * "Spend by category" for the current month (F012 spec): expense totals per category, largest
  * first, each with a bar relative to the biggest one. A prop-less widget that fetches its own data
- * on mount (frontend `CLAUDE.md`, "Pages that embed other pages' widgets"). Unlike the budget
+ * on mount (`docs/conventions/frontend-data-loading.md`, embedded widgets). Unlike the budget
  * report it lists every category with spending, budgeted or not.
  */
 export function SpendByCategoryWidget() {

@@ -256,9 +256,9 @@ public class RecurringTemplateService {
    * Same as {@link #stop(UUID)}, but lets a cascade (F025, ADR 0022: closing an account
    * deactivating its templates) record its entry as {@link AuditOrigin#SYSTEM} instead of {@link
    * AuditOrigin#USER}. {@code @Transactional} on both overloads since whichever one an external
-   * caller actually hits is the one the Spring proxy intercepts (backend {@code CLAUDE.md}'s
-   * "Transactions" section) - the public, no-origin {@link #stop(UUID)} delegates to this one via
-   * self-invocation, which bypasses the proxy.
+   * caller actually hits is the one the Spring proxy intercepts ({@code
+   * docs/conventions/transactions-and-audit.md}) - the public, no-origin {@link #stop(UUID)}
+   * delegates to this one via self-invocation, which bypasses the proxy.
    */
   @Transactional
   public RecurringTemplate stop(UUID id, AuditOrigin origin) {

@@ -29,7 +29,7 @@ See [ADR 0021](../../adr/0021-fuel-details-on-transaction.md) for the full ratio
 ### Domain
 - `domain/vehicle/Vehicle.java`: `id`, `name` (capped `MAX_NAME_LENGTH`, non-blank, domain-constructor-checked). `rename(...)` mutator. No import of any other aggregate.
 - `domain/transaction/FuelType.java`: enum `ETANOL`, `ETANOL_ADITIVADO`, `GASOLINA`, `GASOLINA_ADITIVADA`.
-- `domain/transaction/FuelDetails.java`: record `vehicleId`, `fuelType`, `liters`, `pricePerLiter`, `kmSinceLastFill`, `odometer`. Invariants: `vehicleId`, `fuelType`, `liters`, `pricePerLiter` always required together; `liters`/`pricePerLiter` `> 0`; `kmSinceLastFill`/`odometer`, when present, `> 0`. No import of `domain/vehicle` or `domain/category` (ids only — cross-aggregate checks live in the application service, per backend CLAUDE.md's domain-isolation rule).
+- `domain/transaction/FuelDetails.java`: record `vehicleId`, `fuelType`, `liters`, `pricePerLiter`, `kmSinceLastFill`, `odometer`. Invariants: `vehicleId`, `fuelType`, `liters`, `pricePerLiter` always required together; `liters`/`pricePerLiter` `> 0`; `kmSinceLastFill`/`odometer`, when present, `> 0`. No import of `domain/vehicle` or `domain/category` (ids only — cross-aggregate checks live in the application service, per `docs/conventions/backend-structure.md`'s domain-isolation rule).
 - `domain/transaction/Transaction.java` (F004): gains nullable `fuelDetails`; the existing full-replace `edit(...)` mutator takes it too.
 - `domain/category/Category.java` (F002): gains `fuelCategory` (boolean, immutable after creation like `builtIn`).
 

@@ -45,8 +45,8 @@ public class InvestmentProductController {
    * accountId=&name=&status=&page=&size=}. Defaults to 20 per page, name ascending. {@code status}
    * defaults to {@code OPEN} (F023 spec's "Decisions": derived from the product's holdings, not
    * stored). Returns {@link PagedModel}, matching {@code TransactionController}'s list shape
-   * (backend {@code CLAUDE.md}'s "List endpoints" convention) - a breaking shape change from F022's
-   * plain list, fine pre-1.0/local app.
+   * ({@code docs/conventions/backend-structure.md}'s "List endpoints" convention) - a breaking
+   * shape change from F022's plain list, fine pre-1.0/local app.
    */
   @GetMapping
   public PagedModel<InvestmentProductResponse> list(

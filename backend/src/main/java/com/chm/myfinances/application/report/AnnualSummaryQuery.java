@@ -17,8 +17,8 @@ import org.springframework.stereotype.Service;
  * in Java over {@link TransactionRepository#findAll} - consistent with this app's small local
  * dataset, no new repository aggregate method - plus net worth at the year's first and last day via
  * the existing {@link NetWorthQuery#asOf}. Deliberately not a repository-level aggregate; a local,
- * single-user app never has enough rows for that to matter (same reasoning backend {@code
- * CLAUDE.md} gives for in-memory filtering elsewhere).
+ * single-user app never has enough rows for that to matter (same reasoning {@code
+ * docs/conventions/backend-structure.md} gives for in-memory filtering elsewhere).
  */
 @Service
 public class AnnualSummaryQuery {

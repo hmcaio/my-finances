@@ -18,10 +18,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 /**
- * Shared harness for "testing a migration against pre-existing data" (backend {@code CLAUDE.md}):
- * run Flyway by hand into a throwaway schema of the shared Testcontainers Postgres, insert rows
- * that predate the migration under test, migrate one version further, then assert. Extracted from
- * near-identical classes (issue #31, B8); every migration test now extends it.
+ * Shared harness for "testing a migration against pre-existing data" ({@code
+ * docs/conventions/backend-testing.md}): run Flyway by hand into a throwaway schema of the shared
+ * Testcontainers Postgres, insert rows that predate the migration under test, migrate one version
+ * further, then assert. Extracted from near-identical classes (issue #31, B8); every migration test
+ * now extends it.
  *
  * <p>Each subclass still declares its own {@code @SpringBootTest @Import(
  * TestcontainersConfiguration.class)} (deliberately not the {@link DatabaseIntegrationTest}

@@ -2,7 +2,7 @@
 
 React + TypeScript SPA for My Finances, built with Vite and Material UI. TanStack Query ([ADR 0016](../docs/adr/0016-tanstack-query-client-cache.md)) for every read/write, React Router for navigation, Axios through one centralized API client.
 
-See [CLAUDE.md](CLAUDE.md) for the full command list, folder layout, data-loading/testing conventions and the responsive-layout rules ([ADR 0019](../docs/adr/0019-responsive-layout-strategy.md)). The product spec is [docs/PRD.md](../docs/PRD.md); the repo root [README.md](../README.md) covers running the whole stack together.
+See [CLAUDE.md](CLAUDE.md) for the command list and the rules every frontend task needs, and [docs/conventions/](../docs/conventions/README.md) for the folder layout, data-loading/testing conventions and the responsive-layout rules ([ADR 0019](../docs/adr/0019-responsive-layout-strategy.md)). The product spec is [docs/PRD.md](../docs/PRD.md); the repo root [README.md](../README.md) covers running the whole stack together.
 
 ## Running it
 

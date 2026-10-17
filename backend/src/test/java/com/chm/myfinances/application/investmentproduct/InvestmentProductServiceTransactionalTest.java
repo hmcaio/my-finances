@@ -20,7 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * End-to-end proof (real Spring context + Testcontainers Postgres, ADR 0010) that {@link
  * InvestmentProductService#create}'s {@code @Transactional} boundary rolls the product insert back
  * when the first-holding write that follows it fails - without it a failure would leave a
- * holding-less product committed (F022 spec, backend CLAUDE.md "Transactions" rule).
+ * holding-less product committed (F022 spec, backend/CLAUDE.md's multi-write @Transactional rule).
  *
  * <p>Deliberately carries no class/method-level {@code @Transactional} - see {@code
  * RecurringTemplateServiceTransactionalTest}'s javadoc for why that would defeat the point. The

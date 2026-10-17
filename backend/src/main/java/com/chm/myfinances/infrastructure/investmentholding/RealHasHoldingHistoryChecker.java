@@ -17,8 +17,8 @@ import org.springframework.stereotype.Component;
  * parent transfer identifies which holding), or - F026 - a dividend {@code Transaction} is tagged
  * with this holding directly. Without this last check, deleting a holding with dividend history
  * would surface as a raw {@code transactions.investment_holding_id} FK violation (a 500), not this
- * clean 409 - the same "a new table with an FK must be added to the checker" rule backend {@code
- * CLAUDE.md} documents for {@code AccountUsageChecker}.
+ * clean 409 - the same "a new table with an FK must be added to the checker" rule {@code
+ * docs/conventions/accounts-and-investments.md} documents for {@code AccountUsageChecker}.
  */
 @Component
 public class RealHasHoldingHistoryChecker implements HasHoldingHistoryChecker {

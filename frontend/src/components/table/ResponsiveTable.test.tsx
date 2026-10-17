@@ -285,7 +285,7 @@ describe('ResponsiveTable', () => {
 })
 
 /**
- * Pattern example (documented in frontend/CLAUDE.md): the row's edit inputs are one component,
+ * Pattern example (documented in docs/conventions/frontend-responsive.md): the row's edit inputs are one component,
  * rendered inline in the cell on tablet/desktop and inside a `ResponsiveDialog` on mobile, where
  * the card's Edit button opens the dialog instead of editing in place.
  */

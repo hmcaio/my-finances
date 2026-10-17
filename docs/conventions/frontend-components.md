@@ -1,0 +1,11 @@
+# Shared components (`src/components`)
+
+Read when building a list page, an error banner, a confirmation, a month field or pagination. Use these instead of re-inlining the markup; each replaced copy-pasted code from every settings/list page. The responsive set (`ResponsiveTable`, `ResponsiveDialog`, `ResponsiveFilterBar`) is in [frontend-responsive.md](frontend-responsive.md).
+
+- `ErrorAlert`: dismissible error banner; renders nothing for a `null` message. `AccountDetailPage`'s banner is intentionally _not_ this (non-dismissible, different spacing).
+- `InlineEditActions`: the pencil -> check/X trio for an inline-edit table row; `editLabel` is required (labels differ per page), `saveLabel` defaults to "Save", `saving` disables save/cancel.
+- `ConfirmDialog`: destructive-action confirmation (delete/close/dismiss). A dialog containing a form is not a fit; keep those custom.
+- `PaginationControls`: Previous/"Page X of Y"/Next for a `PagedModel`. `onPageChange` takes a functional updater (pass `setPage` directly) so rapid clicks stay correct against React's latest state; its `sx` overrides the default embedded-list spacing for standalone pages.
+- `DataTableBody`: the `<TableBody>` for every list table: skeleton rows while loading, a "Could not load data (...)" row with Retry if the first fetch failed, real rows (fade-in) otherwise. Takes `state` (a `LoadState` from `useQueryState(query)`, or several merged with `combineLoadState`). `columns` must match the header; set `actionsColumn` when the last column holds icon buttons, so placeholder rows match the real row height.
+- `LoadFailedNotice`: inline "could not load" text + Retry; for non-table blocks (the `BudgetsPage` report).
+- `MonthPicker` (`inputs/`): the `<input type="month">` field shared by every month-scoped view (`BudgetsPage`'s report month, `AllocationPlanEditor`'s effective-from, F026's `FiiPage`). `clampToCurrentMonth` (default off) clamps a selection past the current month back to it and caps the native picker with `max`: set it only where there's no future data to show (the FII page); omit it where a future month is meaningful (a plan's effective-from, which can be set ahead; a budget report month, which isn't clamped either).

@@ -20,8 +20,8 @@ import java.util.UUID;
  * - real receipts round each figure to different precision than the total.
  *
  * <p>No import of {@code domain/vehicle} or {@code domain/category} (ids only) - cross-aggregate
- * checks (vehicle exists, category is the fuel category) live in the application layer, per backend
- * {@code CLAUDE.md}'s domain-isolation rule.
+ * checks (vehicle exists, category is the fuel category) live in the application layer, per {@code
+ * docs/conventions/backend-structure.md}'s domain-isolation rule ({@code ArchitectureTest}).
  */
 public record FuelDetails(
     UUID vehicleId,

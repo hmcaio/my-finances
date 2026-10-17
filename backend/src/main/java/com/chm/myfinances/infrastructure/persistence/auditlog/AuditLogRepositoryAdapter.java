@@ -36,7 +36,7 @@ import org.springframework.stereotype.Component;
  * AuditEntry} (ADR 0022: "taken from the MDC by the adapter, not by callers"). {@code changes} is
  * serialized to/from a JSON string with Jackson - {@link AuditLogJpaEntity#getChanges()} is a plain
  * {@code String} column mapped as {@code jsonb} via {@code @JdbcTypeCode(SqlTypes.JSON)}. There is
- * no {@code ObjectMapper} bean in this app (backend {@code CLAUDE.md}'s Testing section notes the
+ * no {@code ObjectMapper} bean in this app ({@code docs/conventions/backend-testing.md} notes the
  * same for tests), so this builds its own private instance rather than trying to {@code @Autowired}
  * one.
  */

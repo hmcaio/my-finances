@@ -40,10 +40,10 @@ import org.springframework.transaction.annotation.Transactional;
  * performs two writes (the business change, then the audit entry) that must commit or roll back
  * together, same multi-write reasoning as every other instrumented use case in this codebase. Every
  * overload carries its own annotation rather than just the "final" one each other delegates to via
- * self-invocation, which bypasses the Spring proxy (backend {@code CLAUDE.md}'s "Transactions"
- * section) - so whichever overload an external caller actually hits (the controller's 10-argument
- * {@code create}/{@code edit}, {@code RecurringTemplateService}'s 8-argument {@code create}) is
- * itself the one the proxy intercepts.
+ * self-invocation, which bypasses the Spring proxy ({@code
+ * docs/conventions/transactions-and-audit.md}) - so whichever overload an external caller actually
+ * hits (the controller's 10-argument {@code create}/{@code edit}, {@code
+ * RecurringTemplateService}'s 8-argument {@code create}) is itself the one the proxy intercepts.
  *
  * <p>Coordinates across four other aggregates' repository ports (category, account, payment method,
  * vehicle) to validate foreign references exist and, for account, is open - this is ordinary

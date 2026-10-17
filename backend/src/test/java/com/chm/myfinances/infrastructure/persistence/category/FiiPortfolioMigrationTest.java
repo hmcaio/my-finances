@@ -16,12 +16,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 
 /**
- * Proves {@code V20__fii_segments_allocation_plan_dividends.sql} against pre-existing data (backend
- * {@code CLAUDE.md}'s migration-testing pattern, F026 spec): the fresh-insert "Dividends" seed
- * (never adopting an existing row, unlike V18's fuel-category seed), existing categories/
- * investment products/transactions left untouched, the new nullable columns, and the partial unique
- * index on {@code dividend_category}. Same {@code Flyway-by-hand-into-a-throwaway-schema} setup as
- * {@code FuelTrackingMigrationTest}.
+ * Proves {@code V20__fii_segments_allocation_plan_dividends.sql} against pre-existing data ({@code
+ * docs/conventions/backend-testing.md}'s migration-testing pattern, F026 spec): the fresh-insert
+ * "Dividends" seed (never adopting an existing row, unlike V18's fuel-category seed), existing
+ * categories/ investment products/transactions left untouched, the new nullable columns, and the
+ * partial unique index on {@code dividend_category}. Same {@code
+ * Flyway-by-hand-into-a-throwaway-schema} setup as {@code FuelTrackingMigrationTest}.
  */
 @Tag("integration")
 @SpringBootTest
