@@ -23,6 +23,7 @@ docker compose down
 - Conventional Commits (ADR 0009). Branch off `develop` and PR into `develop` (ADR 0008); never commit to `develop` or `main` directly; push or open a PR only when asked.
 - **CHANGELOG entries ship with the PR.** A user-visible change (`feat`, `fix`, breaking, or a `refactor`/`perf` users would notice) adds a bullet under `## [Unreleased]` in `CHANGELOG.md`, in the same commit as the code: one bullet per feature id (`**F004 — Transactions** — <summary>`), an unscoped fix/change as a plain bullet citing its issue (`closes [#N](…)`), under Keep a Changelog sections. `docs`/`chore`/`test`/`ci`/`build`/`style` and internal refactors get none. Add an `Upgrade:` sub-line when it changes how someone runs or upgrades the stack (compose, volumes, env vars, config keys, migrations). The PR number doesn't exist yet: add `([#N](…))` in a follow-up commit once the PR is open (squash-merge hides it); a release-time check fills missing ones. Version bump, renaming `[Unreleased]` and tagging are release-time (ADR 0007); the SemVer bump is read off commit types (ADR 0009), not off the section.
 - `/implement-feature` builds a planned feature from `docs/features/FXXX`; `/audit-and-fix` handles cross-cutting audits and fixes (issue → branch → fix with tests → verify → docs).
+- To launch the stack and drive a flow in the browser, use the `run-app` skill (throwaway login, its own compose project, torn down afterwards).
 
 ## Rules for every task
 
