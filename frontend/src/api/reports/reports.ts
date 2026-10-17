@@ -119,7 +119,7 @@ export interface ReportFilter {
 }
 
 /** Resolved via the `i18next` singleton, not the `useTranslation()` hook (same `apiError.ts`
- * pattern, frontend `CLAUDE.md`) - this module is plain data/HTTP, not a React component. */
+ * pattern, `docs/conventions/frontend-i18n.md`) - this module is plain data/HTTP, not a React component. */
 export function reversedRangeMessage(): string {
   return i18n.t('reports:reversedRangeMessage')
 }

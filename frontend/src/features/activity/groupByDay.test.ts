@@ -51,7 +51,7 @@ describe('groupEntriesByLocalDay', () => {
 
   it('groups an entry near UTC midnight onto the viewer local day, not the UTC day', () => {
     // Pinned to a non-UTC zone (tests default to America/Sao_Paulo per vite.config.ts; pinning
-    // explicitly here, per frontend CLAUDE.md's convention for a test whose correctness depends on
+    // explicitly here, per the root CLAUDE.md's convention for a test whose correctness depends on
     // the zone) - 2026-03-16T02:00:00Z is 2026-03-15 23:00 in UTC-3, a full day earlier.
     vi.stubEnv('TZ', 'America/Sao_Paulo')
 

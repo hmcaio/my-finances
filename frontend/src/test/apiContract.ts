@@ -6,7 +6,7 @@ import { ApiError } from '../api/core/apiError'
 /**
  * Config for {@link describeNamedEntityApi}: the shared shape behind every flat-taxonomy API
  * client (`categories`, `paymentMethods`, `institutions`, `investmentCategories`,
- * `investmentSubcategories` — see `frontend/CLAUDE.md`'s free-text-fields convention). `get` is
+ * `investmentSubcategories` — see `docs/conventions/data-constraints.md`). `get` is
  * optional because `investmentSubcategories` has no standalone list endpoint: sub-categories are
  * only ever read nested under their category (`investmentCategories.ts`).
  */

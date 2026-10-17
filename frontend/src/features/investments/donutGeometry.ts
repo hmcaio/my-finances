@@ -3,7 +3,7 @@
  * category chart (`InvestmentAllocationChart`, unchanged) keeps its own copy since it predates this
  * file and its behavior/tests must not move; the two new flat charts (`InvestmentSubcategory
  * AllocationChart`, `InvestmentAccountAllocationChart`) both import from here instead of a third
- * copy. No chart library (frontend `CLAUDE.md`'s "Charts" section) - hand-drawn SVG.
+ * copy. No chart library (`docs/conventions/frontend-charts.md`) - hand-drawn SVG.
  */
 
 // Categorical colors that stay distinguishable on both the light and the dark theme.
