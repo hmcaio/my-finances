@@ -15,7 +15,7 @@ npm run generate-api-types # regenerate src/api/generated/schema.ts from the run
 
 ## Rules for every frontend task
 
-- **TanStack Query v5 carries every read and write, through the area's `src/api/<area>/<area>Queries` hooks** (ESLint rejects raw `useQuery`/`useMutation` and HTTP-function imports in `src/features`). Every successful mutation invalidates all queries, so rows update after the refetch: no `setData`, `setQueryData` or optimistic patching.
+- **TanStack Query v5 carries every read and write, through the area's `src/api/<area>/<area>Queries` hooks** (ESLint rejects raw `useQuery`/`useMutation` in `src/features` and `src/components`, and HTTP-function imports in `src/features`). Every successful mutation invalidates all queries, so rows update after the refetch: no `setData`, `setQueryData` or optimistic patching.
 - **Every user-visible string goes through `react-i18next`** (English + Brazilian Portuguese, full coverage at ship), and numbers, dates and money through `src/i18n/format.ts`, not `.toFixed()` or a hardcoded locale.
 
 ## Conventions by area

@@ -50,6 +50,8 @@ Run everything the CI runs, and fix rather than skip failures. `scripts/verify.s
 
 If many tests fail after one change, look for one shared root cause (a seed-name collision, a changed constructor) before fixing files individually.
 
+Then read `CODING_STANDARDS.md` against your diff and fix what it flags: it holds the judgement calls no check catches (changes that must travel together, invariants dropped when a method is split).
+
 ## 7. Docs
 
 - Steering files (area mechanics in `docs/conventions/<topic>.md`; a rule needed on every task in the root `CLAUDE.md` or the stack's `backend/CLAUDE.md`/`frontend/CLAUDE.md`; review judgement in `CODING_STANDARDS.md`): add a line only if the work produced a *rule or gotcha* that can't be derived from the code and would cost time to rediscover — and phrase it as the rule, not the story. A rule a check can enforce becomes an ArchUnit/ESLint/script check instead of prose. What changed, why, and any deliberate non-fix belong in the commit body and PR description (and the feature's `spec.md` if behavior changed). Narrative paragraphs in CLAUDE.md are what bloated it to 33 KB of mostly-history, and it loads into every session.

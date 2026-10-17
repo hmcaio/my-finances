@@ -26,5 +26,6 @@ Read the file when you touch the area.
 - A new aggregate, use-case service, repository adapter (incl. replacing child rows), query object, port, list/update endpoint or name-uniqueness check → `docs/conventions/backend-structure.md`.
 - Account balances, net worth, investment snapshots/holdings, an `INVESTMENT` account's null opening balance, `LocalDate.MAX`/`MIN`, a new table with an FK to `accounts` → `docs/conventions/accounts-and-investments.md`.
 - `Budget`/`RecurringTemplate`/`AllocationPlan` versions or recurring catch-up → `docs/conventions/versioned-history-and-recurring.md`.
-- `@Transactional` overloads, cascades, `AuditRecorder`/`AuditOrigin` → `docs/conventions/transactions-and-audit.md`.- A `ReportGenerator` or CSV output → `docs/conventions/csv-output.md`.
-- Any test beyond a domain/fake unit test (Boot 4.x has no `@DataJpaTest`/`@WebMvcTest`; fixtures that collide with seed rows; boundary, migration, concurrency tests) → `docs/conventions/backend-testing.md`.
+- `@Transactional` overloads, cascades, `AuditRecorder`/`AuditOrigin` → `docs/conventions/transactions-and-audit.md`.
+- A `ReportGenerator` or CSV output → `docs/conventions/csv-output.md`.
+- Any backend test, fakes included (a `Fake*Repository` must mirror every port method; Boot 4.x has no `@DataJpaTest`/`@WebMvcTest`; fixtures that collide with seed rows; boundary, migration, concurrency tests) → `docs/conventions/backend-testing.md`.

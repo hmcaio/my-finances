@@ -114,7 +114,7 @@ Where every bullet of the three original `CLAUDE.md` files went. "Old" line numb
 | L51 | Row editing pattern; dialog-at-every-size; when to skip a mobile dialog | `conv/frontend-responsive.md` Row editing pattern |
 | L52-53 | `LoadFailedNotice`, `MonthPicker` | `conv/frontend-components.md` |
 | L57 | TanStack Query for every read/write; no hand-rolled fetching | `frontend/CLAUDE.md` Rules + `conv/frontend-data-loading.md` |
-| L59 | Hooks per area; key factory; ESLint on HTTP functions | `conv/frontend-data-loading.md`. Checks: existing `no-restricted-imports` pattern; **raw `useQuery`/`useMutation` import ban in `src/features` (new)** |
+| L59 | Hooks per area; key factory; ESLint on HTTP functions | `conv/frontend-data-loading.md`. Checks: existing `no-restricted-imports` pattern; **raw `useQuery`/`useMutation` import ban in `src/features` and `src/components` (new)**; the existing HTTP-function pattern now also lists `update*`, `login` and `logout` (review fix) |
 | L60 | Query defaults and `STALE_TIME`; devtools | `conv/frontend-data-loading.md` |
 | L61 | Mutations invalidate everything; `skipInvalidate`; no optimistic updates | `frontend/CLAUDE.md` Rules + `conv/frontend-data-loading.md` |
 | L62 | Writes and errors (`mutateAsync`, `defaultErrorMessage`, one-argument edit) | `conv/frontend-data-loading.md`. The sentence "the message already carries the API function's `conflictMessage`" was stale since F031/ADR 0026 (the argument no longer exists) and is replaced by "resolves from the backend's problem `type`" |
@@ -144,9 +144,9 @@ Where every bullet of the three original `CLAUDE.md` files went. "Old" line numb
 | Check | Replaces |
 |---|---|
 | `ArchitectureTest.noGeneratedValueIds` | "ids never come from `@GeneratedValue`" (backend L19; second half of ADR 0005) |
-| `ArchitectureTest.controllerHandlerMethodNamesAreUnique` | "never overload a handler method name within a controller" (root L54) |
+| `ArchitectureTest.controllerHandlerMethodNamesAreUnique` | "never overload a handler method name within a controller" (root L54). Not new enforcement: the integration-tier `OpenApiOperationIdsTest` already asserted unique operation ids; this adds a fast-tier check |
 | `TestConventionsTest.testsDoNotUseSecurityCsrfOrUserPostProcessors` | "do not use `csrf()`/`user()`" (backend L41) |
 | ESLint `no-restricted-imports`: `useMediaQuery` outside `useBreakpointBand`/`Layout` | "never a raw `useMediaQuery`" (frontend L50) |
-| ESLint `no-restricted-imports`: `useQuery` family in `src/features` | "never a raw `useQuery`" (frontend L59) |
+| ESLint `no-restricted-imports`: `useQuery` family in `src/features` and `src/components` | "never a raw `useQuery`" (frontend L59) |
 
 Rules already enforced before this change (kept as checks, prose removed): no logging in `domain..` (`domainClassesDoNotLog`), single advice and no stray `@ExceptionHandler`, `UUID.randomUUID()` confinement, entities extend `AuditableEntity`, package-private `JpaRepository`, domain framework independence, write use cases depend on the audit port, `@SpringBootTest` tagging (`TestTaggingTest`), `no-console`, version pinning (`check-versions.sh`).

@@ -6,7 +6,7 @@ Local, single-user finance app (Java/Spring Boot + PostgreSQL/Flyway backend, Re
 
 - **Read `docs/PRD.md` before any architectural or scope decision**: data model, versioning rules, net worth formula, requirements, non-goals. It already resolved the non-obvious tradeoffs (credit card spend is a liability-increasing expense and payments are transfers; budgets and recurring templates are versioned, not mutated; recurring generation is lazy/catch-up, not a scheduler), so decide from it, not from first principles.
 - `docs/adr/` holds architectural decisions (index `docs/adr/README.md`); `docs/features/FXXX-*/{spec,plan}.md` one folder per feature (built vs. specified: each `plan.md` checklist and the README's "Project status"). Why something changed lives in `git log`, PR descriptions and `spec.md`.
-- Mechanics for one area live in `docs/conventions/` (index: `docs/conventions/README.md`); pointers below name when to read each. Reviewing a diff: read `CODING_STANDARDS.md`.
+- Mechanics for one area live in `docs/conventions/` (index: `docs/conventions/README.md`); pointers below name when to read each. Before calling a task done, when splitting or refactoring a method, and when reviewing a diff: read `CODING_STANDARDS.md`.
 
 ## Commands
 
@@ -43,8 +43,8 @@ Read the file when you touch the area.
 - Login, session, CSRF, CORS, `BIND_ADDR` or auth env vars → `docs/conventions/auth.md`.
 - A log statement, log config, the request id or log reading → `docs/conventions/logging.md`.
 - A new text or amount field, a limit constant or a money-precision exception → `docs/conventions/data-constraints.md`.
-- Compose files (`docker-compose.prod.yml` replaces the dev Postgres container), Dockerfiles, CI, `verify.sh` prerequisites, pinned-version siblings, API type generation → `docs/conventions/tooling.md`.
+- Compose files (`docker-compose.prod.yml` replaces the dev Postgres container), Dockerfiles, CI, `verify.sh` prerequisites, pinned-version siblings, API type generation, time zone (`TZ`, `Clock`, date logic) → `docs/conventions/tooling.md`.
 
 ## Keeping these files useful
 
-Add a line to a `CLAUDE.md` only for a rule easy to violate or a gotcha that would cost time to rediscover, that the code cannot show and no check enforces. Area mechanics go in `docs/conventions/<topic>.md` behind a pointer that names its trigger; review judgement in `CODING_STANDARDS.md`; a mechanical rule becomes an ArchUnit/ESLint/script check; the story (what changed, why) goes in the commit/PR body or the feature's `spec.md`. Keep each `CLAUDE.md` near 40 lines.
+Add a line to a `CLAUDE.md` only for a rule easy to violate or a gotcha that would cost time to rediscover, that the code cannot show and no check enforces. Area mechanics go in `docs/conventions/<topic>.md` behind a pointer that names its trigger; review judgement in `CODING_STANDARDS.md`; a mechanical rule becomes an ArchUnit/ESLint/script check; the story (what changed, why) goes in the commit/PR body or the feature's `spec.md`. Keep the root `CLAUDE.md` near 50 lines and each stack file near 30.

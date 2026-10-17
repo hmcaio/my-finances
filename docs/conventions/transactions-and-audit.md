@@ -2,7 +2,7 @@
 
 The headline rule (a use case with more than one write is `@Transactional`, opted in explicitly; audited writes included) is in `backend/CLAUDE.md`. Single repository calls are self-transactional. Without the annotation, a failure between two writes leaves a half-created aggregate (a template with no version) or a duplicate (a confirmed occurrence that wasn't deleted).
 
-- A buy/sell with a `resultingBalance` is such a use case: `TransferService.createTradeConfirmation` is `@Transactional` (transfer + per-line snapshot/holding-close effects, `TransferServiceTransactionalTest`). It is its own top-level method, not an overload the plain `create` delegates into (F027 replaced the old 9-argument `create`/6-argument-plain-delegate pair with two independent methods; see "Splitting a method" in `CODING_STANDARDS.md` for the invariant that split silently dropped).
+- A buy/sell with a `resultingBalance` is such a use case: `TransferService.createTradeConfirmation` is `@Transactional` (transfer + per-line snapshot/holding-close effects, `TransferServiceTransactionalTest`). It is its own top-level method, not an overload the plain `create` delegates into (F027 replaced the old 9-argument `create`/6-argument-plain-delegate pair with two independent methods; see "Behaviour preserved across a refactor" in `CODING_STANDARDS.md` for the invariant that split silently dropped).
 - This includes cascades across aggregates: `AccountService.close()` is `@Transactional` because it triggers template deactivation through a port, and `stop()`'s own `@Transactional` just joins it.
 
 ## Audit log (F025, ADR 0022)
