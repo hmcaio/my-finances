@@ -51,15 +51,15 @@ One migration, `V13__investment_accounts_products_taxonomy.sql` (F017's `V12` wa
   - Pension (Previdência): PGBL, VGBL
   - International: Stocks, ETFs, Bonds
   - Crypto and Other, with no sub-categories.
-- **Seed rows in real-DB tests** (same caveat as V2 and V12, backend CLAUDE.md): they exist in the shared Testcontainers Postgres before any test runs and rollback never removes them. Fixtures must not reuse these names (`" Test"` suffix) or assume the tables are empty.
-- Test the `accounts` change against pre-existing rows (backend CLAUDE.md migration-test pattern: Flyway by hand into a throwaway schema, non-pooled `DriverManagerDataSource`): existing accounts keep their values, an `INVESTMENT` row without opening fields is accepted, an `INVESTMENT` row with them and a non-`INVESTMENT` row without them are rejected.
+- **Seed rows in real-DB tests** (same caveat as V2 and V12, `docs/conventions/backend-testing.md`): they exist in the shared Testcontainers Postgres before any test runs and rollback never removes them. Fixtures must not reuse these names (`" Test"` suffix) or assume the tables are empty.
+- Test the `accounts` change against pre-existing rows (`docs/conventions/backend-testing.md` migration-test pattern: Flyway by hand into a throwaway schema, non-pooled `DriverManagerDataSource`): existing accounts keep their values, an `INVESTMENT` row without opening fields is accepted, an `INVESTMENT` row with them and a non-`INVESTMENT` row without them are rejected.
 
 ### API
 - Accounts (F003's endpoints): `type` accepts `INVESTMENT`. `openingBalance`/`openingBalanceDate` become optional in `CreateAccountRequest`, with a cross-field validation (`400`): required unless `type == INVESTMENT`, and must be absent when it is. `AccountResponse` returns them as nullable. `balance` for an `INVESTMENT` account is `0` until F009. Regenerate `frontend/src/api/generated/schema.ts` (`npm run generate-api-types`, backend running).
 - `GET /api/investment-categories` returns each category with its nested `subcategories: [{id, name}]` (one small call feeds the settings screen and every picker); `POST`/`PATCH` (`{name}`)/`DELETE /api/investment-categories[/{id}]` (`409` while it has sub-categories or products); `POST` and `PATCH` return the category in the same nested shape.
 - `POST /api/investment-subcategories` (`{investmentCategoryId, name}`), `PATCH /api/investment-subcategories/{id}` (`{name}` only, full-replace), `DELETE /api/investment-subcategories/{id}` (`409` while referenced by a product).
 - `POST/GET/PATCH /api/investment-products` (`GET` accepts `?accountId=`; bodies carry `accountId`, `investmentCategoryId` required, `investmentSubcategoryId` optional, `name`), `POST /api/investment-products/{id}/close`, `DELETE /api/investment-products/{id}` (only succeeds with zero history — `409` otherwise, directing the user to close instead). Every product response — the list included, since that is where the delete action lives — carries a `hasHistory` flag (always `false` until F009).
-- Errors: nothing new in `GlobalExceptionHandler` — each new expected case has its own `@ResponseStatus` exception (backend CLAUDE.md).
+- Errors: nothing new in `GlobalExceptionHandler` — each new expected case has its own `@ResponseStatus` exception (`docs/conventions/errors.md`).
 
 ## Frontend
 - Settings "Investment categories": an expandable two-level list — add a category, add a sub-category under it, rename either, delete with explicit `conflictMessage`s for the two 409s (backend sends no text) — same list pattern as F002's categories.

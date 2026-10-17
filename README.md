@@ -19,7 +19,7 @@ Every non-obvious decision behind that shape is written down as an [ADR](docs/ad
 
 ## Architecture
 
-Hexagonal Architecture, Domain-Driven Design and test-first for the rules-heavy logic (net worth, versioning, recurring catch-up) — see [backend/CLAUDE.md](backend/CLAUDE.md) for the package layout and conventions, [docs/PRD.md](docs/PRD.md) §5/§7.2 for the data model and aggregates, and [docs/adr/](docs/adr/) for the reasoning behind each non-obvious call.
+Hexagonal Architecture, Domain-Driven Design and test-first for the rules-heavy logic (net worth, versioning, recurring catch-up) — see [docs/conventions/backend-structure.md](docs/conventions/backend-structure.md) for the package layout and conventions, [docs/PRD.md](docs/PRD.md) §5/§7.2 for the data model and aggregates, and [docs/adr/](docs/adr/) for the reasoning behind each non-obvious call.
 
 ## Repository layout
 
@@ -59,7 +59,7 @@ cd frontend && npm install && npm run dev  # UI at localhost:5173
 
 Before pushing, `scripts/verify.sh` runs the same checks CI does (pinned versions, backend spotless + tests, frontend lint, format, build, tests); it needs Docker running and `npm ci` done in `frontend/`.
 
-A production-shaped smoke test (Docker images end to end, no cloud involved) is also documented in `CLAUDE.md`.
+A production-shaped smoke test (Docker images end to end, no cloud involved) is also documented in [docs/conventions/tooling.md](docs/conventions/tooling.md).
 
 ## Login
 

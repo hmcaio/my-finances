@@ -37,7 +37,7 @@ New `infrastructure/web/ProblemTypeSlugs` (or similar name settled during implem
 - A fixed constant for the unexpected-exception case: `urn:my-finances:error:internal-error` / title `"An unexpected error occurred"` — not derived via the above.
 
 ### `GlobalExceptionHandler`
-Still the single `@RestControllerAdvice` (backend `CLAUDE.md` rule unchanged). Its one `@ExceptionHandler(Exception.class)`:
+Still the single `@RestControllerAdvice` (`docs/conventions/errors.md` rule unchanged). Its one `@ExceptionHandler(Exception.class)`:
 - Resolves the HTTP status the same way it does today (merged `@ResponseStatus` value; `ErrorResponse.getStatusCode()`; a hardcoded `BAD_REQUEST` for `HttpMessageNotReadableException`/`TypeMismatchException`, matching `DefaultHandlerExceptionResolver`'s existing mapping; `INTERNAL_SERVER_ERROR` for everything else).
 - Builds `ProblemDetail.forStatus(status)`, sets `type` and `title` via the slug utility (fixed internal-error constants for the unexpected-exception branch), sets `instance` to `URI.create(request.getRequestURI())`, leaves `detail` untouched (stays `null`).
 - Returns `ResponseEntity.status(status).body(problemDetail)` for every branch — no more rethrow.

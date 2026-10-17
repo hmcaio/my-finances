@@ -23,7 +23,7 @@ The app is local, single-user and run on demand (PRD §7.3), so this is sized ac
 | A **named volume** for the prod logs, not a bind mount. | The image's `/var/log/my-finances` is created owned by the non-root `spring` user and a new named volume inherits that ownership; a bind mount would not (UID mismatch on Linux). Trade-off: you read the files through Docker rather than straight from the host (see [Reading the logs](#reading-the-logs)). |
 | nginx's access log stays stdout-only (rotated, not persisted). | Every request already gets an access line in the backend file with the same request id, so the persisted record is complete without a second volume. |
 | A per-request id: accept a valid inbound `X-Request-Id`, otherwise generate one; put it in the SLF4J MDC as `requestId`, echo it in the response header. The frontend generates one per Axios request; nginx generates one if the browser didn't. | Lets one failing click be followed browser console → nginx → backend log. Cheap and the only "correlation" this app needs. |
-| Request ids come from the existing `IdGenerator` port, not a fresh `UUID.randomUUID()`. | Backend `CLAUDE.md`/ADR 0005: ids never come from ad hoc `UUID.randomUUID()`. A request id isn't an entity id, but reusing the port keeps that rule greppable and the filter testable with `FakeIdGenerator`. |
+| Request ids come from the existing `IdGenerator` port, not a fresh `UUID.randomUUID()`. | `docs/conventions/backend-structure.md`/ADR 0005: ids never come from ad hoc `UUID.randomUUID()`. A request id isn't an entity id, but reusing the port keeps that rule greppable and the filter testable with `FakeIdGenerator`. |
 | Inbound request id is validated (`^[A-Za-z0-9-]{1,64}$`); anything else is replaced. | It goes into log lines and a response header — an unvalidated value is a log-forging / header-injection vector. |
 | **No logging in `domain/`.** Application services use plain `LoggerFactory.getLogger(X.class)` (a `private static final Logger log`), not Lombok `@Slf4j`. | ADR 0004 keeps the domain framework-free; F001's Lombok policy only permits Lombok on infra entities/DTOs, and this avoids widening it for a one-liner. |
 | Application services log only **state-changing events with real information** (cascades, generated data, closures, new versions) at INFO. Plain CRUD gets no service-level line. | The access log line already says `POST /api/categories -> 201`. Per-method "creating category…" lines are noise that rots. |
@@ -63,7 +63,7 @@ The gap this feature exists to close. Add a logger and take the `HttpServletRequ
 - Unexpected exception (the generic-500 branch): `log.error("Unhandled exception for {} {}", method, path, exception)` — full stack trace, before returning the unchanged generic body. The **response** contract does not change (no message/class name to the client).
 - `@ResponseStatus` exceptions (the rethrown, expected ones): before rethrowing, `log.info("{} on {} {}", exception.getClass().getSimpleName(), method, path)` — class name only, **not the message**. The backend sends no body text for these (root `CLAUDE.md`), so the exception class in the log is the only place to see *which* 409 happened.
 - Spring's own `ErrorResponse` exceptions (unmapped route, wrong method): not logged here; the access line's status is enough.
-- Stays the single `@RestControllerAdvice` (backend `CLAUDE.md`).
+- Stays the single `@RestControllerAdvice` (`docs/conventions/errors.md`).
 
 ### What we log, and what we never do
 INFO business events in application services — ids and counts only:
@@ -89,7 +89,7 @@ Never log: amounts, `description`/`additionalNotes`, account/category/payment-me
 ## Frontend
 
 ### `logger` (`src/utils/logger.ts`)
-Framework-free, so it lives in `src/utils` per the layout in frontend `CLAUDE.md`.
+Framework-free, so it lives in `src/utils` per the layout in `docs/conventions/frontend-structure.md`.
 - API: `logger.debug|info|warn|error(message: string, ...context: unknown[])`. Prefix `[my-finances]`; delegates to the matching `console` method so devtools keep their stack traces and object inspection. Passing an `Error` as context is the normal way to log one.
 - Level: `VITE_LOG_LEVEL` (`debug | info | warn | error | silent`) — `.env.development` `debug`, `.env.production` `warn`, `.env.test` `silent`. Typed in `src/vite-env.d.ts`. Unknown value → `warn`.
 - Runtime override for the prod build (where the level is baked in): `localStorage['logLevel']` wins if set and valid — read inside `try/catch` (storage can throw/be empty), same defensiveness as the colour-mode hook. Also exports `setLogLevel(level | null)` (a programmatic override that wins over both; `null` clears it) for tests.

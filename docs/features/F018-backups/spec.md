@@ -61,7 +61,7 @@ File names encode the UTC timestamp, so pruning never depends on mtime (which sy
 
 ## Backend
 - `GET /api/backup-status` returns the marker fields plus a derived `state`: `OK`, `STALE` (last success older than 48h), `FAILING` (last attempt failed), `UNKNOWN` (marker missing or unreadable), and `localOnly` (no bind mount and no remote). Reads `BACKUP_STATUS_PATH` (default `/backups/status.json`); never throws on a missing or malformed file.
-- Hexagonal placement per backend `CLAUDE.md`: a small read port in `application/` and a file-reading adapter in `infrastructure/`; the staleness rule is a pure function tested first. No new table.
+- Hexagonal placement per `docs/conventions/backend-structure.md`: a small read port in `application/` and a file-reading adapter in `infrastructure/`; the staleness rule is a pure function tested first. No new table.
 - The endpoint returns ids, counts and timestamps only; the marker never contains amounts, descriptions or names.
 - Dev (no marker): `UNKNOWN`, which the frontend renders as nothing.
 
