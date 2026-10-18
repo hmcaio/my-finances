@@ -29,8 +29,8 @@ ADR 0030 and the PRD changes are already in the docs PR that introduced this pla
 - [x] `./gradlew spotlessApply` then `./gradlew spotlessCheck test integrationTest` (Docker running).
 
 ## Phase 3 — Frontend: Ledger page
-- [ ] Test first: `ledgerSearchParams` parse/serialize (month default and invalid values dropped; range mode with empty bounds is all time; `type` mapping; `focus`), run under a pinned non-UTC zone; `shiftMonth`/`monthRange` across year boundaries and leap February.
-- [ ] Implement `src/features/ledger/ledgerSearchParams.ts`, `src/utils/localDate.ts` additions, `src/hooks/useDebouncedValue.ts` (with test).
+- [x] Test first: `ledgerSearchParams` parse/serialize (month default and invalid values dropped; range mode with empty bounds is all time; `type` mapping; `focus`), run under a pinned non-UTC zone; `shiftMonth`/`monthRange` across year boundaries and leap February.
+- [x] Implement `src/features/ledger/ledgerSearchParams.ts`, `src/utils/localDate.ts` additions, `src/hooks/useDebouncedValue.ts` (with test).
 - [ ] Test first: `MonthNavigator` (prev/next change the value, picker change emits, future months allowed). Implement `src/components/inputs/MonthNavigator.tsx`.
 - [ ] Implement `src/api/ledger/ledger.ts`, `ledgerQueries.ts`, `useTransaction` in `transactionsQueries.ts`, the `PROBLEM_TYPE_MESSAGES` entry, and `src/mocks/handlers/ledger.ts` registered in `src/mocks/handlers.ts` (filters, accent-insensitive `q`, cap, summary).
 - [ ] Test first: `LedgerTable` per row type (income `+` green up-arrow, expense `-` red down-arrow, transfer unsigned with swap icon, `From → To`, `—` cells, Buy/Sell chips capped at 3), accessible label on the type icon, mobile card layout.
