@@ -16,17 +16,17 @@ ADR 0030 and the PRD changes are already in the docs PR that introduced this pla
 - [x] Implement `TransactionRepository.sumAmountByType` on the port, fakes and `TransactionRepositoryAdapter` (grouped criteria query reusing `toSpecification`), plus the `type` predicate; repository integration test against Postgres for the sum and the filter.
 - [x] Test first (`LedgerQuery` with fakes): interleaving by date desc, then transactions before transfers, then id; `type=TRANSFER` reads no transactions; `type=INCOME|EXPENSE` reads no transfers; a set `categoryId` or `paymentMethodId` excludes transfers; `accountId` matches either transfer side; summary excludes transfers and `net = income - expense`; cap: 1,001 combined rows yield 1,000 entries and `truncated = true`, exactly 1,000 yield `truncated = false`; summary stays correct when truncated; blank `searchText` becomes `null`.
 - [x] Implement `application/ledger/` (`LedgerEntryType`, `LedgerFilter`, `LedgerEntry`, `LedgerSummary`, `Ledger`, `LedgerQuery`).
-- [ ] REST: `infrastructure/web/ledger/LedgerController.java`, `LedgerResponse`, `LedgerEntryResponse`, `LedgerSummaryResponse`; controller tests for `200` (each row type, trade lines), `400` for a bad date/enum/UUID, unauthenticated `401`; regenerate `frontend/src/api/generated/schema.ts`.
-- [ ] `./gradlew spotlessApply` then `./gradlew spotlessCheck test integrationTest` (Docker running).
+- [x] REST: `infrastructure/web/ledger/LedgerController.java`, `LedgerResponse`, `LedgerEntryResponse`, `LedgerSummaryResponse`; controller tests for `200` (each row type, trade lines), `400` for a bad date/enum/UUID, unauthenticated `401`; regenerate `frontend/src/api/generated/schema.ts`.
+- [x] `./gradlew spotlessApply` then `./gradlew spotlessCheck test integrationTest` (Docker running).
 
 ## Phase 2 — Backend: accent-insensitive text search
-- [ ] Flyway migration `V25__enable_unaccent.sql` plus its migration test (`unaccent('Café açaí')` returns `Cafe acai`); confirm the extension creates inside the migration transaction on the pinned image.
-- [ ] Test first (`TextSearchPredicates`): `likePattern` escapes `\`, `%` and `_` and wraps in `%…%`; a search for a literal `%` does not match everything.
-- [ ] Implement `infrastructure/persistence/shared/TextSearchPredicates.java` and the search clauses in `TransactionRepositoryAdapter` and `TransferRepositoryAdapter`.
-- [ ] Test first (repository integration, real Postgres): "cafe" finds "Café da manhã", "CAFÉ" matches "cafe", matches `additionalNotes` as well as `description`, a null notes column never errors, transfers match too, search combines with date range, account and type filters, and the summary respects it.
-- [ ] Test first (fakes): `Normalizer`-based folding mirrors the integration cases that do not involve non-decomposable letters.
-- [ ] Controller: `q` parameter with `@Size(max = 100)` and no `@Validated`; controller test for `101` characters → `400` with the problem type; blank `q` ignored.
-- [ ] `./gradlew spotlessApply` then `./gradlew spotlessCheck test integrationTest` (Docker running).
+- [x] Flyway migration `V25__enable_unaccent.sql` plus its migration test (`unaccent('Café açaí')` returns `Cafe acai`); confirm the extension creates inside the migration transaction on the pinned image.
+- [x] Test first (`TextSearchPredicates`): `likePattern` escapes `\`, `%` and `_` and wraps in `%…%`; a search for a literal `%` does not match everything.
+- [x] Implement `infrastructure/persistence/shared/TextSearchPredicates.java` and the search clauses in `TransactionRepositoryAdapter` and `TransferRepositoryAdapter`.
+- [x] Test first (repository integration, real Postgres): "cafe" finds "Café da manhã", "CAFÉ" matches "cafe", matches `additionalNotes` as well as `description`, a null notes column never errors, transfers match too, search combines with date range, account and type filters, and the summary respects it.
+- [x] Test first (fakes): `Normalizer`-based folding mirrors the integration cases that do not involve non-decomposable letters.
+- [x] Controller: `q` parameter with `@Size(max = 100)` and no `@Validated`; controller test for `101` characters → `400` with the problem type; blank `q` ignored.
+- [x] `./gradlew spotlessApply` then `./gradlew spotlessCheck test integrationTest` (Docker running).
 
 ## Phase 3 — Frontend: Ledger page
 - [ ] Test first: `ledgerSearchParams` parse/serialize (month default and invalid values dropped; range mode with empty bounds is all time; `type` mapping; `focus`), run under a pinned non-UTC zone; `shiftMonth`/`monthRange` across year boundaries and leap February.

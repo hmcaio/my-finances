@@ -14,6 +14,7 @@ import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
+import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
 import com.chm.myfinances.domain.transfer.TradeConfirmationLine;
@@ -270,6 +271,49 @@ class LedgerControllerTest {
           .andExpect(
               jsonPath("$.type").value("urn:my-finances:error:method-argument-type-mismatch"));
     }
+  }
+
+  @Test
+  void qSearchesBothSidesIgnoringCaseAndAccentsAndTheSummaryFollows() throws Exception {
+    saveExpense("Café da manhã", "12.00", DAY);
+    saveExpense("Aluguel", "900.00", DAY);
+    Transfer transfer = saveTransfer("Fatura do cafe", "40.00", DAY);
+
+    mockMvc
+        .perform(ledger().param("q", "  CAFÉ "))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.entries.length()").value(2))
+        .andExpect(jsonPath("$.entries[?(@.id == '" + transfer.getId() + "')]").exists())
+        .andExpect(jsonPath("$.summary.expense").value(12.00));
+  }
+
+  @Test
+  void aBlankQIsIgnored() throws Exception {
+    saveExpense("One", "1.00", DAY);
+    saveExpense("Two", "1.00", DAY);
+
+    mockMvc
+        .perform(ledger().param("q", "   "))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.entries.length()").value(2));
+  }
+
+  /**
+   * F037 open question, confirmed: a {@code @Size} violation directly on the {@code q} parameter
+   * surfaces as {@code HandlerMethodValidationException}, which the single advice maps to a 400
+   * with that exact kebab-cased slug (the frontend maps the same slug).
+   */
+  @Test
+  void aQLongerThanTheLimitIs400WithTheHandlerMethodValidationType() throws Exception {
+    mockMvc
+        .perform(ledger().param("q", "a".repeat(TextFieldConstraints.MAX_SEARCH_TEXT_LENGTH + 1)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.type").value("urn:my-finances:error:handler-method-validation"))
+        .andExpect(jsonPath("$.detail").doesNotExist());
+
+    mockMvc
+        .perform(ledger().param("q", "a".repeat(TextFieldConstraints.MAX_SEARCH_TEXT_LENGTH)))
+        .andExpect(status().isOk());
   }
 
   @Test

@@ -54,7 +54,7 @@ New package `application/ledger/`:
 - Depends on two aggregates' domain packages, which is allowed in `application/` (ADR 0014 restricts only `domain/` cross-imports), as `application/report` already does.
 
 ### Persistence
-- Migration `backend/src/main/resources/db/migration/V25__enable_unaccent.sql`: `CREATE EXTENSION IF NOT EXISTS unaccent;`. No table, column or index change. Migration test (backend CLAUDE.md pattern): after migrating, `SELECT unaccent('Café açaí')` returns `Cafe acai`.
+- Migration `backend/src/main/resources/db/migration/V25__enable_unaccent.sql`: `CREATE EXTENSION IF NOT EXISTS unaccent;`. No table, column or index change. Migration test (`UnaccentMigrationTest`, a throwaway database of the shared container, because the extension is database-wide): V25 on top of V1-V24 succeeds inside Flyway's per-migration transaction on `postgres:17.11-alpine` (the image ships the extension), `SELECT unaccent('Café açaí')` returns `Cafe acai`, and `unaccent` leaves `\`, `%` and `_` unchanged so applying it to the already-escaped pattern keeps the escapes intact (also asserted end to end by the repository tests with a literal `%` and `\`).
 - `infrastructure/persistence/shared/TextSearchPredicates.java` (new package if no shared persistence package exists): `static String likePattern(String text)` that escapes `\`, `%`, `_` with `\` and wraps in `%…%`; `static Predicate matches(CriteriaBuilder cb, Expression<String> column, String pattern)` building `cb.like(cb.lower(cb.function("unaccent", String.class, column)), cb.lower(cb.function("unaccent", String.class, cb.literal(pattern))), '\\')`. The `unaccent` call is unqualified (ADR 0030).
 - `TransactionRepositoryAdapter.toSpecification`: add the `type` equality predicate and, when `searchText` is set, an OR of `matches(description)` and `matches(additionalNotes)` (null-safe: a null notes column never matches). `TransferRepositoryAdapter` gets the same search clause in its `Specification`.
 - `TransactionRepositoryAdapter.sumAmountByType`: a criteria query selecting `type` and `sum(amount)` grouped by `type`, built from the same `toSpecification` predicate so the list and the summary can never disagree on a filter.
@@ -72,7 +72,7 @@ New package `application/ledger/`:
 ### API layer
 - `src/api/ledger/ledger.ts` and `ledgerQueries.ts`: `getLedger(filter)` over the shared Axios client; `ledgerKeys` key factory; `useLedger(filter)` with `placeholderData: keepPreviousData` so month changes do not blank the table. Mutations already invalidate every query (frontend `CLAUDE.md`), so no ledger-specific invalidation is added.
 - `src/api/transactions/transactionsQueries.ts`: add `useTransaction(id: string | null)` over the existing `getTransaction`, mirroring `useTransfer`.
-- `src/api/core/apiError.ts`: add a `PROBLEM_TYPE_MESSAGES` entry for the `HandlerMethodValidationException` type (see Open questions for the exact slug), with en/pt-BR text such as "One of the values is not valid."
+- `src/api/core/apiError.ts`: add a `PROBLEM_TYPE_MESSAGES` entry for the `HandlerMethodValidationException` type, slug `handler-method-validation` (confirmed by `LedgerControllerTest`), with en/pt-BR text such as "One of the values is not valid."
 - `src/mocks/handlers/ledger.ts` (registered in `src/mocks/handlers.ts`): reads the same in-memory stores as the transactions and transfers handlers so create/edit/delete show up, implements `type`, `accountId`, `categoryId`, `paymentMethodId`, date range and `q` (case- and accent-insensitive via `String.prototype.normalize('NFD')`), the 1,000 cap, and the summary.
 
 ### Shared pieces
@@ -131,10 +131,6 @@ New namespace `ledger` (`src/i18n/locales/en/ledger.json`, `pt-BR/ledger.json`, 
 - Pagination: the whole scope loads, capped at 1,000 rows with a visible notice.
 
 ## Open questions
-- unverified - confirm during implementation: `unaccent` leaves `\`, `%` and `_` unchanged, so applying it to the already-escaped pattern keeps the escapes intact; the repository integration test should include a description containing a literal `%`.
-- unverified - confirm during implementation: `CREATE EXTENSION IF NOT EXISTS unaccent;` succeeds inside Flyway's per-migration transaction on `postgres:17.11-alpine` (Flyway's parser does not list it as non-transactional, but it was not run); the V25 migration test is the check.
-- unverified - confirm during implementation: `unaccent` is present in the exact `postgres:17.11-alpine` image (verified only against the docker-library alpine Dockerfile, which runs `make -C contrib install`); the same migration test covers it.
-- unverified - confirm during implementation: a `@Size` violation on the `q` parameter reaches `GlobalExceptionHandler` as `HandlerMethodValidationException` (an `ErrorResponse`) and produces `400` with type `urn:my-finances:error:handler-method-validation`; confirm the slug by test and map that exact slug in `PROBLEM_TYPE_MESSAGES`.
 - The exact Material icons and the `info` vs `primary` token for transfers are settled when the table is built; the contract is neutral/blue, icon-plus-sign, theme tokens only.
 
 ## Dependencies

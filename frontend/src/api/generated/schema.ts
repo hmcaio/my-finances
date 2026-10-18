@@ -630,6 +630,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/ledger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ledger_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/investments/value-series": {
         parameters: {
             query?: never;
@@ -1344,6 +1360,44 @@ export interface components {
             assets?: number;
             liabilities?: number;
             investments?: number;
+        };
+        LedgerEntryResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            type?: "INCOME" | "EXPENSE" | "TRANSFER";
+            /** Format: date */
+            date?: string;
+            amount?: number;
+            description?: string;
+            additionalNotes?: string;
+            /** Format: uuid */
+            categoryId?: string;
+            /** Format: uuid */
+            accountId?: string;
+            /** Format: uuid */
+            paymentMethodId?: string;
+            /** Format: uuid */
+            fromAccountId?: string;
+            /** Format: uuid */
+            toAccountId?: string;
+            tradeLines?: components["schemas"]["LedgerTradeLineResponse"][];
+        };
+        LedgerResponse: {
+            entries?: components["schemas"]["LedgerEntryResponse"][];
+            summary?: components["schemas"]["LedgerSummaryResponse"];
+            truncated?: boolean;
+        };
+        LedgerSummaryResponse: {
+            income?: number;
+            expense?: number;
+            net?: number;
+        };
+        LedgerTradeLineResponse: {
+            /** @enum {string} */
+            side?: "BUY" | "SELL";
+            /** Format: uuid */
+            productId?: string;
         };
         ProductSeriesResponse: {
             /** Format: uuid */
@@ -3684,6 +3738,43 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description type: urn:my-finances:error:invalid-net-worth-range */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    ledger_list: {
+        parameters: {
+            query?: {
+                dateFrom?: string;
+                dateTo?: string;
+                type?: "INCOME" | "EXPENSE" | "TRANSFER";
+                accountId?: string;
+                categoryId?: string;
+                paymentMethodId?: string;
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The newest-first entries, the scope's summary and the truncated flag */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LedgerResponse"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:method-argument-type-mismatch (an unparsable date, enum or UUID), urn:my-finances:error:handler-method-validation (q longer than 100 characters) */
             400: {
                 headers: {
                     [name: string]: unknown;
