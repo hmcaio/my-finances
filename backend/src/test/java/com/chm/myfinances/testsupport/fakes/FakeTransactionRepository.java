@@ -41,7 +41,12 @@ public final class FakeTransactionRepository extends InMemoryRepository<Transact
                 t ->
                     filter.paymentMethodId() == null
                         || t.getPaymentMethodId().equals(filter.paymentMethodId()))
-            .sorted(Comparator.comparing(Transaction::getDate).reversed())
+            .filter(t -> filter.type() == null || t.getType() == filter.type())
+            .filter(t -> !filter.hasSearchText() || matchesSearch(t, filter.searchText()))
+            .sorted(
+                Comparator.comparing(Transaction::getDate)
+                    .thenComparing(t -> t.getId().toString())
+                    .reversed())
             .toList();
 
     // Pageable.unpaged() (used by F006's BudgetReportQuery, which wants every matching
@@ -56,6 +61,20 @@ public final class FakeTransactionRepository extends InMemoryRepository<Transact
     List<Transaction> pageContent =
         start >= filtered.size() ? List.of() : filtered.subList(start, end);
     return new PageImpl<>(pageContent, pageable, filtered.size());
+  }
+
+  private static boolean matchesSearch(Transaction transaction, String searchText) {
+    return FakeTextSearch.contains(transaction.getDescription(), searchText)
+        || FakeTextSearch.contains(transaction.getAdditionalNotes(), searchText);
+  }
+
+  @Override
+  public Map<CategoryType, BigDecimal> sumAmountByType(TransactionFilter filter) {
+    return findAll(filter, Pageable.unpaged()).stream()
+        .collect(
+            Collectors.groupingBy(
+                Transaction::getType,
+                Collectors.reducing(BigDecimal.ZERO, Transaction::getAmount, BigDecimal::add)));
   }
 
   @Override

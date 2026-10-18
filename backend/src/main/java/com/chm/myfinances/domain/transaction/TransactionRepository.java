@@ -1,5 +1,6 @@
 package com.chm.myfinances.domain.transaction;
 
+import com.chm.myfinances.domain.category.CategoryType;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -31,6 +32,13 @@ public interface TransactionRepository {
 
   /** Filtered, paginated list (F004 spec's {@code GET /api/transactions} query params). */
   Page<Transaction> findAll(TransactionFilter filter, Pageable pageable);
+
+  /**
+   * Sum of every matching transaction's amount per {@link CategoryType}, over the whole filtered
+   * scope (not a page of it) - backs the Ledger summary (F037). A type with no matching rows is
+   * absent from the map; callers default it to {@link BigDecimal#ZERO}.
+   */
+  Map<CategoryType, BigDecimal> sumAmountByType(TransactionFilter filter);
 
   /**
    * Every transaction posted to {@code accountId} on or before {@code asOfDate}, for {@code

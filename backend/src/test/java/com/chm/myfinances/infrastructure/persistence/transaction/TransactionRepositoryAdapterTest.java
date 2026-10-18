@@ -24,6 +24,8 @@ import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 /**
  * Persistence-layer integration test for {@link TransactionRepositoryAdapter}: hits a real,
@@ -407,5 +410,106 @@ class TransactionRepositoryAdapterTest {
     assertThat(totals).hasSize(2).doesNotContainKey(otherCategoryId);
     assertThat(totals.get(categoryId)).isEqualByComparingTo("13.50");
     assertThat(totals.get(expenseCategory2)).isEqualByComparingTo("20.00");
+  }
+
+  @Test
+  void findAllFiltersByType() {
+    transactionRepository.save(newTransaction(LocalDate.of(2091, 1, 1), BigDecimal.TEN));
+    Transaction income =
+        newTransaction(
+            LocalDate.of(2091, 1, 2),
+            BigDecimal.TEN,
+            otherCategoryId,
+            CategoryType.INCOME,
+            accountId,
+            paymentMethodId);
+    transactionRepository.save(income);
+
+    TransactionFilter incomeOnly =
+        new TransactionFilter(
+            LocalDate.of(2091, 1, 1),
+            LocalDate.of(2091, 1, 31),
+            null,
+            accountId,
+            null,
+            CategoryType.INCOME,
+            null);
+
+    assertThat(transactionRepository.findAll(incomeOnly, PageRequest.of(0, 20)).getContent())
+        .extracting(Transaction::getId)
+        .containsExactly(income.getId());
+  }
+
+  @Test
+  void sumAmountByTypeTotalsTheWholeFilteredScopeAndOmitsAnAbsentType() {
+    transactionRepository.save(newTransaction(LocalDate.of(2092, 2, 1), new BigDecimal("10.00")));
+    transactionRepository.save(newTransaction(LocalDate.of(2092, 2, 2), new BigDecimal("3.50")));
+    transactionRepository.save(
+        newTransaction(
+            LocalDate.of(2092, 2, 3),
+            new BigDecimal("500.00"),
+            otherCategoryId,
+            CategoryType.INCOME,
+            accountId,
+            paymentMethodId));
+    // Other account and other month: outside the filter, must not contribute.
+    transactionRepository.save(
+        newTransaction(
+            LocalDate.of(2092, 2, 4),
+            new BigDecimal("77.00"),
+            categoryId,
+            CategoryType.EXPENSE,
+            otherAccountId,
+            paymentMethodId));
+    transactionRepository.save(newTransaction(LocalDate.of(2092, 3, 1), new BigDecimal("999.00")));
+
+    var totals =
+        transactionRepository.sumAmountByType(
+            new TransactionFilter(
+                LocalDate.of(2092, 2, 1), LocalDate.of(2092, 2, 28), null, accountId, null));
+    var expenseOnly =
+        transactionRepository.sumAmountByType(
+            new TransactionFilter(
+                LocalDate.of(2092, 2, 1),
+                LocalDate.of(2092, 2, 28),
+                null,
+                accountId,
+                null,
+                CategoryType.EXPENSE,
+                null));
+    var none =
+        transactionRepository.sumAmountByType(
+            new TransactionFilter(
+                LocalDate.of(2093, 1, 1), LocalDate.of(2093, 1, 31), null, accountId, null));
+
+    assertThat(totals).hasSize(2);
+    assertThat(totals.get(CategoryType.EXPENSE)).isEqualByComparingTo("13.50");
+    assertThat(totals.get(CategoryType.INCOME)).isEqualByComparingTo("500.00");
+    assertThat(expenseOnly).containsOnlyKeys(CategoryType.EXPENSE);
+    assertThat(none).isEmpty();
+  }
+
+  /**
+   * F037 open question, confirmed: Postgres orders {@code uuid} bytewise, which equals comparing
+   * the lower-case canonical strings - so {@code LedgerQuery}'s Java tie-break on {@code
+   * id.toString()} agrees with the {@code id DESC} page order the repositories return.
+   */
+  @Test
+  void idDescendingOrdersUuidsLikeTheirLowerCaseStrings() {
+    LocalDate day = LocalDate.of(2095, 6, 1);
+    for (int i = 0; i < 40; i++) {
+      transactionRepository.save(newTransaction(day, BigDecimal.ONE));
+    }
+    TransactionFilter filter = new TransactionFilter(day, day, null, accountId, null);
+
+    List<String> ids =
+        transactionRepository
+            .findAll(
+                filter,
+                PageRequest.of(0, 100, Sort.by(Sort.Order.desc("date"), Sort.Order.desc("id"))))
+            .map(t -> t.getId().toString())
+            .getContent();
+
+    assertThat(ids).hasSize(40).isSortedAccordingTo(Comparator.reverseOrder());
   }
 }

@@ -1,13 +1,20 @@
 package com.chm.myfinances.infrastructure.persistence.transaction;
 
+import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.transaction.FuelDetails;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionFilter;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Tuple;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -28,9 +35,12 @@ import org.springframework.stereotype.Component;
 public class TransactionRepositoryAdapter implements TransactionRepository {
 
   private final TransactionJpaRepository jpaRepository;
+  private final EntityManager entityManager;
 
-  public TransactionRepositoryAdapter(TransactionJpaRepository jpaRepository) {
+  public TransactionRepositoryAdapter(
+      TransactionJpaRepository jpaRepository, EntityManager entityManager) {
     this.jpaRepository = jpaRepository;
+    this.entityManager = entityManager;
   }
 
   @Override
@@ -107,6 +117,28 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
     return jpaRepository
         .findAll(toSpecification(filter), pageable)
         .map(TransactionRepositoryAdapter::toDomain);
+  }
+
+  /**
+   * Grouped criteria query over the same {@link #toSpecification} predicate the list uses, so the
+   * Ledger's rows and its summary can never disagree on a filter (F037).
+   */
+  @Override
+  public Map<CategoryType, BigDecimal> sumAmountByType(TransactionFilter filter) {
+    CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+    CriteriaQuery<Tuple> query = criteriaBuilder.createTupleQuery();
+    Root<TransactionJpaEntity> root = query.from(TransactionJpaEntity.class);
+    query
+        .multiselect(
+            root.<CategoryType>get("type").alias("type"),
+            criteriaBuilder.sum(root.<BigDecimal>get("amount")).alias("total"))
+        .where(toSpecification(filter).toPredicate(root, query, criteriaBuilder))
+        .groupBy(root.get("type"));
+    Map<CategoryType, BigDecimal> totals = new EnumMap<>(CategoryType.class);
+    for (Tuple row : entityManager.createQuery(query).getResultList()) {
+      totals.put(row.get("type", CategoryType.class), row.get("total", BigDecimal.class));
+    }
+    return totals;
   }
 
   @Override
@@ -217,6 +249,9 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
       if (filter.paymentMethodId() != null) {
         predicates.add(
             criteriaBuilder.equal(root.get("paymentMethodId"), filter.paymentMethodId()));
+      }
+      if (filter.type() != null) {
+        predicates.add(criteriaBuilder.equal(root.get("type"), filter.type()));
       }
       return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
     };

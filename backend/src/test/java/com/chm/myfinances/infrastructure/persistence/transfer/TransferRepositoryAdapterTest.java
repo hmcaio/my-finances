@@ -20,6 +20,7 @@ import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 /**
  * Persistence-layer integration test for {@link TransferRepositoryAdapter}: hits a real, ephemeral
@@ -338,5 +340,24 @@ class TransferRepositoryAdapterTest {
     transferRepository.deleteById(buy.getId());
 
     assertThat(transferRepository.findById(buy.getId())).isEmpty();
+  }
+
+  /** Same open question as for transactions (F037): {@code id DESC} equals the string order. */
+  @Test
+  void idDescendingOrdersUuidsLikeTheirLowerCaseStrings() {
+    LocalDate day = LocalDate.of(2095, 6, 1);
+    for (int i = 0; i < 40; i++) {
+      transferRepository.save(newTransfer(day, checkingId, savingsId));
+    }
+
+    List<String> ids =
+        transferRepository
+            .findAll(
+                new TransferFilter(day, day, checkingId, null),
+                PageRequest.of(0, 100, Sort.by(Sort.Order.desc("date"), Sort.Order.desc("id"))))
+            .map(t -> t.getId().toString())
+            .getContent();
+
+    assertThat(ids).hasSize(40).isSortedAccordingTo(Comparator.reverseOrder());
   }
 }
