@@ -360,4 +360,49 @@ class TransferRepositoryAdapterTest {
 
     assertThat(ids).hasSize(40).isSortedAccordingTo(Comparator.reverseOrder());
   }
+
+  private Transfer saveDescribed(LocalDate date, String description, String notes) {
+    return transferRepository.save(
+        Transfer.create(
+            UUID.randomUUID(), date, checkingId, savingsId, BigDecimal.TEN, description, notes));
+  }
+
+  private List<UUID> searchIds(String text, LocalDate from, LocalDate to) {
+    return transferRepository
+        .findAll(new TransferFilter(from, to, checkingId, null, text), PageRequest.of(0, 50))
+        .map(Transfer::getId)
+        .getContent();
+  }
+
+  @Test
+  void searchMatchesDescriptionAndNotesIgnoringCaseAndAccents() {
+    LocalDate day = LocalDate.of(2096, 1, 5);
+    Transfer card = saveDescribed(day, "Fatura Cartão", null);
+    Transfer viaNotes = saveDescribed(day, "Move", "reserva de emergência");
+    saveDescribed(day, "Other", null);
+
+    assertThat(searchIds("cartao", day, day)).containsExactly(card.getId());
+    assertThat(searchIds("CARTÃO", day, day)).containsExactly(card.getId());
+    assertThat(searchIds("EMERGENCIA", day, day)).containsExactly(viaNotes.getId());
+  }
+
+  @Test
+  void searchTreatsPercentLiterallyAndCombinesWithTheDateRangeAndAccount() {
+    LocalDate day = LocalDate.of(2096, 1, 6);
+    Transfer percent = saveDescribed(day, "50% share", null);
+    saveDescribed(day, "plain", null);
+    saveDescribed(day.plusMonths(3), "50% later", null);
+    transferRepository.save(
+        Transfer.create(
+            UUID.randomUUID(),
+            day,
+            savingsId,
+            creditCardId,
+            BigDecimal.TEN,
+            "50% elsewhere",
+            null));
+
+    assertThat(searchIds("%", day, day)).containsExactly(percent.getId());
+    assertThat(searchIds("%", day, day.plusMonths(6))).hasSize(2);
+  }
 }

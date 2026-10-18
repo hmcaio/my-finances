@@ -5,6 +5,7 @@ import com.chm.myfinances.domain.transaction.FuelDetails;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionFilter;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
+import com.chm.myfinances.infrastructure.persistence.shared.TextSearchPredicates;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Tuple;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -252,6 +253,14 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
       }
       if (filter.type() != null) {
         predicates.add(criteriaBuilder.equal(root.get("type"), filter.type()));
+      }
+      if (filter.hasSearchText()) {
+        String pattern = TextSearchPredicates.likePattern(filter.searchText().trim());
+        predicates.add(
+            criteriaBuilder.or(
+                TextSearchPredicates.matches(criteriaBuilder, root.get("description"), pattern),
+                TextSearchPredicates.matches(
+                    criteriaBuilder, root.get("additionalNotes"), pattern)));
       }
       return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
     };

@@ -512,4 +512,113 @@ class TransactionRepositoryAdapterTest {
 
     assertThat(ids).hasSize(40).isSortedAccordingTo(Comparator.reverseOrder());
   }
+
+  private Transaction saveDescribed(
+      LocalDate date, String description, String notes, CategoryType type, String amount) {
+    Transaction transaction =
+        Transaction.create(
+            UUID.randomUUID(),
+            date,
+            new BigDecimal(amount),
+            type == CategoryType.EXPENSE ? categoryId : otherCategoryId,
+            type,
+            accountId,
+            paymentMethodId,
+            null,
+            description,
+            notes);
+    return transactionRepository.save(transaction);
+  }
+
+  private List<UUID> searchIds(String text, LocalDate from, LocalDate to, CategoryType type) {
+    return transactionRepository
+        .findAll(
+            new TransactionFilter(from, to, null, accountId, null, type, text),
+            PageRequest.of(0, 50))
+        .map(Transaction::getId)
+        .getContent();
+  }
+
+  @Test
+  void searchIgnoresCaseAndAccentsOnTheDescription() {
+    LocalDate day = LocalDate.of(2096, 1, 5);
+    Transaction cafe = saveDescribed(day, "Café da manhã", null, CategoryType.EXPENSE, "10.00");
+    saveDescribed(day, "Aluguel", null, CategoryType.EXPENSE, "900.00");
+
+    assertThat(searchIds("cafe", day, day, null)).containsExactly(cafe.getId());
+    assertThat(searchIds("CAFÉ", day, day, null)).containsExactly(cafe.getId());
+    assertThat(searchIds("manha", day, day, null)).containsExactly(cafe.getId());
+    assertThat(searchIds("açaí", day, day, null)).isEmpty();
+  }
+
+  @Test
+  void searchFoldsAnUnaccentedDescriptionAgainstAnAccentedQuery() {
+    LocalDate day = LocalDate.of(2096, 1, 6);
+    Transaction cafe = saveDescribed(day, "cafe com leite", null, CategoryType.EXPENSE, "10.00");
+
+    assertThat(searchIds("CAFÉ", day, day, null)).containsExactly(cafe.getId());
+  }
+
+  @Test
+  void searchMatchesAdditionalNotesAndANullNotesColumnNeverErrors() {
+    LocalDate day = LocalDate.of(2096, 1, 7);
+    Transaction viaNotes =
+        saveDescribed(day, "Padaria", "pão e açaí", CategoryType.EXPENSE, "5.00");
+    saveDescribed(day, "No notes at all", null, CategoryType.EXPENSE, "5.00");
+
+    assertThat(searchIds("ACAI", day, day, null)).containsExactly(viaNotes.getId());
+  }
+
+  @Test
+  void searchTreatsPercentUnderscoreAndBackslashLiterally() {
+    LocalDate day = LocalDate.of(2096, 1, 8);
+    Transaction percent = saveDescribed(day, "50% off", null, CategoryType.EXPENSE, "5.00");
+    Transaction underscore = saveDescribed(day, "a_b", null, CategoryType.EXPENSE, "5.00");
+    Transaction backslash = saveDescribed(day, "c:\\dir", null, CategoryType.EXPENSE, "5.00");
+    saveDescribed(day, "plain", null, CategoryType.EXPENSE, "5.00");
+
+    assertThat(searchIds("%", day, day, null)).containsExactly(percent.getId());
+    assertThat(searchIds("50% o", day, day, null)).containsExactly(percent.getId());
+    assertThat(searchIds("_", day, day, null)).containsExactly(underscore.getId());
+    assertThat(searchIds("\\", day, day, null)).containsExactly(backslash.getId());
+    assertThat(searchIds("a%b", day, day, null)).isEmpty();
+  }
+
+  @Test
+  void searchCombinesWithTheDateRangeAndTypeFilters() {
+    LocalDate inRange = LocalDate.of(2096, 2, 10);
+    LocalDate outOfRange = LocalDate.of(2096, 4, 10);
+    LocalDate from = LocalDate.of(2096, 2, 1);
+    LocalDate to = LocalDate.of(2096, 2, 28);
+    Transaction expense = saveDescribed(inRange, "Café", null, CategoryType.EXPENSE, "10.00");
+    saveDescribed(inRange, "Café refund", null, CategoryType.INCOME, "3.00");
+    saveDescribed(outOfRange, "Café", null, CategoryType.EXPENSE, "10.00");
+
+    assertThat(searchIds("cafe", from, to, CategoryType.EXPENSE)).containsExactly(expense.getId());
+    assertThat(searchIds("cafe", from, to, null)).hasSize(2);
+  }
+
+  @Test
+  void aBlankSearchTextDoesNotNarrow() {
+    LocalDate day = LocalDate.of(2096, 1, 9);
+    saveDescribed(day, "One", null, CategoryType.EXPENSE, "1.00");
+    saveDescribed(day, "Two", null, CategoryType.EXPENSE, "1.00");
+
+    assertThat(searchIds("   ", day, day, null)).hasSize(2);
+  }
+
+  @Test
+  void theSummaryRespectsTheSearchText() {
+    LocalDate day = LocalDate.of(2096, 3, 3);
+    saveDescribed(day, "Café", null, CategoryType.EXPENSE, "12.00");
+    saveDescribed(day, "Aluguel", null, CategoryType.EXPENSE, "900.00");
+    saveDescribed(day, "Café refund", null, CategoryType.INCOME, "2.50");
+
+    var totals =
+        transactionRepository.sumAmountByType(
+            new TransactionFilter(day, day, null, accountId, null, null, "cafe"));
+
+    assertThat(totals.get(CategoryType.EXPENSE)).isEqualByComparingTo("12.00");
+    assertThat(totals.get(CategoryType.INCOME)).isEqualByComparingTo("2.50");
+  }
 }
