@@ -75,6 +75,22 @@ describe('unwrap', () => {
     )
   })
 
+  it('maps the method-validation type (a bounded query parameter, F037) to its message', async () => {
+    server.use(
+      http.get('/api/things', () =>
+        HttpResponse.json(
+          { type: 'urn:my-finances:error:handler-method-validation' },
+          { status: 400 },
+        ),
+      ),
+    )
+
+    const error: unknown = await unwrap(apiClient.get('/things')).catch((err: unknown) => err)
+
+    expect((error as ApiError).status).toBe(400)
+    expect((error as ApiError).message).toBe('One of the values is not valid.')
+  })
+
   it('falls back to the generic status message when the type is absent', async () => {
     server.use(http.get('/api/things', () => new HttpResponse(null, { status: 404 })))
 

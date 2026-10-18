@@ -1,23 +1,6 @@
 {
-  "title": "Transferências",
-  "addButton": "Adicionar transferência",
-  "description": "Dinheiro movido entre suas próprias contas - mais comumente pagando uma fatura de cartão de crédito a partir da conta corrente, ou comprando e vendendo um produto de investimento. Transferências nunca são categorizadas e não contam para orçamentos.",
-  "fromLabel": "De",
-  "toLabel": "Até",
-  "accountFilterAria": "Filtro de conta",
-  "allAccounts": "Todas as contas",
-  "aria": "Transferências",
-  "emptyList": "Nenhuma transferência encontrada.",
-  "columns": {
-    "date": "Data",
-    "from": "De",
-    "to": "Para",
-    "amount": "Valor",
-    "description": "Descrição"
-  },
   "editDialogTitle": "Editar transferência",
   "addDialogTitle": "Adicionar transferência",
-  "focusNotFound": "A transferência vinculada não pôde ser encontrada - ela pode ter sido excluída.",
   "tradeLabelBuy": "Compra {{product}}",
   "tradeLabelSell": "Venda {{product}}",
   "moreChips": "+{{count}} mais",
@@ -25,10 +8,6 @@
     "title": "Excluir esta transferência?",
     "body": "Isso remove a transferência permanentemente e não pode ser desfeito.",
     "confirmLabel": "Excluir transferência"
-  },
-  "accountList": {
-    "aria": "Transferências da conta",
-    "emptyList": "Nenhuma transferência ainda."
   },
   "form": {
     "dateLabel": "Data",

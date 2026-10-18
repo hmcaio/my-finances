@@ -457,11 +457,7 @@ export function InvestmentProductDetailPage() {
       header: t('investmentProducts:detail.tradeColumns.confirmation'),
       role: 'primary',
       render: (trade) => (
-        <MuiLink
-          component={RouterLink}
-          to={`/transfers?focus=${trade.transferId}`}
-          underline="hover"
-        >
+        <MuiLink component={RouterLink} to={`/ledger?focus=${trade.transferId}`} underline="hover">
           {t('investmentProducts:detail.viewConfirmation')}
         </MuiLink>
       ),
@@ -487,11 +483,7 @@ export function InvestmentProductDetailPage() {
               balance: formatMoney(trade.resultingBalance, locale),
             })}
         </Typography>
-        <MuiLink
-          component={RouterLink}
-          to={`/transfers?focus=${trade.transferId}`}
-          underline="hover"
-        >
+        <MuiLink component={RouterLink} to={`/ledger?focus=${trade.transferId}`} underline="hover">
           {t('investmentProducts:detail.viewConfirmation')}
         </MuiLink>
       </Paper>

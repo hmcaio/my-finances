@@ -73,7 +73,7 @@ describe('InvestmentProductDetailPage', () => {
     expect(within(buy).getByText('100000')).toBeInTheDocument()
     expect(within(buy).getByRole('link', { name: 'View confirmation' })).toHaveAttribute(
       'href',
-      `/transfers?focus=${seedBitcoinBuyTransfer.id}`,
+      `/ledger?focus=${seedBitcoinBuyTransfer.id}`,
     )
     const sell = within(trades).getByText(seedBitcoinSellTransfer.date).closest('tr')!
     expect(within(sell).getByText('Sell')).toBeInTheDocument()

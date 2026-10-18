@@ -52,7 +52,6 @@
     "noOpeningBalance": "No opening balance: its value comes from snapshots of its products",
     "closedSuffix": " · Closed {{date}}",
     "products": "Products",
-    "transactions": "Transactions",
-    "transfers": "Transfers"
+    "ledger": "Transactions & transfers"
   }
 }

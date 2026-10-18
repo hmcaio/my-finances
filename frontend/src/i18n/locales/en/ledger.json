@@ -1,0 +1,62 @@
+{
+  "title": "Ledger",
+  "description": "Every income, expense and transfer in one list, newest first. Pick a month or a custom range, and filter or search within it.",
+  "addButton": "Add",
+  "newTransaction": "New transaction",
+  "newTransfer": "New transfer",
+  "aria": "Ledger",
+  "columns": {
+    "date": "Date",
+    "type": "Type",
+    "description": "Description",
+    "category": "Category",
+    "account": "Account",
+    "paymentMethod": "Payment Method",
+    "amount": "Amount"
+  },
+  "type": {
+    "income": "Income",
+    "expense": "Expense",
+    "transfer": "Transfer"
+  },
+  "period": {
+    "scopeAria": "Period",
+    "month": "Month",
+    "range": "Range",
+    "monthLabel": "Month",
+    "fromLabel": "From",
+    "toLabel": "To",
+    "allTimeHint": "No dates set: showing the whole history."
+  },
+  "filters": {
+    "typeAria": "Type filter",
+    "allTypes": "All types",
+    "accountAria": "Account filter",
+    "allAccounts": "All accounts",
+    "categoryAria": "Category filter",
+    "allCategories": "All categories",
+    "paymentMethodAria": "Payment method filter",
+    "allPaymentMethods": "All payment methods",
+    "searchLabel": "Search",
+    "searchPlaceholder": "Description or notes",
+    "clearSearch": "Clear search"
+  },
+  "summary": {
+    "aria": "Summary of this period",
+    "income": "Income",
+    "expense": "Expense",
+    "net": "Net"
+  },
+  "truncated": "Showing the newest {{count}} entries; more match. Narrow the period or the filters to see the rest. The totals above cover every match.",
+  "empty": {
+    "noEntries": "No transactions or transfers found.",
+    "noMatches": "No matches in this period.",
+    "searchAllTime": "Search all time"
+  },
+  "editNotFound": "That entry could not be found - it may have been deleted.",
+  "accountSection": {
+    "aria": "Account transactions and transfers",
+    "emptyList": "No transactions or transfers in this month.",
+    "viewInLedger": "View in Ledger"
+  }
+}

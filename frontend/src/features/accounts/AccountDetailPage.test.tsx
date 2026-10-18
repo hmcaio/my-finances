@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { screen } from '@testing-library/react'
 import { delay, http, HttpResponse } from 'msw'
 import { Route, Routes } from 'react-router-dom'
@@ -6,8 +6,8 @@ import { server } from '../../mocks/server'
 import { seedCheckingAccount, seedInvestmentAccount } from '../../mocks/handlers/accounts'
 import { seedInvestmentProducts } from '../../mocks/handlers/investmentProducts'
 import { BUILT_IN_INSTITUTION_ID, seedInstitutions } from '../../mocks/handlers/institutions'
-import { seedTransactions } from '../../mocks/handlers/transactions'
-import { seedTransfers } from '../../mocks/handlers/transfers'
+import { seedGroceriesTransaction } from '../../mocks/handlers/transactions'
+import { seedCreditCardPaymentTransfer } from '../../mocks/handlers/transfers'
 import { renderWithRouter } from '../../test/testUtils'
 import { formatMoney } from '../../i18n/format'
 import { AccountDetailPage } from './AccountDetailPage'
@@ -28,6 +28,18 @@ function institutionName(id: string) {
 }
 
 describe('AccountDetailPage', () => {
+  beforeEach(() => {
+    // The embedded ledger opens on the current month and the seeded rows are all in January 2026:
+    // pin the clock there (only Date is faked, so MSW and RTL timers keep running).
+    vi.stubEnv('TZ', 'America/Sao_Paulo')
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 0, 15, 12, 0))
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllEnvs()
+  })
+
   it('renders the account name, balance, and metadata', async () => {
     const account = seedCheckingAccount
     renderDetail(account.id)
@@ -63,28 +75,20 @@ describe('AccountDetailPage', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('embeds the transaction history pre-filtered to this account', async () => {
+  it('embeds one read-only ledger section scoped to this account, transactions and transfers together', async () => {
     const account = seedCheckingAccount
     renderDetail(account.id)
 
     await screen.findByRole('heading', { name: account.name })
 
-    // Every seed transaction is posted to this account (acct-1) - all should render.
-    for (const transaction of seedTransactions) {
-      expect(await screen.findByText(transaction.date)).toBeInTheDocument()
-    }
-  })
-
-  it('embeds the transfer history pre-filtered to this account', async () => {
-    const account = seedCheckingAccount
-    renderDetail(account.id)
-
-    await screen.findByRole('heading', { name: account.name })
-
-    // Every seed transfer touches this account (acct-1), on either side - all should render.
-    for (const transfer of seedTransfers) {
-      expect(await screen.findByText(transfer.description)).toBeInTheDocument()
-    }
+    // One section for both kinds (no separate Transactions / Transfers sections any more).
+    expect(screen.getByRole('heading', { name: 'Transactions & transfers' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Transactions' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Transfers' })).not.toBeInTheDocument()
+    expect(await screen.findByText(seedGroceriesTransaction.description)).toBeInTheDocument()
+    expect(await screen.findByText(seedCreditCardPaymentTransfer.description)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'View in Ledger' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
   })
 
   it('shows an error message for an unknown account', async () => {
@@ -108,7 +112,7 @@ describe('AccountDetailPage', () => {
     expect(screen.queryByRole('status', { name: 'Loading account' })).not.toBeInTheDocument()
   })
 
-  it('lists the products of an INVESTMENT account instead of transactions', async () => {
+  it('lists the products of an INVESTMENT account above its ledger section', async () => {
     renderDetail(seedInvestmentAccount.id)
 
     expect(
@@ -118,10 +122,9 @@ describe('AccountDetailPage', () => {
     for (const product of seedInvestmentProducts) {
       expect(await screen.findByText(product.name)).toBeInTheDocument()
     }
-    // No transaction history, no transaction form: money moves through transfers only.
-    expect(screen.queryByRole('heading', { name: 'Transactions' })).not.toBeInTheDocument()
-    // Transfers (buys/sells, F009) stay on the page.
-    expect(screen.getByRole('heading', { name: 'Transfers' })).toBeInTheDocument()
+    // The same single ledger section follows (it takes no transactions, so it lists transfers).
+    expect(screen.getByRole('heading', { name: 'Transactions & transfers' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'View in Ledger' })).toBeInTheDocument()
   })
 
   it('handles the missing opening balance of an INVESTMENT account', async () => {
@@ -135,10 +138,12 @@ describe('AccountDetailPage', () => {
     ).toBeInTheDocument()
   })
 
-  it('keeps showing transactions, not products, for a non-investment account', async () => {
+  it('shows the ledger section but no products for a non-investment account', async () => {
     renderDetail(seedCheckingAccount.id)
 
-    expect(await screen.findByRole('heading', { name: 'Transactions' })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: 'Transactions & transfers' }),
+    ).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Products' })).not.toBeInTheDocument()
   })
 })

@@ -31,21 +31,21 @@ ADR 0030 and the PRD changes are already in the docs PR that introduced this pla
 ## Phase 3 — Frontend: Ledger page
 - [x] Test first: `ledgerSearchParams` parse/serialize (month default and invalid values dropped; range mode with empty bounds is all time; `type` mapping; `focus`), run under a pinned non-UTC zone; `shiftMonth`/`monthRange` across year boundaries and leap February.
 - [x] Implement `src/features/ledger/ledgerSearchParams.ts`, `src/utils/localDate.ts` additions, `src/hooks/useDebouncedValue.ts` (with test).
-- [ ] Test first: `MonthNavigator` (prev/next change the value, picker change emits, future months allowed). Implement `src/components/inputs/MonthNavigator.tsx`.
-- [ ] Implement `src/api/ledger/ledger.ts`, `ledgerQueries.ts`, `useTransaction` in `transactionsQueries.ts`, the `PROBLEM_TYPE_MESSAGES` entry, and `src/mocks/handlers/ledger.ts` registered in `src/mocks/handlers.ts` (filters, accent-insensitive `q`, cap, summary).
-- [ ] Test first: `LedgerTable` per row type (income `+` green up-arrow, expense `-` red down-arrow, transfer unsigned with swap icon, `From → To`, `—` cells, Buy/Sell chips capped at 3), accessible label on the type icon, mobile card layout.
-- [ ] Implement `ledgerEntryStyle.ts`, `LedgerTable.tsx`, `LedgerSummary.tsx`.
-- [ ] Test first: `LedgerFilters` (Transfer clears and disables category and payment method; closed accounts selectable; scope toggle) and `LedgerPage` (month navigation updates the URL and request; summary shown; truncation notice; empty states; split Add menu opens each dialog; edit fetches by id and opens the right dialog; delete confirms and calls the right mutation; `?focus=` opens the transfer and removes only `focus`; `presetCategoryId` state opens the preset dialog).
-- [ ] Implement `LedgerFilters.tsx`, `LedgerPage.tsx`, extract `src/features/transactions/TransactionFormDialog.tsx` from the old page, and the `ledger` i18n namespace in en and pt-BR (register it; parity test green).
-- [ ] Route and callers: `src/App.tsx` (`/ledger`, redirects), `LegacyRedirects.tsx` (test: query string kept, `/transfers?focus=ID` → `/ledger?type=transfer&focus=ID`), `Layout.tsx` nav item and `common.json` keys, `FuelPage`, `InvestmentProductDetailPage`.
-- [ ] Delete `TransactionsPage`, `TransfersPage` and their tests; delete `getTransactions`/`useTransactions`/`getTransfers`/`useTransfers` only if no caller remains.
+- [x] Test first: `MonthNavigator` (prev/next change the value, picker change emits, future months allowed). Implement `src/components/inputs/MonthNavigator.tsx`.
+- [x] Implement `src/api/ledger/ledger.ts`, `ledgerQueries.ts`, `useTransaction` in `transactionsQueries.ts`, the `PROBLEM_TYPE_MESSAGES` entry, and `src/mocks/handlers/ledger.ts` registered in `src/mocks/handlers.ts` (filters, accent-insensitive `q`, cap, summary).
+- [x] Test first: `LedgerTable` per row type (income `+` green up-arrow, expense `-` red down-arrow, transfer unsigned with swap icon, `From → To`, `—` cells, Buy/Sell chips capped at 3), accessible label on the type icon, mobile card layout.
+- [x] Implement `ledgerEntryStyle.ts`, `LedgerTable.tsx`, `LedgerSummary.tsx`.
+- [x] Test first: `LedgerFilters` (Transfer clears and disables category and payment method; closed accounts selectable; scope toggle) and `LedgerPage` (month navigation updates the URL and request; summary shown; truncation notice; empty states; split Add menu opens each dialog; edit fetches by id and opens the right dialog; delete confirms and calls the right mutation; `?focus=` opens the transfer and removes only `focus`; `presetCategoryId` state opens the preset dialog).
+- [x] Implement `LedgerFilters.tsx`, `LedgerPage.tsx`, extract `src/features/transactions/TransactionFormDialog.tsx` from the old page, and the `ledger` i18n namespace in en and pt-BR (register it; parity test green).
+- [x] Route and callers: `src/App.tsx` (`/ledger`, redirects), `LegacyRedirects.tsx` (test: query string kept, `/transfers?focus=ID` → `/ledger?type=transfer&focus=ID`), `Layout.tsx` nav item and `common.json` keys, `FuelPage`, `InvestmentProductDetailPage`.
+- [x] Delete `TransactionsPage`, `TransfersPage` and their tests; delete `getTransactions`/`useTransactions`/`getTransfers`/`useTransfers` only if no caller remains.
 - [ ] `npm run lint && npm test && npm run build && npm run format:check`.
 
 ## Phase 4 — Frontend: text search and account embed
-- [ ] Test first: search field debounces (~300 ms), writes `q` with `replace`, honors `maxLength` 100, clear button; empty result with `q` outside all-time shows "Search all time", which switches to range mode with empty bounds.
-- [ ] Implement the search field in `LedgerFilters.tsx` and the empty-state action in `LedgerPage.tsx`.
-- [ ] Test first: `AccountLedger` (scoped request carries `accountId`, month navigation in local state, summary, read-only, "View in Ledger" link target); `AccountDetailPage` shows one section for a normal account and products-plus-ledger for an `INVESTMENT` account.
-- [ ] Implement `AccountLedger.tsx`, update `AccountDetailPage.tsx` and its test and skeleton, delete `AccountTransactionList` and `AccountTransferList` with their tests, rename the `accounts:detail.*` keys.
+- [x] Test first: search field debounces (~300 ms), writes `q` with `replace`, honors `maxLength` 100, clear button; empty result with `q` outside all-time shows "Search all time", which switches to range mode with empty bounds.
+- [x] Implement the search field in `LedgerFilters.tsx` and the empty-state action in `LedgerPage.tsx`.
+- [x] Test first: `AccountLedger` (scoped request carries `accountId`, month navigation in local state, summary, read-only, "View in Ledger" link target); `AccountDetailPage` shows one section for a normal account and products-plus-ledger for an `INVESTMENT` account.
+- [x] Implement `AccountLedger.tsx`, update `AccountDetailPage.tsx` and its test and skeleton, delete `AccountTransactionList` and `AccountTransferList` with their tests, rename the `accounts:detail.*` keys.
 - [ ] Playwright: `e2e/ledger.spec.ts` replacing `transactions.spec.ts` and `transfers.spec.ts` (no horizontal overflow at 360px; filter bar and summary fit on all three projects); update `accounts.spec.ts` and `login.spec.ts` references.
 - [ ] `npm run lint && npm test && npm run build && npm run format:check`.
 

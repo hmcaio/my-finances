@@ -18,8 +18,9 @@ import type {
   PendingRecurringOccurrence,
   RecurringTemplate,
 } from '../recurringTemplates/recurringTemplates'
-import type { CategorySpend, Transaction, TransactionPage } from '../transactions/transactions'
-import type { Transfer, TransferPage } from '../transfers/transfers'
+import type { Ledger, LedgerEntry, LedgerSummary, LedgerTradeLine } from '../ledger/ledger'
+import type { CategorySpend, Transaction } from '../transactions/transactions'
+import type { Transfer } from '../transfers/transfers'
 
 /**
  * Compile-time drift check between the hand-written response interfaces in `src/api/*.ts` (which
@@ -33,8 +34,8 @@ import type { Transfer, TransferPage } from '../transfers/transfers'
  * generated `T | undefined` to `T` (and add `| null`). If a check fails, regenerate the schema
  * (`npm run generate-api-types`) and update the interface.
  *
- * Deliberately not covered: `TransactionFilter`/`TransferFilter` (query params, not a response
- * schema) and the request types (already aliases of the generated ones).
+ * Deliberately not covered: query params (not a response schema) and the request types (already
+ * aliases of the generated ones).
  */
 
 type Assert<T extends true> = T
@@ -95,9 +96,14 @@ export type RecurringTemplateKeys = Assert<
 export type CategorySpendKeys = Assert<SameKeys<CategorySpend, Schemas['CategorySpendResponse']>>
 export type TransactionKeys = Assert<SameKeys<Transaction, Schemas['TransactionResponse']>>
 export type TransferKeys = Assert<SameKeys<Transfer, Schemas['TransferResponse']>>
-// The paged envelopes: the wrapper, and its nested `page` metadata.
-export type TransactionPageKeys = Assert<
-  SameKeys<TransactionPage, Schemas['PagedModelTransactionResponse']>
+// The paged envelope's nested `page` metadata (the investment product list is the remaining pager).
+export type PageMetadataKeys = Assert<
+  SameKeys<InvestmentProductPage['page'], Schemas['PageMetadata']>
 >
-export type TransferPageKeys = Assert<SameKeys<TransferPage, Schemas['PagedModelTransferResponse']>>
-export type PageMetadataKeys = Assert<SameKeys<TransactionPage['page'], Schemas['PageMetadata']>>
+// F037: the Ledger response and its parts.
+export type LedgerKeys = Assert<SameKeys<Ledger, Schemas['LedgerResponse']>>
+export type LedgerEntryKeys = Assert<SameKeys<LedgerEntry, Schemas['LedgerEntryResponse']>>
+export type LedgerSummaryKeys = Assert<SameKeys<LedgerSummary, Schemas['LedgerSummaryResponse']>>
+export type LedgerTradeLineKeys = Assert<
+  SameKeys<LedgerTradeLine, Schemas['LedgerTradeLineResponse']>
+>

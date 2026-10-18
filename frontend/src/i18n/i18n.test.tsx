@@ -47,14 +47,14 @@ describe('i18n end-to-end', () => {
 
     // English by default (jsdom's navigator.language): the nav label and the latest point's net
     // worth (1700, from the seeded trend) both render in English/dot-decimal.
-    expect(screen.getByRole('link', { name: 'Transactions' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Ledger' })).toBeInTheDocument()
     expect(await screen.findByText(/^As of .*net worth 1,700\.00/)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Switch to Portuguese (Brazil)' }))
 
     // Same nav item, now in Portuguese; same amount, now comma-decimal/dot-thousands - both
     // switch immediately, with no remount and no re-fetch (the data is already in cache).
-    expect(screen.getByRole('link', { name: 'Transações' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Lançamentos' })).toBeInTheDocument()
     expect(await screen.findByText(/^Em .*patrimônio líquido 1\.700,00/)).toBeInTheDocument()
   })
 })

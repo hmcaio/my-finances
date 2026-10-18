@@ -37,7 +37,7 @@ describe('Layout', () => {
     setViewportWidth(1280)
     renderLayout()
 
-    expect(screen.getByRole('link', { name: 'Transactions' })).toBeVisible()
+    expect(screen.getByRole('link', { name: 'Ledger' })).toBeVisible()
     expect(screen.queryByRole('button', { name: 'Open navigation' })).not.toBeInTheDocument()
     expect(document.querySelector('.MuiDrawer-docked')).toBeInTheDocument()
   })
@@ -52,11 +52,11 @@ describe('Layout', () => {
     renderLayout()
 
     expect(document.querySelector('.MuiDrawer-docked')).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Transactions' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Ledger' })).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Open navigation' }))
 
-    expect(await screen.findByRole('link', { name: 'Transactions' })).toBeVisible()
+    expect(await screen.findByRole('link', { name: 'Ledger' })).toBeVisible()
   })
 
   it('closes the temporary drawer when a nav link is followed', async () => {
@@ -89,7 +89,7 @@ describe('Layout', () => {
     // last opened from. It must stay closed: nothing was clicked to open it.
     await user.click(screen.getByRole('link', { name: 'Go home' }))
 
-    expect(screen.queryByRole('link', { name: 'Transactions' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Ledger' })).not.toBeInTheDocument()
   })
 
   it('keeps the dark-mode toggle reachable at every size', () => {

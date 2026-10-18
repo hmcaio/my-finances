@@ -14,6 +14,7 @@ import { fadeInSx } from './components/feedback/fadeIn'
 import { useDelayedFlag } from './hooks/useDelayedFlag'
 import { OnboardingPage } from './features/onboarding/OnboardingPage'
 import { RequireAuth } from './features/auth/RequireAuth'
+import { TransactionsRedirect, TransfersRedirect } from './features/ledger/LegacyRedirects'
 
 // Route-level code splitting: each page is its own chunk, fetched on first navigation instead of
 // all being bundled into one >500kB entry chunk. Named exports, so each needs its own `.then`.
@@ -64,13 +65,8 @@ const PaymentMethodsPage = lazy(() =>
     default: m.PaymentMethodsPage,
   })),
 )
-const TransactionsPage = lazy(() =>
-  import('./features/transactions/TransactionsPage').then((m) => ({
-    default: m.TransactionsPage,
-  })),
-)
-const TransfersPage = lazy(() =>
-  import('./features/transfers/TransfersPage').then((m) => ({ default: m.TransfersPage })),
+const LedgerPage = lazy(() =>
+  import('./features/ledger/LedgerPage').then((m) => ({ default: m.LedgerPage })),
 )
 const BudgetsPage = lazy(() =>
   import('./features/budgets/BudgetsPage').then((m) => ({ default: m.BudgetsPage })),
@@ -167,12 +163,14 @@ function AuthenticatedApp() {
             <Suspense fallback={<RouteFallback />}>
               <Routes>
                 <Route path="/" element={<DashboardPage />} />
-                <Route path="/transactions" element={<TransactionsPage />} />
+                <Route path="/ledger" element={<LedgerPage />} />
+                {/* F037: the Transactions and Transfers pages became the Ledger; old links redirect. */}
+                <Route path="/transactions" element={<TransactionsRedirect />} />
                 <Route path="/fuel" element={<FuelPage />} />
                 <Route path="/accounts" element={<AccountsPage />} />
                 <Route path="/accounts/:id" element={<AccountDetailPage />} />
                 <Route path="/investment-products/:id" element={<InvestmentProductDetailPage />} />
-                <Route path="/transfers" element={<TransfersPage />} />
+                <Route path="/transfers" element={<TransfersRedirect />} />
                 <Route path="/budgets" element={<BudgetsPage />} />
                 <Route path="/recurring" element={<RecurringTemplatesPage />} />
                 <Route path="/investments" element={<InvestmentsPage />} />

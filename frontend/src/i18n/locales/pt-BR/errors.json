@@ -2,6 +2,7 @@
   "problemType": {
     "unauthenticated": "Sua sessão expirou. Entre novamente.",
     "accessDenied": "Essa solicitação foi recusada. Recarregue a página e tente novamente.",
+    "handlerMethodValidation": "Um dos valores não é válido.",
     "tooManyLoginAttempts": "Muitas tentativas de login malsucedidas. Aguarde alguns minutos e tente novamente.",
     "categoryNameAlreadyExists": "Já existe uma categoria com esse nome.",
     "categoryInUse": "Essa categoria é usada por transações, orçamentos ou modelos recorrentes existentes — reatribua-os antes de excluí-la.",

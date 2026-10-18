@@ -1,4 +1,5 @@
 import type { Category } from '../../api/categories/categories'
+import type { Transaction } from '../../api/transactions/transactions'
 import { today } from '../../utils/localDate'
 
 export interface TransactionFormValues {
@@ -66,4 +67,25 @@ export function isTransactionFormValid(
     Number(form.liters) > 0 &&
     Number(form.pricePerLiter) > 0
   )
+}
+
+/** The form values for editing `transaction`: every field prefilled, fuel fields empty when the
+ * transaction is not a fuel purchase. */
+export function formFromTransaction(transaction: Transaction): TransactionFormValues {
+  return {
+    date: transaction.date,
+    amount: String(transaction.amount),
+    categoryId: transaction.categoryId,
+    accountId: transaction.accountId,
+    paymentMethodId: transaction.paymentMethodId,
+    description: transaction.description,
+    additionalNotes: transaction.additionalNotes ?? '',
+    vehicleId: transaction.vehicleId ?? '',
+    fuelType: transaction.fuelType ?? '',
+    liters: transaction.liters !== null ? String(transaction.liters) : '',
+    pricePerLiter: transaction.pricePerLiter !== null ? String(transaction.pricePerLiter) : '',
+    kmSinceLastFill:
+      transaction.kmSinceLastFill !== null ? String(transaction.kmSinceLastFill) : '',
+    odometer: transaction.odometer !== null ? String(transaction.odometer) : '',
+  }
 }

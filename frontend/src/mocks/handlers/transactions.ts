@@ -9,7 +9,8 @@ import { seedCategories } from './categories'
 import { createStore } from '../store'
 
 /**
- * Seed data returned by the default `GET /api/transactions` handler below. Spans both seed
+ * Seed data for the transactions store (read by the single-transaction handler below and by the
+ * Ledger's, `ledger.ts`). Spans both seed
  * accounts (`acct-1` open, `acct-2` closed - see `accounts.ts`) and both seed categories (`cat-1`
  * expense, `cat-2` income - see `categories.ts`) so filter tests have something to discriminate
  * on. Exported so tests can assert against it directly (F015 spec's F002 backfill pattern).
@@ -114,7 +115,8 @@ function fuelFieldsFrom(body: TransactionRequestBody) {
   }
 }
 
-const transactions = createStore(seedTransactions)
+/** Exported so `ledger.ts`'s handler reads the same live rows (seed + whatever a test creates). */
+export const transactions = createStore(seedTransactions)
 
 /**
  * Default success-path handlers for every transactions endpoint (F004's REST API), backed by an
@@ -126,39 +128,6 @@ const transactions = createStore(seedTransactions)
 export const transactionsHandlers = [
   // Registered before the `/:id` route so `spend-by-category` isn't taken for an id.
   http.get(`${TRANSACTIONS_URL}/spend-by-category`, () => HttpResponse.json(seedCategorySpend)),
-
-  http.get(TRANSACTIONS_URL, ({ request }) => {
-    const url = new URL(request.url)
-    const dateFrom = url.searchParams.get('dateFrom')
-    const dateTo = url.searchParams.get('dateTo')
-    const categoryId = url.searchParams.get('categoryId')
-    const accountId = url.searchParams.get('accountId')
-    const paymentMethodId = url.searchParams.get('paymentMethodId')
-    const page = Number(url.searchParams.get('page') ?? '0')
-    const size = Number(url.searchParams.get('size') ?? '20')
-
-    const filtered = transactions
-      .list()
-      .filter((t) => !dateFrom || t.date >= dateFrom)
-      .filter((t) => !dateTo || t.date <= dateTo)
-      .filter((t) => !categoryId || t.categoryId === categoryId)
-      .filter((t) => !accountId || t.accountId === accountId)
-      .filter((t) => !paymentMethodId || t.paymentMethodId === paymentMethodId)
-      .sort((a, b) => (a.date < b.date ? 1 : -1))
-
-    const start = page * size
-    const content = filtered.slice(start, start + size)
-
-    return HttpResponse.json({
-      content,
-      page: {
-        size,
-        number: page,
-        totalElements: filtered.length,
-        totalPages: Math.max(1, Math.ceil(filtered.length / size)),
-      },
-    })
-  }),
 
   http.get(`${TRANSACTIONS_URL}/:id`, ({ params }) => {
     const transaction = transactions.find(params.id as string)
