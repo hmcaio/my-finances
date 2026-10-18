@@ -46,7 +46,7 @@ ADR 0030 and the PRD changes are already in the docs PR that introduced this pla
 - [x] Implement the search field in `LedgerFilters.tsx` and the empty-state action in `LedgerPage.tsx`.
 - [x] Test first: `AccountLedger` (scoped request carries `accountId`, month navigation in local state, summary, read-only, "View in Ledger" link target); `AccountDetailPage` shows one section for a normal account and products-plus-ledger for an `INVESTMENT` account.
 - [x] Implement `AccountLedger.tsx`, update `AccountDetailPage.tsx` and its test and skeleton, delete `AccountTransactionList` and `AccountTransferList` with their tests, rename the `accounts:detail.*` keys.
-- [ ] Playwright: `e2e/ledger.spec.ts` replacing `transactions.spec.ts` and `transfers.spec.ts` (no horizontal overflow at 360px; filter bar and summary fit on all three projects); update `accounts.spec.ts` and `login.spec.ts` references.
+- [x] Playwright: `e2e/ledger.spec.ts` replacing `transactions.spec.ts` and `transfers.spec.ts` (no horizontal overflow at 360px; filter bar and summary fit on all three projects); update `accounts.spec.ts` and `login.spec.ts` references.
 - [ ] `npm run lint && npm test && npm run build && npm run format:check`.
 
 ## Phase 5 — Docs

@@ -92,7 +92,11 @@ test.describe('accounts', () => {
 })
 
 test.describe('account detail', () => {
-  test('stacks the summary and embedded lists without horizontal overflow', async ({ page }) => {
+  test('stacks the summary and the embedded ledger without horizontal overflow', async ({
+    page,
+  }) => {
+    // The embedded ledger opens on the current month and the mocked rows are in January 2026.
+    await page.clock.setFixedTime(new Date(2026, 0, 15, 12, 0))
     await page.goto('/accounts/acct-1')
 
     await expect(page.getByRole('heading', { name: 'Itau Checking', level: 1 })).toBeVisible()
@@ -104,18 +108,20 @@ test.describe('account detail', () => {
     await expectNoHorizontalOverflow(page)
   })
 
-  test('shows the embedded lists as cards on mobile and tables from tablet up', async ({
+  test('shows the embedded ledger as cards on mobile and a table from tablet up', async ({
     page,
   }, testInfo) => {
     const mobile = testInfo.project.name === 'mobile'
+    await page.clock.setFixedTime(new Date(2026, 0, 15, 12, 0))
     await page.goto('/accounts/acct-1')
     await expect(page.getByText('Weekly groceries')).toBeVisible()
     await expect(page.getByText('Credit card payment')).toBeVisible()
 
-    await expect(page.getByRole('table')).toHaveCount(mobile ? 0 : 2)
-    await expect(page.getByRole('list', { name: 'Account transactions' })).toHaveCount(
-      mobile ? 1 : 0,
-    )
-    await expect(page.getByRole('list', { name: 'Account transfers' })).toHaveCount(mobile ? 1 : 0)
+    await expect(page.getByRole('table')).toHaveCount(mobile ? 0 : 1)
+    await expect(
+      page.getByRole('list', { name: 'Account transactions and transfers' }),
+    ).toHaveCount(mobile ? 1 : 0)
+    await expect(page.getByRole('link', { name: 'View in Ledger' })).toBeVisible()
+    await expectNoHorizontalOverflow(page)
   })
 })

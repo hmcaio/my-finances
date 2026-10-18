@@ -18,7 +18,7 @@ test.describe('login', () => {
       ),
     ])
 
-    await page.goto('/transactions')
+    await page.goto('/ledger')
 
     await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible()
     await expect(page.getByLabel('Username')).toBeVisible()
