@@ -1,5 +1,7 @@
 # F005 — Transfers
 
+> **List UI superseded by [F037](../F037-ledger/spec.md):** the transfers list now lives in the unified Ledger (`/ledger`), which also interleaves transactions; the backend described here (entity, filters, `GET /api/transfers`) is unchanged.
+
 ## Summary
 `Transfer` between two accounts — most commonly paying a credit card statement from checking (PRD §5.5, §6.2 transfer part). Keeps spend and debt correctly separated instead of double-counting (PRD §1).
 

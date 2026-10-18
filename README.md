@@ -143,11 +143,11 @@ Built:
 - **F034** — taxonomy lockdown (closes Institution's rename gap; removes user customization from Payment Method, Investment Category/Sub-category and Investment Segment; [ADR 0028](docs/adr/0028-fixed-taxonomy-values-and-onboarding-seeded-categories.md))
 - **F035** — category onboarding (stops migration-seeding Category's regular starter rows in favor of a localized, two-step onboarding suggestion step the user can accept, reject or supplement; depends on F034's ADR 0028)
 - **F036** — remote access & authentication (a single shared-credential, Argon2-hashed session-cookie login required in dev and prod, with cookie CSRF and login rate limiting; a generic `BIND_ADDR` env var for exposing the app over any private network without pinning to a specific product, with Postgres/pgAdmin pinned to loopback; [ADR 0029](docs/adr/0029-session-auth-and-generic-network-binding.md))
+- **F037** — ledger (one `/ledger` page replacing Transactions and Transfers: interleaved list by month, summary, filters, accent-insensitive text search; [ADR 0030](docs/adr/0030-postgres-unaccent-for-accent-insensitive-search.md))
 
 Documented and next up:
 - **F028** — investment splits, backend (a product-level `InvestmentSplit` event, applied as a read-side adjustment to held units; [ADR 0025](docs/adr/0025-investment-split-as-read-side-adjustment.md))
 - **F029** — investment splits, frontend (the product-detail split-history panel and record/delete dialog for F028)
-- **F037** — ledger (one `/ledger` page replacing Transactions and Transfers: interleaved list by month, summary, filters, accent-insensitive text search; [ADR 0030](docs/adr/0030-postgres-unaccent-for-accent-insensitive-search.md))
 
 See [docs/features/](docs/features/) for the full breakdown, in build order, with each feature's spec and its dependencies on the others.
 

@@ -6,8 +6,8 @@ Branch `feature/f037-ledger`. Backend first: the `GET /api/ledger` shape (and th
 
 ## Phase 0 — Decision record
 ADR 0030 and the PRD changes are already in the docs PR that introduced this plan; the checks below confirm they still match what is built.
-- [ ] `docs/adr/0030-postgres-unaccent-for-accent-insensitive-search.md` and its row in `docs/adr/README.md` match the implementation (extension, query shape, no index, fake behaviour).
-- [ ] `docs/PRD.md` §6.16, §6.1, §6.2 and the §9 line match the shipped behaviour.
+- [x] `docs/adr/0030-postgres-unaccent-for-accent-insensitive-search.md` and its row in `docs/adr/README.md` match the implementation (extension, query shape, no index, fake behaviour).
+- [x] `docs/PRD.md` §6.16, §6.1, §6.2 and the §9 line match the shipped behaviour.
 
 ## Phase 1 — Backend: ledger list and summary
 - [x] Test first: `TransactionFilter`/`TransferFilter` compatibility constructors keep every existing caller compiling and `none()` unchanged (compile-level, plus a fake-repository test that `type` filters `INCOME`/`EXPENSE`).
@@ -39,7 +39,7 @@ ADR 0030 and the PRD changes are already in the docs PR that introduced this pla
 - [x] Implement `LedgerFilters.tsx`, `LedgerPage.tsx`, extract `src/features/transactions/TransactionFormDialog.tsx` from the old page, and the `ledger` i18n namespace in en and pt-BR (register it; parity test green).
 - [x] Route and callers: `src/App.tsx` (`/ledger`, redirects), `LegacyRedirects.tsx` (test: query string kept, `/transfers?focus=ID` → `/ledger?type=transfer&focus=ID`), `Layout.tsx` nav item and `common.json` keys, `FuelPage`, `InvestmentProductDetailPage`.
 - [x] Delete `TransactionsPage`, `TransfersPage` and their tests; delete `getTransactions`/`useTransactions`/`getTransfers`/`useTransfers` only if no caller remains.
-- [ ] `npm run lint && npm test && npm run build && npm run format:check`.
+- [x] `npm run lint && npm test && npm run build && npm run format:check`.
 
 ## Phase 4 — Frontend: text search and account embed
 - [x] Test first: search field debounces (~300 ms), writes `q` with `replace`, honors `maxLength` 100, clear button; empty result with `q` outside all-time shows "Search all time", which switches to range mode with empty bounds.
@@ -47,25 +47,25 @@ ADR 0030 and the PRD changes are already in the docs PR that introduced this pla
 - [x] Test first: `AccountLedger` (scoped request carries `accountId`, month navigation in local state, summary, read-only, "View in Ledger" link target); `AccountDetailPage` shows one section for a normal account and products-plus-ledger for an `INVESTMENT` account.
 - [x] Implement `AccountLedger.tsx`, update `AccountDetailPage.tsx` and its test and skeleton, delete `AccountTransactionList` and `AccountTransferList` with their tests, rename the `accounts:detail.*` keys.
 - [x] Playwright: `e2e/ledger.spec.ts` replacing `transactions.spec.ts` and `transfers.spec.ts` (no horizontal overflow at 360px; filter bar and summary fit on all three projects); update `accounts.spec.ts` and `login.spec.ts` references.
-- [ ] `npm run lint && npm test && npm run build && npm run format:check`.
+- [x] `npm run lint && npm test && npm run build && npm run format:check`.
 
 ## Phase 5 — Docs
-- [ ] `docs/conventions/frontend-components.md` (`MonthNavigator`, `LedgerTable`), `frontend-structure.md` (`inputs/`), `errors.md` (parameter-level `@Size` and its problem type), `data-constraints.md` (`MAX_SEARCH_TEXT_LENGTH`).
-- [ ] One-line "list UI superseded by F037" note at the top of `docs/features/F004-transactions/spec.md` and `F005-transfers/spec.md`.
+- [x] `docs/conventions/frontend-components.md` (`MonthNavigator`, `LedgerTable`), `frontend-structure.md` (`inputs/`), `errors.md` (parameter-level `@Size` and its problem type), `data-constraints.md` (`MAX_SEARCH_TEXT_LENGTH`).
+- [x] One-line "list UI superseded by F037" note at the top of `docs/features/F004-transactions/spec.md` and `F005-transfers/spec.md`.
 - [ ] `CHANGELOG.md` `## [Unreleased]`: `**F037 — Ledger**` bullet with an `Upgrade:` sub-line for the `unaccent` extension; add the PR link in a follow-up commit once the PR exists.
-- [ ] `docs/features/README.md` row verified against what was built; root `README.md` "Project status" moves F037 to "Built".
+- [x] `docs/features/README.md` row verified against what was built; root `README.md` "Project status" moves F037 to "Built".
 
 ## Verification
-- [ ] Open the Ledger: the current month shows income, expense and transfer rows interleaved newest first; income is green with `+`, expense red with `-`, transfers neutral and unsigned with `From → To`.
-- [ ] Step to the previous and next month with the arrows and pick a month from the picker: the list, summary and URL (`?month=`) follow; reload keeps the month; a future month is allowed.
-- [ ] Filter by type Transfer: only transfers, category and payment method disabled; filter by a category: transfers disappear and the summary shows only that category.
-- [ ] Switch to a custom range and to all time: dates and URL follow; the summary covers the whole scope.
-- [ ] Search "cafe" with a "Café" description present: it appears; search a literal `%`: no rows unless one contains it; search 101 characters is blocked by the input.
-- [ ] Search for a term that exists only in another month: the empty state offers "Search all time" and clicking it finds the row.
-- [ ] Seed more than 1,000 rows in a month (or lower the cap temporarily): the truncation notice shows and the summary still covers all rows.
-- [ ] Add a transaction (fuel category included) and a transfer (a trade confirmation too) from the Add menu; edit and delete each from its row.
-- [ ] Open `/transfers?focus=<id>`, `/transfers` and `/transactions`: each redirects to the Ledger with its query kept; the transfer opens in the edit dialog. From the Fuel page, "add fill-up" opens the preset dialog on the Ledger.
-- [ ] Open an account page and an `INVESTMENT` account page: one "Transactions & transfers" section, read-only, month navigator and summary work; "View in Ledger" lands on the Ledger scoped to that account and month.
-- [ ] At 360px width nothing scrolls horizontally on the Ledger or the account page.
-- [ ] Migrate a database that already has data to V25: the app starts, existing data and reports are unchanged, and a backup taken afterwards restores into a fresh stack and still searches with accent folding.
-- [ ] `./gradlew spotlessCheck test integrationTest` (Docker running) and `npm run lint && npm test && npm run build && npm run format:check` all green.
+- [x] Open the Ledger: the current month shows income, expense and transfer rows interleaved newest first; income is green with `+`, expense red with `-`, transfers neutral and unsigned with `From → To`.
+- [x] Step to the previous and next month with the arrows and pick a month from the picker: the list, summary and URL (`?month=`) follow; reload keeps the month; a future month is allowed.
+- [x] Filter by type Transfer: only transfers, category and payment method disabled; filter by a category: transfers disappear and the summary shows only that category.
+- [x] Switch to a custom range and to all time: dates and URL follow; the summary covers the whole scope.
+- [x] Search "cafe" with a "Café" description present: it appears; search a literal `%`: no rows unless one contains it; search 101 characters is blocked by the input.
+- [x] Search for a term that exists only in another month: the empty state offers "Search all time" and clicking it finds the row.
+- [x] Seed more than 1,000 rows in a month (or lower the cap temporarily): the truncation notice shows and the summary still covers all rows.
+- [x] Add a transaction (fuel category included) and a transfer (a trade confirmation too) from the Add menu; edit and delete each from its row.
+- [x] Open `/transfers?focus=<id>`, `/transfers` and `/transactions`: each redirects to the Ledger with its query kept; the transfer opens in the edit dialog. From the Fuel page, "add fill-up" opens the preset dialog on the Ledger.
+- [x] Open an account page and an `INVESTMENT` account page: one "Transactions & transfers" section, read-only, month navigator and summary work; "View in Ledger" lands on the Ledger scoped to that account and month.
+- [x] At 360px width nothing scrolls horizontally on the Ledger or the account page.
+- [x] Migrate a database that already has data to V25: the app starts, existing data and reports are unchanged, and a backup taken afterwards restores into a fresh stack and still searches with accent folding.
+- [x] `./gradlew spotlessCheck test integrationTest` (Docker running) and `npm run lint && npm test && npm run build && npm run format:check` all green.

@@ -113,7 +113,7 @@ export const flows = {
     const { page, close } = await launch()
     const errors = watchPage(page)
     try {
-      await page.goto(`${config.baseUrl}/transactions`)
+      await page.goto(`${config.baseUrl}/ledger`)
       await page.getByRole('heading', { name: 'Sign in' }).waitFor()
       expectPath(page, '/login')
       await screenshot(page, config, 'login-1-signed-out')
@@ -125,7 +125,7 @@ export const flows = {
       await submitLogin(page, config.username, config.password)
       await page.getByRole('button', { name: 'Log out' }).waitFor({ timeout: 30_000 })
       await page.waitForLoadState('networkidle')
-      expectPath(page, '/transactions')
+      expectPath(page, '/ledger')
       await screenshot(page, config, 'login-2-signed-in')
 
       await signOut(page)

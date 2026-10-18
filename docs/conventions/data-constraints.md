@@ -8,6 +8,7 @@ All limits come from `domain/shared/TextFieldConstraints`; reuse its constants:
 
 - `MAX_NAME_LENGTH` (100) for flat-taxonomy names: `Category`, `PaymentMethod`, `Account`, `Institution`, `InvestmentCategory`, `InvestmentSubcategory`, `InvestmentProduct`, `InvestmentSegment` and `Vehicle`. `InvestmentProduct.ticker` (F026) reuses it too: a flat-taxonomy-style name field, not a description.
 - `MAX_DESCRIPTION_LENGTH` (150, mandatory) / `MAX_ADDITIONAL_NOTES_LENGTH` (500, optional) for the description/notes pair on `Transaction`, `Transfer` and `RecurringTemplate`.
+- `MAX_SEARCH_TEXT_LENGTH` (100, F037) bounds the Ledger search query parameter (`@Size` on the `@RequestParam`, `maxLength` on the frontend input). It is the one limit with **no domain or column counterpart**, because the text is never stored.
 - **Deliberate exception (F022)**: `InvestmentProduct.additionalNotes` and `InvestmentHolding.additionalNotes` are both standalone optional fields (`MAX_ADDITIONAL_NOTES_LENGTH`) with no paired mandatory description: `InvestmentProduct` is a taxonomy entity (like `Category`), and a holding has no "description" of its own to pair notes with.
 
 ## Money columns

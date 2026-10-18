@@ -111,7 +111,15 @@ export function LedgerTable({
   }
 
   const columns: ResponsiveColumn<LedgerEntry>[] = [
-    { key: 'date', header: t('ledger:columns.date'), render: (entry) => entry.date },
+    {
+      key: 'date',
+      header: t('ledger:columns.date'),
+      render: (entry) => (
+        <Box component="span" sx={{ whiteSpace: 'nowrap' }}>
+          {entry.date}
+        </Box>
+      ),
+    },
     { key: 'type', header: t('ledger:columns.type'), render: typeIcon },
     {
       key: 'description',
