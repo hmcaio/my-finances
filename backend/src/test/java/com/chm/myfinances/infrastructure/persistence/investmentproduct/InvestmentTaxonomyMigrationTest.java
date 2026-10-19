@@ -23,15 +23,15 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 
 /**
- * Proves {@code V13__investment_accounts_products_taxonomy.sql} (F008) against pre-existing data
- * and at the constraint level: existing accounts keep their values, the {@code accounts} CHECKs
- * accept and reject as specified, the composite foreign key on {@code investment_products} rejects
- * a sub-category from another category and accepts none at all, and the seed holds exactly the
- * Brazilian defaults with no duplicates.
+ * Proves {@code V13__investment_accounts_products_taxonomy.sql} (F008) at the constraint level: the
+ * {@code accounts} CHECKs accept and reject as specified, the composite foreign key on {@code
+ * investment_products} rejects a sub-category from another category and accepts none at all, and
+ * the seed holds exactly the Brazilian defaults with no duplicates. The test of V13's one-off
+ * "existing accounts keep their values" backfill was retired (issue #89, B6).
  *
- * <p>Runs Flyway by hand in its own schema of the shared Testcontainers Postgres (same setup as
- * {@code InstitutionBackfillMigrationTest}, including the non-pooled data source). The seed is
- * asserted here, in a fresh schema, rather than against the shared one that other tests write to.
+ * <p>Runs Flyway by hand in its own schema of the shared Testcontainers Postgres (see {@link
+ * AbstractMigrationTest}). The seed is asserted here, in a fresh schema, rather than against the
+ * shared one that other tests write to.
  */
 @Tag("integration")
 @SpringBootTest
@@ -42,39 +42,6 @@ class InvestmentTaxonomyMigrationTest extends AbstractMigrationTest {
 
   InvestmentTaxonomyMigrationTest() {
     super(SCHEMA);
-  }
-
-  @Test
-  void existingAccountsKeepTheirValuesAndTheOpeningColumnsBecomeNullable() throws Exception {
-    flyway("12").migrate();
-    UUID checkingId = UUID.randomUUID();
-    UUID cardId = UUID.randomUUID();
-    try (Connection connection = connection()) {
-      insertAccount(connection, checkingId, "Checking", "CHECKING", "123.45", "2026-01-15");
-      insertAccount(connection, cardId, "Card", "CREDIT_CARD", "0.00", "2026-02-01");
-    }
-
-    flyway("13").migrate();
-
-    try (Connection connection = connection()) {
-      Map<String, String> byName = new HashMap<>();
-      try (PreparedStatement statement =
-              connection.prepareStatement(
-                  "SELECT name, type, opening_balance, opening_balance_date FROM accounts");
-          ResultSet rows = statement.executeQuery()) {
-        while (rows.next()) {
-          byName.put(
-              rows.getString(1),
-              rows.getString(2) + "|" + rows.getBigDecimal(3) + "|" + rows.getDate(4));
-        }
-      }
-      assertThat(byName)
-          .containsEntry("Checking", "CHECKING|123.45|2026-01-15")
-          .containsEntry("Card", "CREDIT_CARD|0.00|2026-02-01")
-          .hasSize(2);
-      assertThat(isNullable(connection, "accounts", "opening_balance")).isTrue();
-      assertThat(isNullable(connection, "accounts", "opening_balance_date")).isTrue();
-    }
   }
 
   @Test

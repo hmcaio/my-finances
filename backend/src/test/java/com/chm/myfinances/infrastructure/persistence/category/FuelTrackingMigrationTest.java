@@ -17,12 +17,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 
 /**
- * Proves {@code V18__fuel_tracking.sql} against pre-existing data ({@code
- * docs/conventions/backend-testing.md}'s migration-testing pattern) - the case a fresh-database
- * migration run can't show: the adopt-or-insert "Fuel" category seed, the new transaction
- * columns/CHECKs against existing rows, and the partial unique index. Runs Flyway by hand in its
- * own schema of the shared Testcontainers Postgres, same setup as {@code
- * BuiltInCategoriesMigrationTest}.
+ * Proves the constraints {@code V18__fuel_tracking.sql} adds: the partial unique index on the Fuel
+ * category, the {@code vehicles} table and the transaction fuel columns with their all-or-none
+ * CHECKs. The tests of V18's one-off adopt-or-insert backfill were retired (issue #89, B6). Runs
+ * Flyway by hand in its own schema of the shared Testcontainers Postgres (see {@link
+ * AbstractMigrationTest}).
  */
 @Tag("integration")
 @SpringBootTest
@@ -33,85 +32,6 @@ class FuelTrackingMigrationTest extends AbstractMigrationTest {
 
   FuelTrackingMigrationTest() {
     super(SCHEMA);
-  }
-
-  @Test
-  void withNoExistingFuelNamedCategoryAFreshOneIsInserted() throws Exception {
-    flyway("17").migrate();
-
-    flyway("18").migrate();
-
-    try (Connection connection = connection()) {
-      assertThat(count(connection, "SELECT count(*) FROM categories WHERE fuel_category"))
-          .isEqualTo(1);
-      assertThat(
-              count(
-                  connection,
-                  "SELECT count(*) FROM categories WHERE fuel_category AND name = 'Fuel' AND type = 'EXPENSE'"))
-          .isEqualTo(1);
-    }
-  }
-
-  @Test
-  void anExistingExpenseFuelCategoryIsAdoptedInPlace() throws Exception {
-    flyway("17").migrate();
-    UUID fuelId;
-    try (Connection connection = connection()) {
-      fuelId = insertCategory(connection, "Fuel", "EXPENSE");
-    }
-
-    flyway("18").migrate();
-
-    try (Connection connection = connection()) {
-      assertThat(count(connection, "SELECT count(*) FROM categories WHERE fuel_category"))
-          .isEqualTo(1);
-      assertThat(isFuelCategory(connection, fuelId)).isTrue();
-    }
-  }
-
-  @Test
-  void existingTransactionsAndCategoriesAreUnaffected() throws Exception {
-    flyway("17").migrate();
-    UUID categoryId;
-    UUID accountId;
-    UUID paymentMethodId;
-    UUID transactionId;
-    try (Connection connection = connection()) {
-      categoryId = insertCategory(connection, "Groceries Migration Test", "EXPENSE");
-      UUID institutionId = insertInstitution(connection, "Test Institution Fuel Migration");
-      accountId = insertAccount(connection, "Test Account Fuel Migration", institutionId);
-      paymentMethodId = insertPaymentMethod(connection, "Test Payment Method Fuel Migration");
-      transactionId = insertTransaction(connection, categoryId, accountId, paymentMethodId);
-    }
-
-    flyway("18").migrate();
-
-    try (Connection connection = connection()) {
-      assertThat(
-              count(
-                  connection,
-                  "SELECT count(*) FROM transactions WHERE id = '" + transactionId + "'"))
-          .isEqualTo(1);
-      assertThat(isNullable(connection, "transactions", "vehicle_id")).isTrue();
-      try (PreparedStatement statement =
-          connection.prepareStatement(
-              "SELECT vehicle_id, fuel_type, liters, price_per_liter, km_since_last_fill,"
-                  + " odometer FROM transactions WHERE id = ?")) {
-        statement.setObject(1, transactionId);
-        try (ResultSet rows = statement.executeQuery()) {
-          assertThat(rows.next()).isTrue();
-          assertThat(rows.getObject(1)).isNull();
-          assertThat(rows.getObject(2)).isNull();
-          assertThat(rows.getObject(3)).isNull();
-          assertThat(rows.getObject(4)).isNull();
-          assertThat(rows.getObject(5)).isNull();
-          assertThat(rows.getObject(6)).isNull();
-        }
-      }
-      assertThat(
-              count(connection, "SELECT count(*) FROM categories WHERE id = '" + categoryId + "'"))
-          .isEqualTo(1);
-    }
   }
 
   @Test
@@ -254,25 +174,6 @@ class FuelTrackingMigrationTest extends AbstractMigrationTest {
     return id;
   }
 
-  private static UUID insertTransaction(
-      Connection connection, UUID categoryId, UUID accountId, UUID paymentMethodId)
-      throws SQLException {
-    UUID id = UUID.randomUUID();
-    try (PreparedStatement statement =
-        connection.prepareStatement(
-            "INSERT INTO transactions (id, date, amount, category_id, type, account_id,"
-                + " payment_method_id, description, created_at, last_modified_at)"
-                + " VALUES (?, CURRENT_DATE, 10.00, ?, 'EXPENSE', ?, ?, 'Migration test', now(),"
-                + " now())")) {
-      statement.setObject(1, id);
-      statement.setObject(2, categoryId);
-      statement.setObject(3, accountId);
-      statement.setObject(4, paymentMethodId);
-      statement.executeUpdate();
-    }
-    return id;
-  }
-
   private static void insertTransactionWithFuelColumns(
       Connection connection,
       UUID categoryId,
@@ -295,17 +196,6 @@ class FuelTrackingMigrationTest extends AbstractMigrationTest {
       statement.setObject(5, vehicleId);
       statement.setString(6, fuelType);
       statement.executeUpdate();
-    }
-  }
-
-  private static boolean isFuelCategory(Connection connection, UUID id) throws SQLException {
-    try (PreparedStatement statement =
-        connection.prepareStatement("SELECT fuel_category FROM categories WHERE id = ?")) {
-      statement.setObject(1, id);
-      try (ResultSet rows = statement.executeQuery()) {
-        assertThat(rows.next()).isTrue();
-        return rows.getBoolean(1);
-      }
     }
   }
 }
