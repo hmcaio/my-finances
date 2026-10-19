@@ -28,10 +28,12 @@ import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import com.chm.myfinances.testsupport.mothers.TransactionMother;
 import com.chm.myfinances.testsupport.mothers.TransferMother;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * {@link RealAccountUsageChecker} against the real database (ADR 0017): each of the four
@@ -40,6 +42,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 @DatabaseIntegrationTest
 class RealAccountUsageCheckerTest {
 
+  @Autowired private JdbcTemplate jdbcTemplate;
   @Autowired private AccountUsageChecker checker;
   @Autowired private AccountRepository accountRepository;
   @Autowired private InstitutionRepository institutionRepository;
@@ -60,6 +63,38 @@ class RealAccountUsageCheckerTest {
     account =
         TestFixtures.checkingAccount(accountRepository, institutionRepository, "Usage Checking");
     other = TestFixtures.checkingAccount(accountRepository, institutionRepository, "Usage Other");
+  }
+
+  /**
+   * Guard for the "a new table with an FK to accounts must be added to the checker" rule (ADR
+   * 0017): a missed table turns an account delete into a 500 from the FK instead of the 409. When
+   * this fails, extend {@link RealAccountUsageChecker} and add a case below, then list the table
+   * here.
+   */
+  @Test
+  void everyTableWithAForeignKeyToAccountsIsCoveredByTheChecker() {
+    List<String> referencingTables =
+        jdbcTemplate.queryForList(
+            """
+            SELECT DISTINCT fk.table_name
+            FROM information_schema.table_constraints fk
+            JOIN information_schema.referential_constraints rc
+              ON rc.constraint_schema = fk.constraint_schema
+             AND rc.constraint_name = fk.constraint_name
+            JOIN information_schema.table_constraints target
+              ON target.constraint_schema = rc.unique_constraint_schema
+             AND target.constraint_name = rc.unique_constraint_name
+            WHERE fk.constraint_type = 'FOREIGN KEY'
+              AND fk.table_schema = current_schema()
+              AND target.table_name = 'accounts'
+            ORDER BY fk.table_name
+            """,
+            String.class);
+
+    assertThat(referencingTables)
+        .as("tables with an FK to accounts; each must be checked by RealAccountUsageChecker")
+        .containsExactlyInAnyOrder(
+            "investment_holdings", "recurring_templates", "transactions", "transfers");
   }
 
   @Test
