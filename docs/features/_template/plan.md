@@ -19,18 +19,18 @@ Test-first marking: for every rules-heavy item write two items in this order, "T
 
 ## Phase 1 — Backend: <slice name>
 <!-- Order inside the phase: domain tests/impl, application, persistence + migration, REST, then the gate command.
-Name the repo's own check: `./gradlew spotlessApply` then `./gradlew spotlessCheck test integrationTest` (Docker running). -->
+Name the repo's own check: `./gradlew spotlessApply` then `scripts/verify.sh backend` (Docker running; the same stage CI runs). -->
 - [ ] Test first: <domain cases>.
 - [ ] Implement `domain/<aggregate>/Name.java`.
 - [ ] Flyway migration `V<next>__<slug>.sql`: <tables/columns/backfill>, plus its migration test.
 - [ ] REST: <verb + path>, controller tests for <status codes>; regenerate `frontend/src/api/generated/schema.ts`.
-- [ ] `./gradlew spotlessApply` then `./gradlew spotlessCheck test integrationTest` (Docker running).
+- [ ] `./gradlew spotlessApply` then `scripts/verify.sh backend` (Docker running).
 
 ## Phase 2 — Frontend: <slice name>
-<!-- Delete for a backend-only feature. Frontend gate command: `npm run lint && npm test && npm run build && npm run format:check`. -->
+<!-- Delete for a backend-only feature. Frontend gate command: `scripts/verify.sh frontend` (lint, format check, type-check and build, tests with coverage: what CI runs; a bare `npm test` skips the coverage run). -->
 - [ ] Test first: <component/hook behaviours>.
 - [ ] Implement `src/features/<area>/<Component>.tsx`, `src/api/<area>/<area>Queries.ts`, MSW handler.
-- [ ] `npm run lint && npm test && npm run build && npm run format:check`.
+- [ ] `scripts/verify.sh frontend`.
 
 ## Phase 3 — Docs
 - [ ] Root/backend/frontend `CLAUDE.md`: <the rule or gotcha each gets>.
@@ -44,4 +44,4 @@ Finish with the automated gates (the backend and frontend commands above, all gr
 - [ ] <action in the running app> -> <observable result>.
 - [ ] <rejected case> -> <exact error/status>.
 - [ ] Migrate a database with pre-existing <rows>: <result, unchanged reports>.
-- [ ] `./gradlew spotlessCheck test integrationTest` (Docker running) and `npm run lint && npm test && npm run build && npm run format:check` all green.
+- [ ] `scripts/verify.sh backend frontend` (Docker running) all green.

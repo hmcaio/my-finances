@@ -13,17 +13,17 @@ Call the `grilling` skill (`Skill({ skill: "grilling", args: "<the user's featur
 
 Any fact findable from the repo (does this concept already exist, how is the related data modeled, where else would a change ripple) is this skill's job to look up, via a sub-agent (`Explore` for anything under ~3 searches, otherwise a general-purpose `Agent`) dispatched in the background while the next round of *decision* questions goes to the user — never a question the user shouldn't have to answer themselves. The grilling skill already says this; it matters enough here to repeat, since a wrong assumption about existing behavior (e.g. assuming an entity stores a running balance when it's actually computed on read) produces a confidently wrong design.
 
-Stop and summarize the settled design back to the user in plain terms once the frontier is empty. Wait for explicit confirmation before Phase 2 — "looks good" or equivalent, not silence.
+Once the frontier is empty, do Phase 2's reading below, then summarize the settled design and Phase 2's three calls back to the user in plain terms. Wait for explicit confirmation before Phase 3 — "looks good" or equivalent, not silence.
 
 ## 2. Decide the shape of the docs
 
-Three things to settle before writing anything, by reading the repo rather than guessing:
+Three things to settle before writing anything, by reading the repo rather than guessing. They are settled when Phase 1's frontier empties, before its summary, so the summary states them from evidence:
 
 - **One feature or several?** Every existing `docs/features/FXXX` bundles backend and frontend in one spec with explicit `## Backend`/`## Frontend` sections (`docs/features/README.md`'s own description of the convention). Default to that. Split into separate `FXXX`/`FYYY` folders (one per layer, or along whatever other seam) only when the user asks for it explicitly, as this skill's naming (`F028`/`F029`) in a past run did — don't split on your own initiative, since it's a deviation from the established pattern.
 - **Does this need an ADR?** Read `docs/adr/README.md`'s index and skim two or three recent ADRs (e.g. the latest, plus one for a feature similar in shape to this one). The signal isn't "is this a new feature" — plenty of features (F002–F004, F006, F007...) have none. It's "does this introduce a genuinely new architectural tradeoff or pattern" (a new way of modeling something, a reversal of an earlier decision, a new cross-cutting rule). If yes, the ADR is written *first* and the feature spec implements it (every recent investment feature — F020, F021, F022, F023's ADR-less refactor is the exception, F024, F025, F026, F027 — follows this ordering). If the design is closer to "CRUD on a new taxonomy entity" with no new pattern, skip the ADR.
 - **Does the PRD need updating?** `docs/PRD.md` is the authoritative spec (root `CLAUDE.md`) and has grown a new `§5.x`/new bullets under `§6.x` for nearly every past feature that touched the data model or added a user-facing capability (check git history / the existing `§5`/`§6` numbering for the highest current subsection before picking the next one). Non-goals (`§3`) and Future Directions (`§9`) get a line too when the design explicitly narrows scope or defers something (e.g. "no cash-in-lieu handling for v1" belongs in `§9`, not silently unmentioned). Skip only for a change with zero product-facing surface (pure internal tooling, following F019/F020's own PRD-untouched precedent).
 
-State these three decisions to the user as part of the Phase 1 summary (or a short follow-up) rather than silently deciding — they're product/documentation-scope calls, not implementation details.
+State these three decisions to the user in the Phase 1 summary rather than silently deciding — they're product/documentation-scope calls, not implementation details. A later answer from the user that changes one (a new migration or extension that now warrants an ADR) means re-reading the repo for it and re-stating the call.
 
 ## 3. Write the docs
 
