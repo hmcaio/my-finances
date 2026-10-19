@@ -52,7 +52,7 @@ ADR 0030 and the PRD changes are already in the docs PR that introduced this pla
 ## Phase 5 — Docs
 - [x] `docs/conventions/frontend-components.md` (`MonthNavigator`, `LedgerTable`), `frontend-structure.md` (`inputs/`), `errors.md` (parameter-level `@Size` and its problem type), `data-constraints.md` (`MAX_SEARCH_TEXT_LENGTH`).
 - [x] One-line "list UI superseded by F037" note at the top of `docs/features/F004-transactions/spec.md` and `F005-transfers/spec.md`.
-- [ ] `CHANGELOG.md` `## [Unreleased]`: `**F037 — Ledger**` bullet with an `Upgrade:` sub-line for the `unaccent` extension; add the PR link in a follow-up commit once the PR exists.
+- [x] `CHANGELOG.md` `## [Unreleased]`: `**F037 — Ledger**` bullet with an `Upgrade:` sub-line for the `unaccent` extension; add the PR link in a follow-up commit once the PR exists.
 - [x] `docs/features/README.md` row verified against what was built; root `README.md` "Project status" moves F037 to "Built".
 
 ## Verification
