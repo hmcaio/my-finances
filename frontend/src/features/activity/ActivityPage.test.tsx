@@ -47,7 +47,7 @@ describe('ActivityPage', () => {
   })
 
   it('expands a row to show its field-by-field diff, and collapses it again', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<ActivityPage />)
 
     await screen.findByText('March 16, 2026')
@@ -65,7 +65,7 @@ describe('ActivityPage', () => {
   })
 
   it('filters by action', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<ActivityPage />)
     await screen.findByText('March 16, 2026')
 
@@ -77,7 +77,7 @@ describe('ActivityPage', () => {
   })
 
   it('filters by origin', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<ActivityPage />)
     await screen.findByText('March 16, 2026')
 
@@ -90,13 +90,13 @@ describe('ActivityPage', () => {
   })
 
   it('clears every filter via "Clear filters"', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<ActivityPage />)
     await screen.findByText('March 16, 2026')
 
     await user.click(screen.getByRole('combobox', { name: 'Action filter' }))
     await user.click(await screen.findByRole('option', { name: 'Create' }))
-    expect(screen.queryByText('March 16, 2026')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText('March 16, 2026')).not.toBeInTheDocument())
 
     await user.click(screen.getByRole('button', { name: 'Clear filters' }))
 
@@ -169,7 +169,7 @@ describe('ActivityPage reference values', () => {
         }),
       ),
     )
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<ActivityPage />)
 
     await user.click(await screen.findByRole('button', { name: 'Expand details' }))
@@ -206,7 +206,7 @@ describe('ActivityPage field labels', () => {
         }),
       ),
     )
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<ActivityPage />)
 
     await user.click(await screen.findByRole('button', { name: 'Expand details' }))

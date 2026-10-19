@@ -103,7 +103,7 @@ describe('BackupStatusBanner', () => {
 
   it('dismisses for this render and does not reappear until remounted', async () => {
     mockStatus({ state: 'STALE' })
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
 
     const { container, unmount } = renderWithQueryClient(<BackupStatusBanner />)
 
