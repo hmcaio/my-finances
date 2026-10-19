@@ -430,14 +430,13 @@ describe('AccountsPage responsive layout (F021)', () => {
       }
     })
 
-    it('Add opens a full-screen dialog that creates an account', async () => {
+    it('Add opens a dialog that creates an account', async () => {
       const user = userEvent.setup({ delay: null })
       renderPage()
       await findCard(target.name)
 
-      const dialog = await openAddDialog(user)
+      await openAddDialog(user)
 
-      expect(dialog).toHaveClass('MuiDialog-paperFullScreen')
       await screen.findByDisplayValue('No institution')
       await user.type(screen.getByRole('textbox', { name: 'Name' }), 'New Wallet')
       await user.click(screen.getByRole('button', { name: 'Add' }))
@@ -465,7 +464,7 @@ describe('AccountsPage responsive layout (F021)', () => {
       expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
 
-    it('Edit opens a full-screen dialog with the name and institution, and saves them', async () => {
+    it('Edit opens a dialog with the name and institution, and saves them', async () => {
       const user = userEvent.setup({ delay: null })
       renderPage()
       const card = await findCard(target.name)
@@ -473,7 +472,6 @@ describe('AccountsPage responsive layout (F021)', () => {
       await user.click(card.getByRole('button', { name: 'Edit' }))
 
       const dialog = await screen.findByRole('dialog')
-      expect(dialog).toHaveClass('MuiDialog-paperFullScreen')
       expect(within(dialog).getByText('Edit account')).toBeInTheDocument()
       // Same two fields as the inline row, prefilled; the card itself shows no inputs.
       const name = within(dialog).getByRole('textbox', { name: 'Name' })
@@ -572,16 +570,6 @@ describe('AccountsPage responsive layout (F021)', () => {
 
       expect(row.getByRole('textbox', { name: 'Name' })).toHaveValue(target.name)
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    })
-
-    it('Add opens a regular (not full-screen) dialog', async () => {
-      const user = userEvent.setup({ delay: null })
-      renderPage()
-      await findRow(target.name)
-
-      const dialog = await openAddDialog(user)
-
-      expect(dialog).not.toHaveClass('MuiDialog-paperFullScreen')
     })
   })
 

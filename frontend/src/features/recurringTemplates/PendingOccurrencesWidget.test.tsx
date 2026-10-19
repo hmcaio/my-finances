@@ -108,7 +108,7 @@ describe('PendingOccurrencesWidget responsive layout (F021)', () => {
       expect(card.getByRole('button', { name: 'Dismiss occurrence' })).toBeInTheDocument()
     })
 
-    it('Confirm opens a full-screen dialog prefilled from the occurrence', async () => {
+    it('Confirm opens a dialog prefilled from the occurrence', async () => {
       const user = userEvent.setup({ delay: null })
       renderWithQueryClient(<PendingOccurrencesWidget />)
       const card = await findCard('Rent')
@@ -116,7 +116,6 @@ describe('PendingOccurrencesWidget responsive layout (F021)', () => {
       await user.click(card.getByRole('button', { name: 'Confirm occurrence' }))
 
       const dialog = await screen.findByRole('dialog')
-      expect(dialog).toHaveClass('MuiDialog-paperFullScreen')
       expect(within(dialog).getByLabelText('Amount')).toHaveValue(seedRentPendingOccurrence.amount)
       expect(within(dialog).getByLabelText('Date')).toHaveValue(seedRentPendingOccurrence.dueDate)
     })

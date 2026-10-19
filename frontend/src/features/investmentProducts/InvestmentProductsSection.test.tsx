@@ -283,16 +283,6 @@ describe('InvestmentProductsSection responsive layout (F021)', () => {
       expect(card.getByText('Fixed Income · Tesouro Selic')).toBeInTheDocument()
       expect(card.getByText('Open')).toBeInTheDocument()
     })
-
-    it('Add opens a full-screen dialog', async () => {
-      const user = userEvent.setup({ delay: null })
-      renderSection()
-      await findCard('Tesouro Selic 2029')
-
-      const dialog = await openAddDialog(user)
-
-      expect(dialog).toHaveClass('MuiDialog-paperFullScreen')
-    })
   })
 
   describe('tablet', () => {

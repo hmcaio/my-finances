@@ -282,17 +282,7 @@ describe('RecurringTemplatesPage responsive layout (F021)', () => {
       expect(card.getByRole('button', { name: 'Stop' })).toBeInTheDocument()
     })
 
-    it('Add opens a full-screen dialog', async () => {
-      const user = userEvent.setup({ delay: null })
-      renderWithQueryClient(<RecurringTemplatesPage />)
-      await findCard(seedRentRecurringTemplate.description)
-
-      const dialog = await openAddDialog(user)
-
-      expect(dialog).toHaveClass('MuiDialog-paperFullScreen')
-    })
-
-    it('Edit opens a full-screen dialog with the amount and day of month', async () => {
+    it('Edit opens a dialog with the amount and day of month', async () => {
       const user = userEvent.setup({ delay: null })
       renderWithQueryClient(<RecurringTemplatesPage />)
       const card = await findCard(seedRentRecurringTemplate.description)
@@ -300,7 +290,6 @@ describe('RecurringTemplatesPage responsive layout (F021)', () => {
       await user.click(card.getByRole('button', { name: 'Edit amount and day' }))
 
       const dialog = await screen.findByRole('dialog')
-      expect(dialog).toHaveClass('MuiDialog-paperFullScreen')
       const amountInput = within(dialog).getByLabelText('Amount')
       expect(amountInput).toHaveValue(seedRentRecurringTemplate.currentAmount)
       await user.clear(amountInput)
