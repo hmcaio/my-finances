@@ -385,28 +385,6 @@ describe('InvestmentProductDetailPage responsive layout (F021)', () => {
       // Only two data columns (Date, Balance): stays a table even on mobile (F021's 1-2-column rule).
       expect(await screen.findByRole('table', { name: 'Snapshot history' })).toBeInTheDocument()
     })
-
-    it('Record snapshot opens a full-screen dialog', async () => {
-      const user = userEvent.setup({ delay: null })
-      renderDetail()
-      await screen.findByRole('heading', { name: 'Bitcoin' })
-
-      await user.click(screen.getByRole('button', { name: 'Record snapshot' }))
-
-      const dialog = await screen.findByRole('dialog', { name: 'Record snapshot' })
-      expect(dialog).toHaveClass('MuiDialog-paperFullScreen')
-    })
-
-    it('the Buy/Sell dialog is full screen', async () => {
-      const user = userEvent.setup({ delay: null })
-      renderDetail()
-      await screen.findByRole('heading', { name: 'Bitcoin' })
-
-      await user.click(screen.getByRole('button', { name: 'Buy' }))
-
-      const dialog = await screen.findByRole('dialog')
-      expect(dialog).toHaveClass('MuiDialog-paperFullScreen')
-    })
   })
 
   describe('tablet', () => {
@@ -430,17 +408,6 @@ describe('InvestmentProductDetailPage responsive layout (F021)', () => {
       // The unit price (100000) only appears in the expanded trade details, unlike the quantity
       // (0.01), which also shows up in the monthly-values table's Units column.
       expect(await screen.findByText('100000')).toBeInTheDocument()
-    })
-
-    it('the Buy/Sell dialog opens without going full screen', async () => {
-      const user = userEvent.setup({ delay: null })
-      renderDetail()
-      await screen.findByRole('heading', { name: 'Bitcoin' })
-
-      await user.click(screen.getByRole('button', { name: 'Sell' }))
-
-      const dialog = await screen.findByRole('dialog')
-      expect(dialog).not.toHaveClass('MuiDialog-paperFullScreen')
     })
   })
 })

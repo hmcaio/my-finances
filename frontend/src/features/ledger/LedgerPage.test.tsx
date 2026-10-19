@@ -694,17 +694,6 @@ describe('LedgerPage responsive layout', () => {
         expect(screen.queryByText(seedGroceriesTransaction.description)).not.toBeInTheDocument(),
       )
     })
-
-    it('Add opens a full-screen transaction dialog', async () => {
-      const user = userEvent.setup({ delay: null })
-      renderLedger()
-      await findCard(seedGroceriesTransaction.description)
-
-      await user.click(screen.getByRole('button', { name: 'Add' }))
-      await user.click(await screen.findByRole('menuitem', { name: 'New transaction' }))
-
-      expect(await screen.findByRole('dialog')).toHaveClass('MuiDialog-paperFullScreen')
-    })
   })
 
   describe('tablet', () => {

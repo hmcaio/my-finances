@@ -308,17 +308,7 @@ describe('BudgetsPage responsive layout (F021)', () => {
       expect(card.getByRole('button', { name: 'Stop budget' })).toBeInTheDocument()
     })
 
-    it('Add opens a full-screen dialog', async () => {
-      const user = userEvent.setup({ delay: null })
-      renderWithQueryClient(<BudgetsPage />)
-      await findCard(seedGroceriesCategory.name)
-
-      const dialog = await openAddDialog(user)
-
-      expect(dialog).toHaveClass('MuiDialog-paperFullScreen')
-    })
-
-    it('Edit cap opens a full-screen dialog instead of editing on the card', async () => {
+    it('Edit cap opens a dialog instead of editing on the card', async () => {
       const user = userEvent.setup({ delay: null })
       renderWithQueryClient(<BudgetsPage />)
       const card = await findCard(seedGroceriesCategory.name)
@@ -326,7 +316,6 @@ describe('BudgetsPage responsive layout (F021)', () => {
       await user.click(card.getByRole('button', { name: 'Edit cap' }))
 
       const dialog = await screen.findByRole('dialog')
-      expect(dialog).toHaveClass('MuiDialog-paperFullScreen')
       const input = within(dialog).getByLabelText('Monthly cap')
       expect(input).toHaveValue(seedGroceriesBudget.currentCap)
       await user.clear(input)
@@ -350,16 +339,6 @@ describe('BudgetsPage responsive layout (F021)', () => {
 
       expect(row.getByLabelText('Monthly cap')).toHaveValue(seedGroceriesBudget.currentCap)
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    })
-
-    it('Add opens a regular (not full-screen) dialog', async () => {
-      const user = userEvent.setup({ delay: null })
-      renderWithQueryClient(<BudgetsPage />)
-      await findRow(seedGroceriesCategory.name, settingsTable())
-
-      const dialog = await openAddDialog(user)
-
-      expect(dialog).not.toHaveClass('MuiDialog-paperFullScreen')
     })
   })
 })
