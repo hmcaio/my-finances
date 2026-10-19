@@ -8,12 +8,4 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * package.
  */
 interface InvestmentSubcategoryJpaRepository
-    extends JpaRepository<InvestmentSubcategoryJpaEntity, UUID> {
-
-  boolean existsByInvestmentCategoryId(UUID investmentCategoryId);
-
-  boolean existsByInvestmentCategoryIdAndName(UUID investmentCategoryId, String name);
-
-  boolean existsByInvestmentCategoryIdAndNameAndIdNot(
-      UUID investmentCategoryId, String name, UUID id);
-}
+    extends JpaRepository<InvestmentSubcategoryJpaEntity, UUID> {}

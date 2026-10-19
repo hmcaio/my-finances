@@ -17,16 +17,5 @@ public interface InvestmentCategoryRepository {
 
   List<InvestmentCategory> findAll();
 
-  void deleteById(UUID id);
-
   boolean existsById(UUID id);
-
-  /** Whether a category already has this exact name - backs the create-time duplicate guard. */
-  boolean existsByName(String name);
-
-  /**
-   * Whether a category other than {@code excludedId} already has this exact name - backs the
-   * rename-time duplicate guard without rejecting a no-op rename to its own current name.
-   */
-  boolean existsByNameAndIdNot(String name, UUID excludedId);
 }

@@ -6,9 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 /**
  * Spring Data repository for {@link InvestmentCategoryJpaEntity}. Not exposed outside this package.
  */
-interface InvestmentCategoryJpaRepository extends JpaRepository<InvestmentCategoryJpaEntity, UUID> {
-
-  boolean existsByName(String name);
-
-  boolean existsByNameAndIdNot(String name, UUID id);
-}
+interface InvestmentCategoryJpaRepository
+    extends JpaRepository<InvestmentCategoryJpaEntity, UUID> {}

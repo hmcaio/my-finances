@@ -53,28 +53,6 @@ public class InvestmentSubcategoryRepositoryAdapter implements InvestmentSubcate
         .toList();
   }
 
-  @Override
-  public void deleteById(UUID id) {
-    jpaRepository.deleteById(id);
-  }
-
-  @Override
-  public boolean existsByInvestmentCategoryId(UUID investmentCategoryId) {
-    return jpaRepository.existsByInvestmentCategoryId(investmentCategoryId);
-  }
-
-  @Override
-  public boolean existsByInvestmentCategoryIdAndName(UUID investmentCategoryId, String name) {
-    return jpaRepository.existsByInvestmentCategoryIdAndName(investmentCategoryId, name);
-  }
-
-  @Override
-  public boolean existsByInvestmentCategoryIdAndNameAndIdNot(
-      UUID investmentCategoryId, String name, UUID excludedId) {
-    return jpaRepository.existsByInvestmentCategoryIdAndNameAndIdNot(
-        investmentCategoryId, name, excludedId);
-  }
-
   private static InvestmentSubcategory toDomain(InvestmentSubcategoryJpaEntity entity) {
     return InvestmentSubcategory.reconstitute(
         entity.getId(), entity.getInvestmentCategoryId(), entity.getName());
