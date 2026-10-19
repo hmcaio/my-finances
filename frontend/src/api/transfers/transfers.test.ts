@@ -3,37 +3,14 @@ import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import {
   seedBitcoinBuyTransfer,
-  seedBitcoinSellTransfer,
   seedCreditCardPaymentTransfer,
-  seedTransfers,
   transferClosedAccountConflictHandler,
 } from '../../mocks/handlers/transfers'
 import { ApiError } from '../core/apiError'
 import { resolveErrorMessage } from '../../test/errorMessages'
-import {
-  createTransfer,
-  deleteTransfer,
-  editTransfer,
-  getTransfer,
-  getTransfers,
-} from './transfers'
+import { createTransfer, deleteTransfer, editTransfer, getTransfer } from './transfers'
 
 describe('transfers API client', () => {
-  it('getTransfers returns a page envelope with content and page metadata', async () => {
-    const result = await getTransfers()
-
-    // Most recent first, matching the real backend's default sort (date desc).
-    expect(result.content).toEqual([...seedTransfers].sort((a, b) => (a.date < b.date ? 1 : -1)))
-    expect(result.page).toMatchObject({ totalElements: seedTransfers.length })
-  })
-
-  it('getTransfers applies the accountId filter, matching either side', async () => {
-    const result = await getTransfers({ accountId: 'acct-1' })
-
-    // Both seed transfers touch acct-1 (one as source, one as destination), most recent first.
-    expect(result.content).toEqual([...seedTransfers].sort((a, b) => (a.date < b.date ? 1 : -1)))
-  })
-
   it('getTransfer returns a single transfer by id', async () => {
     const transfer = await getTransfer(seedCreditCardPaymentTransfer.id)
 
@@ -95,12 +72,11 @@ describe('transfers API client', () => {
     })
   })
 
-  it('getTransfers filters by investmentProductId and returns the owning confirmations', async () => {
-    const result = await getTransfers({ investmentProductId: 'iprod-btc' })
+  it('getTransfer returns a trade confirmation with its lines and taxes', async () => {
+    const transfer = await getTransfer(seedBitcoinBuyTransfer.id)
 
-    // Most recent first: the sell, then the buy, each with its tradeConfirmation lines/taxes.
-    expect(result.content).toEqual([seedBitcoinSellTransfer, seedBitcoinBuyTransfer])
-    expect(result.content[1]).toMatchObject({
+    expect(transfer).toEqual(seedBitcoinBuyTransfer)
+    expect(transfer).toMatchObject({
       taxes: 5,
       tradeConfirmation: { lines: [{ productId: 'iprod-btc', quantity: 0.01, unitPrice: 100000 }] },
     })

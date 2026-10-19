@@ -14,18 +14,16 @@ import { translateSeedName } from '../../i18n/seedNames'
 import { nameLookup } from '../../utils/nameLookup'
 import { accountTypeLabel } from './accountTypes'
 import { InvestmentProductsSection } from '../investmentProducts/InvestmentProductsSection'
-import { AccountTransactionList } from '../transactions/AccountTransactionList'
-import { AccountTransferList } from '../transfers/AccountTransferList'
+import { AccountLedger } from '../ledger/AccountLedger'
 
 /** Section padding: tighter on phones so the embedded lists keep their width (F021). */
 const SECTION_PADDING = { xs: 2, sm: 3 }
 
 /**
- * Account detail view (F003 spec): running balance plus account fields, plus F004's transaction
- * history and F005's transfer history, both embedded and pre-filtered to this account (F004 spec:
- * "Account detail view (F003) embeds this feature's list, pre-filtered to that account"; F005
- * spec: "Account detail view (F003) embeds transfer history alongside transaction history, both
- * contributing to the same running-balance timeline").
+ * Account detail view (F003 spec): running balance plus account fields, plus one embedded,
+ * read-only Ledger section (F037, replacing F004's transaction list and F005's transfer list)
+ * showing this account's transactions and transfers month by month. An `INVESTMENT` account keeps
+ * its products section above it (it takes no transactions, so its ledger lists only transfers).
  */
 export function AccountDetailPage() {
   const { t } = useTranslation(['accounts', 'common'])
@@ -99,29 +97,22 @@ export function AccountDetailPage() {
             </Typography>
           </Paper>
 
-          {account.type === 'INVESTMENT' ? (
-            // An investment account takes no transactions (money moves through transfers), so its
-            // products are listed instead (F008 spec).
+          {account.type === 'INVESTMENT' && (
+            // An investment account's value comes from its products (F008 spec), listed above its
+            // transfers (buys and sells).
             <Paper variant="outlined" sx={{ p: SECTION_PADDING, mb: 3 }}>
               <Typography variant="h6" gutterBottom>
                 {t('accounts:detail.products')}
               </Typography>
               <InvestmentProductsSection accountId={account.id} accountClosed={account.closed} />
             </Paper>
-          ) : (
-            <Paper variant="outlined" sx={{ p: SECTION_PADDING, mb: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                {t('accounts:detail.transactions')}
-              </Typography>
-              <AccountTransactionList accountId={account.id} />
-            </Paper>
           )}
 
           <Paper variant="outlined" sx={{ p: SECTION_PADDING }}>
             <Typography variant="h6" gutterBottom>
-              {t('accounts:detail.transfers')}
+              {t('accounts:detail.ledger')}
             </Typography>
-            <AccountTransferList accountId={account.id} />
+            <AccountLedger accountId={account.id} />
           </Paper>
         </Box>
       )}
@@ -129,7 +120,7 @@ export function AccountDetailPage() {
   )
 }
 
-/** Placeholder laid out like the loaded page: header, subtitle, balance card, two list sections. */
+/** Placeholder laid out like the loaded page: header, subtitle, balance card, one list section. */
 function AccountDetailSkeleton() {
   const { t } = useTranslation('accounts')
   return (
@@ -146,16 +137,10 @@ function AccountDetailSkeleton() {
         <Skeleton variant="text" width="80%" sx={{ typography: 'body2' }} />
       </Paper>
 
-      {[0, 1].map((section) => (
-        <Paper
-          key={section}
-          variant="outlined"
-          sx={{ p: SECTION_PADDING, mb: section === 0 ? 3 : 0 }}
-        >
-          <Skeleton variant="text" width={120} sx={{ typography: 'h6', mb: 1 }} />
-          <Skeleton variant="rounded" height={160} />
-        </Paper>
-      ))}
+      <Paper variant="outlined" sx={{ p: SECTION_PADDING }}>
+        <Skeleton variant="text" width={120} sx={{ typography: 'h6', mb: 1 }} />
+        <Skeleton variant="rounded" height={160} />
+      </Paper>
     </Box>
   )
 }

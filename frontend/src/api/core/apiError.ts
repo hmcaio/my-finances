@@ -70,6 +70,10 @@ export const PROBLEM_TYPE_MESSAGES: Record<string, string> = {
   'urn:my-finances:error:access-denied': 'errors:problemType.accessDenied',
   'urn:my-finances:error:too-many-login-attempts': 'errors:problemType.tooManyLoginAttempts',
 
+  // A constraint directly on a controller parameter (Spring's built-in method validation, F037's
+  // ledger search text): no field-level `errors` member, so this is the whole message.
+  'urn:my-finances:error:handler-method-validation': 'errors:problemType.handlerMethodValidation',
+
   // Categories (F002, F024, F026)
   'urn:my-finances:error:category-name-already-exists':
     'errors:problemType.categoryNameAlreadyExists',

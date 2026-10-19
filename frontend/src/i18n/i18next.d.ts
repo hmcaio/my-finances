@@ -11,6 +11,7 @@ import type investmentsEn from './locales/en/investments.json'
 import type budgetsEn from './locales/en/budgets.json'
 import type transactionsEn from './locales/en/transactions.json'
 import type transfersEn from './locales/en/transfers.json'
+import type ledgerEn from './locales/en/ledger.json'
 import type recurringTemplatesEn from './locales/en/recurringTemplates.json'
 import type fuelEn from './locales/en/fuel.json'
 import type fiiEn from './locales/en/fii.json'
@@ -45,6 +46,7 @@ declare module 'i18next' {
       budgets: typeof budgetsEn
       transactions: typeof transactionsEn
       transfers: typeof transfersEn
+      ledger: typeof ledgerEn
       recurringTemplates: typeof recurringTemplatesEn
       fuel: typeof fuelEn
       fii: typeof fiiEn

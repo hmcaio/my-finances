@@ -74,10 +74,12 @@ class ArchitectureTest {
 
   /**
    * "Domain packages never import another aggregate's package" (ADR 0004/0014), with one documented
-   * exception: {@link Transaction} depends on {@link CategoryType}. See {@code Transaction}'s own
-   * javadoc for why - {@code type} is captured at creation, denormalized from the category's own
-   * (already-immutable) type, so a stable, redundant data-integrity check is available even though
-   * {@code Category.type} can never itself change.
+   * exception: the {@code domain.transaction} package (the {@link Transaction} aggregate, plus
+   * F037's {@code TransactionFilter} and {@code TransactionRepository.sumAmountByType}) depends on
+   * {@link CategoryType}. See {@code Transaction}'s own javadoc for why - {@code type} is captured
+   * at creation, denormalized from the category's own (already-immutable) type, so a stable,
+   * redundant data-integrity check is available even though {@code Category.type} can never itself
+   * change.
    *
    * <p>Classes in {@code domain.shared} are not "another aggregate" - every aggregate is expected
    * to depend on the shared kernel ({@code TextFieldConstraints}, {@code AuditableEntity}, ...) -
@@ -306,8 +308,7 @@ class ArchitectureTest {
           if (targetAggregate == null || targetAggregate.equals(originAggregate)) {
             continue;
           }
-          if (origin.isEquivalentTo(Transaction.class)
-              && target.isEquivalentTo(CategoryType.class)) {
+          if (originAggregate.equals("transaction") && target.isEquivalentTo(CategoryType.class)) {
             continue;
           }
           events.add(

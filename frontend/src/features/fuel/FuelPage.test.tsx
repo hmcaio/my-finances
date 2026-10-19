@@ -149,17 +149,17 @@ describe('FuelPage', () => {
     expect(await within(table).findByText('Gasolina')).toBeInTheDocument()
   })
 
-  it('navigates to Transactions with the fuel category pre-selected on Add', async () => {
+  it('navigates to the Ledger with the fuel category pre-selected on Add', async () => {
     useCategoriesWithFuel()
     const user = userEvent.setup({ delay: null })
     // A tiny two-route harness (not `renderWithRouter`, which mounts `FuelPage` with no `Routes`
-    // to react to a navigation) so the `navigate('/transactions', ...)` call actually swaps the
+    // to react to a navigation) so the `navigate('/ledger', ...)` call actually swaps the
     // page out - proving the hand-off works, not just that the click didn't throw.
     renderWithQueryClient(
       <MemoryRouter initialEntries={['/fuel']}>
         <Routes>
           <Route path="/fuel" element={<FuelPage />} />
-          <Route path="/transactions" element={<div>Landed on Transactions</div>} />
+          <Route path="/ledger" element={<div>Landed on Ledger</div>} />
         </Routes>
       </MemoryRouter>,
     )
@@ -169,7 +169,7 @@ describe('FuelPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Add fuel transaction' }))
 
-    expect(await screen.findByText('Landed on Transactions')).toBeInTheDocument()
+    expect(await screen.findByText('Landed on Ledger')).toBeInTheDocument()
   })
 
   it('shows a prompt instead of the charts/list when there are no vehicles yet', async () => {

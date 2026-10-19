@@ -3,7 +3,8 @@ import type { Transfer } from '../../api/transfers/transfers'
 import { createStore } from '../store'
 
 /**
- * Seed data returned by the default `GET /api/transfers` handler below. Spans both seed accounts
+ * Seed data for the transfers store (read by the single-transfer handler below and by the Ledger's,
+ * `ledger.ts`). Spans both seed accounts
  * (`acct-1` open, `acct-2` closed - see `accounts.ts`) so filter tests have something to
  * discriminate on. Exported so tests can assert against it directly (F015 spec's F002 backfill
  * pattern).
@@ -35,9 +36,9 @@ export const seedTransfers: Transfer[] = [
 
 /**
  * A single-line BUY confirmation of the seeded Bitcoin product (F027, ADR 0024): checking into
- * the seeded INVESTMENT account with quantity, unit price and taxes. Kept OUT of `seedTransfers` -
- * that list feeds the general list tests, where a confirmation would be a surprise - and served
- * only when the list is filtered by its product (`investmentProductId=iprod-btc`).
+ * the seeded INVESTMENT account with quantity, unit price and taxes. Kept OUT of `seedTransfers`
+ * (the January fixtures); it is dated August, so it only shows in the Ledger for that month or all
+ * time.
  */
 export const seedBitcoinBuyTransfer: Transfer = {
   id: 'trf-btc-buy',
@@ -173,54 +174,14 @@ function toTransfer(id: string, body: TransferRequestBody): Transfer {
 /** Exported so `tradeConfirmationLines.ts`'s handler can derive its rows from the same live
  * transfers (seed + whatever a test creates/edits), rather than duplicating state. */
 export const transfers = createStore([...seedTransfers, ...seedProductTrades])
-const seedProductTradeIds = new Set(seedProductTrades.map((t) => t.id))
 
 /**
- * Default success-path handlers for every transfers endpoint (F005's REST API, F027's trade
- * confirmations). List applies the same filter dimensions the real backend does (including
- * `accountId` matching either side, PRD S6.9, and `investmentProductId` matching any line's
- * product), against an in-memory store (restored after each test by `resetStores()`, see
- * `categories.ts`), and paginates with the same page/size defaults (page 0, size 20) as F004's
- * transactions handlers.
+ * Default success-path handlers for the transfers endpoints the frontend calls (F005's REST API,
+ * F027's trade confirmations), against an in-memory store restored after each test by
+ * `resetStores()` (see `categories.ts`). The paged `GET /api/transfers` list has no frontend
+ * caller since F037's Ledger (`ledger.ts` reads this store instead), so it has no handler here.
  */
 export const transfersHandlers = [
-  http.get(TRANSFERS_URL, ({ request }) => {
-    const url = new URL(request.url)
-    const dateFrom = url.searchParams.get('dateFrom')
-    const dateTo = url.searchParams.get('dateTo')
-    const accountId = url.searchParams.get('accountId')
-    const investmentProductId = url.searchParams.get('investmentProductId')
-    const page = Number(url.searchParams.get('page') ?? '0')
-    const size = Number(url.searchParams.get('size') ?? '20')
-
-    // Only a product-filtered list includes the (otherwise hidden) seeded product trades.
-    const filtered = transfers
-      .list()
-      .filter((t) => (investmentProductId ? true : !seedProductTradeIds.has(t.id)))
-      .filter(
-        (t) =>
-          !investmentProductId ||
-          (t.tradeConfirmation?.lines ?? []).some((l) => l.productId === investmentProductId),
-      )
-      .filter((t) => !dateFrom || t.date >= dateFrom)
-      .filter((t) => !dateTo || t.date <= dateTo)
-      .filter((t) => !accountId || t.fromAccountId === accountId || t.toAccountId === accountId)
-      .sort((a, b) => (a.date < b.date ? 1 : -1))
-
-    const start = page * size
-    const content = filtered.slice(start, start + size)
-
-    return HttpResponse.json({
-      content,
-      page: {
-        size,
-        number: page,
-        totalElements: filtered.length,
-        totalPages: Math.max(1, Math.ceil(filtered.length / size)),
-      },
-    })
-  }),
-
   http.get(`${TRANSFERS_URL}/:id`, ({ params }) => {
     const transfer = transfers.find(params.id as string)
     if (!transfer) return new HttpResponse(null, { status: 404 })

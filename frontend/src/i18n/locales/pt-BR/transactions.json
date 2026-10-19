@@ -1,27 +1,4 @@
 {
-  "title": "Transações",
-  "addButton": "Adicionar transação",
-  "description": "Todo lançamento de receita e despesa, filtrável por período, categoria, conta e forma de pagamento.",
-  "fromLabel": "De",
-  "toLabel": "Até",
-  "categoryFilterAria": "Filtro de categoria",
-  "allCategories": "Todas as categorias",
-  "accountFilterAria": "Filtro de conta",
-  "allAccounts": "Todas as contas",
-  "paymentMethodFilterAria": "Filtro de forma de pagamento",
-  "allPaymentMethods": "Todas as formas de pagamento",
-  "aria": "Transações",
-  "emptyList": "Nenhuma transação encontrada.",
-  "columns": {
-    "date": "Data",
-    "category": "Categoria",
-    "account": "Conta",
-    "paymentMethod": "Forma de Pagamento",
-    "amount": "Valor",
-    "description": "Descrição"
-  },
-  "editAction": "Editar",
-  "deleteAction": "Excluir",
   "editDialogTitle": "Editar transação",
   "addDialogTitle": "Adicionar transação",
   "saveChanges": "Salvar alterações",
@@ -29,10 +6,6 @@
     "title": "Excluir esta transação?",
     "body": "Isso remove a transação permanentemente e não pode ser desfeito.",
     "confirmLabel": "Excluir transação"
-  },
-  "accountList": {
-    "aria": "Transações da conta",
-    "emptyList": "Nenhuma transação ainda."
   },
   "form": {
     "dateLabel": "Data",

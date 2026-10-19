@@ -1,5 +1,7 @@
 # F004 — Transactions
 
+> **List UI superseded by [F037](../F037-ledger/spec.md):** the transactions list now lives in the unified Ledger (`/ledger`), which also interleaves transfers; the backend described here (entity, filters, `GET /api/transactions`) is unchanged.
+
 ## Summary
 `Transaction` CRUD, filtering, and its effect on an account's running balance (PRD §5.3, §6.1). The core ledger entry of the system.
 

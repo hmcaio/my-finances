@@ -37,40 +37,6 @@ export interface Transfer {
 export type CreateTransferRequest = components['schemas']['CreateTransferRequest']
 export type UpdateTransferRequest = components['schemas']['UpdateTransferRequest']
 
-/** Optional filter dimensions for {@link getTransfers} (F005 spec's list query params).
- * `accountId` matches either side of the transfer (PRD S6.9). */
-export interface TransferFilter {
-  dateFrom?: string
-  dateTo?: string
-  accountId?: string
-  /** One product's buy/sell history across every confirmation that trades it (F009, F027). */
-  investmentProductId?: string
-}
-
-/** One page of transfers - mirrors the backend's `PagedModel` envelope (F004's convention, reused
- * here). */
-export interface TransferPage {
-  content: Transfer[]
-  page: {
-    size: number
-    number: number
-    totalElements: number
-    totalPages: number
-  }
-}
-
-/**
- * Fetches a filtered, paginated page of transfers. `page` is 0-indexed; both `page`/`size` default
- * to the backend's own defaults (0, 20) when omitted, most recent first.
- */
-export async function getTransfers(
-  filter: TransferFilter = {},
-  page?: number,
-  size?: number,
-): Promise<TransferPage> {
-  return unwrap(apiClient.get<TransferPage>('/transfers', { params: { ...filter, page, size } }))
-}
-
 export async function getTransfer(id: string): Promise<Transfer> {
   return unwrap(apiClient.get<Transfer>(`/transfers/${id}`))
 }

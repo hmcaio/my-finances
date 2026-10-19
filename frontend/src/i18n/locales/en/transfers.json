@@ -1,23 +1,6 @@
 {
-  "title": "Transfers",
-  "addButton": "Add transfer",
-  "description": "Money moved between your own accounts - most commonly paying a credit card statement from checking, or buying into and selling out of an investment product. Transfers are never categorized and don't count toward budgets.",
-  "fromLabel": "From",
-  "toLabel": "To",
-  "accountFilterAria": "Account filter",
-  "allAccounts": "All accounts",
-  "aria": "Transfers",
-  "emptyList": "No transfers found.",
-  "columns": {
-    "date": "Date",
-    "from": "From",
-    "to": "To",
-    "amount": "Amount",
-    "description": "Description"
-  },
   "editDialogTitle": "Edit transfer",
   "addDialogTitle": "Add transfer",
-  "focusNotFound": "The linked transfer could not be found - it may have been deleted.",
   "tradeLabelBuy": "Buy {{product}}",
   "tradeLabelSell": "Sell {{product}}",
   "moreChips": "+{{count}} more",
@@ -25,10 +8,6 @@
     "title": "Delete this transfer?",
     "body": "This permanently removes the transfer and cannot be undone.",
     "confirmLabel": "Delete transfer"
-  },
-  "accountList": {
-    "aria": "Account transfers",
-    "emptyList": "No transfers yet."
   },
   "form": {
     "dateLabel": "Date",

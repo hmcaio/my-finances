@@ -52,7 +52,6 @@
     "noOpeningBalance": "Sem saldo de abertura: seu valor vem dos registros de seus produtos",
     "closedSuffix": " · Encerrada em {{date}}",
     "products": "Produtos",
-    "transactions": "Transações",
-    "transfers": "Transferências"
+    "ledger": "Transações e transferências"
   }
 }

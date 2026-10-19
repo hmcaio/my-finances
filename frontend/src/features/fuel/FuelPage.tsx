@@ -63,7 +63,7 @@ export function FuelPage() {
   )
 
   function addFuelTransaction() {
-    navigate('/transactions', { state: { presetCategoryId: fuelCategory?.id } })
+    navigate('/ledger', { state: { presetCategoryId: fuelCategory?.id } })
   }
 
   const colors = fuelTypeColors(theme)

@@ -5,10 +5,9 @@
   },
   "nav": {
     "dashboard": "Dashboard",
-    "transactions": "Transactions",
+    "ledger": "Ledger",
     "fuel": "Fuel",
     "accounts": "Accounts",
-    "transfers": "Transfers",
     "budgets": "Budgets",
     "recurring": "Recurring",
     "investments": "Investments",
@@ -41,6 +40,11 @@
     "filtersActive": "Filters, {{count}} active",
     "clearFilters": "Clear filters",
     "done": "Done"
+  },
+  "monthNavigator": {
+    "label": "Month",
+    "previous": "Previous month",
+    "next": "Next month"
   },
   "table": {
     "noItemsFound": "No items found.",

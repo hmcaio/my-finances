@@ -17,3 +17,24 @@ export function currentMonth(): string {
   const now = new Date()
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}`
 }
+
+/**
+ * The month `delta` months after `month` (`YYYY-MM`, negative for before), rolling the year over
+ * in either direction. Pure integer arithmetic: no `Date`, so no time zone can shift the result.
+ */
+export function shiftMonth(month: string, delta: number): string {
+  const [year, monthNumber] = month.split('-').map(Number)
+  const index = year * 12 + (monthNumber - 1) + delta
+  return `${Math.floor(index / 12)}-${pad((index % 12) + 1)}`
+}
+
+/**
+ * The first and last calendar date of `month` (`YYYY-MM`) as `YYYY-MM-DD`, in local-date terms (no
+ * UTC conversion): `new Date(year, monthNumber, 0)` is day 0 of the next month, i.e. the last day
+ * of this one, and its day-of-month does not depend on the time zone.
+ */
+export function monthRange(month: string): { from: string; to: string } {
+  const [year, monthNumber] = month.split('-').map(Number)
+  const lastDay = new Date(year, monthNumber, 0).getDate()
+  return { from: `${month}-01`, to: `${month}-${pad(lastDay)}` }
+}

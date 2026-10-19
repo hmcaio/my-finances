@@ -5,10 +5,9 @@
   },
   "nav": {
     "dashboard": "Painel",
-    "transactions": "Transações",
+    "ledger": "Lançamentos",
     "fuel": "Combustível",
     "accounts": "Contas",
-    "transfers": "Transferências",
     "budgets": "Orçamentos",
     "recurring": "Recorrentes",
     "investments": "Investimentos",
@@ -41,6 +40,11 @@
     "filtersActive": "Filtros, {{count}} ativos",
     "clearFilters": "Limpar filtros",
     "done": "Concluído"
+  },
+  "monthNavigator": {
+    "label": "Mês",
+    "previous": "Mês anterior",
+    "next": "Próximo mês"
   },
   "table": {
     "noItemsFound": "Nenhum item encontrado.",

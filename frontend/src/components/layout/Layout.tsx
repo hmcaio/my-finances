@@ -37,10 +37,9 @@ interface NavItem {
 
 const MAIN_NAV_ITEMS: NavItem[] = [
   { labelKey: 'nav.dashboard', path: '/' },
-  { labelKey: 'nav.transactions', path: '/transactions' },
+  { labelKey: 'nav.ledger', path: '/ledger' },
   { labelKey: 'nav.fuel', path: '/fuel' },
   { labelKey: 'nav.accounts', path: '/accounts' },
-  { labelKey: 'nav.transfers', path: '/transfers' },
   { labelKey: 'nav.budgets', path: '/budgets' },
   { labelKey: 'nav.recurring', path: '/recurring' },
   { labelKey: 'nav.investments', path: '/investments' },

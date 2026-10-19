@@ -18,5 +18,11 @@ public final class TextFieldConstraints {
   public static final int MAX_DESCRIPTION_LENGTH = 150;
   public static final int MAX_ADDITIONAL_NOTES_LENGTH = 500;
 
+  /**
+   * Bounds the Ledger search query parameter (F037) - not a stored field, so no domain check or
+   * column counterpart exists (docs/conventions/data-constraints.md).
+   */
+  public static final int MAX_SEARCH_TEXT_LENGTH = 100;
+
   private TextFieldConstraints() {}
 }

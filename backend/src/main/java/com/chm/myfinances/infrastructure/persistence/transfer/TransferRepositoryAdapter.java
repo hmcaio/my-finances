@@ -6,6 +6,7 @@ import com.chm.myfinances.domain.transfer.TradeConfirmationLine;
 import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.domain.transfer.TransferFilter;
 import com.chm.myfinances.domain.transfer.TransferRepository;
+import com.chm.myfinances.infrastructure.persistence.shared.TextSearchPredicates;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
@@ -158,6 +159,14 @@ public class TransferRepositoryAdapter implements TransferRepository {
             criteriaBuilder.or(
                 criteriaBuilder.equal(root.get("fromAccountId"), filter.accountId()),
                 criteriaBuilder.equal(root.get("toAccountId"), filter.accountId())));
+      }
+      if (filter.hasSearchText()) {
+        String pattern = TextSearchPredicates.likePattern(filter.searchText().trim());
+        predicates.add(
+            criteriaBuilder.or(
+                TextSearchPredicates.matches(criteriaBuilder, root.get("description"), pattern),
+                TextSearchPredicates.matches(
+                    criteriaBuilder, root.get("additionalNotes"), pattern)));
       }
       if (filter.investmentProductId() != null) {
         Subquery<UUID> subquery = query.subquery(UUID.class);

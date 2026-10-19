@@ -14,7 +14,8 @@ import {
   useUpdateInvestmentSnapshot,
 } from './investmentSnapshotsQueries'
 import { useInvestmentValueSeries } from './investmentValueSeriesQueries'
-import { useCreateTransfer, useTransfers } from '../transfers/transfersQueries'
+import { useLedger } from '../ledger/ledgerQueries'
+import { useCreateTransfer } from '../transfers/transfersQueries'
 
 describe('investment reads', () => {
   it('loads snapshots, allocation and value series', async () => {
@@ -84,25 +85,13 @@ describe('snapshot edit and delete hooks', () => {
 })
 
 describe('transfers hooks', () => {
-  it('keeps the previous page while the next one loads', async () => {
-    let page = 0
-    const { result, rerender } = renderHookWithQueryClient(() => useTransfers({}, page, 1))
-    await waitFor(() => expect(result.current.data?.page.number).toBe(0))
-
-    page = 1
-    rerender()
-
-    expect(result.current.data?.page.number).toBe(0)
-    expect(result.current.isPlaceholderData).toBe(true)
-    await waitFor(() => expect(result.current.data?.page.number).toBe(1))
-  })
-
-  it('shows a created transfer in the product trade list after the mutation', async () => {
+  it('shows a created transfer in the ledger after the mutation', async () => {
+    const august = { dateFrom: '2026-08-01', dateTo: '2026-08-31', type: 'TRANSFER' as const }
     const { result } = renderHookWithQueryClient(() => ({
-      trades: useTransfers({ investmentProductId: 'iprod-btc' }),
+      trades: useLedger(august),
       create: useCreateTransfer(),
     }))
-    await waitFor(() => expect(result.current.trades.data?.content).toHaveLength(2))
+    await waitFor(() => expect(result.current.trades.data?.entries).toHaveLength(2))
 
     await result.current.create.mutateAsync({
       date: seedBitcoinBuyTransfer.date,
@@ -115,6 +104,6 @@ describe('transfers hooks', () => {
       },
     })
 
-    await waitFor(() => expect(result.current.trades.data?.content).toHaveLength(3))
+    await waitFor(() => expect(result.current.trades.data?.entries).toHaveLength(3))
   })
 })

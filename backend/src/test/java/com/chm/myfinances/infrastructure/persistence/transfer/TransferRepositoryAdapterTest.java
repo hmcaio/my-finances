@@ -20,6 +20,7 @@ import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 /**
  * Persistence-layer integration test for {@link TransferRepositoryAdapter}: hits a real, ephemeral
@@ -338,5 +340,69 @@ class TransferRepositoryAdapterTest {
     transferRepository.deleteById(buy.getId());
 
     assertThat(transferRepository.findById(buy.getId())).isEmpty();
+  }
+
+  /** Same open question as for transactions (F037): {@code id DESC} equals the string order. */
+  @Test
+  void idDescendingOrdersUuidsLikeTheirLowerCaseStrings() {
+    LocalDate day = LocalDate.of(2095, 6, 1);
+    for (int i = 0; i < 40; i++) {
+      transferRepository.save(newTransfer(day, checkingId, savingsId));
+    }
+
+    List<String> ids =
+        transferRepository
+            .findAll(
+                new TransferFilter(day, day, checkingId, null),
+                PageRequest.of(0, 100, Sort.by(Sort.Order.desc("date"), Sort.Order.desc("id"))))
+            .map(t -> t.getId().toString())
+            .getContent();
+
+    assertThat(ids).hasSize(40).isSortedAccordingTo(Comparator.reverseOrder());
+  }
+
+  private Transfer saveDescribed(LocalDate date, String description, String notes) {
+    return transferRepository.save(
+        Transfer.create(
+            UUID.randomUUID(), date, checkingId, savingsId, BigDecimal.TEN, description, notes));
+  }
+
+  private List<UUID> searchIds(String text, LocalDate from, LocalDate to) {
+    return transferRepository
+        .findAll(new TransferFilter(from, to, checkingId, null, text), PageRequest.of(0, 50))
+        .map(Transfer::getId)
+        .getContent();
+  }
+
+  @Test
+  void searchMatchesDescriptionAndNotesIgnoringCaseAndAccents() {
+    LocalDate day = LocalDate.of(2096, 1, 5);
+    Transfer card = saveDescribed(day, "Fatura Cartão", null);
+    Transfer viaNotes = saveDescribed(day, "Move", "reserva de emergência");
+    saveDescribed(day, "Other", null);
+
+    assertThat(searchIds("cartao", day, day)).containsExactly(card.getId());
+    assertThat(searchIds("CARTÃO", day, day)).containsExactly(card.getId());
+    assertThat(searchIds("EMERGENCIA", day, day)).containsExactly(viaNotes.getId());
+  }
+
+  @Test
+  void searchTreatsPercentLiterallyAndCombinesWithTheDateRangeAndAccount() {
+    LocalDate day = LocalDate.of(2096, 1, 6);
+    Transfer percent = saveDescribed(day, "50% share", null);
+    saveDescribed(day, "plain", null);
+    saveDescribed(day.plusMonths(3), "50% later", null);
+    transferRepository.save(
+        Transfer.create(
+            UUID.randomUUID(),
+            day,
+            savingsId,
+            creditCardId,
+            BigDecimal.TEN,
+            "50% elsewhere",
+            null));
+
+    assertThat(searchIds("%", day, day)).containsExactly(percent.getId());
+    assertThat(searchIds("%", day, day.plusMonths(6))).hasSize(2);
   }
 }

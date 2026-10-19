@@ -77,7 +77,9 @@ export function TransactionFormFields({
       <Select
         size="small"
         displayEmpty
-        value={form.categoryId}
+        // A preset category (the Fuel page's "add fill-up") can arrive before the list has loaded;
+        // showing it only once its option exists avoids MUI's out-of-range warning.
+        value={selectedCategory ? form.categoryId : ''}
         onChange={(e) => handleCategoryChange(e.target.value)}
         aria-label={t('transactions:form.categoryAria')}
         sx={{ minWidth: 160 }}

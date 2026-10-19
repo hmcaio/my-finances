@@ -43,40 +43,6 @@ export interface Transaction {
 export type CreateTransactionRequest = components['schemas']['CreateTransactionRequest']
 export type UpdateTransactionRequest = components['schemas']['UpdateTransactionRequest']
 
-/** Optional filter dimensions for {@link getTransactions} (F004 spec's list query params). */
-export interface TransactionFilter {
-  dateFrom?: string
-  dateTo?: string
-  categoryId?: string
-  accountId?: string
-  paymentMethodId?: string
-}
-
-/** One page of transactions - mirrors the backend's `PagedModel` envelope (F004 spec). */
-export interface TransactionPage {
-  content: Transaction[]
-  page: {
-    size: number
-    number: number
-    totalElements: number
-    totalPages: number
-  }
-}
-
-/**
- * Fetches a filtered, paginated page of transactions. `page` is 0-indexed; both `page`/`size`
- * default to the backend's own defaults (0, 20) when omitted, most recent first.
- */
-export async function getTransactions(
-  filter: TransactionFilter = {},
-  page?: number,
-  size?: number,
-): Promise<TransactionPage> {
-  return unwrap(
-    apiClient.get<TransactionPage>('/transactions', { params: { ...filter, page, size } }),
-  )
-}
-
 export async function getTransaction(id: string): Promise<Transaction> {
   return unwrap(apiClient.get<Transaction>(`/transactions/${id}`))
 }

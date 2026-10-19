@@ -14,6 +14,7 @@ import investmentsEn from './locales/en/investments.json'
 import budgetsEn from './locales/en/budgets.json'
 import transactionsEn from './locales/en/transactions.json'
 import transfersEn from './locales/en/transfers.json'
+import ledgerEn from './locales/en/ledger.json'
 import recurringTemplatesEn from './locales/en/recurringTemplates.json'
 import fuelEn from './locales/en/fuel.json'
 import fiiEn from './locales/en/fii.json'
@@ -37,6 +38,7 @@ import investmentsPtBR from './locales/pt-BR/investments.json'
 import budgetsPtBR from './locales/pt-BR/budgets.json'
 import transactionsPtBR from './locales/pt-BR/transactions.json'
 import transfersPtBR from './locales/pt-BR/transfers.json'
+import ledgerPtBR from './locales/pt-BR/ledger.json'
 import recurringTemplatesPtBR from './locales/pt-BR/recurringTemplates.json'
 import fuelPtBR from './locales/pt-BR/fuel.json'
 import fiiPtBR from './locales/pt-BR/fii.json'
@@ -72,6 +74,7 @@ export const resources = {
     budgets: budgetsEn,
     transactions: transactionsEn,
     transfers: transfersEn,
+    ledger: ledgerEn,
     recurringTemplates: recurringTemplatesEn,
     fuel: fuelEn,
     fii: fiiEn,
@@ -97,6 +100,7 @@ export const resources = {
     budgets: budgetsPtBR,
     transactions: transactionsPtBR,
     transfers: transfersPtBR,
+    ledger: ledgerPtBR,
     recurringTemplates: recurringTemplatesPtBR,
     fuel: fuelPtBR,
     fii: fiiPtBR,

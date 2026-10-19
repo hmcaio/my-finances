@@ -3,7 +3,6 @@ import { server } from '../../mocks/server'
 import {
   seedCategorySpend,
   seedGroceriesTransaction,
-  seedTransactions,
   transactionClosedAccountConflictHandler,
 } from '../../mocks/handlers/transactions'
 import { ApiError } from '../core/apiError'
@@ -14,26 +13,9 @@ import {
   editTransaction,
   getSpendByCategory,
   getTransaction,
-  getTransactions,
 } from './transactions'
 
 describe('transactions API client', () => {
-  it('getTransactions returns a page envelope with content and page metadata', async () => {
-    const result = await getTransactions()
-
-    // Most recent first, matching the real backend's default sort (date desc).
-    expect(result.content).toEqual([...seedTransactions].sort((a, b) => (a.date < b.date ? 1 : -1)))
-    expect(result.page).toMatchObject({ totalElements: seedTransactions.length })
-  })
-
-  it('getTransactions applies filter params', async () => {
-    const incomeTransaction = seedTransactions.find((t) => t.type === 'INCOME')!
-
-    const result = await getTransactions({ categoryId: incomeTransaction.categoryId })
-
-    expect(result.content).toEqual([incomeTransaction])
-  })
-
   it('getTransaction returns a single transaction by id', async () => {
     const transaction = await getTransaction(seedGroceriesTransaction.id)
 
