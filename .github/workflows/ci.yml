@@ -17,8 +17,50 @@ env:
   BACKUP_IMAGE: ghcr.io/hmcaio/my-finances-backup
 
 jobs:
+  changes:
+    name: Detect code changes
+    # The branch rulesets (ADR 0008) require the test jobs below, and a required check that never
+    # runs blocks the merge forever. So a docs-only PR must not skip the workflow (`[skip ci]`,
+    # `paths-ignore`): the jobs start, are skipped by `if:` here, and a skipped job counts as
+    # passed. "Docs-only" = every changed path is under docs/ or .claude/ or is a *.md file.
+    # Anything that is not a PR (main and tag pushes) always runs everything.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - id: filter
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          code=true
+          if [ "$EVENT" = "pull_request" ]; then
+            # Renamed files list both paths, so moving code into docs/ still counts as code.
+            files="$(gh api --paginate "repos/$REPO/pulls/$PR/files" \
+              --jq '.[] | .filename, (.previous_filename // empty)')"
+            # An empty list (should not happen) falls through to "run everything".
+            if [ -n "$files" ]; then
+              code=false
+              while IFS= read -r file; do
+                case "$file" in
+                  docs/*|.claude/*|*.md) ;;
+                  *) code=true ;;
+                esac
+              done <<< "$files"
+            fi
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "code changed: $code"
+
   test-backend:
     name: Backend tests
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     # No Postgres service container: backend tests use Testcontainers (see ADR 0010), which
     # starts and tears down its own ephemeral Postgres container per run using the Docker
@@ -80,6 +122,8 @@ jobs:
 
   test-frontend:
     name: Frontend tests
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -130,6 +174,7 @@ jobs:
     # server with every /api call mocked, so no backend or Postgres. It waits for the unit tests
     # (no point spending a browser run on a red build) and gates build-and-push. The frontend chain
     # (~2 min + ~2 min) still finishes before the ~4 min backend job, so wall time is unchanged.
+    # A docs-only PR skips test-frontend, and a skipped dependency skips this job too.
     needs: test-frontend
     runs-on: ubuntu-latest
     steps:
@@ -173,6 +218,8 @@ jobs:
 
   test-backup:
     name: Backup sidecar tests (F018)
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     # Docker is already available on GitHub's hosted Ubuntu runners (same assumption test-backend
     # relies on for Testcontainers) - the e2e test (backup/test/e2e.sh) builds the real sidecar
