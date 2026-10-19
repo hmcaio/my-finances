@@ -11,8 +11,8 @@ Three workflows:
 
 - **Feature**: branch off `develop` (`feature/xxx`), PR into `develop`. CI runs tests only on this PR — no image build (that stays gated to `main`/tags, per F014). Squash-merge, delete the branch.
 - **Release**: PR `develop` → `main`, merged with a merge commit (not squashed), preserving traceability of exactly which commits shipped. This merge to `main` triggers F014's `build-and-push` job (`:latest`/`:<sha>` images). Follow with ADR 0007's release steps (update `CHANGELOG.md`, bump `version` in `build.gradle`/`package.json`, tag `vX.Y.Z`, push the tag) to get version-pinned images.
-- **Hotfix**: branch `hotfix/xxx` off `main` directly, PR into `main`, merge, tag/release as above, then merge `main` back into `develop` (or cherry-pick the fix) so it isn't lost on the next `develop` → `main` promotion.
-- **Branch protection**: both `main` and `develop` require PRs and passing CI — no direct pushes to either. Feature/hotfix branches are short-lived and deleted after merge.
+- **Hotfix**: branch `hotfix/xxx` off `main` directly, PR into `main`, merge, tag/release as above, then merge `main` back into `develop` (PR from `main`, merged with a merge commit, so `develop` gains `main`'s release/hotfix commits in its history; cherry-pick is the fallback) so it isn't lost on the next `develop` → `main` promotion.
+- **Branch protection**: both `main` and `develop` require PRs and passing CI — no direct pushes to either. Feature/hotfix branches are short-lived and deleted after merge. Enforced by GitHub rulesets kept in `.github/rulesets/` (applied with `scripts/apply-rulesets.sh`): `main` allows merge commits only; `develop` allows squash (features) and merge commits (the hotfix merge-back); release tags `v*` cannot be deleted or moved. Repository admins can bypass only through a PR, never by pushing directly.
 
 ## Consequences
 - Batches features into a deliberate release point instead of shipping on every merge, and gives cross-dependent features (this project has many — see the `Dependencies` line on nearly every `docs/features/FXXX` plan) a stable integration branch to land on before promotion.

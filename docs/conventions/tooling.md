@@ -12,7 +12,8 @@ Read when changing compose files, Dockerfiles, CI, a pinned tool version, the ve
 
 - `scripts/verify.sh` is the one definition of the checks: CI's jobs call it, so a green local run means a green CI run. Change a check in that script, not only in `ci.yml`. It runs every stage even if one fails.
 - `backup` stage: needs `bats` (bats-core) on `PATH`. CI installs it with `apt-get install bats`; locally, run it via a one-off Docker image with `bash`/`coreutils`/`jq` added to `bats/bats`, or install bats-core yourself. `backup/test/e2e.sh` (the stage's second half) builds the real sidecar image and runs it against throwaway Postgres containers of its own: safe to re-run, cleans up after itself.
-- CI builds and pushes all three images to GHCR on `main` and `vX.Y.Z` tags only (`build-and-push` job in `ci.yml`).
+- CI builds and pushes all three images to GHCR on `main` and `vX.Y.Z` tags only (`build-and-push` job in `ci.yml`). It triggers on PRs, `main` pushes and `v*` tag pushes, so a feature branch is built once, by its PR.
+- Branch and tag protection is code: `.github/rulesets/*.json` (ADR 0008), applied with `scripts/apply-rulesets.sh` (needs `gh` with admin rights; upserts by name = file basename). Edit the file, then re-run the script; don't change a ruleset only in the GitHub UI. The required status checks are the job `name:` values in `ci.yml`, so renaming a job there means updating `protect-main.json` and `protect-develop.json` in the same PR, or every merge blocks.
 
 ## Pinned versions
 

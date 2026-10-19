@@ -1,10 +1,14 @@
 name: CI/CD
 
-# Runs on every push and PR. Images are only built and published (build-and-push job) on
-# pushes to main and on vX.Y.Z tag pushes — not on arbitrary feature-branch commits — per
-# ADR 0006/0007 and docs/features/F014-cicd-production-packaging/spec.md.
+# Runs on every PR, and on pushes to main and vX.Y.Z tags (a branch push is already covered by
+# its PR, so feature branches are not built twice). Images are only built and published
+# (build-and-push job) on pushes to main and on vX.Y.Z tag pushes — not on arbitrary
+# feature-branch commits — per ADR 0006/0007 and
+# docs/features/F014-cicd-production-packaging/spec.md.
 on:
   push:
+    branches: [main]
+    tags: ['v*']
   pull_request:
 
 env:
