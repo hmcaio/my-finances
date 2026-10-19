@@ -1,6 +1,5 @@
 package com.chm.myfinances.infrastructure.persistence.investmentsnapshot;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.TestcontainersConfiguration;
@@ -8,7 +7,6 @@ import com.chm.myfinances.testsupport.migration.AbstractMigrationTest;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
 import org.junit.jupiter.api.Tag;
@@ -17,10 +15,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 
 /**
- * Proves {@code V15__investment_snapshots_and_trades.sql} (F009) against pre-existing data and at
- * the constraint level: transfers that predate it are untouched (every new column {@code NULL},
- * every new {@code CHECK} satisfied), and the {@code investment_snapshots} / {@code transfers}
- * constraints accept and reject as specified.
+ * Proves {@code V15__investment_snapshots_and_trades.sql} (F009) at the constraint level: the
+ * {@code investment_snapshots} / {@code transfers} constraints accept and reject as specified. The
+ * test that transfers predating V15 are left untouched was retired (issue #89, B6).
  *
  * <p>Runs Flyway by hand in its own schema of the shared Testcontainers Postgres (see {@link
  * AbstractMigrationTest}).
@@ -34,35 +31,6 @@ class InvestmentSnapshotsMigrationTest extends AbstractMigrationTest {
 
   InvestmentSnapshotsMigrationTest() {
     super(SCHEMA);
-  }
-
-  @Test
-  void existingTransfersAreUnaffectedAndTheNewColumnsAreNull() throws Exception {
-    flyway("14").migrate();
-    UUID transferId = UUID.randomUUID();
-    try (Connection connection = connection()) {
-      UUID checking = insertAccount(connection, "Checking", "CHECKING", "100.00");
-      UUID savings = insertAccount(connection, "Savings", "SAVINGS", "0.00");
-      insertTransfer(connection, transferId, checking, savings, "12.34");
-    }
-
-    flyway("15").migrate();
-
-    try (Connection connection = connection();
-        PreparedStatement statement =
-            connection.prepareStatement(
-                "SELECT amount, investment_product_id, quantity, unit_price, taxes"
-                    + " FROM transfers WHERE id = ?")) {
-      statement.setObject(1, transferId);
-      try (ResultSet rows = statement.executeQuery()) {
-        assertThat(rows.next()).isTrue();
-        assertThat(rows.getBigDecimal(1)).isEqualByComparingTo("12.34");
-        assertThat(rows.getObject(2)).isNull();
-        assertThat(rows.getObject(3)).isNull();
-        assertThat(rows.getObject(4)).isNull();
-        assertThat(rows.getObject(5)).isNull();
-      }
-    }
   }
 
   @Test
@@ -189,21 +157,6 @@ class InvestmentSnapshotsMigrationTest extends AbstractMigrationTest {
       statement.executeUpdate();
     }
     return id;
-  }
-
-  private static void insertTransfer(
-      Connection connection, UUID id, UUID from, UUID to, String amount) throws SQLException {
-    try (PreparedStatement statement =
-        connection.prepareStatement(
-            "INSERT INTO transfers (id, date, from_account_id, to_account_id, amount,"
-                + " description, created_at, last_modified_at)"
-                + " VALUES (?, DATE '2026-02-01', ?, ?, ?, 'Old transfer', now(), now())")) {
-      statement.setObject(1, id);
-      statement.setObject(2, from);
-      statement.setObject(3, to);
-      statement.setBigDecimal(4, new BigDecimal(amount));
-      statement.executeUpdate();
-    }
   }
 
   private static void insertTrade(

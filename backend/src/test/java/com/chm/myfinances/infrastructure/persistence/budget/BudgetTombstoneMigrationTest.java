@@ -1,6 +1,5 @@
 package com.chm.myfinances.infrastructure.persistence.budget;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.TestcontainersConfiguration;
@@ -8,7 +7,6 @@ import com.chm.myfinances.testsupport.migration.AbstractMigrationTest;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
 import org.junit.jupiter.api.Tag;
@@ -17,9 +15,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 
 /**
- * Proves {@code V16__budget_version_tombstone.sql} (issue #61): a budget version that predates it
- * keeps its cap, {@code monthly_cap} is now nullable (the tombstone), and the replaced {@code
- * CHECK} still rejects a zero or negative cap.
+ * Proves {@code V16__budget_version_tombstone.sql} (issue #61): {@code monthly_cap} is nullable
+ * (the tombstone) and the replaced {@code CHECK} still rejects a zero or negative cap. The one-off
+ * "an existing version keeps its cap" backfill test was retired (issue #89, B6).
  *
  * <p>Runs Flyway by hand in its own schema of the shared Testcontainers Postgres (see {@link
  * AbstractMigrationTest}).
@@ -33,30 +31,6 @@ class BudgetTombstoneMigrationTest extends AbstractMigrationTest {
 
   BudgetTombstoneMigrationTest() {
     super(SCHEMA);
-  }
-
-  @Test
-  void existingVersionsKeepTheirCapAndTheColumnBecomesNullable() throws Exception {
-    flyway("15").migrate();
-    UUID versionId = UUID.randomUUID();
-    try (Connection connection = connection()) {
-      assertThat(isNullable(connection, "budget_versions", "monthly_cap")).isFalse();
-      UUID budgetId = insertBudget(connection);
-      insertVersion(connection, versionId, budgetId, "2026-01-01", "500.00");
-    }
-
-    flyway("16").migrate();
-
-    try (Connection connection = connection();
-        PreparedStatement statement =
-            connection.prepareStatement("SELECT monthly_cap FROM budget_versions WHERE id = ?")) {
-      assertThat(isNullable(connection, "budget_versions", "monthly_cap")).isTrue();
-      statement.setObject(1, versionId);
-      try (ResultSet rows = statement.executeQuery()) {
-        assertThat(rows.next()).isTrue();
-        assertThat(rows.getBigDecimal(1)).isEqualByComparingTo("500.00");
-      }
-    }
   }
 
   @Test

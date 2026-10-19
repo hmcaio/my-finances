@@ -17,13 +17,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 
 /**
- * Proves {@code V17__investment_holdings.sql} (F022, ADR 0020) against pre-existing data: a product
- * and its snapshot, inserted before the migration under the old 1:1 {@code
- * investment_products.account_id} model, end up with exactly one {@code investment_holdings} row
- * carrying the product's old {@code account_id}/{@code closed_date}, and the snapshot's {@code
- * holding_id} points at it. Also proves the new constraints at the DB level: {@code
- * investment_holdings} unique on {@code (product_id, account_id)}, {@code investment_snapshots}
- * unique on {@code (holding_id, date)}, and {@code investment_products.name} globally unique.
+ * Proves the schema {@code V17__investment_holdings.sql} (F022, ADR 0020) leaves behind: {@code
+ * investment_products} no longer carries {@code account_id}/{@code closed_date}, {@code
+ * investment_holdings} is unique on {@code (product_id, account_id)}, {@code investment_snapshots}
+ * unique on {@code (holding_id, date)}, and {@code investment_products.name} globally unique. The
+ * test of V17's one-off product-to-holding backfill was retired (issue #89, B6).
  *
  * <p>Runs Flyway by hand in its own schema of the shared Testcontainers Postgres (see {@link
  * AbstractMigrationTest}).
@@ -37,50 +35,6 @@ class InvestmentHoldingsMigrationTest extends AbstractMigrationTest {
 
   InvestmentHoldingsMigrationTest() {
     super(SCHEMA);
-  }
-
-  @Test
-  void preExistingProductAndSnapshotEndUpWithExactlyOneHoldingCarryingItsAccountAndClosedDate()
-      throws Exception {
-    flyway("16").migrate();
-    UUID accountId;
-    UUID productId;
-    UUID snapshotId = UUID.randomUUID();
-    try (Connection connection = connection()) {
-      accountId = insertAccount(connection, "Broker Holdings Migration Test");
-      productId = insertProductPreMigration(connection, accountId, "2026-06-15");
-      insertSnapshotByProduct(connection, snapshotId, productId, "2026-03-31", "1234.56");
-    }
-
-    flyway("17").migrate();
-
-    try (Connection connection = connection()) {
-      // Exactly one holding for this product, carrying the old account_id/closed_date.
-      try (PreparedStatement statement =
-          connection.prepareStatement(
-              "SELECT id, account_id, closed_date FROM investment_holdings WHERE product_id = ?")) {
-        statement.setObject(1, productId);
-        try (ResultSet rows = statement.executeQuery()) {
-          assertThat(rows.next()).isTrue();
-          UUID holdingId = (UUID) rows.getObject(1);
-          assertThat((UUID) rows.getObject(2)).isEqualTo(accountId);
-          assertThat(rows.getDate(3).toLocalDate().toString()).isEqualTo("2026-06-15");
-          assertThat(rows.next()).as("exactly one holding for this product").isFalse();
-
-          // The snapshot's holding_id points at that same holding.
-          try (PreparedStatement snapshotStatement =
-              connection.prepareStatement(
-                  "SELECT holding_id FROM investment_snapshots WHERE id = ?")) {
-            snapshotStatement.setObject(1, snapshotId);
-            try (ResultSet snapshotRows = snapshotStatement.executeQuery()) {
-              assertThat(snapshotRows.next()).isTrue();
-              assertThat((UUID) snapshotRows.getObject(1)).isEqualTo(holdingId);
-            }
-          }
-        }
-      }
-    }
-    assertThat(isNullable(connection(), "investment_snapshots", "holding_id")).isFalse();
   }
 
   @Test
@@ -173,27 +127,6 @@ class InvestmentHoldingsMigrationTest extends AbstractMigrationTest {
     return id;
   }
 
-  /**
-   * Pre-migration insert (V16 schema): {@code investment_products} still has {@code account_id}.
-   */
-  private static UUID insertProductPreMigration(
-      Connection connection, UUID accountId, String closedDate) throws SQLException {
-    UUID id = UUID.randomUUID();
-    try (PreparedStatement statement =
-        connection.prepareStatement(
-            "INSERT INTO investment_products (id, account_id, investment_category_id, name,"
-                + " closed_date, created_at, last_modified_at) VALUES (?, ?,"
-                + " (SELECT id FROM investment_categories WHERE name = 'Crypto'), ?,"
-                + " CAST(? AS date), now(), now())")) {
-      statement.setObject(1, id);
-      statement.setObject(2, accountId);
-      statement.setString(3, "Product " + id);
-      statement.setString(4, closedDate);
-      statement.executeUpdate();
-    }
-    return id;
-  }
-
   /** Post-migration insert (V17 schema): {@code investment_products} is pure taxonomy. */
   private static UUID insertProduct(Connection connection, String name) throws SQLException {
     UUID id = UUID.randomUUID();
@@ -222,24 +155,6 @@ class InvestmentHoldingsMigrationTest extends AbstractMigrationTest {
       statement.executeUpdate();
     }
     return id;
-  }
-
-  /**
-   * Pre-migration insert (V16 schema): {@code investment_snapshots} still has {@code product_id}.
-   */
-  private static void insertSnapshotByProduct(
-      Connection connection, UUID id, UUID productId, String date, String balance)
-      throws SQLException {
-    try (PreparedStatement statement =
-        connection.prepareStatement(
-            "INSERT INTO investment_snapshots (id, product_id, date, balance, created_at,"
-                + " last_modified_at) VALUES (?, ?, CAST(? AS date), ?, now(), now())")) {
-      statement.setObject(1, id);
-      statement.setObject(2, productId);
-      statement.setString(3, date);
-      statement.setBigDecimal(4, new BigDecimal(balance));
-      statement.executeUpdate();
-    }
   }
 
   /**
