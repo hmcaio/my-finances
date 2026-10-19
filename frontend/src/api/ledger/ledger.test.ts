@@ -6,7 +6,11 @@ import {
   seedCreditCardPaymentTransfer,
   seedTransfers,
 } from '../../mocks/handlers/transfers'
-import { seedGroceriesTransaction, seedTransactions } from '../../mocks/handlers/transactions'
+import {
+  seedGroceriesTransaction,
+  seedTransactions,
+  transactions,
+} from '../../mocks/handlers/transactions'
 import { ApiError } from '../core/apiError'
 import { createTransaction } from '../transactions/transactions'
 import { getLedger } from './ledger'
@@ -122,13 +126,13 @@ describe('getLedger (the mocked GET /api/ledger)', () => {
   })
 
   it('caps the list at 1,000 entries and flags it truncated while the summary covers every row', async () => {
+    // Rows go straight into the mock store: 1,002 mocked HTTP creates took ~6s under CI coverage.
     for (let i = 0; i < LEDGER_MAX_ENTRIES + 2; i++) {
-      await createTransaction({
+      transactions.add({
+        ...seedGroceriesTransaction,
+        id: `txn-bulk-${i}`,
         date: '2030-06-15',
         amount: 1,
-        categoryId: 'cat-1',
-        accountId: 'acct-1',
-        paymentMethodId: 'pm-1',
         description: `Bulk ${i}`,
       })
     }
