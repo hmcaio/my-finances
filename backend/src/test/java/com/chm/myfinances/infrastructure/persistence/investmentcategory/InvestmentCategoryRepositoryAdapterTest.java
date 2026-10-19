@@ -48,37 +48,6 @@ class InvestmentCategoryRepositoryAdapterTest {
   }
 
   @Test
-  void deleteRemovesTheCategory() {
-    InvestmentCategory category = InvestmentCategory.reconstitute(UUID.randomUUID(), "Temp Test");
-    categoryRepository.save(category);
-
-    categoryRepository.deleteById(category.getId());
-
-    assertThat(categoryRepository.existsById(category.getId())).isFalse();
-  }
-
-  @Test
-  void existsByNameIsTrueOnlyForAnExactMatch() {
-    categoryRepository.save(InvestmentCategory.reconstitute(UUID.randomUUID(), "Unique Name Test"));
-
-    assertThat(categoryRepository.existsByName("Unique Name Test")).isTrue();
-    assertThat(categoryRepository.existsByName("unique name test")).isFalse();
-    assertThat(categoryRepository.existsByName("Something Else Test")).isFalse();
-  }
-
-  @Test
-  void existsByNameAndIdNotExcludesTheGivenId() {
-    InvestmentCategory category =
-        categoryRepository.save(
-            InvestmentCategory.reconstitute(UUID.randomUUID(), "Exclude Self Test"));
-
-    assertThat(categoryRepository.existsByNameAndIdNot("Exclude Self Test", category.getId()))
-        .isFalse();
-    assertThat(categoryRepository.existsByNameAndIdNot("Exclude Self Test", UUID.randomUUID()))
-        .isTrue();
-  }
-
-  @Test
   void theDatabaseRejectsADuplicateNameEvenIfTheServiceCheckIsBypassed() {
     categoryRepository.save(InvestmentCategory.reconstitute(UUID.randomUUID(), "Twice Test"));
     entityManager.flush();
@@ -91,7 +60,8 @@ class InvestmentCategoryRepositoryAdapterTest {
 
   @Test
   void theMigrationSeedsTheStarterCategories() {
-    assertThat(categoryRepository.existsByName("Fixed Income")).isTrue();
-    assertThat(categoryRepository.existsByName("Crypto")).isTrue();
+    assertThat(categoryRepository.findAll())
+        .extracting(InvestmentCategory::getName)
+        .contains("Fixed Income", "Crypto");
   }
 }

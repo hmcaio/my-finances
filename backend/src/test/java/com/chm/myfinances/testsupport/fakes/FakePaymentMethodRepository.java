@@ -2,7 +2,6 @@ package com.chm.myfinances.testsupport.fakes;
 
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
-import java.util.UUID;
 
 /**
  * In-memory test double for {@link PaymentMethodRepository}, shared across application-service
@@ -13,16 +12,5 @@ public final class FakePaymentMethodRepository extends InMemoryRepository<Paymen
 
   public FakePaymentMethodRepository() {
     super(PaymentMethod::getId);
-  }
-
-  @Override
-  public boolean existsByName(String name) {
-    return values().stream().anyMatch(p -> p.getName().equals(name));
-  }
-
-  @Override
-  public boolean existsByNameAndIdNot(String name, UUID excludedId) {
-    return values().stream()
-        .anyMatch(p -> p.getName().equals(name) && !p.getId().equals(excludedId));
   }
 }

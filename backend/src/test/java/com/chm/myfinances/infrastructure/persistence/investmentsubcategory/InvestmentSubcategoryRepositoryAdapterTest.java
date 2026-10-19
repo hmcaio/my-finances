@@ -72,49 +72,6 @@ class InvestmentSubcategoryRepositoryAdapterTest {
   }
 
   @Test
-  void deleteRemovesTheSubcategory() {
-    InvestmentSubcategory subcategory =
-        subcategoryRepository.save(
-            InvestmentSubcategory.reconstitute(UUID.randomUUID(), categoryId, "Temp Test"));
-
-    subcategoryRepository.deleteById(subcategory.getId());
-
-    assertThat(subcategoryRepository.findById(subcategory.getId())).isEmpty();
-  }
-
-  @Test
-  void existsByInvestmentCategoryIdReflectsChildren() {
-    assertThat(subcategoryRepository.existsByInvestmentCategoryId(categoryId)).isFalse();
-
-    subcategoryRepository.save(
-        InvestmentSubcategory.reconstitute(UUID.randomUUID(), categoryId, "Child Test"));
-
-    assertThat(subcategoryRepository.existsByInvestmentCategoryId(categoryId)).isTrue();
-    assertThat(subcategoryRepository.existsByInvestmentCategoryId(otherCategoryId)).isFalse();
-  }
-
-  @Test
-  void nameUniquenessIsScopedToTheParentCategory() {
-    InvestmentSubcategory etfs =
-        subcategoryRepository.save(
-            InvestmentSubcategory.reconstitute(UUID.randomUUID(), categoryId, "ETFs Test"));
-
-    assertThat(subcategoryRepository.existsByInvestmentCategoryIdAndName(categoryId, "ETFs Test"))
-        .isTrue();
-    assertThat(
-            subcategoryRepository.existsByInvestmentCategoryIdAndName(otherCategoryId, "ETFs Test"))
-        .isFalse();
-    assertThat(
-            subcategoryRepository.existsByInvestmentCategoryIdAndNameAndIdNot(
-                categoryId, "ETFs Test", etfs.getId()))
-        .isFalse();
-    assertThat(
-            subcategoryRepository.existsByInvestmentCategoryIdAndNameAndIdNot(
-                categoryId, "ETFs Test", UUID.randomUUID()))
-        .isTrue();
-  }
-
-  @Test
   void theSameNameCanLiveUnderTwoCategories() {
     subcategoryRepository.save(
         InvestmentSubcategory.reconstitute(UUID.randomUUID(), categoryId, "ETFs Test"));

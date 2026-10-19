@@ -46,23 +46,8 @@ public class PaymentMethodRepositoryAdapter implements PaymentMethodRepository {
   }
 
   @Override
-  public void deleteById(UUID id) {
-    jpaRepository.deleteById(id);
-  }
-
-  @Override
   public boolean existsById(UUID id) {
     return jpaRepository.existsById(id);
-  }
-
-  @Override
-  public boolean existsByName(String name) {
-    return jpaRepository.existsByName(name);
-  }
-
-  @Override
-  public boolean existsByNameAndIdNot(String name, UUID excludedId) {
-    return jpaRepository.existsByNameAndIdNot(name, excludedId);
   }
 
   private static PaymentMethod toDomain(PaymentMethodJpaEntity entity) {

@@ -8,7 +8,6 @@ import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -44,37 +43,6 @@ class PaymentMethodRepositoryAdapterTest {
     Optional<PaymentMethod> reloaded = paymentMethodRepository.findById(paymentMethod.getId());
     assertThat(reloaded).isPresent();
     assertThat(reloaded.get().getName()).isEqualTo("Renamed");
-  }
-
-  @Test
-  void deleteRemovesThePaymentMethod() {
-    PaymentMethod paymentMethod = TestFixtures.paymentMethod(paymentMethodRepository, "Temp");
-
-    paymentMethodRepository.deleteById(paymentMethod.getId());
-
-    assertThat(paymentMethodRepository.existsById(paymentMethod.getId())).isFalse();
-  }
-
-  @Test
-  void existsByNameIsTrueOnlyForAnExactMatch() {
-    TestFixtures.paymentMethod(paymentMethodRepository, "Unique Name Test");
-
-    assertThat(paymentMethodRepository.existsByName("Unique Name Test")).isTrue();
-    assertThat(paymentMethodRepository.existsByName("unique name test")).isFalse();
-    assertThat(paymentMethodRepository.existsByName("Something Else")).isFalse();
-  }
-
-  @Test
-  void existsByNameAndIdNotExcludesTheGivenId() {
-    PaymentMethod paymentMethod =
-        TestFixtures.paymentMethod(paymentMethodRepository, "Exclude Self Test");
-
-    assertThat(
-            paymentMethodRepository.existsByNameAndIdNot(
-                "Exclude Self Test", paymentMethod.getId()))
-        .isFalse();
-    assertThat(paymentMethodRepository.existsByNameAndIdNot("Exclude Self Test", UUID.randomUUID()))
-        .isTrue();
   }
 
   @Test
