@@ -29,8 +29,18 @@ export default defineConfig({
     timeout: 120_000,
   },
   projects: [
-    { name: 'mobile', use: { browserName: 'chromium', viewport: { width: 390, height: 844 } } },
-    { name: 'tablet', use: { browserName: 'chromium', viewport: { width: 768, height: 1024 } } },
+    // `support.spec.ts` self-checks the helpers against fixture pages and never depends on the
+    // viewport, so it runs once (desktop) instead of three times.
+    {
+      name: 'mobile',
+      testIgnore: 'support.spec.ts',
+      use: { browserName: 'chromium', viewport: { width: 390, height: 844 } },
+    },
+    {
+      name: 'tablet',
+      testIgnore: 'support.spec.ts',
+      use: { browserName: 'chromium', viewport: { width: 768, height: 1024 } },
+    },
     { name: 'desktop', use: { browserName: 'chromium', viewport: { width: 1280, height: 800 } } },
   ],
 })
