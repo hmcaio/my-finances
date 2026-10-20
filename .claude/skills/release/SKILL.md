@@ -107,14 +107,16 @@ If the tip carries one, tell the user to add a commit or reword before releasing
 
 ## Step 8 — Remaining manual steps
 
-End by listing what is left for the user, in this order (from ADR 0007, ADR 0008 and F014's Release Process; those documents describe the steps but leave the exact sequencing loose, so this is the order that keeps the tag on a commit that contains the CHANGELOG and matching versions):
+End by listing what is left for the user. The runbook, with the checks and the gotchas from 0.1.0, is [`docs/conventions/release.md`](../../../docs/conventions/release.md); in short, in this order (ADR 0007, ADR 0008, F014's Release Process: the order that keeps the tag on a commit that contains the CHANGELOG and matching versions):
 
 1. Branch `chore/release-vX.Y.Z` off an up-to-date `develop` (ADR 0008; never commit to `develop` or `main` directly).
-2. Apply the approved CHANGELOG changes (already in the working tree if Step 6 wrote them) **and** set `version` to `X.Y.Z` in both `backend/build.gradle` and `frontend/package.json` — equal, per ADR 0007.
+2. Apply the approved CHANGELOG changes (already in the working tree if Step 6 wrote them) **and** set `version` to `X.Y.Z` in both `backend/build.gradle` and `frontend/package.json` — equal, per ADR 0007. The date is the day the tag will be pushed.
 3. One commit, e.g. `chore(release): vX.Y.Z` (ADR 0009) — no skip-CI marker. PR into `develop`, squash-merge.
-4. PR `develop` → `main` with a **merge commit**, not squashed (ADR 0008). Its merge triggers `build-and-push` for the `:latest` / `:<sha>` images. Keep skip markers out of the PR title/body too.
-5. Tag `vX.Y.Z` on the resulting `main` commit and push the tag; that publishes the `:vX.Y.Z` images. Confirm the tagged commit's message has no skip marker first.
-6. Check the CI run and that the images exist in GHCR; pin `IMAGE_TAG=vX.Y.Z` in the prod `.env` for a reproducible deploy.
-7. On the **first release**, also tick the one open F014 plan item ("confirm CI publishes `:latest` and `:<sha>` … and the version tag") in `docs/features/F014-*/plan.md`, once verified — it could not be checked before the first `main` push.
+4. PR `develop` → `main` with a **merge commit**, not squashed (ADR 0008). Its merge triggers `build-and-push` for the `:latest` / `:sha-<short>` images. Keep skip markers out of the PR title/body too.
+5. PR `main` → `develop` with a merge commit, after every promotion: `protect-main` requires up-to-date branches, so `main` being ahead of `develop` blocks the next promotion.
+6. Optional: a release candidate tag `vX.Y.Z-rc.N` on the `main` HEAD (tags are immutable: a bad one means `rc.N+1`, never a retag). Verify the published images from a clean directory (the runbook's checklist).
+7. Tag `vX.Y.Z` on the `main` HEAD and push the tag; that publishes the `:vX.Y.Z` images. Confirm the tagged commit's message has no skip marker first. Check the CI run, that all three images carry the tag and that `latest` has the same digest.
+8. `gh release create vX.Y.Z --verify-tag --latest` with the notes from the CHANGELOG section; pin `IMAGE_TAG=vX.Y.Z` in the prod `.env` for a reproducible deploy.
+9. Tick any plan item the release proved (for the first release, the F014 publish item), then let dependabot and version bumps resume.
 
 Offer, without doing, to create the branch and commit ("say the word and I'll create `chore/release-vX.Y.Z` and commit the CHANGELOG"). Note that ADR 0007 wants the CHANGELOG and the version bump in one commit, so a commit made by this skill would hold only the CHANGELOG unless the user does the bump first.
