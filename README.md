@@ -65,10 +65,10 @@ A production-shaped smoke test (Docker images end to end, no cloud involved) is 
 
 ## Running the published images (production)
 
-To run a release rather than develop on it you need only Docker with Compose and a POSIX shell (Linux, macOS, WSL, Git Bash): no checkout, no JDK. The stack is `docker-compose.prod.yml` (Postgres, backend, frontend, backup sidecar) pulling `ghcr.io/hmcaio/my-finances-{backend,frontend,backup}:<IMAGE_TAG>` from GHCR. Pin `IMAGE_TAG` to a release (`v0.1.0`), not `latest`, so the deploy is reproducible.
+To run a release rather than develop on it you need only Docker with Compose and a POSIX shell (Linux, macOS, WSL, Git Bash): no checkout, no JDK. The stack is `docker-compose.prod.yml` (Postgres, backend, frontend, backup sidecar) pulling `ghcr.io/hmcaio/my-finances-{backend,frontend,backup}:<IMAGE_TAG>` from GHCR. Pin `IMAGE_TAG` to a release (`v0.1.1`), not `latest`, so the deploy is reproducible.
 
 ```bash
-TAG=v0.1.0
+TAG=v0.1.1
 mkdir my-finances && cd my-finances
 curl -fsSLO https://raw.githubusercontent.com/hmcaio/my-finances/$TAG/docker-compose.prod.yml
 curl -fsSL  https://raw.githubusercontent.com/hmcaio/my-finances/$TAG/.env.example -o .env
@@ -97,7 +97,7 @@ Running the published images, with no checkout or JDK, the same generator ships 
 
 ```bash
 read -rs AUTH_PASSWORD && export AUTH_PASSWORD   # type it silently; keeps it out of shell history
-docker run --rm -e AUTH_PASSWORD --entrypoint java ghcr.io/hmcaio/my-finances-backend:v0.1.0 \
+docker run --rm -e AUTH_PASSWORD --entrypoint java ghcr.io/hmcaio/my-finances-backend:v0.1.1 \
   -Dloader.main=com.chm.myfinances.infrastructure.auth.AuthHashGenerator \
   -cp app.jar org.springframework.boot.loader.launch.PropertiesLauncher   # prints the AUTH_PASSWORD_HASH='...' line for .env
 unset AUTH_PASSWORD

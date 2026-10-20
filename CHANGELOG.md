@@ -6,18 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-20
+
+Security patch release: all three images (backend, frontend, backup) clear the image vulnerability scan, and the frontend sends its security headers on every response again.
+
+- Upgrade: pull the new images (`IMAGE_TAG=v0.1.1`, then `docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d`). No `.env`, volume or migration change; the backup sidecar takes a forced `pre-upgrade` backup on first start, and the backend restart invalidates existing sessions.
+
 ### Fixed
 
-- The frontend image now sends its security headers (Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy) on every response, including the app shell (`/`, `/index.html`, deep links) and `/assets/*`, as the 0.1.0 notes said: nginx dropped them from every location that set its own cache header. (closes [#175](https://github.com/hmcaio/my-finances/issues/175))
+- The frontend image now sends its security headers (Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy) on every response, including the app shell (`/`, `/index.html`, deep links) and `/assets/*`, as the 0.1.0 notes said: nginx dropped them from every location that set its own cache header. (closes [#175](https://github.com/hmcaio/my-finances/issues/175)) ([#179](https://github.com/hmcaio/my-finances/pull/179))
   - Upgrade: pull the new frontend image; no configuration change.
 
 ### Security
 
-- The backup sidecar's `gosu` now comes from Alpine, built with a current Go toolchain, instead of the copy bundled in the postgres image, clearing 25 fixable HIGH/CRITICAL findings from the image scan. (part of [#174](https://github.com/hmcaio/my-finances/issues/174))
+- The backup sidecar's `gosu` now comes from Alpine, built with a current Go toolchain, instead of the copy bundled in the postgres image, clearing 25 fixable HIGH/CRITICAL findings from the image scan. (part of [#174](https://github.com/hmcaio/my-finances/issues/174)) ([#177](https://github.com/hmcaio/my-finances/pull/177))
   - Upgrade: pull the new image (`IMAGE_TAG`, then `docker compose up -d`). No `.env`, volume or migration change; the sidecar takes a forced pre-upgrade backup on first start.
-- The frontend image moves from nginx 1.27.5 to the stable 1.30 line on the slim Alpine 3.24 image, clearing 55 fixable findings from the image vulnerability scan. (part of [#174](https://github.com/hmcaio/my-finances/issues/174))
+- The frontend image moves from nginx 1.27.5 to the stable 1.30 line on the slim Alpine 3.24 image, clearing 55 fixable findings from the image vulnerability scan. (part of [#174](https://github.com/hmcaio/my-finances/issues/174)) ([#178](https://github.com/hmcaio/my-finances/pull/178))
   - Upgrade: pull the new image; no `.env`, volume or migration change. The image now uses nginx's `-alpine-slim` variant.
-- Backend dependency and base-image updates (Tomcat 11.0.25, Jackson 2.21.7 and 3.1.7, Bouncy Castle 1.85, Alpine packages upgraded in the image at build time) clearing 18 fixable findings in the backend image. (part of [#174](https://github.com/hmcaio/my-finances/issues/174))
+- Backend dependency and base-image updates (Tomcat 11.0.25, Jackson 2.21.7 and 3.1.7, Bouncy Castle 1.85, Alpine packages upgraded in the image at build time) clearing 18 fixable findings in the backend image. (part of [#174](https://github.com/hmcaio/my-finances/issues/174)) ([#180](https://github.com/hmcaio/my-finances/pull/180))
   - Upgrade: pull the new image. No `.env`, volume or migration change; the backend restarts and existing sessions are invalidated.
 
 ## [0.1.0] - 2026-10-20
@@ -120,5 +126,6 @@ Initial release of My Finances, a local, single-user personal finance app that r
 - A plain transfer can no longer target an INVESTMENT account on either side — an investment account has no cash balance of its own, so such a transfer moved money with no trackable destination and no way to later spend it through a trade confirmation. (closes [#113](https://github.com/hmcaio/my-finances/issues/113)) ([#114](https://github.com/hmcaio/my-finances/pull/114))
 - The built-in category of each type ("Other Expense"/"Other Income") can no longer be renamed, matching the fuel and dividend categories, which already blocked both rename and delete; the Categories page now hides Rename and Delete for all three the same way. (closes [#117](https://github.com/hmcaio/my-finances/issues/117)) ([#119](https://github.com/hmcaio/my-finances/pull/119))
 
-[Unreleased]: https://github.com/hmcaio/my-finances/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/hmcaio/my-finances/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/hmcaio/my-finances/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/hmcaio/my-finances/releases/tag/v0.1.0
