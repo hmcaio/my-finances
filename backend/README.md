@@ -12,7 +12,7 @@ Needs a local Postgres (`docker compose up -d` from the repo root) and a JDK mat
 ./gradlew bootRun    # API at http://localhost:8080 (needs AUTH_USERNAME / AUTH_PASSWORD_HASH in the environment)
 ```
 
-Swagger UI: `http://localhost:8080/swagger-ui.html`. OpenAPI spec (consumed by the frontend's type generation): `http://localhost:8080/v3/api-docs`. Both need a session (F036): sign in through the app first, then open them in the same browser.
+Swagger UI: `http://localhost:8080/swagger-ui.html`. OpenAPI spec (consumed by the frontend's type generation): `http://localhost:8080/v3/api-docs`. Both need a session (F036): sign in through the app first, then open them in the same browser. Both are dev-only: the `prod` profile disables them (`springdoc.*.enabled: false` in `application-prod.yml`), so the production stack answers 404.
 
 Running the whole stack in containers instead (`docker compose --profile full up -d`, the default dev path) is documented in the repo root [README.md](../README.md).
 
