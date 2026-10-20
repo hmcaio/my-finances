@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Security
 
+- The backup sidecar's `gosu` now comes from Alpine, built with a current Go toolchain, instead of the copy bundled in the postgres image, clearing 25 fixable HIGH/CRITICAL findings from the image scan. (part of [#174](https://github.com/hmcaio/my-finances/issues/174))
+  - Upgrade: pull the new image (`IMAGE_TAG`, then `docker compose up -d`). No `.env`, volume or migration change; the sidecar takes a forced pre-upgrade backup on first start.
 - The frontend image moves from nginx 1.27.5 to the stable 1.30 line on the slim Alpine 3.24 image, clearing 55 fixable findings from the image vulnerability scan. (part of [#174](https://github.com/hmcaio/my-finances/issues/174))
   - Upgrade: pull the new image; no `.env`, volume or migration change. The image now uses nginx's `-alpine-slim` variant.
 
