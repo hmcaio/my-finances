@@ -34,6 +34,7 @@ One file per decision, numbered sequentially, never renumbered or edited to chan
 | [0028](0028-fixed-taxonomy-values-and-onboarding-seeded-categories.md) | Lock PaymentMethod/InvestmentCategory/InvestmentSubcategory/InvestmentSegment to fixed system values, close Institution's rename gap, and seed Category defaults through onboarding instead of migration | Accepted |
 | [0029](0029-session-auth-and-generic-network-binding.md) | Session-cookie authentication with a single shared Argon2-hashed credential, and a generic `BIND_ADDR`-based private-network binding not pinned to any specific VPN/overlay product | Accepted |
 | [0030](0030-postgres-unaccent-for-accent-insensitive-search.md) | Postgres `unaccent` extension for accent-insensitive text search (first extension the app depends on) | Accepted |
+| [0031](0031-image-vulnerability-scan-gates-publishing.md) | Scan container images for vulnerabilities with a pinned Trivy image and gate publishing on the result | Accepted |
 
 Template:
 ```
