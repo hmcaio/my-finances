@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Security
+
+- The backup sidecar's `gosu` now comes from Alpine, built with a current Go toolchain, instead of the copy bundled in the postgres image, clearing 25 fixable HIGH/CRITICAL findings from the image scan. (part of [#174](https://github.com/hmcaio/my-finances/issues/174))
+  - Upgrade: pull the new image (`IMAGE_TAG`, then `docker compose up -d`). No `.env`, volume or migration change; the sidecar takes a forced pre-upgrade backup on first start.
+
 ## [0.1.0] - 2026-10-20
 
 Initial release of My Finances, a local, single-user personal finance app that runs on your own machine behind a login.

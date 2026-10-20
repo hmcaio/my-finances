@@ -22,7 +22,7 @@ log() { echo "[entrypoint.sh] $*"; }
 # `docker volume create`d named volume - and most first-time bind mounts - is root:root, which a
 # fixed non-root `user:` could never write to no matter what BACKUP_UID/BACKUP_GID said. Fix
 # ownership once here, then re-exec the rest of this script as the unprivileged target uid/gid via
-# `gosu` (already present in the postgres base image for its own entrypoint). A container already
+# `gosu` (Alpine's package, installed in backup/Dockerfile). A container already
 # started non-root (someone overrode `user:` back) skips this and runs as-is.
 if [ "$(id -u)" = "0" ]; then
   TARGET_UID="${BACKUP_UID:-1000}"
