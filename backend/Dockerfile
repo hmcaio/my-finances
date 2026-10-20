@@ -6,7 +6,7 @@
 # Build stage: JDK + the project's own Gradle wrapper (not a `gradle:*` base image) so the
 # exact Gradle version pinned in gradle/wrapper/gradle-wrapper.properties (9.7.1) is what
 # actually runs, matching local dev bit-for-bit.
-FROM eclipse-temurin:21.0.12.1_1-jdk-alpine AS build
+FROM eclipse-temurin:24.0.2_12-jdk-alpine AS build
 WORKDIR /workspace
 
 # --chmod: the wrapper's git mode bit is not trusted (a Windows-authored checkout can lose it),
@@ -23,7 +23,7 @@ COPY src ./src
 RUN ./gradlew bootJar -x test --no-daemon
 
 # Runtime stage: slim JRE only, no JDK/Gradle in the final image.
-FROM eclipse-temurin:21.0.12.1_1-jre-alpine AS runtime
+FROM eclipse-temurin:24.0.2_12-jre-alpine AS runtime
 WORKDIR /app
 
 RUN addgroup -S spring && adduser -S spring -G spring
