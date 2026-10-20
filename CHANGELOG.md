@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Security
+
+- Backend dependency and base-image updates (Tomcat 11.0.25, Jackson 2.21.7 and 3.1.7, Bouncy Castle 1.85, Alpine packages upgraded at build time) clearing 18 fixable findings in the backend image. (part of [#174](https://github.com/hmcaio/my-finances/issues/174))
+  - Upgrade: pull the new image. No `.env`, volume or migration change; the backend restarts and existing sessions are invalidated.
+
 ## [0.1.0] - 2026-10-20
 
 Initial release of My Finances, a local, single-user personal finance app that runs on your own machine behind a login.

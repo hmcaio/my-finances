@@ -16,7 +16,8 @@ openpdf = "2.2.5"
 # F036, ADR 0029: Spring Security's Argon2PasswordEncoder delegates to Bouncy Castle's Argon2 and
 # declares it only as an optional dependency, so the app has to bring its own. Not in Spring Boot's
 # BOM - pinned here explicitly. Provider jar only (no bcpkix/bcutil: Argon2 needs neither).
-bouncycastle = "1.83"
+# 1.85, not 1.84: 1.84 still carries CVE-2026-8763 and CVE-2026-13506 (scan gate, issue #174).
+bouncycastle = "1.85"
 
 [libraries]
 springdoc-openapi-starter-webmvc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
