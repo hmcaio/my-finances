@@ -63,9 +63,28 @@ One-time setup: run `scripts/setup-hooks.sh` to enable the local pre-commit hook
 
 A production-shaped smoke test (Docker images end to end, no cloud involved) is also documented in [docs/conventions/tooling.md](docs/conventions/tooling.md).
 
+## Running the published images (production)
+
+To run a release rather than develop on it you need only Docker with Compose and a POSIX shell (Linux, macOS, WSL, Git Bash): no checkout, no JDK. The stack is `docker-compose.prod.yml` (Postgres, backend, frontend, backup sidecar) pulling `ghcr.io/hmcaio/my-finances-{backend,frontend,backup}:<IMAGE_TAG>` from GHCR. Pin `IMAGE_TAG` to a release (`v0.1.0`), not `latest`, so the deploy is reproducible.
+
+```bash
+TAG=v0.1.0
+mkdir my-finances && cd my-finances
+curl -fsSLO https://raw.githubusercontent.com/hmcaio/my-finances/$TAG/docker-compose.prod.yml
+curl -fsSL  https://raw.githubusercontent.com/hmcaio/my-finances/$TAG/.env.example -o .env
+```
+
+1. Edit `.env`: `IMAGE_TAG` (to the same `$TAG`), `TZ` (your own IANA zone), `POSTGRES_PASSWORD`, `AUTH_USERNAME` and `AUTH_PASSWORD_HASH` (generate the hash from the backend image: [Login](#login); keep the single quotes). Leave `BACKUP_AGE_RECIPIENT` empty for now.
+2. Create the backups volume and the age keypair, in that order, and put the printed recipient in `.env` as `BACKUP_AGE_RECIPIENT`: [Backups, Setup](#backups). Store the private key off this machine before going on.
+3. `docker compose -f docker-compose.prod.yml up -d`. The first start pulls the images and waits for the backup sidecar's first check; once the stack is healthy, open `http://localhost:8081` (`FRONTEND_PORT`, bound to `BIND_ADDR`; see [Reaching the app from other devices](#reaching-the-app-from-other-devices)) and sign in with the username and password you chose.
+
+**Upgrading**: set `IMAGE_TAG` in `.env` to the new release and run `docker compose -f docker-compose.prod.yml up -d` again (read that release's `CHANGELOG.md` entry for `Upgrade:` notes first). The new backup sidecar notices its build changed and takes a `pre-upgrade` backup before the backend, and with it any new database migration, starts. **Rolling back** takes more than setting the old tag back, since the new release's database migrations are not undone by it: restore the `pre-upgrade` backup (see [Backups, Restoring](#backups)) and run the old tag again.
+
 ## Login
 
 Every page and API call sits behind a single shared login (F036, [ADR 0029](docs/adr/0029-session-auth-and-generic-network-binding.md)): one username and one password, in dev and in prod, no bypass. Set the credential once in `.env` (gitignored; see `.env.example`) before starting any stack, dev or prod. The password itself is never stored, only its Argon2 hash:
+
+From a checkout (contributors; needs a JDK 21):
 
 ```bash
 cd backend
@@ -73,6 +92,18 @@ read -rs AUTH_PASSWORD && export AUTH_PASSWORD   # type it silently; keeps it ou
 ./gradlew -q generateAuthHash                     # prints the AUTH_PASSWORD_HASH='...' line for .env
 unset AUTH_PASSWORD
 ```
+
+Running the published images, with no checkout or JDK, the same generator ships inside the backend image (use your release tag; `docker run` pulls it if needed):
+
+```bash
+read -rs AUTH_PASSWORD && export AUTH_PASSWORD   # type it silently; keeps it out of shell history
+docker run --rm -e AUTH_PASSWORD --entrypoint java ghcr.io/hmcaio/my-finances-backend:v0.1.0 \
+  -Dloader.main=com.chm.myfinances.infrastructure.auth.AuthHashGenerator \
+  -cp app.jar org.springframework.boot.loader.launch.PropertiesLauncher   # prints the AUTH_PASSWORD_HASH='...' line for .env
+unset AUTH_PASSWORD
+```
+
+`-e AUTH_PASSWORD` with no value forwards the variable from your shell, so the plaintext never appears in the command line or shell history. The generator writes the finished line (quotes included) to stdout and its notes to stderr. These commands are for a POSIX shell (Linux, macOS, WSL, Git Bash).
 
 Without `AUTH_PASSWORD` set, `./gradlew -q generateAuthHash` prompts for the password on stdin instead (the typed text echoes there). Put the printed line in `.env` next to `AUTH_USERNAME=<your username>`, **keeping the single quotes**: the hash contains `$` characters that Docker Compose would otherwise try to expand. The backend refuses to start with a missing or malformed credential, and says which. To change the password, regenerate the hash and restart. A login session lasts 30 days idle and survives closing the browser; sessions live in backend memory, so a backend restart signs you out. Five wrong passwords in a row from one client pause login attempts for 15 minutes.
 
@@ -84,12 +115,20 @@ By default every published port is bound to `127.0.0.1`, so only this machine ca
 
 The production stack (`docker-compose.prod.yml`) runs a `backup` sidecar that takes encrypted `pg_dump` backups on a catch-up schedule (on start if the last success is older than `BACKUP_MAX_AGE_HOURS`, then hourly while the stack is up) with GFS retention (7 daily / 5 weekly / 12 monthly). See [ADR 0015](docs/adr/0015-automated-encrypted-backups-sidecar.md) for the full design. The dev stack is never backed up — it's not in scope.
 
-**Setup**, once, before the first `up -d`:
+**Setup**, once, before the first `up -d`. The order matters: Compose resolves the whole stack, backend included, even for a one-off `run --no-deps`, so `.env` must already hold `IMAGE_TAG`, `AUTH_USERNAME` and `AUTH_PASSWORD_HASH` (see [Login](#login)) and the backups volume must already exist, or the keygen command below fails (`external volume "my-finances-backups-prod" not found`).
 
-1. Generate an age keypair: `docker compose -f docker-compose.prod.yml run --rm --no-deps backup backup-keygen`. Put the printed recipient in `.env` as `BACKUP_AGE_RECIPIENT`. **Store the printed private key somewhere off this machine right now** — a password manager, or printed and locked away. It is never written to disk by this command and must never go in `.env` or anywhere on this host. Losing it makes every existing backup permanently unrecoverable; there is no recovery path.
-2. Create the backups volume once: `docker volume create my-finances-backups-prod`. (Skip this if you're instead setting `BACKUP_DIR` below to a host folder — see `.env.example`.)
+1. Create the backups volume once: `docker volume create my-finances-backups-prod`. (Skip this if you're instead setting `BACKUP_DIR` in step 3 to a host folder — see `.env.example`.)
+2. Generate an age keypair: `docker compose -f docker-compose.prod.yml run --rm --no-deps backup backup-keygen`. Put the printed recipient in `.env` as `BACKUP_AGE_RECIPIENT`. **Store the printed private key somewhere off this machine right now** — a password manager, or printed and locked away. It is never written to disk by this command and must never go in `.env` or anywhere on this host. Losing it makes every existing backup permanently unrecoverable; there is no recovery path.
 3. Optional: set `BACKUP_DIR` to a folder already synced by Dropbox/OneDrive/Syncthing/etc. for an off-machine copy with no cloud credentials in this repo, and/or create an `rclone.conf` (gitignored, next to `.env`) and set `BACKUP_RCLONE_REMOTE` to push the encrypted file to a remote — useful on a VPS with no synced folder of its own. A push failure counts as a backup failure in the status below.
 4. `docker compose -f docker-compose.prod.yml up -d` as usual. A `myfinances-<timestamp>.dump.age` file and a `status.json` appear in the backups folder/volume after the first catch-up check. The backend reads that file read-only (`GET /api/backup-status`) and the frontend shows a banner only when something needs attention — stale, failing, or backups existing on only this one machine; nothing when everything is fine.
+
+**Take a backup now** (for example before a risky change): the sidecar backs up only when the last success is older than `BACKUP_MAX_AGE_HOURS` (20 by default), checked at container start and then hourly, so restarting it does not force one (a new image does: the `pre-upgrade` backup above). To take one on demand:
+
+```bash
+docker compose -f docker-compose.prod.yml exec -u 1000:1000 backup backup.sh
+```
+
+Pass `-u`, with the same `BACKUP_UID:BACKUP_GID` as `.env` if you changed them from the 1000:1000 default. `exec` otherwise runs as root (the service sets no `user:`), while the sidecar's own backups run as `BACKUP_UID:BACKUP_GID` after `entrypoint.sh` drops privileges. As root, the run can fail writing its scratch file `/tmp/pg_dump.err`, left behind by those unprivileged runs, on hosts whose kernel sets `fs.protected_regular` (Docker Desktop's does); the run then records `lastError: dump_failed` and the status banner shows FAILING until the next good backup. A successful run writes the new `.dump.age` file and refreshes `status.json` exactly like a scheduled one.
 
 **Restoring** is destructive, so it always takes a safety dump of the current database first and requires an explicit `--yes`:
 

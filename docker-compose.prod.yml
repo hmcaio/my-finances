@@ -24,9 +24,11 @@
 # catch-up schedule and writes a status.json the backend reads read-only. The backups volume
 # (my-finances-backups-prod, or BACKUP_DIR if set) is declared `external: true` below — unlike
 # every other volume in this file, `docker compose down -v` does *not* remove it; it must be
-# created once with `docker volume create my-finances-backups-prod` before the first `up -d`
-# (skip this if BACKUP_DIR is set — then it's an ordinary host folder). See README for setup
-# (keygen, .env, restore) and docs/features/F018-backups/spec.md for the full design.
+# created once with `docker volume create my-finances-backups-prod` before the keygen step and
+# the first `up -d` (skip this if BACKUP_DIR is set — then it's an ordinary host folder). Compose
+# resolves every service even for `run --no-deps`, so .env needs IMAGE_TAG, AUTH_USERNAME and
+# AUTH_PASSWORD_HASH before keygen too. See README for setup (volume, keygen, .env, restore) and
+# docs/features/F018-backups/spec.md for the full design.
 x-logging: &default-logging
   driver: json-file
   options:
@@ -125,7 +127,8 @@ services:
       LOGGING_LEVEL_COM_CHM_MYFINANCES: ${LOG_LEVEL:-INFO}
       # F036, ADR 0029: the single shared login. Required - compose refuses to start the stack
       # without them. AUTH_PASSWORD_HASH is the Argon2 hash from `./gradlew -q generateAuthHash`
-      # (backend/), never the plaintext, and must be single-quoted in .env (it contains $).
+      # (backend/) or, without a checkout, the backend image's generator (see README, Login),
+      # never the plaintext, and must be single-quoted in .env (it contains $).
       AUTH_USERNAME: ${AUTH_USERNAME:?set AUTH_USERNAME in .env (see .env.example)}
       AUTH_PASSWORD_HASH: ${AUTH_PASSWORD_HASH:?set AUTH_PASSWORD_HASH in .env (see .env.example)}
     volumes:
@@ -174,8 +177,8 @@ volumes:
     # F018, ADR 0015: external (unlike the two volumes above) so `docker compose down -v` cannot
     # remove it along with the data it exists to protect - that is the whole point, and also a
     # footgun for anyone expecting `down -v` to leave nothing behind. Create it once, before the
-    # first `up -d`: `docker volume create my-finances-backups-prod`. Only actually used when
-    # BACKUP_DIR is unset - if BACKUP_DIR points at a host folder instead, this declared-but-
-    # unreferenced volume is simply never mounted by either service.
+    # keygen step and the first `up -d`: `docker volume create my-finances-backups-prod`. Only
+    # actually used when BACKUP_DIR is unset - if BACKUP_DIR points at a host folder instead, this
+    # declared-but-unreferenced volume is simply never mounted by either service.
     external: true
     name: my-finances-backups-prod
