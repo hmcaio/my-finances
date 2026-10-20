@@ -29,9 +29,9 @@ A tool version is pinned in every file that names it, and `scripts/check-version
 
 `docker-compose.prod.yml` is wholly separate from the dev loop.
 
-- Local smoke test: build `ghcr.io/hmcaio/my-finances-{backend,frontend,backup}:local` from `backend`/`frontend`/`backup`, `cp .env.example .env` with `IMAGE_TAG=local` and a real `BACKUP_AGE_RECIPIENT` (`docker compose -f docker-compose.prod.yml run --rm --no-deps backup backup-keygen`), then `docker compose -f docker-compose.prod.yml up -d` / `down -v`. The auth variables it also needs: [auth.md](auth.md).
+- Local smoke test: build `ghcr.io/hmcaio/my-finances-{backend,frontend,backup}:local` from `backend`/`frontend`/`backup`, `cp .env.example .env` with `IMAGE_TAG=local`, the auth variables and a real `BACKUP_AGE_RECIPIENT` (`docker volume create my-finances-backups-prod`, then `docker compose -f docker-compose.prod.yml run --rm --no-deps backup backup-keygen`: Compose resolves the whole stack for `run`, so the volume and the auth variables must exist first), then `docker compose -f docker-compose.prod.yml up -d` / `down -v`. The auth variables it also needs: [auth.md](auth.md).
 - Both compose files default to the same project name and both have a `postgres` service, so prod `up`/`down` replaces/removes the *dev* Postgres container (its data volume survives; `docker compose up -d` brings dev back).
-- The prod stack's fourth service, `backup` (F018, ADR 0015), writes into `my-finances-backups-prod`, an `external: true` volume `down -v` does **not** remove. Setup/restore: the README's Backups section; full design: `docs/features/F018-backups/spec.md`.
+- The prod stack's fourth service, `backup` (F018, ADR 0015), writes into `my-finances-backups-prod`, an `external: true` volume `down -v` does **not** remove. Setup/restore: the README's Backups section; full design: `docs/features/F018-backups/spec.md`. The README's "Running the published images" section is the end-user path (release tag, no checkout); keep it in step with `docker-compose.prod.yml` and `.env.example`.
 
 ## API types and time zone
 
