@@ -1,0 +1,70 @@
+---
+name: implement-feature
+description: Implements one feature from docs/features/<FXXX>-*/ (its spec.md + plan.md) by delegating the actual coding to a subagent on its own git branch (optionally an isolated worktree), following this repo's branching (ADR 0008), commit (ADR 0009), and versioning (ADR 0007) conventions, then verifying the docs still match what was actually built. Use this whenever the user asks to implement, build, work on, resume, or start a feature by its FXXX id or name (e.g. "implement F004", "let's build the transactions feature", "/implement-feature F007", "start on recurring templates") — prefer this over ad hoc implementation whenever a matching docs/features/<FXXX>-*/ folder exists, even if the user doesn't name the skill or say "F00X" explicitly.
+---
+
+# Implement Feature
+
+Implements one feature end-to-end (backend + frontend, as applicable) by delegating to a subagent, following this repo's documented conventions. Invoked as `/implement-feature <FXXX>` (e.g. `/implement-feature F004`), or triggered by a request naming a feature.
+
+## Step 1 — Locate the feature docs
+
+Glob `docs/features/<FXXX>-*/spec.md` and `plan.md` (match the `FXXX` prefix case-insensitively — the id might arrive as `f004` or `F004`). If nothing matches, stop and tell the user, listing the `FXXX` folders that do exist under `docs/features/` so they can pick the right one.
+
+Read both files in full before doing anything else — the whole point of this skill is that the spec/plan are the source of truth, not something to re-derive.
+
+## Step 2 — Check dependencies
+
+Read `plan.md`'s `**Depends on**:` line. For each `FXXX` listed there (skip if it says "none"):
+
+- Check whether that dependency's own `plan.md` checklist is checked off, and whether the source paths its spec introduces already exist (its domain package, its Flyway migration, etc.).
+- If a dependency looks unimplemented or only partially done, stop and tell the user which one and why it looks incomplete, then ask whether to proceed anyway. A feature built on a missing dependency fails confusingly deep into the work, not at the start — worth a pause here.
+
+## Step 3 — Create the feature branch (without checking it out)
+
+Per [ADR 0008](../../../docs/adr/0008-github-flow-with-develop-branch.md), feature branches come off `develop`. Make sure the local `develop` ref is current (fetch/pull as appropriate), then create `feature/<fxxx-lowercase>-<slug>` pointing at `develop`'s tip **as a plain branch ref, without checking it out** (e.g. `git branch feature/f004-transactions develop`) — where `<slug>` is the feature folder's name with the `FXXX-` prefix stripped (e.g. `F004-transactions` → `feature/f004-transactions`).
+
+Leaving it uncheckout matters for Step 4: if this branch were checked out here *and* a subagent's isolated worktree also tried to check it out, git refuses the second checkout of the same branch — you'd end up with the subagent stranded on a differently-named branch and a manual fast-forward to reconcile afterward. Creating the ref without checking it out sidesteps that entirely, whichever isolation choice Step 4 lands on.
+
+## Step 4 — Ask about isolation
+
+Ask the user whether the subagent should work in its own isolated git worktree, or directly in the current working directory:
+
+- **Isolated worktree** (default/recommended) — `Agent` with `isolation: "worktree"`. The subagent gets its own checkout of the feature branch; your current directory and branch stay untouched the whole time, and you're free to do other things in this session while it runs.
+- **Same working directory** — check out `feature/<fxxx>-<slug>` here first, then the subagent works directly in this checkout (no `isolation` param). Simpler mechanically, but this session's working directory is "occupied" by the feature branch until the subagent finishes, and you're left on that branch afterward instead of wherever you started.
+
+Don't assume — ask, then proceed with whichever the user picks.
+
+## Step 5 — Delegate implementation to a subagent
+
+Don't implement the feature in the main session yourself — delegating the real work to a subagent (isolated or not, per Step 4) is the reason this skill exists instead of just doing the task inline.
+
+The subagent starts cold — it has no memory of this conversation. Its prompt must carry everything the repo doesn't already hold:
+
+1. **Name the feature id and the paths of its `spec.md` and `plan.md`** (they are committed on the branch it works on), and make reading both in full its first action, before any code. Leave their text out of the prompt: the files are the source of truth, and a pasted copy only spends the main session's context and risks drifting from them.
+2. **Tell it to read first**: `docs/PRD.md` and `CLAUDE.md` for product/repo context (plus `backend/CLAUDE.md` and/or `frontend/CLAUDE.md` for the stack being built), `docs/conventions/README.md` (then the convention file for every area the plan touches), and `docs/adr/README.md` for the full ADR index — then specifically:
+   - `docs/adr/0004-hexagonal-ddd-tdd.md` (Hexagonal/DDD/TDD) — write tests before the implementation that satisfies them, for every checklist item `plan.md` already phrases as test-first.
+   - `docs/adr/0005-single-point-uuid-generation.md` — every new entity's id comes from the single `IdGenerator` port; never `@GeneratedValue`, never an ad hoc `UUID.randomUUID()` elsewhere.
+   - `docs/adr/0009-conventional-commits.md` — every commit uses Conventional Commits format (`type(scope): description`).
+3. **Work order**: follow `plan.md`'s checklist top to bottom (Backend, then Frontend, then Verification) — it's already sequenced test-first for the rules-heavy items; don't reorder it.
+4. **Commit discipline**: commit in small logical chunks as work progresses — roughly one commit per checklist bullet or tightly related group of bullets, not one mega-commit at the end. Conventional Commits, scoped to the feature id: `feat(F004): add Transaction domain model and tests`, `test(F004): cover closed-account rejection`. Add the feature's `CHANGELOG.md` entry per the root `CLAUDE.md` rule "CHANGELOG entries ship with the PR": one bullet under `## [Unreleased]`, keyed by feature id (`**FXXX — Title** — <user-visible summary>`, the title from the feature's `spec.md` heading), plus an `Upgrade:` sub-line if the feature changes how someone runs or upgrades the stack (compose, volumes, env vars, config keys, migrations). Put it in the commit that completes the user-visible work, not a separate one. Leave the PR link off — the PR doesn't exist yet; it's added once the PR is opened. Skip the entry, and say so in the final summary, for a feature with nothing user-visible (pure dev tooling or test infrastructure). Never bump `version` in `build.gradle`/`package.json`, rename `[Unreleased]` or tag — those are release-time actions (`docs/adr/0007-single-shared-semver-and-changelog.md`) that happen on `develop` → `main`, not on a feature branch.
+5. **Keep the plan in sync with reality**: as each `plan.md` checklist item is completed, flip its `- [ ]` to `- [x]` in `docs/features/<FXXX>-*/plan.md` and include that edit in the *same* commit as the code it corresponds to — not a separate end-of-work doc-only commit. This is what lets the next `/implement-feature` run (on a feature that depends on this one) trust the checklist as real status in Step 2, instead of a stale template.
+6. **The spec/plan are settled decisions, not a starting point for re-deriving product choices** — implement what's written. But if something the plan genuinely doesn't resolve turns out to matter (a real gap, not a trivial detail already flagged as an open implementation detail in the spec), don't silently guess on it — surface it clearly in the final report instead.
+7. **Drive it, don't just test it.** A `plan.md` Verification item phrased as something a human would do ("create an account, confirm X appears," "switch language mid-session," any multi-step or visual flow) is checked off only after actually driving that flow in the running app via the `run` skill (the project's `run-app` skill holds this repo's launch, throwaway-login and teardown recipe) — never on the strength of component/unit tests alone, and never with a note like "not re-verified here" or "no behavior change" standing in for a result. Automated tests prove the code does what the tests assert; they don't prove the feature behaves correctly end to end, especially across a boundary the new code doesn't own (e.g. a top-level gate like `App.tsx` that decides whether a changed page even renders) — that gap is exactly how a step gets silently skipped while every test and `verify.sh` still pass. Invoke `run` before checking off such an item; if it reveals the feature doesn't work as specified, fix it before moving on, the same as a failing test.
+8. **Before wrapping up, verify the documentation still matches what was actually built.** Implementation always surfaces small realities the spec couldn't have predicted — a library needing a version pin, a dependency swapped for one that actually works, a package or file named slightly differently than planned. Re-read this feature's `spec.md` (and `plan.md`) against what actually landed in the code; if something's now inaccurate, fix it — and if it's a cross-cutting convention (package layout, build/lint/test commands, the stack itself), check where it lives: area mechanics go in the matching `docs/conventions/<topic>.md`, a rule needed on every task in the `CLAUDE.md` for the stack it applies to (`backend/CLAUDE.md`, `frontend/CLAUDE.md`, or the root one if it spans both), review judgement in `CODING_STANDARDS.md`. Add a line only for a rule or gotcha someone couldn't work out from the code and would lose time rediscovering; the story of what this feature did and why belongs in the commit/PR body or its `spec.md`, not in CLAUDE.md, which is loaded into every session. Also check the root `README.md`: does this feature change its "Project status" (a feature just went from planned to done), its command examples, or anything else it states as current fact? Update it in the same pass if so — don't leave it describing a state the repo has since moved past. Make all of these doc fixes in the same commit as the code that caused the divergence, not a separate cleanup pass at the end. This isn't a license to write new documentation or restate what's already correct — only correct what's gone stale or note a genuine gap the plan didn't anticipate.
+9. **Run the CI stages, check the diff against `CODING_STANDARDS.md`, then end with a summary.** Run `scripts/verify.sh backend frontend` and fix every failure first: it is the definition of CI's checks, including the frontend coverage run that a bare `npm test` skips (a test that passes in `npm test` can time out under coverage). Then read `CODING_STANDARDS.md` in full, fix every item the diff violates (it holds the judgement calls no check catches, such as changes that must travel together and invariants dropped by a method split), and list in the summary any item you deliberately left. The summary covers: what was implemented (backend/frontend), which checklist items are now checked off, what tests were added, which Verification items were actually driven via `run` (and what that showed), any ambiguities flagged, and which documentation files (if any) were corrected and why. This is what Step 6 relays back.
+
+## Step 6 — Report back
+
+Once the subagent finishes, tell the user:
+
+- The branch it worked on, and the worktree path if Step 4 used isolation.
+- A concise summary of what got implemented, drawn from the subagent's own summary — don't just dump its full output.
+- Which `plan.md` items are now checked off vs. still open.
+- Which Verification items were actually driven in the running app (via `run`), not just covered by automated tests.
+- Any ambiguities the subagent flagged.
+- Any documentation it corrected to stay accurate, and why.
+- The `CHANGELOG.md` entry it added under `[Unreleased]` (or why it added none), and that its PR link is still to be added once the PR is opened.
+- That the branch is committed **locally only**. This skill does not push or open a PR — reviewing the diff, pushing, and opening the PR into `develop` (per ADR 0008) is the user's call.
+
+Don't touch the release workflow (`develop` → `main`, version bump, renaming `[Unreleased]`, tagging) from this skill — that's a separate, deliberate action, out of scope for implementing a single feature. The one release-adjacent thing this skill does is the feature's own `[Unreleased]` entry.

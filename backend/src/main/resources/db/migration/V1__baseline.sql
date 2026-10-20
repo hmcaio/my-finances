@@ -1,0 +1,6 @@
+-- F001 baseline migration.
+--
+-- Intentionally a no-op: this project has no domain entities yet (see F001 spec's
+-- "Out of scope" note). Its purpose is to give Flyway a first version to establish its
+-- schema_history table against, so F002's first real migration (V2__...) has a clean
+-- baseline to build on.

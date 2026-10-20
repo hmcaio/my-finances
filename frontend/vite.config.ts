@@ -1,0 +1,46 @@
+import react from '@vitejs/plugin-react'
+import { configDefaults, defineConfig } from 'vitest/config'
+
+// https://vite.dev/config/
+// Imports `defineConfig` from `vitest/config` (a superset of Vite's own) rather than `vite`
+// itself so the `test` key below type-checks - Vitest reads this file directly, there is no
+// separate vitest.config.ts (F015 spec).
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    // Set by the `full` compose profile (ADR 0018): file-change events don't cross a Windows
+    // bind mount into the container, so HMR needs polling there. Native `npm run dev` is unaffected.
+    watch: process.env.VITE_USE_POLLING === 'true' ? { usePolling: true } : undefined,
+  },
+  test: {
+    // Playwright specs (F020) run under `npm run e2e`, never under Vitest.
+    exclude: [...configDefaults.exclude, 'e2e/**'],
+    environment: 'jsdom',
+    // Share the jsdom environment and module graph across test files in a worker instead of
+    // rebuilding them per file (~20s -> ~12s). Safe because every file's setup (src/test/setup.ts)
+    // resets MSW handlers and RTL cleanup, and no test relies on module-level state. If a test
+    // ever leaks state between files, drop this line (pool: 'vmThreads' does not work here).
+    isolate: false,
+    // Fixed non-UTC zone (matches the backend's `-Duser.timezone` in build.gradle) so a UTC-vs-local
+    // bug fails in CI, which runs in UTC, as well as on a developer machine (issue #73). Individual
+    // tests still override it with `vi.stubEnv('TZ', ...)`.
+    env: { TZ: 'America/Sao_Paulo' },
+    setupFiles: ['src/test/setup.ts'],
+    reporters: ['default', ['html', { outputDir: 'test-results' }]],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      reportsDirectory: 'coverage',
+      // Report on product code only: list every source file (so untested ones show as 0%) but not
+      // test tooling, MSW handlers/fixtures or generated code, which would inflate the numbers.
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/api/generated/**',
+        'src/mocks/**',
+        'src/test/**',
+        'src/**/*.d.ts',
+        'src/api/core/schemaDrift.ts',
+      ],
+    },
+  },
+})

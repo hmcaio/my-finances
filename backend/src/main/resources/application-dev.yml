@@ -1,0 +1,24 @@
+# Local dev profile (F001). Active by default (see spring.profiles.default in application.yml)
+# whenever no other profile is set — matches F001's Dockerized-Postgres/native-bootRun dev setup.
+server:
+  address: 127.0.0.1
+
+myfinances:
+  cors:
+    # F036, ADR 0029: credentialed CORS needs exact origins. Vite's dev server; the `full` compose
+    # profile appends http://<BIND_ADDR>:5173 when BIND_ADDR is set (MYFINANCES_CORS_ALLOWED_ORIGINS).
+    allowed-origins: http://localhost:5173
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/myfinances
+    username: myfinances
+    password: myfinances
+    driver-class-name: org.postgresql.Driver
+
+logging:
+  level:
+    com.chm.myfinances: DEBUG
+  file:
+    # Relative to the working directory: backend/logs/ under `./gradlew bootRun`.
+    name: logs/backend.log

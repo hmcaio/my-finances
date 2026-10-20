@@ -1,0 +1,31 @@
+{
+  "title": "Combustível",
+  "addFuelTransactionButton": "Adicionar abastecimento",
+  "description": "Histórico de abastecimento por veículo e as proporções derivadas de km/L, gasto/km e L/km.",
+  "emptyVehicles": "Nenhum veículo ainda - adicione um em Configurações > Veículos primeiro.",
+  "vehicleAria": "Veículo",
+  "pricePerLiterTitle": "Preço por litro",
+  "pricePerLiterChartLabel": "Preço por litro por tipo de combustível",
+  "kmPerLiterTitle": "Km por litro",
+  "kmPerLiterChartLabel": "Km por litro ao longo do tempo",
+  "kmPerLiterSeriesLabel": "km/L",
+  "spendPerKmTitle": "Gasto por km",
+  "spendPerKmChartLabel": "Gasto por km ao longo do tempo",
+  "spendPerKmSeriesLabel": "Gasto/km",
+  "historyAria": "Histórico de abastecimento",
+  "emptyHistory": "Nenhum abastecimento registrado para este veículo ainda.",
+  "columns": {
+    "date": "Data",
+    "fuelType": "Tipo de Combustível",
+    "liters": "Litros",
+    "pricePerLiter": "Preço/Litro",
+    "amount": "Valor",
+    "kmPerLiter": "Km/L",
+    "amountPerKm": "Gasto/km",
+    "kmSinceLastFill": "Km Desde o Último Abastecimento",
+    "odometer": "Odômetro"
+  },
+  "chart": {
+    "defaultEmptyMessage": "Nenhum dado para este veículo ainda."
+  }
+}

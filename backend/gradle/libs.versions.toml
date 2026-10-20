@@ -1,0 +1,30 @@
+[versions]
+springBoot = "4.1.1"
+springDependencyManagement = "1.1.7"
+spotless = "7.0.2"
+springdoc = "2.8.5"
+googleJavaFormat = "1.36.1"
+# Spring Boot's dependency-management BOM pins the core `testcontainers` artifact but not the
+# `junit-jupiter`/`postgresql` Testcontainers modules (see ADR 0010) — imported explicitly as a
+# platform BOM in build.gradle, pinned to the same version the Spring Boot BOM already resolved
+# for the core artifact so every Testcontainers module stays consistent.
+testcontainers = "2.0.5"
+archunit = "1.5.0"
+# F030: OpenPDF (LibrePDF), not iText - iText's current major is AGPL-3.0, a poor fit for a
+# project that publishes Docker images; OpenPDF is LGPL-2.1/MPL-2.0.
+openpdf = "2.2.5"
+# F036, ADR 0029: Spring Security's Argon2PasswordEncoder delegates to Bouncy Castle's Argon2 and
+# declares it only as an optional dependency, so the app has to bring its own. Not in Spring Boot's
+# BOM - pinned here explicitly. Provider jar only (no bcpkix/bcutil: Argon2 needs neither).
+bouncycastle = "1.83"
+
+[libraries]
+springdoc-openapi-starter-webmvc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
+archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
+openpdf = { module = "com.github.librepdf:openpdf", version.ref = "openpdf" }
+bouncycastle-bcprov = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
+
+[plugins]
+spring-boot = { id = "org.springframework.boot", version.ref = "springBoot" }
+spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "springDependencyManagement" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }

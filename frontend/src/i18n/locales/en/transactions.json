@@ -1,0 +1,31 @@
+{
+  "editDialogTitle": "Edit transaction",
+  "addDialogTitle": "Add transaction",
+  "saveChanges": "Save changes",
+  "deleteConfirm": {
+    "title": "Delete this transaction?",
+    "body": "This permanently removes the transaction and cannot be undone.",
+    "confirmLabel": "Delete transaction"
+  },
+  "form": {
+    "dateLabel": "Date",
+    "amountLabel": "Amount",
+    "categoryAria": "Category",
+    "categoryPlaceholder": "Category",
+    "accountAria": "Account",
+    "accountPlaceholder": "Account",
+    "paymentMethodAria": "Payment Method",
+    "paymentMethodPlaceholder": "Payment Method",
+    "descriptionLabel": "Description",
+    "additionalNotesLabel": "Additional Notes",
+    "vehicleAria": "Vehicle",
+    "vehiclePlaceholder": "Vehicle",
+    "fuelTypeAria": "Fuel Type",
+    "fuelTypePlaceholder": "Fuel Type",
+    "litersLabel": "Liters",
+    "pricePerLiterLabel": "Price per Liter",
+    "kmSinceLastFillLabel": "Km Since Last Fill",
+    "kmSinceLastFillHelper": "Leave blank on the vehicle's first recorded fill",
+    "odometerLabel": "Odometer"
+  }
+}

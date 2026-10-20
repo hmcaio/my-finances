@@ -1,0 +1,319 @@
+name: CI/CD
+
+# Runs on every PR, and on pushes to main and vX.Y.Z tags (a branch push is already covered by
+# its PR, so feature branches are not built twice). Images are only built and published
+# (build-and-push job) on pushes to main and on vX.Y.Z tag pushes — not on arbitrary
+# feature-branch commits — per ADR 0006/0007 and
+# docs/features/F014-cicd-production-packaging/spec.md.
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+env:
+  BACKEND_IMAGE: ghcr.io/hmcaio/my-finances-backend
+  FRONTEND_IMAGE: ghcr.io/hmcaio/my-finances-frontend
+  BACKUP_IMAGE: ghcr.io/hmcaio/my-finances-backup
+
+jobs:
+  changes:
+    name: Detect code changes
+    # The branch rulesets (ADR 0008) require the test jobs below, and a required check that never
+    # runs blocks the merge forever. So a docs-only PR must not skip the workflow (`[skip ci]`,
+    # `paths-ignore`): the jobs start, are skipped by `if:` here, and a skipped job counts as
+    # passed. "Docs-only" = every changed path is under docs/ or .claude/ or is a *.md file.
+    # Anything that is not a PR (main and tag pushes) always runs everything.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - id: filter
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          code=true
+          if [ "$EVENT" = "pull_request" ]; then
+            # Renamed files list both paths, so moving code into docs/ still counts as code.
+            files="$(gh api --paginate "repos/$REPO/pulls/$PR/files" \
+              --jq '.[] | .filename, (.previous_filename // empty)')"
+            # An empty list (should not happen) falls through to "run everything".
+            if [ -n "$files" ]; then
+              code=false
+              while IFS= read -r file; do
+                case "$file" in
+                  docs/*|.claude/*|*.md) ;;
+                  *) code=true ;;
+                esac
+              done <<< "$files"
+            fi
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "code changed: $code"
+
+  test-backend:
+    name: Backend tests
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    # No Postgres service container: backend tests use Testcontainers (see ADR 0010), which
+    # starts and tears down its own ephemeral Postgres container per run using the Docker
+    # daemon already available on GitHub's hosted Ubuntu runners. No credentials to provision
+    # or keep in sync here.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check pinned tool versions agree across files
+        run: bash scripts/verify.sh versions
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Make gradlew executable
+        # The wrapper script is checked in without the executable bit (repo was authored on
+        # Windows, where the bit isn't tracked) — Linux runners need it set explicitly.
+        run: chmod +x gradlew
+        working-directory: backend
+
+      - name: spotlessCheck + tests + coverage report
+        # scripts/verify.sh is the same entry point you run locally. It runs `test` (fast tier) and
+        # `integrationTest` (Spring + Testcontainers tier) with `--continue`, so one run reports
+        # everything, and jacocoTestReport in the same invocation (a later step would be skipped
+        # when tests fail, or re-run the tests). Report only - no coverage thresholds.
+        run: bash scripts/verify.sh backend
+
+      - name: Upload test report
+        # Also when tests fail - that is when the report is most useful. `ignore` because Gradle
+        # writes nothing if the build stops before the test task (e.g. on spotlessCheck). Both
+        # paths sit under backend/build, so the artifact holds reports/tests/test/index.html (the
+        # browsable report) and test-results/test/*.xml (JUnit XML).
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-report
+          path: |
+            backend/build/reports/tests/test
+            backend/build/reports/tests/integrationTest
+            backend/build/test-results/test
+            backend/build/test-results/integrationTest
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload coverage report
+        # JaCoCo's HTML report, a static site (open index.html). Nothing is written when the run
+        # fails before `jacocoTestReport`, hence `ignore`.
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/build/reports/jacoco/test/html
+          if-no-files-found: ignore
+          retention-days: 14
+
+  test-frontend:
+    name: Frontend tests
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+        working-directory: frontend
+
+      - name: Lint, format check, type-check and build, tests with coverage
+        # scripts/verify.sh is the same entry point you run locally; each check runs even if an
+        # earlier one fails. Type-check and build because Vitest and ESLint don't run tsc, so a
+        # broken type (e.g. a duplicate operation id in the generated API schema) would otherwise
+        # only fail in the Docker image build on main/tags. Coverage is informational only (no
+        # thresholds) and uploaded below.
+        run: bash scripts/verify.sh frontend
+
+      - name: Upload test report
+        # Vitest's HTML reporter output (configured in vite.config.ts). Unlike the coverage
+        # report below it isn't a static site: to browse a downloaded copy run
+        # `npx vite preview --outDir test-results` from the extracted folder.
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-test-report
+          path: frontend/test-results
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload coverage report
+        # Also on test failure so a red run still leaves whatever report was produced;
+        # `ignore` because Vitest writes no report when the run fails early.
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage
+          if-no-files-found: ignore
+          retention-days: 14
+
+  e2e-frontend:
+    name: Frontend e2e (Playwright)
+    # Layout checks in Chromium at mobile/tablet/desktop widths (F020). Runs against the Vite dev
+    # server with every /api call mocked, so no backend or Postgres. It waits for the unit tests
+    # (no point spending a browser run on a red build) and gates build-and-push. The frontend chain
+    # (~2 min + ~2 min) still finishes before the ~4 min backend job, so wall time is unchanged.
+    # A docs-only PR skips test-frontend, and a skipped dependency skips this job too.
+    needs: test-frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+        working-directory: frontend
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+
+      - name: Install Chromium
+        # --with-deps also installs the OS libraries (apt), which are not part of the cached
+        # browser directory; the browser download itself is skipped on a cache hit.
+        run: npx playwright install --with-deps chromium
+        working-directory: frontend
+
+      - run: bash scripts/verify.sh e2e
+
+      - name: Upload Playwright report and traces
+        # Only on failure: the HTML report (with traces from the retry) is what makes a layout
+        # regression debuggable. `ignore` in case the run died before writing anything.
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report
+            frontend/e2e-results
+          if-no-files-found: ignore
+          retention-days: 14
+
+  test-backup:
+    name: Backup sidecar tests (F018)
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    # Docker is already available on GitHub's hosted Ubuntu runners (same assumption test-backend
+    # relies on for Testcontainers) - the e2e test (backup/test/e2e.sh) builds the real sidecar
+    # image and runs it against throwaway Postgres containers of its own.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install bats-core
+        run: sudo apt-get update && sudo apt-get install -y bats
+
+      - name: bats unit tests + Docker end-to-end test
+        run: bash scripts/verify.sh backup
+
+  build-and-push:
+    name: Build and push images
+    needs: [test-backend, test-frontend, e2e-frontend, test-backup]
+    runs-on: ubuntu-latest
+    # Only publish on pushes to main and on vX.Y.Z tags - every push/PR runs the test jobs
+    # above, but images are only built for deliberate, deployable versions.
+    if: >
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Backend image metadata
+        id: backend-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.BACKEND_IMAGE }}
+          tags: |
+            type=sha,format=short
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=ref,event=tag
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ steps.backend-meta.outputs.tags }}
+          labels: ${{ steps.backend-meta.outputs.labels }}
+
+      - name: Frontend image metadata
+        id: frontend-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.FRONTEND_IMAGE }}
+          tags: |
+            type=sha,format=short
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=ref,event=tag
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ steps.frontend-meta.outputs.tags }}
+          labels: ${{ steps.frontend-meta.outputs.labels }}
+
+      - name: Backup image metadata
+        id: backup-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.BACKUP_IMAGE }}
+          tags: |
+            type=sha,format=short
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=ref,event=tag
+
+      - name: Build and push backup image
+        # BUILD_ID is the git SHA baked into /etc/backup-build-id (ADR 0015) - it changes exactly
+        # when this image does, including for the floating "latest" tag, which a tag-string
+        # comparison alone could never detect as different from a previous "latest" build.
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backup
+          file: ./backup/Dockerfile
+          build-args: |
+            BUILD_ID=${{ github.sha }}
+          push: true
+          tags: ${{ steps.backup-meta.outputs.tags }}
+          labels: ${{ steps.backup-meta.outputs.labels }}

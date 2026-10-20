@@ -1,0 +1,317 @@
+package com.chm.myfinances.infrastructure.web.category;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.chm.myfinances.domain.account.Account;
+import com.chm.myfinances.domain.account.AccountRepository;
+import com.chm.myfinances.domain.budget.BudgetRepository;
+import com.chm.myfinances.domain.institution.InstitutionRepository;
+import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
+import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
+import com.chm.myfinances.domain.shared.TextFieldConstraints;
+import com.chm.myfinances.domain.transaction.TransactionRepository;
+import com.chm.myfinances.testsupport.mothers.BudgetMother;
+import com.chm.myfinances.testsupport.mothers.TestFixtures;
+import com.chm.myfinances.testsupport.mothers.TransactionMother;
+import com.chm.myfinances.testsupport.web.JsonSupport;
+import com.chm.myfinances.testsupport.web.MockMvcSupport;
+import com.chm.myfinances.testsupport.web.WebIntegrationTest;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
+import java.util.Map;
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.web.context.WebApplicationContext;
+
+/**
+ * REST-layer integration test for {@link CategoryController}, against a real Testcontainers
+ * Postgres (ADR 0010). See docs/conventions/backend-testing.md for why {@link MockMvc} is built by
+ * hand from the {@link WebApplicationContext} here instead of via
+ * {@code @AutoConfigureMockMvc}/{@code @WebMvcTest} (removed in Boot 4.x).
+ *
+ * <p>Also exercises F002's verification requirement that attempting to change a category's type via
+ * {@code PATCH} is rejected: {@link UpdateCategoryRequest} has no {@code type} field at all, so a
+ * client sending one can't change it through this endpoint regardless of how Jackson's
+ * unknown-property handling reacts to the extra field.
+ */
+@WebIntegrationTest
+class CategoryControllerTest {
+
+  @Autowired private InstitutionRepository institutionRepository;
+  @Autowired private WebApplicationContext webApplicationContext;
+  @Autowired private TransactionRepository transactionRepository;
+  @Autowired private AccountRepository accountRepository;
+  @Autowired private PaymentMethodRepository paymentMethodRepository;
+  @Autowired private BudgetRepository budgetRepository;
+
+  // Plain (non-Spring-managed) ObjectMapper used only to build/parse test JSON fixtures - no
+  // need for the application's own configured bean here.
+  private final ObjectMapper objectMapper = JsonSupport.MAPPER;
+
+  private MockMvc mockMvc;
+
+  @BeforeEach
+  void setUp() {
+    mockMvc = MockMvcSupport.build(webApplicationContext);
+  }
+
+  @Test
+  void createListRenameAndDeleteRoundTrip() throws Exception {
+    String createBody =
+        objectMapper.writeValueAsString(Map.of("name", "Test Cat", "type", "EXPENSE"));
+    MvcResult createResult =
+        mockMvc
+            .perform(
+                post("/api/categories").contentType(MediaType.APPLICATION_JSON).content(createBody))
+            .andExpect(status().isCreated())
+            .andReturn();
+    String id = JsonSupport.idOf(createResult);
+
+    mockMvc
+        .perform(get("/api/categories"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[?(@.name=='Test Cat')]").exists());
+
+    String renameBody = objectMapper.writeValueAsString(Map.of("name", "Renamed Cat"));
+    mockMvc
+        .perform(
+            patch("/api/categories/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(renameBody))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.name").value("Renamed Cat"))
+        .andExpect(jsonPath("$.type").value("EXPENSE"));
+
+    mockMvc.perform(delete("/api/categories/" + id)).andExpect(status().isNoContent());
+
+    mockMvc
+        .perform(get("/api/categories"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[?(@.name=='Renamed Cat')]").doesNotExist());
+  }
+
+  @Test
+  void listExposesTheBuiltInFlagAndCreatedCategoriesAreNotBuiltIn() throws Exception {
+    // F035/ADR 0028: V2 no longer seeds a regular category by default, so this list-level check
+    // only asserts on the two rows that are always present (the built-in fallbacks); the
+    // not-built-in assertion comes from a category this test creates itself.
+    mockMvc
+        .perform(get("/api/categories"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[?(@.name=='Other Expense')].builtIn").value(true))
+        .andExpect(jsonPath("$[?(@.name=='Other Income')].builtIn").value(true));
+
+    mockMvc
+        .perform(
+            post("/api/categories")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    objectMapper.writeValueAsString(
+                        Map.of("name", "Not Built In Test", "type", "EXPENSE"))))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.builtIn").value(false));
+  }
+
+  @Test
+  void deleteRejectsABuiltInCategoryWith409AndKeepsIt() throws Exception {
+    String builtInId = builtInCategoryId("Other Expense");
+
+    mockMvc
+        .perform(delete("/api/categories/" + builtInId))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.type").value("urn:my-finances:error:built-in-category"));
+
+    mockMvc
+        .perform(get("/api/categories"))
+        .andExpect(jsonPath("$[?(@.id=='" + builtInId + "')]").exists());
+  }
+
+  @Test
+  void renameRejectsABuiltInCategoryWith409AndKeepsItsName() throws Exception {
+    // Issue #117: built-in used to stay freely renamable; it's now protected like fuel/dividend.
+    String builtInId = builtInCategoryId("Other Income");
+
+    mockMvc
+        .perform(
+            patch("/api/categories/" + builtInId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of("name", "Renamed Income Test"))))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.type").value("urn:my-finances:error:built-in-category"));
+
+    mockMvc
+        .perform(get("/api/categories"))
+        .andExpect(jsonPath("$[?(@.name=='Other Income')]").exists());
+  }
+
+  private String builtInCategoryId(String name) throws Exception {
+    MvcResult result =
+        mockMvc.perform(get("/api/categories")).andExpect(status().isOk()).andReturn();
+    for (var node : objectMapper.readTree(result.getResponse().getContentAsString())) {
+      if (node.get("name").asText().equals(name)) {
+        return node.get("id").asText();
+      }
+    }
+    throw new AssertionError("seeded category not found: " + name);
+  }
+
+  @Test
+  void patchWithATypeFieldDoesNotChangeType() throws Exception {
+    String createBody =
+        objectMapper.writeValueAsString(Map.of("name", "Income Test", "type", "INCOME"));
+    MvcResult createResult =
+        mockMvc
+            .perform(
+                post("/api/categories").contentType(MediaType.APPLICATION_JSON).content(createBody))
+            .andExpect(status().isCreated())
+            .andReturn();
+    String id = JsonSupport.idOf(createResult);
+
+    // UpdateCategoryRequest has no `type` field, and Spring Boot's default Jackson config leaves
+    // FAIL_ON_UNKNOWN_PROPERTIES off, so the extra `type` in the body is silently ignored: the
+    // rename succeeds (200) and the category's type is untouched.
+    String patchBody =
+        objectMapper.writeValueAsString(Map.of("name", "Income Test Renamed", "type", "EXPENSE"));
+    mockMvc
+        .perform(
+            patch("/api/categories/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(patchBody))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.name").value("Income Test Renamed"))
+        .andExpect(jsonPath("$.type").value("INCOME"));
+  }
+
+  @Test
+  void deleteRejectsACategoryReferencedByATransactionWith409() throws Exception {
+    String createBody =
+        objectMapper.writeValueAsString(Map.of("name", "In Use", "type", "EXPENSE"));
+    MvcResult createResult =
+        mockMvc
+            .perform(
+                post("/api/categories").contentType(MediaType.APPLICATION_JSON).content(createBody))
+            .andExpect(status().isCreated())
+            .andReturn();
+    String id = JsonSupport.idOf(createResult);
+
+    Account account =
+        TestFixtures.checkingAccount(accountRepository, institutionRepository, "Checking");
+    PaymentMethod paymentMethod =
+        TestFixtures.paymentMethod(paymentMethodRepository, "Debit Card Test");
+    transactionRepository.save(
+        TransactionMother.expense()
+            .withAmount(BigDecimal.TEN)
+            .withCategoryId(UUID.fromString(id))
+            .withAccountId(account.getId())
+            .withPaymentMethodId(paymentMethod.getId())
+            .withDescription("In-use transaction")
+            .build());
+
+    mockMvc.perform(delete("/api/categories/" + id)).andExpect(status().isConflict());
+  }
+
+  @Test
+  void deleteRejectsACategoryReferencedByABudgetWith409() throws Exception {
+    // Post-F007 schema audit: a category with a Budget but no transactions yet must still be
+    // undeletable, since deleting it would orphan budgets.category_id's FK.
+    String createBody =
+        objectMapper.writeValueAsString(Map.of("name", "Budgeted Category", "type", "EXPENSE"));
+    MvcResult createResult =
+        mockMvc
+            .perform(
+                post("/api/categories").contentType(MediaType.APPLICATION_JSON).content(createBody))
+            .andExpect(status().isCreated())
+            .andReturn();
+    String id = JsonSupport.idOf(createResult);
+    budgetRepository.save(BudgetMother.budget().withCategoryId(UUID.fromString(id)).build());
+
+    mockMvc.perform(delete("/api/categories/" + id)).andExpect(status().isConflict());
+  }
+
+  @Test
+  void createRejectsADuplicateNameWith409() throws Exception {
+    String createBody =
+        objectMapper.writeValueAsString(Map.of("name", "Duplicate Category", "type", "EXPENSE"));
+    mockMvc
+        .perform(
+            post("/api/categories").contentType(MediaType.APPLICATION_JSON).content(createBody))
+        .andExpect(status().isCreated());
+
+    mockMvc
+        .perform(
+            post("/api/categories").contentType(MediaType.APPLICATION_JSON).content(createBody))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.type").value("urn:my-finances:error:category-name-already-exists"));
+  }
+
+  @Test
+  void renameRejectsADuplicateNameWith409() throws Exception {
+    String firstBody =
+        objectMapper.writeValueAsString(Map.of("name", "Original Category", "type", "EXPENSE"));
+    mockMvc
+        .perform(post("/api/categories").contentType(MediaType.APPLICATION_JSON).content(firstBody))
+        .andExpect(status().isCreated());
+
+    String secondBody =
+        objectMapper.writeValueAsString(Map.of("name", "Category To Rename", "type", "EXPENSE"));
+    MvcResult createResult =
+        mockMvc
+            .perform(
+                post("/api/categories").contentType(MediaType.APPLICATION_JSON).content(secondBody))
+            .andExpect(status().isCreated())
+            .andReturn();
+    String id = JsonSupport.idOf(createResult);
+
+    String renameBody = objectMapper.writeValueAsString(Map.of("name", "Original Category"));
+    mockMvc
+        .perform(
+            patch("/api/categories/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(renameBody))
+        .andExpect(status().isConflict());
+  }
+
+  @Test
+  void createRejectsNameOverMaxLength() throws Exception {
+    String tooLongName = "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1);
+    String createBody =
+        objectMapper.writeValueAsString(Map.of("name", tooLongName, "type", "EXPENSE"));
+
+    mockMvc
+        .perform(
+            post("/api/categories").contentType(MediaType.APPLICATION_JSON).content(createBody))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void renameRejectsNameOverMaxLength() throws Exception {
+    String createBody =
+        objectMapper.writeValueAsString(Map.of("name", "Test Cat 2", "type", "EXPENSE"));
+    MvcResult createResult =
+        mockMvc
+            .perform(
+                post("/api/categories").contentType(MediaType.APPLICATION_JSON).content(createBody))
+            .andExpect(status().isCreated())
+            .andReturn();
+    String id = JsonSupport.idOf(createResult);
+
+    String tooLongName = "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1);
+    String renameBody = objectMapper.writeValueAsString(Map.of("name", tooLongName));
+    mockMvc
+        .perform(
+            patch("/api/categories/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(renameBody))
+        .andExpect(status().isBadRequest());
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "title": "Instituições",
+  "description": "Os bancos, corretoras e emissores de cartão onde suas contas estão. Toda conta tem uma; use \"Nenhuma instituição\" para dinheiro que não está em nenhuma (uma carteira física, por exemplo). Uma instituição pode ser excluída quando nenhuma conta a usa.",
+  "addButton": "Adicionar instituição",
+  "addDialogTitle": "Adicionar instituição",
+  "emptyList": "Nenhuma instituição ainda.",
+  "defaultSelectLabel": "Instituição",
+  "addNewOption": "Adicionar “{{name}}”"
+}

@@ -1,0 +1,11 @@
+{
+  "title": "Categorias de investimento",
+  "description": "A taxonomia de dois níveis usada para classificar produtos de investimento: uma categoria, e opcionalmente uma subcategoria dentro dela. Conteúdo fixo, definido pelo sistema - não editável.",
+  "nameColumn": "Nome",
+  "subcategoriesColumn": "Subcategorias",
+  "emptyList": "Nenhuma categoria de investimento ainda.",
+  "subcategoryCount_one": "{{count}} subcategoria",
+  "subcategoryCount_other": "{{count}} subcategorias",
+  "collapse": "Recolher {{name}}",
+  "expand": "Expandir {{name}}"
+}

@@ -1,0 +1,109 @@
+package com.chm.myfinances.domain.transaction;
+
+import com.chm.myfinances.domain.category.CategoryType;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+/**
+ * Repository port for {@link Transaction} (ADR 0004: domain/application logic sits behind ports,
+ * isolated from persistence details). Implemented by an adapter in {@code
+ * infrastructure/persistence/transaction}.
+ *
+ * <p>Uses Spring Data's framework-agnostic {@code Page}/{@code Pageable} (spring-data-commons, not
+ * JPA-specific) directly rather than inventing a parallel paging abstraction - F004's list endpoint
+ * is the first paginated one in this codebase, and this keeps the port, the application service,
+ * and the controller all speaking the same shape end to end.
+ */
+public interface TransactionRepository {
+
+  Transaction save(Transaction transaction);
+
+  Optional<Transaction> findById(UUID id);
+
+  void deleteById(UUID id);
+
+  boolean existsById(UUID id);
+
+  /** Filtered, paginated list (F004 spec's {@code GET /api/transactions} query params). */
+  Page<Transaction> findAll(TransactionFilter filter, Pageable pageable);
+
+  /**
+   * Sum of every matching transaction's amount per {@link CategoryType}, over the whole filtered
+   * scope (not a page of it) - backs the Ledger summary (F037). A type with no matching rows is
+   * absent from the map; callers default it to {@link BigDecimal#ZERO}.
+   */
+  Map<CategoryType, BigDecimal> sumAmountByType(TransactionFilter filter);
+
+  /**
+   * Every transaction posted to {@code accountId} on or before {@code asOfDate}, for {@code
+   * AccountBalanceQuery} (F003) to sum into a running balance.
+   */
+  List<Transaction> findByAccountIdOnOrBefore(UUID accountId, LocalDate asOfDate);
+
+  /**
+   * The distinct dates, within {@code from}..{@code to} inclusive, on which any transaction is
+   * posted - the change dates of F010's net worth trend.
+   */
+  List<LocalDate> findDistinctDatesBetween(LocalDate from, LocalDate to);
+
+  /**
+   * Whether any transaction references {@code categoryId} - backs {@code CategoryService}'s
+   * referenced-by-transaction delete guard (F002 plan.md's deferred item, added now that this table
+   * exists to check against).
+   */
+  boolean existsByCategoryId(UUID categoryId);
+
+  /** Same as {@link #existsByCategoryId} but for {@code PaymentMethodService}'s delete guard. */
+  boolean existsByPaymentMethodId(UUID paymentMethodId);
+
+  /** Whether any transaction is posted to {@code accountId} - part of the account delete guard. */
+  boolean existsByAccountId(UUID accountId);
+
+  /**
+   * Whether any transaction carries {@code fuelDetails.vehicleId} equal to {@code vehicleId} -
+   * backs {@code VehicleService}'s referenced-by-transaction delete guard (F024 spec).
+   */
+  boolean existsByFuelDetailsVehicleId(UUID vehicleId);
+
+  /**
+   * Every fuel-purchase transaction for {@code vehicleId}, optionally bounded by {@code from}/
+   * {@code to} (either or both may be {@code null} - unbounded on that side), ordered by date
+   * ascending - backs the Fuel page's per-vehicle history/chart endpoint (F024 spec).
+   */
+  List<Transaction> findByVehicleId(UUID vehicleId, LocalDate from, LocalDate to);
+
+  /**
+   * Sum of every transaction's amount in {@code categoryId} within {@code from}..{@code to}
+   * inclusive, across all accounts - {@code BigDecimal.ZERO} if there are none. Aggregated at the
+   * persistence layer (F006's {@code BudgetReportQuery}) instead of loading every matching
+   * transaction into memory just to reduce them.
+   */
+  BigDecimal sumAmountByCategoryAndDateRange(UUID categoryId, LocalDate from, LocalDate to);
+
+  /**
+   * Sum of every {@code EXPENSE} transaction's amount per category within {@code from}..{@code to}
+   * inclusive, across all accounts - backs F012's {@code MonthlySpendByCategoryQuery}. A category
+   * with no expense in range is simply absent, not mapped to zero.
+   */
+  Map<UUID, BigDecimal> sumExpenseAmountByCategoryForDateRange(LocalDate from, LocalDate to);
+
+  /**
+   * Every transaction in {@code categoryId}, optionally bounded by {@code from}/{@code to} (either
+   * or both may be {@code null} - unbounded on that side), ordered by date ascending - backs F026's
+   * {@code DividendHistoryQuery} (the dividend category's own transactions).
+   */
+  List<Transaction> findByCategoryIdAndDateRange(UUID categoryId, LocalDate from, LocalDate to);
+
+  /**
+   * Whether any transaction carries {@code investmentHoldingId} equal to {@code holdingId} (F026) -
+   * available for a future holding-delete guard; not wired to one yet since the spec doesn't call
+   * for blocking a holding's deletion while it has dividend history.
+   */
+  boolean existsByInvestmentHoldingId(UUID holdingId);
+}

@@ -1,0 +1,44 @@
+# Production profile (F014), activated via SPRING_PROFILES_ACTIVE=prod in docker-compose.prod.yml.
+# Datasource credentials come from environment variables supplied by the gitignored .env file —
+# see .env.example at the repo root for the required keys. Never commit real values.
+#
+# server.address must be 0.0.0.0 (not dev's 127.0.0.1): the frontend's nginx container reaches
+# this one over the Docker network by service name, and a container's loopback address isn't
+# reachable from a sibling container. The container itself is still not published to the
+# host/LAN here (only nginx's port is, in docker-compose.prod.yml, on BIND_ADDR) — so the only way
+# in is through nginx, and every request still needs the F036 login. This is purely
+# container-to-container.
+server:
+  address: 0.0.0.0
+
+myfinances:
+  auth:
+    # F036, ADR 0029: the backend is reachable only through nginx here, which overwrites X-Real-IP
+    # with the real peer address (frontend/nginx.conf) - so the login rate limiter can key on it
+    # instead of seeing every client as the nginx container.
+    client-ip-header: X-Real-IP
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+# The OpenAPI document and Swagger UI are a dev/build-time aid (the frontend's
+# `npm run generate-api-types` reads /v3/api-docs from a dev backend); the production stack does not
+# serve them at all, so the API surface is not browsable even by a logged-in session. Both paths are
+# set in application.yml, which stays the same for every profile.
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+logging:
+  level:
+    # Overridable without a rebuild via LOGGING_LEVEL_COM_CHM_MYFINANCES (LOG_LEVEL in compose).
+    com.chm.myfinances: INFO
+  file:
+    # A named Docker volume is mounted here (docker-compose.prod.yml) so the log outlives the container.
+    name: /var/log/my-finances/backend.log

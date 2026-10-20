@@ -1,0 +1,464 @@
+package com.chm.myfinances.application.investmentreport;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
+
+import com.chm.myfinances.application.investmentsnapshot.InvestmentSnapshotFreshnessQuery;
+import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
+import com.chm.myfinances.domain.account.Account;
+import com.chm.myfinances.domain.institution.Institution;
+import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
+import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
+import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
+import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
+import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
+import com.chm.myfinances.domain.transfer.TradeSide;
+import com.chm.myfinances.domain.transfer.TransferTradeLine;
+import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInstitutionRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentCategoryRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentSubcategoryRepository;
+import com.chm.myfinances.testsupport.fakes.FakeTransferTradeLineRepository;
+import com.chm.myfinances.testsupport.mothers.AccountMother;
+import com.chm.myfinances.testsupport.mothers.InvestmentHoldingMother;
+import com.chm.myfinances.testsupport.mothers.InvestmentProductMother;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import org.junit.jupiter.api.Test;
+
+/**
+ * Tests for {@link InvestmentAllocationQuery} (F009 spec, rewired onto holdings by F022/ADR 0020):
+ * a product's value is the sum of its holdings' latest snapshots, grouped by category or by
+ * category then sub-category. Products with a {@code 0} or missing total add nothing to a group's
+ * total; a group's {@code needsSnapshot} is true when any of its products has a stale holding.
+ */
+class InvestmentAllocationQueryTest {
+
+  private static final LocalDate ASOF = LocalDate.of(2026, 6, 30);
+
+  private final FakeInvestmentProductRepository productRepository =
+      new FakeInvestmentProductRepository();
+  private final FakeInvestmentHoldingRepository holdingRepository =
+      new FakeInvestmentHoldingRepository();
+  private final FakeInvestmentCategoryRepository categoryRepository =
+      new FakeInvestmentCategoryRepository();
+  private final FakeInvestmentSubcategoryRepository subcategoryRepository =
+      new FakeInvestmentSubcategoryRepository();
+  private final FakeInvestmentSnapshotRepository snapshotRepository =
+      new FakeInvestmentSnapshotRepository();
+  private final FakeTransferTradeLineRepository tradeLineRepository =
+      new FakeTransferTradeLineRepository();
+  private final FakeAccountRepository accountRepository = new FakeAccountRepository();
+  private final FakeInstitutionRepository institutionRepository = new FakeInstitutionRepository();
+  private final LatestInvestmentSnapshotQuery latestQuery =
+      new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository);
+  private final InvestmentAllocationQuery query =
+      new InvestmentAllocationQuery(
+          productRepository,
+          holdingRepository,
+          categoryRepository,
+          subcategoryRepository,
+          accountRepository,
+          institutionRepository,
+          latestQuery,
+          new InvestmentSnapshotFreshnessQuery(
+              latestQuery, tradeLineRepository, holdingRepository));
+
+  private final Map<UUID, InvestmentHolding> holdingByProduct = new HashMap<>();
+
+  private final UUID fixedIncome = category("Fixed Income");
+  private final UUID variableIncome = category("Variable Income");
+  private final UUID crypto = category("Crypto");
+  private final UUID cdb = subcategory(fixedIncome, "CDB");
+  private final UUID selicSub = subcategory(fixedIncome, "Tesouro Selic");
+  private final UUID stocks = subcategory(variableIncome, "Stocks");
+
+  private UUID category(String name) {
+    return categoryRepository
+        .save(InvestmentCategory.reconstitute(UUID.randomUUID(), name))
+        .getId();
+  }
+
+  private UUID subcategory(UUID categoryId, String name) {
+    return subcategoryRepository
+        .save(InvestmentSubcategory.reconstitute(UUID.randomUUID(), categoryId, name))
+        .getId();
+  }
+
+  private UUID account(String name) {
+    Account account = accountRepository.save(AccountMother.investment().withName(name).build());
+    return account.getId();
+  }
+
+  private UUID accountAt(String accountName, UUID institutionId) {
+    Account account =
+        accountRepository.save(
+            AccountMother.investment()
+                .withName(accountName)
+                .withInstitutionId(institutionId)
+                .build());
+    return account.getId();
+  }
+
+  private UUID institution(String name) {
+    return institutionRepository.save(Institution.create(UUID.randomUUID(), name)).getId();
+  }
+
+  private InvestmentProduct product(String name, UUID categoryId, UUID subcategoryId) {
+    InvestmentProduct product =
+        productRepository.save(
+            InvestmentProductMother.product()
+                .withName(name)
+                .withInvestmentCategoryId(categoryId)
+                .withInvestmentSubcategoryId(subcategoryId)
+                .build());
+    holdingByProduct.put(
+        product.getId(),
+        holdingRepository.save(
+            InvestmentHoldingMother.holding().withProductId(product.getId()).build()));
+    return product;
+  }
+
+  /** A second holding of the same product, at a different account - for multi-holding coverage. */
+  private InvestmentHolding secondHoldingOf(InvestmentProduct product) {
+    return holdingRepository.save(
+        InvestmentHoldingMother.holding().withProductId(product.getId()).build());
+  }
+
+  /**
+   * A holding of {@code product} at a caller-chosen account, for {@code ACCOUNT} grouping tests.
+   */
+  private InvestmentHolding holdingAt(InvestmentProduct product, UUID accountId) {
+    return holdingRepository.save(
+        InvestmentHoldingMother.holding()
+            .withProductId(product.getId())
+            .withAccountId(accountId)
+            .build());
+  }
+
+  private InvestmentProduct productWithoutHolding(
+      String name, UUID categoryId, UUID subcategoryId) {
+    return productRepository.save(
+        InvestmentProductMother.product()
+            .withName(name)
+            .withInvestmentCategoryId(categoryId)
+            .withInvestmentSubcategoryId(subcategoryId)
+            .build());
+  }
+
+  private void snapshot(InvestmentProduct product, LocalDate date, String balance) {
+    snapshot(holdingByProduct.get(product.getId()), date, balance);
+  }
+
+  private void snapshot(InvestmentHolding holding, LocalDate date, String balance) {
+    snapshotRepository.save(
+        InvestmentSnapshot.create(
+            UUID.randomUUID(), holding.getId(), date, new BigDecimal(balance)));
+  }
+
+  private static final UUID CHECKING_ID = UUID.randomUUID();
+
+  private void trade(InvestmentProduct product, LocalDate date) {
+    trade(holdingByProduct.get(product.getId()), date);
+  }
+
+  private void trade(InvestmentHolding holding, LocalDate date) {
+    tradeLineRepository.add(
+        new TransferTradeLine(
+            UUID.randomUUID(),
+            date,
+            CHECKING_ID,
+            holding.getAccountId(),
+            holding.getProductId(),
+            TradeSide.BUY,
+            BigDecimal.ONE,
+            BigDecimal.ONE,
+            null));
+  }
+
+  @Test
+  void byCategorySumsTheLatestSnapshotOfEveryProductInTheCategory() {
+    InvestmentProduct a = product("CDB A", fixedIncome, cdb);
+    InvestmentProduct b = product("Selic", fixedIncome, selicSub);
+    InvestmentProduct c = product("PETR4", variableIncome, stocks);
+    snapshot(a, LocalDate.of(2026, 5, 31), "100.00");
+    snapshot(a, LocalDate.of(2026, 6, 15), "150.00");
+    snapshot(b, LocalDate.of(2026, 6, 1), "50.00");
+    snapshot(c, LocalDate.of(2026, 6, 10), "300.00");
+
+    List<AllocationRow> rows = query.allocation(ASOF, AllocationGrouping.CATEGORY);
+
+    assertThat(rows)
+        .extracting(AllocationRow::categoryName, r -> r.totalValue().toPlainString())
+        .containsExactly(tuple("Fixed Income", "200.00"), tuple("Variable Income", "300.00"));
+    assertThat(rows).allSatisfy(r -> assertThat(r.subcategoryId()).isNull());
+    assertThat(rows)
+        .extracting(AllocationRow::categoryId)
+        .containsExactly(fixedIncome, variableIncome);
+  }
+
+  @Test
+  void bySubcategoryGroupsByCategoryThenSubcategoryWithANullSliceForProductsWithout() {
+    InvestmentProduct a = product("CDB A", fixedIncome, cdb);
+    InvestmentProduct b = product("Selic", fixedIncome, selicSub);
+    InvestmentProduct bare = product("Fixed misc", fixedIncome, null);
+    InvestmentProduct btc = product("Bitcoin", crypto, null);
+    snapshot(a, LocalDate.of(2026, 6, 1), "100.00");
+    snapshot(b, LocalDate.of(2026, 6, 1), "50.00");
+    snapshot(bare, LocalDate.of(2026, 6, 1), "25.00");
+    snapshot(btc, LocalDate.of(2026, 6, 1), "10.00");
+
+    List<AllocationRow> rows = query.allocation(ASOF, AllocationGrouping.SUBCATEGORY);
+
+    assertThat(rows)
+        .extracting(
+            AllocationRow::categoryName,
+            AllocationRow::subcategoryName,
+            r -> r.totalValue().toPlainString())
+        .containsExactly(
+            tuple("Crypto", null, "10.00"),
+            tuple("Fixed Income", "CDB", "100.00"),
+            tuple("Fixed Income", "Tesouro Selic", "50.00"),
+            tuple("Fixed Income", null, "25.00"));
+    AllocationRow nullSlice =
+        rows.stream()
+            .filter(r -> r.categoryId().equals(fixedIncome) && r.subcategoryId() == null)
+            .findFirst()
+            .orElseThrow();
+    assertThat(nullSlice.subcategoryName()).isNull();
+  }
+
+  @Test
+  void aCategoryTotalEqualsTheSumOfItsSubcategoryRows() {
+    snapshot(product("CDB A", fixedIncome, cdb), LocalDate.of(2026, 6, 1), "100.10");
+    snapshot(product("Selic", fixedIncome, selicSub), LocalDate.of(2026, 6, 1), "50.20");
+    snapshot(product("Fixed misc", fixedIncome, null), LocalDate.of(2026, 6, 1), "25.30");
+
+    BigDecimal categoryTotal =
+        query.allocation(ASOF, AllocationGrouping.CATEGORY).get(0).totalValue();
+    BigDecimal subTotal =
+        query.allocation(ASOF, AllocationGrouping.SUBCATEGORY).stream()
+            .map(AllocationRow::totalValue)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+    assertThat(categoryTotal).isEqualByComparingTo("175.60");
+    assertThat(subTotal).isEqualByComparingTo(categoryTotal);
+  }
+
+  @Test
+  void zeroAndMissingSnapshotsAddNothingAndProduceNoRow() {
+    InvestmentProduct sold = product("Sold", fixedIncome, cdb);
+    product("No snapshot yet", variableIncome, stocks);
+    snapshot(sold, LocalDate.of(2026, 5, 1), "500.00");
+    snapshot(sold, LocalDate.of(2026, 6, 1), "0.00");
+
+    assertThat(query.allocation(ASOF, AllocationGrouping.CATEGORY)).isEmpty();
+    assertThat(query.allocation(ASOF, AllocationGrouping.SUBCATEGORY)).isEmpty();
+  }
+
+  @Test
+  void aZeroedProductInAPopulatedCategoryDoesNotChangeItsTotal() {
+    InvestmentProduct sold = product("Sold", fixedIncome, cdb);
+    InvestmentProduct held = product("Held", fixedIncome, cdb);
+    snapshot(sold, LocalDate.of(2026, 6, 1), "0.00");
+    snapshot(held, LocalDate.of(2026, 6, 1), "80.00");
+
+    List<AllocationRow> rows = query.allocation(ASOF, AllocationGrouping.CATEGORY);
+
+    assertThat(rows).hasSize(1);
+    assertThat(rows.get(0).totalValue()).isEqualByComparingTo("80.00");
+  }
+
+  @Test
+  void asOfIgnoresLaterSnapshots() {
+    InvestmentProduct a = product("CDB A", fixedIncome, cdb);
+    snapshot(a, LocalDate.of(2026, 5, 31), "100.00");
+    snapshot(a, LocalDate.of(2026, 7, 31), "999.00");
+
+    List<AllocationRow> rows = query.allocation(ASOF, AllocationGrouping.CATEGORY);
+
+    assertThat(rows.get(0).totalValue()).isEqualByComparingTo("100.00");
+    assertThat(query.allocation(LocalDate.of(2026, 5, 30), AllocationGrouping.CATEGORY)).isEmpty();
+  }
+
+  @Test
+  void needsSnapshotIsTrueWhenAnyProductInTheGroupIsStale() {
+    InvestmentProduct stale = product("Stale", fixedIncome, cdb);
+    InvestmentProduct fresh = product("Fresh", fixedIncome, selicSub);
+    InvestmentProduct otherFresh = product("PETR4", variableIncome, stocks);
+    snapshot(stale, LocalDate.of(2026, 5, 1), "100.00");
+    trade(stale, LocalDate.of(2026, 6, 10));
+    snapshot(fresh, LocalDate.of(2026, 6, 20), "50.00");
+    trade(fresh, LocalDate.of(2026, 6, 10));
+    snapshot(otherFresh, LocalDate.of(2026, 6, 1), "10.00");
+
+    List<AllocationRow> byCategory = query.allocation(ASOF, AllocationGrouping.CATEGORY);
+    List<AllocationRow> bySub = query.allocation(ASOF, AllocationGrouping.SUBCATEGORY);
+
+    assertThat(byCategory)
+        .extracting(AllocationRow::categoryName, AllocationRow::needsSnapshot)
+        .containsExactly(tuple("Fixed Income", true), tuple("Variable Income", false));
+    assertThat(bySub)
+        .extracting(AllocationRow::subcategoryName, AllocationRow::needsSnapshot)
+        .containsExactly(tuple("CDB", true), tuple("Tesouro Selic", false), tuple("Stocks", false));
+  }
+
+  @Test
+  void aStaleProductWithNoValueYetStillFlagsItsGroupSoTheWarningIsNotLost() {
+    InvestmentProduct justBought = product("Just bought", crypto, null);
+    trade(justBought, LocalDate.of(2026, 6, 10));
+
+    List<AllocationRow> rows = query.allocation(ASOF, AllocationGrouping.CATEGORY);
+
+    assertThat(rows).hasSize(1);
+    assertThat(rows.get(0).totalValue()).isEqualByComparingTo("0");
+    assertThat(rows.get(0).needsSnapshot()).isTrue();
+  }
+
+  @Test
+  void aProductHeldAtTwoAccountsSumsBothHoldingsIntoOneGroupTotal() {
+    InvestmentProduct product = product("Selic Multi", fixedIncome, selicSub);
+    InvestmentHolding secondHolding = secondHoldingOf(product);
+    snapshot(product, LocalDate.of(2026, 6, 1), "100.00");
+    snapshot(secondHolding, LocalDate.of(2026, 6, 1), "50.00");
+
+    List<AllocationRow> rows = query.allocation(ASOF, AllocationGrouping.CATEGORY);
+
+    assertThat(rows).hasSize(1);
+    assertThat(rows.get(0).totalValue()).isEqualByComparingTo("150.00");
+  }
+
+  @Test
+  void byAccountSumsTheLatestSnapshotOfEveryHoldingInTheAccount() {
+    UUID xp = account("XP Test");
+    UUID nu = account("Nubank Test");
+    InvestmentProduct a = productWithoutHolding("CDB A", fixedIncome, cdb);
+    InvestmentProduct b = productWithoutHolding("Selic", fixedIncome, selicSub);
+    snapshot(holdingAt(a, xp), LocalDate.of(2026, 6, 1), "100.00");
+    snapshot(holdingAt(b, nu), LocalDate.of(2026, 6, 1), "50.00");
+
+    List<AllocationRow> rows = query.allocation(ASOF, AllocationGrouping.ACCOUNT);
+
+    assertThat(rows)
+        .extracting(AllocationRow::accountName, r -> r.totalValue().toPlainString())
+        .containsExactly(tuple("Nubank Test", "50.00"), tuple("XP Test", "100.00"));
+    assertThat(rows)
+        .allSatisfy(
+            row -> {
+              assertThat(row.categoryId()).isNull();
+              assertThat(row.categoryName()).isNull();
+              assertThat(row.subcategoryId()).isNull();
+              assertThat(row.subcategoryName()).isNull();
+            });
+  }
+
+  @Test
+  void aProductHeldAtTwoAccountsContributesToEachAccountSeparately() {
+    UUID xp = account("XP Test");
+    UUID nu = account("Nubank Test");
+    InvestmentProduct product = productWithoutHolding("Selic Multi", fixedIncome, selicSub);
+    InvestmentHolding atXp = holdingAt(product, xp);
+    InvestmentHolding atNu = holdingAt(product, nu);
+    snapshot(atXp, LocalDate.of(2026, 6, 1), "100.00");
+    snapshot(atNu, LocalDate.of(2026, 6, 1), "50.00");
+
+    List<AllocationRow> rows = query.allocation(ASOF, AllocationGrouping.ACCOUNT);
+
+    assertThat(rows)
+        .extracting(AllocationRow::accountName, r -> r.totalValue().toPlainString())
+        .containsExactlyInAnyOrder(tuple("XP Test", "100.00"), tuple("Nubank Test", "50.00"));
+  }
+
+  @Test
+  void needsSnapshotIsTrueForAnAccountWithAStaleHolding() {
+    UUID xp = account("XP Test");
+    UUID nu = account("Nubank Test");
+    InvestmentProduct stale = productWithoutHolding("Stale", fixedIncome, cdb);
+    InvestmentProduct fresh = productWithoutHolding("Fresh", fixedIncome, selicSub);
+    InvestmentHolding staleHolding = holdingAt(stale, xp);
+    InvestmentHolding freshHolding = holdingAt(fresh, nu);
+    snapshot(staleHolding, LocalDate.of(2026, 5, 1), "100.00");
+    trade(staleHolding, LocalDate.of(2026, 6, 10));
+    snapshot(freshHolding, LocalDate.of(2026, 6, 20), "50.00");
+    trade(freshHolding, LocalDate.of(2026, 6, 10));
+
+    List<AllocationRow> rows = query.allocation(ASOF, AllocationGrouping.ACCOUNT);
+
+    assertThat(rows)
+        .extracting(AllocationRow::accountName, AllocationRow::needsSnapshot)
+        .containsExactly(tuple("Nubank Test", false), tuple("XP Test", true));
+  }
+
+  @Test
+  void anAccountWithNoHoldingsOrOnlyZeroSnapshotsAndNothingStaleIsOmitted() {
+    UUID zeroAccount = account("Zero Test");
+    account("Empty Test");
+    InvestmentProduct sold = productWithoutHolding("Sold", fixedIncome, cdb);
+    snapshot(holdingAt(sold, zeroAccount), LocalDate.of(2026, 6, 1), "0.00");
+
+    List<AllocationRow> rows = query.allocation(ASOF, AllocationGrouping.ACCOUNT);
+
+    assertThat(rows).isEmpty();
+  }
+
+  @Test
+  void aStaleAccountWithNoValueYetStillFlagsItsGroupSoTheWarningIsNotLost() {
+    UUID xp = account("XP Test");
+    InvestmentProduct justBought = productWithoutHolding("Just bought", crypto, null);
+    trade(holdingAt(justBought, xp), LocalDate.of(2026, 6, 10));
+
+    List<AllocationRow> rows = query.allocation(ASOF, AllocationGrouping.ACCOUNT);
+
+    assertThat(rows).hasSize(1);
+    assertThat(rows.get(0).totalValue()).isEqualByComparingTo("0");
+    assertThat(rows.get(0).needsSnapshot()).isTrue();
+  }
+
+  @Test
+  void byInstitutionSumsEveryHoldingUnderAccountsAtThatInstitutionRegardlessOfProduct() {
+    UUID xpInstitution = institution("XP Test");
+    UUID nuInstitution = institution("Nubank Test");
+    UUID xpAccount = accountAt("XP Broker Test", xpInstitution);
+    UUID xpAccount2 = accountAt("XP Broker Test 2", xpInstitution);
+    UUID nuAccount = accountAt("Nubank Broker Test", nuInstitution);
+    InvestmentProduct a = productWithoutHolding("CDB A", fixedIncome, cdb);
+    InvestmentProduct b = productWithoutHolding("PETR4", variableIncome, stocks);
+    snapshot(holdingAt(a, xpAccount), LocalDate.of(2026, 6, 1), "100.00");
+    snapshot(holdingAt(b, xpAccount2), LocalDate.of(2026, 6, 1), "50.00");
+    snapshot(holdingAt(a, nuAccount), LocalDate.of(2026, 6, 1), "30.00");
+
+    List<AllocationRow> rows = query.allocation(ASOF, AllocationGrouping.INSTITUTION);
+
+    assertThat(rows)
+        .extracting(AllocationRow::institutionName, r -> r.totalValue().toPlainString())
+        .containsExactly(tuple("Nubank Test", "30.00"), tuple("XP Test", "150.00"));
+    assertThat(rows)
+        .allSatisfy(
+            row -> {
+              assertThat(row.categoryId()).isNull();
+              assertThat(row.accountId()).isNull();
+            });
+  }
+
+  @Test
+  void needsSnapshotIsTrueForAnInstitutionWithAStaleHolding() {
+    UUID xpInstitution = institution("XP Test");
+    UUID xpAccount = accountAt("XP Broker Test", xpInstitution);
+    InvestmentProduct stale = productWithoutHolding("Stale", fixedIncome, cdb);
+    InvestmentHolding staleHolding = holdingAt(stale, xpAccount);
+    snapshot(staleHolding, LocalDate.of(2026, 5, 1), "100.00");
+    trade(staleHolding, LocalDate.of(2026, 6, 10));
+
+    List<AllocationRow> rows = query.allocation(ASOF, AllocationGrouping.INSTITUTION);
+
+    assertThat(rows).hasSize(1);
+    assertThat(rows.get(0).needsSnapshot()).isTrue();
+  }
+}

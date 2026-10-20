@@ -1,0 +1,473 @@
+package com.chm.myfinances.infrastructure.web.investmentproduct;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.chm.myfinances.domain.account.AccountRepository;
+import com.chm.myfinances.domain.account.AccountType;
+import com.chm.myfinances.domain.institution.InstitutionRepository;
+import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
+import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
+import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
+import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategoryRepository;
+import com.chm.myfinances.domain.shared.TextFieldConstraints;
+import com.chm.myfinances.testsupport.mothers.TestFixtures;
+import com.chm.myfinances.testsupport.web.JsonSupport;
+import com.chm.myfinances.testsupport.web.MockMvcSupport;
+import com.chm.myfinances.testsupport.web.WebIntegrationTest;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Stream;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.web.context.WebApplicationContext;
+
+/**
+ * REST-layer integration test for {@link InvestmentProductController}, against a real
+ * Testcontainers Postgres (ADR 0010), hand-built {@link MockMvc}. F022: pure taxonomy, so create
+ * still asks for {@code accountId} (to create the first holding, two-write) but the response no
+ * longer carries {@code accountId}/{@code closedDate}/{@code hasHistory} - those moved to the
+ * holding, exercised by {@code InvestmentHoldingControllerTest}.
+ */
+@WebIntegrationTest
+class InvestmentProductControllerTest {
+
+  @Autowired private WebApplicationContext webApplicationContext;
+  @Autowired private AccountRepository accountRepository;
+  @Autowired private InstitutionRepository institutionRepository;
+  @Autowired private InvestmentCategoryRepository categoryRepository;
+  @Autowired private InvestmentSubcategoryRepository subcategoryRepository;
+
+  private final ObjectMapper objectMapper = JsonSupport.MAPPER;
+
+  private MockMvc mockMvc;
+  private UUID accountId;
+  private UUID otherAccountId;
+  private UUID checkingId;
+  private UUID fixedIncomeId;
+  private UUID cryptoId;
+  private UUID cdbId;
+
+  @BeforeEach
+  void setUp() {
+    mockMvc = MockMvcSupport.build(webApplicationContext);
+    accountId = saveAccount("XP Product Test", AccountType.INVESTMENT);
+    otherAccountId = saveAccount("Nubank Product Test", AccountType.INVESTMENT);
+    checkingId = saveAccount("Checking Product Test", AccountType.CHECKING);
+    fixedIncomeId =
+        categoryRepository
+            .save(InvestmentCategory.reconstitute(UUID.randomUUID(), "Fixed Income Product Test"))
+            .getId();
+    cryptoId =
+        categoryRepository
+            .save(InvestmentCategory.reconstitute(UUID.randomUUID(), "Crypto Product Test"))
+            .getId();
+    cdbId =
+        subcategoryRepository
+            .save(
+                InvestmentSubcategory.reconstitute(
+                    UUID.randomUUID(), fixedIncomeId, "CDB Product Test"))
+            .getId();
+  }
+
+  private UUID saveAccount(String name, AccountType type) {
+    return TestFixtures.account(accountRepository, institutionRepository, name, type).getId();
+  }
+
+  private String body(UUID account, UUID category, UUID subcategory, String name) throws Exception {
+    return body(account, category, subcategory, name, null);
+  }
+
+  private String body(
+      UUID account, UUID category, UUID subcategory, String name, String additionalNotes)
+      throws Exception {
+    Map<String, Object> body = new HashMap<>();
+    body.put("accountId", account == null ? null : account.toString());
+    body.put("investmentCategoryId", category == null ? null : category.toString());
+    body.put("investmentSubcategoryId", subcategory == null ? null : subcategory.toString());
+    body.put("name", name);
+    body.put("additionalNotes", additionalNotes);
+    return objectMapper.writeValueAsString(body);
+  }
+
+  private String createProduct(UUID account, UUID category, UUID subcategory, String name)
+      throws Exception {
+    MvcResult result =
+        mockMvc
+            .perform(
+                post("/api/investment-products")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(body(account, category, subcategory, name)))
+            .andExpect(status().isCreated())
+            .andReturn();
+    return JsonSupport.idOf(result);
+  }
+
+  @Test
+  void createReturnsTheProductAndCreatesItsFirstHolding() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/investment-products")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body(accountId, fixedIncomeId, cdbId, "CDB 110% Test", "matures 2030")))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.accountId").doesNotExist())
+        .andExpect(jsonPath("$.closedDate").doesNotExist())
+        .andExpect(jsonPath("$.hasHistory").doesNotExist())
+        .andExpect(jsonPath("$.investmentCategoryId").value(fixedIncomeId.toString()))
+        .andExpect(jsonPath("$.investmentSubcategoryId").value(cdbId.toString()))
+        .andExpect(jsonPath("$.name").value("CDB 110% Test"))
+        .andExpect(jsonPath("$.additionalNotes").value("matures 2030"))
+        // F023: derived, not stored - false because the first holding is open.
+        .andExpect(jsonPath("$.closed").value(false));
+  }
+
+  @Test
+  void createsTheFirstHoldingInTheGivenAccount() throws Exception {
+    String id = createProduct(accountId, cryptoId, null, "Bitcoin Test");
+
+    mockMvc
+        .perform(get("/api/investment-holdings").param("productId", id))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(1)))
+        .andExpect(jsonPath("$[0].accountId").value(accountId.toString()))
+        .andExpect(jsonPath("$[0].closed").value(false));
+  }
+
+  @Test
+  void aCategoryOnlyProductSaves() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/investment-products")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body(accountId, cryptoId, null, "Bitcoin Test")))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.investmentSubcategoryId").doesNotExist())
+        .andExpect(jsonPath("$.additionalNotes").doesNotExist());
+  }
+
+  private static Stream<String> missingRequiredFieldsAndOverlongNameCases() {
+    return Stream.of(
+        "missing accountId",
+        "missing investmentCategoryId",
+        "blank name",
+        "name over the length limit",
+        "notes over the length limit",
+        "empty body");
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("missingRequiredFieldsAndOverlongNameCases")
+  void createRejectsMissingRequiredFieldsAndOverlongNameWith400(String caseName) throws Exception {
+    String content =
+        switch (caseName) {
+          case "missing accountId" -> body(null, cryptoId, null, "Bitcoin Test");
+          case "missing investmentCategoryId" -> body(accountId, null, null, "Bitcoin Test");
+          case "blank name" -> body(accountId, cryptoId, null, " ");
+          case "name over the length limit" ->
+              body(accountId, cryptoId, null, "a".repeat(TextFieldConstraints.MAX_NAME_LENGTH + 1));
+          case "notes over the length limit" ->
+              body(
+                  accountId,
+                  cryptoId,
+                  null,
+                  "Bitcoin Test",
+                  "a".repeat(TextFieldConstraints.MAX_ADDITIONAL_NOTES_LENGTH + 1));
+          case "empty body" -> "{}";
+          default -> throw new IllegalArgumentException(caseName);
+        };
+
+    mockMvc
+        .perform(
+            post("/api/investment-products")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(content))
+        .andExpect(status().isBadRequest());
+  }
+
+  private static Stream<String> unknownReferenceCases() {
+    return Stream.of(
+        "unknown accountId", "unknown investmentCategoryId", "unknown investmentSubcategoryId");
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("unknownReferenceCases")
+  void createRejectsUnknownReferencesWith404(String caseName) throws Exception {
+    String content =
+        switch (caseName) {
+          case "unknown accountId" -> body(UUID.randomUUID(), cryptoId, null, "Bitcoin Test");
+          case "unknown investmentCategoryId" ->
+              body(accountId, UUID.randomUUID(), null, "Bitcoin Test");
+          case "unknown investmentSubcategoryId" ->
+              body(accountId, fixedIncomeId, UUID.randomUUID(), "Bitcoin Test");
+          default -> throw new IllegalArgumentException(caseName);
+        };
+
+    mockMvc
+        .perform(
+            post("/api/investment-products")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(content))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void createRejectsANonInvestmentAccountWith409() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/investment-products")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body(checkingId, cryptoId, null, "Bitcoin Test")))
+        .andExpect(status().isConflict());
+  }
+
+  @Test
+  void createRejectsASubcategoryOfAnotherCategoryWith409() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/investment-products")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body(accountId, cryptoId, cdbId, "Bitcoin Test")))
+        .andExpect(status().isConflict());
+  }
+
+  @Test
+  void createRejectsAGloballyDuplicateNameEvenAcrossAccounts() throws Exception {
+    createProduct(accountId, cryptoId, null, "Bitcoin Test");
+
+    mockMvc
+        .perform(
+            post("/api/investment-products")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body(accountId, cryptoId, null, "Bitcoin Test")))
+        .andExpect(status().isConflict());
+    mockMvc
+        .perform(
+            post("/api/investment-products")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body(otherAccountId, cryptoId, null, "Bitcoin Test")))
+        .andExpect(status().isConflict());
+  }
+
+  @Test
+  void listReturnsAPagedModelOfEveryOpenProductByDefault() throws Exception {
+    String atXp = createProduct(accountId, cryptoId, null, "Bitcoin Test");
+    String atNu = createProduct(otherAccountId, cryptoId, null, "Ethereum Test");
+
+    mockMvc
+        .perform(get("/api/investment-products"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[?(@.id=='" + atXp + "')]").exists())
+        .andExpect(jsonPath("$.content[?(@.id=='" + atNu + "')]").exists())
+        .andExpect(jsonPath("$.page.size").value(20))
+        .andExpect(jsonPath("$.page.totalElements").value(2));
+  }
+
+  @Test
+  void listFiltersByCategorySubcategoryAndName() throws Exception {
+    String cdb = createProduct(accountId, fixedIncomeId, cdbId, "CDB List Test");
+    createProduct(accountId, cryptoId, null, "Bitcoin List Test");
+
+    mockMvc
+        .perform(get("/api/investment-products").param("categoryId", fixedIncomeId.toString()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[?(@.id=='" + cdb + "')]").exists())
+        .andExpect(jsonPath("$.content.length()").value(1));
+
+    mockMvc
+        .perform(get("/api/investment-products").param("subcategoryId", cdbId.toString()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[?(@.id=='" + cdb + "')]").exists())
+        .andExpect(jsonPath("$.content.length()").value(1));
+
+    mockMvc
+        .perform(get("/api/investment-products").param("name", "cdb list"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[?(@.id=='" + cdb + "')]").exists())
+        .andExpect(jsonPath("$.content.length()").value(1));
+  }
+
+  @Test
+  void listFiltersByAccountMeaningHasAHoldingThere() throws Exception {
+    String atXp = createProduct(accountId, cryptoId, null, "At XP List Test");
+    createProduct(otherAccountId, cryptoId, null, "At NU List Test");
+
+    mockMvc
+        .perform(get("/api/investment-products").param("accountId", accountId.toString()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[?(@.id=='" + atXp + "')]").exists())
+        .andExpect(jsonPath("$.content.length()").value(1));
+  }
+
+  @Test
+  void listFiltersByStatusAndDefaultsToOpen() throws Exception {
+    String open = createProduct(accountId, cryptoId, null, "Open Status List Test");
+    String closed = createProduct(otherAccountId, cryptoId, null, "Closed Status List Test");
+    MvcResult holdingsResult =
+        mockMvc
+            .perform(get("/api/investment-holdings").param("productId", closed))
+            .andExpect(status().isOk())
+            .andReturn();
+    String closedHoldingId =
+        objectMapper
+            .readTree(holdingsResult.getResponse().getContentAsString())
+            .get(0)
+            .get("id")
+            .asText();
+    mockMvc
+        .perform(post("/api/investment-holdings/" + closedHoldingId + "/close"))
+        .andExpect(status().is2xxSuccessful());
+
+    mockMvc
+        .perform(get("/api/investment-products").param("name", "Status List Test"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[?(@.id=='" + open + "')]").exists())
+        .andExpect(jsonPath("$.content.length()").value(1))
+        .andExpect(jsonPath("$.content[0].closed").value(false));
+
+    mockMvc
+        .perform(
+            get("/api/investment-products")
+                .param("name", "Status List Test")
+                .param("status", "CLOSED"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[?(@.id=='" + closed + "')]").exists())
+        .andExpect(jsonPath("$.content.length()").value(1))
+        .andExpect(jsonPath("$.content[0].closed").value(true));
+
+    mockMvc
+        .perform(
+            get("/api/investment-products")
+                .param("name", "Status List Test")
+                .param("status", "ALL"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content.length()").value(2));
+  }
+
+  @Test
+  void listPaginates() throws Exception {
+    createProduct(accountId, cryptoId, null, "Page A List Test");
+    createProduct(accountId, cryptoId, null, "Page B List Test");
+    createProduct(accountId, cryptoId, null, "Page C List Test");
+
+    mockMvc
+        .perform(
+            get("/api/investment-products")
+                .param("name", "Page")
+                .param("status", "ALL")
+                .param("page", "0")
+                .param("size", "2"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content.length()").value(2))
+        .andExpect(jsonPath("$.page.totalElements").value(3))
+        .andExpect(jsonPath("$.page.totalPages").value(2));
+  }
+
+  @Test
+  void getReturnsTheDetail() throws Exception {
+    String id = createProduct(accountId, fixedIncomeId, cdbId, "CDB Test");
+
+    mockMvc
+        .perform(get("/api/investment-products/" + id))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(id));
+  }
+
+  @Test
+  void getOfUnknownIdReturns404() throws Exception {
+    mockMvc
+        .perform(get("/api/investment-products/" + UUID.randomUUID()))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void patchReclassifiesRenamesAndUpdatesNotes() throws Exception {
+    String id = createProduct(accountId, fixedIncomeId, cdbId, "CDB Test");
+
+    mockMvc
+        .perform(
+            patch("/api/investment-products/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body(accountId, cryptoId, null, "Bitcoin Test", "renamed")))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.investmentCategoryId").value(cryptoId.toString()))
+        .andExpect(jsonPath("$.investmentSubcategoryId").doesNotExist())
+        .andExpect(jsonPath("$.name").value("Bitcoin Test"))
+        .andExpect(jsonPath("$.additionalNotes").value("renamed"));
+  }
+
+  @Test
+  void patchRunsTheSameChecksAsCreate() throws Exception {
+    String id = createProduct(accountId, fixedIncomeId, cdbId, "CDB Test");
+    createProduct(accountId, cryptoId, null, "Bitcoin Test");
+
+    mockMvc
+        .perform(
+            patch("/api/investment-products/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body(accountId, cryptoId, cdbId, "CDB Test")))
+        .andExpect(status().isConflict());
+    mockMvc
+        .perform(
+            patch("/api/investment-products/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body(accountId, fixedIncomeId, cdbId, "Bitcoin Test")))
+        .andExpect(status().isConflict());
+    mockMvc
+        .perform(
+            patch("/api/investment-products/" + UUID.randomUUID())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body(accountId, cryptoId, null, "Anything Test")))
+        .andExpect(status().isNotFound());
+    mockMvc
+        .perform(
+            patch("/api/investment-products/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body(accountId, null, null, "CDB Test")))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void deleteIsBlockedWhileTheProductHasAHoldingButSucceedsOnceRemoved() throws Exception {
+    String id = createProduct(accountId, cryptoId, null, "Bitcoin Test");
+
+    mockMvc.perform(delete("/api/investment-products/" + id)).andExpect(status().isConflict());
+
+    MvcResult holdingsResult =
+        mockMvc
+            .perform(get("/api/investment-holdings").param("productId", id))
+            .andExpect(status().isOk())
+            .andReturn();
+    String holdingId =
+        objectMapper
+            .readTree(holdingsResult.getResponse().getContentAsString())
+            .get(0)
+            .get("id")
+            .asText();
+    mockMvc
+        .perform(delete("/api/investment-holdings/" + holdingId))
+        .andExpect(status().isNoContent());
+
+    mockMvc.perform(delete("/api/investment-products/" + id)).andExpect(status().isNoContent());
+    mockMvc.perform(get("/api/investment-products/" + id)).andExpect(status().isNotFound());
+  }
+
+  @Test
+  void deleteOfUnknownIdReturns404() throws Exception {
+    mockMvc
+        .perform(delete("/api/investment-products/" + UUID.randomUUID()))
+        .andExpect(status().isNotFound());
+  }
+}

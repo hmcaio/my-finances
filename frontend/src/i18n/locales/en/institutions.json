@@ -1,0 +1,9 @@
+{
+  "title": "Institutions",
+  "description": "The banks, brokers and card issuers your accounts sit at. Every account has one; use \"No institution\" for money that isn't at any (a cash wallet, for example). An institution can be deleted once no account uses it.",
+  "addButton": "Add institution",
+  "addDialogTitle": "Add institution",
+  "emptyList": "No institutions yet.",
+  "defaultSelectLabel": "Institution",
+  "addNewOption": "Add “{{name}}”"
+}

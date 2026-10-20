@@ -1,0 +1,82 @@
+import { http, HttpResponse } from 'msw'
+import type { Institution } from '../../api/institutions/institutions'
+import { createStore } from '../store'
+
+/**
+ * Seed data returned by the default `GET /api/institutions` handler below, in the backend's order
+ * (sorted by name), so the built-in "No institution" row is NOT first here - the UI is what puts
+ * it first. Exported so tests can assert against it instead of duplicating the fixture.
+ */
+export const seedInstitutions: Institution[] = [
+  { id: 'inst-1', name: 'Itau', builtIn: false },
+  { id: 'inst-none', name: 'No institution', builtIn: true },
+  { id: 'inst-2', name: 'Nubank', builtIn: false },
+]
+
+/** The built-in row's id: the default for a new account. */
+export const BUILT_IN_INSTITUTION_ID = 'inst-none'
+
+const INSTITUTIONS_URL = '/api/institutions'
+
+interface InstitutionRequestBody {
+  name: string
+}
+
+const institutions = createStore(seedInstitutions)
+
+/**
+ * Default success-path handlers for every institutions endpoint (F017's REST API), backed by an
+ * in-memory store restored after each test (see `categories.ts`).
+ */
+export const institutionsHandlers = [
+  http.get(INSTITUTIONS_URL, () => HttpResponse.json(institutions.list())),
+
+  http.post(INSTITUTIONS_URL, async ({ request }) => {
+    const body = (await request.json()) as InstitutionRequestBody
+    const created = institutions.add({
+      id: institutions.nextId('inst'),
+      name: body.name,
+      builtIn: false,
+    })
+    return HttpResponse.json(created, { status: 201 })
+  }),
+
+  http.patch(`${INSTITUTIONS_URL}/:id`, async ({ request, params }) => {
+    const body = (await request.json()) as InstitutionRequestBody
+    const updated = institutions.replace(params.id as string, (row) => ({
+      ...row,
+      name: body.name,
+    }))
+    return updated ? HttpResponse.json(updated) : new HttpResponse(null, { status: 404 })
+  }),
+
+  http.delete(`${INSTITUTIONS_URL}/:id`, ({ params }) => {
+    institutions.remove(params.id as string)
+    return new HttpResponse(null, { status: 204 })
+  }),
+]
+
+/**
+ * `409` variant for deleting an institution an account still references (F017's
+ * `InstitutionInUseException`) - applied via `server.use(...)`. The backend sends no exception
+ * text - only the RFC 9457 `type` identifier (F031/ADR 0026) - and what the UI shows comes from
+ * `apiError.ts`'s central `PROBLEM_TYPE_MESSAGES` map.
+ */
+export const institutionDeleteConflictHandler = http.delete(`${INSTITUTIONS_URL}/:id`, () =>
+  HttpResponse.json({ type: 'urn:my-finances:error:institution-in-use' }, { status: 409 }),
+)
+
+/** `409` variants for the duplicate-name case on create/rename (`InstitutionNameAlreadyExistsException`). */
+export const institutionCreateConflictHandler = http.post(INSTITUTIONS_URL, () =>
+  HttpResponse.json(
+    { type: 'urn:my-finances:error:institution-name-already-exists' },
+    { status: 409 },
+  ),
+)
+
+export const institutionRenameConflictHandler = http.patch(`${INSTITUTIONS_URL}/:id`, () =>
+  HttpResponse.json(
+    { type: 'urn:my-finances:error:institution-name-already-exists' },
+    { status: 409 },
+  ),
+)

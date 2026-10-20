@@ -1,0 +1,151 @@
+{
+  "language": {
+    "switchToEnglish": "Switch to English",
+    "switchToPortuguese": "Switch to Portuguese (Brazil)"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "ledger": "Ledger",
+    "fuel": "Fuel",
+    "accounts": "Accounts",
+    "budgets": "Budgets",
+    "recurring": "Recurring",
+    "investments": "Investments",
+    "fiiPortfolio": "FII Portfolio",
+    "categories": "Categories",
+    "investmentCategories": "Investment Categories",
+    "investmentSegments": "Investment Segments",
+    "institutions": "Institutions",
+    "paymentMethods": "Payment Methods",
+    "systemValues": "System values",
+    "vehicles": "Vehicles",
+    "activity": "Activity",
+    "reports": "Reports",
+    "settingsHeading": "Settings"
+  },
+  "layout": {
+    "logout": "Log out",
+    "openNavigation": "Open navigation",
+    "toggleDarkMode": "Toggle dark mode",
+    "switchToLightMode": "Switch to light mode",
+    "switchToDarkMode": "Switch to dark mode"
+  },
+  "pagination": {
+    "previous": "Previous",
+    "next": "Next",
+    "pageLabel": "Page {{page}} of {{totalPages}}"
+  },
+  "filterBar": {
+    "filters": "Filters",
+    "filtersActive": "Filters, {{count}} active",
+    "clearFilters": "Clear filters",
+    "done": "Done"
+  },
+  "monthNavigator": {
+    "label": "Month",
+    "previous": "Previous month",
+    "next": "Next month"
+  },
+  "table": {
+    "noItemsFound": "No items found.",
+    "detailsColumnLabel": "Details",
+    "showDetails": "Show details",
+    "hideDetails": "Hide details"
+  },
+  "errorBoundary": {
+    "message": "Something went wrong on this page",
+    "reload": "Reload"
+  },
+  "loadFailed": {
+    "message": "Could not load data ({{error}}).",
+    "retry": "Retry"
+  },
+  "backupStatus": {
+    "never": "never",
+    "stale": "stale",
+    "failing": "failing",
+    "message": "Backups are {{state}} - last success: {{lastSuccess}}.",
+    "localOnly": "Backups exist only on this machine - set BACKUP_DIR to a synced folder or configure rclone for an off-machine copy."
+  },
+  "actions": {
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "rename": "Rename",
+    "save": "Save",
+    "add": "Add",
+    "edit": "Edit",
+    "name": "Name",
+    "actions": "Actions"
+  },
+  "seedNames": {
+    "categories": {
+      "groceries": "Groceries",
+      "rent": "Rent",
+      "utilities": "Utilities",
+      "subscriptions": "Subscriptions",
+      "transport": "Transport",
+      "dining": "Dining",
+      "health": "Health",
+      "entertainment": "Entertainment",
+      "education": "Education",
+      "insurance": "Insurance",
+      "otherExpense": "Other Expense",
+      "salary": "Salary",
+      "otherIncome": "Other Income",
+      "fuel": "Fuel",
+      "dividends": "Dividends"
+    },
+    "paymentMethods": {
+      "debitCard": "Debit Card",
+      "creditCard": "Credit Card",
+      "pix": "PIX",
+      "cash": "Cash"
+    },
+    "institutions": {
+      "noInstitution": "No institution"
+    },
+    "investmentCategories": {
+      "fixedIncome": "Fixed Income",
+      "variableIncome": "Variable Income",
+      "funds": "Funds",
+      "pension": "Pension (Previdência)",
+      "international": "International",
+      "crypto": "Crypto",
+      "other": "Other"
+    },
+    "investmentSubcategories": {
+      "tesouroSelic": "Tesouro Selic",
+      "tesouroIpca": "Tesouro IPCA+",
+      "tesouroPrefixado": "Tesouro Prefixado",
+      "cdb": "CDB",
+      "lci": "LCI",
+      "lca": "LCA",
+      "cri": "CRI",
+      "cra": "CRA",
+      "debentures": "Debentures",
+      "savings": "Savings (Poupança)",
+      "stocksAcoes": "Stocks (Ações)",
+      "reits": "REITs (FIIs)",
+      "etfs": "ETFs",
+      "bdrs": "BDRs",
+      "fixedIncomeFunds": "Fixed Income Funds",
+      "multimercado": "Multimercado",
+      "equityFunds": "Equity Funds",
+      "pgbl": "PGBL",
+      "vgbl": "VGBL",
+      "stocks": "Stocks",
+      "bonds": "Bonds"
+    },
+    "investmentSegments": {
+      "lajesCorporativas": "Corporate Offices",
+      "shoppings": "Shopping Malls",
+      "logistica": "Logistics",
+      "papel": "Paper (Receivables)",
+      "hibrido": "Hybrid",
+      "fiagro": "Fiagro",
+      "hospitalar": "Healthcare",
+      "residencial": "Residential",
+      "outros": "Other"
+    }
+  }
+}

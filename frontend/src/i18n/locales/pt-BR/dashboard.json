@@ -1,0 +1,21 @@
+{
+  "title": "Painel",
+  "sections": {
+    "spendByCategory": "Gastos por categoria",
+    "budgetVsActual": "Orçado vs. realizado",
+    "accountBalances": "Saldos das contas",
+    "investmentAllocation": "Alocação de investimentos",
+    "netWorth": "Patrimônio líquido"
+  },
+  "accountBalances": {
+    "loadingAria": "Carregando saldos das contas",
+    "emptyList": "Nenhuma conta ainda.",
+    "owedSuffix": " devido"
+  },
+  "spendByCategory": {
+    "loadingAria": "Carregando gastos por categoria",
+    "emptyList": "Nada gasto este mês ainda.",
+    "totalLabel": "Total {{total}}",
+    "spendAriaSuffix": " gasto"
+  }
+}

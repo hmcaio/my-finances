@@ -1,0 +1,11 @@
+/* Global resets beyond MUI's CssBaseline (applied via ThemeProvider in App.tsx). */
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+}

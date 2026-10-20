@@ -1,0 +1,31 @@
+# F018 backup sidecar (ADR 0015). postgres:17.11-alpine - same major as the server (pg_dump/
+# pg_restore must match it) and the exact same full patch tag docker-compose.prod.yml pins for
+# the postgres service itself (root CLAUDE.md: a tool version is pinned in every file that names
+# it; scripts/check-versions.sh fails if this drifts from docker-compose.prod.yml/
+# TestcontainersConfiguration) - plus age for encryption, rclone for the optional off-site push,
+# and bash/coreutils/findutils/jq for the scripts themselves: coreutils for GNU date's -d parsing
+# and %G/%V ISO-week formatting that busybox's date doesn't support (prune.sh/decide.sh rely on
+# it), findutils for GNU find's -printf (busybox's find applet - Alpine's default - doesn't
+# support it at all; backup.sh's local-prune listing needs it to strip the directory prefix down
+# to a bare filename).
+FROM postgres:17.11-alpine
+
+# The git SHA this image was built from, baked in at /etc/backup-build-id (ADR 0015's
+# "pre-upgrade" trigger compares this to the value a previous run recorded in status.json).
+ARG BUILD_ID=dev
+
+RUN apk add --no-cache bash coreutils findutils jq age rclone \
+  && printf '%s' "$BUILD_ID" >/etc/backup-build-id
+
+COPY scripts/backup.sh scripts/entrypoint.sh scripts/prune.sh scripts/decide.sh scripts/restore.sh scripts/backup-keygen /usr/local/bin/
+RUN chmod +x /usr/local/bin/backup.sh /usr/local/bin/entrypoint.sh /usr/local/bin/prune.sh \
+  /usr/local/bin/decide.sh /usr/local/bin/restore.sh /usr/local/bin/backup-keygen
+
+WORKDIR /backups
+
+# No fixed ENTRYPOINT: `docker compose up` runs the default CMD (the long-running sidecar loop),
+# while `docker compose run --rm --no-deps backup restore.sh <file> --yes` (or backup-keygen)
+# replaces CMD entirely and runs directly - same override idiom the base postgres image itself
+# uses, but without its postgres-server-specific entrypoint logic, which this image has no use for.
+ENTRYPOINT []
+CMD ["entrypoint.sh"]

@@ -1,0 +1,54 @@
+{
+  "title": "Modelos Recorrentes",
+  "addButton": "Adicionar modelo recorrente",
+  "description": "Contas/receitas recorrentes versionadas. Editar o valor ou o dia do mês sempre entra em vigor a partir do mês atual em diante - nunca reescreve ocorrências pendentes ou confirmadas no passado.",
+  "aria": "Modelos recorrentes",
+  "emptyList": "Nenhum modelo recorrente ainda.",
+  "columns": {
+    "description": "Descrição",
+    "category": "Categoria",
+    "account": "Conta",
+    "amount": "Valor",
+    "dayOfMonth": "Dia do mês",
+    "status": "Status"
+  },
+  "noCapYet": "Sem valor ainda",
+  "statusActive": "Ativo",
+  "statusStopped": "Interrompido",
+  "editAmountDayAction": "Editar valor e dia",
+  "saveCapAction": "Salvar valor",
+  "stopAria": "Interromper",
+  "reactivateAria": "Reativar",
+  "dayPrefix": "Dia",
+  "addDialogTitle": "Adicionar modelo recorrente",
+  "categoryLabel": "Categoria",
+  "accountLabel": "Conta",
+  "descriptionLabel": "Descrição",
+  "amountLabel": "Valor",
+  "dayOfMonthLabel": "Dia do mês",
+  "editDialogTitle": "Editar valor e dia",
+  "pending": {
+    "title": "Próximas contas recorrentes",
+    "aria": "Próximas contas recorrentes",
+    "emptyList": "Nada pendente no momento.",
+    "columns": {
+      "dueDate": "Vencimento",
+      "description": "Descrição",
+      "category": "Categoria",
+      "account": "Conta",
+      "amount": "Valor"
+    },
+    "confirmAria": "Confirmar ocorrência",
+    "dismissAria": "Descartar ocorrência",
+    "confirmDialogTitle": "Confirmar ocorrência recorrente",
+    "dateLabel": "Data",
+    "accountLabel": "Conta",
+    "paymentMethodLabel": "Forma de Pagamento",
+    "confirmButton": "Confirmar",
+    "dismissConfirm": {
+      "title": "Descartar esta ocorrência?",
+      "body": "Nenhuma transação será criada para ela. Isso não pode ser desfeito, mas a próxima execução de atualização também não a regenerará.",
+      "confirmLabel": "Descartar"
+    }
+  }
+}

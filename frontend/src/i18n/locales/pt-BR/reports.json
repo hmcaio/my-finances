@@ -1,0 +1,36 @@
+{
+  "title": "Relatórios",
+  "subtitle": "Escolha um ou mais relatórios para gerar. Cada um serve para leitura e análise, não é um backup — para isso, use um backup do banco de dados. Um relatório baixa seu próprio arquivo; mais de um baixa um ZIP.",
+  "types": {
+    "transactionsTransfers": "Transações e Transferências",
+    "accountBalances": "Saldos das contas",
+    "fiiPortfolio": "Carteira de FIIs",
+    "fuelHistory": "Histórico e estatísticas de combustível",
+    "budgetsSpending": "Orçamentos e gastos por categoria",
+    "investments": "Investimentos",
+    "netWorthTrend": "Evolução do patrimônio líquido",
+    "recurringTemplates": "Modelos recorrentes / resumo de custos fixos",
+    "investmentAllocation": "Alocação de investimentos",
+    "dividendIncome": "Renda de dividendos",
+    "annualSummary": "Resumo anual"
+  },
+  "filters": {
+    "from": "De",
+    "to": "Até",
+    "asOf": "Na data de",
+    "month": "Mês",
+    "accountAria": "Filtro de conta",
+    "categoryAria": "Filtro de categoria",
+    "vehicleAria": "Filtro de veículo",
+    "netWorthGranularityAria": "Granularidade do patrimônio líquido",
+    "allAccounts": "Todas as contas",
+    "allCategories": "Todas as categorias",
+    "allVehicles": "Todos os veículos",
+    "monthlyOption": "Mensal",
+    "everyChangeOption": "A cada alteração"
+  },
+  "generateButton": "Gerar",
+  "generatingButton": "Gerando…",
+  "downloaded": "Relatório baixado.",
+  "reversedRangeMessage": "A data \"De\" não pode ser posterior à data \"Até\"."
+}

@@ -1,0 +1,38 @@
+{
+  "title": "Budgets",
+  "addButton": "Add budget",
+  "description": "Monthly spending caps per expense category. Editing a cap (or adding a new budget) always takes effect from the current month forward - prior months keep showing whatever cap was actually in effect then.",
+  "columns": {
+    "category": "Category",
+    "currentCap": "Current cap",
+    "effectiveFrom": "Effective from"
+  },
+  "stopped": "Stopped",
+  "noCapYet": "No cap yet",
+  "editCapAction": "Edit cap",
+  "resumeBudgetAction": "Resume budget",
+  "saveCapAction": "Save cap",
+  "resumeWithCapAction": "Resume with this cap",
+  "stopBudgetAria": "Stop budget",
+  "emptyList": "No budgets yet.",
+  "addDialogTitle": "Add budget",
+  "categoryLabel": "Category",
+  "monthlyCapLabel": "Monthly cap",
+  "everyExpenseBudgeted": "Every expense category already has a budget.",
+  "editBudgetCapTitle": "Edit budget cap",
+  "stop": {
+    "title": "Stop budgeting {{category}}?",
+    "body": "Budgeting stops from the current month: this category no longer appears in the budget-vs-actual report from now on. Past months keep the cap they had. You can resume it later from the row's \"Resume budget\" action; the months in between stay without a budget.",
+    "confirmLabel": "Stop budget"
+  },
+  "reportTitle": "Budget vs. actual",
+  "monthLabel": "Month",
+  "report": {
+    "emptyMonth": "No active budgets for this month.",
+    "noCap": "no cap",
+    "lineAmounts": "{{actual}} / {{cap}}",
+    "overBudgetSuffix": " — over budget",
+    "usageAria": "{{category}} budget usage",
+    "loadingAria": "Loading budget report"
+  }
+}

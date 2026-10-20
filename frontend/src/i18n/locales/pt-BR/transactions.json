@@ -1,0 +1,31 @@
+{
+  "editDialogTitle": "Editar transação",
+  "addDialogTitle": "Adicionar transação",
+  "saveChanges": "Salvar alterações",
+  "deleteConfirm": {
+    "title": "Excluir esta transação?",
+    "body": "Isso remove a transação permanentemente e não pode ser desfeito.",
+    "confirmLabel": "Excluir transação"
+  },
+  "form": {
+    "dateLabel": "Data",
+    "amountLabel": "Valor",
+    "categoryAria": "Categoria",
+    "categoryPlaceholder": "Categoria",
+    "accountAria": "Conta",
+    "accountPlaceholder": "Conta",
+    "paymentMethodAria": "Forma de Pagamento",
+    "paymentMethodPlaceholder": "Forma de Pagamento",
+    "descriptionLabel": "Descrição",
+    "additionalNotesLabel": "Notas Adicionais",
+    "vehicleAria": "Veículo",
+    "vehiclePlaceholder": "Veículo",
+    "fuelTypeAria": "Tipo de Combustível",
+    "fuelTypePlaceholder": "Tipo de Combustível",
+    "litersLabel": "Litros",
+    "pricePerLiterLabel": "Preço por Litro",
+    "kmSinceLastFillLabel": "Km Desde o Último Abastecimento",
+    "kmSinceLastFillHelper": "Deixe em branco no primeiro abastecimento registrado do veículo",
+    "odometerLabel": "Odômetro"
+  }
+}

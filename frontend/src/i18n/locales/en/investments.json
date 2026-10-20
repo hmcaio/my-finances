@@ -1,0 +1,65 @@
+{
+  "title": "Investments",
+  "description": "Where your money is invested, from the latest snapshot of each holding. Buy and sell from a product's page (or the Transfers page); its value only changes when you record a snapshot.",
+  "byCategory": "By category",
+  "bySubcategory": "By sub-category",
+  "byAccount": "By account",
+  "tabsAria": "Investments views",
+  "accountsTab": "Accounts",
+  "productsTab": "Products",
+  "investmentAccountsTitle": "Investment accounts",
+  "accountColumn": "Account",
+  "valueColumn": "Value",
+  "emptyAccounts": "No investment accounts yet - add one on the Accounts page.",
+  "productsTitle": "Products",
+  "allocation": {
+    "loadingAria": "Loading allocation",
+    "loading": "Loading…",
+    "noSubcategory": "No sub-category",
+    "allCategories": "← All categories",
+    "categoryAria": "Allocation by category",
+    "subcategoryOfAria": "Allocation of {{category}} by sub-category",
+    "legendAria": "Allocation legend",
+    "showSubcategoriesAria": "{{label}}: show sub-categories",
+    "sliceTooltip": "{{label}}: {{value}} ({{percentage}}%)",
+    "emptyValues": "No investment values yet - record a snapshot on a product to see the allocation.",
+    "staleFootnote": "* Includes a product with a buy or sell newer than its latest snapshot, so this value may be out of date. Record a snapshot on the product to refresh it."
+  },
+  "flatAllocation": {
+    "loadingAria": "Loading {{label}}",
+    "legendAriaSuffix": " legend",
+    "sliceTooltip": "{{label}}: {{value}} ({{percentage}}%)"
+  },
+  "subcategoryChart": {
+    "ariaLabel": "Allocation by sub-category",
+    "noSubcategory": "No sub-category",
+    "emptyValues": "No investment values yet - record a snapshot on a product to see the allocation.",
+    "staleFootnote": "* Includes a product with a buy or sell newer than its latest snapshot, so this value may be out of date. Record a snapshot on the product to refresh it."
+  },
+  "accountChart": {
+    "ariaLabel": "Allocation by account",
+    "unknownAccount": "Unknown account",
+    "emptyValues": "No investment values yet - record a snapshot on a holding to see the allocation by account.",
+    "staleFootnote": "* Includes a holding with a buy or sell newer than its latest snapshot, so this value may be out of date. Record a snapshot on it to refresh it."
+  },
+  "productsList": {
+    "categoryFilterAria": "Category filter",
+    "allCategories": "All categories",
+    "subcategoryFilterAria": "Sub-category filter",
+    "allSubcategories": "All sub-categories",
+    "accountFilterAria": "Account filter",
+    "allAccounts": "All accounts",
+    "statusFilterAria": "Status filter",
+    "statusOpen": "Open",
+    "statusClosed": "Closed",
+    "statusAll": "All",
+    "aria": "Investment products",
+    "emptyList": "No products found.",
+    "columns": {
+      "name": "Name",
+      "category": "Category",
+      "subcategory": "Sub-category",
+      "status": "Status"
+    }
+  }
+}

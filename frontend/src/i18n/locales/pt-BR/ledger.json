@@ -1,0 +1,62 @@
+{
+  "title": "Lançamentos",
+  "description": "Todas as receitas, despesas e transferências em uma só lista, da mais recente para a mais antiga. Escolha um mês ou um período e filtre ou pesquise dentro dele.",
+  "addButton": "Adicionar",
+  "newTransaction": "Nova transação",
+  "newTransfer": "Nova transferência",
+  "aria": "Lançamentos",
+  "columns": {
+    "date": "Data",
+    "type": "Tipo",
+    "description": "Descrição",
+    "category": "Categoria",
+    "account": "Conta",
+    "paymentMethod": "Forma de Pagamento",
+    "amount": "Valor"
+  },
+  "type": {
+    "income": "Receita",
+    "expense": "Despesa",
+    "transfer": "Transferência"
+  },
+  "period": {
+    "scopeAria": "Período",
+    "month": "Mês",
+    "range": "Intervalo",
+    "monthLabel": "Mês",
+    "fromLabel": "De",
+    "toLabel": "Até",
+    "allTimeHint": "Nenhuma data definida: mostrando todo o histórico."
+  },
+  "filters": {
+    "typeAria": "Filtro de tipo",
+    "allTypes": "Todos os tipos",
+    "accountAria": "Filtro de conta",
+    "allAccounts": "Todas as contas",
+    "categoryAria": "Filtro de categoria",
+    "allCategories": "Todas as categorias",
+    "paymentMethodAria": "Filtro de forma de pagamento",
+    "allPaymentMethods": "Todas as formas de pagamento",
+    "searchLabel": "Pesquisar",
+    "searchPlaceholder": "Descrição ou observações",
+    "clearSearch": "Limpar pesquisa"
+  },
+  "summary": {
+    "aria": "Resumo deste período",
+    "income": "Receitas",
+    "expense": "Despesas",
+    "net": "Saldo"
+  },
+  "truncated": "Mostrando os {{count}} lançamentos mais recentes; há mais resultados. Reduza o período ou os filtros para ver o restante. Os totais acima incluem todos os resultados.",
+  "empty": {
+    "noEntries": "Nenhuma transação ou transferência encontrada.",
+    "noMatches": "Nenhum resultado neste período.",
+    "searchAllTime": "Pesquisar em todo o histórico"
+  },
+  "editNotFound": "Não foi possível encontrar este lançamento - ele pode ter sido excluído.",
+  "accountSection": {
+    "aria": "Transações e transferências da conta",
+    "emptyList": "Nenhuma transação ou transferência neste mês.",
+    "viewInLedger": "Ver em Lançamentos"
+  }
+}

@@ -1,0 +1,149 @@
+{
+  "title": "Activity",
+  "subtitle": "Every committed change, newest first - what changed, when, and by what (a direct action or a system-generated one).",
+  "filters": {
+    "from": "From",
+    "to": "To",
+    "entityTypeAria": "Entity type filter",
+    "actionAria": "Action filter",
+    "originAria": "Origin filter",
+    "allEntityTypes": "All entity types",
+    "allActions": "All actions",
+    "allOrigins": "All origins"
+  },
+  "columns": {
+    "time": "Time",
+    "action": "Action",
+    "entityType": "Entity type",
+    "label": "Label",
+    "origin": "Origin"
+  },
+  "expandDetails": "Expand details",
+  "collapseDetails": "Collapse details",
+  "changesForAria": "Changes for {{entityType}}",
+  "activityOnAria": "Activity on {{date}}",
+  "diffTable": {
+    "field": "Field",
+    "from": "From",
+    "to": "To"
+  },
+  "noFieldChanges": "No field changes recorded.",
+  "noActivity": "No activity found.",
+  "boolean": {
+    "yes": "Yes",
+    "no": "No"
+  },
+  "entityTypes": {
+    "transaction": "Transaction",
+    "transfer": "Transfer",
+    "account": "Account",
+    "category": "Category",
+    "paymentMethod": "Payment method",
+    "institution": "Institution",
+    "budget": "Budget",
+    "recurringTemplate": "Recurring template",
+    "investmentCategory": "Investment category",
+    "investmentSubcategory": "Investment subcategory",
+    "investmentProduct": "Investment product",
+    "investmentHolding": "Investment holding",
+    "investmentSnapshot": "Investment snapshot",
+    "investmentSegment": "Investment segment",
+    "allocationPlan": "Allocation plan",
+    "vehicle": "Vehicle"
+  },
+  "actions": {
+    "create": "Create",
+    "update": "Update",
+    "delete": "Delete",
+    "close": "Close",
+    "reopen": "Reopen",
+    "stopped": "Stopped",
+    "generated": "Generated"
+  },
+  "origins": {
+    "user": "User",
+    "system": "System"
+  },
+  "fields": {
+    "common": {
+      "name": "Name",
+      "description": "Description",
+      "additionalNotes": "Additional notes",
+      "type": "Type",
+      "builtIn": "Built-in",
+      "active": "Active",
+      "closedDate": "Closed date",
+      "date": "Date",
+      "effectiveFrom": "Effective from",
+      "requestId": "Request ID"
+    },
+    "transaction": {
+      "amount": "Amount",
+      "categoryId": "Category",
+      "accountId": "Account",
+      "paymentMethodId": "Payment method",
+      "recurringTemplateVersionId": "Recurring template version",
+      "vehicleId": "Vehicle",
+      "fuelType": "Fuel type",
+      "liters": "Liters",
+      "pricePerLiter": "Price per liter",
+      "kmSinceLastFill": "Km since last fill",
+      "odometer": "Odometer",
+      "investmentHoldingId": "Investment holding"
+    },
+    "transfer": {
+      "fromAccountId": "From account",
+      "toAccountId": "To account",
+      "amount": "Amount",
+      "taxes": "Taxes",
+      "tradeConfirmationLines": "Trade confirmation lines"
+    },
+    "account": {
+      "institutionId": "Institution",
+      "openingBalance": "Opening balance",
+      "openingBalanceDate": "Opening balance date"
+    },
+    "category": {
+      "fuelCategory": "Fuel category",
+      "dividendCategory": "Dividend category"
+    },
+    "budget": {
+      "budgetId": "Budget",
+      "monthlyCap": "Monthly cap"
+    },
+    "recurringTemplate": {
+      "categoryId": "Category",
+      "accountId": "Account",
+      "templateId": "Template",
+      "amount": "Amount",
+      "dayOfMonth": "Day of month",
+      "lastGeneratedFor": "Last generated for",
+      "count": "Occurrences generated",
+      "firstDate": "First due date",
+      "lastDate": "Last due date"
+    },
+    "investmentSubcategory": {
+      "investmentCategoryId": "Investment category"
+    },
+    "investmentProduct": {
+      "investmentCategoryId": "Investment category",
+      "investmentSubcategoryId": "Investment sub-category",
+      "ticker": "Ticker",
+      "segmentId": "Segment"
+    },
+    "investmentHolding": {
+      "productId": "Product",
+      "accountId": "Account"
+    },
+    "investmentSnapshot": {
+      "holdingId": "Holding",
+      "balance": "Balance"
+    },
+    "allocationPlan": {
+      "planId": "Allocation plan",
+      "entries": "Entries",
+      "investmentProductId": "Product",
+      "targetPercentage": "Target percentage"
+    }
+  }
+}

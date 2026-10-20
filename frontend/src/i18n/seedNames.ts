@@ -1,0 +1,163 @@
+export type SeedTable =
+  | 'categories'
+  | 'paymentMethods'
+  | 'institutions'
+  | 'investmentCategories'
+  | 'investmentSubcategories'
+  | 'investmentSegments'
+
+/**
+ * Exact-string-match seed-name lookups (F033/ADR 0027): a row whose *current* name matches one of
+ * a migration's literal seeded strings renders translated; a row that doesn't match (the user
+ * renamed it, or it's their own data) renders verbatim. No schema change, no `built_in`-flag
+ * dependency - this degrades gracefully the moment a seeded row is renamed, which is the point.
+ *
+ * `categories` holds V14's "Other Expense"/"Other Income" built-in rows (V2 seeds only their
+ * pre-adoption names, "Other"/"Other Income" - see V14's own migration comment for the adoption
+ * rules), V18's "Fuel" and V20's "Dividends" (added by the fuel/FII feature areas' own phase
+ * steps, not here, even though they also seed into this same `categories` table), plus the 11
+ * onboarding suggestions (F035/ADR 0028: the regular starter categories stopped being migration
+ * data and moved to a localized onboarding step - `features/onboarding/suggestedCategories.ts`).
+ * This is the first table with **two literals mapping to the same translation key**: onboarding
+ * inserts whichever language was active at the time, so both the English and Portuguese literal
+ * of each of its 8 pre-existing names (Groceries/Rent/Utilities/Subscriptions/Transport/
+ * Dining/Health/Salary) need an entry here, reusing the one translation key each already had from
+ * the old migration seed - `Record<string, string>` supports two keys sharing one value with no
+ * change to the lookup mechanism itself. `investmentSegments` holds V24's nine B3 FII sectors
+ * (F034/ADR 0028) - unlike every other table here, every one of its rows is permanently protected
+ * (no create/rename/delete endpoint exists at all), so this is the one lookup that can never fall
+ * through to the verbatim-name branch.
+ */
+const CATEGORY_SEED_NAMES: Record<string, string> = {
+  Groceries: 'common:seedNames.categories.groceries',
+  Mercado: 'common:seedNames.categories.groceries',
+  Rent: 'common:seedNames.categories.rent',
+  Aluguel: 'common:seedNames.categories.rent',
+  Utilities: 'common:seedNames.categories.utilities',
+  Utilidades: 'common:seedNames.categories.utilities',
+  Subscriptions: 'common:seedNames.categories.subscriptions',
+  Assinaturas: 'common:seedNames.categories.subscriptions',
+  Transport: 'common:seedNames.categories.transport',
+  Transporte: 'common:seedNames.categories.transport',
+  Dining: 'common:seedNames.categories.dining',
+  Restaurantes: 'common:seedNames.categories.dining',
+  Health: 'common:seedNames.categories.health',
+  Saúde: 'common:seedNames.categories.health',
+  // F035/ADR 0028: three brand-new onboarding suggestions, not part of the original migration seed.
+  Entertainment: 'common:seedNames.categories.entertainment',
+  Entretenimento: 'common:seedNames.categories.entertainment',
+  Education: 'common:seedNames.categories.education',
+  Educação: 'common:seedNames.categories.education',
+  Insurance: 'common:seedNames.categories.insurance',
+  Seguro: 'common:seedNames.categories.insurance',
+  'Other Expense': 'common:seedNames.categories.otherExpense',
+  Salary: 'common:seedNames.categories.salary',
+  Salário: 'common:seedNames.categories.salary',
+  'Other Income': 'common:seedNames.categories.otherIncome',
+  // V18 (F024, ADR 0021): the dedicated fuel category, added here rather than in the initial
+  // categories lookup since it belongs to the Fuel area's own phase step.
+  Fuel: 'common:seedNames.categories.fuel',
+  // V20 (F026, ADR 0023): the dedicated dividend category, added here (the FII area's own phase
+  // step) for the same reason.
+  Dividends: 'common:seedNames.categories.dividends',
+}
+
+/** V2's starter payment methods. */
+const PAYMENT_METHOD_SEED_NAMES: Record<string, string> = {
+  'Debit Card': 'common:seedNames.paymentMethods.debitCard',
+  'Credit Card': 'common:seedNames.paymentMethods.creditCard',
+  PIX: 'common:seedNames.paymentMethods.pix',
+  Cash: 'common:seedNames.paymentMethods.cash',
+}
+
+/** V12's single built-in institution. */
+const INSTITUTION_SEED_NAMES: Record<string, string> = {
+  'No institution': 'common:seedNames.institutions.noInstitution',
+}
+
+/** V13's starter investment categories. */
+const INVESTMENT_CATEGORY_SEED_NAMES: Record<string, string> = {
+  'Fixed Income': 'common:seedNames.investmentCategories.fixedIncome',
+  'Variable Income': 'common:seedNames.investmentCategories.variableIncome',
+  Funds: 'common:seedNames.investmentCategories.funds',
+  'Pension (Previdência)': 'common:seedNames.investmentCategories.pension',
+  International: 'common:seedNames.investmentCategories.international',
+  Crypto: 'common:seedNames.investmentCategories.crypto',
+  Other: 'common:seedNames.investmentCategories.other',
+}
+
+/**
+ * V13's starter investment sub-categories (name unique per category, not globally - "ETFs" exists
+ * under both Variable Income and International, which is why this is one flat lookup rather than
+ * nested per category: both translate to the same word, so there is no collision in practice).
+ */
+const INVESTMENT_SUBCATEGORY_SEED_NAMES: Record<string, string> = {
+  'Tesouro Selic': 'common:seedNames.investmentSubcategories.tesouroSelic',
+  'Tesouro IPCA+': 'common:seedNames.investmentSubcategories.tesouroIpca',
+  'Tesouro Prefixado': 'common:seedNames.investmentSubcategories.tesouroPrefixado',
+  CDB: 'common:seedNames.investmentSubcategories.cdb',
+  LCI: 'common:seedNames.investmentSubcategories.lci',
+  LCA: 'common:seedNames.investmentSubcategories.lca',
+  CRI: 'common:seedNames.investmentSubcategories.cri',
+  CRA: 'common:seedNames.investmentSubcategories.cra',
+  Debentures: 'common:seedNames.investmentSubcategories.debentures',
+  'Savings (Poupança)': 'common:seedNames.investmentSubcategories.savings',
+  'Stocks (Ações)': 'common:seedNames.investmentSubcategories.stocksAcoes',
+  'REITs (FIIs)': 'common:seedNames.investmentSubcategories.reits',
+  ETFs: 'common:seedNames.investmentSubcategories.etfs',
+  BDRs: 'common:seedNames.investmentSubcategories.bdrs',
+  'Fixed Income Funds': 'common:seedNames.investmentSubcategories.fixedIncomeFunds',
+  Multimercado: 'common:seedNames.investmentSubcategories.multimercado',
+  'Equity Funds': 'common:seedNames.investmentSubcategories.equityFunds',
+  PGBL: 'common:seedNames.investmentSubcategories.pgbl',
+  VGBL: 'common:seedNames.investmentSubcategories.vgbl',
+  Stocks: 'common:seedNames.investmentSubcategories.stocks',
+  Bonds: 'common:seedNames.investmentSubcategories.bonds',
+}
+
+/**
+ * V24's starter investment segments (F034/ADR 0028 - the B3 FII sector list, migration-seeded and
+ * never user-created/renamed, so every row is always a match here; nothing ever falls through to
+ * the verbatim branch).
+ */
+const INVESTMENT_SEGMENT_SEED_NAMES: Record<string, string> = {
+  'Lajes Corporativas': 'common:seedNames.investmentSegments.lajesCorporativas',
+  Shoppings: 'common:seedNames.investmentSegments.shoppings',
+  Logística: 'common:seedNames.investmentSegments.logistica',
+  'Papel (Recebíveis)': 'common:seedNames.investmentSegments.papel',
+  Híbrido: 'common:seedNames.investmentSegments.hibrido',
+  Fiagro: 'common:seedNames.investmentSegments.fiagro',
+  Hospitalar: 'common:seedNames.investmentSegments.hospitalar',
+  Residencial: 'common:seedNames.investmentSegments.residencial',
+  Outros: 'common:seedNames.investmentSegments.outros',
+}
+
+const SEED_NAMES: Record<SeedTable, Record<string, string>> = {
+  categories: CATEGORY_SEED_NAMES,
+  paymentMethods: PAYMENT_METHOD_SEED_NAMES,
+  institutions: INSTITUTION_SEED_NAMES,
+  investmentCategories: INVESTMENT_CATEGORY_SEED_NAMES,
+  investmentSubcategories: INVESTMENT_SUBCATEGORY_SEED_NAMES,
+  investmentSegments: INVESTMENT_SEGMENT_SEED_NAMES,
+}
+
+/**
+ * Translates `currentName` if (and only if) it exactly matches one of `table`'s seeded strings;
+ * otherwise returns it verbatim. Call wherever that table's rows render as a label - a list, a
+ * select, a chip.
+ *
+ * `t` is typed as `(key: never) => string` rather than `i18next`'s own `TFunction`:
+ * `useTranslation()`'s return type is branded by the namespace(s) passed to it, so a `TFunction`
+ * scoped to e.g. `["categories", "common"]` doesn't structurally match one scoped to
+ * `["paymentMethods", "common"]` - a `never` parameter is (contravariantly) assignable from any
+ * such `TFunction` regardless of its namespace brand, so every call site's real `t` fits here
+ * without a cast; the lookup key itself is cast once, internally, below.
+ */
+export function translateSeedName(
+  table: SeedTable,
+  currentName: string,
+  t: (key: never) => string,
+): string {
+  const key = SEED_NAMES[table][currentName]
+  return key ? t(key as never) : currentName
+}
