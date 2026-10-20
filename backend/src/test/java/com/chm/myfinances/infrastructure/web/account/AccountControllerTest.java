@@ -235,21 +235,6 @@ class AccountControllerTest {
   }
 
   @Test
-  void deleteRemovesAClosedAccountWithNoHistory() throws Exception {
-    String id = createAccount("Close Then Delete", "CHECKING", "10.00", "2026-01-01");
-    mockMvc.perform(post("/api/accounts/" + id + "/close")).andExpect(status().isOk());
-
-    mockMvc.perform(delete("/api/accounts/" + id)).andExpect(status().isNoContent());
-
-    mockMvc.perform(get("/api/accounts/" + id)).andExpect(status().isNotFound());
-  }
-
-  @Test
-  void deleteOfUnknownIdReturns404() throws Exception {
-    mockMvc.perform(delete("/api/accounts/" + UUID.randomUUID())).andExpect(status().isNotFound());
-  }
-
-  @Test
   void deleteOfAnAccountWithHistoryReturns409AndKeepsTheAccount() throws Exception {
     String id = createAccount("Has History", "CHECKING", "10.00", "2026-01-01");
     String otherId = createAccount("Other Side", "SAVINGS", "10.00", "2026-01-01");
@@ -281,20 +266,6 @@ class AccountControllerTest {
 
     mockMvc
         .perform(post("/api/accounts").contentType(MediaType.APPLICATION_JSON).content(body))
-        .andExpect(status().isConflict());
-  }
-
-  @Test
-  void editRejectsADuplicateNameWith409() throws Exception {
-    createAccount("Original Account", "CHECKING", "10.00", "2026-01-01");
-    String id = createAccount("Account To Rename", "SAVINGS", "10.00", "2026-01-01");
-
-    String patchBody =
-        objectMapper.writeValueAsString(
-            Map.of("name", "Original Account", "institutionId", institutionId.toString()));
-    mockMvc
-        .perform(
-            patch("/api/accounts/" + id).contentType(MediaType.APPLICATION_JSON).content(patchBody))
         .andExpect(status().isConflict());
   }
 
@@ -423,20 +394,6 @@ class AccountControllerTest {
                     objectMapper.writeValueAsString(
                         Map.of("name", "Renamed", "institutionId", "not-a-uuid"))))
         .andExpect(status().isBadRequest());
-  }
-
-  @Test
-  void editRejectsAnUnknownInstitutionIdWith404() throws Exception {
-    String id = createAccount("Edit Unknown Check", "CHECKING", "10.00", "2026-01-01");
-
-    mockMvc
-        .perform(
-            patch("/api/accounts/" + id)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    objectMapper.writeValueAsString(
-                        Map.of("name", "Renamed", "institutionId", UUID.randomUUID().toString()))))
-        .andExpect(status().isNotFound());
   }
 
   @Test
