@@ -2,6 +2,15 @@
 # that touches only one of several files pinning the same tool (e.g. postgres in both compose files
 # and the Testcontainers config) fails scripts/check-versions.sh in CI, so bump the siblings in the
 # same PR. npm and Gradle dependencies are deliberately not covered (lockfiles + noise).
+#
+# Major bumps of postgres, eclipse-temurin and node are ignored on purpose: each is a coordinated
+# move across several files (postgres: both compose files, the backup image, Testcontainers;
+# node: .nvmrc, the frontend Dockerfile, the dev compose service; JDK: backend Dockerfile and dev
+# compose), not something one Dependabot PR can do. Minor/patch updates still arrive. To follow a
+# new major, bump every sibling by hand in one PR (docs/conventions/tooling.md, "Pinned versions");
+# the ignore is relative to the pinned version, so it keeps applying on the new line. eclipse-temurin:
+# the JDK is an LTS pin (21), so the next LTS is moved by hand the same way; the majors Dependabot
+# would otherwise propose are non-LTS feature releases.
 version: 2
 updates:
   - package-ecosystem: docker
@@ -9,16 +18,29 @@ updates:
     target-branch: develop
     schedule:
       interval: monthly
+    ignore:
+      - dependency-name: eclipse-temurin
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: docker
     directory: /frontend
     target-branch: develop
     schedule:
       interval: monthly
+    ignore:
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: docker-compose
     directory: /
     target-branch: develop
     schedule:
       interval: monthly
+    ignore:
+      - dependency-name: postgres
+        update-types: ["version-update:semver-major"]
+      - dependency-name: eclipse-temurin
+        update-types: ["version-update:semver-major"]
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     target-branch: develop
