@@ -28,9 +28,10 @@ import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
  * the dev stack can itself be exposed over a private network.
  *
  * <p>Only {@code POST /api/auth/login} and the Docker healthcheck's {@code /actuator/health} are
- * open; everything else - every controller, plus Swagger UI and {@code /v3/api-docs} - needs a
- * session. Login/logout/session themselves are ordinary MVC endpoints ({@code AuthController});
- * this class only wires the filter chain and the beans they share.
+ * open; everything else - every controller, plus Swagger UI and {@code /v3/api-docs} where enabled
+ * (dev; the {@code prod} profile turns them off) - needs a session. Login/logout/session themselves
+ * are ordinary MVC endpoints ({@code AuthController}); this class only wires the filter chain and
+ * the beans they share.
  */
 @Configuration
 @EnableWebSecurity

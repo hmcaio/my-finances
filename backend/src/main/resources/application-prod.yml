@@ -25,6 +25,16 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
+# The OpenAPI document and Swagger UI are a dev/build-time aid (the frontend's
+# `npm run generate-api-types` reads /v3/api-docs from a dev backend); the production stack does not
+# serve them at all, so the API surface is not browsable even by a logged-in session. Both paths are
+# set in application.yml, which stays the same for every profile.
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
 logging:
   level:
     # Overridable without a rebuild via LOGGING_LEVEL_COM_CHM_MYFINANCES (LOG_LEVEL in compose).

@@ -11,7 +11,7 @@ Cross-stack rules (bounded text, money, errors, auth, logging, API types) are in
 ./gradlew spotlessCheck   # google-java-format check; `spotlessApply` to fix (don't hand-format — it rewraps javadoc)
 ./gradlew -q generateAuthHash  # F036: prints AUTH_PASSWORD_HASH='<argon2>' for .env; reads $AUTH_PASSWORD, else prompts on stdin
 ```
-Swagger UI: `http://localhost:8080/swagger-ui.html`. OpenAPI spec: `http://localhost:8080/v3/api-docs`. Both need a session (login).
+Swagger UI: `http://localhost:8080/swagger-ui.html`. OpenAPI spec: `http://localhost:8080/v3/api-docs`. Both need a session (login) and are dev-only: the `prod` profile turns them off (404).
 
 ## Rules for every backend task
 
