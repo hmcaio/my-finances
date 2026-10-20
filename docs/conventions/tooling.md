@@ -25,6 +25,7 @@ A tool version is pinned in every file that names it, and `scripts/check-version
 - `postgres`: both compose files + `TestcontainersConfiguration` + `backup/Dockerfile` (F018: its `pg_dump`/`pg_restore` must match the server major, and the pinning rule applies to it exactly as to the others).
 - Node: `frontend/.nvmrc` is the source; `frontend/Dockerfile`, the dev compose `frontend` service, CI's `setup-node` and `engines` follow it.
 - `eclipse-temurin` JDK/JRE: `backend/Dockerfile` + dev compose `backend`.
+- `nginx`: only `frontend/Dockerfile`, on the `-alpine-slim` variant (the full image adds modules and libraries the app does not use, which carry scan findings); `check-versions.sh` has no sibling to compare.
 - Trivy: only `scripts/trivy/Dockerfile` (tag + digest, so `check-versions.sh` checks its form, not siblings).
 
 ## Image vulnerability scan (ADR 0031)
