@@ -26,6 +26,11 @@ RUN ./gradlew bootJar -x test --no-daemon
 FROM eclipse-temurin:21.0.12.1_1-jre-alpine AS runtime
 WORKDIR /app
 
+# Pull in Alpine security fixes published after the pinned base image was built, so the image scan
+# (ADR 0031) does not fail on packages the base tag has not caught up with yet. Done as root,
+# before USER spring.
+RUN apk upgrade --no-cache
+
 RUN addgroup -S spring && adduser -S spring -G spring
 COPY --from=build /workspace/build/libs/*.jar app.jar
 RUN chown spring:spring app.jar
