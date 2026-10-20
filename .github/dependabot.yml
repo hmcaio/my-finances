@@ -39,6 +39,12 @@ updates:
     ignore:
       - dependency-name: node
         update-types: ["version-update:semver-major"]
+  # Image scanner pin (scripts/trivy/Dockerfile, see docs/conventions/tooling.md).
+  - package-ecosystem: docker
+    directory: /scripts/trivy
+    target-branch: develop
+    schedule:
+      interval: monthly
   - package-ecosystem: docker-compose
     directory: /
     target-branch: develop
