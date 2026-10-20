@@ -79,12 +79,6 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Make gradlew executable
-        # The wrapper script is checked in without the executable bit (repo was authored on
-        # Windows, where the bit isn't tracked) — Linux runners need it set explicitly.
-        run: chmod +x gradlew
-        working-directory: backend
-
       - name: spotlessCheck + tests + coverage report
         # scripts/verify.sh is the same entry point you run locally. It runs `test` (fast tier) and
         # `integrationTest` (Spring + Testcontainers tier) with `--continue`, so one run reports
