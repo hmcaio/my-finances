@@ -145,7 +145,7 @@ Built:
 - **F036** — remote access & authentication (a single shared-credential, Argon2-hashed session-cookie login required in dev and prod, with cookie CSRF and login rate limiting; a generic `BIND_ADDR` env var for exposing the app over any private network without pinning to a specific product, with Postgres/pgAdmin pinned to loopback; [ADR 0029](docs/adr/0029-session-auth-and-generic-network-binding.md))
 - **F037** — ledger (one `/ledger` page replacing Transactions and Transfers: interleaved list by month, summary, filters, accent-insensitive text search; [ADR 0030](docs/adr/0030-postgres-unaccent-for-accent-insensitive-search.md))
 
-Documented and next up:
+Documented, not built; deferred to a release after 0.1.0:
 - **F028** — investment splits, backend (a product-level `InvestmentSplit` event, applied as a read-side adjustment to held units; [ADR 0025](docs/adr/0025-investment-split-as-read-side-adjustment.md))
 - **F029** — investment splits, frontend (the product-detail split-history panel and record/delete dialog for F028)
 
