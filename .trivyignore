@@ -1,0 +1,13 @@
+# Reviewed allowlist for the image vulnerability scan (`bash scripts/verify.sh scan`, and the
+# build-and-push job in .github/workflows/ci.yml, which refuses to publish a failing image).
+# Procedure and when NOT to use this file: docs/conventions/tooling.md (Image vulnerability scan).
+#
+# The scan fails on any fixable HIGH or CRITICAL finding. Prefer the real fix (bump the base image
+# or the dependency). Accept a finding here only when no fix can be shipped in time, one line each:
+#
+#   CVE-YYYY-NNNNN exp:YYYY-MM-DD   # <package> in <image>: why it is not exploitable or reachable
+#
+# Every entry needs all three: the CVE id, a reason (the trailing comment), and a review-by date.
+# The date is the `exp:` field, which Trivy enforces: after it the entry stops matching and the
+# scan fails again, so an accepted risk cannot go stale unnoticed. Keep it at most ~90 days out.
+# Empty by default.

@@ -2,12 +2,17 @@
 # The one definition of "the checks" (issue #73): CI's jobs call this script, and so do you, so a
 # green local run means a green CI run. Usage:
 #
-#   scripts/verify.sh [stage...]     stages: versions backend frontend e2e backup   (default: versions backend frontend)
+#   scripts/verify.sh [stage...]     stages: versions backend frontend e2e backup scan   (default: versions backend frontend)
 #
 #   scripts/verify.sh                everything CI's unit-test jobs run
 #   scripts/verify.sh frontend       just the frontend checks
 #   scripts/verify.sh e2e            Playwright layout checks (needs `npx playwright install chromium` once)
 #   scripts/verify.sh backup         F018 backup sidecar: bats unit tests + the Docker e2e test
+#   scripts/verify.sh scan           builds the three images and scans them for fixable HIGH/CRITICAL
+#                                    vulnerabilities (Trivy; not in the default run: it builds images)
+#   SCAN_IMAGES="ref ..." scripts/verify.sh scan
+#                                    scans those images instead (pulled if not local), without building;
+#                                    this is how CI's build-and-push job gates publishing
 #
 # Every stage runs even if an earlier one fails (like Gradle's --continue), and the exit code is
 # non-zero if any failed. Backend integration tests need Docker running (Testcontainers, ADR 0010).
@@ -70,13 +75,56 @@ stage_backup() {
   run "backup: Docker end-to-end test" bash backup/test/e2e.sh
 }
 
+# Image vulnerability scan (docs/conventions/tooling.md). Trivy runs from the pinned image named in
+# scripts/trivy/Dockerfile against a `docker save` tarball, so no Docker socket is mounted into it
+# and the same command works on Linux runners and Windows/macOS Docker Desktop. Fails (exit 1) on a
+# fixable HIGH or CRITICAL finding in OS packages or app libraries; unfixed ones are not blockers.
+# .trivyignore is the reviewed allowlist.
+scan_image() {
+  local image=$1 trivy tmp src rc
+  trivy=$(awk '$1 == "FROM" { print $2; exit }' scripts/trivy/Dockerfile)
+  if [ -z "$trivy" ]; then echo "no FROM line in scripts/trivy/Dockerfile" >&2; return 1; fi
+  docker image inspect "$image" >/dev/null 2>&1 || docker pull "$image" || return 1
+  tmp=$(mktemp -d) || return 1
+  docker save -o "$tmp/image.tar" "$image" || { rm -rf "$tmp"; return 1; }
+  cp .trivyignore "$tmp/.trivyignore"
+  src=$tmp
+  # Git Bash on Windows: docker needs a Windows path for the bind mount and must not mangle the
+  # container-side ones (MSYS_NO_PATHCONV).
+  if command -v cygpath >/dev/null 2>&1; then src=$(cygpath -w "$tmp"); fi
+  MSYS_NO_PATHCONV=1 docker run --rm \
+    -v "$src:/scan:ro" -v my-finances-trivy-cache:/root/.cache/trivy \
+    "$trivy" image --input /scan/image.tar --ignorefile /scan/.trivyignore \
+    --scanners vuln --pkg-types os,library --severity HIGH,CRITICAL --ignore-unfixed \
+    --exit-code 1 --no-progress
+  rc=$?
+  rm -rf "$tmp"
+  return $rc
+}
+
+stage_scan() {
+  local images=() image
+  read -ra images <<< "${SCAN_IMAGES:-}"
+  if [ ${#images[@]} -eq 0 ]; then
+    # No images given: build the three exactly as CI's build-and-push job does (the backup image
+    # without BUILD_ID, which only labels it).
+    for image in backend frontend backup; do
+      run "scan: build $image image" docker build -t "my-finances-$image:scan" "$image"
+      images+=("my-finances-$image:scan")
+    done
+  fi
+  for image in "${images[@]}"; do
+    run "scan: $image" scan_image "$image"
+  done
+}
+
 stages=("$@")
 [ ${#stages[@]} -eq 0 ] && stages=(versions backend frontend)
 
 for stage in "${stages[@]}"; do
   case $stage in
-    versions|backend|frontend|e2e|backup) "stage_$stage" ;;
-    *) echo "unknown stage '$stage' (versions backend frontend e2e backup)" >&2; exit 2 ;;
+    versions|backend|frontend|e2e|backup|scan) "stage_$stage" ;;
+    *) echo "unknown stage '$stage' (versions backend frontend e2e backup scan)" >&2; exit 2 ;;
   esac
 done
 
