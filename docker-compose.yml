@@ -50,7 +50,7 @@ services:
   # never leak into the Linux containers (and the bind mount stays fast).
   backend:
     profiles: [full]
-    image: eclipse-temurin:21.0.12.1_1-jdk-alpine
+    image: eclipse-temurin:24.0.2_12-jdk-alpine
     container_name: my-finances-backend
     working_dir: /workspace
     # dev-run.sh runs bootRun plus a background recompile on source change; DevTools (on the
