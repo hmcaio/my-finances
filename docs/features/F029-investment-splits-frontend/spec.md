@@ -1,5 +1,7 @@
 # F029 — Investment Splits (frontend)
 
+**Status**: specified, not built. Planned for a release after 0.1.0.
+
 ## Summary
 Adds a "Splits" panel to `InvestmentProductDetailPage` so a stock/FII split or reverse split ([F028](../F028-investment-splits-backend/spec.md), [ADR 0025](../../adr/0025-investment-split-as-read-side-adjustment.md)) can be recorded and reviewed. Frontend only — no new backend behavior; this consumes F028's endpoint and renders its already-corrected `cotasHeld`/monthly `units` numbers, which need no frontend change themselves.
 

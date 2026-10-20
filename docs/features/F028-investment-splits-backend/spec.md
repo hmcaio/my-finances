@@ -1,5 +1,7 @@
 # F028 — Investment Splits (backend)
 
+**Status**: specified, not built. Planned for a release after 0.1.0.
+
 ## Summary
 Records a stock/FII split or reverse split (desdobramento/grupamento de cotas) as a new, product-level `InvestmentSplit` event, and corrects the two existing places that compute a product's held quantity (`FiiPortfolioQuery.cotasHeld`, `InvestmentValueSeriesQuery`'s monthly `units`) so they stay right after one happens. See [ADR 0025](../../adr/0025-investment-split-as-read-side-adjustment.md), which this spec implements, and PRD §5.14/§6.6. Backend only — the product-detail-page UI is [F029](../F029-investment-splits-frontend/spec.md).
 

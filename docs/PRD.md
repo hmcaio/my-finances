@@ -242,6 +242,8 @@ Versioned entities (§5.6, §5.7) log as an `UPDATE` on the logical entity, diff
 
 ### 5.14 Investment Split
 
+_Specified, not built (F028/F029); planned for a release after 0.1.0._
+
 **InvestmentSplit** (corporate action: desdobramento/grupamento de cotas — a stock/FII split or reverse split)
 - `id`
 - `investment_product_id` (references `InvestmentProduct`, §5.8) — a split is an event on the security itself, so it's recorded once per product and applies to every holding/account that holds it.
