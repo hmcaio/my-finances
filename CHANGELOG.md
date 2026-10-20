@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- The frontend image now sends its security headers (Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy) on every response, including the app shell (`/`, `/index.html`, deep links) and `/assets/*`, as the 0.1.0 notes said: nginx dropped them from every location that set its own cache header. (closes [#175](https://github.com/hmcaio/my-finances/issues/175))
+  - Upgrade: pull the new frontend image; no configuration change.
+
 ## [0.1.0] - 2026-10-20
 
 Initial release of My Finances, a local, single-user personal finance app that runs on your own machine behind a login.
