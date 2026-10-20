@@ -2,7 +2,7 @@
 # natively via `npm run dev`) — see ADR 0006. Built by CI on pushes to main and on version
 # tags; can also be built locally for the docker-compose.prod.yml smoke test:
 #   docker build -t my-finances-frontend:local frontend
-FROM node:24.21.0-alpine AS build
+FROM node:26.12.0-alpine AS build
 WORKDIR /app
 
 COPY package.json package-lock.json .npmrc ./
