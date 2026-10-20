@@ -267,7 +267,7 @@ jobs:
             type=ref,event=tag
 
       - name: Build backend image (not pushed yet)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./backend
           file: ./backend/Dockerfile
@@ -286,7 +286,7 @@ jobs:
             type=ref,event=tag
 
       - name: Build frontend image (not pushed yet)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
@@ -308,7 +308,7 @@ jobs:
         # BUILD_ID is the git SHA baked into /etc/backup-build-id (ADR 0015) - it changes exactly
         # when this image does, including for the floating "latest" tag, which a tag-string
         # comparison alone could never detect as different from a previous "latest" build.
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./backup
           file: ./backup/Dockerfile
@@ -333,7 +333,7 @@ jobs:
           bash scripts/verify.sh scan
 
       - name: Push backend image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./backend
           file: ./backend/Dockerfile
@@ -342,7 +342,7 @@ jobs:
           labels: ${{ steps.backend-meta.outputs.labels }}
 
       - name: Push frontend image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
@@ -351,7 +351,7 @@ jobs:
           labels: ${{ steps.frontend-meta.outputs.labels }}
 
       - name: Push backup image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./backup
           file: ./backup/Dockerfile
