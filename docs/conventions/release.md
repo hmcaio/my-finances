@@ -18,7 +18,7 @@ Read when promoting `develop` to `main` or tagging a version. The decisions are 
 
 Work in an empty directory holding only `docker-compose.prod.yml` and `.env.example` (from the tag, as in the README's [Running the published images](../../README.md#running-the-published-images-production)), not a checkout, so nothing local leaks in. The prod compose hardcodes `container_name`s and the `my-finances-logs-prod` volume, so use a unique `-p` project name, a scratch `BACKUP_DIR` and tear everything down afterwards; do not run it beside a stack you care about.
 
-- [ ] Anonymous pull of the three images works (`docker logout ghcr.io` first); `up -d` reaches healthy.
+- [ ] Anonymous pull of the three images works (set `DOCKER_CONFIG` to an empty scratch directory for the pull, so your own `docker login` is neither used nor removed); `up -d` reaches healthy.
 - [ ] Published ports are bound to `127.0.0.1` only.
 - [ ] Login works, one UI flow end to end (create an account, a transaction), and the backup banner shows nothing once the first backup is in.
 - [ ] Restore drill (README, [Backups](../../README.md#backups)): a wrong key and a corrupt file fail before the database is touched; a good restore brings the data back.
