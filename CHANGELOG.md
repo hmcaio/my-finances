@@ -73,8 +73,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Dev: pgAdmin now auto-registers the local Postgres server. ([#10](https://github.com/hmcaio/my-finances/pull/10))
   - Upgrade: pgAdmin imports its server list only into an empty volume. To apply it to an existing dev install, reset pgAdmin's volume (`docker compose down -v` also wipes the dev Postgres data).
 - The net worth trend, budget report and dashboard's monthly spend by category now compute in a single pass per request instead of re-reading the whole ledger per sampled date/budget, so they stay fast as transaction/transfer history grows. The frontend now loads each page's code on first visit instead of one upfront bundle. (closes [#94](https://github.com/hmcaio/my-finances/issues/94), [#95](https://github.com/hmcaio/my-finances/pull/95))
-- The production backend no longer serves Swagger UI (`/swagger-ui.html`) or the OpenAPI document (`/v3/api-docs`), even to a logged-in session; dev is unchanged, so `npm run generate-api-types` still works against a dev backend.
-  - Upgrade: none needed in dev. In the prod stack both paths now answer 404; to browse the API, run the dev stack.
 
 ### Fixed
 
