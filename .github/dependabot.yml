@@ -1,7 +1,24 @@
 # Bumps the pinned image tags and Actions (issue #73). Opens one PR per ecosystem update; a bump
 # that touches only one of several files pinning the same tool (e.g. postgres in both compose files
 # and the Testcontainers config) fails scripts/check-versions.sh in CI, so bump the siblings in the
-# same PR. npm and Gradle dependencies are deliberately not covered (lockfiles + noise).
+# same PR. npm and Gradle dependencies are deliberately not covered (lockfiles + noise). The backup
+# sidecar image (backup/Dockerfile, F018) is covered for its postgres base only; the Alpine packages
+# it installs (age, rclone, ...) are unpinned and not tracked.
+#
+# Major bumps of postgres, eclipse-temurin and node are ignored on purpose: each is a coordinated
+# move across several files (postgres: both compose files, the backup image, Testcontainers;
+# node: .nvmrc, the frontend Dockerfile, the dev compose service; JDK: backend Dockerfile and dev
+# compose), not something one Dependabot PR can do. Minor/patch updates still arrive. To follow a
+# new major, bump every sibling by hand in one PR (docs/conventions/tooling.md, "Pinned versions");
+# the ignore is relative to the pinned version, so it keeps applying on the new line. eclipse-temurin:
+# the JDK is an LTS pin (21), so the next LTS is moved by hand the same way; the majors Dependabot
+# would otherwise propose are non-LTS feature releases.
+#
+# nginx (frontend/Dockerfile) is held to the stable line: nginx numbers stable releases with even
+# minors (1.30, 1.32, ...) and mainline with odd ones (1.31, 1.33, ...), so both minor and major
+# bumps are ignored and only patch updates within the pinned 1.30.x arrive. To follow the next
+# stable line, move it by hand to the next even minor (e.g. 1.32): bump frontend/Dockerfile and
+# re-run `bash scripts/verify.sh scan`; the Trivy scan gate catches a stale base image meanwhile.
 version: 2
 updates:
   - package-ecosystem: docker
@@ -9,8 +26,31 @@ updates:
     target-branch: develop
     schedule:
       interval: monthly
+    ignore:
+      - dependency-name: eclipse-temurin
+        update-types: ["version-update:semver-major"]
+  - package-ecosystem: docker
+    directory: /backup
+    target-branch: develop
+    schedule:
+      interval: monthly
+    ignore:
+      - dependency-name: postgres
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: docker
     directory: /frontend
+    target-branch: develop
+    schedule:
+      interval: monthly
+    ignore:
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
+      # Stable nginx line only (even minors); see the header comment.
+      - dependency-name: nginx
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
+  # Image scanner pin (scripts/trivy/Dockerfile, see docs/conventions/tooling.md).
+  - package-ecosystem: docker
+    directory: /scripts/trivy
     target-branch: develop
     schedule:
       interval: monthly
@@ -19,6 +59,13 @@ updates:
     target-branch: develop
     schedule:
       interval: monthly
+    ignore:
+      - dependency-name: postgres
+        update-types: ["version-update:semver-major"]
+      - dependency-name: eclipse-temurin
+        update-types: ["version-update:semver-major"]
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     target-branch: develop

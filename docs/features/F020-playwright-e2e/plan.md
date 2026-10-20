@@ -28,4 +28,4 @@ One feature branch (`feature/f020-playwright-e2e`), one commit per phase.
 ## Verification
 - [x] `npm run e2e` green on all three projects locally.
 - [x] `npm run lint && npm test && npm run build` green.
-- [ ] CI `e2e` job green on the PR; a deliberately overflowing page makes it fail (checked once, not committed).
+- [x] CI `e2e` job green on the PR; a deliberately overflowing page makes it fail (checked once, not committed). Verified (2026-10-20).

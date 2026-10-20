@@ -47,4 +47,10 @@ java=$(values 'eclipse-temurin:[0-9][0-9A-Za-z._]*-(jdk|jre)' backend/Dockerfile
   | sed -E 's/-(jdk|jre)$//' | sort -u)
 expect_one "eclipse-temurin" $java
 
+# Trivy (image vulnerability scan): scripts/trivy/Dockerfile is the only place the scanner is named
+# (verify.sh reads the reference from it), so there are no siblings to compare; this checks the pin
+# itself is a full patch tag plus a digest, the form that survived the March 2026 tag hijack.
+grep -qE '^FROM aquasec/trivy:[0-9]+\.[0-9]+\.[0-9]+@sha256:[0-9a-f]{64}$' scripts/trivy/Dockerfile \
+  || fail "scripts/trivy/Dockerfile must be 'FROM aquasec/trivy:<x.y.z>@sha256:<digest>' (tag and digest)"
+
 exit $status

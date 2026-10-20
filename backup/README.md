@@ -10,7 +10,7 @@ A small standalone image — `postgres:17.11-alpine` + `age` + `rclone` + shell 
 
 `prune.sh` is a pure function over a list of filenames and "now" — GFS retention (7 daily / 5 weekly / 12 monthly) by calendar bucket, `pre-upgrade` files exempt until a later ordinary backup succeeds. Kept pure specifically so it's unit-testable without a real filesystem or Postgres.
 
-`restore.sh <file> --yes` and `backup-keygen` are one-off manual scripts, run via `docker compose run --rm --no-deps backup ...` — see the root README's Backups section for the exact invocation (and its setup order: `.env` auth variables and the backups volume must exist before `backup-keygen`).
+`restore.sh <file> --yes` and `backup-keygen` are one-off manual scripts, run via `docker compose run --rm --no-deps backup ...` — see the root README's Backups section for the exact invocation (and its setup order: `.env` auth variables must be set and the backups volume created, or `BACKUP_DIR` set, before `backup-keygen`).
 
 An on-demand backup is `docker compose -f docker-compose.prod.yml exec -u <BACKUP_UID>:<BACKUP_GID> backup backup.sh` (1000:1000 by default). `entrypoint.sh` only runs `backup.sh` when `decide.sh` says forced or stale, so restarting the container never forces one, and `exec` without `-u` runs as root: `backup.sh` then collides with the `/tmp` scratch files (`pg_dump.err`) the unprivileged sidecar left behind and records `dump_failed`.
 

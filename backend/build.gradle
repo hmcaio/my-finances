@@ -7,7 +7,7 @@ plugins {
 }
 
 group = 'com.chm.myfinances'
-version = '0.1.0'
+version = '0.1.1'
 description = 'My Finances backend'
 
 java {
@@ -25,6 +25,13 @@ configurations {
 repositories {
     mavenCentral()
 }
+
+// Security pins for the image scan gate (ADR 0031, issue #174): Spring Boot 4.1.1 manages older
+// Tomcat/Jackson releases that carry fixable HIGH/CRITICAL findings. Remove each override once a
+// Spring Boot 4.1.x release ships a BOM at or above these versions.
+ext['tomcat.version'] = '11.0.25'
+ext['jackson-2-bom.version'] = '2.21.7'
+ext['jackson-bom.version'] = '3.1.7'
 
 dependencyManagement {
     imports {

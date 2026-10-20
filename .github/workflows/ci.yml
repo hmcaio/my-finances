@@ -250,6 +250,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Build, scan, then publish: a vulnerable image must not be published. All three images are
+      # built into the runner's local daemon first (load: true; nothing leaves the runner), all three
+      # are scanned, and only if every scan passes are they pushed. The push steps repeat the same
+      # builds and reuse the layer cache of this job's one buildx builder, so they add little more
+      # than the registry upload (no external cache needed). A failing scan stops the job before any
+      # push, so no tag (sha, latest or vX.Y.Z) moves in that run.
       - name: Backend image metadata
         id: backend-meta
         uses: docker/metadata-action@v5
@@ -260,12 +266,12 @@ jobs:
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=ref,event=tag
 
-      - name: Build and push backend image
+      - name: Build backend image (not pushed yet)
         uses: docker/build-push-action@v6
         with:
           context: ./backend
           file: ./backend/Dockerfile
-          push: true
+          load: true
           tags: ${{ steps.backend-meta.outputs.tags }}
           labels: ${{ steps.backend-meta.outputs.labels }}
 
@@ -279,12 +285,12 @@ jobs:
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=ref,event=tag
 
-      - name: Build and push frontend image
+      - name: Build frontend image (not pushed yet)
         uses: docker/build-push-action@v6
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
-          push: true
+          load: true
           tags: ${{ steps.frontend-meta.outputs.tags }}
           labels: ${{ steps.frontend-meta.outputs.labels }}
 
@@ -298,10 +304,53 @@ jobs:
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=ref,event=tag
 
-      - name: Build and push backup image
+      - name: Build backup image (not pushed yet)
         # BUILD_ID is the git SHA baked into /etc/backup-build-id (ADR 0015) - it changes exactly
         # when this image does, including for the floating "latest" tag, which a tag-string
         # comparison alone could never detect as different from a previous "latest" build.
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backup
+          file: ./backup/Dockerfile
+          build-args: |
+            BUILD_ID=${{ github.sha }}
+          load: true
+          tags: ${{ steps.backup-meta.outputs.tags }}
+          labels: ${{ steps.backup-meta.outputs.labels }}
+
+      - name: Scan images for vulnerabilities (gates the push)
+        # Fixable HIGH/CRITICAL findings fail the job: see "Image vulnerability scan" in
+        # docs/conventions/tooling.md and .trivyignore. It runs the same pinned Trivy image as
+        # `bash scripts/verify.sh scan` does locally. Each image is scanned under its first tag
+        # (the sha tag); all tags of one build point at the same image.
+        env:
+          BACKEND_TAGS: ${{ steps.backend-meta.outputs.tags }}
+          FRONTEND_TAGS: ${{ steps.frontend-meta.outputs.tags }}
+          BACKUP_TAGS: ${{ steps.backup-meta.outputs.tags }}
+        run: |
+          SCAN_IMAGES="$(head -n1 <<< "$BACKEND_TAGS") $(head -n1 <<< "$FRONTEND_TAGS") $(head -n1 <<< "$BACKUP_TAGS")"
+          export SCAN_IMAGES
+          bash scripts/verify.sh scan
+
+      - name: Push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ steps.backend-meta.outputs.tags }}
+          labels: ${{ steps.backend-meta.outputs.labels }}
+
+      - name: Push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ steps.frontend-meta.outputs.tags }}
+          labels: ${{ steps.frontend-meta.outputs.labels }}
+
+      - name: Push backup image
         uses: docker/build-push-action@v6
         with:
           context: ./backup
