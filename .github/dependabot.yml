@@ -1,7 +1,9 @@
 # Bumps the pinned image tags and Actions (issue #73). Opens one PR per ecosystem update; a bump
 # that touches only one of several files pinning the same tool (e.g. postgres in both compose files
 # and the Testcontainers config) fails scripts/check-versions.sh in CI, so bump the siblings in the
-# same PR. npm and Gradle dependencies are deliberately not covered (lockfiles + noise).
+# same PR. npm and Gradle dependencies are deliberately not covered (lockfiles + noise). The backup
+# sidecar image (backup/Dockerfile, F018) is covered for its postgres base only; the Alpine packages
+# it installs (age, rclone, ...) are unpinned and not tracked.
 #
 # Major bumps of postgres, eclipse-temurin and node are ignored on purpose: each is a coordinated
 # move across several files (postgres: both compose files, the backup image, Testcontainers;
@@ -20,6 +22,14 @@ updates:
       interval: monthly
     ignore:
       - dependency-name: eclipse-temurin
+        update-types: ["version-update:semver-major"]
+  - package-ecosystem: docker
+    directory: /backup
+    target-branch: develop
+    schedule:
+      interval: monthly
+    ignore:
+      - dependency-name: postgres
         update-types: ["version-update:semver-major"]
   - package-ecosystem: docker
     directory: /frontend
