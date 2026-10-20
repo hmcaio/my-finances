@@ -7,14 +7,21 @@
 # and %G/%V ISO-week formatting that busybox's date doesn't support (prune.sh/decide.sh rely on
 # it), findutils for GNU find's -printf (busybox's find applet - Alpine's default - doesn't
 # support it at all; backup.sh's local-prune listing needs it to strip the directory prefix down
-# to a bare filename).
+# to a bare filename), and gosu for entrypoint.sh's drop to BACKUP_UID:BACKUP_GID.
+#
+# gosu comes from Alpine's package, not from the one the postgres image bundles at
+# /usr/local/bin/gosu: that upstream binary is built with Go 1.24.6 and
+# carries fixable Go-stdlib CVEs the image scan (ADR 0031) fails on, with no newer
+# postgres 17 tag to bump to. Alpine rebuilds its package with current Go. /usr/local/bin precedes
+# /usr/bin in PATH, so the bundled binary is removed or it would keep winning.
 FROM postgres:17.11-alpine
 
 # The git SHA this image was built from, baked in at /etc/backup-build-id (ADR 0015's
 # "pre-upgrade" trigger compares this to the value a previous run recorded in status.json).
 ARG BUILD_ID=dev
 
-RUN apk add --no-cache bash coreutils findutils jq age rclone \
+RUN apk add --no-cache bash coreutils findutils jq age rclone gosu \
+  && rm -f /usr/local/bin/gosu \
   && printf '%s' "$BUILD_ID" >/etc/backup-build-id
 
 COPY scripts/backup.sh scripts/entrypoint.sh scripts/prune.sh scripts/decide.sh scripts/restore.sh scripts/backup-keygen /usr/local/bin/
