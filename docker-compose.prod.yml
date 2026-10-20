@@ -25,8 +25,9 @@
 # (my-finances-backups-prod, or BACKUP_DIR if set) is declared `external: true` below — unlike
 # every other volume in this file, `docker compose down -v` does *not* remove it; it must be
 # created once with `docker volume create my-finances-backups-prod` before the keygen step and
-# the first `up -d` (skip this if BACKUP_DIR is set — then it's an ordinary host folder). Compose
-# resolves every service even for `run --no-deps`, so .env needs IMAGE_TAG, AUTH_USERNAME and
+# the first `up -d`, unless BACKUP_DIR is set — then it's an ordinary host folder and the volume
+# is skipped, but BACKUP_DIR must already be in .env at keygen time. Compose resolves every
+# service even for `run --no-deps`, so .env needs IMAGE_TAG, AUTH_USERNAME and
 # AUTH_PASSWORD_HASH before keygen too. See README for setup (volume, keygen, .env, restore) and
 # docs/features/F018-backups/spec.md for the full design.
 x-logging: &default-logging
@@ -178,7 +179,8 @@ volumes:
     # remove it along with the data it exists to protect - that is the whole point, and also a
     # footgun for anyone expecting `down -v` to leave nothing behind. Create it once, before the
     # keygen step and the first `up -d`: `docker volume create my-finances-backups-prod`. Only
-    # actually used when BACKUP_DIR is unset - if BACKUP_DIR points at a host folder instead, this
-    # declared-but-unreferenced volume is simply never mounted by either service.
+    # actually used when BACKUP_DIR is unset - if BACKUP_DIR points at a host folder instead (set
+    # in .env before keygen), this declared-but-unreferenced volume is simply never mounted by
+    # either service.
     external: true
     name: my-finances-backups-prod
