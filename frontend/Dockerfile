@@ -14,7 +14,7 @@ COPY . .
 RUN npm run build
 
 # Runtime stage: nginx serving the static build output only, no Node in the final image.
-FROM nginx:1.27.5-alpine AS runtime
+FROM nginx:1.31.7-alpine AS runtime
 
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
