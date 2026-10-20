@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- The frontend image now sends its security headers (Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy) on every response, including the app shell (`/`, `/index.html`, deep links) and `/assets/*`, as the 0.1.0 notes said: nginx dropped them from every location that set its own cache header. (closes [#175](https://github.com/hmcaio/my-finances/issues/175))
+  - Upgrade: pull the new frontend image; no configuration change.
+
 ### Security
 
 - The backup sidecar's `gosu` now comes from Alpine, built with a current Go toolchain, instead of the copy bundled in the postgres image, clearing 25 fixable HIGH/CRITICAL findings from the image scan. (part of [#174](https://github.com/hmcaio/my-finances/issues/174))
