@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Initial release of My Finances, a local, single-user personal finance app that runs on your own machine behind a login.
 
 - Track accounts across institutions, a ledger of income, expenses and transfers, versioned budgets and recurring bills, and investments (holdings, trades, snapshots and a FII portfolio with target allocation and dividends).
-- See net worth and a dashboard, generate on-demand reports (CSV and PDF), and review an audit log of every change.
+- See net worth and a dashboard, generate on-demand reports (CSV, plus PDF for the FII portfolio and budgets), and review an audit log of every change.
 - Automated encrypted backups, English and Brazilian Portuguese, and Docker images for the backend, frontend and backup sidecar published to GHCR.
 - A fresh install needs no upgrade steps: Flyway applies every migration on first start. The per-entry `Upgrade:` notes below only matter for databases created from pre-release development builds; for a fresh install, setup is in the README and `.env.example`.
 
