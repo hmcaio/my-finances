@@ -25,6 +25,8 @@ A tool version is pinned in every file that names it, and `scripts/check-version
 - Node: `frontend/.nvmrc` is the source; `frontend/Dockerfile`, the dev compose `frontend` service, CI's `setup-node` and `engines` follow it.
 - `eclipse-temurin` JDK/JRE: `backend/Dockerfile` + dev compose `backend`.
 
+**Major bumps of `postgres`, `eclipse-temurin` and `node` are ignored in `.github/dependabot.yml` on purpose** (`version-update:semver-major`, in every ecosystem block naming them); minor/patch bumps still arrive, though Dependabot edits one file per PR, so those fail `check-versions.sh` until the siblings are added to the PR. A major is a deliberate, coordinated move (Postgres 17, the JDK 21 LTS, Node 24), so do it by hand: bump every file in the lists above in one PR (for Postgres also check the major's data-directory upgrade path for existing volumes and the backup image's `pg_dump`/`pg_restore`; for Node, `frontend/.nvmrc` first), run `bash scripts/verify.sh versions`, and add an `Upgrade:` note to the CHANGELOG if it changes how the stack is run. Dependabot then tracks minors on the new line; the ignore needs no edit.
+
 ## Production packaging (F014, ADR 0006)
 
 `docker-compose.prod.yml` is wholly separate from the dev loop.
