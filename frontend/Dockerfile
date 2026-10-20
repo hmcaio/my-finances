@@ -13,8 +13,10 @@ COPY . .
 # build (`vite build` defaults to --mode production) and inlines it at build time.
 RUN npm run build
 
-# Runtime stage: nginx serving the static build output only, no Node in the final image.
-FROM nginx:1.27.5-alpine AS runtime
+# Runtime stage: nginx serving the static build output only, no Node in the final image. The
+# -alpine-slim variant omits the full image's extra modules and their libraries (curl, libpng,
+# libxml2, ...), which nothing here uses and which carried most of the scan findings (issue #174).
+FROM nginx:1.30.6-alpine-slim AS runtime
 
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
