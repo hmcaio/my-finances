@@ -86,12 +86,14 @@ scan_image() {
   if [ -z "$trivy" ]; then echo "no FROM line in scripts/trivy/Dockerfile" >&2; return 1; fi
   docker image inspect "$image" >/dev/null 2>&1 || docker pull "$image" || return 1
   tmp=$(mktemp -d) || return 1
-  docker save -o "$tmp/image.tar" "$image" || { rm -rf "$tmp"; return 1; }
   cp .trivyignore "$tmp/.trivyignore"
+  # Git Bash on Windows: docker.exe needs a Windows path for both `save -o` and the bind mount, and
+  # the caller's MSYS_NO_PATHCONV may be set or not, so hand it a path that is already native (MSYS
+  # leaves those alone either way) instead of relying on its /tmp conversion. The container-side
+  # paths are protected from mangling by MSYS_NO_PATHCONV=1 on the run.
   src=$tmp
-  # Git Bash on Windows: docker needs a Windows path for the bind mount and must not mangle the
-  # container-side ones (MSYS_NO_PATHCONV).
   if command -v cygpath >/dev/null 2>&1; then src=$(cygpath -w "$tmp"); fi
+  docker save -o "$src/image.tar" "$image" || { rm -rf "$tmp"; return 1; }
   MSYS_NO_PATHCONV=1 docker run --rm \
     -v "$src:/scan:ro" -v my-finances-trivy-cache:/root/.cache/trivy \
     "$trivy" image --input /scan/image.tar --ignorefile /scan/.trivyignore \

@@ -6,9 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- The frontend image now sends its security headers (Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy) on every response, including the app shell (`/`, `/index.html`, deep links) and `/assets/*`, as the 0.1.0 notes said: nginx dropped them from every location that set its own cache header. (closes [#175](https://github.com/hmcaio/my-finances/issues/175))
+  - Upgrade: pull the new frontend image; no configuration change.
+
 ### Security
 
-- Backend dependency and base-image updates (Tomcat 11.0.25, Jackson 2.21.7 and 3.1.7, Bouncy Castle 1.85, Alpine packages upgraded at build time) clearing 18 fixable findings in the backend image. (part of [#174](https://github.com/hmcaio/my-finances/issues/174))
+- The backup sidecar's `gosu` now comes from Alpine, built with a current Go toolchain, instead of the copy bundled in the postgres image, clearing 25 fixable HIGH/CRITICAL findings from the image scan. (part of [#174](https://github.com/hmcaio/my-finances/issues/174))
+  - Upgrade: pull the new image (`IMAGE_TAG`, then `docker compose up -d`). No `.env`, volume or migration change; the sidecar takes a forced pre-upgrade backup on first start.
+- The frontend image moves from nginx 1.27.5 to the stable 1.30 line on the slim Alpine 3.24 image, clearing 55 fixable findings from the image vulnerability scan. (part of [#174](https://github.com/hmcaio/my-finances/issues/174))
+  - Upgrade: pull the new image; no `.env`, volume or migration change. The image now uses nginx's `-alpine-slim` variant.
+- Backend dependency and base-image updates (Tomcat 11.0.25, Jackson 2.21.7 and 3.1.7, Bouncy Castle 1.85, Alpine packages upgraded in the image at build time) clearing 18 fixable findings in the backend image. (part of [#174](https://github.com/hmcaio/my-finances/issues/174))
   - Upgrade: pull the new image. No `.env`, volume or migration change; the backend restarts and existing sessions are invalidated.
 
 ## [0.1.0] - 2026-10-20
