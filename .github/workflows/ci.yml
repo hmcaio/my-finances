@@ -98,7 +98,7 @@ jobs:
         # paths sit under backend/build, so the artifact holds reports/tests/test/index.html (the
         # browsable report) and test-results/test/*.xml (JUnit XML).
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backend-test-report
           path: |
@@ -113,7 +113,7 @@ jobs:
         # JaCoCo's HTML report, a static site (open index.html). Nothing is written when the run
         # fails before `jacocoTestReport`, hence `ignore`.
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backend-coverage
           path: backend/build/reports/jacoco/test/html
@@ -150,7 +150,7 @@ jobs:
         # report below it isn't a static site: to browse a downloaded copy run
         # `npx vite preview --outDir test-results` from the extracted folder.
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-test-report
           path: frontend/test-results
@@ -161,7 +161,7 @@ jobs:
         # Also on test failure so a red run still leaves whatever report was produced;
         # `ignore` because Vitest writes no report when the run fails early.
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-coverage
           path: frontend/coverage
@@ -207,7 +207,7 @@ jobs:
         # Only on failure: the HTML report (with traces from the retry) is what makes a layout
         # regression debuggable. `ignore` in case the run died before writing anything.
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: |
