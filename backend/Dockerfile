@@ -9,7 +9,9 @@
 FROM eclipse-temurin:21.0.12.1_1-jdk-alpine AS build
 WORKDIR /workspace
 
-COPY gradlew ./
+# --chmod: the wrapper's git mode bit is not trusted (a Windows-authored checkout can lose it),
+# so the image sets the executable bit itself.
+COPY --chmod=755 gradlew ./
 COPY gradle ./gradle
 COPY gradle.properties settings.gradle build.gradle ./
 # Warm the Gradle wrapper/dependency cache as its own layer.
