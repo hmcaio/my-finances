@@ -111,6 +111,15 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    healthcheck:
+      # Vite answering on 5173 (127.0.0.1, not "localhost": busybox wget tries ::1 first). The
+      # start period and retry budget cover the first start's `npm ci` into an empty node_modules
+      # volume, which takes minutes; later starts are healthy in seconds.
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:5173/"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 120s
 
 volumes:
   my-finances-postgres-data:

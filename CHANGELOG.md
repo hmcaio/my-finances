@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- The frontend container now reports its health, so `docker compose ps` shows all four services of the production stack as `healthy` instead of the frontend only as `Up` (the dev `full` profile's frontend and backend report it too). The frontend image answers a new `/healthz` itself, without involving the backend. (closes [#170](https://github.com/hmcaio/my-finances/issues/170))
+  - Upgrade: nothing to do beyond pulling the new compose file and the new frontend image (the image carries the `/healthz` location; an older image would still report healthy, because its nginx answers any path with the app shell). No `.env`, volume or migration change.
+
 ### Changed
 
 - Docker images are now published only when a release tag is pushed (`vX.Y.Z`, or `vX.Y.Z-rc.N` for a release candidate); a merge to `main` publishes nothing. `latest` and `sha-<short>` now come from the stable tag run, so `latest` always means the newest release and never an unreleased commit, and a release candidate never moves it. Part of the move to a `main`-only GitHub Flow ([ADR 0032](docs/adr/0032-github-flow-main-only.md)).
