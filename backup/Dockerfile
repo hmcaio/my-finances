@@ -1,27 +1,34 @@
-# F018 backup sidecar (ADR 0015). postgres:17.11-alpine - same major as the server (pg_dump/
-# pg_restore must match it) and the exact same full patch tag docker-compose.prod.yml pins for
-# the postgres service itself (root CLAUDE.md: a tool version is pinned in every file that names
-# it; scripts/check-versions.sh fails if this drifts from docker-compose.prod.yml/
-# TestcontainersConfiguration) - plus age for encryption, rclone for the optional off-site push,
-# and bash/coreutils/findutils/jq for the scripts themselves: coreutils for GNU date's -d parsing
-# and %G/%V ISO-week formatting that busybox's date doesn't support (prune.sh/decide.sh rely on
-# it), findutils for GNU find's -printf (busybox's find applet - Alpine's default - doesn't
-# support it at all; backup.sh's local-prune listing needs it to strip the directory prefix down
-# to a bare filename), and gosu for entrypoint.sh's drop to BACKUP_UID:BACKUP_GID.
+# F018 backup sidecar (ADR 0015, base amended in #204). Plain Alpine plus only what the scripts
+# call, not the postgres server image: that image declared `VOLUME /var/lib/postgresql/data`
+# (an anonymous volume per sidecar container that nothing used), carried a whole Postgres server
+# the sidecar never runs, and bundled its own gosu with Go-stdlib CVEs (#177).
 #
-# gosu comes from Alpine's package, not from the one the postgres image bundles at
-# /usr/local/bin/gosu: that upstream binary is built with Go 1.24.6 and
-# carries fixable Go-stdlib CVEs the image scan (ADR 0031) fails on, with no newer
-# postgres 17 tag to bump to. Alpine rebuilds its package with current Go. /usr/local/bin precedes
-# /usr/bin in PATH, so the bundled binary is removed or it would keep winning.
-FROM postgres:17.11-alpine
+# Pins (root CLAUDE.md: a tool version is pinned in every file that names it; scripts/
+# check-versions.sh fails on drift):
+# - alpine:<full patch tag>: the same Alpine release as the other images' bases (postgres,
+#   nginx and eclipse-temurin `-alpine`), so one Alpine CVE fix lands across all four.
+# - POSTGRES_MAJOR: pg_dump/pg_restore must match the server's major, which is the one of the
+#   postgres tag in docker-compose.prod.yml; check-versions.sh compares the two. Alpine ships
+#   the client as `postgresql<major>-client` at the latest minor of that major, which is
+#   compatible with any server of the same major (so it can run ahead of the server's patch tag).
+#
+# Packages: postgresql-client (pg_dump, pg_restore, psql), age (encryption, and age-keygen),
+# rclone (optional off-site push), gosu (entrypoint.sh's drop to BACKUP_UID:BACKUP_GID, from
+# Alpine, rebuilt with a current Go), and bash/coreutils/findutils/jq for the scripts: coreutils
+# for GNU date's -d parsing and %G/%V ISO-week formatting that busybox's date doesn't support
+# (prune.sh/decide.sh rely on it), findutils for GNU find's -printf (busybox's find, Alpine's
+# default, doesn't support it at all; backup.sh's local-prune listing needs it to strip the
+# directory prefix down to a bare filename). TLS roots for rclone come from the base image's
+# ca-certificates-bundle.
+FROM alpine:3.24.2
+
+ARG POSTGRES_MAJOR=17
 
 # The git SHA this image was built from, baked in at /etc/backup-build-id (ADR 0015's
 # "pre-upgrade" trigger compares this to the value a previous run recorded in status.json).
 ARG BUILD_ID=dev
 
-RUN apk add --no-cache bash coreutils findutils jq age rclone gosu \
-  && rm -f /usr/local/bin/gosu \
+RUN apk add --no-cache "postgresql${POSTGRES_MAJOR}-client" bash coreutils findutils jq age rclone gosu \
   && printf '%s' "$BUILD_ID" >/etc/backup-build-id
 
 COPY scripts/backup.sh scripts/entrypoint.sh scripts/prune.sh scripts/decide.sh scripts/restore.sh scripts/backup-keygen /usr/local/bin/
@@ -32,7 +39,7 @@ WORKDIR /backups
 
 # No fixed ENTRYPOINT: `docker compose up` runs the default CMD (the long-running sidecar loop),
 # while `docker compose run --rm --no-deps backup restore.sh <file> --yes` (or backup-keygen)
-# replaces CMD entirely and runs directly - same override idiom the base postgres image itself
-# uses, but without its postgres-server-specific entrypoint logic, which this image has no use for.
+# replaces CMD entirely and runs directly. The empty ENTRYPOINT keeps that override idiom the
+# postgres base image used to provide, without its server-specific entrypoint logic.
 ENTRYPOINT []
 CMD ["entrypoint.sh"]
