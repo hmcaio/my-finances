@@ -56,7 +56,7 @@ Then read `CODING_STANDARDS.md` against your diff and fix what it flags: it hold
 
 - Steering files (area mechanics in `docs/conventions/<topic>.md`; a rule needed on every task in the root `CLAUDE.md` or the stack's `backend/CLAUDE.md`/`frontend/CLAUDE.md`; review judgement in `CODING_STANDARDS.md`): add a line only if the work produced a *rule or gotcha* that can't be derived from the code and would cost time to rediscover — and phrase it as the rule, not the story. A rule a check can enforce becomes an ArchUnit/ESLint/script check instead of prose. What changed, why, and any deliberate non-fix belong in the commit body and PR description (and the feature's `spec.md` if behavior changed). Narrative paragraphs in CLAUDE.md are what bloated it to 33 KB of mostly-history, and it loads into every session.
 - `docs/features/FXXX/spec.md`: update when observable behavior or schema for that feature changed. Not needed for pure defense-in-depth constraints that only the migration header documents.
-- `CHANGELOG.md`: per the root `CLAUDE.md` rule "CHANGELOG entries ship with the PR", a fix or change users would notice gets one plain bullet under `## [Unreleased]` (`### Fixed` / `### Changed`, citing the issue as `closes [#N](…)`), plus an `Upgrade:` sub-line if it changes how someone runs or upgrades the stack (a new migration or constraint that can fail on existing data, a compose/env change). No entry for defense-in-depth-only, test-only or purely internal work — say so in the closing message instead. Include the edit in the fix commit (step 8), and leave the PR link off for now (step 9 adds it).
+- `CHANGELOG.md`: per [`docs/conventions/release.md`](../../../docs/conventions/release.md) ("CHANGELOG entries"), a fix or change users would notice gets one plain bullet under `## [Unreleased]` (`### Fixed` / `### Changed`, citing the issue as `closes [#N](…)`), plus an `Upgrade:` sub-line if it changes how someone runs or upgrades the stack (a new migration or constraint that can fail on existing data, a compose/env change). No entry for defense-in-depth-only, test-only or purely internal work — say so in the closing message instead. Include the edit in the fix commit (step 8); the release step adds the PR link.
 - `docs/PRD.md`: only when a product decision changed or was newly made. `README.md`: rarely.
 
 ## 8. Commit
@@ -65,7 +65,7 @@ Conventional Commits (ADR 0009), message via HEREDOC, staging by explicit path (
 
 ## 9. Push and PR — only when asked
 
-Pushing is visible to others, so wait for the user to say so (approving the fix is not approval to push). Then `git push -u origin <branch>` and `gh pr create --base develop` with: `Closes #N`, a summary of what changed and why, and a checked test plan listing the commands from step 6. If step 7 added a `CHANGELOG.md` entry, add its `([#N](…))` PR link now that the number exists and push that one follow-up commit (`docs: link PR in CHANGELOG entry`; the squash-merge folds it in). Return the PR URL.
+Pushing is visible to others, so wait for the user to say so (approving the fix is not approval to push). Then `git push -u origin <branch>` and `gh pr create --base develop` with: `Closes #N`, a summary of what changed and why, and a checked test plan listing the commands from step 6. Return the PR URL.
 
 ## 10. Post-mortem — only when asked
 
