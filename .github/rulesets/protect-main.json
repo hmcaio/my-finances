@@ -28,7 +28,9 @@
           { "context": "Backend tests" },
           { "context": "Frontend tests" },
           { "context": "Frontend e2e (Playwright)" },
-          { "context": "Backup sidecar tests (F018)" }
+          { "context": "Backup sidecar tests (F018)" },
+          { "context": "Build images and scan" },
+          { "context": "Prod smoke" }
         ]
       }
     }
