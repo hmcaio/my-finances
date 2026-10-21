@@ -2,7 +2,7 @@
 # The one definition of "the checks" (issue #73): CI's jobs call this script, and so do you, so a
 # green local run means a green CI run. Usage:
 #
-#   scripts/verify.sh [stage...]     stages: versions backend frontend e2e backup scan   (default: versions backend frontend)
+#   scripts/verify.sh [stage...]     stages: versions backend frontend e2e backup scan smoke   (default: versions backend frontend)
 #
 #   scripts/verify.sh                everything CI's unit-test jobs run
 #   scripts/verify.sh frontend       just the frontend checks
@@ -13,6 +13,14 @@
 #   SCAN_IMAGES="ref ..." scripts/verify.sh scan
 #                                    scans those images instead (pulled if not local), without building;
 #                                    this is how CI's build-and-push job gates publishing
+#   scripts/verify.sh smoke          builds the three images and starts docker-compose.prod.yml against
+#                                    them behind a throwaway login (scripts/smoke-prod.sh): healthy
+#                                    services, loopback ports, login, nginx header/cache matrix, backup
+#                                    status, clean backend log (not in the default run: it builds images).
+#                                    Refuses to run beside a real prod stack (hardcoded container names)
+#   SMOKE_BACKEND_IMAGE=ref SMOKE_FRONTEND_IMAGE=ref SMOKE_BACKUP_IMAGE=ref scripts/verify.sh smoke
+#                                    smoke-tests those images instead, without building (CI's
+#                                    build-and-push job, before it pushes)
 #
 # Every stage runs even if an earlier one fails (like Gradle's --continue), and the exit code is
 # non-zero if any failed. Backend integration tests need Docker running (Testcontainers, ADR 0010).
@@ -120,13 +128,29 @@ stage_scan() {
   done
 }
 
+# Production smoke test (scripts/smoke-prod.sh): the prod compose stack against locally built images.
+# With no SMOKE_*_IMAGE given the three images are built as CI's build-and-push job builds them.
+stage_smoke() {
+  local image
+  if [ -z "${SMOKE_BACKEND_IMAGE:-}${SMOKE_FRONTEND_IMAGE:-}${SMOKE_BACKUP_IMAGE:-}" ]; then
+    for image in backend frontend backup; do
+      run "smoke: build $image image" docker build -t "my-finances-$image:smoke" "$image"
+    done
+  elif [ -z "${SMOKE_BACKEND_IMAGE:-}" ] || [ -z "${SMOKE_FRONTEND_IMAGE:-}" ] || [ -z "${SMOKE_BACKUP_IMAGE:-}" ]; then
+    echo "smoke: set all of SMOKE_BACKEND_IMAGE, SMOKE_FRONTEND_IMAGE and SMOKE_BACKUP_IMAGE, or none" >&2
+    failed+=("smoke: incomplete SMOKE_*_IMAGE")
+    return
+  fi
+  run "smoke: production compose stack" bash scripts/smoke-prod.sh
+}
+
 stages=("$@")
 [ ${#stages[@]} -eq 0 ] && stages=(versions backend frontend)
 
 for stage in "${stages[@]}"; do
   case $stage in
-    versions|backend|frontend|e2e|backup|scan) "stage_$stage" ;;
-    *) echo "unknown stage '$stage' (versions backend frontend e2e backup scan)" >&2; exit 2 ;;
+    versions|backend|frontend|e2e|backup|scan|smoke) "stage_$stage" ;;
+    *) echo "unknown stage '$stage' (versions backend frontend e2e backup scan smoke)" >&2; exit 2 ;;
   esac
 done
 

@@ -1,10 +1,12 @@
 name: CI/CD
 
 # The test jobs run on every PR and on pushes to main and to v* tags (a branch push is already
-# covered by its PR, so feature branches are not built twice). Images are built, scanned and
-# pushed (build-and-push job) ONLY on vX.Y.Z and vX.Y.Z-rc.N tag pushes: a push to main publishes
-# nothing, so `latest` always means the newest release. Per ADR 0032 (which amends ADR 0006/0031)
-# and docs/features/F014-cicd-production-packaging/spec.md.
+# covered by its PR, so feature branches are not built twice). Images are built, scanned, smoke-tested
+# and pushed (build-and-push job) ONLY on vX.Y.Z and vX.Y.Z-rc.N tag pushes: a push to main publishes
+# nothing, so `latest` always means the newest release. A pull request that touches what the images
+# are made of also builds and scans them and smoke-tests the prod stack (build-images, smoke-prod; no
+# push). Per ADR 0032 (which amends ADR 0006/0031) and
+# docs/features/F014-cicd-production-packaging/spec.md.
 on:
   push:
     branches: [main]
@@ -24,12 +26,18 @@ jobs:
     # `paths-ignore`): the jobs start, are skipped by `if:` here, and a skipped job counts as
     # passed. "Docs-only" = every changed path is under docs/ or .claude/ or is a *.md file.
     # Anything that is not a PR (main and tag pushes) always runs everything.
+    #
+    # `images` is the second, narrower output (ADR 0032, rule 4): true when a changed path can change
+    # what the image build, the scan or the prod smoke test sees. It gates build-images and
+    # smoke-prod, so a PR that only touches, say, a frontend test still gets the images built, but a
+    # docs-only or tooling-only PR does not. A *.md path counts for neither output.
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: read
     outputs:
       code: ${{ steps.filter.outputs.code }}
+      images: ${{ steps.filter.outputs.images }}
     steps:
       - id: filter
         env:
@@ -39,6 +47,7 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
         run: |
           code=true
+          images=true
           if [ "$EVENT" = "pull_request" ]; then
             # Renamed files list both paths, so moving code into docs/ still counts as code.
             files="$(gh api --paginate "repos/$REPO/pulls/$PR/files" \
@@ -46,16 +55,24 @@ jobs:
             # An empty list (should not happen) falls through to "run everything".
             if [ -n "$files" ]; then
               code=false
+              images=false
               while IFS= read -r file; do
                 case "$file" in
-                  docs/*|.claude/*|*.md) ;;
-                  *) code=true ;;
+                  docs/*|.claude/*|*.md) continue ;;
+                esac
+                code=true
+                # Everything the images are built from or the smoke test runs: the three build
+                # contexts, the compose files, the workflow itself, the scan's pin and allowlist, and
+                # the scripts and .env.example the stages read.
+                case "$file" in
+                  backend/*|frontend/*|backup/*|docker-compose*.yml|.github/workflows/*|scripts/trivy/*|.trivyignore|scripts/verify.sh|scripts/smoke-prod.sh|.env.example) images=true ;;
                 esac
               done <<< "$files"
             fi
           fi
           echo "code=$code" >> "$GITHUB_OUTPUT"
-          echo "code changed: $code"
+          echo "images=$images" >> "$GITHUB_OUTPUT"
+          echo "code changed: $code, images affected: $images"
 
   test-backend:
     name: Backend tests
@@ -227,6 +244,46 @@ jobs:
       - name: bats unit tests + Docker end-to-end test
         run: bash scripts/verify.sh backup
 
+  # The two image jobs below run on pull requests only (ADR 0032 rule 4, amending ADR 0031's "the
+  # scan runs only in build-and-push"): they move a Dockerfile, nginx, compose or image mistake from
+  # the immutable release tag to the PR. They build with plain `docker build`, exactly what
+  # scripts/verify.sh does locally, and push nothing (no packages permission, no registry login).
+  # Two jobs rather than one so each is its own required check and a new CVE (scan) does not hide
+  # whether the stack still works (smoke); the price is building the images twice, in parallel, and
+  # Actions minutes are free here. Both skip like the test jobs: needs `changes`, gated by `if:`.
+  build-images:
+    name: Build images and scan
+    needs: changes
+    if: needs.changes.outputs.images == 'true' && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build the three images and scan them for vulnerabilities
+        # Builds my-finances-{backend,frontend,backup}:scan and runs the Trivy gate of ADR 0031.
+        # A new CVE can fail it for an unrelated change: bump the dependency or base image, or add a
+        # dated .trivyignore entry (docs/conventions/tooling.md).
+        run: bash scripts/verify.sh scan
+
+  smoke-prod:
+    name: Prod smoke
+    needs: changes
+    if: needs.changes.outputs.images == 'true' && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build the three images and smoke-test docker-compose.prod.yml against them
+        # scripts/smoke-prod.sh: throwaway login and .env, own compose project, torn down on exit.
+        # The assertion list is in its header and in docs/conventions/tooling.md.
+        run: bash scripts/verify.sh smoke
+
   build-and-push:
     name: Build and push images
     needs: [test-backend, test-frontend, e2e-frontend, test-backup]
@@ -270,12 +327,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Build, scan, then publish: a vulnerable image must not be published. All three images are
-      # built into the runner's local daemon first (load: true; nothing leaves the runner), all three
-      # are scanned, and only if every scan passes are they pushed. The push steps repeat the same
+      # Build, scan, smoke, then publish: a vulnerable or broken image must not be published. All
+      # three images are built into the runner's local daemon first (load: true; nothing leaves the
+      # runner), all three are scanned and the production stack is started on them, and only if
+      # every check passes are they pushed. The push steps repeat the same
       # builds and reuse the layer cache of this job's one buildx builder, so they add little more
-      # than the registry upload (no external cache needed). A failing scan stops the job before any
-      # push, so no tag (sha, latest or vX.Y.Z) moves in that run.
+      # than the registry upload (no external cache needed). A failing scan or smoke test stops the
+      # job before any push, so no tag (sha, latest or vX.Y.Z) moves in that run.
       #
       # Tags per image: sha-<short> and the git tag itself (vX.Y.Z or vX.Y.Z-rc.N) always; `latest`
       # only for a stable tag. `flavor: latest=false` switches off metadata-action's own implicit
@@ -361,6 +419,21 @@ jobs:
           SCAN_IMAGES="$(head -n1 <<< "$BACKEND_TAGS") $(head -n1 <<< "$FRONTEND_TAGS") $(head -n1 <<< "$BACKUP_TAGS")"
           export SCAN_IMAGES
           bash scripts/verify.sh scan
+
+      - name: Smoke-test the production stack on these images (gates the push)
+        # The same check the pull-request job `Prod smoke` runs (scripts/smoke-prod.sh), here on the
+        # exact images loaded above, so a broken image (nginx, compose wiring, login, backups) is
+        # never published (ADR 0032 rule 4). It retags them itself; nothing is pulled or pushed.
+        env:
+          BACKEND_TAGS: ${{ steps.backend-meta.outputs.tags }}
+          FRONTEND_TAGS: ${{ steps.frontend-meta.outputs.tags }}
+          BACKUP_TAGS: ${{ steps.backup-meta.outputs.tags }}
+        run: |
+          SMOKE_BACKEND_IMAGE="$(head -n1 <<< "$BACKEND_TAGS")"
+          SMOKE_FRONTEND_IMAGE="$(head -n1 <<< "$FRONTEND_TAGS")"
+          SMOKE_BACKUP_IMAGE="$(head -n1 <<< "$BACKUP_TAGS")"
+          export SMOKE_BACKEND_IMAGE SMOKE_FRONTEND_IMAGE SMOKE_BACKUP_IMAGE
+          bash scripts/verify.sh smoke
 
       - name: Push backend image
         uses: docker/build-push-action@v7
