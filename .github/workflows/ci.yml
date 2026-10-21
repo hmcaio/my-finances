@@ -67,7 +67,7 @@ jobs:
     # daemon already available on GitHub's hosted Ubuntu runners. No credentials to provision
     # or keep in sync here.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Check pinned tool versions agree across files
         run: bash scripts/verify.sh versions
@@ -92,7 +92,7 @@ jobs:
         # paths sit under backend/build, so the artifact holds reports/tests/test/index.html (the
         # browsable report) and test-results/test/*.xml (JUnit XML).
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backend-test-report
           path: |
@@ -107,7 +107,7 @@ jobs:
         # JaCoCo's HTML report, a static site (open index.html). Nothing is written when the run
         # fails before `jacocoTestReport`, hence `ignore`.
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backend-coverage
           path: backend/build/reports/jacoco/test/html
@@ -120,9 +120,9 @@ jobs:
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: frontend/.nvmrc
           cache: npm
@@ -144,7 +144,7 @@ jobs:
         # report below it isn't a static site: to browse a downloaded copy run
         # `npx vite preview --outDir test-results` from the extracted folder.
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-test-report
           path: frontend/test-results
@@ -155,7 +155,7 @@ jobs:
         # Also on test failure so a red run still leaves whatever report was produced;
         # `ignore` because Vitest writes no report when the run fails early.
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-coverage
           path: frontend/coverage
@@ -172,9 +172,9 @@ jobs:
     needs: test-frontend
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: frontend/.nvmrc
           cache: npm
@@ -201,7 +201,7 @@ jobs:
         # Only on failure: the HTML report (with traces from the retry) is what makes a layout
         # regression debuggable. `ignore` in case the run died before writing anything.
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: |
@@ -219,7 +219,7 @@ jobs:
     # relies on for Testcontainers) - the e2e test (backup/test/e2e.sh) builds the real sidecar
     # image and runs it against throwaway Postgres containers of its own.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install bats-core
         run: sudo apt-get update && sudo apt-get install -y bats
@@ -240,11 +240,11 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: docker/setup-buildx-action@v3
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -267,7 +267,7 @@ jobs:
             type=ref,event=tag
 
       - name: Build backend image (not pushed yet)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./backend
           file: ./backend/Dockerfile
@@ -286,7 +286,7 @@ jobs:
             type=ref,event=tag
 
       - name: Build frontend image (not pushed yet)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
@@ -308,7 +308,7 @@ jobs:
         # BUILD_ID is the git SHA baked into /etc/backup-build-id (ADR 0015) - it changes exactly
         # when this image does, including for the floating "latest" tag, which a tag-string
         # comparison alone could never detect as different from a previous "latest" build.
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./backup
           file: ./backup/Dockerfile
@@ -333,7 +333,7 @@ jobs:
           bash scripts/verify.sh scan
 
       - name: Push backend image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./backend
           file: ./backend/Dockerfile
@@ -342,7 +342,7 @@ jobs:
           labels: ${{ steps.backend-meta.outputs.labels }}
 
       - name: Push frontend image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
@@ -351,7 +351,7 @@ jobs:
           labels: ${{ steps.frontend-meta.outputs.labels }}
 
       - name: Push backup image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./backup
           file: ./backup/Dockerfile
