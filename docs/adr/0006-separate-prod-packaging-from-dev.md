@@ -1,6 +1,6 @@
 # 0006. Keep production Docker packaging separate from local dev tooling
 
-Status: Accepted (dev-containers part partially superseded by [0018](0018-opt-in-full-stack-dev-compose-profile.md): the dev compose file now offers an opt-in `full` profile)
+Status: Accepted (dev-containers part partially superseded by [0018](0018-opt-in-full-stack-dev-compose-profile.md): the dev compose file now offers an opt-in `full` profile; the publish trigger amended by [0032](0032-github-flow-main-only.md): images publish on release tags only, not on `main` pushes)
 Date: 2026-09-13
 
 ## Context
