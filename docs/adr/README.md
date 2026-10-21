@@ -9,9 +9,9 @@ One file per decision, numbered sequentially, never renumbered or edited to chan
 | [0003](0003-lazy-catchup-recurring-generation.md) | Generate recurring occurrences lazily/catch-up instead of real-time scheduling | Accepted |
 | [0004](0004-hexagonal-ddd-tdd.md) | Adopt Hexagonal Architecture, Domain-Driven Design, and Test-Driven Development for the backend | Accepted |
 | [0005](0005-single-point-uuid-generation.md) | Generate all entity IDs as UUIDs from a single domain-layer IdGenerator port | Accepted |
-| [0006](0006-separate-prod-packaging-from-dev.md) | Keep production Docker packaging separate from local dev tooling | Accepted (partly superseded by [0018](0018-opt-in-full-stack-dev-compose-profile.md)) |
+| [0006](0006-separate-prod-packaging-from-dev.md) | Keep production Docker packaging separate from local dev tooling | Accepted (partly superseded by [0018](0018-opt-in-full-stack-dev-compose-profile.md); publish trigger amended by [0032](0032-github-flow-main-only.md)) |
 | [0007](0007-single-shared-semver-and-changelog.md) | Single shared SemVer version across backend and frontend, with a root CHANGELOG | Accepted |
-| [0008](0008-github-flow-with-develop-branch.md) | Branching strategy: GitHub Flow with an added long-lived `develop` branch | Accepted |
+| [0008](0008-github-flow-with-develop-branch.md) | Branching strategy: GitHub Flow with an added long-lived `develop` branch | Superseded by [0032](0032-github-flow-main-only.md) |
 | [0009](0009-conventional-commits.md) | Use Conventional Commits, mapped to CHANGELOG categories and SemVer bump type | Accepted |
 | [0010](0010-testcontainers-for-backend-tests.md) | Use Testcontainers for backend tests instead of a fixed CI Postgres service container | Accepted |
 | [0011](0011-logging-slf4j-request-id.md) | Logging: SLF4J/Logback + a request id; no aggregator | Accepted |
@@ -34,7 +34,8 @@ One file per decision, numbered sequentially, never renumbered or edited to chan
 | [0028](0028-fixed-taxonomy-values-and-onboarding-seeded-categories.md) | Lock PaymentMethod/InvestmentCategory/InvestmentSubcategory/InvestmentSegment to fixed system values, close Institution's rename gap, and seed Category defaults through onboarding instead of migration | Accepted |
 | [0029](0029-session-auth-and-generic-network-binding.md) | Session-cookie authentication with a single shared Argon2-hashed credential, and a generic `BIND_ADDR`-based private-network binding not pinned to any specific VPN/overlay product | Accepted |
 | [0030](0030-postgres-unaccent-for-accent-insensitive-search.md) | Postgres `unaccent` extension for accent-insensitive text search (first extension the app depends on) | Accepted |
-| [0031](0031-image-vulnerability-scan-gates-publishing.md) | Scan container images for vulnerabilities with a pinned Trivy image and gate publishing on the result | Accepted |
+| [0031](0031-image-vulnerability-scan-gates-publishing.md) | Scan container images for vulnerabilities with a pinned Trivy image and gate publishing on the result | Accepted (publish trigger amended by [0032](0032-github-flow-main-only.md)) |
+| [0032](0032-github-flow-main-only.md) | Plain GitHub Flow: `main` is the only long-lived branch, and images publish on release tags only | Accepted (supersedes [0008](0008-github-flow-with-develop-branch.md); amends the publish trigger of [0006](0006-separate-prod-packaging-from-dev.md), [0031](0031-image-vulnerability-scan-gates-publishing.md)) |
 
 Template:
 ```

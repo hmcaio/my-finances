@@ -1,6 +1,6 @@
 # 0008. Branching strategy: GitHub Flow with an added long-lived `develop` branch
 
-Status: Accepted
+Status: Superseded by [0032](0032-github-flow-main-only.md)
 Date: 2026-09-13
 
 ## Context
