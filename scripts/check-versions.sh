@@ -26,14 +26,31 @@ expect_one() {
   fi
 }
 
-# Postgres: dev + prod compose, the Testcontainers tag used by every backend test, and the F018
-# backup sidecar image (its own pg_dump/pg_restore must match the server major, and the tool-
-# version-pinning rule applies to it exactly as to the other three).
+# Postgres: dev + prod compose and the Testcontainers tag used by every backend test.
 pg=$(values 'postgres:[0-9][0-9.]*-alpine' \
   docker-compose.yml docker-compose.prod.yml \
-  backend/src/test/java/com/chm/myfinances/TestcontainersConfiguration.java \
-  backup/Dockerfile)
+  backend/src/test/java/com/chm/myfinances/TestcontainersConfiguration.java)
 expect_one "postgres" $pg
+
+# F018 backup sidecar (backup/Dockerfile, #204): built on plain Alpine, not on the postgres image,
+# so its pg_dump/pg_restore are pinned by major (`ARG POSTGRES_MAJOR`, installed as
+# `postgresql${POSTGRES_MAJOR}-client`), and that major must be the one of the postgres tag above
+# (Alpine ships the client at the latest minor of the major, which works against any server of it).
+# Its Alpine base is pinned by a full patch tag like every other image.
+backup_major=$(grep -E '^ARG POSTGRES_MAJOR=[0-9]+$' backup/Dockerfile | sed -E 's/^ARG POSTGRES_MAJOR=//')
+if [ -z "$backup_major" ]; then
+  fail "backup/Dockerfile has no 'ARG POSTGRES_MAJOR=<major>' line"
+else
+  for tag in $pg; do
+    server_major=$(printf '%s' "$tag" | sed -E 's/^postgres:([0-9]+).*/\1/')
+    [ "$server_major" = "$backup_major" ] \
+      || fail "backup/Dockerfile POSTGRES_MAJOR=$backup_major does not match the server major of $tag (compose files, Testcontainers)"
+  done
+fi
+grep -qF 'postgresql${POSTGRES_MAJOR}-client' backup/Dockerfile \
+  || fail 'backup/Dockerfile must install "postgresql${POSTGRES_MAJOR}-client", so the pinned major is the installed one'
+grep -qE '^FROM alpine:[0-9]+\.[0-9]+\.[0-9]+$' backup/Dockerfile \
+  || fail "backup/Dockerfile must be 'FROM alpine:<x.y.z>' (a full patch tag, never a floating one)"
 
 # Node: frontend/.nvmrc is the source of truth for CI (setup-node reads it) and native dev
 # (engines); the Dockerfile and the dev compose service must use the same version.
