@@ -2,18 +2,34 @@
 # Fails when the same tool is pinned to different versions in different files (issue #73), so dev,
 # CI and prod can't drift apart silently. Run from anywhere; CI runs it on every push.
 # Dependabot bumps image tags one file at a time, so a bump that misses a sibling fails here.
+#
+# There is no test framework for this script, so after changing a check, seed each failure in a
+# scratch copy of the files it reads (not in the working tree) and confirm the exit status is not 0:
+# drift one postgres/node/eclipse-temurin tag, change `ARG POSTGRES_MAJOR` or the alpine tag in
+# backup/Dockerfile, and break a tag so its pattern no longer matches (the "has no match" case,
+# which `values()` must propagate out of its $(...) subshell; that one once passed silently).
 set -u
 cd "$(dirname "$0")/.."
 status=0
 
 fail() { echo "MISMATCH: $1" >&2; status=1; }
 
-# Distinct values of a regex across files (one value per line), or fail if a file has none.
+# Distinct values of a regex across files (one value per line). A file with no match is reported
+# and makes the function return 1. It runs inside $(...), a subshell, where fail() cannot reach
+# `status`, so every caller must add `|| status=1` (a missing match would otherwise pass silently).
 values() {
-  local pattern=$1; shift
+  local pattern=$1 found='' missing=0 out f
+  shift
   for f in "$@"; do
-    grep -ohE "$pattern" "$f" || fail "$f has no match for $pattern"
-  done | sort -u
+    if out=$(grep -ohE "$pattern" "$f"); then
+      found+="$out"$'\n'
+    else
+      echo "MISMATCH: $f has no match for $pattern" >&2
+      missing=1
+    fi
+  done
+  printf '%s' "$found" | sort -u
+  return $missing
 }
 
 expect_one() {
@@ -29,7 +45,7 @@ expect_one() {
 # Postgres: dev + prod compose and the Testcontainers tag used by every backend test.
 pg=$(values 'postgres:[0-9][0-9.]*-alpine' \
   docker-compose.yml docker-compose.prod.yml \
-  backend/src/test/java/com/chm/myfinances/TestcontainersConfiguration.java)
+  backend/src/test/java/com/chm/myfinances/TestcontainersConfiguration.java) || status=1
 expect_one "postgres" $pg
 
 # F018 backup sidecar (backup/Dockerfile, #204): built on plain Alpine, not on the postgres image,
@@ -60,8 +76,8 @@ for f in frontend/Dockerfile docker-compose.yml; do
 done
 
 # Java: JDK and JRE images must be the same release, in the Dockerfile and the dev compose service.
-java=$(values 'eclipse-temurin:[0-9][0-9A-Za-z._]*-(jdk|jre)' backend/Dockerfile docker-compose.yml \
-  | sed -E 's/-(jdk|jre)$//' | sort -u)
+java=$(values 'eclipse-temurin:[0-9][0-9A-Za-z._]*-(jdk|jre)' backend/Dockerfile docker-compose.yml) || status=1
+java=$(printf '%s\n' "$java" | sed -E 's/-(jdk|jre)$//' | sort -u)
 expect_one "eclipse-temurin" $java
 
 # Trivy (image vulnerability scan): scripts/trivy/Dockerfile is the only place the scanner is named
