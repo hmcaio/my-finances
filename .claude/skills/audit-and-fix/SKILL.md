@@ -1,6 +1,6 @@
 ---
 name: audit-and-fix
-description: Runs a cross-cutting audit of the my-finances codebase (schema constraints, transaction boundaries, frontend duplication, missing tests, doc drift, or any "review X for gaps" request), reports ranked findings, files a GitHub issue, then fixes it on a branch off develop with tests, verification, CLAUDE.md updates, and a Closes-#N commit — pushing and opening a PR only when asked. Use this whenever the user asks to audit, review, or check the codebase/schema/frontend/backend for gaps, risks, missing pieces or reuse candidates, or says "fix everything from the audit", "create an issue for this", or "apply the recommendations", even if they don't say "audit". Not for building a planned feature from docs/features/FXXX (use implement-feature for that).
+description: Runs a cross-cutting audit of the my-finances codebase (schema constraints, transaction boundaries, frontend duplication, missing tests, doc drift, or any "review X for gaps" request), reports ranked findings, files a GitHub issue, then fixes it on a branch off main with tests, verification, CLAUDE.md updates, and a Closes-#N commit — pushing and opening a PR only when asked. Use this whenever the user asks to audit, review, or check the codebase/schema/frontend/backend for gaps, risks, missing pieces or reuse candidates, or says "fix everything from the audit", "create an issue for this", or "apply the recommendations", even if they don't say "audit". Not for building a planned feature from docs/features/FXXX (use implement-feature for that).
 ---
 
 # Audit and fix
@@ -28,9 +28,9 @@ Wait for the user's go-ahead before starting fixes; they may want to trim scope.
 
 ## 4. Branch
 
-Per ADR 0008, work branches off `develop`, and PRs target `develop` (never commit to `develop` or `main` directly).
+Per ADR 0032, work branches off `main`, and PRs target `main` (never commit to `main` directly).
 
-1. `git status` must be clean and `git fetch origin` shows `develop` in sync. If another PR just merged, confirm before branching.
+1. `git status` must be clean and `git fetch origin` shows `main` in sync. If another PR just merged, confirm before branching.
 2. `git checkout -b <type>/<short-slug>` with `fix/`, `refactor/`, `chore/` or `docs/` (`feature/` is for FXXX work).
 
 ## 5. Fix, with tests
@@ -56,7 +56,7 @@ Then read `CODING_STANDARDS.md` against your diff and fix what it flags: it hold
 
 - Steering files (area mechanics in `docs/conventions/<topic>.md`; a rule needed on every task in the root `CLAUDE.md` or the stack's `backend/CLAUDE.md`/`frontend/CLAUDE.md`; review judgement in `CODING_STANDARDS.md`): add a line only if the work produced a *rule or gotcha* that can't be derived from the code and would cost time to rediscover — and phrase it as the rule, not the story. A rule a check can enforce becomes an ArchUnit/ESLint/script check instead of prose. What changed, why, and any deliberate non-fix belong in the commit body and PR description (and the feature's `spec.md` if behavior changed). Narrative paragraphs in CLAUDE.md are what bloated it to 33 KB of mostly-history, and it loads into every session.
 - `docs/features/FXXX/spec.md`: update when observable behavior or schema for that feature changed. Not needed for pure defense-in-depth constraints that only the migration header documents.
-- `CHANGELOG.md`: per the root `CLAUDE.md` rule "CHANGELOG entries ship with the PR", a fix or change users would notice gets one plain bullet under `## [Unreleased]` (`### Fixed` / `### Changed`, citing the issue as `closes [#N](…)`), plus an `Upgrade:` sub-line if it changes how someone runs or upgrades the stack (a new migration or constraint that can fail on existing data, a compose/env change). No entry for defense-in-depth-only, test-only or purely internal work — say so in the closing message instead. Include the edit in the fix commit (step 8), and leave the PR link off for now (step 9 adds it).
+- `CHANGELOG.md`: per [`docs/conventions/release.md`](../../../docs/conventions/release.md) ("CHANGELOG entries"), a fix or change users would notice gets one plain bullet under `## [Unreleased]` (`### Fixed` / `### Changed`, citing the issue as `closes [#N](…)`), plus an `Upgrade:` sub-line if it changes how someone runs or upgrades the stack (a new migration or constraint that can fail on existing data, a compose/env change). No entry for defense-in-depth-only, test-only or purely internal work — say so in the closing message instead. Include the edit in the fix commit (step 8); the release step adds the PR link.
 - `docs/PRD.md`: only when a product decision changed or was newly made. `README.md`: rarely.
 
 ## 8. Commit
@@ -65,7 +65,7 @@ Conventional Commits (ADR 0009), message via HEREDOC, staging by explicit path (
 
 ## 9. Push and PR — only when asked
 
-Pushing is visible to others, so wait for the user to say so (approving the fix is not approval to push). Then `git push -u origin <branch>` and `gh pr create --base develop` with: `Closes #N`, a summary of what changed and why, and a checked test plan listing the commands from step 6. If step 7 added a `CHANGELOG.md` entry, add its `([#N](…))` PR link now that the number exists and push that one follow-up commit (`docs: link PR in CHANGELOG entry`; the squash-merge folds it in). Return the PR URL.
+Pushing is visible to others, so wait for the user to say so (approving the fix is not approval to push). Then `git push -u origin <branch>` and `gh pr create --base main` with: `Closes #N`, a summary of what changed and why, and a checked test plan listing the commands from step 6. Return the PR URL.
 
 ## 10. Post-mortem — only when asked
 
@@ -76,7 +76,7 @@ A merged fix answers "what was broken." A post-mortem answers "how did this get 
 3. **Falsify the regression tests against the actual root-cause commit.** This is sharper than step 5's "restore the old code and confirm the new tests fail" habit, which only proves the test catches the *fix's own* before-state: `git show <regressing-commit>^:<path> > <path>` to restore the file to just before the regression while keeping the new tests, run them, confirm they fail, then `git checkout HEAD -- <path>` to restore the fix. If they pass against that older state too, the tests aren't guarding what the post-mortem claims they're guarding.
 4. **Write the causal chain as a comment on the issue** (`gh issue comment`) — which commits, what each one changed, and why nothing caught it in between. This is the narrative, and it belongs on the issue, never in `CLAUDE.md` (step 7 already says why: no story content there).
 5. **Only add a CLAUDE.md bullet if a genuinely generalizable rule fell out of this** — something that will bite a *different* feature doing a *different* refactor, not just "this bug happened." Phrase it as the rule, terse, the same way step 7 asks for every other CLAUDE.md addition. Most post-mortems are pure narrative (step 4) with no new rule to add; don't manufacture one.
-6. **If the fix's branch/PR already merged by the time the doc-only follow-up is ready, don't push more commits onto it** — that branch is dead the moment its PR merges. Branch fresh off `develop` (step 4) and `git cherry-pick` the doc commit onto it, then open a new PR (step 9) for just that.
+6. **If the fix's branch/PR already merged by the time the doc-only follow-up is ready, don't push more commits onto it** — that branch is dead the moment its PR merges. Branch fresh off `main` (step 4) and `git cherry-pick` the doc commit onto it, then open a new PR (step 9) for just that.
 
 ## Closing message
 

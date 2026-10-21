@@ -10,9 +10,10 @@
 #   ghcr.io/hmcaio/my-finances-backend:${IMAGE_TAG}
 #   ghcr.io/hmcaio/my-finances-frontend:${IMAGE_TAG}
 #   ghcr.io/hmcaio/my-finances-backup:${IMAGE_TAG}
-# Every push to main is tagged with the short git SHA and `latest`; every `vX.Y.Z` tag push is
-# additionally tagged with that version string, so IMAGE_TAG can pin a reproducible release
-# instead of always tracking `latest` (see .github/workflows/ci.yml).
+# Images are published only by a `vX.Y.Z` or `vX.Y.Z-rc.N` tag push (ADR 0032; a push to main
+# publishes nothing): each is tagged with that version, with `sha-<short>` (the tagged commit)
+# and, for a stable tag only, `latest`. So IMAGE_TAG can pin a reproducible release instead of
+# tracking `latest`, the newest release (see .github/workflows/ci.yml).
 #
 # Logging (F016, ADR 0011): the x-logging anchor rotates each container's stdout (what
 # `docker compose logs` shows) so it can't grow without bound. The persisted copy is the

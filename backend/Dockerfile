@@ -1,6 +1,7 @@
 # Production image for the backend (F014). Not used in local dev (F001 runs the backend
-# natively via `./gradlew bootRun`) — see ADR 0006. Built by CI on pushes to main and on
-# version tags; can also be built locally for the docker-compose.prod.yml smoke test:
+# natively via `./gradlew bootRun`) — see ADR 0006. Built by CI on `vX.Y.Z` tags (and
+# `vX.Y.Z-rc.N`, ADR 0032) only; can also be built locally for the docker-compose.prod.yml
+# smoke test:
 #   docker build -t my-finances-backend:local backend
 #
 # Build stage: JDK + the project's own Gradle wrapper (not a `gradle:*` base image) so the

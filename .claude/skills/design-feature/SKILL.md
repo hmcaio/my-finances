@@ -29,16 +29,16 @@ State these three decisions to the user in the Phase 1 summary rather than silen
 
 ### Ids
 
-`git fetch origin`, then read the next free id(s) from `origin/develop`, which is where the docs branch starts: `git ls-tree --name-only origin/develop docs/features/ docs/adr/` — the highest `F`-prefixed `FXXX` folder (`_template` is not an id) and, if writing an ADR, the highest ADR number. Never reuse or guess a number — collisions silently shadow another feature's folder.
+`git fetch origin`, then read the next free id(s) from `origin/main`, which is where the docs branch starts: `git ls-tree --name-only origin/main docs/features/ docs/adr/` — the highest `F`-prefixed `FXXX` folder (`_template` is not an id) and, if writing an ADR, the highest ADR number. Never reuse or guess a number — collisions silently shadow another feature's folder.
 
 ### Workspace
 
 Create the docs workspace before the first file is written, so every file lands on the docs branch:
 
-- **Default: a sibling worktree** — `git worktree add -b docs/<short-slug> ../my-finances-<id>-docs origin/develop` (`<id>` lowercase, e.g. `f024`; the first id of a split pair). Use it whenever the current checkout is not a clean `develop` (another branch checked out, or uncommitted work, including an `implement-feature` branch in progress). The checkout and its branch stay untouched. Run Phase 3 and Phase 4 inside the worktree.
-- **Clean `develop`** (`git status` clean, `git branch --show-current` is `develop`, local `develop` equal to `origin/develop`): `git checkout -b docs/<short-slug>` here.
+- **Default: a sibling worktree** — `git worktree add -b docs/<short-slug> ../my-finances-<id>-docs origin/main` (`<id>` lowercase, e.g. `f024`; the first id of a split pair). Use it whenever the current checkout is not a clean `main` (another branch checked out, or uncommitted work, including an `implement-feature` branch in progress). The checkout and its branch stay untouched. Run Phase 3 and Phase 4 inside the worktree.
+- **Clean `main`** (`git status` clean, `git branch --show-current` is `main`, local `main` equal to `origin/main`): `git checkout -b docs/<short-slug>` here.
 
-The branch is `docs/`-prefixed per [ADR 0008](../../../docs/adr/0008-github-flow-with-develop-branch.md): docs-only work, the same prefix `audit-and-fix` uses for doc-only changes. The `feature/` prefix belongs to the `implement-feature` run that builds this later.
+The branch is `docs/`-prefixed per [ADR 0032](../../../docs/adr/0032-github-flow-main-only.md): docs-only work, the same prefix `audit-and-fix` uses for doc-only changes. The `feature/` prefix belongs to the `implement-feature` run that builds this later.
 
 ### Template
 
@@ -77,8 +77,8 @@ Phase 3 is done when `grep -nE '<!--|FXXX|NNNN' docs/features/<FXXX>-*/*.md` is 
 Ship from the Phase 3 workspace (its branch is already `docs/<short-slug>`).
 
 1. Stage exactly the files this skill touched — explicit paths, never `-A`/`.` (`git status` after to confirm nothing stray got swept in).
-2. Commit with Conventional Commits (ADR 0009), type `docs`, scope the feature id(s) (`docs(F028-F029): ...`), and **do not add `[skip ci]`**: the branch rulesets (ADR 0008) require the CI checks, and a skipped workflow leaves them pending so the PR can never merge. A docs-only PR is skipped by file path instead (`changes` job in `.github/workflows/ci.yml`; the test jobs report as skipped, which counts as passed). No `CHANGELOG.md` entry: `docs` commits aren't user-visible changes (ADR 0009's type table).
-3. **Push and open the PR only when the user says so** — same rule `audit-and-fix` follows; confirming the design in Phase 1 is not the same as approving a push. When asked: `git push -u origin docs/<slug>` and `gh pr create --base develop` with a summary of what was added (ADR / which `FXXX` folders / PRD sections) and a test plan noting this is docs-only (nothing to run; `implement-feature <FXXX>` is the next step). Return the PR URL.
+2. Commit with Conventional Commits (ADR 0009), type `docs`, scope the feature id(s) (`docs(F028-F029): ...`), and **do not add `[skip ci]`**: the branch ruleset (ADR 0032) requires the CI checks, and a skipped workflow leaves them pending so the PR can never merge. A docs-only PR is skipped by file path instead (`changes` job in `.github/workflows/ci.yml`; the test jobs report as skipped, which counts as passed). No `CHANGELOG.md` entry: `docs` commits aren't user-visible changes (ADR 0009's type table).
+3. **Push and open the PR only when the user says so** — same rule `audit-and-fix` follows; confirming the design in Phase 1 is not the same as approving a push. When asked: `git push -u origin docs/<slug>` and `gh pr create --base main` with a summary of what was added (ADR / which `FXXX` folders / PRD sections) and a test plan noting this is docs-only (nothing to run; `implement-feature <FXXX>` is the next step). Return the PR URL.
 4. **Clean up after the merge**, when the user says the docs PR is merged or `gh pr view` reports `MERGED`, and the workspace was a worktree. From the original checkout: `git worktree remove ../my-finances-<id>-docs`, `git branch -D docs/<slug>` (a squash-merge leaves the branch unmerged in git's view, so `-d` refuses), `git worktree prune`. Done when `git worktree list` shows no entry for `my-finances-<id>-docs`.
 
 ## Closing message

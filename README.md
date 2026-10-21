@@ -15,7 +15,7 @@ Every non-obvious decision behind that shape is written down as an [ADR](docs/ad
 - **Backend**: Java + Spring Boot, built with Gradle (version catalog in `backend/gradle/libs.versions.toml`). PostgreSQL via Flyway migrations. OpenAPI/Swagger UI generated automatically from the controllers.
 - **Frontend**: React + TypeScript, built with Vite. Material UI for components/theming (with a dark-mode toggle), React Router for navigation, TanStack Query for every read/write against the backend ([ADR 0016](docs/adr/0016-tanstack-query-client-cache.md)), Axios for the underlying API calls through one centralized, environment-configurable client.
 - **Testing**: JUnit + Testcontainers on the backend (every test run gets a real, ephemeral Postgres — no shared fixture database, no skipped tests when Docker isn't already running some other way). Vitest + React Testing Library + MSW on the frontend.
-- **Infra**: Docker Compose for local dev (Postgres, pgAdmin) and a separate Compose file for a production-shaped deployment (Postgres + backend + frontend, images pulled by tag from GHCR). GitHub Actions runs tests on every push/PR and publishes versioned Docker images on `main` and on release tags.
+- **Infra**: Docker Compose for local dev (Postgres, pgAdmin) and a separate Compose file for a production-shaped deployment (Postgres + backend + frontend, images pulled by tag from GHCR). GitHub Actions runs tests on every push/PR and publishes versioned Docker images on release tags only (a merge to `main` publishes nothing, so `latest` is always the newest release).
 
 ## Architecture
 
@@ -194,7 +194,7 @@ See [docs/features/](docs/features/) for the full breakdown, in build order, wit
 
 ## Workflow
 
-Solo project, but run with real process because that's what keeps a project like this coherent over time rather than because a team requires it: [GitHub Flow with a long-lived `develop` branch](docs/adr/0008-github-flow-with-develop-branch.md) (features branch off `develop`, releases promote to `main`), [Conventional Commits](docs/adr/0009-conventional-commits.md), and a [single shared SemVer version](docs/adr/0007-single-shared-semver-and-changelog.md) for backend and frontend together, tracked in [`CHANGELOG.md`](CHANGELOG.md).
+Solo project, but run with real process because that's what keeps a project like this coherent over time rather than because a team requires it: [GitHub Flow on `main` only](docs/adr/0032-github-flow-main-only.md) (short-lived branches squash-merged into `main`, releases are a release PR plus a `vX.Y.Z` tag), [Conventional Commits](docs/adr/0009-conventional-commits.md), and a [single shared SemVer version](docs/adr/0007-single-shared-semver-and-changelog.md) for backend and frontend together, tracked in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## License
 
