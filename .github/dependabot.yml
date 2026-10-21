@@ -2,11 +2,14 @@
 # that touches only one of several files pinning the same tool (e.g. postgres in both compose files
 # and the Testcontainers config) fails scripts/check-versions.sh in CI, so bump the siblings in the
 # same PR. npm and Gradle dependencies are deliberately not covered (lockfiles + noise). The backup
-# sidecar image (backup/Dockerfile, F018) is covered for its postgres base only; the Alpine packages
-# it installs (age, rclone, ...) are unpinned and not tracked.
+# sidecar image (backup/Dockerfile, F018) is covered for its `alpine` base tag only: it is no longer
+# built on the postgres image (#204), so the Alpine packages it installs (age, rclone, ...) are
+# unpinned and not tracked, and its Postgres major is an ARG (POSTGRES_MAJOR) Dependabot cannot see;
+# scripts/check-versions.sh compares that ARG with the compose files' postgres tag.
 #
 # Major bumps of postgres, eclipse-temurin and node are ignored on purpose: each is a coordinated
-# move across several files (postgres: both compose files, the backup image, Testcontainers;
+# move across several files (postgres: both compose files, Testcontainers, POSTGRES_MAJOR in the
+# backup image;
 # node: .nvmrc, the frontend Dockerfile, the dev compose service; JDK: backend Dockerfile and dev
 # compose), not something one Dependabot PR can do. Minor/patch updates still arrive. To follow a
 # new major, bump every sibling by hand in one PR (docs/conventions/tooling.md, "Pinned versions");
@@ -32,9 +35,6 @@ updates:
     directory: /backup
     schedule:
       interval: monthly
-    ignore:
-      - dependency-name: postgres
-        update-types: ["version-update:semver-major"]
   - package-ecosystem: docker
     directory: /frontend
     schedule:

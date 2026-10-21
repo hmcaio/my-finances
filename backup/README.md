@@ -1,6 +1,13 @@
 # Backup sidecar
 
-A small standalone image — `postgres:17.11-alpine` + `age` + `rclone` + shell scripts — that takes automated, encrypted, retained Postgres backups of the production stack. Built and published alongside the backend/frontend images; runs as the `backup` service in `docker-compose.prod.yml`, never in dev. Full design: [ADR 0015](../docs/adr/0015-automated-encrypted-backups-sidecar.md) and [docs/features/F018-backups/spec.md](../docs/features/F018-backups/spec.md). Setup, restore and the off-site-copy options are documented in the repo root [README.md](../README.md#backups) — read that first if you're operating the stack; this file is about the sidecar's own code.
+A small standalone image — plain `alpine` (full patch tag) + the Postgres client tools (`postgresql17-client`, major set by `ARG POSTGRES_MAJOR`) + `age` + `rclone` + shell scripts — that takes automated, encrypted, retained Postgres backups of the production stack. Built and published alongside the backend/frontend images; runs as the `backup` service in `docker-compose.prod.yml`, never in dev. Full design: [ADR 0015](../docs/adr/0015-automated-encrypted-backups-sidecar.md) and [docs/features/F018-backups/spec.md](../docs/features/F018-backups/spec.md). Setup, restore and the off-site-copy options are documented in the repo root [README.md](../README.md#backups) — read that first if you're operating the stack; this file is about the sidecar's own code.
+
+## The image
+
+`backup/Dockerfile` is `FROM alpine:<x.y.z>` plus `apk add postgresql${POSTGRES_MAJOR}-client bash coreutils findutils jq age rclone gosu`; it is deliberately not built on the `postgres` server image (#204, [ADR 0015](../docs/adr/0015-automated-encrypted-backups-sidecar.md), "Amended"): that image declares `VOLUME /var/lib/postgresql/data`, so every sidecar container got an anonymous volume nothing used, and it carries a whole server the sidecar never runs. This image declares no volume. Two pins, both checked by `scripts/check-versions.sh`:
+
+- `POSTGRES_MAJOR` must equal the major of the `postgres` tag in `docker-compose.prod.yml` (`pg_dump`/`pg_restore` must match the server's major). Alpine installs the latest minor of that major, which dumps and restores against any server of the same major; a Postgres major bump changes this ARG in the same PR as the compose files.
+- The Alpine tag is a full patch tag, the same release the other images' `-alpine` bases are on (bumping it is a Dependabot PR on `/backup`).
 
 ## What runs, and when
 
