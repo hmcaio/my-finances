@@ -35,7 +35,7 @@ One file per decision, numbered sequentially, never renumbered or edited to chan
 | [0029](0029-session-auth-and-generic-network-binding.md) | Session-cookie authentication with a single shared Argon2-hashed credential, and a generic `BIND_ADDR`-based private-network binding not pinned to any specific VPN/overlay product | Accepted |
 | [0030](0030-postgres-unaccent-for-accent-insensitive-search.md) | Postgres `unaccent` extension for accent-insensitive text search (first extension the app depends on) | Accepted |
 | [0031](0031-image-vulnerability-scan-gates-publishing.md) | Scan container images for vulnerabilities with a pinned Trivy image and gate publishing on the result | Accepted (publish trigger amended by [0032](0032-github-flow-main-only.md)) |
-| [0032](0032-github-flow-main-only.md) | Plain GitHub Flow: `main` is the only long-lived branch, and images publish on release tags only | Proposed (supersedes [0008](0008-github-flow-with-develop-branch.md)) |
+| [0032](0032-github-flow-main-only.md) | Plain GitHub Flow: `main` is the only long-lived branch, and images publish on release tags only | Accepted (supersedes [0008](0008-github-flow-with-develop-branch.md); amends the publish trigger of [0006](0006-separate-prod-packaging-from-dev.md), [0031](0031-image-vulnerability-scan-gates-publishing.md)) |
 
 Template:
 ```
