@@ -1,6 +1,6 @@
 # 0015. Automated, encrypted backups run by a sidecar container in the prod stack
 
-Status: Accepted
+Status: Accepted (image base amended, [#204](https://github.com/hmcaio/my-finances/issues/204): the sidecar is built on `alpine`, not on the `postgres` image; see the last section)
 Date: 2026-09-24
 
 ## Context
@@ -24,3 +24,11 @@ The prod stack (ADR 0006) keeps all data in one named Docker volume and has no b
 - The sidecar image must be built and versioned with the other two images; CI grows a third image.
 - The stack still has no authentication (PRD §7.3). Backups don't change that: running it on a VPS needs private access (VPN, SSH tunnel, authenticated reverse proxy), and that is a separate future feature, not part of this decision.
 - Out of scope, and not precluded: PITR/WAL, dev-stack backups, UI-triggered backup or restore (the backup trigger is a plain script so an endpoint could call it later), automated periodic restore tests.
+
+## Amended: the sidecar no longer inherits the Postgres server image (#204)
+The first design built the sidecar `FROM postgres:17-alpine` so `pg_dump`/`pg_restore` matched the server for free. That inherited three things the sidecar never uses: a Postgres server (the image was about 599 MB, larger than the backend), the base image's `VOLUME /var/lib/postgresql/data` (Docker created an anonymous volume for every sidecar container, and a plain `down` left them behind), and a bundled `gosu` whose stale Go stdlib the scan flagged (#177, [ADR 0031](0031-image-vulnerability-scan-gates-publishing.md)).
+
+- **Now**: `FROM alpine:<full patch tag>` (the Alpine release the other images' bases are on) plus `postgresql<major>-client`, `age`, `rclone`, `gosu`, `bash`, `coreutils`, `findutils` and `jq`. The image is about 204 MB, declares no volume, and every binary is an Alpine package, so there is no bundled binary to replace.
+- **The Postgres pin** moved from the base image's tag to `ARG POSTGRES_MAJOR` in `backup/Dockerfile`. `scripts/check-versions.sh` fails unless it equals the major of the `postgres` tag in the compose files and `TestcontainersConfiguration`, and checks the Alpine tag is a full patch tag. Alpine ships the client at the latest minor of the major, which dumps and restores against any server of the same major, so the client can run ahead of the server's patch tag. Dependabot's `/backup` block tracks the Alpine tag; a Postgres major bump is by hand (it was already a coordinated move).
+- **Unchanged**: the scripts, the build id baked at `/etc/backup-build-id`, the entrypoint idiom (`ENTRYPOINT []` + `CMD`), the `gosu` drop to `BACKUP_UID:BACKUP_GID`, and both on-disk formats (the age-encrypted `pg_dump -Fc` file and `status.json`). A backup taken by the old image restores with the new one and the reverse, and a new image started over a folder whose marker has the old build id takes the forced `pre-upgrade` backup as before.
+- **Cost**: the client version is no longer the exact server tag; if a future Alpine release drops the pinned major's client package the image build fails (visibly, in the PR), and the fix is a deliberate choice, not a silent drift.
