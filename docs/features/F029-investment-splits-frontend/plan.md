@@ -12,7 +12,7 @@
 ## Docs
 - [ ] `docs/features/README.md` row for F029.
 - [ ] Root `README.md` "Project status" entry.
-- [ ] `CHANGELOG.md` `[Unreleased]` entry (`**F029 — Investment Splits (frontend)**`, user-visible: record/view/delete a product's split history from its detail page); PR link added once the PR is open.
+- [ ] `CHANGELOG.md` `[Unreleased]` entry (`**F029 — Investment Splits (frontend)**`, user-visible: record/view/delete a product's split history from its detail page).
 - [ ] Tick this plan.
 
 ## Verification

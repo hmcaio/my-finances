@@ -15,7 +15,7 @@
 ## Docs
 - [ ] `docs/features/README.md` row for F028 (and F029 once it exists).
 - [ ] Root `README.md` "Project status" entry.
-- [ ] `CHANGELOG.md` `[Unreleased]` entry (`**F028 — Investment Splits (backend)**`, user-visible: cotas-held/portfolio totals now correct after a split); PR link added once the PR is open.
+- [ ] `CHANGELOG.md` `[Unreleased]` entry (`**F028 — Investment Splits (backend)**`, user-visible: cotas-held/portfolio totals now correct after a split).
 - [ ] Tick this plan.
 
 ## Verification

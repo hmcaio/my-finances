@@ -5,7 +5,7 @@ description: Prepares a my-finances release from the CHANGELOG.md that PRs keep 
 
 # Release
 
-Feature and fix PRs add their own `CHANGELOG.md` entry under `## [Unreleased]` (root `CLAUDE.md`, "CHANGELOG entries ship with the PR"), so at release time the entry mostly exists already. This skill checks it against what actually merged, fixes the gaps, and drafts the promotion to a versioned section for the user to edit and approve.
+Feature and fix PRs add their own `CHANGELOG.md` entry under `## [Unreleased]` ([`docs/conventions/release.md`](../../../docs/conventions/release.md), "CHANGELOG entries"), so at release time the entry mostly exists already. This skill checks it against what actually merged, fixes the gaps, and drafts the promotion to a versioned section for the user to edit and approve.
 
 Invoked as `/release` (suggest the version), `/release <version>` (e.g. `/release 0.2.0`; a leading `v` is accepted, but the CHANGELOG heading uses `0.2.0` and the tag `v0.2.0`), or `/release --check` (reconcile only: report the gaps in `[Unreleased]` and stop — no version, no promotion — for keeping `develop` current between releases).
 
@@ -38,7 +38,7 @@ If the user passed a version, check it is valid `X.Y.Z`, greater than the last t
 
 ## Step 3 — Read what's already there
 
-Parse `## [Unreleased]` from `origin/develop`'s CHANGELOG. For each bullet note: its section (`Added`, `Changed`, `Fixed`, …), its key (a feature id from `**FXXX — Title**`, or an issue from `closes [#N]`), its PR link(s), and any `Upgrade:` sub-line. If `[Unreleased]` is empty or still holds the old "pre-implementation" placeholder, the per-PR entries were never written: say so, and treat every user-visible commit in the range as a missing entry (Step 5a) — the draft then follows the root `CLAUDE.md` format from scratch.
+Parse `## [Unreleased]` from `origin/develop`'s CHANGELOG. For each bullet note: its section (`Added`, `Changed`, `Fixed`, …), its key (a feature id from `**FXXX — Title**`, or an issue from `closes [#N]`), its PR link(s), and any `Upgrade:` sub-line. If `[Unreleased]` is empty or still holds the old "pre-implementation" placeholder, the per-PR entries were never written: say so, and treat every user-visible commit in the range as a missing entry (Step 5a) — the draft then follows the `release.md` "CHANGELOG entries" format from scratch.
 
 ## Step 4 — List and classify the commits
 
@@ -70,8 +70,8 @@ Things to handle by judgment, and to tell the user about instead of deciding sil
 
 Check each of these and collect the findings; propose a concrete fix for each, never apply one silently.
 
-- **a. Missing entry**: a user-visible commit whose key matches no bullet (no feature id, PR link or issue in any bullet). Draft the bullet per the root `CLAUDE.md` format: `**F004 — Transactions** — <one-line, user-visible summary> ([#6](…/pull/6))`, title from the first heading of `docs/features/FXXX-*/spec.md`, substance from its Summary plus the commit body; several PRs for one feature id are one bullet with all links. An unscoped fix/change is a plain bullet citing the issue (`closes [#N](…)`) and the PR. PR links use the repo URL from `gh repo view --json url -q .url`, and go under the section from the table above.
-- **b. Missing PR link**: a bullet with a feature id or issue but no `([#N](…))`. Find the PR from the `(#N)` suffix of the matching commit and propose adding it. (Entries are written before their PR exists, so this is the normal case for recent ones.)
+- **a. Missing entry**: a user-visible commit whose key matches no bullet (no feature id, PR link or issue in any bullet). Draft the bullet per the `release.md` "CHANGELOG entries" format: `**F004 — Transactions** — <one-line, user-visible summary> ([#6](…/pull/6))`, title from the first heading of `docs/features/FXXX-*/spec.md`, substance from its Summary plus the commit body; several PRs for one feature id are one bullet with all links. An unscoped fix/change is a plain bullet citing the issue (`closes [#N](…)`) and the PR. PR links use the repo URL from `gh repo view --json url -q .url`, and go under the section from the table above.
+- **b. Missing PR link**: a bullet with a feature id or issue but no `([#N](…))`. Find the PR from the `(#N)` suffix of the matching commit and propose adding it. (PR links are filled here, at release time, not per PR, so a missing link is the normal case for recent entries.)
 - **c. Stray entry**: a bullet whose feature id, issue or PR isn't in the range — already released, or never merged. Flag it; don't delete it.
 - **d. Section mismatch**: a bullet under `Added` whose commit is `fix`, a `feat` filed under `Fixed`, a breaking change not marked **BREAKING**. Flag it. The bump still comes from commit types.
 - **e. Missing upgrade note.** Look for changes that affect how someone runs or upgrades the stack and check the bullet has an `Upgrade:` sub-line — including in `chore`/`ci`/`build` commits that are otherwise left out:
