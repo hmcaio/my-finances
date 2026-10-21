@@ -1,10 +1,10 @@
 name: CI/CD
 
-# Runs on every PR, and on pushes to main and vX.Y.Z tags (a branch push is already covered by
-# its PR, so feature branches are not built twice). Images are only built and published
-# (build-and-push job) on pushes to main and on vX.Y.Z tag pushes — not on arbitrary
-# feature-branch commits — per ADR 0006/0007 and
-# docs/features/F014-cicd-production-packaging/spec.md.
+# The test jobs run on every PR and on pushes to main and to v* tags (a branch push is already
+# covered by its PR, so feature branches are not built twice). Images are built, scanned and
+# pushed (build-and-push job) ONLY on vX.Y.Z and vX.Y.Z-rc.N tag pushes: a push to main publishes
+# nothing, so `latest` always means the newest release. Per ADR 0032 (which amends ADR 0006/0031)
+# and docs/features/F014-cicd-production-packaging/spec.md.
 on:
   push:
     branches: [main]
@@ -19,7 +19,7 @@ env:
 jobs:
   changes:
     name: Detect code changes
-    # The branch rulesets (ADR 0008) require the test jobs below, and a required check that never
+    # The main branch ruleset (ADR 0032) requires the test jobs below, and a required check that never
     # runs blocks the merge forever. So a docs-only PR must not skip the workflow (`[skip ci]`,
     # `paths-ignore`): the jobs start, are skipped by `if:` here, and a skipped job counts as
     # passed. "Docs-only" = every changed path is under docs/ or .claude/ or is a *.md file.
@@ -135,7 +135,7 @@ jobs:
         # scripts/verify.sh is the same entry point you run locally; each check runs even if an
         # earlier one fails. Type-check and build because Vitest and ESLint don't run tsc, so a
         # broken type (e.g. a duplicate operation id in the generated API schema) would otherwise
-        # only fail in the Docker image build on main/tags. Coverage is informational only (no
+        # only fail in the Docker image build on tags. Coverage is informational only (no
         # thresholds) and uploaded below.
         run: bash scripts/verify.sh frontend
 
@@ -231,16 +231,36 @@ jobs:
     name: Build and push images
     needs: [test-backend, test-frontend, e2e-frontend, test-backup]
     runs-on: ubuntu-latest
-    # Only publish on pushes to main and on vX.Y.Z tags - every push/PR runs the test jobs
-    # above, but images are only built for deliberate, deployable versions.
-    if: >
-      github.event_name == 'push' &&
-      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    # Only publish on vX.Y.Z and vX.Y.Z-rc.N tag pushes (ADR 0032) - every push/PR runs the test
+    # jobs above (the tag run repeats them, and this job needs them), but images exist only for
+    # deliberate, released versions. A main push publishes nothing.
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: read
       packages: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Full history and all branches: the guard below needs origin/main.
+          fetch-depth: 0
+
+      - name: Guard the tag (release-shaped, and on main)
+        # Only the owner can push a v* tag (protect-release-tags), but nothing else stops one on a
+        # stray branch commit, which would publish images of code that never went through the main
+        # ruleset. So fail, before anything is built or pushed, unless the tag is exactly vX.Y.Z or
+        # vX.Y.Z-rc.N and the tagged commit is an ancestor of origin/main. The shape check also
+        # makes the stable-tag test below (no "-" in the ref) exact: only these two forms get past.
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]]; then
+            echo "::error::Tag '$TAG' is not vX.Y.Z or vX.Y.Z-rc.N, so nothing is published."
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::Tag '$TAG' points at $GITHUB_SHA, which is not on main (ADR 0032). Release tags go on the release PR's squash commit; images are published only for commits on main. Nothing is published. Tags are immutable (protect-release-tags), so tag the right commit with the next version."
+            exit 1
+          fi
 
       - uses: docker/setup-buildx-action@v3
 
@@ -256,14 +276,22 @@ jobs:
       # builds and reuse the layer cache of this job's one buildx builder, so they add little more
       # than the registry upload (no external cache needed). A failing scan stops the job before any
       # push, so no tag (sha, latest or vX.Y.Z) moves in that run.
+      #
+      # Tags per image: sha-<short> and the git tag itself (vX.Y.Z or vX.Y.Z-rc.N) always; `latest`
+      # only for a stable tag. `flavor: latest=false` switches off metadata-action's own implicit
+      # `latest` rule so the explicit type=raw line is the only one that can produce it, and its
+      # enable expression is true for a tag ref with no "-" (the guard step above admits only
+      # vX.Y.Z and vX.Y.Z-rc.N, so "no dash" means stable): a release candidate never moves
+      # `latest`. The sha tag stays first in the list: the scan step reads the first line.
       - name: Backend image metadata
         id: backend-meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.BACKEND_IMAGE }}
+          flavor: latest=false
           tags: |
             type=sha,format=short
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-') }}
             type=ref,event=tag
 
       - name: Build backend image (not pushed yet)
@@ -280,9 +308,10 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.FRONTEND_IMAGE }}
+          flavor: latest=false
           tags: |
             type=sha,format=short
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-') }}
             type=ref,event=tag
 
       - name: Build frontend image (not pushed yet)
@@ -299,9 +328,10 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.BACKUP_IMAGE }}
+          flavor: latest=false
           tags: |
             type=sha,format=short
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-') }}
             type=ref,event=tag
 
       - name: Build backup image (not pushed yet)
