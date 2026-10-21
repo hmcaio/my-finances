@@ -3,7 +3,7 @@
 # `vX.Y.Z-rc.N`, ADR 0032) only; can also be built locally for the docker-compose.prod.yml
 # smoke test:
 #   docker build -t my-finances-frontend:local frontend
-FROM node:24.21.0-alpine AS build
+FROM node:24.22.1-alpine AS build
 WORKDIR /app
 
 COPY package.json package-lock.json .npmrc ./
