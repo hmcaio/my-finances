@@ -51,7 +51,7 @@ A separate, distinct production packaging/deployment path layered on top of F001
 - Every image pushed on a version tag (`vX.Y.Z`) is additionally tagged with that version string, so `docker-compose.prod.yml` can pin `IMAGE_TAG=vX.Y.Z` for a reproducible deploy instead of always tracking `latest` (amended by ADR 0032: a tag run publishes the version, `sha-<short>` and, for a stable tag only, `latest`; a `vX.Y.Z-rc.N` tag never moves `latest`).
 
 ### GitHub Actions (`.github/workflows/ci.yml`)
-- `test` jobs, run on every push and pull request (any branch):
+- `test` jobs, run on every push and pull request (any branch; amended by ADR 0032: on every pull request and on pushes to `main` and to `v*` tags):
   - Backend: runs `./gradlew spotlessCheck test` — needed since the domain-heavy logic (F006 budget versioning, F007 recurring catch-up) has integration-level tests that hit real persistence per the TDD approach called out in the PRD (§7.2), and `spotlessCheck` (F001) gates formatting. Real persistence is provided by Testcontainers (see [ADR 0010](../../adr/0010-testcontainers-for-backend-tests.md)), not a CI-only Postgres service container: `./gradlew test` starts and tears down its own ephemeral `postgres:17-alpine` container on GitHub's hosted-runner Docker daemon, identically to how a local `./gradlew test` run behaves, with no credentials to provision or keep in sync in this workflow.
   - Frontend: `npm ci`, `npm run lint`, and test (whatever test runner the frontend template ends up using).
 - `build-and-push` job, gated to only run on push to `main` or on a `v*` tag (amended by ADR 0032: `v*` tags only; per the answered clarification — every push runs tests, but images are only published for deliberate, deployable versions, not every branch commit):
@@ -59,7 +59,7 @@ A separate, distinct production packaging/deployment path layered on top of F001
   - Builds `backend/Dockerfile` and `frontend/Dockerfile`, logs into `ghcr.io` (using the built-in `GITHUB_TOKEN`, which has package-write permission for the repo's own GHCR namespace), pushes both images with the tags described above.
 
 ## Release Process
-Per [ADR 0007](../../adr/0007-single-shared-semver-and-changelog.md): backend and frontend share one version. To cut a release: move `CHANGELOG.md`'s `[Unreleased]` entries under a new `[X.Y.Z] - YYYY-MM-DD` heading (add a fresh empty `[Unreleased]` above it), bump `version` in both `backend/build.gradle` and `frontend/package.json` to match, commit, then tag `vX.Y.Z` and push the tag — which is exactly the trigger the `build-and-push` CI job (above) watches for.
+Per [ADR 0007](../../adr/0007-single-shared-semver-and-changelog.md): backend and frontend share one version. To cut a release: move `CHANGELOG.md`'s `[Unreleased]` entries under a new `[X.Y.Z] - YYYY-MM-DD` heading (add a fresh empty `[Unreleased]` above it), bump `version` in both `backend/build.gradle` and `frontend/package.json` to match, commit, then tag `vX.Y.Z` and push the tag — which is exactly the trigger the `build-and-push` CI job (above) watches for. (Amended by ADR 0032: the commit is a release PR into `main`, squash-merged, and the tag goes on that squash commit; the steps are in `docs/conventions/release.md`.)
 
 ## Dependencies
 F001 (dev scaffolding this builds a separate prod path on top of). Does not depend on, block, or change F002–F013 — purely infrastructure around whatever domain features exist at the time it's built.

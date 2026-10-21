@@ -1,6 +1,6 @@
 # 0009. Use Conventional Commits, mapped to CHANGELOG categories and SemVer bump type
 
-Status: Accepted
+Status: Accepted (the squash-merge workflow cited in the Consequences is amended by [0032](0032-github-flow-main-only.md): squash-merges land on `main`; there is no `develop`)
 Date: 2026-09-13
 
 ## Context

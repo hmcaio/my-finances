@@ -4,10 +4,9 @@
 # on the repo. Run it after editing a ruleset file; the files are the source of truth (ADR 0032).
 #
 # It only creates and updates: it never deletes a ruleset, so removing a file here leaves the
-# ruleset on GitHub. The retired `protect-develop` ruleset (ADR 0032, migration step 4) is removed
-# by hand, after the final develop -> main promotion and before the develop branch is deleted:
+# ruleset on GitHub. Remove a retired ruleset by hand (ADR 0032 did this for `protect-develop`):
 #   gh api repos/hmcaio/my-finances/rulesets --jq '.[] | [.id, .name] | @tsv'   # find the id
-#   gh api -X DELETE repos/hmcaio/my-finances/rulesets/<protect-develop id>     # 25432305 when written
+#   gh api -X DELETE repos/hmcaio/my-finances/rulesets/<id>
 set -euo pipefail
 
 cd "$(dirname "$0")/.."

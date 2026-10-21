@@ -12,7 +12,7 @@ One file per decision, numbered sequentially, never renumbered or edited to chan
 | [0006](0006-separate-prod-packaging-from-dev.md) | Keep production Docker packaging separate from local dev tooling | Accepted (partly superseded by [0018](0018-opt-in-full-stack-dev-compose-profile.md); publish trigger amended by [0032](0032-github-flow-main-only.md)) |
 | [0007](0007-single-shared-semver-and-changelog.md) | Single shared SemVer version across backend and frontend, with a root CHANGELOG | Accepted |
 | [0008](0008-github-flow-with-develop-branch.md) | Branching strategy: GitHub Flow with an added long-lived `develop` branch | Superseded by [0032](0032-github-flow-main-only.md) |
-| [0009](0009-conventional-commits.md) | Use Conventional Commits, mapped to CHANGELOG categories and SemVer bump type | Accepted |
+| [0009](0009-conventional-commits.md) | Use Conventional Commits, mapped to CHANGELOG categories and SemVer bump type | Accepted (branch workflow in its Consequences amended by [0032](0032-github-flow-main-only.md)) |
 | [0010](0010-testcontainers-for-backend-tests.md) | Use Testcontainers for backend tests instead of a fixed CI Postgres service container | Accepted |
 | [0011](0011-logging-slf4j-request-id.md) | Logging: SLF4J/Logback + a request id; no aggregator | Accepted |
 | [0012](0012-investments-as-accounts-and-transfers.md) | Model investment accounts as accounts and buys/sells as transfers | Accepted (amended by [0020](0020-investment-holdings-many-to-many.md), [0024](0024-trade-confirmations-as-multi-line-transfers.md)) |

@@ -15,7 +15,7 @@ Every non-obvious decision behind that shape is written down as an [ADR](docs/ad
 - **Backend**: Java + Spring Boot, built with Gradle (version catalog in `backend/gradle/libs.versions.toml`). PostgreSQL via Flyway migrations. OpenAPI/Swagger UI generated automatically from the controllers.
 - **Frontend**: React + TypeScript, built with Vite. Material UI for components/theming (with a dark-mode toggle), React Router for navigation, TanStack Query for every read/write against the backend ([ADR 0016](docs/adr/0016-tanstack-query-client-cache.md)), Axios for the underlying API calls through one centralized, environment-configurable client.
 - **Testing**: JUnit + Testcontainers on the backend (every test run gets a real, ephemeral Postgres — no shared fixture database, no skipped tests when Docker isn't already running some other way). Vitest + React Testing Library + MSW on the frontend.
-- **Infra**: Docker Compose for local dev (Postgres, pgAdmin) and a separate Compose file for a production-shaped deployment (Postgres + backend + frontend, images pulled by tag from GHCR). GitHub Actions runs tests on every push/PR and publishes versioned Docker images on release tags only (a merge to `main` publishes nothing, so `latest` is always the newest release).
+- **Infra**: Docker Compose for local dev (Postgres, pgAdmin) and a separate Compose file for a production-shaped deployment (Postgres + backend + frontend + backup sidecar, images pulled by tag from GHCR). GitHub Actions runs the tests on every pull request and on `main`, and builds, scans and publishes the Docker images on release tags only (`vX.Y.Z`, or `vX.Y.Z-rc.N` for a release candidate); a merge to `main` publishes nothing, so `latest` is always the newest release.
 
 ## Architecture
 
@@ -34,7 +34,7 @@ docs/
   adr/                    Architectural Decision Records
 docker-compose.yml        Local dev: Postgres + pgAdmin
 docker-compose.prod.yml   Production-shaped stack: Postgres + backend + frontend + backup
-.github/workflows/        CI (test on every push/PR) and CD (image publish on main/tags)
+.github/workflows/        CI (tests on PRs and main) and CD (image publish on release tags only)
 CLAUDE.md                 Working guidance for AI coding agents (cross-stack; backend/, frontend/ each have their own)
 ```
 
@@ -65,7 +65,7 @@ A production-shaped smoke test (Docker images end to end, no cloud involved) is 
 
 ## Running the published images (production)
 
-To run a release rather than develop on it you need only Docker with Compose and a POSIX shell (Linux, macOS, WSL, Git Bash): no checkout, no JDK. The stack is `docker-compose.prod.yml` (Postgres, backend, frontend, backup sidecar) pulling `ghcr.io/hmcaio/my-finances-{backend,frontend,backup}:<IMAGE_TAG>` from GHCR. Pin `IMAGE_TAG` to a release (`v0.1.1`), not `latest`, so the deploy is reproducible.
+To run a release rather than develop on it you need only Docker with Compose and a POSIX shell (Linux, macOS, WSL, Git Bash): no checkout, no JDK. The stack is `docker-compose.prod.yml` (Postgres, backend, frontend, backup sidecar) pulling `ghcr.io/hmcaio/my-finances-{backend,frontend,backup}:<IMAGE_TAG>` from GHCR. Images exist only for release tags: `vX.Y.Z` (stable), `vX.Y.Z-rc.N` (release candidates) and a `sha-<short>` tag naming the tagged commit; `latest` is the newest stable release and is never an unreleased commit. Pin `IMAGE_TAG` to a stable release (`v0.1.1`), not `latest`, so the deploy is reproducible.
 
 ```bash
 TAG=v0.1.1
@@ -149,6 +149,8 @@ Backups don't change who can reach the app: that is the login above plus the net
 
 ## Project status
 
+Released: 0.1.0 and 0.1.1 (both 2026-10-20; the [CHANGELOG](CHANGELOG.md) lists what each contains and what is unreleased).
+
 Built:
 - **F001** — project scaffolding
 - **F002** — categories & payment methods (the first real domain feature)
@@ -163,7 +165,7 @@ Built:
 - **F011** — onboarding (frontend only: a first-run, two-step flow while no account exists — create the first account, then accept/reject/add starter categories, as of F035)
 - **F012** — dashboard (a grid of widgets, each fetching its own data; no composed dashboard endpoint)
 - **F013** — data export (`GET /api/export`: a ZIP of per-entity CSVs) — **superseded by F030**, documented below
-- **F014** — CI/CD and production packaging
+- **F014** — CI/CD and production packaging (GitHub Actions tests on PRs and `main`; the backend, frontend and backup images are built, scanned and published to GHCR on release tags only, [ADR 0032](docs/adr/0032-github-flow-main-only.md))
 - **F015** — frontend test tooling (Vitest + React Testing Library + MSW)
 - **F016** — logging (SLF4J/Logback with a per-request `X-Request-Id` traced browser → nginx → backend; a frontend `logger` with error capture)
 - **F017** — institutions (a shared `Institution` list every account references, replacing free-text)
@@ -186,7 +188,7 @@ Built:
 - **F036** — remote access & authentication (a single shared-credential, Argon2-hashed session-cookie login required in dev and prod, with cookie CSRF and login rate limiting; a generic `BIND_ADDR` env var for exposing the app over any private network without pinning to a specific product, with Postgres/pgAdmin pinned to loopback; [ADR 0029](docs/adr/0029-session-auth-and-generic-network-binding.md))
 - **F037** — ledger (one `/ledger` page replacing Transactions and Transfers: interleaved list by month, summary, filters, accent-insensitive text search; [ADR 0030](docs/adr/0030-postgres-unaccent-for-accent-insensitive-search.md))
 
-Documented, not built; deferred to a release after 0.1.0:
+Documented, not built; deferred to a release after 0.1.1:
 - **F028** — investment splits, backend (a product-level `InvestmentSplit` event, applied as a read-side adjustment to held units; [ADR 0025](docs/adr/0025-investment-split-as-read-side-adjustment.md))
 - **F029** — investment splits, frontend (the product-detail split-history panel and record/delete dialog for F028)
 
@@ -194,7 +196,7 @@ See [docs/features/](docs/features/) for the full breakdown, in build order, wit
 
 ## Workflow
 
-Solo project, but run with real process because that's what keeps a project like this coherent over time rather than because a team requires it: [GitHub Flow on `main` only](docs/adr/0032-github-flow-main-only.md) (short-lived branches squash-merged into `main`, releases are a release PR plus a `vX.Y.Z` tag), [Conventional Commits](docs/adr/0009-conventional-commits.md), and a [single shared SemVer version](docs/adr/0007-single-shared-semver-and-changelog.md) for backend and frontend together, tracked in [`CHANGELOG.md`](CHANGELOG.md).
+Solo project, but run with real process because that's what keeps a project like this coherent over time rather than because a team requires it: [GitHub Flow on `main` only](docs/adr/0032-github-flow-main-only.md) (short-lived branches squash-merged into `main`, releases are a release PR plus a `vX.Y.Z` tag), [Conventional Commits](docs/adr/0009-conventional-commits.md), and a [single shared SemVer version](docs/adr/0007-single-shared-semver-and-changelog.md) for backend and frontend together, tracked in [`CHANGELOG.md`](CHANGELOG.md). There is no `develop` branch and no promotion step: every change is a PR into `main`, and a release is a `chore/release-vX.Y.Z` PR (CHANGELOG and version bump) squash-merged into `main`, followed by a `vX.Y.Z` tag on that squash commit, which is what publishes the images and moves `latest`. The steps are in [docs/conventions/release.md](docs/conventions/release.md).
 
 ## License
 
