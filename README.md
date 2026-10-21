@@ -65,16 +65,22 @@ A production-shaped smoke test (Docker images end to end, no cloud involved) is 
 
 ## Running the published images (production)
 
-To run a release rather than develop on it you need only Docker with Compose and a POSIX shell (Linux, macOS, WSL, Git Bash): no checkout, no JDK. The stack is `docker-compose.prod.yml` (Postgres, backend, frontend, backup sidecar) pulling `ghcr.io/hmcaio/my-finances-{backend,frontend,backup}:<IMAGE_TAG>` from GHCR. Images exist only for release tags: `vX.Y.Z` (stable), `vX.Y.Z-rc.N` (release candidates) and a `sha-<short>` tag naming the tagged commit; `latest` is the newest stable release and is never an unreleased commit. Pin `IMAGE_TAG` to a stable release (`v0.1.1`), not `latest`, so the deploy is reproducible.
+To run a release rather than develop on it you need only Docker with Compose and a POSIX shell (Linux, macOS, WSL, Git Bash): no checkout, no JDK. The stack is `docker-compose.prod.yml` (Postgres, backend, frontend, backup sidecar) pulling `ghcr.io/hmcaio/my-finances-{backend,frontend,backup}:<IMAGE_TAG>` from GHCR. Images exist only for release tags: `vX.Y.Z` (stable), `vX.Y.Z-rc.N` (release candidates) and a `sha-<short>` tag naming the tagged commit; `latest` is the newest stable release and is never an unreleased commit. Pin `IMAGE_TAG` to a stable release (`vX.Y.Z`), not `latest`, so the deploy is reproducible.
 
 ```bash
-TAG=v0.1.1
+TAG=vX.Y.Z   # placeholder: replace it with the newest release, see https://github.com/hmcaio/my-finances/releases/latest
 mkdir my-finances && cd my-finances
 curl -fsSLO https://raw.githubusercontent.com/hmcaio/my-finances/$TAG/docker-compose.prod.yml
 curl -fsSL  https://raw.githubusercontent.com/hmcaio/my-finances/$TAG/.env.example -o .env
 ```
 
-1. Edit `.env`: `IMAGE_TAG` (to the same `$TAG`), `TZ` (your own IANA zone), `POSTGRES_PASSWORD`, `AUTH_USERNAME` and `AUTH_PASSWORD_HASH` (generate the hash from the backend image: [Login](#login); keep the single quotes). Leave `BACKUP_AGE_RECIPIENT` empty for now.
+`vX.Y.Z` is not a real tag, so the downloads fail until you replace it. To have the shell look up the newest release instead of copying it from the releases page, set `TAG` with this one-liner (it needs only `curl` and `sed`; GitHub's anonymous API allows about 60 requests per hour per IP address, and over that limit it prints nothing, so check `echo "$TAG"` before going on):
+
+```bash
+TAG=$(curl -fsSL https://api.github.com/repos/hmcaio/my-finances/releases/latest | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p')
+```
+
+1. Edit `.env`: `IMAGE_TAG` (to the same stable `$TAG`; `latest` always means the newest stable release, fine for a throwaway try-out but not for a reproducible deploy), `TZ` (your own IANA zone), `POSTGRES_PASSWORD`, `AUTH_USERNAME` and `AUTH_PASSWORD_HASH` (generate the hash from the backend image: [Login](#login); keep the single quotes). Leave `BACKUP_AGE_RECIPIENT` empty for now.
 2. Choose where backups go (create the backups volume, or set `BACKUP_DIR` in `.env` and skip the volume), then generate the age keypair, in that order, and put the printed recipient in `.env` as `BACKUP_AGE_RECIPIENT`: [Backups, Setup](#backups). Store the private key off this machine before going on.
 3. `docker compose -f docker-compose.prod.yml up -d`. The first start pulls the images and waits for the backup sidecar's first check; once the stack is healthy, open `http://localhost:8081` (`FRONTEND_PORT`, bound to `BIND_ADDR`; see [Reaching the app from other devices](#reaching-the-app-from-other-devices)) and sign in with the username and password you chose.
 
@@ -93,11 +99,11 @@ read -rs AUTH_PASSWORD && export AUTH_PASSWORD   # type it silently; keeps it ou
 unset AUTH_PASSWORD
 ```
 
-Running the published images, with no checkout or JDK, the same generator ships inside the backend image (use your release tag; `docker run` pulls it if needed):
+Running the published images, with no checkout or JDK, the same generator ships inside the backend image (`:latest` is the newest stable release, and any release tag works too since only the generator is run; `docker run` pulls the image if needed):
 
 ```bash
 read -rs AUTH_PASSWORD && export AUTH_PASSWORD   # type it silently; keeps it out of shell history
-docker run --rm -e AUTH_PASSWORD --entrypoint java ghcr.io/hmcaio/my-finances-backend:v0.1.1 \
+docker run --rm -e AUTH_PASSWORD --entrypoint java ghcr.io/hmcaio/my-finances-backend:latest \
   -Dloader.main=com.chm.myfinances.infrastructure.auth.AuthHashGenerator \
   -cp app.jar org.springframework.boot.loader.launch.PropertiesLauncher   # prints the AUTH_PASSWORD_HASH='...' line for .env
 unset AUTH_PASSWORD
@@ -149,7 +155,7 @@ Backups don't change who can reach the app: that is the login above plus the net
 
 ## Project status
 
-Released: 0.1.0 and 0.1.1 (both 2026-10-20; the [CHANGELOG](CHANGELOG.md) lists what each contains and what is unreleased).
+What each release contains, and what is still unreleased, is in the [CHANGELOG](CHANGELOG.md); the published versions are on the [GitHub Releases page](https://github.com/hmcaio/my-finances/releases).
 
 Built:
 - **F001** — project scaffolding
@@ -188,7 +194,7 @@ Built:
 - **F036** — remote access & authentication (a single shared-credential, Argon2-hashed session-cookie login required in dev and prod, with cookie CSRF and login rate limiting; a generic `BIND_ADDR` env var for exposing the app over any private network without pinning to a specific product, with Postgres/pgAdmin pinned to loopback; [ADR 0029](docs/adr/0029-session-auth-and-generic-network-binding.md))
 - **F037** — ledger (one `/ledger` page replacing Transactions and Transfers: interleaved list by month, summary, filters, accent-insensitive text search; [ADR 0030](docs/adr/0030-postgres-unaccent-for-accent-insensitive-search.md))
 
-Documented, not built; deferred to a release after 0.1.1:
+Documented, not built; deferred to a later release:
 - **F028** — investment splits, backend (a product-level `InvestmentSplit` event, applied as a read-side adjustment to held units; [ADR 0025](docs/adr/0025-investment-split-as-read-side-adjustment.md))
 - **F029** — investment splits, frontend (the product-detail split-history panel and record/delete dialog for F028)
 
