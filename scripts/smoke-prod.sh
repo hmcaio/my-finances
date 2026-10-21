@@ -130,7 +130,7 @@ echo "smoke: starting the stack"
 if ! dc up -d --wait --wait-timeout 300 >"$tmp/up.log" 2>&1; then
   tail -n 15 "$tmp/up.log" >&2
   dc ps -a >&2
-  for s in backend backup postgres; do
+  for s in backend backup postgres frontend; do
     echo "--- last log lines: $s" >&2
     dc logs --no-color --no-log-prefix --tail 15 "$s" >&2
   done
@@ -155,6 +155,13 @@ req() {
 }
 hcount() { grep -ci "^$2:" "$1.h"; true; }
 hvalue() { grep -i -m1 "^$2:" "$1.h" | sed 's/^[^:]*: *//' | tr -d '\r'; }
+
+# `up --wait` also passes for a service that has no healthcheck (running is enough), so read the
+# status back: a healthcheck removed from any service, the frontend's included, fails here.
+echo "smoke: health"
+for s in "${SERVICES[@]}"; do
+  check "$s container health" "$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "my-finances-$s-prod" | tr -d '\r')" healthy
+done
 
 echo "smoke: ports"
 for s in "${SERVICES[@]}"; do
@@ -188,6 +195,14 @@ req index /index.html
 check "GET /index.html status" "$status" 200
 sec_once index "/index.html"
 check "/index.html Cache-Control" "$(hvalue index Cache-Control)" "no-cache"
+
+# The frontend healthcheck target: answered by nginx itself, same headers as everything else, and
+# absent from the access log (a probe every few seconds would bury the request-id lines).
+req healthz /healthz
+check "GET /healthz status" "$status" 200
+check "GET /healthz body" "$(tr -d '\r\n' < healthz.b)" ok
+sec_once healthz "/healthz"
+check "/healthz Cache-Control" "$(hvalue healthz Cache-Control)" "no-store"
 
 req deep /ledger
 check "GET /ledger status" "$status" 200
@@ -255,6 +270,10 @@ if [ $state_ok = no ]; then   # README, "Take a backup now": the first start-tim
   for _ in 1 2 3 4 5 6; do backup_ok && { state_ok=yes; break; }; sleep 5; done
 fi
 check "/api/backup-status reaches state OK (last: $(grep -o '"state":"[A-Z]*"' backup.b | head -n1), lastError $(grep -o '"lastError":[^,]*' backup.b | head -n1))" "$state_ok" yes
+
+echo "smoke: frontend log"
+dc logs --no-color --no-log-prefix frontend > frontend.log 2>&1
+check "frontend access-log lines for /healthz (probes and the request above)" "$(grep -c '/healthz' frontend.log; true)" 0
 
 echo "smoke: backend log"
 dc logs --no-color --no-log-prefix backend > backend.log 2>&1

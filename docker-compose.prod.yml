@@ -167,6 +167,16 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    healthcheck:
+      # nginx alone (issue #170): /healthz is answered by nginx itself and never reaches the
+      # backend, so a backend outage does not flag the frontend unhealthy. 127.0.0.1, not
+      # "localhost", for the same busybox wget reason as the backend's check, and because the
+      # config listens on IPv4 only. nginx's wget is busybox (the slim image has no curl).
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:80/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
 volumes:
   my-finances-postgres-prod-data:
