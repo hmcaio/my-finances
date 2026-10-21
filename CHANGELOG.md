@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- The frontend image no longer lets a missing `/assets/*` file (a 404) carry `Cache-Control: public, max-age=31536000, immutable`, which a browser or proxy could cache for a year; error responses are now `no-store` (`/api` keeps the backend's own policy). Proxied `/api` responses also carry `X-Frame-Options` and `X-Content-Type-Options` once instead of twice. (closes [#181](https://github.com/hmcaio/my-finances/issues/181), [#169](https://github.com/hmcaio/my-finances/issues/169))
+  - Upgrade: pull the new frontend image; no configuration change.
+
 ## [0.1.1] - 2026-10-20
 
 Security patch release: all three images (backend, frontend, backup) clear the image vulnerability scan, and the frontend sends its security headers on every response again.
