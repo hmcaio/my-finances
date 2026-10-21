@@ -6,21 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-21
+
+Maintenance release: Docker images are now published only when a release tag is pushed (never on a merge to `main`), the backup sidecar image is smaller and no longer declares a volume, the frontend container reports its health, and a missing asset is no longer cached by browsers.
+
+- Upgrade: pull the new images (`IMAGE_TAG=v0.1.2`, then `docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d`) and use the new `docker-compose.prod.yml`, which the frontend healthcheck needs. No `.env`, volume or migration change; the backup sidecar takes a forced `pre-upgrade` backup on first start, and existing backups stay restorable. `latest` and `sha-<short>` now come only from release tags, so an older `latest` or `sha-` tag pulled from a `main` push is no longer a moving target: pin a stable `vX.Y.Z`.
+
 ### Added
 
-- The frontend container now reports its health, so `docker compose ps` shows all four services of the production stack as `healthy` instead of the frontend only as `Up` (the dev `full` profile's frontend and backend report it too). The frontend image answers a new `/healthz` itself, without involving the backend. (closes [#170](https://github.com/hmcaio/my-finances/issues/170))
+- The frontend container now reports its health, so `docker compose ps` shows all four services of the production stack as `healthy` instead of the frontend only as `Up` (the dev `full` profile's frontend and backend report it too). The frontend image answers a new `/healthz` itself, without involving the backend. (closes [#170](https://github.com/hmcaio/my-finances/issues/170)) ([#205](https://github.com/hmcaio/my-finances/pull/205))
   - Upgrade: nothing to do beyond pulling the new compose file and the new frontend image (the image carries the `/healthz` location; an older image would still report healthy, because its nginx answers any path with the app shell). No `.env`, volume or migration change.
 
 ### Changed
 
-- Docker images are now published only when a release tag is pushed (`vX.Y.Z`, or `vX.Y.Z-rc.N` for a release candidate); a merge to `main` publishes nothing. `latest` and `sha-<short>` now come from the stable tag run, so `latest` always means the newest release and never an unreleased commit, and a release candidate never moves it. Part of the move to a `main`-only GitHub Flow ([ADR 0032](docs/adr/0032-github-flow-main-only.md)).
+- Docker images are now published only when a release tag is pushed (`vX.Y.Z`, or `vX.Y.Z-rc.N` for a release candidate); a merge to `main` publishes nothing. `latest` and `sha-<short>` now come from the stable tag run, so `latest` always means the newest release and never an unreleased commit, and a release candidate never moves it. Part of the move to a `main`-only GitHub Flow ([ADR 0032](docs/adr/0032-github-flow-main-only.md)). ([#192](https://github.com/hmcaio/my-finances/pull/192))
   - Upgrade: anyone running `IMAGE_TAG=latest`, or a `sha-<short>` tag from a `main` push, now gets the release image only (the `sha-<short>` of a release tag names the tagged commit). Pin `IMAGE_TAG` to a stable `vX.Y.Z` for a reproducible deploy. No volume, `.env` key or migration change.
-- The backup sidecar image is now built on Alpine with only the Postgres 17 client tools (`pg_dump`, `pg_restore`, `psql`), `age`, `rclone` and `gosu`, instead of the full Postgres server image: about 204 MB instead of 599 MB, and it no longer declares the server image's `/var/lib/postgresql/data` volume, so a sidecar container no longer leaves an anonymous Docker volume behind after `docker compose down` (the compose `tmpfs` workaround proposed as Option A of the issue is therefore not needed). The scripts, the encrypted backup format and `status.json` are unchanged: backups taken by the previous image restore with the new one and the reverse. (closes [#204](https://github.com/hmcaio/my-finances/issues/204))
+- The backup sidecar image is now built on Alpine with only the Postgres 17 client tools (`pg_dump`, `pg_restore`, `psql`), `age`, `rclone` and `gosu`, instead of the full Postgres server image: about 204 MB instead of 599 MB, and it no longer declares the server image's `/var/lib/postgresql/data` volume, so a sidecar container no longer leaves an anonymous Docker volume behind after `docker compose down` (the compose `tmpfs` workaround proposed as Option A of the issue is therefore not needed). The scripts, the encrypted backup format and `status.json` are unchanged: backups taken by the previous image restore with the new one and the reverse. (closes [#204](https://github.com/hmcaio/my-finances/issues/204)) ([#206](https://github.com/hmcaio/my-finances/pull/206))
   - Upgrade: pull the new image; no `.env`, compose or volume change. The sidecar takes a forced `pre-upgrade` backup on its first start, as on every image change, and existing backups stay restorable. The anonymous volumes earlier sidecar containers left behind hold nothing: after `docker compose -f docker-compose.prod.yml down`, remove the dangling ones with `docker volume ls -qf dangling=true` and `docker volume rm` (check the list first: it also shows unrelated volumes).
 
 ### Fixed
 
-- The frontend image no longer lets a missing `/assets/*` file (a 404) carry `Cache-Control: public, max-age=31536000, immutable`, which a browser or proxy could cache for a year; error responses are now `no-store` (`/api` keeps the backend's own policy). Proxied `/api` responses also carry `X-Frame-Options` and `X-Content-Type-Options` once instead of twice. (closes [#181](https://github.com/hmcaio/my-finances/issues/181), [#169](https://github.com/hmcaio/my-finances/issues/169))
+- The frontend image no longer lets a missing `/assets/*` file (a 404) carry `Cache-Control: public, max-age=31536000, immutable`, which a browser or proxy could cache for a year; error responses are now `no-store` (`/api` keeps the backend's own policy). Proxied `/api` responses also carry `X-Frame-Options` and `X-Content-Type-Options` once instead of twice. (closes [#181](https://github.com/hmcaio/my-finances/issues/181), [#169](https://github.com/hmcaio/my-finances/issues/169)) ([#188](https://github.com/hmcaio/my-finances/pull/188))
   - Upgrade: pull the new frontend image; no configuration change.
 
 ## [0.1.1] - 2026-10-20
@@ -143,6 +149,7 @@ Initial release of My Finances, a local, single-user personal finance app that r
 - A plain transfer can no longer target an INVESTMENT account on either side — an investment account has no cash balance of its own, so such a transfer moved money with no trackable destination and no way to later spend it through a trade confirmation. (closes [#113](https://github.com/hmcaio/my-finances/issues/113)) ([#114](https://github.com/hmcaio/my-finances/pull/114))
 - The built-in category of each type ("Other Expense"/"Other Income") can no longer be renamed, matching the fuel and dividend categories, which already blocked both rename and delete; the Categories page now hides Rename and Delete for all three the same way. (closes [#117](https://github.com/hmcaio/my-finances/issues/117)) ([#119](https://github.com/hmcaio/my-finances/pull/119))
 
-[Unreleased]: https://github.com/hmcaio/my-finances/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/hmcaio/my-finances/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/hmcaio/my-finances/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/hmcaio/my-finances/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/hmcaio/my-finances/releases/tag/v0.1.0
