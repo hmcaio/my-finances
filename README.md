@@ -74,11 +74,7 @@ curl -fsSLO https://raw.githubusercontent.com/hmcaio/my-finances/$TAG/docker-com
 curl -fsSL  https://raw.githubusercontent.com/hmcaio/my-finances/$TAG/.env.example -o .env
 ```
 
-`vX.Y.Z` is not a real tag, so the downloads fail until you replace it. To have the shell look up the newest release instead of copying it from the releases page, set `TAG` with this one-liner (it needs only `curl` and `sed`; GitHub's anonymous API allows about 60 requests per hour per IP address, and over that limit it prints nothing, so check `echo "$TAG"` before going on):
-
-```bash
-TAG=$(curl -fsSL https://api.github.com/repos/hmcaio/my-finances/releases/latest | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p')
-```
+`vX.Y.Z` is not a real tag, so the downloads fail until you replace it.
 
 1. Edit `.env`: `IMAGE_TAG` (to the same stable `$TAG`; `latest` always means the newest stable release, fine for a throwaway try-out but not for a reproducible deploy), `TZ` (your own IANA zone), `POSTGRES_PASSWORD`, `AUTH_USERNAME` and `AUTH_PASSWORD_HASH` (generate the hash from the backend image: [Login](#login); keep the single quotes). Leave `BACKUP_AGE_RECIPIENT` empty for now.
 2. Choose where backups go (create the backups volume, or set `BACKUP_DIR` in `.env` and skip the volume), then generate the age keypair, in that order, and put the printed recipient in `.env` as `BACKUP_AGE_RECIPIENT`: [Backups, Setup](#backups). Store the private key off this machine before going on.
