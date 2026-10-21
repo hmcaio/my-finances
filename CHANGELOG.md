@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- Docker images are now published only when a release tag is pushed (`vX.Y.Z`, or `vX.Y.Z-rc.N` for a release candidate); a merge to `main` publishes nothing. `latest` and `sha-<short>` now come from the stable tag run, so `latest` always means the newest release and never an unreleased commit, and a release candidate never moves it. Part of the move to a `main`-only GitHub Flow ([ADR 0032](docs/adr/0032-github-flow-main-only.md)).
+  - Upgrade: anyone running `IMAGE_TAG=latest`, or a `sha-<short>` tag from a `main` push, now gets the release image only (the `sha-<short>` of a release tag names the tagged commit). Pin `IMAGE_TAG` to a stable `vX.Y.Z` for a reproducible deploy. No volume, `.env` key or migration change.
+
 ### Fixed
 
 - The frontend image no longer lets a missing `/assets/*` file (a 404) carry `Cache-Control: public, max-age=31536000, immutable`, which a browser or proxy could cache for a year; error responses are now `no-store` (`/api` keeps the backend's own policy). Proxied `/api` responses also carry `X-Frame-Options` and `X-Content-Type-Options` once instead of twice. (closes [#181](https://github.com/hmcaio/my-finances/issues/181), [#169](https://github.com/hmcaio/my-finances/issues/169))

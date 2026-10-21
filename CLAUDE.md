@@ -20,8 +20,8 @@ docker compose down
 
 ## Workflow
 
-- Conventional Commits (ADR 0009). Branch off `develop` and PR into `develop` (ADR 0008); never commit to `develop` or `main` directly; push or open a PR only when asked.
-- Never put `[skip ci]` in a commit. A docs-only PR (only `docs/`, `*.md`, `.claude/`) skips the test jobs by file path (`changes` job in `ci.yml`); the marker would leave the required checks pending and block the merge (rulesets, ADR 0008), and on a release commit or tag it publishes no images.
+- Conventional Commits (ADR 0009). Branch off `main` and PR into `main`, squash-merged (ADR 0032); never commit to `main` directly; push or open a PR only when asked.
+- Never put `[skip ci]` in a commit. A docs-only PR (only `docs/`, `*.md`, `.claude/`) skips the test jobs by file path (`changes` job in `ci.yml`); the marker would leave the required checks pending and block the merge (rulesets, ADR 0032), and on a release commit or tag it publishes no images.
 - **CHANGELOG entries ship with the PR.** A user-visible change adds its bullet under `## [Unreleased]` in `CHANGELOG.md`, in the same commit as the code; which changes qualify, the bullet format and the `Upgrade:` note are in `docs/conventions/release.md`.
 - `/implement-feature` builds a planned feature from `docs/features/FXXX`; `/audit-and-fix` handles cross-cutting audits and fixes (issue → branch → fix with tests → verify → docs); to launch the stack and drive a flow in the browser, use the `run-app` skill (throwaway login, its own compose project, torn down afterwards).
 
@@ -43,7 +43,7 @@ docker compose down
 - A log statement, log config, the request id or log reading → `docs/conventions/logging.md`.
 - A new text or amount field, a limit constant or a money-precision exception → `docs/conventions/data-constraints.md`.
 - Compose files (`docker-compose.prod.yml` replaces the dev Postgres container), Dockerfiles, CI, `verify.sh` prerequisites, pinned-version siblings, API type generation, time zone (`TZ`, `Clock`, date logic) → `docs/conventions/tooling.md`.
-- A user-visible change (its `CHANGELOG.md` entry), promoting `develop` to `main`, tagging a version → `docs/conventions/release.md`.
+- A user-visible change (its `CHANGELOG.md` entry), cutting a release PR, tagging a version → `docs/conventions/release.md`.
 
 ## Keeping these files useful
 

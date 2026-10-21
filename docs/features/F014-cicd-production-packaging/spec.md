@@ -8,7 +8,7 @@ A separate, distinct production packaging/deployment path layered on top of F001
 - `frontend/Dockerfile`: multi-stage, `npm run build` → nginx serving `dist/`, reverse-proxying API calls to the backend.
 - `docker-compose.prod.yml`: three services (`postgres`, `backend`, `frontend`), pulling versioned images from GHCR (not building locally) so it can pin a specific release.
 - Config separation: `application-prod.yml` Spring profile (backend), `.env.development`/`.env.production` (frontend, via Vite), gitignored `.env` for prod compose secrets/DB credentials.
-- GitHub Actions: test on every push/PR; build and push Docker images to GHCR only on pushes to `main` and on version tags.
+- GitHub Actions: test on every push/PR; build and push Docker images to GHCR only on pushes to `main` and on version tags (amended by [ADR 0032](../../adr/0032-github-flow-main-only.md): on `vX.Y.Z` and `vX.Y.Z-rc.N` tags only; a `main` push publishes nothing).
 - Out of scope: any actual deployment target/hosting (the PRD explicitly keeps this local/on-demand, §7.3 — this feature produces deployable artifacts and a way to run them, it doesn't stand up a server anywhere).
 
 ## Backend
@@ -47,14 +47,14 @@ A separate, distinct production packaging/deployment path layered on top of F001
 
 ### Image naming & tagging
 - `ghcr.io/hmcaio/my-finances-backend`, `ghcr.io/hmcaio/my-finances-frontend`.
-- Every image pushed on a `main` push is tagged with the short git SHA and `latest`.
-- Every image pushed on a version tag (`vX.Y.Z`) is additionally tagged with that version string, so `docker-compose.prod.yml` can pin `IMAGE_TAG=vX.Y.Z` for a reproducible deploy instead of always tracking `latest`.
+- Every image pushed on a `main` push is tagged with the short git SHA and `latest` (amended by ADR 0032: tags only; no image is published on a `main` push, so `latest` is the newest release, set only by a stable `vX.Y.Z` tag run).
+- Every image pushed on a version tag (`vX.Y.Z`) is additionally tagged with that version string, so `docker-compose.prod.yml` can pin `IMAGE_TAG=vX.Y.Z` for a reproducible deploy instead of always tracking `latest` (amended by ADR 0032: a tag run publishes the version, `sha-<short>` and, for a stable tag only, `latest`; a `vX.Y.Z-rc.N` tag never moves `latest`).
 
 ### GitHub Actions (`.github/workflows/ci.yml`)
 - `test` jobs, run on every push and pull request (any branch):
   - Backend: runs `./gradlew spotlessCheck test` — needed since the domain-heavy logic (F006 budget versioning, F007 recurring catch-up) has integration-level tests that hit real persistence per the TDD approach called out in the PRD (§7.2), and `spotlessCheck` (F001) gates formatting. Real persistence is provided by Testcontainers (see [ADR 0010](../../adr/0010-testcontainers-for-backend-tests.md)), not a CI-only Postgres service container: `./gradlew test` starts and tears down its own ephemeral `postgres:17-alpine` container on GitHub's hosted-runner Docker daemon, identically to how a local `./gradlew test` run behaves, with no credentials to provision or keep in sync in this workflow.
   - Frontend: `npm ci`, `npm run lint`, and test (whatever test runner the frontend template ends up using).
-- `build-and-push` job, gated to only run on push to `main` or on a `v*` tag (per the answered clarification — every push runs tests, but images are only published for deliberate, deployable versions, not every branch commit):
+- `build-and-push` job, gated to only run on push to `main` or on a `v*` tag (amended by ADR 0032: `v*` tags only; per the answered clarification — every push runs tests, but images are only published for deliberate, deployable versions, not every branch commit):
   - Needs both `test` jobs to pass first.
   - Builds `backend/Dockerfile` and `frontend/Dockerfile`, logs into `ghcr.io` (using the built-in `GITHUB_TOKEN`, which has package-write permission for the repo's own GHCR namespace), pushes both images with the tags described above.
 
