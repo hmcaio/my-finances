@@ -273,7 +273,7 @@ jobs:
           fi
 
   test-backup:
-    name: Backup sidecar tests (F018)
+    name: Backup sidecar tests
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
