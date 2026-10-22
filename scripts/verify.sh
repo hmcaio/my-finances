@@ -7,6 +7,8 @@
 #   scripts/verify.sh                everything CI's unit-test jobs run
 #   scripts/verify.sh frontend       just the frontend checks
 #   scripts/verify.sh e2e            Playwright layout checks (needs `npx playwright install chromium` once)
+#   E2E_SHARD=1/3 scripts/verify.sh e2e
+#                                    only that third of the Playwright tests (CI runs the three shards in parallel)
 #   scripts/verify.sh backup         F018 backup sidecar: bats unit tests + the Docker e2e test
 #   scripts/verify.sh scan           builds the three images and scans them for fixable HIGH/CRITICAL
 #                                    vulnerabilities (Trivy; not in the default run: it builds images)
@@ -75,7 +77,9 @@ stage_frontend() {
 }
 
 stage_e2e() {
-  run "frontend: e2e (Playwright)" in_dir frontend npm run e2e
+  # E2E_SHARD=i/n runs one slice (Playwright --shard); unset runs everything. Unquoted on purpose:
+  # empty expands to no argument.
+  run "frontend: e2e (Playwright)" in_dir frontend npm run e2e -- ${E2E_SHARD:+--shard="$E2E_SHARD"}
 }
 
 stage_backup() {
