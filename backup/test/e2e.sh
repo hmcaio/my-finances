@@ -25,11 +25,11 @@ NETWORK="myfinances-backup-e2e-test"
 SRC_PG="myfinances-backup-e2e-test-src"
 DST_PG="myfinances-backup-e2e-test-dst"
 IMAGE="myfinances-backup-e2e-test:latest"
-# The postgres image declares VOLUME for its data directory, so a container started without an
-# explicit data mount gets an anonymous volume that outlives `docker rm -f` (only `-v` removes it).
+# The postgres image declares VOLUME for its data directory (/var/lib/postgresql since 18, not
+# .../data), so a container started without an explicit data mount gets an anonymous volume that outlives `docker rm -f` (only `-v` removes it).
 # The throwaway Postgres containers keep that directory on a tmpfs instead: no volume is ever
 # created, even if this script is killed before its cleanup trap runs; cleanup also uses `rm -fv`.
-PG_DATA=/var/lib/postgresql/data
+PG_DATA=/var/lib/postgresql
 # Deliberately not a bare `mktemp -d`: under some shells on Windows that resolves under the Git
 # installation's own internal /tmp, which Docker Desktop's file sharing does not see - a bind
 # mount against it silently mounts an empty directory instead of erroring. A path under the repo
@@ -94,7 +94,7 @@ echo "== starting + seeding the source Postgres =="
 docker rm -fv "$SRC_PG" >/dev/null 2>&1
 docker run -d --name "$SRC_PG" --network "$NETWORK" --tmpfs "$PG_DATA" \
   -e POSTGRES_DB=myfinances -e POSTGRES_USER=myfinances -e POSTGRES_PASSWORD=myfinances \
-  postgres:17-alpine >/dev/null
+  postgres:18.6-alpine >/dev/null
 wait_ready "$SRC_PG" || {
   fail "source Postgres never became ready"
   exit 1
@@ -135,7 +135,7 @@ echo "== starting the destination (fresh) Postgres =="
 docker rm -fv "$DST_PG" >/dev/null 2>&1
 docker run -d --name "$DST_PG" --network "$NETWORK" --tmpfs "$PG_DATA" \
   -e POSTGRES_DB=myfinances -e POSTGRES_USER=myfinances -e POSTGRES_PASSWORD=myfinances \
-  postgres:17-alpine >/dev/null
+  postgres:18.6-alpine >/dev/null
 wait_ready "$DST_PG" || {
   fail "destination Postgres never became ready"
   exit 1

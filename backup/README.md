@@ -1,6 +1,6 @@
 # Backup sidecar
 
-A small standalone image — plain `alpine` (full patch tag) + the Postgres client tools (`postgresql17-client`, major set by `ARG POSTGRES_MAJOR`) + `age` + `rclone` + shell scripts — that takes automated, encrypted, retained Postgres backups of the production stack. Built and published alongside the backend/frontend images; runs as the `backup` service in `docker-compose.prod.yml`, never in dev. Full design: [ADR 0015](../docs/adr/0015-automated-encrypted-backups-sidecar.md) and [docs/features/F018-backups/spec.md](../docs/features/F018-backups/spec.md). Setup, restore and the off-site-copy options are documented in the repo root [README.md](../README.md#backups) — read that first if you're operating the stack; this file is about the sidecar's own code.
+A small standalone image — plain `alpine` (full patch tag) + the Postgres client tools (`postgresql18-client`, major set by `ARG POSTGRES_MAJOR`) + `age` + `rclone` + shell scripts — that takes automated, encrypted, retained Postgres backups of the production stack. Built and published alongside the backend/frontend images; runs as the `backup` service in `docker-compose.prod.yml`, never in dev. Full design: [ADR 0015](../docs/adr/0015-automated-encrypted-backups-sidecar.md) and [docs/features/F018-backups/spec.md](../docs/features/F018-backups/spec.md). Setup, restore and the off-site-copy options are documented in the repo root [README.md](../README.md#backups) — read that first if you're operating the stack; this file is about the sidecar's own code.
 
 ## The image
 

@@ -176,7 +176,7 @@ for s in "${SERVICES[@]}"; do
 done
 
 # The sidecar image declares no VOLUME (#204; built on the postgres image it got an anonymous
-# volume per container at /var/lib/postgresql/data): its only mounts are the two compose binds.
+# volume per container at /var/lib/postgresql/data, the volume Postgres 17 declared): its only mounts are the two compose binds.
 mounts=$(docker inspect -f '{{range .Mounts}}{{.Type}}:{{.Destination}} {{end}}' my-finances-backup-prod | tr -s ' \r\n' '\n' | grep . | sort | tr '\n' ' ')
 check "backup mounts only the backups folder and rclone.conf, no inherited volume" "${mounts% }" "bind:/backups bind:/etc/rclone/rclone.conf"
 

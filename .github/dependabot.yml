@@ -14,7 +14,7 @@
 # compose), not something one Dependabot PR can do. Minor/patch updates still arrive. To follow a
 # new major, bump every sibling by hand in one PR (docs/conventions/tooling.md, "Pinned versions");
 # the ignore is relative to the pinned version, so it keeps applying on the new line. eclipse-temurin:
-# the JDK is an LTS pin (21), so the next LTS is moved by hand the same way; the majors Dependabot
+# the JDK is an LTS pin (25), so the next LTS is moved by hand the same way; the majors Dependabot
 # would otherwise propose are non-LTS feature releases.
 #
 # nginx (frontend/Dockerfile) is held to the stable line: nginx numbers stable releases with even

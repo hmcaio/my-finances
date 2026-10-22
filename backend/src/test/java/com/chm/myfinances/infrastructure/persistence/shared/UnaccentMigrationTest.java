@@ -21,7 +21,7 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 /**
  * Proves {@code V25__enable_unaccent.sql} (F037, ADR 0030): on the exact pinned {@code
- * postgres:17.11-alpine} image the extension is available, {@code CREATE EXTENSION IF NOT EXISTS
+ * postgres:18.6-alpine} image the extension is available, {@code CREATE EXTENSION IF NOT EXISTS
  * unaccent} succeeds inside Flyway's per-migration transaction on a database that already holds the
  * earlier migrations, and {@code unaccent} then folds accents.
  *

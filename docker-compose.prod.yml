@@ -39,7 +39,7 @@ x-logging: &default-logging
 
 services:
   postgres:
-    image: postgres:17.11-alpine
+    image: postgres:18.6-alpine
     container_name: my-finances-postgres-prod
     restart: unless-stopped
     environment:
@@ -47,7 +47,11 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - my-finances-postgres-prod-data:/var/lib/postgresql/data
+      # Postgres 18+ keeps its cluster in /var/lib/postgresql/18/docker and declares the VOLUME at
+      # /var/lib/postgresql, so that is the mount point (the image refuses to start with a mount at
+      # .../data). The name carries the major: a PG17 volume cannot be opened by 18, and
+      # keeping the old volume untouched leaves a rollback copy (steps: the Postgres 18 entry in CHANGELOG.md).
+      - my-finances-postgres-18-prod-data:/var/lib/postgresql
     logging: *default-logging
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
@@ -179,7 +183,7 @@ services:
       start_period: 5s
 
 volumes:
-  my-finances-postgres-prod-data:
+  my-finances-postgres-18-prod-data:
   my-finances-logs-prod:
     # Explicit name (compose would otherwise prefix it with the project name, e.g.
     # my-finances_my-finances-logs-prod) so the documented `docker run -v my-finances-logs-prod:...`
