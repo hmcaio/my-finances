@@ -204,6 +204,15 @@ jobs:
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Microsoft's Playwright image carries Chromium and its fonts and OS libraries, so there is no
+    # `playwright install --with-deps` here: that ran `apt-get` against the runner's Azure mirror,
+    # which stalled for 6-12 min on 3 of the first 6 shard jobs (#210). The tag must equal the
+    # @playwright/test version in frontend/package-lock.json (scripts/check-versions.sh enforces it;
+    # Dependabot cannot see this line, so bump it with the npm update). --ipc=host: Chromium's
+    # shared memory outgrows Docker's default 64 MB /dev/shm.
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --ipc=host
     strategy:
       fail-fast: false
       matrix:
@@ -218,18 +227,6 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - run: npm ci
-        working-directory: frontend
-
-      - name: Cache Playwright browsers
-        uses: actions/cache@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
-
-      - name: Install Chromium
-        # --with-deps also installs the OS libraries (apt), which are not part of the cached
-        # browser directory; the browser download itself is skipped on a cache hit.
-        run: npx playwright install --with-deps chromium
         working-directory: frontend
 
       - run: bash scripts/verify.sh e2e
