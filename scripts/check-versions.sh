@@ -86,4 +86,17 @@ expect_one "eclipse-temurin" $java
 grep -qE '^FROM aquasec/trivy:[0-9]+\.[0-9]+\.[0-9]+@sha256:[0-9a-f]{64}$' scripts/trivy/Dockerfile \
   || fail "scripts/trivy/Dockerfile must be 'FROM aquasec/trivy:<x.y.z>@sha256:<digest>' (tag and digest)"
 
+# Playwright (F020): ci.yml runs the e2e shards in Microsoft's Playwright image, whose tag must be the
+# @playwright/test version the lockfile installs, or Playwright looks for a browser revision the image
+# does not carry. Dependabot bumps the npm package but cannot see the workflow's `image:` line.
+pw_lock=$(awk '/"node_modules\/@playwright\/test": \{/ { f = 1; next } f && /"version":/ { gsub(/[",]/, "", $2); print $2; exit }' frontend/package-lock.json)
+pw_image=$(values 'mcr\.microsoft\.com/playwright:v[0-9]+\.[0-9]+\.[0-9]+-noble' .github/workflows/ci.yml) || status=1
+if [ -z "$pw_lock" ]; then
+  fail "frontend/package-lock.json has no @playwright/test version"
+else
+  expect_one "the Playwright image in ci.yml" $pw_image
+  [ "$pw_image" = "mcr.microsoft.com/playwright:v${pw_lock}-noble" ] \
+    || fail "ci.yml uses ${pw_image:-no Playwright image}, but frontend/package-lock.json installs @playwright/test ${pw_lock} (the tag must be v${pw_lock}-noble)"
+fi
+
 exit $status

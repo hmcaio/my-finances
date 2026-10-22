@@ -13,6 +13,13 @@ on:
     tags: ['v*']
   pull_request:
 
+# A new push to a PR supersedes its running workflow, so a quick follow-up commit does not leave the
+# old run holding runners. Only PR runs are cancelled: a main or v* tag run is never in-progress-
+# cancelled (the tag run publishes images), and each tag has its own group anyway.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   BACKEND_IMAGE: ghcr.io/hmcaio/my-finances-backend
   FRONTEND_IMAGE: ghcr.io/hmcaio/my-finances-frontend
@@ -32,6 +39,7 @@ jobs:
     # smoke-prod, so a PR that only touches, say, a frontend test still gets the images built, but a
     # docs-only or tooling-only PR does not. A *.md path counts for neither output.
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: read
       pull-requests: read
@@ -79,6 +87,9 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
+    # The timeouts on the test jobs are several times their usual run: a hung container or browser
+    # frees its runner in minutes instead of the 6 h default.
+    timeout-minutes: 20
     # No Postgres service container: backend tests use Testcontainers (see ADR 0010), which
     # starts and tears down its own ephemeral Postgres container per run using the Docker
     # daemon already available on GitHub's hosted Ubuntu runners. No credentials to provision
@@ -136,6 +147,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
 
@@ -179,15 +191,32 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
-  e2e-frontend:
-    name: Frontend e2e (Playwright)
+  e2e-shards:
+    name: Frontend e2e shard ${{ matrix.shard }}/3
     # Layout checks in Chromium at mobile/tablet/desktop widths (F020). Runs against the Vite dev
-    # server with every /api call mocked, so no backend or Postgres. It waits for the unit tests
-    # (no point spending a browser run on a red build) and gates build-and-push. The frontend chain
-    # (~2 min + ~2 min) still finishes before the ~4 min backend job, so wall time is unchanged.
-    # A docs-only PR skips test-frontend, and a skipped dependency skips this job too.
-    needs: test-frontend
+    # server with every /api call mocked, so no backend or Postgres, and it uses nothing the unit
+    # test job produces: it starts with the other jobs instead of waiting ~2 min for them (a browser
+    # run on a build the unit tests then fail is the price; Actions minutes are free here). The
+    # ~230 tests take ~3 min on one runner, so they are split with Playwright's --shard (not by
+    # project: a new project or spec file is spread over the shards without touching this file).
+    # Not a required check by itself: e2e-frontend below is, so the ruleset keeps one stable name.
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Microsoft's Playwright image carries Chromium and its fonts and OS libraries, so there is no
+    # `playwright install --with-deps` here: that ran `apt-get` against the runner's Azure mirror,
+    # which stalled for 6-12 min on 3 of the first 6 shard jobs (#210). The tag must equal the
+    # @playwright/test version in frontend/package-lock.json (scripts/check-versions.sh enforces it;
+    # Dependabot cannot see this line, so bump it with the npm update). --ipc=host: Chromium's
+    # shared memory outgrows Docker's default 64 MB /dev/shm.
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --ipc=host
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@v7
 
@@ -200,38 +229,55 @@ jobs:
       - run: npm ci
         working-directory: frontend
 
-      - name: Cache Playwright browsers
-        uses: actions/cache@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
-
-      - name: Install Chromium
-        # --with-deps also installs the OS libraries (apt), which are not part of the cached
-        # browser directory; the browser download itself is skipped on a cache hit.
-        run: npx playwright install --with-deps chromium
-        working-directory: frontend
-
       - run: bash scripts/verify.sh e2e
+        env:
+          E2E_SHARD: ${{ matrix.shard }}/3
 
       - name: Upload Playwright report and traces
         # Only on failure: the HTML report (with traces from the retry) is what makes a layout
-        # regression debuggable. `ignore` in case the run died before writing anything.
+        # regression debuggable. `ignore` in case the run died before writing anything. One artifact
+        # per shard (names must be unique within a run).
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: |
             frontend/playwright-report
             frontend/e2e-results
           if-no-files-found: ignore
           retention-days: 14
 
+  e2e-frontend:
+    name: Frontend e2e (Playwright)
+    # The required check and the `needs` of build-and-push: one job whose name does not depend on
+    # the shard count. It must run (`always()`) because a skipped required check counts as passed:
+    # it passes when the PR is docs-only (shards skipped on purpose) and fails when the code changed
+    # and any shard did not succeed, or when `changes` itself failed (which would otherwise skip
+    # every shard and let this check through).
+    needs: [changes, e2e-shards]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: All e2e shards passed (or nothing needed testing)
+        env:
+          CHANGES: ${{ needs.changes.result }}
+          CODE: ${{ needs.changes.outputs.code }}
+          SHARDS: ${{ needs.e2e-shards.result }}
+        run: |
+          echo "changes: $CHANGES, code changed: $CODE, e2e shards: $SHARDS"
+          [ "$CHANGES" = "success" ] || { echo "::error::The change detection did not succeed."; exit 1; }
+          if [ "$CODE" = "true" ] && [ "$SHARDS" != "success" ]; then
+            echo "::error::The e2e shards did not all succeed ($SHARDS)."
+            exit 1
+          fi
+
   test-backup:
-    name: Backup sidecar tests (F018)
+    name: Backup sidecar tests
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     # Docker is already available on GitHub's hosted Ubuntu runners (same assumption test-backend
     # relies on for Testcontainers) - the e2e test (backup/test/e2e.sh) builds the real sidecar
     # image and runs it against throwaway Postgres containers of its own.
