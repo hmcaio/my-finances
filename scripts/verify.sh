@@ -9,7 +9,7 @@
 #   scripts/verify.sh e2e            Playwright layout checks (needs `npx playwright install chromium` once)
 #   E2E_SHARD=1/3 scripts/verify.sh e2e
 #                                    only that third of the Playwright tests (CI runs the three shards in parallel)
-#   scripts/verify.sh backup         F018 backup sidecar: bats unit tests + the Docker e2e test
+#   scripts/verify.sh backup         F018 backup sidecar: bats unit tests (in a Docker image) + the Docker e2e test
 #   scripts/verify.sh scan           builds the three images and scans them for fixable HIGH/CRITICAL
 #                                    vulnerabilities (Trivy; not in the default run: it builds images)
 #   SCAN_IMAGES="ref ..." scripts/verify.sh scan
@@ -26,9 +26,8 @@
 #
 # Every stage runs even if an earlier one fails (like Gradle's --continue), and the exit code is
 # non-zero if any failed. Backend integration tests need Docker running (Testcontainers, ADR 0010).
-# `backup` needs Docker running and `bats` on PATH (bats-core; not installed by this script -
-# see docs/conventions/tooling.md for how CI and local dev get it). Dependencies are not installed here: run
-# `npm ci`/`npm install` in frontend/ first.
+# `backup` needs only Docker running: its bats tests run in an image built from backup/test/Dockerfile.
+# Dependencies are not installed here: run `npm ci`/`npm install` in frontend/ first.
 set -u
 cd "$(dirname "$0")/.."
 
@@ -82,8 +81,17 @@ stage_e2e() {
   run "frontend: e2e (Playwright)" in_dir frontend npm run e2e -- ${E2E_SHARD:+--shard="$E2E_SHARD"}
 }
 
+# The bats unit tests run in an image built from backup/test/Dockerfile (the sidecar's Alpine plus
+# bats), so a checkout needs no bats-core. The Dockerfile goes in on stdin: no build context to send.
+# MSYS_NO_PATHCONV keeps Git Bash on Windows from rewriting the in-container half of the mount.
+bats_unit_tests() {
+  local image=my-finances-backup-bats:local
+  docker build -q -t "$image" - < backup/test/Dockerfile >/dev/null || return 1
+  MSYS_NO_PATHCONV=1 docker run --rm -v "$PWD/backup:/work:ro" "$image" bats test
+}
+
 stage_backup() {
-  run "backup: bats unit tests" bats backup/test
+  run "backup: bats unit tests" bats_unit_tests
   run "backup: Docker end-to-end test" bash backup/test/e2e.sh
 }
 

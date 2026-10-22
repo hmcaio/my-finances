@@ -5,7 +5,7 @@
 # sidecar image (backup/Dockerfile, F018) is covered for its `alpine` base tag only: it is no longer
 # built on the postgres image (#204), so the Alpine packages it installs (age, rclone, ...) are
 # unpinned and not tracked, and its Postgres major is an ARG (POSTGRES_MAJOR) Dependabot cannot see;
-# scripts/check-versions.sh compares that ARG with the compose files' postgres tag.
+# scripts/check-versions.sh compares that ARG with the compose files' postgres tag. The bats test image (backup/test/Dockerfile) is a second /backup/test entry below.
 #
 # Major bumps of postgres, eclipse-temurin and node are ignored on purpose: each is a coordinated
 # move across several files (postgres: both compose files, Testcontainers, POSTGRES_MAJOR in the
@@ -33,6 +33,12 @@ updates:
         update-types: ["version-update:semver-major"]
   - package-ecosystem: docker
     directory: /backup
+    schedule:
+      interval: monthly
+  # The bats test image (#213) is on the sidecar's Alpine tag; Dependabot opens one PR per directory,
+  # and scripts/check-versions.sh fails until the two tags agree, so bump both in one PR.
+  - package-ecosystem: docker
+    directory: /backup/test
     schedule:
       interval: monthly
   - package-ecosystem: docker

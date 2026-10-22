@@ -29,7 +29,7 @@ An on-demand backup is `docker compose -f docker-compose.prod.yml exec -u <BACKU
 ./test/e2e.sh         # builds the real image, dumps/encrypts/restores against throwaway Postgres containers
 ```
 
-All three run as part of `scripts/verify.sh backup` from the repo root (what CI runs); `decide.bats`/`prune.bats` need `bats` (bats-core) on `PATH`, `e2e.sh` needs Docker. [docs/conventions/tooling.md](../docs/conventions/tooling.md) has the local one-off-container option for running bats without installing it.
+All three run as part of `scripts/verify.sh backup` from the repo root (what CI runs); only Docker is needed: `decide.bats`/`prune.bats` run in an image built from `backup/test/Dockerfile` (the sidecar's Alpine plus bats), so there is no bats-core to install, and `e2e.sh` builds the real sidecar image. [docs/conventions/tooling.md](../docs/conventions/tooling.md) has the details.
 
 ## Logging and secrets
 
