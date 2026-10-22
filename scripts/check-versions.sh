@@ -6,9 +6,10 @@
 # There is no test framework for this script, so after changing a check, seed each failure in a
 # scratch copy of the files it reads (not in the working tree) and confirm the exit status is not 0:
 # drift one postgres/node/eclipse-temurin tag, drift the Java major in build.gradle, the daemon JVM
-# file or ci.yml, change `ARG POSTGRES_MAJOR` or the alpine tag in
-# backup/Dockerfile, and break a tag so its pattern no longer matches (the "has no match" case,
-# which `values()` must propagate out of its $(...) subshell; that one once passed silently).
+# file or ci.yml, change `ARG POSTGRES_MAJOR` or the alpine tag in backup/Dockerfile (the bats test
+# image's tag in backup/test/Dockerfile must then disagree), and break a tag so its pattern no
+# longer matches (the "has no match" case, which `values()` must propagate out of its $(...)
+# subshell; that one once passed silently).
 set -u
 cd "$(dirname "$0")/.."
 status=0
@@ -68,6 +69,13 @@ grep -qF 'postgresql${POSTGRES_MAJOR}-client' backup/Dockerfile \
   || fail 'backup/Dockerfile must install "postgresql${POSTGRES_MAJOR}-client", so the pinned major is the installed one'
 grep -qE '^FROM alpine:[0-9]+\.[0-9]+\.[0-9]+$' backup/Dockerfile \
   || fail "backup/Dockerfile must be 'FROM alpine:<x.y.z>' (a full patch tag, never a floating one)"
+
+# The bats test image (backup/test/Dockerfile, #213) runs the sidecar's unit tests on the sidecar's
+# own Alpine release, so its tag must be the same full patch tag.
+sidecar_alpine=$(grep -E '^FROM alpine:[0-9]+\.[0-9]+\.[0-9]+$' backup/Dockerfile)
+test_alpine=$(grep -E '^FROM alpine:[0-9]+\.[0-9]+\.[0-9]+$' backup/test/Dockerfile)
+[ -n "$test_alpine" ] && [ "$test_alpine" = "$sidecar_alpine" ] \
+  || fail "backup/test/Dockerfile must be '${sidecar_alpine:-FROM alpine:<x.y.z>}', the same full patch tag as backup/Dockerfile (found '${test_alpine:-none}')"
 
 # Node: frontend/.nvmrc is the source of truth for CI (setup-node reads it) and native dev
 # (engines); the Dockerfile and the dev compose service must use the same version.

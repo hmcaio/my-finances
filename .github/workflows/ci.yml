@@ -284,9 +284,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install bats-core
-        run: sudo apt-get update && sudo apt-get install -y bats
-
       - name: bats unit tests + Docker end-to-end test
         run: bash scripts/verify.sh backup
 
