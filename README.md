@@ -49,7 +49,7 @@ docker compose --profile full down
 
 The first start downloads Gradle and npm dependencies (a couple of minutes). Set the login credential (see [Login](#login)) and `TZ` in `.env` (see `.env.example`); `TZ` should be your own time zone so the API's "today" matches your browser's.
 
-To run the apps natively instead (fastest loop, IDE debugging), you need a JDK 21 and the Node version in `frontend/.nvmrc` (`npm` refuses another major), and you must not run the `full` profile at the same time: both use ports 8080 and 5173. See [backend/CLAUDE.md](backend/CLAUDE.md) and [frontend/CLAUDE.md](frontend/CLAUDE.md) for the exact commands (build, lint, test, run). The short version:
+To run the apps natively instead (fastest loop, IDE debugging), you need a JDK 25 and the Node version in `frontend/.nvmrc` (`npm` refuses another major), and you must not run the `full` profile at the same time: both use ports 8080 and 5173. See [backend/CLAUDE.md](backend/CLAUDE.md) and [frontend/CLAUDE.md](frontend/CLAUDE.md) for the exact commands (build, lint, test, run). The short version:
 
 ```bash
 docker compose up -d      # start local Postgres only (+ pgAdmin at localhost:5050)
@@ -86,7 +86,7 @@ curl -fsSL  https://raw.githubusercontent.com/hmcaio/my-finances/$TAG/.env.examp
 
 Every page and API call sits behind a single shared login (F036, [ADR 0029](docs/adr/0029-session-auth-and-generic-network-binding.md)): one username and one password, in dev and in prod, no bypass. Set the credential once in `.env` (gitignored; see `.env.example`) before starting any stack, dev or prod. The password itself is never stored, only its Argon2 hash:
 
-From a checkout (contributors; needs a JDK 21):
+From a checkout (contributors; needs a JDK 25):
 
 ```bash
 cd backend

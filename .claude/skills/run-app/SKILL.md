@@ -34,7 +34,7 @@ printf 'AUTH_USERNAME=drive\n' > <scratch>/stack.env
 printf 'AUTH_USERNAME=drive\nAUTH_PASSWORD=%s\nDRIVE_BASE_URL=http://localhost:5173\n' "$PW" > <scratch>/driver.env
 ```
 
-`generateAuthHash` prints the ready-made single-quoted `AUTH_PASSWORD_HASH='$argon2...'` line on stdout (the single quotes keep Compose from expanding the `$`; `.env.example` explains). Needs a local JDK 21.
+`generateAuthHash` prints the ready-made single-quoted `AUTH_PASSWORD_HASH='$argon2...'` line on stdout (the single quotes keep Compose from expanding the `$`; `.env.example` explains). Needs a local JDK 25.
 
 Done when `grep -c "^AUTH_PASSWORD_HASH='\$argon2id" <scratch>/stack.env` prints `1`.
 

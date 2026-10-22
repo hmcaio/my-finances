@@ -7,7 +7,7 @@
 # Build stage: JDK + the project's own Gradle wrapper (not a `gradle:*` base image) so the
 # exact Gradle version pinned in gradle/wrapper/gradle-wrapper.properties (9.7.1) is what
 # actually runs, matching local dev bit-for-bit.
-FROM eclipse-temurin:21.0.12.1_1-jdk-alpine AS build
+FROM eclipse-temurin:25.0.4.1_1-jdk-alpine AS build
 WORKDIR /workspace
 
 # --chmod: the wrapper's git mode bit is not trusted (a Windows-authored checkout can lose it),
@@ -24,7 +24,7 @@ COPY src ./src
 RUN ./gradlew bootJar -x test --no-daemon
 
 # Runtime stage: slim JRE only, no JDK/Gradle in the final image.
-FROM eclipse-temurin:21.0.12.1_1-jre-alpine AS runtime
+FROM eclipse-temurin:25.0.4.1_1-jre-alpine AS runtime
 WORKDIR /app
 
 # Pull in Alpine security fixes published after the pinned base image was built, so the image scan

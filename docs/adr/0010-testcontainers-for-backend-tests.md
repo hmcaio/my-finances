@@ -19,3 +19,5 @@ An in-memory H2 database was considered first, for zero container overhead and n
 - A few seconds of container startup overhead per test run (Postgres container start + Flyway migration), acceptable for the correctness gained.
 - Real Postgres behavior is exercised faithfully in every test run, local or CI, instead of approximated or skipped locally — no more tests silently passing locally against no database at all, or against dev's own persistent data.
 - One less file to hand-maintain (`application-test.yml`) and one less place for credentials to drift out of sync between CI and application config.
+
+*Amended ([#212](https://github.com/hmcaio/my-finances/issues/212)): the tag is now the full patch tag shared with the compose files (`postgres:18.6-alpine`, checked by `scripts/check-versions.sh`), not the floating `postgres:17-alpine` named above.*

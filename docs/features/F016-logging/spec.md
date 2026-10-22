@@ -124,7 +124,7 @@ Axios interceptors on the shared `apiClient` — the single place, so **no page/
 
 ### `docker-compose.prod.yml` / `.env.example`
 - A shared `x-logging` anchor (`driver: json-file`, `max-size: "10m"`, `max-file: "3"`) applied to all three services — this rotates *stdout* (what `docker compose logs` shows); the persisted copy is the backend's file below.
-- New named volume `my-finances-logs-prod`, mounted at `/var/log/my-finances` on the `backend` service (declared under `volumes:` next to `my-finances-postgres-prod-data`). It carries an explicit `name:`: without it compose prefixes the volume with the project name (`my-finances_my-finances-logs-prod`) and the documented `docker run -v my-finances-logs-prod:/logs ...` read command would silently mount a new empty volume.
+- New named volume `my-finances-logs-prod`, mounted at `/var/log/my-finances` on the `backend` service (declared under `volumes:` next to the Postgres data volume). It carries an explicit `name:`: without it compose prefixes the volume with the project name (`my-finances_my-finances-logs-prod`) and the documented `docker run -v my-finances-logs-prod:/logs ...` read command would silently mount a new empty volume.
 - `backend/Dockerfile` runtime stage: `RUN mkdir -p /var/log/my-finances && chown spring:spring /var/log/my-finances` **before** `USER spring`, so the app can write there and a fresh named volume inherits that ownership.
 - Backend `environment`: `LOGGING_LEVEL_COM_CHM_MYFINANCES: ${LOG_LEVEL:-INFO}`.
 - `.env.example`: document optional `LOG_LEVEL` (`INFO` default; `DEBUG` when chasing something).
