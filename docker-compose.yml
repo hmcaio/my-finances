@@ -1,3 +1,11 @@
+# Dev stack. The project name is pinned (not the directory name) so a prod deploy in another
+# folder that is also called my-finances can never share it: Compose matches containers by
+# project + service name, and both files define postgres/backend/frontend (#216). Named volumes
+# are prefixed with it (my-finances-dev_*). prod's name stays directory-derived on purpose
+# (docker-compose.prod.yml): its data volume is prefixed with it, so pinning it would move the
+# database of every deploy whose folder is not called my-finances. `-p` still overrides this.
+name: my-finances-dev
+
 services:
   postgres:
     image: postgres:18.6-alpine

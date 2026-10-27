@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Starting or stopping the dev stack can no longer replace or remove a production stack running from another folder that is also called `my-finances`: the dev stack now has its own Compose project name, `my-finances-dev`, instead of taking the folder name. (closes [#216](https://github.com/hmcaio/my-finances/issues/216))
+  - Upgrade (development): dev named volumes are now prefixed `my-finances-dev_` instead of `my-finances_`, so the dev database starts empty (it is disposable); remove the old volumes with `docker volume rm` once you no longer need them. The dev containers have fixed names, so remove the old ones before the first start: with the **previous** checkout (or `docker rm -f my-finances-postgres my-finances-pgadmin my-finances-backend my-finances-frontend`), run `docker compose --profile full down`. Production is unaffected.
+
 ### Changed
 
 - The stack moves to PostgreSQL 18.6, JDK 25 (Temurin 25.0.4.1, the next LTS), pgAdmin 9.18 and Alpine 3.24.3 for the backup sidecar, which now carries the Postgres 18 client tools. The Postgres data lives in a new volume (`my-finances-postgres-18-prod-data` in the production stack, `my-finances-postgres-18-data` in dev), mounted at `/var/lib/postgresql` as the Postgres 18 image expects. (closes [#212](https://github.com/hmcaio/my-finances/issues/212))
