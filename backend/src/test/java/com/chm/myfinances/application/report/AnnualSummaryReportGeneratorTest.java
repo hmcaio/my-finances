@@ -8,6 +8,7 @@ import com.chm.myfinances.application.networth.NetWorthQuery;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.testsupport.CsvTestSupport;
 import com.chm.myfinances.testsupport.TestClocks;
+import com.chm.myfinances.testsupport.fakes.FakeAccountLedgerActivity;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
@@ -42,8 +43,7 @@ class AnnualSummaryReportGeneratorTest {
       new NetWorthQuery(
           accountRepository,
           new AccountBalanceQuery(
-              transactionRepository,
-              transferRepository,
+              new FakeAccountLedgerActivity(transactionRepository, transferRepository),
               holdingRepository,
               new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository)),
           transactionRepository,

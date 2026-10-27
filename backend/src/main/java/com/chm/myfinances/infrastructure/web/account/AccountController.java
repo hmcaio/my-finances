@@ -7,9 +7,11 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -47,9 +49,11 @@ public class AccountController {
   @GetMapping
   public List<AccountResponse> list(
       @RequestParam(name = "includeClosed", defaultValue = "false") boolean includeClosed) {
-    LocalDate now = LocalDate.now(clock);
-    return accountService.findAll(includeClosed).stream()
-        .map(account -> toResponse(account, now))
+    List<Account> accounts = accountService.findAll(includeClosed);
+    Map<UUID, BigDecimal> balances =
+        accountBalanceQuery.balancesAsOf(accounts, LocalDate.now(clock));
+    return accounts.stream()
+        .map(account -> AccountResponse.from(account, balances.get(account.getId())))
         .toList();
   }
 

@@ -9,6 +9,7 @@ import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transfer.Transfer;
+import com.chm.myfinances.testsupport.fakes.FakeAccountLedgerActivity;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
 import com.chm.myfinances.testsupport.fakes.FakeTransactionRepository;
@@ -19,6 +20,7 @@ import com.chm.myfinances.testsupport.mothers.TransactionMother;
 import com.chm.myfinances.testsupport.mothers.TransferMother;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -41,8 +43,7 @@ class AccountBalanceQueryTest {
       new FakeInvestmentSnapshotRepository();
   private final AccountBalanceQuery query =
       new AccountBalanceQuery(
-          transactionRepository,
-          transferRepository,
+          new FakeAccountLedgerActivity(transactionRepository, transferRepository),
           holdingRepository,
           new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository));
 
@@ -363,5 +364,49 @@ class AccountBalanceQueryTest {
     // Snapshots stay the sole source of value: the sell doesn't change the investment side.
     assertThat(query.balanceAsOf(investment, LocalDate.of(2026, 2, 28)))
         .isEqualByComparingTo("1000.00");
+  }
+
+  @Test
+  void balancesAsOfGivesEachAccountItsOwnBalanceAcrossLedgerAndInvestmentAccounts() {
+    Account checking =
+        AccountMother.checking()
+            .withOpeningBalance(new BigDecimal("100.00"))
+            .withOpeningBalanceDate(LocalDate.of(2026, 1, 1))
+            .build();
+    Account creditCard =
+        AccountMother.creditCard()
+            .withName("Nubank")
+            .withOpeningBalance(new BigDecimal("200.00"))
+            .withOpeningBalanceDate(LocalDate.of(2026, 1, 1))
+            .build();
+    Account investment = AccountMother.investment().build();
+    transactionRepository.save(
+        transactionOn(
+            LocalDate.of(2026, 1, 5),
+            new BigDecimal("30.00"),
+            CategoryType.EXPENSE,
+            checking.getId()));
+    transferRepository.save(
+        transferOn(
+            LocalDate.of(2026, 1, 6),
+            new BigDecimal("80.00"),
+            checking.getId(),
+            creditCard.getId()));
+    snapshot(holdingIn(investment, "Tesouro Selic"), LocalDate.of(2026, 1, 31), "1000.00");
+
+    var balances =
+        query.balancesAsOf(List.of(checking, creditCard, investment), LocalDate.of(2026, 2, 1));
+
+    // 100 - 30 - 80; 200 - 80; the latest snapshot.
+    assertThat(balances.get(checking.getId())).isEqualByComparingTo("-10.00");
+    assertThat(balances.get(creditCard.getId())).isEqualByComparingTo("120.00");
+    assertThat(balances.get(investment.getId())).isEqualByComparingTo("1000.00");
+    assertThat(balances)
+        .containsEntry(checking.getId(), query.balanceAsOf(checking, LocalDate.of(2026, 2, 1)));
+  }
+
+  @Test
+  void balancesAsOfOfNoAccountsIsEmpty() {
+    assertThat(query.balancesAsOf(List.of(), LocalDate.of(2026, 2, 1))).isEmpty();
   }
 }
