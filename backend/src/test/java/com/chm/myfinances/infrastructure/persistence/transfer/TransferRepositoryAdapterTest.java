@@ -20,16 +20,22 @@ import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * Persistence-layer integration test for {@link TransferRepositoryAdapter}: hits a real, ephemeral
@@ -48,6 +54,7 @@ class TransferRepositoryAdapterTest {
   @Autowired private TransferRepository transferRepository;
   @Autowired private AccountRepository accountRepository;
   @Autowired private EntityManager entityManager;
+  @Autowired private JdbcTemplate jdbcTemplate;
   @Autowired private InvestmentCategoryRepository investmentCategoryRepository;
   @Autowired private InvestmentProductRepository investmentProductRepository;
 
@@ -404,5 +411,137 @@ class TransferRepositoryAdapterTest {
 
     assertThat(searchIds("%", day, day)).containsExactly(percent.getId());
     assertThat(searchIds("%", day, day.plusMonths(6))).hasSize(2);
+  }
+
+  private List<Transfer> saveTradesAndPlainTransfers(int tradeCount) {
+    List<Transfer> saved = new ArrayList<>();
+    for (int i = 0; i < tradeCount; i++) {
+      saved.add(
+          transferRepository.save(
+              newTrade(
+                  LocalDate.of(2026, 4, 1),
+                  checkingId,
+                  brokerId,
+                  TradeSide.BUY,
+                  BigDecimal.valueOf(i + 1),
+                  BigDecimal.TEN,
+                  BigDecimal.ZERO)));
+      saved.add(
+          transferRepository.save(newTransfer(LocalDate.of(2026, 4, 1), checkingId, savingsId)));
+    }
+    entityManager.flush();
+    entityManager.clear();
+    return saved;
+  }
+
+  private long preparedStatementsRunBy(Runnable read) {
+    Statistics statistics =
+        entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
+    statistics.setStatisticsEnabled(true);
+    statistics.clear();
+    read.run();
+    return statistics.getPrepareStatementCount();
+  }
+
+  @Test
+  void findByAccountIdOnOrBeforeLoadsTheTradeLinesInOneStatementWhateverTheTransferCount() {
+    saveTradesAndPlainTransfers(1);
+    long withTwoTransfers =
+        preparedStatementsRunBy(
+            () ->
+                transferRepository.findByAccountIdOnOrBefore(checkingId, LocalDate.of(2026, 4, 1)));
+    saveTradesAndPlainTransfers(10);
+
+    long[] withTwentyTwoTransfers = new long[1];
+    List<Transfer> loaded = new ArrayList<>();
+    withTwentyTwoTransfers[0] =
+        preparedStatementsRunBy(
+            () ->
+                loaded.addAll(
+                    transferRepository.findByAccountIdOnOrBefore(
+                        checkingId, LocalDate.of(2026, 4, 1))));
+
+    assertThat(loaded).hasSizeGreaterThanOrEqualTo(22);
+    assertThat(withTwentyTwoTransfers[0]).isEqualTo(withTwoTransfers).isLessThanOrEqualTo(2);
+  }
+
+  @Test
+  void findAllLoadsTheTradeLinesInOneStatementPerPage() {
+    saveTradesAndPlainTransfers(5);
+    AtomicReference<Page<Transfer>> page = new AtomicReference<>();
+
+    long statements =
+        preparedStatementsRunBy(
+            () ->
+                page.set(
+                    transferRepository.findAll(
+                        new TransferFilter(
+                            LocalDate.of(2026, 4, 1), LocalDate.of(2026, 4, 1), brokerId, null),
+                        PageRequest.of(0, 50))));
+
+    assertThat(page.get().getContent()).hasSize(5);
+    assertThat(statements).isLessThanOrEqualTo(3); // page + lines (+ count)
+  }
+
+  @Test
+  void batchedLoadingAttachesEachLineToItsOwnTransferAndLeavesPlainOnesUntagged() {
+    List<Transfer> saved = saveTradesAndPlainTransfers(3);
+
+    List<Transfer> loaded =
+        transferRepository.findByAccountIdOnOrBefore(checkingId, LocalDate.of(2026, 4, 1));
+
+    for (Transfer original : saved) {
+      Transfer reloaded =
+          loaded.stream().filter(t -> t.getId().equals(original.getId())).findFirst().orElseThrow();
+      assertThat(reloaded.getTradeConfirmation().isPresent())
+          .isEqualTo(original.getTradeConfirmation().isPresent());
+      original
+          .getTradeConfirmation()
+          .ifPresent(
+              confirmation ->
+                  assertThat(
+                          reloaded
+                              .getTradeConfirmation()
+                              .orElseThrow()
+                              .getLines()
+                              .get(0)
+                              .quantity())
+                      .isEqualByComparingTo(confirmation.getLines().get(0).quantity()));
+    }
+  }
+
+  @Test
+  void anUnpagedReadOfMoreTransfersThanOneBindListHoldsStillLoadsEveryTradeLine() {
+    // 33,000 > the 32,767 bind parameters the PostgreSQL driver allows in one statement.
+    entityManager.flush();
+    jdbcTemplate.update(
+        "insert into transfers (id, date, from_account_id, to_account_id, amount, description,"
+            + " created_at, last_modified_at)"
+            + " select gen_random_uuid(), date '1985-01-01', ?, ?, 1.00, 'Bulk', now(), now()"
+            + " from generate_series(1, 33000)",
+        checkingId,
+        savingsId);
+    Transfer trade =
+        newTrade(
+            LocalDate.of(1985, 1, 1),
+            checkingId,
+            brokerId,
+            TradeSide.BUY,
+            BigDecimal.ONE,
+            BigDecimal.TEN,
+            BigDecimal.ZERO);
+    transferRepository.save(trade);
+    entityManager.flush();
+    entityManager.clear();
+
+    Page<Transfer> all =
+        transferRepository.findAll(
+            new TransferFilter(LocalDate.of(1985, 1, 1), LocalDate.of(1985, 1, 1), null, null),
+            Pageable.unpaged());
+
+    assertThat(all.getTotalElements()).isEqualTo(33_001);
+    assertThat(all.getContent().stream().filter(t -> t.getTradeConfirmation().isPresent()))
+        .extracting(Transfer::getId)
+        .containsExactly(trade.getId());
   }
 }

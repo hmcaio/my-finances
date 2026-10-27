@@ -1,5 +1,6 @@
 package com.chm.myfinances.infrastructure.persistence.transfer;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -23,6 +24,11 @@ import org.springframework.data.repository.query.Param;
 interface TransferTradeLineJpaRepository extends JpaRepository<TransferTradeLineJpaEntity, UUID> {
 
   List<TransferTradeLineJpaEntity> findByTransferId(UUID transferId);
+
+  /**
+   * One statement for a whole page or account history, instead of one per transfer (issue #189).
+   */
+  List<TransferTradeLineJpaEntity> findByTransferIdIn(Collection<UUID> transferIds);
 
   List<TransferTradeLineJpaEntity> findByProductId(UUID productId);
 

@@ -13,8 +13,10 @@ import jakarta.persistence.criteria.Subquery;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -118,16 +120,33 @@ public class TransferRepositoryAdapter implements TransferRepository {
 
   @Override
   public Page<Transfer> findAll(TransferFilter filter, Pageable pageable) {
-    return jpaRepository
-        .findAll(toSpecification(filter), pageable)
-        .map(entity -> toDomain(entity, lineJpaRepository.findByTransferId(entity.getId())));
+    Page<TransferJpaEntity> page = jpaRepository.findAll(toSpecification(filter), pageable);
+    Map<UUID, List<TransferTradeLineJpaEntity>> lines = linesByTransferId(page.getContent());
+    return page.map(entity -> toDomain(entity, lines.getOrDefault(entity.getId(), List.of())));
   }
 
   @Override
   public List<Transfer> findByAccountIdOnOrBefore(UUID accountId, LocalDate asOfDate) {
-    return jpaRepository.findByAccountIdOnOrBefore(accountId, asOfDate).stream()
-        .map(entity -> toDomain(entity, lineJpaRepository.findByTransferId(entity.getId())))
+    List<TransferJpaEntity> entities = jpaRepository.findByAccountIdOnOrBefore(accountId, asOfDate);
+    Map<UUID, List<TransferTradeLineJpaEntity>> lines = linesByTransferId(entities);
+    return entities.stream()
+        .map(entity -> toDomain(entity, lines.getOrDefault(entity.getId(), List.of())))
         .toList();
+  }
+
+  /**
+   * Loads the trade lines of every given transfer in one statement (issue #189: a per-transfer
+   * lookup made a balance read cost one query per transfer).
+   */
+  private Map<UUID, List<TransferTradeLineJpaEntity>> linesByTransferId(
+      List<TransferJpaEntity> entities) {
+    if (entities.isEmpty()) {
+      return Map.of();
+    }
+    return lineJpaRepository
+        .findByTransferIdIn(entities.stream().map(TransferJpaEntity::getId).toList())
+        .stream()
+        .collect(Collectors.groupingBy(TransferTradeLineJpaEntity::getTransferId));
   }
 
   @Override
