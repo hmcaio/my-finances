@@ -9,6 +9,7 @@ import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.testsupport.TestClocks;
+import com.chm.myfinances.testsupport.fakes.FakeAccountLedgerActivity;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
@@ -42,8 +43,7 @@ class NetWorthQueryPointTest {
       new NetWorthQuery(
           accountRepository,
           new AccountBalanceQuery(
-              transactionRepository,
-              transferRepository,
+              new FakeAccountLedgerActivity(transactionRepository, transferRepository),
               holdingRepository,
               new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository)),
           transactionRepository,

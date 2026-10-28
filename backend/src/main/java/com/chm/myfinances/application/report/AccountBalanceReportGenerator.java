@@ -3,12 +3,15 @@ package com.chm.myfinances.application.report;
 import com.chm.myfinances.application.account.AccountBalanceQuery;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 /**
@@ -53,13 +56,14 @@ public class AccountBalanceReportGenerator implements ReportGenerator {
             .sorted(Comparator.comparing(Account::getName))
             .toList();
 
+    Map<UUID, BigDecimal> balances = balanceQuery.balancesAsOf(accounts, asOf);
     List<List<Object>> rows = new ArrayList<>();
     for (Account account : accounts) {
       rows.add(
           Arrays.asList(
               account.getName(),
               account.getType().name(),
-              balanceQuery.balanceAsOf(account, asOf),
+              balances.get(account.getId()),
               account.getClosedDate()));
     }
     byte[] csv = CsvSectionWriter.write(List.of(new CsvSectionWriter.Section(null, COLUMNS, rows)));

@@ -134,11 +134,10 @@ public class NetWorthQuery {
     BigDecimal assets = BigDecimal.ZERO.setScale(2);
     BigDecimal liabilities = BigDecimal.ZERO.setScale(2);
     BigDecimal investments = BigDecimal.ZERO.setScale(2);
-    for (Account account : accounts) {
-      if (!countsOn(account, date)) {
-        continue;
-      }
-      BigDecimal balance = balanceQuery.balanceAsOf(account, date);
+    List<Account> counted = accounts.stream().filter(a -> countsOn(a, date)).toList();
+    Map<UUID, BigDecimal> balances = balanceQuery.balancesAsOf(counted, date);
+    for (Account account : counted) {
+      BigDecimal balance = balances.get(account.getId());
       switch (account.getType()) {
         case CHECKING, SAVINGS, CASH_WALLET -> assets = assets.add(balance);
         case INVESTMENT -> investments = investments.add(balance);

@@ -9,6 +9,7 @@ import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.testsupport.CsvTestSupport;
 import com.chm.myfinances.testsupport.TestClocks;
+import com.chm.myfinances.testsupport.fakes.FakeAccountLedgerActivity;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
@@ -44,8 +45,7 @@ class AccountBalanceReportGeneratorTest {
       new AccountBalanceReportGenerator(
           accountRepository,
           new AccountBalanceQuery(
-              transactionRepository,
-              transferRepository,
+              new FakeAccountLedgerActivity(transactionRepository, transferRepository),
               holdingRepository,
               new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository)),
           TestClocks.fixedAtStartOf(TODAY));
