@@ -70,6 +70,8 @@ services:
     environment:
       # dev profile binds 127.0.0.1 and points at localhost:5432 - neither works inside a container.
       SERVER_ADDRESS: 0.0.0.0
+      # Read by backend/gradle/relocate-build-dir.init.gradle (see dev-run.sh); ends in /build.
+      GRADLE_BUILD_DIR: /gradle-out/build
       # The app's "today" (defaults, recurring catch-up) is the JVM's zone, while the browser uses
       # its own local time - keep them equal by setting TZ in .env. Same variable as prod.
       TZ: ${TZ:-UTC}
@@ -92,8 +94,10 @@ services:
     volumes:
       - ./backend:/workspace
       - my-finances-gradle-cache:/root/.gradle
-      - my-finances-backend-build:/workspace/build
-      - my-finances-backend-gradle-project:/workspace/.gradle
+      # Build output and Gradle's project cache, outside the bind mount on purpose: a volume
+      # mounted inside ./backend (at /workspace/build) makes Docker create a root-owned, empty
+      # backend/build on the host that host Gradle cannot write to. See backend/dev-run.sh.
+      - my-finances-backend-build:/gradle-out
     depends_on:
       postgres:
         condition: service_healthy
@@ -137,7 +141,6 @@ volumes:
   my-finances-pgadmin-data:
   my-finances-gradle-cache:
   my-finances-backend-build:
-  my-finances-backend-gradle-project:
   my-finances-frontend-node-modules:
 
 # Pre-registers the `postgres` server in pgAdmin (no password baked in - pgAdmin still prompts on

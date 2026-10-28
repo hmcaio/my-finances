@@ -1,0 +1,17 @@
+// Moves every project's build directory to $GRADLE_BUILD_DIR when that variable is set; with it
+// unset this script changes nothing. Pass it with `-I gradle/relocate-build-dir.init.gradle`.
+//
+// Used by the `full` dev compose profile (dev-run.sh), so the container's output lives in a named
+// volume OUTSIDE the ./backend bind mount: a volume mounted at /workspace/build would make Docker
+// create a root-owned, empty backend/build on the host, which host Gradle cannot then write to.
+// Also the way to run Gradle on the host while that stack is up, or to keep a scratch build apart
+// from backend/build (docs/conventions/tooling.md).
+//
+// The path must END IN /build (e.g. /tmp/scratch/build): ArchitectureTest and TestConventionsTest
+// tell main from test classes by the /build/classes/<set>/test/ pattern in the class file's path.
+allprojects {
+    def dir = System.getenv('GRADLE_BUILD_DIR')
+    if (dir) {
+        layout.buildDirectory = file(dir)
+    }
+}

@@ -24,6 +24,7 @@ Swagger UI: `http://localhost:8080/swagger-ui.html`. OpenAPI spec: `http://local
 Read the file when you touch the area.
 
 - A new aggregate, use-case service, repository adapter (incl. replacing child rows), query object, port, list/update endpoint or name-uniqueness check → `docs/conventions/backend-structure.md`.
+- Host `./gradlew` while the `full` dev stack runs, a root-owned `backend/build`, or a scratch build directory → `docs/conventions/tooling.md`.
 - Account balances, net worth, investment snapshots/holdings, an `INVESTMENT` account's null opening balance, `LocalDate.MAX`/`MIN`, a new table with an FK to `accounts` → `docs/conventions/accounts-and-investments.md`.
 - `Budget`/`RecurringTemplate`/`AllocationPlan` versions or recurring catch-up → `docs/conventions/versioned-history-and-recurring.md`.
 - `@Transactional` overloads, cascades, `AuditRecorder`/`AuditOrigin` → `docs/conventions/transactions-and-audit.md`.
