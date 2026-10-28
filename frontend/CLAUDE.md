@@ -10,7 +10,8 @@ npm run build              # typecheck + production build; run it, not just `npm
 npm run format / format:check   # Prettier (write Prettier only on files you touched)
 npm test                   # Vitest, non-watch, CI-friendly
 npm run e2e                # Playwright layout checks (mobile/tablet/desktop)
-npm run generate-api-types # regenerate src/api/generated/schema.ts from the running backend's /v3/api-docs (logs in first)
+npm run generate-api-types -- --offline  # regenerate src/api/generated/schema.ts: Docker + JDK, no backend, no login
+npm run generate-api-types               # the same from a running backend's /v3/api-docs (needs AUTH_PASSWORD)
 ```
 
 ## Rules for every frontend task

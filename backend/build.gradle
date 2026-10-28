@@ -107,6 +107,29 @@ tasks.register('integrationTest', Test) {
     shouldRunAfter tasks.named('test')
 }
 
+// Writes the OpenAPI document (the /v3/api-docs the app serves behind its login) to a file, with no
+// running backend and no password: it boots the app for one MockMvc request against the
+// Testcontainers Postgres, so it needs Docker like integrationTest. Input of
+// `npm run generate-api-types -- --offline`, which passes -PopenapiOutput=<file>; without it the
+// document lands in build/openapi/api-docs.json.
+tasks.register('exportOpenApi', Test) {
+    description = 'Writes /v3/api-docs to a file (offline input of generate-api-types).'
+    group = 'documentation'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'integration'
+    }
+    filter {
+        includeTestsMatching 'com.chm.myfinances.infrastructure.config.OpenApiDocumentExportTest'
+    }
+    def output = providers.gradleProperty('openapiOutput')
+        .orElse(layout.buildDirectory.file('openapi/api-docs.json').map { it.asFile.absolutePath })
+    systemProperty 'openapi.output', output.get()
+    // Never "up to date": the point is to write the file.
+    outputs.upToDateWhen { false }
+}
+
 tasks.named('check') {
     dependsOn tasks.named('integrationTest')
 }

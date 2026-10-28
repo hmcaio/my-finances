@@ -23,4 +23,4 @@ npm run build          # typecheck + production build — also catches issues np
 npm run e2e            # Playwright layout checks (mobile/tablet/desktop), needs `npx playwright install chromium` once
 ```
 
-API types are generated, not hand-written: `AUTH_PASSWORD=... npm run generate-api-types` (backend running; it signs in first with `AUTH_USERNAME`, or the one in the repo `.env`) regenerates `src/api/generated/schema.ts` from the backend's OpenAPI spec — rerun it after pulling or rebasing a branch that touched backend controllers.
+API types are generated, not hand-written: `npm run generate-api-types -- --offline` regenerates `src/api/generated/schema.ts` from the backend's OpenAPI spec with no running backend, login or password (it needs Docker and a JDK: a Gradle task boots the app against a throwaway Postgres for one request). Against a running backend, `AUTH_PASSWORD=... npm run generate-api-types` signs in first with `AUTH_USERNAME`, or the one in the repo `.env`. Rerun it after pulling or rebasing a branch that touched backend controllers.
