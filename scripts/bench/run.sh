@@ -3,7 +3,7 @@
 # docs/conventions/performance.md for what each part measures and how to read it.
 #
 #   scripts/bench/run.sh [--sizes "1000 5000 25000"] [--ttfc] [--baseline <git-ref>]
-#                        [--image-tag <tag>] [--cpus <n>] [--fast] [--keep]
+#                        [--image-tag <tag>] [--cpus <n>] [--keep]
 #
 # By default it runs the real docker-compose.prod.yml (nginx, the production images, Postgres on a
 # volume, the backup sidecar) as its own Compose project, layered with bench.override.yml, and may
@@ -18,8 +18,6 @@
 #                this checkout; --baseline still builds from its ref
 #   --cpus       cap the benchmark's backend, frontend and Postgres at <n> CPUs, to protect a prod
 #                stack running beside it (prod itself has no limit, so this departs from it)
-#   --fast       skip Compose: the backend jar on the host JVM, Postgres on a tmpfs and a small Node
-#                proxy instead of nginx. Quicker, less like prod; needs a JDK
 #   --keep       keep the scratch directory (logs, env files) instead of deleting it
 #
 # Needs Docker (Compose 2.24+ for the `!reset` tag) and Node; never touches the dev or prod stack.
@@ -32,7 +30,6 @@ TTFC=0
 BASELINE=""
 IMAGE_TAG_OPT=""
 CPUS=""
-FAST=0
 KEEP=0
 while [ $# -gt 0 ]; do
   case $1 in
@@ -41,7 +38,6 @@ while [ $# -gt 0 ]; do
     --baseline) BASELINE=$2; shift 2 ;;
     --image-tag) IMAGE_TAG_OPT=$2; shift 2 ;;
     --cpus) CPUS=$2; shift 2 ;;
-    --fast) FAST=1; shift ;;
     --keep) KEEP=1; shift ;;
     -h | --help) sed -n '2,/^[^#]/{/^[^#]/!p}' "$SELF"; exit 0 ;;
     *) echo "unknown option: $1 (see --help)" >&2; exit 2 ;;
@@ -50,23 +46,16 @@ done
 need() { command -v "$1" >/dev/null || { echo "bench: '$1' is required" >&2; exit 2; }; }
 for tool in docker node curl; do need "$tool"; done
 [ -n "$BASELINE" ] && need git
-if [ "$FAST" = 1 ]; then
-  need java
-  [ -z "$IMAGE_TAG_OPT$CPUS" ] || { echo "bench: --image-tag and --cpus do not apply to --fast" >&2; exit 2; }
-else
-  compose_version=$(docker compose version --short 2>/dev/null || true)
-  [ -n "$compose_version" ] && [ "$(printf '%s\n' 2.24.0 "$compose_version" | sort -V | head -1)" = 2.24.0 ] \
-    || { echo "bench: Docker Compose 2.24+ is required (found '${compose_version:-none}'), for the !reset tag" >&2; exit 2; }
-fi
+compose_version=$(docker compose version --short 2>/dev/null || true)
+[ -n "$compose_version" ] && [ "$(printf '%s\n' 2.24.0 "$compose_version" | sort -V | head -1)" = 2.24.0 ] \
+  || { echo "bench: Docker Compose 2.24+ is required (found '${compose_version:-none}'), for the !reset tag" >&2; exit 2; }
 if [ "$TTFC" = 1 ] && [ ! -d frontend/node_modules ]; then
   echo "bench: --ttfc needs frontend/node_modules (run 'npm ci' in frontend/)" >&2
   exit 2
 fi
 
 SCRATCH=$(mktemp -d)
-PIDS=()
-CONTAINER=""       # --fast: the Postgres container
-BASE_CONTAINER=""  # the baseline backend container (Compose mode)
+BASE_CONTAINER=""  # the baseline backend container
 BUILT_IMAGES=()    # tags this run created, and only those, are removed again
 STACK_CREATED=0
 WORKTREE=""
@@ -77,12 +66,9 @@ dc() { (cd "$STACK" && docker compose -p "$PROJECT" "${COMPOSE_FILES[@]}" "$@");
 
 cleanup() {
   set +e
-  # By PID, never `pkill -f <pattern>`: a pattern can match this very shell and abort the cleanup.
-  for pid in ${PIDS[@]+"${PIDS[@]}"}; do kill "$pid" 2>/dev/null; done
   [ -n "$BASE_CONTAINER" ] && docker rm -fv "$BASE_CONTAINER" >/dev/null 2>&1
   # Only after guard.mjs passed (STACK_CREATED): every volume of the project is then its own.
   [ "$STACK_CREATED" = 1 ] && dc down -v --remove-orphans >/dev/null 2>&1
-  [ -n "$CONTAINER" ] && docker rm -fv "$CONTAINER" >/dev/null 2>&1
   for image in ${BUILT_IMAGES[@]+"${BUILT_IMAGES[@]}"}; do docker rmi "$image" >/dev/null 2>&1; done
   if [ -n "$WORKTREE" ]; then git worktree remove --force "$WORKTREE" >/dev/null 2>&1; git worktree prune; fi
   if [ "$KEEP" = 1 ]; then echo "bench: kept $SCRATCH"; else rm -rf "$SCRATCH"; fi
@@ -94,81 +80,21 @@ free_port() {
 }
 rand() { head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n'; }
 
-wait_for_http() { # url, seconds, description, log source ("container:<name>" or "file:<path>")
+wait_for_http() { # url, seconds, description, container (its log tail is printed on failure)
   local i
   for i in $(seq 1 "$2"); do
     [ "$(curl -s -o /dev/null -w '%{http_code}' "$1" || true)" = 401 ] && return 0
     sleep 1
   done
   echo "bench: $3 did not come up; its last log lines:" >&2
-  case $4 in
-    container:*) docker logs --tail 30 "${4#container:}" >&2 2>&1 ;;
-    file:*) tail -n 30 "${4#file:}" >&2 ;;
-  esac
+  docker logs --tail 30 "$4" >&2 2>&1
   KEEP=1
   return 1
 }
 
 psql_file() { docker exec -i "$PGC" psql -U myfinances -d myfinances -q "$@"; }
 
-# ------------------------------------------------------------------------------------ --fast
-setup_fast() {
-  echo "== credential and database (host JVM mode)"
-  PW=$(rand)
-  local hash_line
-  hash_line=$(cd backend && AUTH_PASSWORD=$PW GRADLE_BUILD_DIR=$SCRATCH/new/build \
-    ./gradlew -I gradle/relocate-build-dir.init.gradle -q generateAuthHash 2>/dev/null)
-  HASH=${hash_line#AUTH_PASSWORD_HASH=\'}
-  HASH=${HASH%\'}
-  local pg_image pg_port
-  pg_image=$(sed -n 's/^[[:space:]]*image:[[:space:]]*\(postgres:[^[:space:]]*\).*/\1/p' docker-compose.yml | head -1)
-  PG_PORT=$(free_port)
-  CONTAINER=mf-bench-pg-$$
-  # --tmpfs: the postgres image declares its data directory a volume, which would outlive the container.
-  docker run -d --name "$CONTAINER" --tmpfs /var/lib/postgresql -p "127.0.0.1:$PG_PORT:5432" \
-    -e POSTGRES_USER=myfinances -e POSTGRES_PASSWORD="$PW" -e POSTGRES_DB=myfinances "$pg_image" >/dev/null
-  PGC=$CONTAINER
-  until docker exec "$CONTAINER" pg_isready -U myfinances >/dev/null 2>&1; do sleep 1; done
-
-  echo "== building and starting the backend under test ($(git rev-parse --short HEAD))"
-  (cd backend && GRADLE_BUILD_DIR=$SCRATCH/new/build ./gradlew -I gradle/relocate-build-dir.init.gradle -q bootJar)
-  local api_port
-  api_port=$(free_port)
-  fast_backend "$(ls "$SCRATCH"/new/build/libs/*.jar | grep -v plain | head -1)" "$api_port" new
-  export BENCH_API=http://127.0.0.1:$api_port
-
-  if [ -n "$BASELINE" ]; then
-    echo "== building and starting the baseline backend ($BASELINE)"
-    WORKTREE=$SCRATCH/baseline-src
-    git worktree add --detach "$WORKTREE" "$BASELINE" >/dev/null
-    (cd "$WORKTREE/backend" && ./gradlew -q bootJar)
-    local base_port
-    base_port=$(free_port)
-    fast_backend "$(ls "$WORKTREE"/backend/build/libs/*.jar | grep -v plain | head -1)" "$base_port" baseline
-    export BENCH_BASELINE_API=http://127.0.0.1:$base_port
-  fi
-
-  if [ "$TTFC" = 1 ]; then
-    echo "== building the frontend"
-    (cd frontend && npx vite build --outDir "$SCRATCH/dist" --emptyOutDir >/dev/null)
-    local front_port
-    front_port=$(free_port)
-    node "$BENCH/proxy.mjs" "$SCRATCH/dist" "$front_port" "${BENCH_API##*:}" &
-    PIDS+=($!)
-    export BENCH_FRONTEND=http://127.0.0.1:$front_port
-  fi
-}
-
-fast_backend() { # jar, port, label
-  SPRING_PROFILES_ACTIVE=prod DB_HOST=localhost DB_PORT=$PG_PORT DB_NAME=myfinances DB_USER=myfinances \
-    DB_PASSWORD=$PW SERVER_PORT=$2 SERVER_ADDRESS=127.0.0.1 LOGGING_FILE_NAME=$SCRATCH/$3.log \
-    AUTH_USERNAME=bench AUTH_PASSWORD_HASH=$HASH \
-    java -jar "$1" >"$SCRATCH/$3.out" 2>&1 &
-  PIDS+=($!)
-  wait_for_http "http://127.0.0.1:$2/api/auth/session" 180 "the $3 backend" "file:$SCRATCH/$3.out"
-}
-
-# --------------------------------------------------------------------------------- Compose mode
+# ------------------------------------------------------------------------------------- stack
 setup_compose() {
   PROJECT=mf-bench-$$
   local tag build=1 svc
@@ -268,14 +194,14 @@ setup_compose() {
     BASE_CONTAINER=mf-bench-base-$$
     docker run -d --name "$BASE_CONTAINER" --network "${PROJECT}_default" \
       -p "127.0.0.1:$base_port:8080" --env-file "$SCRATCH/baseline.env" "$base_image" >/dev/null
-    wait_for_http "http://127.0.0.1:$base_port/api/auth/session" 180 "the baseline backend" "container:$BASE_CONTAINER"
+    wait_for_http "http://127.0.0.1:$base_port/api/auth/session" 180 "the baseline backend" "$BASE_CONTAINER"
     export BENCH_BASELINE_API=http://127.0.0.1:$base_port
   fi
 }
 
 # ------------------------------------------------------------------------------------------ run
 COMPOSE_FILES=()
-if [ "$FAST" = 1 ]; then setup_fast; else setup_compose; fi
+setup_compose
 export BENCH_PASSWORD=$PW BENCH_PG_CONTAINER=$PGC
 psql_file <"$BENCH/seed-base.sql"
 

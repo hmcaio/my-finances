@@ -6,16 +6,16 @@ Read when a change claims a speed-up or a scaling property: a benchmark, a state
 
 ```
 scripts/bench/run.sh [--sizes "1000 5000 25000"] [--ttfc] [--baseline <git-ref>]
-                     [--image-tag <tag>] [--cpus <n>] [--fast] [--keep]
+                     [--image-tag <tag>] [--cpus <n>] [--keep]
 ```
 
-By default it runs the real `docker-compose.prod.yml` (nginx, the production images, Postgres on a named volume, the backup sidecar) as its own Compose project `mf-bench-<pid>`, layered with `scripts/bench/bench.override.yml`, seeds the ledger at each size, measures, and removes everything it created. It builds the three images from the checkout under a unique tag (`--image-tag vX.Y.Z` measures published images instead, pulled not built). `--ttfc` times first content in headless Chromium against the same nginx (needs `frontend/node_modules` and `npx playwright install chromium`); `--baseline <ref>` builds that commit's backend as a second container on the stack's network and database, times it the same way and compares every response byte for byte. A 5,000-row run takes about five minutes with the images cached, longer with `--baseline` (a fourth image) or cold. `--fast` skips Compose: the jar on the host JVM, Postgres on a tmpfs and a small Node proxy instead of nginx, for quick loops.
+By default it runs the real `docker-compose.prod.yml` (nginx, the production images, Postgres on a named volume, the backup sidecar) as its own Compose project `mf-bench-<pid>`, layered with `scripts/bench/bench.override.yml`, seeds the ledger at each size, measures, and removes everything it created. It builds the three images from the checkout under a unique tag (`--image-tag vX.Y.Z` measures published images instead, pulled not built). `--ttfc` times first content in headless Chromium against the same nginx (needs `frontend/node_modules` and `npx playwright install chromium`); `--baseline <ref>` builds that commit's backend as a second container on the stack's network and database, times it the same way and compares every response byte for byte. A 5,000-row run takes about five minutes with the images cached, longer with `--baseline` (a fourth image) or cold.
 
-**It can run beside a real prod stack.** The prod file pins four container names and the logs volume's name, so a second project would share the real prod logs and a `down -v` would delete them (why `scripts/smoke-prod.sh` refuses to run beside prod). The override drops those names with `!reset` (Compose 2.24+) so they become project-scoped, leaving `docker-compose.prod.yml` untouched. `my-finances-backups-prod` is `external: true` on purpose and is not reset: the run sets `BACKUP_DIR` to a scratch folder, so nothing mounts it. Before anything is created, `guard.mjs` reads the RESOLVED config (`docker compose config`) and aborts unless: no `container_name` remains; every volume and network name starts with the project name and none is external; the only published port is the frontend's, on `127.0.0.1:<free port>`; every bind mount lies in the scratch directory; and every image of ours carries the unique tag. A name newly pinned in the prod file therefore fails the run instead of reaching prod; `node --test scripts/bench/guard.test.mjs` pins the refusals. Cleanup runs `down -v` only after the guard passed, removes only the image tags this run created, and stops by PID.
+**It can run beside a real prod stack.** The prod file pins four container names and the logs volume's name, so a second project would share the real prod logs and a `down -v` would delete them (why `scripts/smoke-prod.sh` refuses to run beside prod). The override drops those names with `!reset` (Compose 2.24+) so they become project-scoped, leaving `docker-compose.prod.yml` untouched. `my-finances-backups-prod` is `external: true` on purpose and is not reset: the run sets `BACKUP_DIR` to a scratch folder, so nothing mounts it. Before anything is created, `guard.mjs` reads the RESOLVED config (`docker compose config`) and aborts unless: no `container_name` remains; every volume and network name starts with the project name and none is external; the only published port is the frontend's, on `127.0.0.1:<free port>`; every bind mount lies in the scratch directory; and every image of ours carries the unique tag. A name newly pinned in the prod file therefore fails the run instead of reaching prod; `node --test scripts/bench/guard.test.mjs` pins the refusals. Cleanup runs `down -v` only after the guard passed, and removes only the image tags this run created.
 
 The run still shares the machine's CPU and disk with a running prod stack: it slows it for a few minutes, and the prod stack's load adds noise to the timings. `--cpus <n>` caps the benchmark's backend, frontend and Postgres to protect prod; prod itself has no limit, so a capped run departs from it. Run it when prod is idle where you can.
 
-Paste the output into the PR's Evidence and name what differs from the reference setup below: the machine, the seed, `--fast`, `--cpus`.
+Paste the output into the PR's Evidence and name what differs from the reference setup below: the machine, the seed, `--cpus`.
 
 | Tool | Measures |
 |---|---|
@@ -26,7 +26,7 @@ Paste the output into the PR's Evidence and name what differs from the reference
 | `ttfc.mjs` | ms from navigation start to the marker content (dashboard balances, accounts row, Generate button), fresh browser context per run, next to the data-free login page as the floor |
 | `compare.mjs` | identical requests to the baseline and the current backend; a zip entry by entry, a PDF with its `/CreationDate` and `/ID` blanked (the writer stamps the generation time: even one backend differs from itself between two identical requests) |
 | `seed-base.sql`, `seed-ledger.sql` | five ledger accounts, an `INVESTMENT` account with 5 holdings and 285 snapshots, then N ledger rows: 80% transactions, 20% transfers (35% card payments, 2% buys with a trade line), accented text, 30% notes, spread over about five years ending today. No `audit_log` rows: no benchmarked read touches them |
-| `lib.mjs`, `proxy.mjs` | shared client plumbing; the `--fast` mode's stand-in for nginx |
+| `lib.mjs` | shared client plumbing: sign-in, `psql` and the Postgres log of the stack's container |
 
 ## What still differs from prod
 
@@ -35,7 +35,7 @@ The application code, schema, images, JDK, nginx, Postgres version and volume, D
 - **The machine**: the client, the stack and headless Chromium share one machine, and Chromium renders in software. Judge browser timings against the login-page floor.
 - **The data**: the seed, not real data.
 - **TLS and a real network**: none, as in a local prod stack.
-- **`--cpus`, `--fast`**: opt-in departures, named in the output you paste.
+- **`--cpus`**: an opt-in departure, named in the output you paste.
 
 ## Reference results (after #189)
 
@@ -62,6 +62,5 @@ Each of these produced a plausible but wrong number before it was caught.
 - **Un-escape `$$` before reusing a value from `docker compose config`.** It prints a literal `$` as `$$`, so its output can be fed back to Compose; an `--env-file` takes values as they are. The baseline backend got `AUTH_PASSWORD_HASH=$$argon2id$$...` and refused to start, because the hash is full of `$` and the app validates its format (`run.sh` un-escapes it).
 - **Seed a trade transfer with `taxes = 0`.** The domain rejects a transfer with a trade confirmation and no taxes, and every report that loads all transfers then answers 500.
 - **Seed with dates relative to today** (`current_date - n`), so the trend ranges and the as-of dates keep covering the data as the calendar moves.
-- **Stop processes by PID.** `pkill -f '<pattern>'` can match the shell that runs it and abort the rest of a cleanup; `run.sh` records each PID.
 - **The baseline shares the database, so seed once.** It runs against the schema the current code migrated; Flyway ignores future migrations by default, so an older baseline starts, but a baseline from before a destructive migration will not. Pick a baseline with the same schema.
 - **Never seed a database you care about.** The 25k seed replaces the whole ledger; the harness only ever uses its own container.

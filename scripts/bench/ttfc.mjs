@@ -1,7 +1,7 @@
 // Time to first content in headless Chromium with a fresh cache: a new browser context per run
 // (the signed-in session restored from storage state), measured from navigation start to the
-// moment the page's marker content exists. Needs the built frontend served same-origin with the
-// API (proxy.mjs); BENCH_FRONTEND is its origin. See docs/conventions/performance.md.
+// moment the page's marker content exists. Needs the production frontend served same-origin with
+// the API (the nginx of run.sh's stack); BENCH_FRONTEND is its origin. See docs/conventions/performance.md.
 //
 // The time is recorded IN the page by a MutationObserver. Never measure it with Playwright's
 // locator.waitFor: it polls with a backoff, which rounds every result up to ~800 ms.
