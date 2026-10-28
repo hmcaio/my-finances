@@ -34,7 +34,7 @@ Name the repo's own check: `./gradlew spotlessApply` then `scripts/verify.sh bac
 
 ## Phase 3 — Docs
 - [ ] Root/backend/frontend `CLAUDE.md`: <the rule or gotcha each gets>.
-- [ ] `docs/features/README.md` row verified against what was built; root `README.md` "Project status" moves the feature to "Built".
+- [ ] `docs/features/README.md` row verified against what was built, and the feature removed from its "Status" list.
 
 ## Verification
 <!-- Human-driven checks, each phrased as something a person does in the running app and the result they see

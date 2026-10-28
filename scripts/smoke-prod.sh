@@ -91,7 +91,7 @@ if [ -n "${GITHUB_ACTIONS:-}" ]; then echo "::add-mask::$password"; echo "::add-
 cp docker-compose.prod.yml "$tmp/"
 mkdir "$tmp/backups"
 
-# The README's "Login" recipe, from the backend image under test: stdout is the whole
+# The "Login" recipe in docs/operations.md, from the backend image under test: stdout is the whole
 # AUTH_PASSWORD_HASH='...' line (single quotes included), stderr holds notes only.
 hash_line=$(AUTH_PASSWORD=$password MSYS_NO_PATHCONV=1 docker run --rm -e AUTH_PASSWORD --entrypoint java "$BACKEND_SRC" \
   -Dloader.main=com.chm.myfinances.infrastructure.auth.AuthHashGenerator \
@@ -117,7 +117,7 @@ overrides='IMAGE_TAG|AUTH_USERNAME|AUTH_PASSWORD_HASH|POSTGRES_PASSWORD|FRONTEND
 } > "$tmp/.env"
 unset hash_line
 
-# The README's keygen (BACKUP_DIR is already in .env); only the public recipient is kept.
+# The keygen from docs/operations.md (BACKUP_DIR is already in .env); only the public recipient is kept.
 keygen=$(dc run --rm --no-deps -T backup backup-keygen 2>"$tmp/keygen.err") \
   || { cat "$tmp/keygen.err" >&2; die "backup-keygen failed"; }
 recipient=$(grep -o 'age1[0-9a-z]*' <<< "$keygen" | head -n1)
@@ -270,7 +270,7 @@ echo "smoke: backup status"
 backup_ok() { req backup /api/backup-status -b jar; [ "$status" = 200 ] && grep -q '"state":"OK"' backup.b; }
 state_ok=no
 for _ in 1 2 3 4 5 6; do backup_ok && { state_ok=yes; break; }; sleep 5; done
-if [ $state_ok = no ]; then   # README, "Take a backup now": the first start-time backup may predate readiness
+if [ $state_ok = no ]; then   # docs/operations.md, "Take a backup now": the first start-time backup may predate readiness
   dc exec -T -u 1000:1000 backup backup.sh >/dev/null 2>&1
   for _ in 1 2 3 4 5 6; do backup_ok && { state_ok=yes; break; }; sleep 5; done
 fi

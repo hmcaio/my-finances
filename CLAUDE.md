@@ -5,7 +5,7 @@ Local, single-user finance app (Java/Spring Boot + PostgreSQL/Flyway backend, Re
 ## Source of truth
 
 - **Read `docs/PRD.md` before any architectural or scope decision**: data model, versioning rules, net worth formula, requirements, non-goals. It already resolved the non-obvious tradeoffs (credit card spend is a liability-increasing expense and payments are transfers; budgets and recurring templates are versioned, not mutated; recurring generation is lazy/catch-up, not a scheduler), so decide from it, not from first principles.
-- `docs/adr/` holds architectural decisions (index `docs/adr/README.md`); `docs/features/FXXX-*/{spec,plan}.md` one folder per feature (built vs. specified: each `plan.md` checklist and the README's "Project status"). Why something changed lives in `git log`, PR descriptions and `spec.md`.
+- `docs/adr/` holds architectural decisions (index `docs/adr/README.md`); `docs/features/FXXX-*/{spec,plan}.md` one folder per feature (built vs. specified: each `plan.md` checklist and the "Status" list in `docs/features/README.md`). Why something changed lives in `git log`, PR descriptions and `spec.md`.
 - Mechanics for one area live in `docs/conventions/` (index: `docs/conventions/README.md`); pointers below name when to read each. Before calling a task done, when splitting or refactoring a method, and when reviewing a diff: read `CODING_STANDARDS.md`.
 
 ## Commands

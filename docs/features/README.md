@@ -2,6 +2,15 @@
 
 Each feature below has its own folder with a `spec.md` (technical specification) and `plan.md` (action plan). All features derive from [../PRD.md](../PRD.md) — read that first for the full data model and rationale; these docs only add implementation-level detail and don't repeat product reasoning already settled there. A new feature's `spec.md` and `plan.md` start from the headings and per-section guidance in [`_template/`](_template/spec.md) (not a feature folder: it carries no `FXXX` id).
 
+## Status
+
+Every feature below is built except those listed here (documented, not built; deferred to a later release). `implement-feature` removes a feature from this list when it ships and `design-feature` adds a new one; F013 is built but superseded by F030. What each release contains is in [CHANGELOG.md](../../CHANGELOG.md).
+
+- F028 — investment splits, backend ([ADR 0025](../adr/0025-investment-split-as-read-side-adjustment.md))
+- F029 — investment splits, frontend (the product-detail split panel and dialog for F028)
+
+## Features
+
 | Feature | Summary |
 |---|---|
 | [F001 — Project Scaffolding](F001-project-scaffolding/spec.md) | Gradle Spring Boot backend skeleton (hexagonal layout), Vite/React/TS frontend skeleton, Docker Compose (Postgres), Flyway baseline, shared conventions (IdGenerator, AuditableEntity, Lombok policy). |

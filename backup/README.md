@@ -1,6 +1,6 @@
 # Backup sidecar
 
-A small standalone image — plain `alpine` (full patch tag) + the Postgres client tools (`postgresql18-client`, major set by `ARG POSTGRES_MAJOR`) + `age` + `rclone` + shell scripts — that takes automated, encrypted, retained Postgres backups of the production stack. Built and published alongside the backend/frontend images; runs as the `backup` service in `docker-compose.prod.yml`, never in dev. Full design: [ADR 0015](../docs/adr/0015-automated-encrypted-backups-sidecar.md) and [docs/features/F018-backups/spec.md](../docs/features/F018-backups/spec.md). Setup, restore and the off-site-copy options are documented in the repo root [README.md](../README.md#backups) — read that first if you're operating the stack; this file is about the sidecar's own code.
+A small standalone image — plain `alpine` (full patch tag) + the Postgres client tools (`postgresql18-client`, major set by `ARG POSTGRES_MAJOR`) + `age` + `rclone` + shell scripts — that takes automated, encrypted, retained Postgres backups of the production stack. Built and published alongside the backend/frontend images; runs as the `backup` service in `docker-compose.prod.yml`, never in dev. Full design: [ADR 0015](../docs/adr/0015-automated-encrypted-backups-sidecar.md) and [docs/features/F018-backups/spec.md](../docs/features/F018-backups/spec.md). Setup, restore and the off-site-copy options are documented in [docs/operations.md](../docs/operations.md#backups) — read that first if you're operating the stack; this file is about the sidecar's own code.
 
 ## The image
 
@@ -17,7 +17,7 @@ A small standalone image — plain `alpine` (full patch tag) + the Postgres clie
 
 `prune.sh` is a pure function over a list of filenames and "now" — GFS retention (7 daily / 5 weekly / 12 monthly) by calendar bucket, `pre-upgrade` files exempt until a later ordinary backup succeeds. Kept pure specifically so it's unit-testable without a real filesystem or Postgres.
 
-`restore.sh <file> --yes` and `backup-keygen` are one-off manual scripts, run via `docker compose run --rm --no-deps backup ...` — see the root README's Backups section for the exact invocation (and its setup order: `.env` auth variables must be set and the backups volume created, or `BACKUP_DIR` set, before `backup-keygen`).
+`restore.sh <file> --yes` and `backup-keygen` are one-off manual scripts, run via `docker compose run --rm --no-deps backup ...` — see the Backups section of [docs/operations.md](../docs/operations.md#backups) for the exact invocation (and its setup order: `.env` auth variables must be set and the backups volume created, or `BACKUP_DIR` set, before `backup-keygen`).
 
 An on-demand backup is `docker compose -f docker-compose.prod.yml exec -u <BACKUP_UID>:<BACKUP_GID> backup backup.sh` (1000:1000 by default). `entrypoint.sh` only runs `backup.sh` when `decide.sh` says forced or stale, so restarting the container never forces one, and `exec` without `-u` runs as root: `backup.sh` then collides with the `/tmp` scratch files (`pg_dump.err`) the unprivileged sidecar left behind and records `dump_failed`.
 
