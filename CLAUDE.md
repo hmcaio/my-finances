@@ -43,6 +43,7 @@ docker compose down
 - A log statement, log config, the request id or log reading → `docs/conventions/logging.md`.
 - A new text or amount field, a limit constant or a money-precision exception → `docs/conventions/data-constraints.md`.
 - Compose files (`docker-compose.prod.yml` replaces the dev Postgres container), Dockerfiles, CI, `verify.sh` prerequisites, pinned-version siblings, API type generation, time zone (`TZ`, `Clock`, date logic) → `docs/conventions/tooling.md`.
+- A performance claim (benchmark, statements per request, time to first content, baseline comparison) → `docs/conventions/performance.md`.
 - A user-visible change (its `CHANGELOG.md` entry), cutting a release PR, tagging a version → `docs/conventions/release.md`.
 
 ## Keeping these files useful
