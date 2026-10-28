@@ -17,6 +17,7 @@ import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshotRepository;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
+import com.chm.myfinances.testsupport.StatementCount;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import com.chm.myfinances.testsupport.mothers.TestInstitutions;
 import jakarta.persistence.EntityManager;
@@ -25,8 +26,6 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import org.hibernate.SessionFactory;
-import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -146,12 +145,7 @@ class NetWorthTrendStatementCountTest {
   }
 
   private long statementsOf(NetWorthGranularity granularity) {
-    Statistics statistics =
-        entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
-    statistics.setStatisticsEnabled(true);
-    statistics.clear();
-    netWorthQuery.trend(FROM, TO, granularity);
-    return statistics.getPrepareStatementCount();
+    return StatementCount.of(entityManager, () -> netWorthQuery.trend(FROM, TO, granularity));
   }
 
   @Test

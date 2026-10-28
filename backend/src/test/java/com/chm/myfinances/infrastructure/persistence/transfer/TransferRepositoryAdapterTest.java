@@ -16,6 +16,7 @@ import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.domain.transfer.TransferFilter;
 import com.chm.myfinances.domain.transfer.TransferRepository;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
+import com.chm.myfinances.testsupport.StatementCount;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
@@ -26,8 +27,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
-import org.hibernate.SessionFactory;
-import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -435,12 +434,7 @@ class TransferRepositoryAdapterTest {
   }
 
   private long preparedStatementsRunBy(Runnable read) {
-    Statistics statistics =
-        entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
-    statistics.setStatisticsEnabled(true);
-    statistics.clear();
-    read.run();
-    return statistics.getPrepareStatementCount();
+    return StatementCount.of(entityManager, read);
   }
 
   @Test

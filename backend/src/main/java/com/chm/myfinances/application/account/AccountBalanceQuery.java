@@ -94,8 +94,10 @@ public class AccountBalanceQuery {
    * An expense reduces an asset account's balance and increases a credit card account's owed
    * balance; income does the reverse (PRD S5.3: "An expense transaction on an asset account ...
    * reduces that account's balance. An expense transaction on a credit card account *increases* the
-   * amount owed on that card."). {@code public static}: reused by {@code NetWorthQuery}'s forward
-   * pass over the same ledger events, rather than duplicating this sign logic.
+   * amount owed on that card."). The reference statement of the sign rule: {@code
+   * AccountLedgerActivityAdapter} restates it in SQL, and {@code AccountLedgerActivityParityTest}
+   * runs the two against each other through {@code FakeAccountLedgerActivity}. Change both
+   * together.
    */
   public static BigDecimal signedContribution(Transaction transaction, AccountType accountType) {
     boolean isExpense = transaction.getType() == CategoryType.EXPENSE;
@@ -108,8 +110,8 @@ public class AccountBalanceQuery {
    * The source account's balance always decreases by the transfer amount, regardless of its type.
    * The destination account's effect depends on its own type: an asset account's balance increases;
    * a credit card account's owed balance decreases (PRD S5.5 - "an asset down and a liability down
-   * by the same amount nets to zero", e.g. paying a credit card statement from checking). {@code
-   * public static}: see {@link #signedContribution}.
+   * by the same amount nets to zero", e.g. paying a credit card statement from checking). Also
+   * restated in SQL: see {@link #signedContribution}.
    */
   public static BigDecimal transferContribution(
       Transfer transfer, UUID accountId, AccountType accountType) {

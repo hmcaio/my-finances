@@ -22,8 +22,14 @@ A diff that touches the left side is incomplete without the right side.
 - New text or amount field: bounded and checked at every layer (domain, DTO, column, frontend `maxLength`) with the rule in root `CLAUDE.md` and the constants in `docs/conventions/data-constraints.md`.
 - New translation namespace: `i18n.ts`, `i18next.d.ts` and both locale folders; every user-visible string through `t()` (`docs/conventions/frontend-i18n.md`).
 - New seeded row in a shared test fixture or migration: re-check every exact-count assertion and name collision (`docs/conventions/backend-testing.md`, `frontend-testing.md`).
+- A native or JPQL query that restates a domain rule in SQL (a sign, an as-of filter): a parity test running it against the Java rule on randomized data (`AccountLedgerActivityParityTest`), and a note on both copies saying to change them together.
 - Pinned tool version: every sibling file (`docs/conventions/tooling.md`).
 - User-visible `feat`/`fix`: a `CHANGELOG.md` entry in the same commit (root `CLAUDE.md`, Workflow).
+
+## Persistence reads
+
+- **An N+1 read is a finding.** A repository adapter that maps a list or page fetches each kind of child in one query for the whole result (`findBy...In(ids)`, grouped in memory), never once per element: issue #189 was 5,001 trade-line queries for 5,000 transfers. The same goes for an application query that loops a repository call over rows or accounts: pass the list to a bulk method.
+- **A new collection read carries a `StatementCount` test**: the count with a little data equals the count with much more (`docs/conventions/backend-testing.md`). A fixed cap alone passes a read that runs a few queries per element.
 
 ## Behaviour preserved across a refactor
 
