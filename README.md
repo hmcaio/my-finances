@@ -10,6 +10,19 @@ Manual entry only. There's no bank sync, because there's no server to sync to: t
 
 ![The dashboard: spend by category, budget vs. actual, account balances and the net worth trend, with demo data](docs/images/dashboard.png)
 
+**Contents**
+
+- [Why it's built this way](#why-its-built-this-way)
+- [Quick start (development)](#quick-start-development)
+- [Running a release](#running-a-release)
+- [Tech stack](#tech-stack)
+- [Architecture](#architecture)
+- [Documentation](#documentation)
+- [Repository layout](#repository-layout)
+- [Project status](#project-status)
+- [Contributing](#contributing)
+- [License](#license)
+
 ## Why it's built this way
 
 Most personal finance tools are either a spreadsheet you maintain by hand, or a hosted SaaS that wants your bank credentials and your data on someone else's server. This is neither: a small, self-hosted app that runs when you tell it to and keeps everything local, with none of the multi-tenant machinery a "real" SaaS would need.
