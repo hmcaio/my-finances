@@ -50,8 +50,10 @@ class NetWorthQueryTrendTest {
               new FakeAccountLedgerActivity(transactionRepository, transferRepository),
               holdingRepository,
               new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository)),
+          new FakeAccountLedgerActivity(transactionRepository, transferRepository),
           transactionRepository,
           transferRepository,
+          holdingRepository,
           snapshotRepository,
           TestClocks.fixedAtStartOf(TODAY));
 

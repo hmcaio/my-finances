@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.UUID;
 
 /**
@@ -25,4 +26,14 @@ public interface AccountLedgerActivityPort {
    * never pass an {@code INVESTMENT} account (it has no ledger balance, ADR 0012).
    */
   Map<UUID, BigDecimal> activityAsOf(Collection<Account> accounts, LocalDate asOfDate);
+
+  /**
+   * The same signed ledger sum, split per day: for each given account, its net ledger effect on
+   * every date up to and including {@code upTo} that has any (dates with none are absent, an
+   * account with none maps to an empty map). Summing a map's values up to a date gives {@link
+   * #activityAsOf} for it. {@code NetWorthQuery.trend} walks these once instead of re-reading the
+   * ledger per sampled date. Callers never pass an {@code INVESTMENT} account.
+   */
+  Map<UUID, NavigableMap<LocalDate, BigDecimal>> dailyActivityUpTo(
+      Collection<Account> accounts, LocalDate upTo);
 }

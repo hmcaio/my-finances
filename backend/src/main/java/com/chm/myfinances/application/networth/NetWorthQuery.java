@@ -1,16 +1,15 @@
 package com.chm.myfinances.application.networth;
 
 import com.chm.myfinances.application.account.AccountBalanceQuery;
+import com.chm.myfinances.application.account.AccountLedgerActivityPort;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
+import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
+import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshotRepository;
-import com.chm.myfinances.domain.transaction.Transaction;
-import com.chm.myfinances.domain.transaction.TransactionFilter;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
-import com.chm.myfinances.domain.transfer.Transfer;
-import com.chm.myfinances.domain.transfer.TransferFilter;
 import com.chm.myfinances.domain.transfer.TransferRepository;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -19,11 +18,12 @@ import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.TreeSet;
 import java.util.UUID;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 /**
@@ -45,22 +45,28 @@ public class NetWorthQuery {
 
   private final AccountRepository accountRepository;
   private final AccountBalanceQuery balanceQuery;
+  private final AccountLedgerActivityPort ledgerActivityPort;
   private final TransactionRepository transactionRepository;
   private final TransferRepository transferRepository;
+  private final InvestmentHoldingRepository holdingRepository;
   private final InvestmentSnapshotRepository snapshotRepository;
   private final Clock clock;
 
   public NetWorthQuery(
       AccountRepository accountRepository,
       AccountBalanceQuery balanceQuery,
+      AccountLedgerActivityPort ledgerActivityPort,
       TransactionRepository transactionRepository,
       TransferRepository transferRepository,
+      InvestmentHoldingRepository holdingRepository,
       InvestmentSnapshotRepository snapshotRepository,
       Clock clock) {
     this.accountRepository = accountRepository;
     this.balanceQuery = balanceQuery;
+    this.ledgerActivityPort = ledgerActivityPort;
     this.transactionRepository = transactionRepository;
     this.transferRepository = transferRepository;
+    this.holdingRepository = holdingRepository;
     this.snapshotRepository = snapshotRepository;
     this.clock = clock;
   }
@@ -92,12 +98,14 @@ public class NetWorthQuery {
       return List.of();
     }
     List<Account> accounts = accountRepository.findAll();
-    List<LocalDate> dates = sampleDates(accounts, from, last, today, granularity);
-    return List.copyOf(trendPoints(accounts, dates));
+    List<InvestmentSnapshot> snapshots = snapshotRepository.findAll();
+    List<LocalDate> dates = sampleDates(accounts, snapshots, from, last, today, granularity);
+    return List.copyOf(trendPoints(accounts, snapshots, dates));
   }
 
   private List<LocalDate> sampleDates(
       List<Account> accounts,
+      List<InvestmentSnapshot> snapshots,
       LocalDate from,
       LocalDate last,
       LocalDate today,
@@ -115,7 +123,7 @@ public class NetWorthQuery {
     TreeSet<LocalDate> changeDates = new TreeSet<>();
     changeDates.addAll(transactionRepository.findDistinctDatesBetween(from, last));
     changeDates.addAll(transferRepository.findDistinctDatesBetween(from, last));
-    for (InvestmentSnapshot snapshot : snapshotRepository.findAll()) {
+    for (InvestmentSnapshot snapshot : snapshots) {
       changeDates.add(snapshot.getDate());
     }
     for (Account account : accounts) {
@@ -148,34 +156,33 @@ public class NetWorthQuery {
         date, assets.add(investments).subtract(liabilities), assets, liabilities, investments);
   }
 
-  /** A pre-signed ledger entry contributing to one non-investment account's running balance. */
-  private record LedgerEvent(LocalDate date, BigDecimal amount) {}
-
   /**
-   * {@link #trend}'s computation: walks every sampled date once per account, advancing each
-   * account's ledger-event cursor forward instead of re-deriving the balance from scratch per date
-   * (issue #94). An {@code INVESTMENT} account still goes through {@link
-   * AccountBalanceQuery#balanceAsOf} per date - its snapshot history is small by construction
-   * (periodic manual entries), unlike transactions/transfers, which is what made the old
-   * per-date-per-account recomputation expensive as a ledger grows over years.
+   * {@link #trend}'s computation: one forward pass over the sampled dates. The ledger accounts' net
+   * effect per day comes from one grouped query ({@link
+   * AccountLedgerActivityPort#dailyActivityUpTo}) and each account's running balance advances a
+   * cursor over it; the {@code INVESTMENT} accounts' holdings and snapshots are read once and
+   * walked the same way, so the statement count does not depend on the number of dates or rows
+   * (issues #94, #189).
    */
-  private List<NetWorthPoint> trendPoints(List<Account> accounts, List<LocalDate> dates) {
+  private List<NetWorthPoint> trendPoints(
+      List<Account> accounts, List<InvestmentSnapshot> snapshots, List<LocalDate> dates) {
     if (dates.isEmpty()) {
       return List.of();
     }
-    Map<UUID, List<LedgerEvent>> eventsByAccount =
-        loadLedgerEvents(accounts, dates.get(dates.size() - 1));
-    Map<UUID, BigDecimal> runningBalance = new HashMap<>();
-    Map<UUID, Integer> cursor = new HashMap<>();
-    for (Account account : accounts) {
-      if (account.getType() != AccountType.INVESTMENT) {
-        runningBalance.put(account.getId(), account.getOpeningBalance());
-        cursor.put(account.getId(), 0);
-      }
+    List<Account> ledgerAccounts =
+        accounts.stream().filter(a -> a.getType() != AccountType.INVESTMENT).toList();
+    Map<UUID, NavigableMap<LocalDate, BigDecimal>> daily =
+        ledgerActivityPort.dailyActivityUpTo(ledgerAccounts, dates.get(dates.size() - 1));
+    Map<UUID, LedgerWalk> ledgerWalks = new HashMap<>();
+    for (Account account : ledgerAccounts) {
+      ledgerWalks.put(
+          account.getId(), new LedgerWalk(account.getOpeningBalance(), daily.get(account.getId())));
     }
+    InvestmentWalk investmentWalk = new InvestmentWalk(snapshots, holdingRepository.findAll());
 
     List<NetWorthPoint> points = new ArrayList<>();
     for (LocalDate date : dates) {
+      investmentWalk.advanceTo(date);
       BigDecimal assets = BigDecimal.ZERO.setScale(2);
       BigDecimal liabilities = BigDecimal.ZERO.setScale(2);
       BigDecimal investments = BigDecimal.ZERO.setScale(2);
@@ -183,21 +190,10 @@ public class NetWorthQuery {
         if (!countsOn(account, date)) {
           continue;
         }
-        BigDecimal balance;
-        if (account.getType() == AccountType.INVESTMENT) {
-          balance = balanceQuery.balanceAsOf(account, date);
-        } else {
-          List<LedgerEvent> events = eventsByAccount.get(account.getId());
-          int idx = cursor.get(account.getId());
-          BigDecimal running = runningBalance.get(account.getId());
-          while (idx < events.size() && !events.get(idx).date().isAfter(date)) {
-            running = running.add(events.get(idx).amount());
-            idx++;
-          }
-          cursor.put(account.getId(), idx);
-          runningBalance.put(account.getId(), running);
-          balance = running;
-        }
+        BigDecimal balance =
+            account.getType() == AccountType.INVESTMENT
+                ? investmentWalk.balanceOf(account.getId())
+                : ledgerWalks.get(account.getId()).balanceOn(date);
         switch (account.getType()) {
           case CHECKING, SAVINGS, CASH_WALLET -> assets = assets.add(balance);
           case INVESTMENT -> investments = investments.add(balance);
@@ -216,63 +212,82 @@ public class NetWorthQuery {
   }
 
   /**
-   * Every non-investment account's transactions/transfers dated on or before {@code upTo}, signed
-   * by {@link AccountBalanceQuery#signedContribution}/{@link
-   * AccountBalanceQuery#transferContribution} (reused rather than duplicated) and sorted ascending
-   * per account - loaded once for the whole trend instead of once per sampled date.
+   * A ledger account's running balance over ascending dates: the opening balance plus the daily
+   * activity on or before the date asked about (the sign rules live in the port, shared with {@link
+   * AccountBalanceQuery}).
    */
-  private Map<UUID, List<LedgerEvent>> loadLedgerEvents(List<Account> accounts, LocalDate upTo) {
-    Map<UUID, Account> accountsById = new HashMap<>();
-    Map<UUID, List<LedgerEvent>> events = new HashMap<>();
-    for (Account account : accounts) {
-      if (account.getType() != AccountType.INVESTMENT) {
-        accountsById.put(account.getId(), account);
-        events.put(account.getId(), new ArrayList<>());
+  private static final class LedgerWalk {
+    private final Iterator<Map.Entry<LocalDate, BigDecimal>> days;
+    private Map.Entry<LocalDate, BigDecimal> next;
+    private BigDecimal running;
+
+    LedgerWalk(BigDecimal openingBalance, NavigableMap<LocalDate, BigDecimal> dailyActivity) {
+      this.days = dailyActivity.entrySet().iterator();
+      this.next = days.hasNext() ? days.next() : null;
+      this.running = openingBalance;
+    }
+
+    BigDecimal balanceOn(LocalDate date) {
+      while (next != null && !next.getKey().isAfter(date)) {
+        running = running.add(next.getValue());
+        next = days.hasNext() ? days.next() : null;
       }
+      return running;
     }
-    for (Transaction transaction :
-        transactionRepository
-            .findAll(new TransactionFilter(null, upTo, null, null, null), Pageable.unpaged())
-            .getContent()) {
-      Account account = accountsById.get(transaction.getAccountId());
-      if (account == null) {
-        continue;
-      }
-      events
-          .get(account.getId())
-          .add(
-              new LedgerEvent(
-                  transaction.getDate(),
-                  AccountBalanceQuery.signedContribution(transaction, account.getType())));
-    }
-    for (Transfer transfer :
-        transferRepository
-            .findAll(new TransferFilter(null, upTo, null, null), Pageable.unpaged())
-            .getContent()) {
-      addTransferEvent(events, accountsById, transfer, transfer.getFromAccountId());
-      addTransferEvent(events, accountsById, transfer, transfer.getToAccountId());
-    }
-    for (List<LedgerEvent> accountEvents : events.values()) {
-      accountEvents.sort(Comparator.comparing(LedgerEvent::date));
-    }
-    return events;
   }
 
-  private static void addTransferEvent(
-      Map<UUID, List<LedgerEvent>> events,
-      Map<UUID, Account> accountsById,
-      Transfer transfer,
-      UUID accountId) {
-    Account account = accountsById.get(accountId);
-    if (account == null) {
-      return;
+  /**
+   * The {@code INVESTMENT} accounts' balances over ascending dates, the same rule as {@link
+   * AccountBalanceQuery#balanceAsOf}: the sum of the latest snapshot on or before the date of each
+   * of the account's holdings, a holding with none counting nothing.
+   */
+  private static final class InvestmentWalk {
+    private final Map<UUID, List<UUID>> holdingIdsByAccount = new HashMap<>();
+    private final Map<UUID, Iterator<InvestmentSnapshot>> pending = new HashMap<>();
+    private final Map<UUID, InvestmentSnapshot> peeked = new HashMap<>();
+    private final Map<UUID, BigDecimal> latestBalance = new HashMap<>();
+
+    InvestmentWalk(List<InvestmentSnapshot> snapshots, List<InvestmentHolding> holdings) {
+      for (InvestmentHolding holding : holdings) {
+        holdingIdsByAccount
+            .computeIfAbsent(holding.getAccountId(), id -> new ArrayList<>())
+            .add(holding.getId());
+      }
+      Map<UUID, List<InvestmentSnapshot>> byHolding = new HashMap<>();
+      for (InvestmentSnapshot snapshot : snapshots) {
+        byHolding.computeIfAbsent(snapshot.getHoldingId(), id -> new ArrayList<>()).add(snapshot);
+      }
+      byHolding.forEach(
+          (holdingId, list) -> {
+            list.sort(Comparator.comparing(InvestmentSnapshot::getDate));
+            Iterator<InvestmentSnapshot> iterator = list.iterator();
+            pending.put(holdingId, iterator);
+            peeked.put(holdingId, iterator.next());
+          });
     }
-    events
-        .get(account.getId())
-        .add(
-            new LedgerEvent(
-                transfer.getDate(),
-                AccountBalanceQuery.transferContribution(transfer, accountId, account.getType())));
+
+    void advanceTo(LocalDate date) {
+      for (Map.Entry<UUID, Iterator<InvestmentSnapshot>> entry : pending.entrySet()) {
+        UUID holdingId = entry.getKey();
+        InvestmentSnapshot candidate = peeked.get(holdingId);
+        while (candidate != null && !candidate.getDate().isAfter(date)) {
+          latestBalance.put(holdingId, candidate.getBalance());
+          candidate = entry.getValue().hasNext() ? entry.getValue().next() : null;
+        }
+        peeked.put(holdingId, candidate);
+      }
+    }
+
+    BigDecimal balanceOf(UUID accountId) {
+      BigDecimal balance = BigDecimal.ZERO.setScale(2);
+      for (UUID holdingId : holdingIdsByAccount.getOrDefault(accountId, List.of())) {
+        BigDecimal latest = latestBalance.get(holdingId);
+        if (latest != null) {
+          balance = balance.add(latest);
+        }
+      }
+      return balance;
+    }
   }
 
   /**
