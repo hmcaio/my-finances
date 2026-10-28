@@ -34,6 +34,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Random;
 import java.util.UUID;
 import org.hibernate.SessionFactory;
@@ -249,6 +250,64 @@ class AccountLedgerActivityParityTest {
     statistics.clear();
 
     sqlActivity.activityAsOf(ledgerAccounts, FIRST_DAY.plusYears(5));
+
+    assertThat(statistics.getPrepareStatementCount()).isEqualTo(1);
+  }
+
+  @Test
+  void sqlDailyActivityEqualsTheJavaRulesDayByDay() {
+    for (LocalDate upTo :
+        List.of(
+            FIRST_DAY.minusDays(1),
+            FIRST_DAY,
+            FIRST_DAY.plusDays(DAYS / 2),
+            FIRST_DAY.plusYears(5))) {
+      Map<UUID, NavigableMap<LocalDate, BigDecimal>> expected =
+          javaActivity.dailyActivityUpTo(ledgerAccounts, upTo);
+      Map<UUID, NavigableMap<LocalDate, BigDecimal>> actual =
+          sqlActivity.dailyActivityUpTo(ledgerAccounts, upTo);
+
+      assertThat(actual).as("accounts up to %s", upTo).containsOnlyKeys(expected.keySet());
+      expected.forEach(
+          (accountId, days) -> {
+            assertThat(actual.get(accountId).keySet())
+                .as("dates of %s up to %s", accountId, upTo)
+                .isEqualTo(days.keySet());
+            days.forEach(
+                (day, sum) ->
+                    assertThat(actual.get(accountId).get(day))
+                        .as("%s on %s", accountId, day)
+                        .isEqualByComparingTo(sum));
+          });
+    }
+  }
+
+  @Test
+  void theDailyActivityAddsUpToTheActivityAsOfEveryDate() {
+    LocalDate upTo = FIRST_DAY.plusDays(DAYS);
+    Map<UUID, NavigableMap<LocalDate, BigDecimal>> daily =
+        sqlActivity.dailyActivityUpTo(ledgerAccounts, upTo);
+
+    for (LocalDate asOf : List.of(FIRST_DAY, FIRST_DAY.plusDays(17), upTo)) {
+      Map<UUID, BigDecimal> asOfSums = sqlActivity.activityAsOf(ledgerAccounts, asOf);
+      daily.forEach(
+          (accountId, days) ->
+              assertThat(
+                      days.headMap(asOf, true).values().stream()
+                          .reduce(BigDecimal.ZERO, BigDecimal::add))
+                  .as("%s as of %s", accountId, asOf)
+                  .isEqualByComparingTo(asOfSums.get(accountId)));
+    }
+  }
+
+  @Test
+  void dailyActivityForAllAccountsIsOneStatement() {
+    Statistics statistics =
+        entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
+    statistics.setStatisticsEnabled(true);
+    statistics.clear();
+
+    sqlActivity.dailyActivityUpTo(ledgerAccounts, FIRST_DAY.plusYears(5));
 
     assertThat(statistics.getPrepareStatementCount()).isEqualTo(1);
   }

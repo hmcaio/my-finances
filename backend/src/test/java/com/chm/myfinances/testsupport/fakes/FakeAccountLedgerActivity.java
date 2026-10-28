@@ -12,6 +12,8 @@ import java.time.LocalDate;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.NavigableMap;
+import java.util.TreeMap;
 import java.util.UUID;
 
 /**
@@ -52,5 +54,30 @@ public final class FakeAccountLedgerActivity implements AccountLedgerActivityPor
       activity.put(account.getId(), sum);
     }
     return activity;
+  }
+
+  @Override
+  public Map<UUID, NavigableMap<LocalDate, BigDecimal>> dailyActivityUpTo(
+      Collection<Account> accounts, LocalDate upTo) {
+    Map<UUID, NavigableMap<LocalDate, BigDecimal>> daily = new HashMap<>();
+    for (Account account : accounts) {
+      NavigableMap<LocalDate, BigDecimal> days = new TreeMap<>();
+      for (Transaction transaction :
+          transactionRepository.findByAccountIdOnOrBefore(account.getId(), upTo)) {
+        days.merge(
+            transaction.getDate(),
+            AccountBalanceQuery.signedContribution(transaction, account.getType()),
+            BigDecimal::add);
+      }
+      for (Transfer transfer :
+          transferRepository.findByAccountIdOnOrBefore(account.getId(), upTo)) {
+        days.merge(
+            transfer.getDate(),
+            AccountBalanceQuery.transferContribution(transfer, account.getId(), account.getType()),
+            BigDecimal::add);
+      }
+      daily.put(account.getId(), days);
+    }
+    return daily;
   }
 }

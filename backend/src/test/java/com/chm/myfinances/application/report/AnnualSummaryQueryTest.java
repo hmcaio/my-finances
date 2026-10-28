@@ -40,8 +40,10 @@ class AnnualSummaryQueryTest {
               new FakeAccountLedgerActivity(transactionRepository, transferRepository),
               holdingRepository,
               new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository)),
+          new FakeAccountLedgerActivity(transactionRepository, transferRepository),
           transactionRepository,
           transferRepository,
+          holdingRepository,
           snapshotRepository,
           TestClocks.fixedAtStartOf(LocalDate.of(2027, 1, 1)));
   private final AnnualSummaryQuery query =
