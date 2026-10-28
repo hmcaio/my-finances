@@ -14,7 +14,7 @@
 
 ## Docs
 - [ ] `docs/features/README.md` row for F028 (and F029 once it exists).
-- [ ] Root `README.md` "Project status" entry.
+- [ ] Remove F028 from the "Status" list in `docs/features/README.md`.
 - [ ] `CHANGELOG.md` `[Unreleased]` entry (`**F028 — Investment Splits (backend)**`, user-visible: cotas-held/portfolio totals now correct after a split).
 - [ ] Tick this plan.
 

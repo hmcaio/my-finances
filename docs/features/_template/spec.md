@@ -64,8 +64,8 @@ UI states (loading, empty, error), i18n keys when the UI is localized. -->
 
 ## Docs
 <!-- Exactly which docs change and what each gets: ADR (already written / row added), `docs/PRD.md` sections or "No PRD change - <reason, precedent feature>",
-root/backend/frontend `CLAUDE.md` bullets (only rules a reader could not derive from code), `docs/features/README.md` row,
-root `README.md` "Project status". CHANGELOG: state "entry ships with the implementing PR (root CLAUDE.md)" for a user-visible feature. -->
+root/backend/frontend `CLAUDE.md` bullets (only rules a reader could not derive from code), `docs/features/README.md` row and "Status" list,
+root `README.md` only if it states something this feature changes. CHANGELOG: state "entry ships with the implementing PR (root CLAUDE.md)" for a user-visible feature. -->
 
 ## Non-goals
 <!-- One bullet per thing a reader might assume is included and is not, each with the reason or the follow-up. -->

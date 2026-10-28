@@ -130,7 +130,7 @@ setup_compose() {
   PW=$(rand)
   local postgres_password hash_line
   postgres_password=$(rand)
-  # The README's "Login" recipe, from the backend image under test.
+  # The "Login" recipe in docs/operations.md, from the backend image under test.
   hash_line=$(AUTH_PASSWORD=$PW MSYS_NO_PATHCONV=1 docker run --rm -e AUTH_PASSWORD --entrypoint java \
     "$image_prefix-backend:$tag" -Dloader.main=com.chm.myfinances.infrastructure.auth.AuthHashGenerator \
     -cp app.jar org.springframework.boot.loader.launch.PropertiesLauncher 2>"$SCRATCH/hash.err")

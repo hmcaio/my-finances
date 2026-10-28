@@ -67,8 +67,7 @@ Write, in this order:
 1. The ADR, if Phase 2 decided one's needed (`docs/adr/NNNN-slug.md`, the `## Context`/`## Decision`/`## Consequences` template already at the bottom of `docs/adr/README.md`), plus its index row.
 2. `docs/PRD.md` edits, if Phase 2 decided they're needed.
 3. Each feature's `docs/features/FXXX-slug/spec.md` and `plan.md` (plan.md's checklist items all start unchecked `- [ ]` — this skill only plans, `implement-feature` does the work and ticks them), cross-linking a split pair's `**Depends on**` lines to each other.
-4. `docs/features/README.md`'s table (one row per new feature, in id order) and, if the feature introduces a new cross-cutting convention, the "Cross-cutting conventions" section below it.
-5. Root `README.md`'s "Project status" — append to the "Documented and next up" sentence (new features aren't built yet; don't add them to the "Built" list).
+4. `docs/features/README.md`'s table (one row per new feature, in id order), its "Status" list (add each new feature: documented, not built) and, if the feature introduces a new cross-cutting convention, the "Cross-cutting conventions" section below it.
 
 Phase 3 is done when `grep -nE '<!--|FXXX|NNNN' docs/features/<FXXX>-*/*.md` is empty and the summary above, with its claim list, has gone to the user.
 
