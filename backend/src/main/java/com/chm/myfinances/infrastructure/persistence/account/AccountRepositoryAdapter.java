@@ -52,6 +52,11 @@ public class AccountRepositoryAdapter implements AccountRepository {
   }
 
   @Override
+  public long count() {
+    return jpaRepository.count();
+  }
+
+  @Override
   public List<Account> findAll() {
     return jpaRepository.findAll().stream().map(AccountRepositoryAdapter::toDomain).toList();
   }

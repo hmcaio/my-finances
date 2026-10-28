@@ -20,6 +20,9 @@ public interface AccountRepository {
 
   List<Account> findAll();
 
+  /** How many accounts exist, closed ones included - one cheap query, no balances. */
+  long count();
+
   void deleteById(UUID id);
 
   boolean existsById(UUID id);

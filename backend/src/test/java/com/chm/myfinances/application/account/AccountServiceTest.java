@@ -195,6 +195,18 @@ class AccountServiceTest {
   }
 
   @Test
+  void countIsZeroWithNoAccountsAndCountsClosedOnesToo() {
+    assertThat(service.count()).isZero();
+    service.create("Open", institutionId, AccountType.CHECKING, BigDecimal.ZERO, LocalDate.now());
+    Account closed =
+        service.create(
+            "Closed", institutionId, AccountType.SAVINGS, BigDecimal.ZERO, LocalDate.now());
+    service.close(closed.getId());
+
+    assertThat(service.count()).isEqualTo(2);
+  }
+
+  @Test
   void editUpdatesNameAndInstitutionOnly() {
     Account created =
         service.create(

@@ -15,41 +15,29 @@ describe('useHasAccounts', () => {
     await waitFor(() => expect(result.current.hasAccounts).toBe(true))
   })
 
-  it('checks including closed accounts', async () => {
-    let includeClosed: string | null = null
+  it('asks the count endpoint, never the account list that computes every balance (issue #189)', async () => {
+    let listRequested = false
+    let countRequested = false
     server.use(
-      http.get('/api/accounts', ({ request }) => {
-        includeClosed = new URL(request.url).searchParams.get('includeClosed')
+      http.get('/api/accounts', () => {
+        listRequested = true
         return HttpResponse.json([])
+      }),
+      http.get('/api/accounts/count', () => {
+        countRequested = true
+        return HttpResponse.json({ count: 0 })
       }),
     )
     renderHookWithQueryClient(() => useHasAccounts())
 
-    await waitFor(() => expect(includeClosed).toBe('true'))
+    await waitFor(() => expect(countRequested).toBe(true))
+    expect(listRequested).toBe(false)
   })
 
   it('is false when there are no accounts, and flips to true once the first account is created', async () => {
     let created = false
     server.use(
-      http.get('/api/accounts', () =>
-        HttpResponse.json(
-          created
-            ? [
-                {
-                  id: 'acct-first',
-                  name: 'Main',
-                  institutionId: 'inst-1',
-                  type: 'CHECKING',
-                  openingBalance: 0,
-                  openingBalanceDate: '2026-01-01',
-                  closedDate: null,
-                  closed: false,
-                  balance: 0,
-                },
-              ]
-            : [],
-        ),
-      ),
+      http.get('/api/accounts/count', () => HttpResponse.json({ count: created ? 1 : 0 })),
       http.post('/api/accounts', () => {
         created = true
         return HttpResponse.json({ id: 'acct-first' }, { status: 201 })
@@ -73,7 +61,7 @@ describe('useHasAccounts', () => {
   })
 
   it('reports a failure as loadError, never as "no accounts"', async () => {
-    server.use(http.get('/api/accounts', () => new HttpResponse(null, { status: 500 })))
+    server.use(http.get('/api/accounts/count', () => new HttpResponse(null, { status: 500 })))
     const { result } = renderHookWithQueryClient(() => useHasAccounts())
 
     await waitFor(() => expect(result.current.loadError).not.toBeNull())

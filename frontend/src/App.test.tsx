@@ -53,17 +53,20 @@ describe('App', () => {
   describe('onboarding gate (F011)', () => {
     it('shows onboarding instead of the app shell when no account exists, closed ones included', async () => {
       stubMatchMedia()
-      let includeClosed: string | null = null
+      // The gate asks the cheap count endpoint (closed accounts included), not the list that
+      // computes every balance (issue #189).
+      let listRequested = false
       server.use(
-        http.get('/api/accounts', ({ request }) => {
-          includeClosed = new URL(request.url).searchParams.get('includeClosed')
+        http.get('/api/accounts/count', () => HttpResponse.json({ count: 0 })),
+        http.get('/api/accounts', () => {
+          listRequested = true
           return HttpResponse.json([])
         }),
       )
       renderWithQueryClient(<App />)
 
       expect(await screen.findByRole('heading', { name: /welcome/i })).toBeInTheDocument()
-      expect(includeClosed).toBe('true')
+      expect(listRequested).toBe(false)
       expect(screen.queryByRole('link', { name: 'Accounts' })).not.toBeInTheDocument()
       expect(screen.queryByRole('heading', { name: 'Dashboard' })).not.toBeInTheDocument()
     })
@@ -76,6 +79,7 @@ describe('App', () => {
       let rows = [only]
       server.use(
         http.get('/api/accounts', () => HttpResponse.json(rows)),
+        http.get('/api/accounts/count', () => HttpResponse.json({ count: rows.length })),
         http.delete('/api/accounts/:id', () => {
           rows = []
           return new HttpResponse(null, { status: 204 })
@@ -96,7 +100,9 @@ describe('App', () => {
       // An empty database until the first account is created (a refetch must see it).
       let created = false
       server.use(
-        http.get('/api/accounts', () => (created ? undefined : HttpResponse.json([]))),
+        http.get('/api/accounts/count', () =>
+          created ? undefined : HttpResponse.json({ count: 0 }),
+        ),
         http.post('/api/accounts', () => {
           created = true
         }),
@@ -123,7 +129,9 @@ describe('App', () => {
       let created = false
       const categoriesCreated: string[] = []
       server.use(
-        http.get('/api/accounts', () => (created ? undefined : HttpResponse.json([]))),
+        http.get('/api/accounts/count', () =>
+          created ? undefined : HttpResponse.json({ count: 0 }),
+        ),
         http.post('/api/accounts', () => {
           created = true
         }),
@@ -155,7 +163,9 @@ describe('App', () => {
     it('shows a retryable load error, not onboarding, when the accounts check fails', async () => {
       stubMatchMedia()
       server.use(
-        http.get('/api/accounts', () => new HttpResponse(null, { status: 500 }), { once: true }),
+        http.get('/api/accounts/count', () => new HttpResponse(null, { status: 500 }), {
+          once: true,
+        }),
       )
       const user = userEvent.setup({ delay: null })
       renderWithQueryClient(<App />)

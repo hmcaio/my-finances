@@ -105,6 +105,9 @@ export const accountsHandlers = [
     return HttpResponse.json(visible)
   }),
 
+  // Registered before `/:id`, which would otherwise match "count" as an id.
+  http.get(`${ACCOUNTS_URL}/count`, () => HttpResponse.json({ count: accounts.list().length })),
+
   http.get(`${ACCOUNTS_URL}/:id`, ({ params }) => {
     const account = accounts.find(params.id as string)
     if (!account) return new HttpResponse(null, { status: 404 })

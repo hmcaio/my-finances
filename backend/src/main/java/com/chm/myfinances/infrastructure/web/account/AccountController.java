@@ -85,6 +85,11 @@ public class AccountController {
     return toResponse(account, LocalDate.now(clock));
   }
 
+  @GetMapping("/count")
+  public AccountCountResponse count() {
+    return new AccountCountResponse(accountService.count());
+  }
+
   @GetMapping("/{id}")
   @ApiResponse(
       responseCode = "404",

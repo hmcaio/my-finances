@@ -107,6 +107,15 @@ public class AccountService {
     return all.stream().filter(account -> !account.isClosed()).toList();
   }
 
+  /**
+   * How many accounts exist, closed ones included. Backs the frontend's onboarding gate (F011),
+   * which only needs to know whether any account exists and must not pay for computing balances
+   * (issue #189).
+   */
+  public long count() {
+    return accountRepository.count();
+  }
+
   /** Edits name/institution only - type and opening balance/date are immutable (F003 spec). */
   @Transactional
   public Account edit(UUID id, String name, UUID institutionId) {
