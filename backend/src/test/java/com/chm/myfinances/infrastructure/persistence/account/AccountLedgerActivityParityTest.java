@@ -25,6 +25,7 @@ import com.chm.myfinances.domain.transfer.TradeSide;
 import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.domain.transfer.TransferRepository;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
+import com.chm.myfinances.testsupport.StatementCount;
 import com.chm.myfinances.testsupport.fakes.FakeAccountLedgerActivity;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import com.chm.myfinances.testsupport.mothers.TestInstitutions;
@@ -37,8 +38,6 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Random;
 import java.util.UUID;
-import org.hibernate.SessionFactory;
-import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -244,14 +243,11 @@ class AccountLedgerActivityParityTest {
 
   @Test
   void activityForAllAccountsIsOneStatementWhateverTheLedgerSize() {
-    Statistics statistics =
-        entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
-    statistics.setStatisticsEnabled(true);
-    statistics.clear();
+    long statements =
+        StatementCount.of(
+            entityManager, () -> sqlActivity.activityAsOf(ledgerAccounts, FIRST_DAY.plusYears(5)));
 
-    sqlActivity.activityAsOf(ledgerAccounts, FIRST_DAY.plusYears(5));
-
-    assertThat(statistics.getPrepareStatementCount()).isEqualTo(1);
+    assertThat(statements).isEqualTo(1);
   }
 
   @Test
@@ -302,13 +298,11 @@ class AccountLedgerActivityParityTest {
 
   @Test
   void dailyActivityForAllAccountsIsOneStatement() {
-    Statistics statistics =
-        entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
-    statistics.setStatisticsEnabled(true);
-    statistics.clear();
+    long statements =
+        StatementCount.of(
+            entityManager,
+            () -> sqlActivity.dailyActivityUpTo(ledgerAccounts, FIRST_DAY.plusYears(5)));
 
-    sqlActivity.dailyActivityUpTo(ledgerAccounts, FIRST_DAY.plusYears(5));
-
-    assertThat(statistics.getPrepareStatementCount()).isEqualTo(1);
+    assertThat(statements).isEqualTo(1);
   }
 }

@@ -29,4 +29,4 @@ Read the file when you touch the area.
 - `Budget`/`RecurringTemplate`/`AllocationPlan` versions or recurring catch-up → `docs/conventions/versioned-history-and-recurring.md`.
 - `@Transactional` overloads, cascades, `AuditRecorder`/`AuditOrigin` → `docs/conventions/transactions-and-audit.md`.
 - A `ReportGenerator` or CSV output → `docs/conventions/csv-output.md`.
-- Any backend test, fakes included (a `Fake*Repository` must mirror every port method; Boot 4.x has no `@DataJpaTest`/`@WebMvcTest`; fixtures that collide with seed rows; boundary, migration, concurrency tests) → `docs/conventions/backend-testing.md`.
+- Any backend test, fakes included (a statement-count pin for N+1; a `Fake*Repository` must mirror every port method; Boot 4.x has no `@DataJpaTest`/`@WebMvcTest`; fixtures that collide with seed rows; boundary, migration, concurrency tests) → `docs/conventions/backend-testing.md`.
