@@ -18,6 +18,11 @@ export interface Account {
   balance: number
 }
 
+/** How many accounts exist, closed ones included: the answer of `GET /accounts/count`. */
+export interface AccountCount {
+  count: number
+}
+
 export type CreateAccountRequest = components['schemas']['CreateAccountRequest']
 export type UpdateAccountRequest = components['schemas']['UpdateAccountRequest']
 
@@ -28,6 +33,15 @@ export type UpdateAccountRequest = components['schemas']['UpdateAccountRequest']
  */
 export async function getAccounts(includeClosed = false): Promise<Account[]> {
   return unwrap(apiClient.get<Account[]>('/accounts', { params: { includeClosed } }))
+}
+
+/**
+ * Counts every account, closed and investment ones included, without computing any balance. The
+ * onboarding gate asks this instead of {@link getAccounts}, so the app shell does not wait on the
+ * balance computation (issue #189).
+ */
+export async function getAccountCount(): Promise<AccountCount> {
+  return unwrap(apiClient.get<AccountCount>('/accounts/count'))
 }
 
 /** Fetches one account's detail, including its running balance as of `asOf` (default: today). */

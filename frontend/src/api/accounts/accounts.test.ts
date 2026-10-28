@@ -16,6 +16,7 @@ import {
   deleteAccount,
   editAccount,
   getAccount,
+  getAccountCount,
   getAccounts,
 } from './accounts'
 
@@ -30,6 +31,13 @@ describe('accounts API client', () => {
     const accounts = await getAccounts(true)
 
     expect(accounts).toEqual(seedAccounts)
+  })
+
+  it('getAccountCount counts every account, closed and investment ones included', async () => {
+    const result = await getAccountCount()
+
+    // seedAccounts (open and closed) plus the investment account the list handler hides.
+    expect(result).toEqual({ count: seedAccounts.length + 1 })
   })
 
   it('getAccount returns a single account by id', async () => {

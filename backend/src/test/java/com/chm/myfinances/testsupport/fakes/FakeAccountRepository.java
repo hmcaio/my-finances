@@ -16,6 +16,11 @@ public final class FakeAccountRepository extends InMemoryRepository<Account>
   }
 
   @Override
+  public long count() {
+    return values().size();
+  }
+
+  @Override
   public boolean existsByName(String name) {
     return values().stream().anyMatch(a -> a.getName().equals(name));
   }

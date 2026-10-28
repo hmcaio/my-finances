@@ -9,7 +9,7 @@ test.describe('onboarding', () => {
   test('shows the welcome screen and account fields without horizontal overflow', async ({
     page,
   }) => {
-    await mockApi(page, [http.get('/api/accounts', () => HttpResponse.json([]))])
+    await mockApi(page, [http.get('/api/accounts/count', () => HttpResponse.json({ count: 0 }))])
     await page.goto('/')
 
     await expect(page.getByRole('heading', { name: /welcome/i })).toBeVisible()
@@ -23,7 +23,7 @@ test.describe('onboarding', () => {
   test('stacks the balance and date fields on mobile, side by side from sm up', async ({
     page,
   }, testInfo) => {
-    await mockApi(page, [http.get('/api/accounts', () => HttpResponse.json([]))])
+    await mockApi(page, [http.get('/api/accounts/count', () => HttpResponse.json({ count: 0 }))])
     await page.goto('/')
     await expect(page.getByRole('heading', { name: /welcome/i })).toBeVisible()
 

@@ -871,6 +871,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/accounts/count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["account_count"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/recurring-templates/pending/{id}": {
         parameters: {
             query?: never;
@@ -1556,6 +1572,10 @@ export interface components {
         PagedModelAuditLogEntryResponse: {
             content?: components["schemas"]["AuditLogEntryResponse"][];
             page?: components["schemas"]["PageMetadata"];
+        };
+        AccountCountResponse: {
+            /** Format: int64 */
+            count?: number;
         };
     };
     responses: never;
@@ -4113,6 +4133,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PagedModelAuditLogEntryResponse"];
+                };
+            };
+        };
+    };
+    account_count: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AccountCountResponse"];
                 };
             };
         };

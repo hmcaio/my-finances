@@ -133,6 +133,26 @@ class AccountControllerTest {
   }
 
   @Test
+  void countGrowsWithEveryAccountClosedOnesIncludedAndCarriesNoBalances() throws Exception {
+    long before = countOfAccounts();
+    createAccount("Count Open", "CHECKING", "10.00", "2026-01-01");
+    String closedId = createAccount("Count Closed", "SAVINGS", "20.00", "2026-01-01");
+    mockMvc.perform(post("/api/accounts/" + closedId + "/close")).andExpect(status().isOk());
+
+    mockMvc
+        .perform(get("/api/accounts/count"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.count").value(before + 2))
+        .andExpect(jsonPath("$.balance").doesNotExist());
+  }
+
+  private long countOfAccounts() throws Exception {
+    MvcResult result =
+        mockMvc.perform(get("/api/accounts/count")).andExpect(status().isOk()).andReturn();
+    return objectMapper.readTree(result.getResponse().getContentAsString()).get("count").asLong();
+  }
+
+  @Test
   void getReturnsAccountDetailWithBalance() throws Exception {
     String id = createAccount("Savings", "SAVINGS", "500.00", "2026-02-01");
 

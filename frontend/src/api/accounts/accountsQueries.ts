@@ -6,6 +6,7 @@ import {
   deleteAccount,
   editAccount,
   getAccount,
+  getAccountCount,
   getAccounts,
   type UpdateAccountRequest,
 } from './accounts'
@@ -14,6 +15,7 @@ export const accountKeys = {
   all: [API_KEY_ROOT, 'accounts'] as const,
   list: (includeClosed: boolean) => [...accountKeys.all, 'list', { includeClosed }] as const,
   detail: (id: string) => [...accountKeys.all, 'detail', id] as const,
+  count: () => [...accountKeys.all, 'count'] as const,
 }
 
 /**
@@ -26,6 +28,11 @@ export function useAccounts(includeClosed = false) {
     queryFn: () => getAccounts(includeClosed),
     placeholderData: keepPreviousData,
   })
+}
+
+/** How many accounts exist, closed ones included: the cheap read behind the onboarding gate. */
+export function useAccountCount() {
+  return useQuery({ queryKey: accountKeys.count(), queryFn: getAccountCount })
 }
 
 export function useAccount(id: string | undefined) {
