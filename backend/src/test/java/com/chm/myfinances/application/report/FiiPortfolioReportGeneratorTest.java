@@ -14,6 +14,7 @@ import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
 import com.chm.myfinances.testsupport.CsvTestSupport;
 import com.chm.myfinances.testsupport.TestClocks;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentOpeningPositionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSegmentRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
@@ -60,9 +61,13 @@ class FiiPortfolioReportGeneratorTest {
           subcategoryRepository,
           holdingRepository,
           tradeLineRepository,
+          new FakeInvestmentOpeningPositionRepository(),
           latestSnapshotQuery,
           new InvestmentSnapshotFreshnessQuery(
-              latestSnapshotQuery, tradeLineRepository, holdingRepository),
+              latestSnapshotQuery,
+              tradeLineRepository,
+              holdingRepository,
+              new FakeInvestmentOpeningPositionRepository()),
           clock);
   private final FiiPortfolioReportGenerator generator =
       new FiiPortfolioReportGenerator(portfolioQuery, segmentRepository, clock);

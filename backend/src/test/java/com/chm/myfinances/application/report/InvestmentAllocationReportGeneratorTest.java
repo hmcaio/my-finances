@@ -27,6 +27,7 @@ import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeInstitutionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentCategoryRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentOpeningPositionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSegmentRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
@@ -77,7 +78,10 @@ class InvestmentAllocationReportGeneratorTest {
       new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository);
   private final InvestmentSnapshotFreshnessQuery freshnessQuery =
       new InvestmentSnapshotFreshnessQuery(
-          latestSnapshotQuery, tradeLineRepository, holdingRepository);
+          latestSnapshotQuery,
+          tradeLineRepository,
+          holdingRepository,
+          new FakeInvestmentOpeningPositionRepository());
   private final InvestmentAllocationQuery investmentAllocationQuery =
       new InvestmentAllocationQuery(
           productRepository,
@@ -94,6 +98,7 @@ class InvestmentAllocationReportGeneratorTest {
           subcategoryRepository,
           holdingRepository,
           tradeLineRepository,
+          new FakeInvestmentOpeningPositionRepository(),
           latestSnapshotQuery,
           freshnessQuery,
           clock);

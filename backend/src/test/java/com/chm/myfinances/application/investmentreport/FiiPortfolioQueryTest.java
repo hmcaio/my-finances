@@ -7,6 +7,7 @@ import com.chm.myfinances.application.investmentproduct.InvestmentProductStatus;
 import com.chm.myfinances.application.investmentsnapshot.InvestmentSnapshotFreshnessQuery;
 import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
+import com.chm.myfinances.domain.investmentopeningposition.InvestmentOpeningPosition;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
@@ -14,6 +15,7 @@ import com.chm.myfinances.domain.transfer.TradeSide;
 import com.chm.myfinances.domain.transfer.TransferTradeLine;
 import com.chm.myfinances.testsupport.TestClocks;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentOpeningPositionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSubcategoryRepository;
@@ -46,6 +48,8 @@ class FiiPortfolioQueryTest {
       new FakeInvestmentHoldingRepository();
   private final FakeInvestmentSnapshotRepository snapshotRepository =
       new FakeInvestmentSnapshotRepository();
+  private final FakeInvestmentOpeningPositionRepository positionRepository =
+      new FakeInvestmentOpeningPositionRepository();
   private final FakeTransferTradeLineRepository tradeLineRepository =
       new FakeTransferTradeLineRepository();
   private final Clock clock = TestClocks.fixedAtStartOf(TODAY);
@@ -53,13 +57,14 @@ class FiiPortfolioQueryTest {
       new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository);
   private final InvestmentSnapshotFreshnessQuery freshnessQuery =
       new InvestmentSnapshotFreshnessQuery(
-          latestSnapshotQuery, tradeLineRepository, holdingRepository);
+          latestSnapshotQuery, tradeLineRepository, holdingRepository, positionRepository);
   private final FiiPortfolioQuery query =
       new FiiPortfolioQuery(
           productRepository,
           subcategoryRepository,
           holdingRepository,
           tradeLineRepository,
+          positionRepository,
           latestSnapshotQuery,
           freshnessQuery,
           clock);
@@ -320,6 +325,100 @@ class FiiPortfolioQueryTest {
 
     assertThat(todayRows.get(0).needsSnapshot()).isTrue();
     assertThat(pastRows.get(0).needsSnapshot()).isFalse();
+  }
+
+  // --- F038: opening positions count like a BUY line dated asOfDate ---------------------------
+
+  private void position(InvestmentHolding holding, LocalDate asOf, String quantity, String price) {
+    positionRepository.save(
+        InvestmentOpeningPosition.create(
+            UUID.randomUUID(),
+            holding.getId(),
+            asOf,
+            new BigDecimal(quantity),
+            new BigDecimal(price)));
+  }
+
+  @Test
+  void aProductWithOnlyAnOpeningPositionShowsNonZeroTotals() {
+    InvestmentProduct product = fiiProduct("KNRI11 Fund", "KNRI11");
+    InvestmentHolding holding =
+        holdingRepository.save(
+            InvestmentHoldingMother.holding().withProductId(product.getId()).build());
+    position(holding, LocalDate.of(2026, 6, 1), "40", "150.00");
+
+    FiiPortfolioRow row = query.portfolio(InvestmentProductStatus.ALL, TODAY).get(0);
+
+    assertThat(row.cotasHeld()).isEqualByComparingTo("40");
+    assertThat(row.amountContributed()).isEqualByComparingTo("6000.00");
+  }
+
+  @Test
+  void anOpeningPositionAddsToTradeLinesAcrossSeveralHoldings() {
+    InvestmentProduct product = fiiProduct("KNRI11 Fund", "KNRI11");
+    UUID brokerAId = UUID.randomUUID();
+    UUID brokerBId = UUID.randomUUID();
+    InvestmentHolding holdingA =
+        holdingRepository.save(
+            InvestmentHoldingMother.holding()
+                .withProductId(product.getId())
+                .withAccountId(brokerAId)
+                .build());
+    InvestmentHolding holdingB =
+        holdingRepository.save(
+            InvestmentHoldingMother.holding()
+                .withProductId(product.getId())
+                .withAccountId(brokerBId)
+                .build());
+    position(holdingA, LocalDate.of(2026, 1, 1), "40", "150.00");
+    position(holdingB, LocalDate.of(2026, 1, 1), "10", "100.00");
+    buy(product, brokerAId, "100.00", "10");
+    sell(product, brokerAId, "105.00", "5");
+
+    FiiPortfolioRow row = query.portfolio(InvestmentProductStatus.ALL, TODAY).get(0);
+
+    assertThat(row.cotasHeld()).isEqualByComparingTo("55"); // 40 + 10 + 10 - 5
+    // 6000 + 1000 + 1000 - 525
+    assertThat(row.amountContributed()).isEqualByComparingTo("7475.00");
+  }
+
+  @Test
+  void anOpeningPositionAfterAsOfIsExcludedAndOneOnAsOfIsIncluded() {
+    InvestmentProduct product = fiiProduct("KNRI11 Fund", "KNRI11");
+    InvestmentHolding holding =
+        holdingRepository.save(
+            InvestmentHoldingMother.holding().withProductId(product.getId()).build());
+    position(holding, LocalDate.of(2026, 4, 1), "40", "150.00");
+
+    assertThat(
+            query
+                .portfolio(InvestmentProductStatus.ALL, LocalDate.of(2026, 3, 31))
+                .get(0)
+                .cotasHeld())
+        .isEqualByComparingTo("0");
+    FiiPortfolioRow onTheDay =
+        query.portfolio(InvestmentProductStatus.ALL, LocalDate.of(2026, 4, 1)).get(0);
+    assertThat(onTheDay.cotasHeld()).isEqualByComparingTo("40");
+    assertThat(onTheDay.amountContributed()).isEqualByComparingTo("6000.00");
+  }
+
+  @Test
+  void anOpeningPositionWithoutASnapshotMakesTheHoldingNeedASnapshotUntilOneIsRecorded() {
+    InvestmentProduct product = fiiProduct("KNRI11 Fund", "KNRI11");
+    InvestmentHolding holding =
+        holdingRepository.save(
+            InvestmentHoldingMother.holding().withProductId(product.getId()).build());
+    position(holding, LocalDate.of(2026, 6, 1), "40", "150.00");
+
+    assertThat(query.portfolio(InvestmentProductStatus.ALL, TODAY).get(0).needsSnapshot()).isTrue();
+
+    snapshotRepository.save(
+        InvestmentSnapshot.create(
+            UUID.randomUUID(), holding.getId(), LocalDate.of(2026, 6, 1), new BigDecimal("6400")));
+    FiiPortfolioRow fresh = query.portfolio(InvestmentProductStatus.ALL, TODAY).get(0);
+
+    assertThat(fresh.needsSnapshot()).isFalse();
+    assertThat(fresh.currentValue()).isEqualByComparingTo("6400");
   }
 
   private void buy(InvestmentProduct product, UUID brokerId, String unitPrice, String quantity) {

@@ -3,6 +3,8 @@ package com.chm.myfinances.application.investmentreport;
 import com.chm.myfinances.application.investmentproduct.InvestmentProductNotFoundException;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
+import com.chm.myfinances.domain.investmentopeningposition.InvestmentOpeningPosition;
+import com.chm.myfinances.domain.investmentopeningposition.InvestmentOpeningPositionRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
@@ -30,7 +32,8 @@ import org.springframework.stereotype.Service;
  * month, which is evaluated at today; months after the current one are not included. Direction of a
  * line is its own {@code side} (F027, ADR 0024, superseding the old "a transfer into a holding
  * account is a buy" derivation): BUY adds to contributed/units, SELL subtracts. Computed on read
- * from raw data; nothing is derived from quantity or price.
+ * from raw data; nothing is derived from quantity or price. An opening position (F038, ADR 0033)
+ * counts like a BUY line dated its as-of date.
  */
 @Service
 public class InvestmentValueSeriesQuery {
@@ -42,6 +45,7 @@ public class InvestmentValueSeriesQuery {
   private final InvestmentHoldingRepository holdingRepository;
   private final InvestmentSnapshotRepository snapshotRepository;
   private final TransferTradeLineRepository tradeLineRepository;
+  private final InvestmentOpeningPositionRepository openingPositionRepository;
   private final Clock clock;
 
   public InvestmentValueSeriesQuery(
@@ -49,11 +53,13 @@ public class InvestmentValueSeriesQuery {
       InvestmentHoldingRepository holdingRepository,
       InvestmentSnapshotRepository snapshotRepository,
       TransferTradeLineRepository tradeLineRepository,
+      InvestmentOpeningPositionRepository openingPositionRepository,
       Clock clock) {
     this.productRepository = productRepository;
     this.holdingRepository = holdingRepository;
     this.snapshotRepository = snapshotRepository;
     this.tradeLineRepository = tradeLineRepository;
+    this.openingPositionRepository = openingPositionRepository;
     this.clock = clock;
   }
 
@@ -93,6 +99,9 @@ public class InvestmentValueSeriesQuery {
       snapshotsByHolding.add(snapshotRepository.findByHoldingId(holding.getId()));
     }
     List<TransferTradeLine> lines = tradeLineRepository.findByProductId(product.getId());
+    List<InvestmentOpeningPosition> positions =
+        openingPositionRepository.findByHoldingIds(
+            holdings.stream().map(InvestmentHolding::getId).toList());
 
     List<SeriesPoint> points = new ArrayList<>();
     for (YearMonth month = from; !month.isAfter(last); month = month.plusMonths(1)) {
@@ -125,7 +134,19 @@ public class InvestmentValueSeriesQuery {
         }
         units = buy ? units.add(line.quantity()) : units.subtract(line.quantity());
       }
-      points.add(new SeriesPoint(month, value, contributed, lines.isEmpty() ? null : units));
+      // F038 (ADR 0033): a position counts for units from its as-of month on, and its cost lands in
+      // contributed for its as-of month only, so the monthly figures keep summing to the total.
+      for (InvestmentOpeningPosition position : positions) {
+        if (position.getAsOfDate().isAfter(point)) {
+          continue;
+        }
+        if (!position.getAsOfDate().isBefore(monthStart)) {
+          contributed = contributed.add(position.amountContributed());
+        }
+        units = units.add(position.getQuantity());
+      }
+      boolean hasUnits = !lines.isEmpty() || !positions.isEmpty();
+      points.add(new SeriesPoint(month, value, contributed, hasUnits ? units : null));
     }
     return new ProductSeries(product.getId(), List.copyOf(points));
   }

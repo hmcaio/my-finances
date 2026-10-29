@@ -5,12 +5,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.application.investmentproduct.InvestmentProductNotFoundException;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
+import com.chm.myfinances.domain.investmentopeningposition.InvestmentOpeningPosition;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.transfer.TradeSide;
 import com.chm.myfinances.domain.transfer.TransferTradeLine;
 import com.chm.myfinances.testsupport.TestClocks;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentOpeningPositionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
 import com.chm.myfinances.testsupport.fakes.FakeTransferTradeLineRepository;
@@ -44,12 +46,19 @@ class InvestmentValueSeriesQueryTest {
       new FakeInvestmentHoldingRepository();
   private final FakeInvestmentSnapshotRepository snapshotRepository =
       new FakeInvestmentSnapshotRepository();
+  private final FakeInvestmentOpeningPositionRepository positionRepository =
+      new FakeInvestmentOpeningPositionRepository();
   private final FakeTransferTradeLineRepository tradeLineRepository =
       new FakeTransferTradeLineRepository();
   private final Clock clock = TestClocks.fixedAtStartOf(TODAY);
   private final InvestmentValueSeriesQuery query =
       new InvestmentValueSeriesQuery(
-          productRepository, holdingRepository, snapshotRepository, tradeLineRepository, clock);
+          productRepository,
+          holdingRepository,
+          snapshotRepository,
+          tradeLineRepository,
+          positionRepository,
+          clock);
 
   private final UUID brokerId = UUID.randomUUID();
   private final Map<UUID, InvestmentHolding> holdingByProduct = new HashMap<>();
@@ -276,5 +285,71 @@ class InvestmentValueSeriesQueryTest {
     List<SeriesPoint> points = points(YearMonth.of(2026, 2), YearMonth.of(2026, 2));
 
     assertThat(points.get(0).value()).isEqualByComparingTo("150.00");
+  }
+
+  // --- F038: an opening position counts like a BUY line dated its asOfDate -------------------
+
+  private void position(InvestmentProduct target, LocalDate asOf, String quantity, String price) {
+    positionRepository.save(
+        InvestmentOpeningPosition.create(
+            UUID.randomUUID(),
+            holdingByProduct.get(target.getId()).getId(),
+            asOf,
+            new BigDecimal(quantity),
+            new BigDecimal(price)));
+  }
+
+  @Test
+  void anOpeningPositionCountsForUnitsFromItsMonthOnAndForContributedInThatMonthOnly() {
+    position(product, LocalDate.of(2026, 3, 15), "40", "150.00");
+
+    List<SeriesPoint> points = points(YearMonth.of(2026, 2), YearMonth.of(2026, 5));
+
+    assertThat(points)
+        .extracting(SeriesPoint::units)
+        .satisfiesExactly(
+            feb -> assertThat(feb).isEqualByComparingTo("0"),
+            mar -> assertThat(mar).isEqualByComparingTo("40"),
+            apr -> assertThat(apr).isEqualByComparingTo("40"),
+            may -> assertThat(may).isEqualByComparingTo("40"));
+    assertThat(points)
+        .extracting(SeriesPoint::contributed)
+        .satisfiesExactly(
+            feb -> assertThat(feb).isEqualByComparingTo("0"),
+            mar -> assertThat(mar).isEqualByComparingTo("6000.00"),
+            apr -> assertThat(apr).isEqualByComparingTo("0"),
+            may -> assertThat(may).isEqualByComparingTo("0"));
+  }
+
+  @Test
+  void theMonthlyContributedFiguresSumToTheFiiPortfolioAmountContributed() {
+    position(product, LocalDate.of(2026, 1, 31), "40", "150.00");
+    buy(product, LocalDate.of(2026, 2, 10), "1000.00", "10");
+    sell(product, LocalDate.of(2026, 4, 10), "300.00", "2");
+
+    List<SeriesPoint> points = points(YearMonth.of(2026, 1), YearMonth.of(2026, 6));
+
+    BigDecimal total =
+        points.stream().map(SeriesPoint::contributed).reduce(BigDecimal.ZERO, BigDecimal::add);
+    // The FII page's amountContributed for the same data: 6000 + 1000 - 300.
+    assertThat(total).isEqualByComparingTo("6700.00");
+    assertThat(points.get(points.size() - 1).units()).isEqualByComparingTo("48");
+  }
+
+  @Test
+  void aPositionAfterTheEvaluatedPointIsIgnoredAndUnitsStayNullWithNeitherLinesNorPositions() {
+    position(product, LocalDate.of(2026, 6, 10), "40", "150.00");
+
+    // May's point is before the position (0 units: the product has a position, so units is not
+    // null); June's point is today (2026-06-15), after it.
+    List<SeriesPoint> points = points(YearMonth.of(2026, 5), YearMonth.of(2026, 6));
+
+    assertThat(points.get(0).units()).isEqualByComparingTo("0");
+    assertThat(points.get(1).units()).isEqualByComparingTo("40");
+    InvestmentProduct untouched = newProduct("Untouched");
+    assertThat(query.series(YearMonth.of(2026, 5), YearMonth.of(2026, 6), untouched.getId()))
+        .singleElement()
+        .satisfies(
+            series -> assertThat(series.points()).allSatisfy(p -> assertThat(p.units()).isNull()));
   }
 }
