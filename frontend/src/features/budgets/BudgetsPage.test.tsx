@@ -86,6 +86,33 @@ describe('BudgetsPage', () => {
     expect(screen.queryByRole('option', { name: seedSalaryCategory.name })).not.toBeInTheDocument()
   })
 
+  it('reopens the add dialog empty after Cancel (issue #232)', async () => {
+    server.use(
+      http.get('/api/categories', () =>
+        HttpResponse.json([
+          ...seedCategories,
+          { id: 'cat-5', name: 'Dining', type: 'EXPENSE', builtIn: false, fuelCategory: false },
+        ]),
+      ),
+    )
+    const user = userEvent.setup({ delay: null })
+    renderWithQueryClient(<BudgetsPage />)
+    await findRow(seedGroceriesCategory.name, settingsTable())
+    const dialog = await openAddDialog(user)
+
+    await user.click(within(dialog).getByLabelText('Category'))
+    await user.click(await screen.findByRole('option', { name: 'Dining' }))
+    await user.type(within(dialog).getByLabelText('Monthly cap'), '150')
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+    const reopened = await openAddDialog(user)
+    expect(within(reopened).getByLabelText('Monthly cap')).toHaveValue(null)
+    expect(within(reopened).getByRole('combobox', { name: 'Category' })).not.toHaveTextContent(
+      'Dining',
+    )
+  })
+
   it('adds a new budget for an unbudgeted expense category', async () => {
     server.use(
       http.get('/api/categories', () =>

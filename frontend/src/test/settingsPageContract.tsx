@@ -98,6 +98,20 @@ export function describeSettingsPage<Entity extends { id: string; name: string }
     expect(await screen.findByText(newName)).toBeInTheDocument()
   })
 
+  it('reopens the add dialog empty after Cancel (issue #232)', async () => {
+    const user = userEvent.setup({ delay: null })
+    renderWithQueryClient(page)
+    await screen.findByText(seedRows[0].name)
+
+    await user.click(screen.getByRole('button', { name: addButtonLabel }))
+    await user.type(within(screen.getByRole('dialog')).getByLabelText('Name'), newName)
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: addButtonLabel }))
+    expect(within(screen.getByRole('dialog')).getByLabelText('Name')).toHaveValue('')
+  })
+
   it('renames a row inline', async () => {
     const user = userEvent.setup({ delay: null })
     renderWithQueryClient(page)
