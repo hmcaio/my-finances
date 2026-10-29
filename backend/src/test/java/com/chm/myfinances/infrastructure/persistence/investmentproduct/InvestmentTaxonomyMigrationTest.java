@@ -26,8 +26,10 @@ import org.springframework.context.annotation.Import;
  * Proves {@code V13__investment_accounts_products_taxonomy.sql} (F008) at the constraint level: the
  * {@code accounts} CHECKs accept and reject as specified, the composite foreign key on {@code
  * investment_products} rejects a sub-category from another category and accepts none at all, and
- * the seed holds exactly the Brazilian defaults with no duplicates. The test of V13's one-off
- * "existing accounts keep their values" backfill was retired (issue #89, B6).
+ * the seed holds exactly the Brazilian defaults with no duplicates; and {@code
+ * V26__expand_investment_taxonomy_seeds.sql} (issue #227) adds its sub-categories without touching
+ * the existing ones or duplicating a name already there. The test of V13's one-off "existing
+ * accounts keep their values" backfill was retired (issue #89, B6).
  *
  * <p>Runs Flyway by hand in its own schema of the shared Testcontainers Postgres (see {@link
  * AbstractMigrationTest}). The seed is asserted here, in a fresh schema, rather than against the
@@ -207,6 +209,105 @@ class InvestmentTaxonomyMigrationTest extends AbstractMigrationTest {
       assertThat(seeded.get("Other")).isEmpty();
       assertThat(subcategoryRows).isEqualTo(22);
     }
+  }
+
+  @Test
+  void theExpansionAddsTheNewInstrumentsAndKeepsEveryExistingOne() throws Exception {
+    flyway("26").migrate();
+    try (Connection connection = connection()) {
+      Map<String, Set<String>> byCategory = subcategoriesByCategory(connection);
+
+      assertThat(byCategory.get("Fixed Income"))
+          .containsExactlyInAnyOrder(
+              "Tesouro Selic",
+              "Tesouro IPCA+",
+              "Tesouro Prefixado",
+              "CDB",
+              "LCI",
+              "LCA",
+              "CRI",
+              "CRA",
+              "Debentures",
+              "Savings (Poupança)",
+              "RDB",
+              "Tesouro RendA+",
+              "Tesouro Educa+");
+      assertThat(byCategory.get("Variable Income"))
+          .containsExactlyInAnyOrder("Stocks (Ações)", "REITs (FIIs)", "ETFs", "BDRs");
+      assertThat(byCategory.get("Funds"))
+          .containsExactlyInAnyOrder(
+              "Fixed Income Funds",
+              "Multimercado",
+              "Equity Funds",
+              "Renda Fixa DI",
+              "Crédito Privado",
+              "FIDC",
+              "FIP",
+              "Cambial");
+      assertThat(byCategory.get("Pension (Previdência)")).containsExactlyInAnyOrder("PGBL", "VGBL");
+      assertThat(byCategory.get("International"))
+          .containsExactlyInAnyOrder("Stocks", "ETFs", "Bonds", "REITs", "Funds");
+      assertThat(byCategory.get("Crypto"))
+          .containsExactlyInAnyOrder("Bitcoin", "Stablecoins", "Altcoins");
+      assertThat(byCategory.get("Other")).containsExactlyInAnyOrder("Gold (Ouro)");
+      assertThat(byCategory.values().stream().mapToInt(Set::size).sum()).isEqualTo(36);
+      assertThat(categoryNames(connection)).hasSize(7);
+    }
+  }
+
+  @Test
+  void theExpansionSkipsASubcategoryThatAlreadyExistsInItsCategory() throws Exception {
+    flyway("25").migrate();
+    try (Connection connection = connection();
+        PreparedStatement statement =
+            connection.prepareStatement(
+                "INSERT INTO investment_subcategories (id, investment_category_id, name,"
+                    + " created_at, last_modified_at) VALUES (?, ?, 'RDB', now(), now())")) {
+      statement.setObject(1, UUID.randomUUID());
+      statement.setObject(2, categoryId(connection, "Fixed Income"));
+      statement.executeUpdate();
+    }
+
+    flyway("26").migrate();
+
+    try (Connection connection = connection()) {
+      assertThat(subcategoriesByCategory(connection).get("Fixed Income"))
+          .containsExactlyInAnyOrder(
+              "Tesouro Selic",
+              "Tesouro IPCA+",
+              "Tesouro Prefixado",
+              "CDB",
+              "LCI",
+              "LCA",
+              "CRI",
+              "CRA",
+              "Debentures",
+              "Savings (Poupança)",
+              "RDB",
+              "Tesouro RendA+",
+              "Tesouro Educa+");
+      assertThat(
+              count(connection, "SELECT count(*) FROM investment_subcategories WHERE name = 'RDB'"))
+          .isEqualTo(1);
+    }
+  }
+
+  private static Map<String, Set<String>> subcategoriesByCategory(Connection connection)
+      throws SQLException {
+    Map<String, Set<String>> byCategory = new HashMap<>();
+    try (PreparedStatement statement =
+            connection.prepareStatement(
+                "SELECT c.name, s.name FROM investment_categories c"
+                    + " LEFT JOIN investment_subcategories s ON s.investment_category_id = c.id");
+        ResultSet rows = statement.executeQuery()) {
+      while (rows.next()) {
+        Set<String> children = byCategory.computeIfAbsent(rows.getString(1), k -> new HashSet<>());
+        if (rows.getString(2) != null) {
+          children.add(rows.getString(2));
+        }
+      }
+    }
+    return byCategory;
   }
 
   /** Runs the statement and asserts the database refused it with the named constraint. */

@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
  * Read use case for {@link InvestmentSegment} (F026 spec, ADR 0023).
  *
  * <p>F034/ADR 0028: {@code create}/{@code rename}/{@code delete} were deleted — every row is now
- * fixed, migration-seeded content (the nine B3 FII sectors seeded by this same feature).
+ * fixed, migration-seeded content (the B3 FII sectors seeded by V24 and V26).
  */
 @Service
 public class InvestmentSegmentService {

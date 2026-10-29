@@ -6,7 +6,7 @@ import { unwrap } from '../core/apiError'
  * estate an FII holds (Shoppings, Logistica, Papel, ...). Orthogonal to the category/sub-category
  * taxonomy - generalized on `InvestmentProduct`, but only the FII page manages it for v1.
  *
- * F034/ADR 0028: read-only - every row is fixed, migration-seeded content (the nine B3 FII
+ * F034/ADR 0028: read-only - every row is fixed, migration-seeded content (the B3 FII
  * sectors). create/rename/delete were removed from the backend and this client alike.
  */
 export interface InvestmentSegment {

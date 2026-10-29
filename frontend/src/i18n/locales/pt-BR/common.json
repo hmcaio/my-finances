@@ -134,7 +134,21 @@
       "pgbl": "PGBL",
       "vgbl": "VGBL",
       "stocks": "Ações",
-      "bonds": "Títulos"
+      "bonds": "Títulos",
+      "rdb": "RDB",
+      "tesouroRendaMais": "Tesouro RendA+",
+      "tesouroEducaMais": "Tesouro Educa+",
+      "rendaFixaDi": "Renda Fixa DI",
+      "creditoPrivado": "Crédito Privado",
+      "fidc": "FIDC",
+      "fip": "FIP",
+      "cambial": "Cambial",
+      "internationalReits": "REITs",
+      "internationalFunds": "Fundos",
+      "bitcoin": "Bitcoin",
+      "stablecoins": "Stablecoins",
+      "altcoins": "Altcoins",
+      "gold": "Ouro"
     },
     "investmentSegments": {
       "lajesCorporativas": "Lajes Corporativas",
@@ -145,6 +159,11 @@
       "fiagro": "Fiagro",
       "hospitalar": "Hospitalar",
       "residencial": "Residencial",
+      "fundoDeFundos": "Fundo de Fundos",
+      "hotel": "Hotel",
+      "agenciasBancarias": "Agências Bancárias",
+      "educacional": "Educacional",
+      "desenvolvimento": "Desenvolvimento",
       "outros": "Outros"
     }
   }

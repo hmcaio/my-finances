@@ -4,7 +4,7 @@ import { createStore } from '../store'
 
 /**
  * Seed data returned by the default `GET /api/investment-segments` handler below (F026, ADR
- * 0023) - the nine B3 FII sectors seeded by `V24` (F034/ADR 0028). Exported so tests can assert
+ * 0023) - a few of the B3 FII sectors seeded by `V24`/`V26` (F034/ADR 0028). Exported so tests can assert
  * against it instead of duplicating the fixture.
  */
 export const seedInvestmentSegments: InvestmentSegment[] = [

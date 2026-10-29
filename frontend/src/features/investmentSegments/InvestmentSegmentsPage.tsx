@@ -18,7 +18,7 @@ import { translateSeedName } from '../../i18n/seedNames'
 
 /**
  * Read-only list of investment segments (F026 spec, ADR 0023; F034/ADR 0028): every row is fixed,
- * migration-seeded content (the nine B3 FII sectors) with no create/rename/delete affordance
+ * migration-seeded content (the B3 FII sectors) with no create/rename/delete affordance
  * anywhere - the backend's write endpoints were removed outright.
  *
  * Responsive (F021): Name is the only data column, so per the spec's 1-2-column rule this stays a
