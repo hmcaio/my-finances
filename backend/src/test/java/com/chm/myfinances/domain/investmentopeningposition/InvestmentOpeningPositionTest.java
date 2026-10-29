@@ -136,7 +136,23 @@ class InvestmentOpeningPositionTest {
         .containsExactly(
             entry("holdingId", HOLDING_ID.toString()),
             entry("asOfDate", "2026-10-01"),
-            entry("quantity", new BigDecimal("40")),
-            entry("unitPrice", new BigDecimal("150.00")));
+            entry("quantity", new BigDecimal("40.00000000")),
+            entry("unitPrice", new BigDecimal("150.00000000")));
+  }
+
+  @Test
+  void valuesArePaddedToTheColumnScaleSoAnUnchangedReplaceLeavesTheAuditSnapshotEqual() {
+    InvestmentOpeningPosition position =
+        InvestmentOpeningPosition.create(
+            UUID.randomUUID(),
+            HOLDING_ID,
+            AS_OF,
+            new BigDecimal("40.00000000"),
+            new BigDecimal("150.00000000"));
+    var before = position.toAuditSnapshot();
+
+    position.edit(AS_OF, new BigDecimal("40"), new BigDecimal("150.0"));
+
+    assertThat(position.toAuditSnapshot()).isEqualTo(before);
   }
 }

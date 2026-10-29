@@ -24,6 +24,9 @@ import java.util.UUID;
  */
 public final class InvestmentOpeningPosition {
 
+  /** The scale of the {@code quantity} and {@code unit_price} columns. */
+  private static final int SCALE = 8;
+
   private final UUID id;
   private final UUID holdingId;
   private LocalDate asOfDate;
@@ -35,8 +38,8 @@ public final class InvestmentOpeningPosition {
     this.id = Objects.requireNonNull(id, "id must not be null");
     this.holdingId = Objects.requireNonNull(holdingId, "holdingId must not be null");
     this.asOfDate = requireDate(asOfDate);
-    this.quantity = requirePositive(quantity, "quantity");
-    this.unitPrice = requirePositive(unitPrice, "unitPrice");
+    this.quantity = atColumnScale(requirePositive(quantity, "quantity"));
+    this.unitPrice = atColumnScale(requirePositive(unitPrice, "unitPrice"));
   }
 
   /** Creates a brand-new position. {@code id} must come from the {@code IdGenerator} port. */
@@ -57,8 +60,8 @@ public final class InvestmentOpeningPosition {
    */
   public void edit(LocalDate newAsOfDate, BigDecimal newQuantity, BigDecimal newUnitPrice) {
     LocalDate validDate = requireDate(newAsOfDate);
-    BigDecimal validQuantity = requirePositive(newQuantity, "quantity");
-    BigDecimal validUnitPrice = requirePositive(newUnitPrice, "unitPrice");
+    BigDecimal validQuantity = atColumnScale(requirePositive(newQuantity, "quantity"));
+    BigDecimal validUnitPrice = atColumnScale(requirePositive(newUnitPrice, "unitPrice"));
     this.asOfDate = validDate;
     this.quantity = validQuantity;
     this.unitPrice = validUnitPrice;
@@ -74,6 +77,16 @@ public final class InvestmentOpeningPosition {
       throw new IllegalArgumentException("asOfDate must not be null");
     }
     return value;
+  }
+
+  /**
+   * Pads to the column's scale ({@code numeric(19,8)}), never rounds. The value read back from the
+   * database always has this scale, so keeping the in-memory value there too makes replacing a
+   * position with the same figures a no-op for the audit diff (which compares by {@code equals},
+   * where {@code 40} and {@code 40.00000000} differ).
+   */
+  private static BigDecimal atColumnScale(BigDecimal value) {
+    return value.scale() < SCALE ? value.setScale(SCALE) : value;
   }
 
   private static BigDecimal requirePositive(BigDecimal value, String field) {
