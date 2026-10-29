@@ -16,6 +16,10 @@ import {
   investmentHoldingCreateConflictHandler,
   investmentHoldingDeleteConflictHandler,
 } from '../../mocks/handlers/investmentHoldings'
+import {
+  investmentOpeningPositionsStore,
+  seedOpeningPosition,
+} from '../../mocks/handlers/investmentOpeningPositions'
 import { seedBitcoinSnapshots } from '../../mocks/handlers/investmentSnapshots'
 import { seedBitcoinBuyTransfer, seedBitcoinSellTransfer } from '../../mocks/handlers/transfers'
 import { resolveErrorMessage } from '../../test/errorMessages'
@@ -60,6 +64,21 @@ describe('InvestmentProductDetailPage', () => {
       'href',
       `/accounts/${seedInvestmentAccount.id}`,
     )
+  })
+
+  it("shows the selected holding's opening position card, with an add action when there is none (F038)", async () => {
+    renderDetail('iprod-btc')
+
+    expect(await screen.findByText('Opening position')).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Add opening position' })).toBeInTheDocument()
+  })
+
+  it('shows the recorded opening position of the holding (F038)', async () => {
+    investmentOpeningPositionsStore.add({ ...seedOpeningPosition, holdingId: 'iholding-btc' })
+    renderDetail('iprod-btc')
+
+    expect(await screen.findByText('Amount contributed')).toBeInTheDocument()
+    expect(screen.getByText('6,000.00')).toBeInTheDocument()
   })
 
   it('lists the snapshot history, most recent first', async () => {

@@ -70,6 +70,7 @@ import { nameLookup } from '../../utils/nameLookup'
 import { today } from '../../utils/localDate'
 import { TransferForm, type TransferFormPreset } from '../transfers/TransferForm'
 import { InvestmentProductForm, type InvestmentProductFormValues } from './InvestmentProductForm'
+import { OpeningPositionCard } from './OpeningPositionCard'
 import { ValueSeriesChart } from './ValueSeriesChart'
 
 /** Tighter section padding on phones (F021), matching `AccountDetailPage`. */
@@ -627,6 +628,8 @@ export function InvestmentProductDetailPage() {
                   </Button>
                 </Box>
               </Paper>
+
+              <OpeningPositionCard holding={selectedHolding} padding={SECTION_PADDING} />
 
               <Paper variant="outlined" sx={{ p: SECTION_PADDING, mb: 3 }}>
                 <Box
