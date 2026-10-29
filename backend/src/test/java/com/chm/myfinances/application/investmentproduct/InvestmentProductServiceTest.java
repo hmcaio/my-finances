@@ -8,6 +8,9 @@ import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.application.investmentcategory.InvestmentCategoryNotFoundException;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingService;
+import com.chm.myfinances.application.investmentopeningposition.InvalidOpeningPositionException;
+import com.chm.myfinances.application.investmentopeningposition.InvestmentOpeningPositionService;
+import com.chm.myfinances.application.investmentsnapshot.InvestmentSnapshotService;
 import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
 import com.chm.myfinances.application.investmentsubcategory.InvestmentSubcategoryNotFoundException;
 import com.chm.myfinances.domain.account.Account;
@@ -15,17 +18,21 @@ import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
+import com.chm.myfinances.testsupport.TestClocks;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
 import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeHasHoldingHistoryChecker;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentCategoryRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentOpeningPositionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSegmentRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSubcategoryRepository;
+import com.chm.myfinances.testsupport.fakes.FakeTransferTradeLineRepository;
 import com.chm.myfinances.testsupport.mothers.AccountMother;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
@@ -72,6 +79,21 @@ class InvestmentProductServiceTest {
           idGenerator,
           Clock.systemDefaultZone(),
           new AuditRecorder(auditLog, AuditReferenceLabels.none()));
+  private final FakeInvestmentOpeningPositionRepository positionRepository =
+      new FakeInvestmentOpeningPositionRepository();
+  private final InvestmentOpeningPositionService positionService =
+      new InvestmentOpeningPositionService(
+          positionRepository,
+          holdingRepository,
+          new FakeTransferTradeLineRepository(),
+          new InvestmentSnapshotService(
+              snapshotRepository,
+              holdingRepository,
+              idGenerator,
+              new AuditRecorder(auditLog, AuditReferenceLabels.none())),
+          idGenerator,
+          TestClocks.fixedAtStartOf(LocalDate.of(2026, 10, 29)),
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
   private final InvestmentProductService service =
       new InvestmentProductService(
           productRepository,
@@ -80,6 +102,7 @@ class InvestmentProductServiceTest {
           segmentRepository,
           holdingRepository,
           holdingService,
+          positionService,
           idGenerator,
           new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
@@ -116,6 +139,7 @@ class InvestmentProductServiceTest {
             segmentRepository,
             holdingRepository,
             holdingService,
+            positionService,
             singleUseIdGenerator,
             new AuditRecorder(auditLog, AuditReferenceLabels.none()));
 
@@ -132,6 +156,84 @@ class InvestmentProductServiceTest {
         .hasSize(1)
         .first()
         .satisfies(h -> assertThat(h.getAccountId()).isEqualTo(xpAccountId));
+  }
+
+  @Test
+  void createWithAnOpeningPositionCreatesTheProductHoldingPositionAndSnapshot() {
+    InvestmentProduct created =
+        service.create(
+            xpAccountId,
+            fixedIncomeId,
+            cdbId,
+            "FII Position Test",
+            null,
+            "XPTO11",
+            null,
+            new OpeningPositionInput(
+                LocalDate.of(2026, 10, 1),
+                new BigDecimal("40"),
+                new BigDecimal("150.00"),
+                new BigDecimal("6400.00")));
+
+    InvestmentHolding holding = holdingRepository.findByProductId(created.getId()).get(0);
+    assertThat(positionRepository.findByHoldingId(holding.getId()))
+        .hasValueSatisfying(
+            p -> {
+              assertThat(p.getAsOfDate()).isEqualTo(LocalDate.of(2026, 10, 1));
+              assertThat(p.getQuantity()).isEqualByComparingTo("40");
+              assertThat(p.getUnitPrice()).isEqualByComparingTo("150.00");
+            });
+    assertThat(snapshotRepository.findByHoldingId(holding.getId()))
+        .singleElement()
+        .satisfies(
+            snapshot -> {
+              assertThat(snapshot.getDate()).isEqualTo(LocalDate.of(2026, 10, 1));
+              assertThat(snapshot.getBalance()).isEqualByComparingTo("6400.00");
+            });
+  }
+
+  @Test
+  void createWithAnOpeningPositionWithoutACurrentValueWritesNoSnapshot() {
+    InvestmentProduct created =
+        service.create(
+            xpAccountId,
+            fixedIncomeId,
+            cdbId,
+            "FII No Value Test",
+            null,
+            null,
+            null,
+            new OpeningPositionInput(
+                LocalDate.of(2026, 10, 1), new BigDecimal("40"), new BigDecimal("150.00"), null));
+
+    InvestmentHolding holding = holdingRepository.findByProductId(created.getId()).get(0);
+    assertThat(positionRepository.findByHoldingId(holding.getId())).isPresent();
+    assertThat(snapshotRepository.findAll()).isEmpty();
+  }
+
+  @Test
+  void createWithoutAnOpeningPositionWritesNone() {
+    service.create(xpAccountId, fixedIncomeId, cdbId, "FII Plain Test", null, null, null, null);
+
+    assertThat(positionRepository.findAll()).isEmpty();
+  }
+
+  @Test
+  void createWithAnInvalidOpeningPositionPropagatesTheRejection() {
+    // The rollback of the product and holding is InvestmentProductServiceTransactionalTest's job.
+    assertThatThrownBy(
+            () ->
+                service.create(
+                    xpAccountId,
+                    fixedIncomeId,
+                    cdbId,
+                    "FII Future Test",
+                    null,
+                    null,
+                    null,
+                    new OpeningPositionInput(
+                        LocalDate.of(2026, 10, 30), BigDecimal.TEN, BigDecimal.ONE, null)))
+        .isInstanceOf(InvalidOpeningPositionException.class);
   }
 
   @Test

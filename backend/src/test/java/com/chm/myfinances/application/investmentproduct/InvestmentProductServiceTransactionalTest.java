@@ -13,6 +13,8 @@ import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.testsupport.AbstractTransactionalBoundaryTest;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -59,5 +61,36 @@ class InvestmentProductServiceTransactionalTest extends AbstractTransactionalBou
 
     // The product, written first, must have rolled back with the failed holding write.
     assertThat(productRepository.existsByName("Product Rollback Test")).isFalse();
+  }
+
+  /**
+   * F038: a failing opening position (a future as-of date) is raised after the product and its
+   * holding were written, so the shared transaction must take both back.
+   */
+  @Test
+  void createRollsBackTheProductAndHoldingWhenTheOpeningPositionIsRejected() {
+    Account broker =
+        TestFixtures.account(
+            accountRepository,
+            institutionRepository,
+            "Broker Position Rollback Test",
+            AccountType.INVESTMENT);
+
+    assertThatThrownBy(
+            () ->
+                productService.create(
+                    broker.getId(),
+                    categoryRepository.findAll().get(0).getId(),
+                    null,
+                    "Product Position Rollback Test",
+                    null,
+                    null,
+                    null,
+                    new OpeningPositionInput(
+                        LocalDate.now().plusDays(1), BigDecimal.TEN, BigDecimal.ONE, null)))
+        .isInstanceOf(RuntimeException.class);
+
+    assertThat(productRepository.existsByName("Product Position Rollback Test")).isFalse();
+    assertThat(holdingRepository.existsByAccountId(broker.getId())).isFalse();
   }
 }
