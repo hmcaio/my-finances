@@ -46,4 +46,4 @@ The ADR and the PRD edits were written by `design-feature` on the docs branch.
 - [x] Open the Investments report CSV for a range containing the as-of date: the `OPENING POSITIONS` section lists it; outside the range it does not.
 - [x] The monthly value series chart: `units` is non-null from the position's month on, and the sum of the monthly `contributed` equals the FII page's amount contributed.
 - [x] The Activity page lists the create, update and delete entries of a position with readable labels, in both languages.
-- [ ] `scripts/verify.sh backend frontend` (Docker running) all green.
+- [x] `scripts/verify.sh backend frontend` (Docker running) all green.
