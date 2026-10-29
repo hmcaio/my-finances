@@ -144,27 +144,26 @@ describe('InvestmentProductsSection', () => {
     )
   })
 
-  it('adds a product with a ticker and a segment (F026)', async () => {
+  it('adds an exchange-traded product with a ticker and no segment field (F026, #230)', async () => {
     const user = userEvent.setup({ delay: null })
     const sent = captureBody('post', '/api/investment-products')
     renderSection()
     await screen.findByText('Bitcoin')
     const dialog = within(await openAddDialog(user))
 
-    await user.type(dialog.getByRole('textbox', { name: 'Product name' }), 'KNRI11 Test')
+    await user.type(dialog.getByRole('textbox', { name: 'Product name' }), 'BOVA11 Test')
+    // Ticker and segment stay hidden until a sub-category makes them relevant.
     await selectOption(user, 'Category', 'Variable Income', dialog)
-    await user.type(dialog.getByRole('textbox', { name: 'Ticker' }), 'KNRI11')
-    await selectOption(user, 'Segment', 'Shoppings', dialog)
+    expect(dialog.queryByRole('textbox', { name: 'Ticker' })).not.toBeInTheDocument()
+    await selectOption(user, 'Sub-category', 'ETFs', dialog)
+    await user.type(dialog.getByRole('textbox', { name: 'Ticker' }), 'BOVA11')
+    // Segments are FII sectors: an ETF has none.
+    expect(dialog.queryByRole('combobox', { name: 'Segment' })).not.toBeInTheDocument()
     await user.click(dialog.getByRole('button', { name: 'Add product' }))
 
-    await waitFor(() =>
-      expect(sent.body).toMatchObject({
-        name: 'KNRI11 Test',
-        ticker: 'KNRI11',
-        segmentId: 'iseg-shoppings',
-      }),
-    )
-    expect(await screen.findByText('KNRI11 Test')).toBeInTheDocument()
+    await waitFor(() => expect(sent.body).toMatchObject({ name: 'BOVA11 Test', ticker: 'BOVA11' }))
+    expect(sent.body?.segmentId).toBeUndefined()
+    expect(await screen.findByText('BOVA11 Test')).toBeInTheDocument()
   })
 
   it('saves a category-only product (Crypto) without a sub-category', async () => {
