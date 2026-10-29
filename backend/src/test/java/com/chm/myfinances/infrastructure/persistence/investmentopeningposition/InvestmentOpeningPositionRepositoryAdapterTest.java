@@ -20,6 +20,7 @@ import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.domain.transfer.TransferRepository;
 import com.chm.myfinances.domain.transfer.TransferTradeLineRepository;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
+import com.chm.myfinances.testsupport.StatementCount;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
@@ -163,6 +164,38 @@ class InvestmentOpeningPositionRepositoryAdapterTest {
         .extracting(InvestmentOpeningPosition::getHoldingId)
         .containsExactly(holdingId);
     assertThat(positionRepository.findByHoldingIds(List.of())).isEmpty();
+  }
+
+  @Test
+  void findByHoldingIdsIsOneStatementWhateverTheNumberOfHoldings() {
+    positionRepository.save(position(holdingId, LocalDate.of(2026, 10, 1)));
+    List<UUID> ids = new java.util.ArrayList<>(List.of(holdingId));
+    long withOne = statementsOf(ids);
+
+    for (int i = 0; i < 8; i++) {
+      UUID account =
+          TestFixtures.account(
+                  accountRepository,
+                  institutionRepository,
+                  "Broker Position Count " + i,
+                  AccountType.INVESTMENT)
+              .getId();
+      UUID holding =
+          holdingRepository
+              .save(InvestmentHolding.create(UUID.randomUUID(), productId, account, null))
+              .getId();
+      positionRepository.save(position(holding, LocalDate.of(2026, 10, 1)));
+      ids.add(holding);
+    }
+    long withNine = statementsOf(ids);
+
+    assertThat(withNine).isEqualTo(withOne).isLessThanOrEqualTo(1);
+  }
+
+  private long statementsOf(List<UUID> ids) {
+    entityManager.flush();
+    entityManager.clear();
+    return StatementCount.of(entityManager, () -> positionRepository.findByHoldingIds(ids));
   }
 
   @Test
