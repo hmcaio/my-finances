@@ -1,7 +1,9 @@
 package com.chm.myfinances.infrastructure.persistence.transfer;
 
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -31,6 +33,17 @@ interface TransferTradeLineJpaRepository extends JpaRepository<TransferTradeLine
   List<TransferTradeLineJpaEntity> findByTransferIdIn(Collection<UUID> transferIds);
 
   List<TransferTradeLineJpaEntity> findByProductId(UUID productId);
+
+  /**
+   * The earliest date of a transfer carrying a line of this product with the account on either side
+   * (F038): backs the opening position's date-order guard. Empty when there is none.
+   */
+  @Query(
+      "select min(t.date) from TransferTradeLineJpaEntity l, TransferJpaEntity t"
+          + " where t.id = l.transferId and l.productId = :productId"
+          + " and (t.fromAccountId = :accountId or t.toAccountId = :accountId)")
+  Optional<LocalDate> findEarliestDate(
+      @Param("productId") UUID productId, @Param("accountId") UUID accountId);
 
   @Modifying
   @Query("delete from TransferTradeLineJpaEntity l where l.transferId = :transferId")

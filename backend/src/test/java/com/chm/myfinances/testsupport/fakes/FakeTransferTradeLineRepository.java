@@ -2,8 +2,10 @@ package com.chm.myfinances.testsupport.fakes;
 
 import com.chm.myfinances.domain.transfer.TransferTradeLine;
 import com.chm.myfinances.domain.transfer.TransferTradeLineRepository;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -37,5 +39,17 @@ public final class FakeTransferTradeLineRepository implements TransferTradeLineR
             l ->
                 l.productId().equals(productId)
                     && (l.fromAccountId().equals(accountId) || l.toAccountId().equals(accountId)));
+  }
+
+  @Override
+  public Optional<LocalDate> findEarliestDateByHolding(UUID productId, UUID investmentAccountId) {
+    return lines.stream()
+        .filter(
+            l ->
+                l.productId().equals(productId)
+                    && (l.fromAccountId().equals(investmentAccountId)
+                        || l.toAccountId().equals(investmentAccountId)))
+        .map(TransferTradeLine::date)
+        .min(LocalDate::compareTo);
   }
 }
