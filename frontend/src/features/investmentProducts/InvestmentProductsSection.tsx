@@ -119,6 +119,7 @@ export function InvestmentProductsSection({
         additionalNotes: values.additionalNotes || undefined,
         ticker: values.ticker || undefined,
         segmentId: values.segmentId || undefined,
+        openingPosition: values.openingPosition,
       })
       setAddDialogOpen(false)
     } catch (err) {

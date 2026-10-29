@@ -144,6 +144,56 @@ describe('InvestmentProductsSection', () => {
     )
   })
 
+  it('adds a product together with an opening position and its snapshot (F038)', async () => {
+    const user = userEvent.setup({ delay: null })
+    const sent = captureBody('post', '/api/investment-products')
+    renderSection()
+    await screen.findByText('Bitcoin')
+    const dialog = within(await openAddDialog(user))
+
+    await user.type(dialog.getByRole('textbox', { name: 'Product name' }), 'KNRI11 Test')
+    await selectOption(user, 'Category', 'Variable Income', dialog)
+    await selectOption(user, 'Sub-category', 'ETFs', dialog)
+    await user.click(dialog.getByRole('button', { name: 'Opening position (optional)' }))
+    await user.clear(dialog.getByLabelText('As of'))
+    await user.type(dialog.getByLabelText('As of'), '2026-07-01')
+    await user.type(dialog.getByLabelText('Cotas'), '40')
+    await user.type(dialog.getByLabelText('Average price'), '150')
+    await user.type(dialog.getByLabelText('Current value (optional)'), '6400')
+    await user.click(dialog.getByRole('button', { name: 'Add product' }))
+
+    await waitFor(() =>
+      expect(sent.body?.openingPosition).toEqual({
+        asOfDate: '2026-07-01',
+        quantity: 40,
+        unitPrice: 150,
+        currentValue: 6400,
+      }),
+    )
+    expect(await screen.findByText('KNRI11 Test')).toBeInTheDocument()
+    // The new holding has the snapshot recorded in the same call: not flagged, value shown.
+    const row = await findRow('KNRI11 Test')
+    expect(row.getByText('6,400.00')).toBeInTheDocument()
+    expect(row.queryByText('Needs snapshot')).not.toBeInTheDocument()
+  })
+
+  it('an opening position without a current value leaves the new holding needing a snapshot (F038)', async () => {
+    const user = userEvent.setup({ delay: null })
+    renderSection()
+    await screen.findByText('Bitcoin')
+    const dialog = within(await openAddDialog(user))
+
+    await user.type(dialog.getByRole('textbox', { name: 'Product name' }), 'KNRI11 Test')
+    await selectOption(user, 'Category', 'Variable Income', dialog)
+    await user.click(dialog.getByRole('button', { name: 'Opening position (optional)' }))
+    await user.type(dialog.getByLabelText('Cotas'), '40')
+    await user.type(dialog.getByLabelText('Average price'), '150')
+    await user.click(dialog.getByRole('button', { name: 'Add product' }))
+
+    const row = await findRow('KNRI11 Test')
+    expect(row.getByText('Needs snapshot')).toBeInTheDocument()
+  })
+
   it('adds an exchange-traded product with a ticker and no segment field (F026, #230)', async () => {
     const user = userEvent.setup({ delay: null })
     const sent = captureBody('post', '/api/investment-products')

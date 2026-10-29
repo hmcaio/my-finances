@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest'
-import { screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { InvestmentCategory } from '../../api/investments/investmentCategories'
 import type { InvestmentSegment } from '../../api/investments/investmentSegments'
@@ -117,5 +117,109 @@ describe('InvestmentProductForm ticker and segment visibility (#230)', () => {
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({ ticker: 'OLD11', segmentId: 'seg-shop' }),
     )
+  })
+})
+
+describe('InvestmentProductForm opening position section (F038)', () => {
+  afterEach(() => vi.useRealTimers())
+
+  const section = () => screen.queryByRole('button', { name: 'Opening position (optional)' })
+  const save = () => screen.getByRole('button', { name: 'Save' })
+
+  async function readyToSubmit(user: ReturnType<typeof userEvent.setup>) {
+    await user.type(screen.getByRole('textbox', { name: 'Product name' }), 'KNRI11 Test')
+    await selectOption(user, 'Category', 'Variable Income')
+    await selectOption(user, 'Sub-category', 'REITs (FIIs)')
+  }
+
+  it('is offered on create for every product, collapsed, and absent when editing', () => {
+    renderForm()
+    expect(section()).toBeInTheDocument()
+    expect(section()).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByLabelText('Cotas')).not.toBeInTheDocument()
+  })
+
+  it('is not offered on the edit form', () => {
+    renderForm(empty)
+    expect(section()).not.toBeInTheDocument()
+  })
+
+  it('is optional: submitting without touching it sends no openingPosition', async () => {
+    const { user, onSubmit } = renderForm()
+    await readyToSubmit(user)
+    await user.click(save())
+
+    expect(onSubmit).toHaveBeenCalledTimes(1)
+    expect(onSubmit.mock.calls[0][0]).not.toHaveProperty('openingPosition')
+  })
+
+  it('defaults the as-of date to today', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 9, 29, 22, 30))
+    const { user } = renderForm()
+    await user.click(section()!)
+
+    expect(screen.getByLabelText('As of')).toHaveValue('2026-10-29')
+  })
+
+  it('once started, requires cotas and average price but not the current value', async () => {
+    const { user, onSubmit } = renderForm()
+    await readyToSubmit(user)
+    await user.click(section()!)
+
+    await user.type(screen.getByLabelText('Cotas'), '40')
+    expect(save()).toBeDisabled()
+    await user.type(screen.getByLabelText('Average price'), '150')
+    expect(save()).toBeEnabled()
+    expect(screen.getByText(/flagged as needing a snapshot/)).toBeInTheDocument()
+
+    await user.click(save())
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        openingPosition: { asOfDate: expect.any(String), quantity: 40, unitPrice: 150 },
+      }),
+    )
+    expect(onSubmit.mock.calls[0][0].openingPosition).not.toHaveProperty('currentValue')
+  })
+
+  it('a current value alone also starts the section and blocks Save', async () => {
+    const { user } = renderForm()
+    await readyToSubmit(user)
+    await user.click(section()!)
+
+    await user.type(screen.getByLabelText('Current value (optional)'), '6400')
+
+    expect(save()).toBeDisabled()
+  })
+
+  it('submits the filled section with the current value', async () => {
+    const { user, onSubmit } = renderForm()
+    await readyToSubmit(user)
+    await user.click(section()!)
+    const region = within(screen.getByRole('region'))
+    await user.type(region.getByLabelText('Cotas'), '40')
+    await user.type(region.getByLabelText('Average price'), '150.5')
+    await user.type(region.getByLabelText('Current value (optional)'), '6400')
+    await user.click(save())
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        openingPosition: expect.objectContaining({
+          quantity: 40,
+          unitPrice: 150.5,
+          currentValue: 6400,
+        }),
+      }),
+    )
+  })
+
+  it('keeps what was typed when the section is collapsed again', async () => {
+    const { user } = renderForm()
+    await user.click(section()!)
+    await user.type(screen.getByLabelText('Cotas'), '12')
+    await user.click(section()!)
+    await user.click(section()!)
+
+    expect(screen.getByLabelText('Cotas')).toHaveValue(12)
   })
 })
