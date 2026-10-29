@@ -65,7 +65,7 @@ Conventional Commits (ADR 0009), message via HEREDOC, staging by explicit path (
 
 ## 9. Push and PR — only when asked
 
-Pushing is visible to others, so wait for the user to say so (approving the fix is not approval to push). Then `git push -u origin <branch>` and `gh pr create --base main` with: `Closes #N`, a summary of what changed and why, and a checked test plan listing the commands from step 6. Return the PR URL.
+Pushing is visible to others, so wait for the user to say so (approving the fix is not approval to push). Then `git push -u origin <branch>` and `gh pr create --base main`. If a `pr` skill is available, load it first and write the body with it; either way the body carries `Closes #N`, a summary of what changed and why, and a checked test plan listing the commands from step 6. Return the PR URL.
 
 ## 10. Post-mortem — only when asked
 
