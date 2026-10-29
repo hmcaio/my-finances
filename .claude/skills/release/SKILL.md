@@ -100,7 +100,7 @@ Then ask for edits or approval. Iterate until the user approves. **Do not write 
 A `vX.Y.Z` (or `vX.Y.Z-rc.N`) tag push is the only thing that triggers CI's `build-and-push` to publish images (ADR 0032, F014), and GitHub skips workflow runs entirely when the relevant commit message carries a marker such as `[skip ci]`, `[ci skip]`, `[no ci]`, `[skip actions]`, `[actions skip]` or a `skip-checks: true` trailer. A release that carries one silently publishes nothing. Check and report:
 
 - the current `origin/main` tip (the release PR's base) and the release PR's head commit, which its PR runs key off; the squash commit that becomes the tagged commit takes its message from the PR title and body;
-- the release commit you propose, and the PR titles and bodies you propose — none may contain a marker;
+- the release commit you propose, and the PR titles and bodies you propose — none may contain a marker. If a `pr` skill is available, load it to draft the PR body (drafting only; this skill still never runs `gh pr create`), and check its output for a marker;
 - history: `git log <range> -i --grep='skip ci'` (and the other spellings) — informational only, since only the head/tag commit matters, but name any hit so the user knows the marker is there and the tag must not land on it.
 
 If the tip carries one, tell the user to add a commit or reword before releasing. Never suggest `[skip ci]` in anything you propose here.
