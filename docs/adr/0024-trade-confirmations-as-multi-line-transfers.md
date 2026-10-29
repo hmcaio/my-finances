@@ -1,6 +1,6 @@
 # 0024. Model a buy/sell as a multi-line Trade Confirmation, with backend-derived settlement amount
 
-Status: Accepted (amends [0012](0012-investments-as-accounts-and-transfers.md))
+Status: Accepted (amends [0012](0012-investments-as-accounts-and-transfers.md); amended by [0033](0033-opening-position-as-cashless-holding-start.md))
 Date: 2026-10-08
 
 ## Context

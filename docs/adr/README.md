@@ -15,7 +15,7 @@ One file per decision, numbered sequentially, never renumbered or edited to chan
 | [0009](0009-conventional-commits.md) | Use Conventional Commits, mapped to CHANGELOG categories and SemVer bump type | Accepted (branch workflow in its Consequences amended by [0032](0032-github-flow-main-only.md)) |
 | [0010](0010-testcontainers-for-backend-tests.md) | Use Testcontainers for backend tests instead of a fixed CI Postgres service container | Accepted |
 | [0011](0011-logging-slf4j-request-id.md) | Logging: SLF4J/Logback + a request id; no aggregator | Accepted |
-| [0012](0012-investments-as-accounts-and-transfers.md) | Model investment accounts as accounts and buys/sells as transfers | Accepted (amended by [0020](0020-investment-holdings-many-to-many.md), [0024](0024-trade-confirmations-as-multi-line-transfers.md)) |
+| [0012](0012-investments-as-accounts-and-transfers.md) | Model investment accounts as accounts and buys/sells as transfers | Accepted (amended by [0020](0020-investment-holdings-many-to-many.md), [0024](0024-trade-confirmations-as-multi-line-transfers.md), [0033](0033-opening-position-as-cashless-holding-start.md)) |
 | [0013](0013-two-tier-backend-test-strategy.md) | Backend test strategy: two tiers, real Postgres for persistence, fakes for logic | Accepted |
 | [0014](0014-archunit-for-architecture-rules.md) | Enforce architecture rules with ArchUnit, with `Transaction` depending on `CategoryType` as a documented exception | Accepted |
 | [0015](0015-automated-encrypted-backups-sidecar.md) | Automated, encrypted backups run by a sidecar container in the prod stack | Accepted (image base amended: Alpine + Postgres client, not the `postgres` image, #204) |
@@ -27,7 +27,7 @@ One file per decision, numbered sequentially, never renumbered or edited to chan
 | [0021](0021-fuel-details-on-transaction.md) | Record fuel purchases as Transaction + optional FuelDetails, gated by a dedicated category flag | Accepted |
 | [0022](0022-audit-log-explicit-port-same-transaction.md) | Record an audit log through an explicit application-layer port, in the same transaction as the change | Accepted |
 | [0023](0023-fii-allocation-plan-and-dividends.md) | Generalize ticker/segment on InvestmentProduct; version the FII allocation plan like a budget; link dividends to Transaction like fuel details | Accepted |
-| [0024](0024-trade-confirmations-as-multi-line-transfers.md) | Model a buy/sell as a multi-line Trade Confirmation, with backend-derived settlement amount | Accepted (amends [0012](0012-investments-as-accounts-and-transfers.md)) |
+| [0024](0024-trade-confirmations-as-multi-line-transfers.md) | Model a buy/sell as a multi-line Trade Confirmation, with backend-derived settlement amount | Accepted (amends [0012](0012-investments-as-accounts-and-transfers.md); amended by [0033](0033-opening-position-as-cashless-holding-start.md)) |
 | [0025](0025-investment-split-as-read-side-adjustment.md) | Model a stock/FII split as a product-level event, applied as a read-side quantity adjustment | Accepted |
 | [0026](0026-structured-error-responses-rfc9457.md) | Replace status-code-only error responses with RFC 9457 Problem Details bodies, `type` auto-derived from exception class name | Accepted |
 | [0027](0027-frontend-i18n-react-i18next.md) | Frontend-only i18n with react-i18next: client-only locale, English + Brazilian Portuguese, locale-aware formatting | Accepted |
@@ -36,6 +36,7 @@ One file per decision, numbered sequentially, never renumbered or edited to chan
 | [0030](0030-postgres-unaccent-for-accent-insensitive-search.md) | Postgres `unaccent` extension for accent-insensitive text search (first extension the app depends on) | Accepted |
 | [0031](0031-image-vulnerability-scan-gates-publishing.md) | Scan container images for vulnerabilities with a pinned Trivy image and gate publishing on the result | Accepted (publish trigger amended by [0032](0032-github-flow-main-only.md)) |
 | [0032](0032-github-flow-main-only.md) | Plain GitHub Flow: `main` is the only long-lived branch, and images publish on release tags only | Accepted (supersedes [0008](0008-github-flow-with-develop-branch.md); amends the publish trigger of [0006](0006-separate-prod-packaging-from-dev.md), [0031](0031-image-vulnerability-scan-gates-publishing.md)) |
+| [0033](0033-opening-position-as-cashless-holding-start.md) | Record a holding's starting quantity and cost basis as a cashless opening position | Accepted (amends [0012](0012-investments-as-accounts-and-transfers.md), [0024](0024-trade-confirmations-as-multi-line-transfers.md)) |
 
 Template:
 ```

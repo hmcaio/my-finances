@@ -8,6 +8,7 @@ Every feature below is built except those listed here (documented, not built; de
 
 - F028 — investment splits, backend ([ADR 0025](../adr/0025-investment-split-as-read-side-adjustment.md))
 - F029 — investment splits, frontend (the product-detail split panel and dialog for F028)
+- F038 — investment opening position: a holding's starting quantity and cost basis recorded without moving cash ([ADR 0033](../adr/0033-opening-position-as-cashless-holding-start.md))
 
 ## Features
 
@@ -50,6 +51,7 @@ Every feature below is built except those listed here (documented, not built; de
 | [F035 — Category Onboarding](F035-category-onboarding/spec.md) | Stops migration-seeding Category's eight regular starter rows; a new onboarding step 2 (MUI `Stepper`, extending F011) presents localized suggested categories the user accepts, rejects or supplements, inserted as ordinary categories in the active UI language. The four structurally-flagged categories keep their existing eager migrations ([ADR 0028](../adr/0028-fixed-taxonomy-values-and-onboarding-seeded-categories.md)). Depends on F011. |
 | [F036 — Remote Access & Authentication](F036-remote-access-authentication/spec.md) | Session-cookie login with a single shared Argon2-hashed credential (still single-user, no `User` aggregate), plus a generic `BIND_ADDR` env var replacing hardcoded loopback port bindings in both compose files so any private-network tool (not pinned to Tailscale or any specific product) can expose the app; Postgres/pgAdmin pinned to loopback unconditionally to close a pre-existing gap ([ADR 0029](../adr/0029-session-auth-and-generic-network-binding.md)). Depends on F001/F002/F018/F031. |
 | [F037 — Ledger](F037-ledger/spec.md) | Replaces the Transactions and Transfers pages with one Ledger page (`/ledger`): both lists interleaved newest first, month navigator (or custom range), income/expense/net summary, type and account/category/payment-method filters, accent- and case-insensitive text search, and a visual distinction between income, expense and transfer rows; the account detail page's two lists become one read-only month-scoped ledger. New `GET /api/ledger` merging both repositories; a migration enables Postgres `unaccent` ([ADR 0030](../adr/0030-postgres-unaccent-for-accent-insensitive-search.md)). Depends on F004/F005/F027/F036. |
+| [F038 — Investment Opening Position](F038-investment-opening-position/spec.md) | `InvestmentOpeningPosition`: a holding's starting quantity and average unit price (plus an optional current-value snapshot) recorded with no cash movement, counting like a `BUY` dated on its as-of date in cotas held, amount contributed, the value series, freshness and the Investments report; optional section in the create-product form and a card on the product detail page (PRD §5.15, [ADR 0033](../adr/0033-opening-position-as-cashless-holding-start.md)). |
 
 ## Cross-cutting conventions (defined in F001, applied everywhere)
 

@@ -7,6 +7,7 @@
 - [ ] Write tests for `InvestmentSplitAdjustment.adjustedQuantity` (no splits → unchanged; one split after the trade date and on/before `asOf` → multiplied; a split on/before the trade date or after `asOf` → ignored; multiple splits compound; a reverse split's ratio `< 1` divides correctly), then implement.
 - [ ] Write tests for `InvestmentSplitService` (`create` 404s on an unknown product, 400s via `InvalidInvestmentSplitException` on a domain invariant violation and on a future `effectiveDate`; `findByProductId`; `delete` 404s on an unknown id, otherwise unconditional), then implement.
 - [ ] Write tests for `FiiPortfolioQuery.cotasHeld` and `InvestmentValueSeriesQuery`'s `units` against a product with a split: a month before the split shows the true pre-split count, a month at/after shows the true post-split count, the current total matches the series' latest point, then update both queries to use `InvestmentSplitAdjustment`.
+- [ ] If F038 (opening positions) has shipped, also wrap each `InvestmentOpeningPosition`'s `quantity` through `InvestmentSplitAdjustment.adjustedQuantity(...)` with its `asOfDate` as the trade date in `FiiPortfolioQuery` and `InvestmentValueSeriesQuery`, with tests (a split after `asOfDate` multiplies the position, one on or before it does not); if F038 has not shipped, F038's plan carries the mirror item and nothing is done here.
 - [ ] JPA entity, repository, adapter for `InvestmentSplit`; Flyway migration `V23__investment_splits.sql` (table + `CHECK` constraints + `ON DELETE CASCADE`).
 - [ ] REST: `InvestmentSplitController` (`POST`/`GET ?productId=`/`DELETE /{id}`), request/response DTOs, controller tests for the 201/200/204/400/404 cases. Regenerate `frontend/src/api/generated/schema.ts` against a locally run backend.
 - [ ] `DataExportService.writeInvestmentSplits` → `investment_splits.csv`; update `DataExportServiceTest`'s fixed file list/count and `DataExportControllerTest`.
@@ -21,6 +22,7 @@
 ## Verification
 - [ ] Record a 1:10 split on a product with existing buy trades before the split date: `cotasHeld` and the latest `units` series point both reflect the ×10 count; the product's `TradeConfirmationLine` rows are unchanged (query them directly).
 - [ ] Record a 10:1 reverse split: totals divide correctly.
+- [ ] (Only once F038 has shipped) Record an opening position dated before a 1:10 split: `cotasHeld` is ×10; one dated after the split is not multiplied.
 - [ ] Record two splits on the same product at different dates: cumulative ratio compounds correctly for a trade before both.
 - [ ] A trade recorded *after* the split's effective date is not multiplied (already in post-split terms).
 - [ ] Attempt a 1:1 split, a zero/negative unit count, and a future `effectiveDate`: all rejected with `400`.
