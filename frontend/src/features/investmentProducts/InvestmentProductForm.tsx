@@ -16,11 +16,12 @@ import {
 import type { InvestmentSegment } from '../../api/investments/investmentSegments'
 import { FormGrid } from '../../components/feedback/ResponsiveDialog'
 import { translateSeedName } from '../../i18n/seedNames'
+import { relevantInvestmentFields } from './investmentProductFields'
 
 /**
  * What the form collects; an empty `subcategoryId` means "no sub-category", an empty `ticker`
  * means "no ticker", an empty `segmentId` means "no segment" (F026, ADR 0023 - both generalized,
- * usable by any product, even though only the FII page's products set them for v1).
+ * usable by any product; the form only shows them where they are relevant, issue #230).
  */
 export interface InvestmentProductFormValues {
   name: string
@@ -33,7 +34,7 @@ export interface InvestmentProductFormValues {
 
 interface InvestmentProductFormProps {
   categories: InvestmentCategory[]
-  /** Options for the segment select (F026) - generalized, shown for every product. */
+  /** Options for the segment select (F026), shown for FII products. */
   segments: InvestmentSegment[]
   /** Values to start from (the edit case); defaults to an empty form (the add case). */
   initial?: InvestmentProductFormValues
@@ -53,12 +54,14 @@ interface InvestmentProductFormProps {
 
 /**
  * The create/edit form of an investment product (F008 spec): a name, a category, and an optional
- * sub-category, plus an optional ticker and segment (F026, ADR 0023 - generalized fields usable
- * by any product, shown unconditionally here even though only the FII page's products set them
- * for v1). The sub-category select only offers the chosen category's sub-categories, and is reset
- * whenever the category changes - a sub-category always belongs to exactly one category, and the
- * backend rejects a mismatched pair. Some categories (Crypto) have no sub-categories at all; a
- * category-only product is valid.
+ * sub-category, plus an optional ticker and segment (F026, ADR 0023). The ticker shows for
+ * exchange-traded sub-categories and the segment for FIIs only (`relevantInvestmentFields`, issue
+ * #230). A field that holds a stored value stays visible so saving never clears it unseen; a
+ * value typed and then hidden by a sub-category change is kept in state (switching back restores
+ * it) but not submitted. The sub-category select only offers the chosen category's
+ * sub-categories, and is reset whenever the category changes - a sub-category always belongs to
+ * exactly one category, and the backend rejects a mismatched pair. Some categories (Crypto) have
+ * no sub-categories at all; a category-only product is valid.
  */
 export function InvestmentProductForm({
   categories,
@@ -80,6 +83,9 @@ export function InvestmentProductForm({
   const [segmentId, setSegmentId] = useState(initial?.segmentId ?? '')
 
   const subcategories = categories.find((c) => c.id === categoryId)?.subcategories ?? []
+  const relevant = relevantInvestmentFields(categories, categoryId, subcategoryId)
+  const showTicker = relevant.ticker || Boolean(initial?.ticker)
+  const showSegment = relevant.segment || Boolean(initial?.segmentId)
 
   function changeCategory(next: string) {
     setCategoryId(next)
@@ -129,29 +135,33 @@ export function InvestmentProductForm({
           </MenuItem>
         ))}
       </Select>
-      <TextField
-        label={t('investmentProducts:form.tickerLabel')}
-        size="small"
-        value={ticker}
-        onChange={(e) => setTicker(e.target.value)}
-        slotProps={{ htmlInput: { maxLength: INVESTMENT_NAME_MAX_LENGTH } }}
-        sx={dialog ? undefined : { minWidth: 120 }}
-      />
-      <Select
-        size="small"
-        displayEmpty
-        value={segmentId}
-        onChange={(e) => setSegmentId(e.target.value)}
-        aria-label={t('investmentProducts:form.segmentLabel')}
-        sx={dialog ? undefined : { minWidth: 180 }}
-      >
-        <MenuItem value="">{t('investmentProducts:form.noSegmentOption')}</MenuItem>
-        {segments.map((segment) => (
-          <MenuItem key={segment.id} value={segment.id}>
-            {segment.name}
-          </MenuItem>
-        ))}
-      </Select>
+      {showTicker && (
+        <TextField
+          label={t('investmentProducts:form.tickerLabel')}
+          size="small"
+          value={ticker}
+          onChange={(e) => setTicker(e.target.value)}
+          slotProps={{ htmlInput: { maxLength: INVESTMENT_NAME_MAX_LENGTH } }}
+          sx={dialog ? undefined : { minWidth: 120 }}
+        />
+      )}
+      {showSegment && (
+        <Select
+          size="small"
+          displayEmpty
+          value={segmentId}
+          onChange={(e) => setSegmentId(e.target.value)}
+          aria-label={t('investmentProducts:form.segmentLabel')}
+          sx={dialog ? undefined : { minWidth: 180 }}
+        >
+          <MenuItem value="">{t('investmentProducts:form.noSegmentOption')}</MenuItem>
+          {segments.map((segment) => (
+            <MenuItem key={segment.id} value={segment.id}>
+              {segment.name}
+            </MenuItem>
+          ))}
+        </Select>
+      )}
       <TextField
         label={t('investmentProducts:form.notesLabel')}
         size="small"
@@ -173,8 +183,8 @@ export function InvestmentProductForm({
           categoryId,
           subcategoryId,
           additionalNotes: additionalNotes.trim(),
-          ticker: ticker.trim(),
-          segmentId,
+          ticker: showTicker ? ticker.trim() : '',
+          segmentId: showSegment ? segmentId : '',
         })
       }
     >
