@@ -3,6 +3,7 @@ package com.chm.myfinances.infrastructure.web.investmentproduct;
 import com.chm.myfinances.application.investmentproduct.InvestmentProductFilter;
 import com.chm.myfinances.application.investmentproduct.InvestmentProductService;
 import com.chm.myfinances.application.investmentproduct.InvestmentProductStatus;
+import com.chm.myfinances.application.investmentproduct.OpeningPositionInput;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -67,8 +68,10 @@ public class InvestmentProductController {
   @ApiResponse(
       responseCode = "400",
       description =
-          "type: urn:my-finances:error:method-argument-not-valid, carrying an errors[] "
-              + "array of {field, code} with code one of: not-null, not-blank, size",
+          "type: one of urn:my-finances:error:method-argument-not-valid, carrying an errors[] "
+              + "array of {field, code} with code one of: not-null, not-blank, size, positive, "
+              + "positive-or-zero, digits (the openingPosition.* fields included); or "
+              + "urn:my-finances:error:invalid-opening-position (a future openingPosition.asOfDate)",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   @ApiResponse(
       responseCode = "404",
@@ -95,7 +98,20 @@ public class InvestmentProductController {
             request.name(),
             request.additionalNotes(),
             request.ticker(),
-            request.segmentId()));
+            request.segmentId(),
+            toOpeningPositionInput(request)));
+  }
+
+  private static OpeningPositionInput toOpeningPositionInput(
+      CreateInvestmentProductRequest request) {
+    if (request.openingPosition() == null) {
+      return null;
+    }
+    return new OpeningPositionInput(
+        request.openingPosition().asOfDate(),
+        request.openingPosition().quantity(),
+        request.openingPosition().unitPrice(),
+        request.openingPosition().currentValue());
   }
 
   @GetMapping("/{id}")
