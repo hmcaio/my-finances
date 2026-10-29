@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- The fixed investment lists have more entries. FII segments: Fundo de Fundos, Hotel, Agências Bancárias, Educacional and Desenvolvimento. Investment sub-categories: RDB, Tesouro RendA+ and Tesouro Educa+ (Fixed Income); Renda Fixa DI, Crédito Privado, FIDC, FIP and Cambial (Funds); REITs and Funds (International); Bitcoin, Stablecoins and Altcoins (Crypto); Gold (Ouro) (Other). Existing entries are unchanged. (closes [#227](https://github.com/hmcaio/my-finances/issues/227))
+  - Upgrade: a new migration (`V26`) adds the rows on the next start; it only inserts and skips any name already present, so it cannot fail on existing data.
+
 ### Fixed
 
 - Starting or stopping the dev stack can no longer replace or remove a production stack running from another folder that is also called `my-finances`: the dev stack now has its own Compose project name, `my-finances-dev`, instead of taking the folder name. (closes [#216](https://github.com/hmcaio/my-finances/issues/216))

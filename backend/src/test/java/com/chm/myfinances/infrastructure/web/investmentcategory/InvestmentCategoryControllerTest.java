@@ -68,11 +68,12 @@ class InvestmentCategoryControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[?(@.id=='" + id + "')].subcategories[0].name").value("Child A Test"))
         .andExpect(jsonPath("$[?(@.id=='" + id + "')].subcategories[1].name").value("Child B Test"))
-        // The seed: Fixed Income exists and carries CDB; Crypto exists with no sub-categories.
+        // The seed: Fixed Income carries CDB (V13) and RDB (V26); Crypto carries Bitcoin (V26).
         .andExpect(
             jsonPath("$[?(@.name=='Fixed Income')].subcategories[?(@.name=='CDB')]").exists())
-        .andExpect(jsonPath("$[?(@.name=='Crypto')]").exists())
-        .andExpect(jsonPath("$[?(@.name=='Crypto')].subcategories[0]").doesNotExist());
+        .andExpect(
+            jsonPath("$[?(@.name=='Fixed Income')].subcategories[?(@.name=='RDB')]").exists())
+        .andExpect(jsonPath("$[?(@.name=='Crypto')].subcategories[?(@.name=='Bitcoin')]").exists());
   }
 
   @Test

@@ -23,7 +23,7 @@ export type SeedTable =
  * of each of its 8 pre-existing names (Groceries/Rent/Utilities/Subscriptions/Transport/
  * Dining/Health/Salary) need an entry here, reusing the one translation key each already had from
  * the old migration seed - `Record<string, string>` supports two keys sharing one value with no
- * change to the lookup mechanism itself. `investmentSegments` holds V24's nine B3 FII sectors
+ * change to the lookup mechanism itself. `investmentSegments` holds V24's and V26's B3 FII sectors
  * (F034/ADR 0028) - unlike every other table here, every one of its rows is permanently protected
  * (no create/rename/delete endpoint exists at all), so this is the one lookup that can never fall
  * through to the verbatim-name branch.
@@ -113,10 +113,26 @@ const INVESTMENT_SUBCATEGORY_SEED_NAMES: Record<string, string> = {
   VGBL: 'common:seedNames.investmentSubcategories.vgbl',
   Stocks: 'common:seedNames.investmentSubcategories.stocks',
   Bonds: 'common:seedNames.investmentSubcategories.bonds',
+  // V26 (issue #227). International's "REITs" and "Funds" are distinct from "REITs (FIIs)" and the
+  // "Funds" category above (a different table), so the flat lookup still has no collision.
+  RDB: 'common:seedNames.investmentSubcategories.rdb',
+  'Tesouro RendA+': 'common:seedNames.investmentSubcategories.tesouroRendaMais',
+  'Tesouro Educa+': 'common:seedNames.investmentSubcategories.tesouroEducaMais',
+  'Renda Fixa DI': 'common:seedNames.investmentSubcategories.rendaFixaDi',
+  'Crédito Privado': 'common:seedNames.investmentSubcategories.creditoPrivado',
+  FIDC: 'common:seedNames.investmentSubcategories.fidc',
+  FIP: 'common:seedNames.investmentSubcategories.fip',
+  Cambial: 'common:seedNames.investmentSubcategories.cambial',
+  REITs: 'common:seedNames.investmentSubcategories.internationalReits',
+  Funds: 'common:seedNames.investmentSubcategories.internationalFunds',
+  Bitcoin: 'common:seedNames.investmentSubcategories.bitcoin',
+  Stablecoins: 'common:seedNames.investmentSubcategories.stablecoins',
+  Altcoins: 'common:seedNames.investmentSubcategories.altcoins',
+  'Gold (Ouro)': 'common:seedNames.investmentSubcategories.gold',
 }
 
 /**
- * V24's starter investment segments (F034/ADR 0028 - the B3 FII sector list, migration-seeded and
+ * V24's and V26's investment segments (F034/ADR 0028 - the B3 FII sector list, migration-seeded and
  * never user-created/renamed, so every row is always a match here; nothing ever falls through to
  * the verbatim branch).
  */
@@ -129,6 +145,12 @@ const INVESTMENT_SEGMENT_SEED_NAMES: Record<string, string> = {
   Fiagro: 'common:seedNames.investmentSegments.fiagro',
   Hospitalar: 'common:seedNames.investmentSegments.hospitalar',
   Residencial: 'common:seedNames.investmentSegments.residencial',
+  // V26 (issue #227).
+  'Fundo de Fundos': 'common:seedNames.investmentSegments.fundoDeFundos',
+  Hotel: 'common:seedNames.investmentSegments.hotel',
+  'Agências Bancárias': 'common:seedNames.investmentSegments.agenciasBancarias',
+  Educacional: 'common:seedNames.investmentSegments.educacional',
+  Desenvolvimento: 'common:seedNames.investmentSegments.desenvolvimento',
   Outros: 'common:seedNames.investmentSegments.outros',
 }
 

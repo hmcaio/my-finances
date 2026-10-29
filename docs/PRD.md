@@ -198,12 +198,14 @@ Investments live in accounts of type `INVESTMENT` (§5.4) — there is no separa
 
 - `InvestmentCategory`: `id`, `name` — the top level of a two-level, fixed system taxonomy, seeded once by migration and never user-created, renamed or deleted ([ADR 0028](../adr/0028-fixed-taxonomy-values-and-onboarding-seeded-categories.md)): Fixed Income, Variable Income, Funds, Pension (Previdência), International, Crypto, Other.
 - `InvestmentSubcategory`: `id`, `investment_category_id` (fixed by the seed), `name` — the instrument class within a category, same fixed/migration-only treatment as `InvestmentCategory`. Names are unique **per category**, not globally ("ETFs" and "Stocks" exist under both Variable Income and International). Seeded defaults:
-  - Fixed Income: Tesouro Selic, Tesouro IPCA+, Tesouro Prefixado, CDB, LCI, LCA, CRI, CRA, Debentures, Savings (Poupança)
+  - Fixed Income: Tesouro Selic, Tesouro IPCA+, Tesouro Prefixado, CDB, LCI, LCA, CRI, CRA, Debentures, Savings (Poupança), RDB, Tesouro RendA+, Tesouro Educa+
   - Variable Income: Stocks (Ações), REITs (FIIs), ETFs, BDRs
-  - Funds: Fixed Income Funds, Multimercado, Equity Funds
+  - Funds: Fixed Income Funds, Multimercado, Equity Funds, Renda Fixa DI, Crédito Privado, FIDC, FIP, Cambial
   - Pension (Previdência): PGBL, VGBL
-  - International: Stocks, ETFs, Bonds
-  - Crypto and Other have no sub-categories.
+  - International: Stocks, ETFs, Bonds, REITs, Funds
+  - Crypto: Bitcoin, Stablecoins, Altcoins
+  - Other: Gold (Ouro)
+  - Fiagro funds are not a sub-category of their own: they sit under "REITs (FIIs)" (Fiagro is an FII segment, §5.13), which the FII page and the allocation plan select by name.
 - `InvestmentProduct`: `id`, `investment_category_id` (required), `investment_subcategory_id` (optional, and must belong to the chosen category — some categories, like Crypto, have no natural sub-level), `name` (the specific instrument, e.g. "PETR4", "BOVA11", "Tesouro Selic 2029"; unique across all products — one product represents that instrument everywhere it's held), `additional_notes` (optional) — pure taxonomy plus a free-text remark about the instrument itself; no account and no closed date (ADR 0020).
 - `InvestmentHolding`: `id`, `product_id`, `account_id` (an `INVESTMENT` account, open), `closed_date` (nullable), `additional_notes` (optional) — the product as actually held in one account, unique per `(product_id, account_id)`. The same instrument held at two brokers ("Tesouro Selic 2029" at both XP and Nubank) is one `InvestmentProduct` with two holdings, not two products (ADR 0020). A holding is created explicitly ("add this product to this account"), never implicitly by recording a trade.
 - `InvestmentSnapshot`: `id`, `holding_id`, `date`, `balance` (zero or more — `0` is a legitimate value for a liquidated position) — manual value entry per holding, added whenever the user wants to update it, no scheduled cadence. One snapshot per holding per date: entering another for the same date replaces it, which keeps "latest snapshot" unambiguous. A snapshot can also be edited (its date and balance) or deleted afterwards; moving it onto a date that already has one is refused, and so is any edit or delete that would leave a closed holding's latest snapshot non-zero.
@@ -261,7 +263,7 @@ Versioned entities (§5.6, §5.7) log as an `UPDATE` on the logical entity, diff
 
 **InvestmentSegment**
 - `id`
-- `name` — flat, fixed system taxonomy, same treatment as `InvestmentCategory`/`InvestmentSubcategory` (§5.8): seeded once by migration, never user-created, renamed or deleted ([ADR 0028](../adr/0028-fixed-taxonomy-values-and-onboarding-seeded-categories.md)). Orthogonal to the category/sub-category taxonomy: a sub-category like "REITs (FIIs)" is an asset class, a segment is what kind of real estate it holds. Seeded with common B3 FII sectors: Lajes Corporativas, Shoppings, Logística, Papel (Recebíveis), Híbrido, Fiagro, Hospitalar, Residencial, Outros.
+- `name` — flat, fixed system taxonomy, same treatment as `InvestmentCategory`/`InvestmentSubcategory` (§5.8): seeded once by migration, never user-created, renamed or deleted ([ADR 0028](../adr/0028-fixed-taxonomy-values-and-onboarding-seeded-categories.md)). Orthogonal to the category/sub-category taxonomy: a sub-category like "REITs (FIIs)" is an asset class, a segment is what kind of real estate it holds. Seeded with common B3 FII sectors, compared across Fundamentus, Investidor10, Status Invest and ANBIMA: Lajes Corporativas, Shoppings, Logística, Papel (Recebíveis), Híbrido, Fiagro, Hospitalar, Residencial, Fundo de Fundos, Hotel, Agências Bancárias, Educacional, Desenvolvimento, Outros.
 
 **InvestmentProduct gains** (§5.8) — generalized beyond FIIs, so a future ticker-based asset (stocks, ETFs) reuses the same fields without a migration, even though the FII page (§6.13) is the only UI that manages them for v1:
 - `ticker` (optional, e.g. "KNRI11") — distinct from `name`, which stays the descriptive label (e.g. "Kinea Renda Imobiliária").

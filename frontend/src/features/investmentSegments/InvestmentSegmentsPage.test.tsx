@@ -9,7 +9,7 @@ import { InvestmentSegmentsPage } from './InvestmentSegmentsPage'
 
 /**
  * F034/ADR 0028: InvestmentSegmentsPage lost every mutation affordance - every row is now fixed,
- * migration-seeded content (the nine B3 FII sectors). This replaces the old `describeSettingsPage`
+ * migration-seeded content (the B3 FII sectors). This replaces the old `describeSettingsPage`
  * CRUD contract with a plain read-only check plus the shared load-state cases.
  *
  * Unlike the other taxonomy fixtures (category/payment-method/institution seed names, which are

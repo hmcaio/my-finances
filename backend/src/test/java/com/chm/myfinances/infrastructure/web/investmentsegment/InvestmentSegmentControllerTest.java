@@ -27,7 +27,7 @@ import org.springframework.web.context.WebApplicationContext;
  * Testcontainers Postgres (ADR 0010), hand-built {@link MockMvc} (F026 spec).
  *
  * <p>F034/ADR 0028: {@code create}/{@code rename}/{@code delete} were removed - every row is now
- * fixed, migration-seeded content (the nine seeded B3 FII sectors), reachable only by {@code GET}.
+ * fixed, migration-seeded content (the seeded B3 FII sectors), reachable only by {@code GET}.
  */
 @WebIntegrationTest
 class InvestmentSegmentControllerTest {
@@ -52,6 +52,7 @@ class InvestmentSegmentControllerTest {
         .andExpect(jsonPath("$[?(@.name=='Shoppings')]").exists())
         .andExpect(jsonPath("$[?(@.name=='Logística')]").exists())
         .andExpect(jsonPath("$[?(@.name=='Lajes Corporativas')]").exists())
+        .andExpect(jsonPath("$[?(@.name=='Fundo de Fundos')]").exists())
         .andExpect(jsonPath("$[?(@.name=='Outros')]").exists());
   }
 
