@@ -12,6 +12,7 @@ import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
+import com.chm.myfinances.domain.investmentopeningposition.InvestmentOpeningPositionRepository;
 import com.chm.myfinances.domain.shared.IdGenerator;
 import com.chm.myfinances.domain.transfer.TradeConfirmation;
 import com.chm.myfinances.domain.transfer.TradeConfirmationLine;
@@ -63,6 +64,7 @@ public class TransferService {
   private final TransferRepository transferRepository;
   private final AccountRepository accountRepository;
   private final InvestmentHoldingRepository holdingRepository;
+  private final InvestmentOpeningPositionRepository openingPositionRepository;
   private final InvestmentSnapshotService snapshotService;
   private final InvestmentHoldingService holdingService;
   private final IdGenerator idGenerator;
@@ -72,6 +74,7 @@ public class TransferService {
       TransferRepository transferRepository,
       AccountRepository accountRepository,
       InvestmentHoldingRepository holdingRepository,
+      InvestmentOpeningPositionRepository openingPositionRepository,
       InvestmentSnapshotService snapshotService,
       InvestmentHoldingService holdingService,
       IdGenerator idGenerator,
@@ -79,6 +82,7 @@ public class TransferService {
     this.transferRepository = transferRepository;
     this.accountRepository = accountRepository;
     this.holdingRepository = holdingRepository;
+    this.openingPositionRepository = openingPositionRepository;
     this.snapshotService = snapshotService;
     this.holdingService = holdingService;
     this.idGenerator = idGenerator;
@@ -133,7 +137,8 @@ public class TransferService {
     Account investmentAccount = requireOpenAccount(investmentAccountId);
     requireInvestmentShape(cashAccount, investmentAccount);
     TradeConfirmation confirmation = toConfirmation(lines);
-    Map<UUID, InvestmentHolding> holdings = requireValidHoldings(confirmation, investmentAccount);
+    Map<UUID, InvestmentHolding> holdings =
+        requireValidHoldings(confirmation, investmentAccount, date);
 
     Transfer transfer =
         createTransfer(
@@ -240,7 +245,8 @@ public class TransferService {
     Account investmentAccount = requireOpenAccount(investmentAccountId);
     requireInvestmentShape(cashAccount, investmentAccount);
     TradeConfirmation confirmation = toConfirmation(lines);
-    Map<UUID, InvestmentHolding> holdings = requireValidHoldings(confirmation, investmentAccount);
+    Map<UUID, InvestmentHolding> holdings =
+        requireValidHoldings(confirmation, investmentAccount, date);
 
     try {
       transfer.editTradeConfirmation(
@@ -378,13 +384,28 @@ public class TransferService {
    * InvestmentHolding} at {@code investmentAccount} (404 if no such holding, 409 if closed).
    * Returns the resolved holdings by product id so {@link #applyLineEffects} doesn't look them up
    * again.
+   *
+   * <p>F038 (ADR 0033): a holding whose opening position is dated after the transfer's {@code date}
+   * rejects the trade (409, {@link TradeBeforeOpeningPositionException}) - the position is the
+   * start of the holding's tracked history, so an earlier trade would double-count cotas. The same
+   * day is allowed. The other direction (a position after existing trades) lives in {@code
+   * InvestmentOpeningPositionService}.
    */
   private Map<UUID, InvestmentHolding> requireValidHoldings(
-      TradeConfirmation confirmation, Account investmentAccount) {
+      TradeConfirmation confirmation, Account investmentAccount, LocalDate date) {
     Map<UUID, InvestmentHolding> holdings = new LinkedHashMap<>();
     for (TradeConfirmationLine line : confirmation.getLines()) {
       holdings.computeIfAbsent(
           line.productId(), productId -> resolveOpenHolding(productId, investmentAccount));
+    }
+    for (InvestmentHolding holding : holdings.values()) {
+      openingPositionRepository
+          .findByHoldingId(holding.getId())
+          .filter(position -> position.getAsOfDate().isAfter(date))
+          .ifPresent(
+              position -> {
+                throw new TradeBeforeOpeningPositionException(holding.getId());
+              });
     }
     return holdings;
   }

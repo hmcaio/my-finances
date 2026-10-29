@@ -12,6 +12,7 @@ import com.chm.myfinances.application.investmentsnapshot.InvestmentSnapshotServi
 import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
 import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
+import com.chm.myfinances.domain.investmentopeningposition.InvestmentOpeningPosition;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.transfer.TradeConfirmationLine;
@@ -21,6 +22,7 @@ import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
 import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentOpeningPositionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
 import com.chm.myfinances.testsupport.fakes.FakeTransferRepository;
@@ -57,6 +59,8 @@ class TransferServiceInvestmentTest {
       new FakeInvestmentHoldingRepository();
   private final FakeInvestmentSnapshotRepository snapshotRepository =
       new FakeInvestmentSnapshotRepository();
+  private final FakeInvestmentOpeningPositionRepository positionRepository =
+      new FakeInvestmentOpeningPositionRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
   private final FakeAuditLog auditLog = new FakeAuditLog();
   private final TransferService service =
@@ -64,6 +68,7 @@ class TransferServiceInvestmentTest {
           transferRepository,
           accountRepository,
           holdingRepository,
+          positionRepository,
           new InvestmentSnapshotService(
               snapshotRepository,
               holdingRepository,
@@ -508,5 +513,97 @@ class TransferServiceInvestmentTest {
         .singleElement()
         .satisfies(s -> assertThat(s.getBalance()).isEqualByComparingTo("500.00"));
     assertThat(atBroker.getId()).isNotEqualTo(atOtherBroker.getId());
+  }
+
+  // --- F038: date order against the holding's opening position ---------------------------------
+
+  private void givenOpeningPositionOn(InvestmentHolding target, LocalDate asOf) {
+    positionRepository.save(
+        InvestmentOpeningPosition.create(
+            UUID.randomUUID(), target.getId(), asOf, BigDecimal.TEN, BigDecimal.ONE));
+  }
+
+  @Test
+  void createTradeConfirmationRejectsALineDatedBeforeTheHoldingsOpeningPosition() {
+    givenOpeningPositionOn(holding, DATE.plusDays(1));
+
+    assertThatThrownBy(() -> createWith(List.of(buyLine(product.getId(), "1", "10.00"))))
+        .isInstanceOf(TradeBeforeOpeningPositionException.class);
+    assertThat(transferRepository.findAll()).isEmpty();
+  }
+
+  @Test
+  void createTradeConfirmationAcceptsTheSameDayAsTheOpeningPositionAndAnyLaterDate() {
+    givenOpeningPositionOn(holding, DATE);
+
+    assertThat(createWith(List.of(buyLine(product.getId(), "1", "10.00")))).isNotNull();
+    assertThat(
+            service.createTradeConfirmation(
+                DATE.plusMonths(1),
+                checking.getId(),
+                broker.getId(),
+                "Later",
+                null,
+                BigDecimal.ZERO,
+                List.of(buyLine(product.getId(), "1", "10.00"))))
+        .isNotNull();
+  }
+
+  @Test
+  void createTradeConfirmationIgnoresHoldingsWithoutAPositionAndPositionsOfOtherHoldings() {
+    givenOpeningPositionOn(otherHolding, DATE.plusDays(30));
+
+    assertThat(createWith(List.of(buyLine(product.getId(), "1", "10.00")))).isNotNull();
+  }
+
+  @Test
+  void createTradeConfirmationRejectsWhenAnyLinesHoldingHasALaterPosition() {
+    givenOpeningPositionOn(otherHolding, DATE.plusDays(1));
+
+    assertThatThrownBy(
+            () ->
+                createWith(
+                    List.of(
+                        buyLine(product.getId(), "1", "10.00"),
+                        buyLine(otherProduct.getId(), "1", "10.00"))))
+        .isInstanceOf(TradeBeforeOpeningPositionException.class);
+  }
+
+  @Test
+  void editTradeConfirmationRejectsMovingTheTradeBeforeTheOpeningPosition() {
+    givenOpeningPositionOn(holding, DATE);
+    Transfer created = createWith(List.of(buyLine(product.getId(), "1", "10.00")));
+
+    assertThatThrownBy(
+            () ->
+                service.editTradeConfirmation(
+                    created.getId(),
+                    DATE.minusDays(1),
+                    checking.getId(),
+                    broker.getId(),
+                    "Moved",
+                    null,
+                    BigDecimal.ZERO,
+                    List.of(buyLine(product.getId(), "1", "10.00"))))
+        .isInstanceOf(TradeBeforeOpeningPositionException.class);
+  }
+
+  @Test
+  void editTradeConfirmationAcceptsTheSameDayAndALaterDate() {
+    givenOpeningPositionOn(holding, DATE);
+    Transfer created = createWith(List.of(buyLine(product.getId(), "1", "10.00")));
+
+    Transfer edited =
+        service.editTradeConfirmation(
+            created.getId(),
+            DATE.plusDays(5),
+            checking.getId(),
+            broker.getId(),
+            "Moved",
+            null,
+            BigDecimal.ZERO,
+            List.of(buyLine(product.getId(), "1", "10.00")));
+
+    assertThat(edited.getDate()).isEqualTo(DATE.plusDays(5));
   }
 }
