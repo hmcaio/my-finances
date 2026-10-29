@@ -28,10 +28,12 @@ import {
 } from '../../api/recurringTemplates/recurringTemplatesQueries'
 import { defaultErrorMessage } from '../../api/core/apiError'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
+import { AddFormDialog } from '../../components/feedback/AddFormDialog'
 import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
 import { InlineEditActions } from '../../components/table/InlineEditActions'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
+import { useAddDialog } from '../../hooks/useAddDialog'
 import { useIsMobile } from '../../hooks/useBreakpointBand'
 import { useLocale } from '../../hooks/locale/useLocale'
 import { formatMoney } from '../../i18n/format'
@@ -88,9 +90,10 @@ export function RecurringTemplatesPage() {
   const stopMutation = useStopRecurringTemplate()
   const reactivateMutation = useReactivateRecurringTemplate()
 
-  const [createForm, setCreateForm] = useState(EMPTY_CREATE_FORM)
+  const addDialog = useAddDialog(EMPTY_CREATE_FORM)
+  const createForm = addDialog.draft
+  const setCreateForm = addDialog.setDraft
   const [creating, setCreating] = useState(false)
-  const [addDialogOpen, setAddDialogOpen] = useState(false)
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editAmount, setEditAmount] = useState('')
@@ -128,8 +131,7 @@ export function RecurringTemplatesPage() {
   }
 
   function closeAddDialog() {
-    setAddDialogOpen(false)
-    setCreateForm(EMPTY_CREATE_FORM)
+    addDialog.close()
     setError(null)
   }
 
@@ -146,8 +148,7 @@ export function RecurringTemplatesPage() {
         dayOfMonth: Number(createForm.dayOfMonth),
         effectiveFrom: currentMonth(),
       })
-      setCreateForm(EMPTY_CREATE_FORM)
-      setAddDialogOpen(false)
+      addDialog.close()
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {
@@ -359,7 +360,7 @@ export function RecurringTemplatesPage() {
         <Typography variant="h4" component="h1">
           {t('recurringTemplates:title')}
         </Typography>
-        <Button variant="contained" onClick={() => setAddDialogOpen(true)}>
+        <Button variant="contained" onClick={addDialog.show}>
           {t('recurringTemplates:addButton')}
         </Button>
       </Box>
@@ -369,7 +370,7 @@ export function RecurringTemplatesPage() {
 
       {/* While a dialog is open a save error shows inside it: this one sits behind it. */}
       <ErrorAlert
-        message={addDialogOpen || editDialogOpen ? null : error}
+        message={addDialog.isOpen || editDialogOpen ? null : error}
         onDismiss={() => setError(null)}
       />
 
@@ -387,86 +388,73 @@ export function RecurringTemplatesPage() {
         />
       </Box>
 
-      <ResponsiveDialog open={addDialogOpen} onClose={closeAddDialog}>
-        <DialogTitle>{t('recurringTemplates:addDialogTitle')}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 1 }}>
-            <ErrorAlert message={error} onDismiss={() => setError(null)} />
-            <FormGrid>
-              <Select
-                size="small"
-                displayEmpty
-                value={createForm.categoryId}
-                onChange={(e) => setCreateForm((prev) => ({ ...prev, categoryId: e.target.value }))}
-                aria-label={t('recurringTemplates:categoryLabel')}
-              >
-                <MenuItem value="" disabled>
-                  {t('recurringTemplates:categoryLabel')}
-                </MenuItem>
-                {templateCategories.map((c) => (
-                  <MenuItem key={c.id} value={c.id}>
-                    {translateSeedName('categories', c.name, t)}
-                  </MenuItem>
-                ))}
-              </Select>
-              <Select
-                size="small"
-                displayEmpty
-                value={createForm.accountId}
-                onChange={(e) => setCreateForm((prev) => ({ ...prev, accountId: e.target.value }))}
-                aria-label={t('recurringTemplates:accountLabel')}
-              >
-                <MenuItem value="" disabled>
-                  {t('recurringTemplates:accountLabel')}
-                </MenuItem>
-                {templateAccounts.map((a) => (
-                  <MenuItem key={a.id} value={a.id}>
-                    {a.name}
-                  </MenuItem>
-                ))}
-              </Select>
-              <TextField
-                label={t('recurringTemplates:descriptionLabel')}
-                size="small"
-                value={createForm.description}
-                onChange={(e) =>
-                  setCreateForm((prev) => ({ ...prev, description: e.target.value }))
-                }
-                slotProps={{ htmlInput: { maxLength: 150 } }}
-                sx={{ gridColumn: '1 / -1' }}
-              />
-              <TextField
-                label={t('recurringTemplates:amountLabel')}
-                type="number"
-                size="small"
-                value={createForm.amount}
-                onChange={(e) => setCreateForm((prev) => ({ ...prev, amount: e.target.value }))}
-                slotProps={{ htmlInput: { step: '0.01', min: '0.01' } }}
-              />
-              <TextField
-                label={t('recurringTemplates:dayOfMonthLabel')}
-                type="number"
-                size="small"
-                value={createForm.dayOfMonth}
-                onChange={(e) => setCreateForm((prev) => ({ ...prev, dayOfMonth: e.target.value }))}
-                slotProps={{ htmlInput: { min: 1, max: 31 } }}
-              />
-            </FormGrid>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={closeAddDialog} disabled={creating}>
-            {t('common:actions.cancel')}
-          </Button>
-          <Button
-            variant="contained"
-            disabled={creating || !isCreateFormValid()}
-            onClick={() => void handleCreate()}
-          >
-            {t('common:actions.add')}
-          </Button>
-        </DialogActions>
-      </ResponsiveDialog>
+      <AddFormDialog
+        open={addDialog.isOpen}
+        title={t('recurringTemplates:addDialogTitle')}
+        error={error}
+        onDismissError={() => setError(null)}
+        busy={creating}
+        canSubmit={isCreateFormValid()}
+        onSubmit={() => void handleCreate()}
+        onCancel={closeAddDialog}
+      >
+        <Select
+          size="small"
+          displayEmpty
+          value={createForm.categoryId}
+          onChange={(e) => setCreateForm((prev) => ({ ...prev, categoryId: e.target.value }))}
+          aria-label={t('recurringTemplates:categoryLabel')}
+        >
+          <MenuItem value="" disabled>
+            {t('recurringTemplates:categoryLabel')}
+          </MenuItem>
+          {templateCategories.map((c) => (
+            <MenuItem key={c.id} value={c.id}>
+              {translateSeedName('categories', c.name, t)}
+            </MenuItem>
+          ))}
+        </Select>
+        <Select
+          size="small"
+          displayEmpty
+          value={createForm.accountId}
+          onChange={(e) => setCreateForm((prev) => ({ ...prev, accountId: e.target.value }))}
+          aria-label={t('recurringTemplates:accountLabel')}
+        >
+          <MenuItem value="" disabled>
+            {t('recurringTemplates:accountLabel')}
+          </MenuItem>
+          {templateAccounts.map((a) => (
+            <MenuItem key={a.id} value={a.id}>
+              {a.name}
+            </MenuItem>
+          ))}
+        </Select>
+        <TextField
+          label={t('recurringTemplates:descriptionLabel')}
+          size="small"
+          value={createForm.description}
+          onChange={(e) => setCreateForm((prev) => ({ ...prev, description: e.target.value }))}
+          slotProps={{ htmlInput: { maxLength: 150 } }}
+          sx={{ gridColumn: '1 / -1' }}
+        />
+        <TextField
+          label={t('recurringTemplates:amountLabel')}
+          type="number"
+          size="small"
+          value={createForm.amount}
+          onChange={(e) => setCreateForm((prev) => ({ ...prev, amount: e.target.value }))}
+          slotProps={{ htmlInput: { step: '0.01', min: '0.01' } }}
+        />
+        <TextField
+          label={t('recurringTemplates:dayOfMonthLabel')}
+          type="number"
+          size="small"
+          value={createForm.dayOfMonth}
+          onChange={(e) => setCreateForm((prev) => ({ ...prev, dayOfMonth: e.target.value }))}
+          slotProps={{ htmlInput: { min: 1, max: 31 } }}
+        />
+      </AddFormDialog>
 
       <ResponsiveDialog open={editDialogOpen} onClose={savingCap ? undefined : cancelEditCap}>
         <DialogTitle>{t('recurringTemplates:editDialogTitle')}</DialogTitle>

@@ -3,9 +3,6 @@ import { useTranslation } from 'react-i18next'
 import {
   Box,
   Button,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   IconButton,
   Paper,
   Table,
@@ -26,9 +23,10 @@ import {
 } from '../../api/vehicles/vehiclesQueries'
 import { defaultErrorMessage } from '../../api/core/apiError'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
-import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
+import { AddFormDialog } from '../../components/feedback/AddFormDialog'
 import { InlineEditActions } from '../../components/table/InlineEditActions'
 import { DataTableBody } from '../../components/table/DataTableBody'
+import { useAddDialog } from '../../hooks/useAddDialog'
 import { useQueryState } from '../../hooks/queryState'
 
 /**
@@ -52,26 +50,23 @@ export function VehiclesPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
 
-  const [newName, setNewName] = useState('')
   const [adding, setAdding] = useState(false)
-  const [addDialogOpen, setAddDialogOpen] = useState(false)
+  const addDialog = useAddDialog('')
 
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
 
   function closeAddDialog() {
-    setAddDialogOpen(false)
-    setNewName('')
+    addDialog.close()
     setError(null)
   }
 
   async function handleAdd() {
-    if (!newName.trim()) return
+    if (!addDialog.draft.trim()) return
     setError(null)
     setAdding(true)
     try {
-      await createMutation.mutateAsync({ name: newName.trim() })
-      setNewName('')
-      setAddDialogOpen(false)
+      await createMutation.mutateAsync({ name: addDialog.draft.trim() })
+      addDialog.close()
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {
@@ -132,7 +127,7 @@ export function VehiclesPage() {
         <Typography variant="h4" component="h1">
           {t('vehicles:title')}
         </Typography>
-        <Button variant="contained" onClick={() => setAddDialogOpen(true)}>
+        <Button variant="contained" onClick={addDialog.show}>
           {t('vehicles:addButton')}
         </Button>
       </Box>
@@ -141,7 +136,7 @@ export function VehiclesPage() {
       </Typography>
 
       {/* While the add dialog is open a save error shows inside it: this one sits behind it. */}
-      <ErrorAlert message={addDialogOpen ? null : error} onDismiss={() => setError(null)} />
+      <ErrorAlert message={addDialog.isOpen ? null : error} onDismiss={() => setError(null)} />
 
       <Paper variant="outlined" sx={{ mb: 3 }}>
         <TableContainer>
@@ -205,39 +200,29 @@ export function VehiclesPage() {
         </TableContainer>
       </Paper>
 
-      <ResponsiveDialog open={addDialogOpen} onClose={closeAddDialog}>
-        <DialogTitle>{t('vehicles:addDialogTitle')}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 1 }}>
-            <ErrorAlert message={error} onDismiss={() => setError(null)} />
-            <FormGrid columns={1}>
-              <TextField
-                label={t('common:actions.name')}
-                size="small"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                slotProps={{ htmlInput: { maxLength: VEHICLE_NAME_MAX_LENGTH } }}
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') void handleAdd()
-                }}
-              />
-            </FormGrid>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={closeAddDialog} disabled={adding}>
-            {t('common:actions.cancel')}
-          </Button>
-          <Button
-            variant="contained"
-            disabled={adding || !newName.trim()}
-            onClick={() => void handleAdd()}
-          >
-            {t('common:actions.add')}
-          </Button>
-        </DialogActions>
-      </ResponsiveDialog>
+      <AddFormDialog
+        open={addDialog.isOpen}
+        title={t('vehicles:addDialogTitle')}
+        error={error}
+        onDismissError={() => setError(null)}
+        busy={adding}
+        canSubmit={!!addDialog.draft.trim()}
+        columns={1}
+        onSubmit={() => void handleAdd()}
+        onCancel={closeAddDialog}
+      >
+        <TextField
+          label={t('common:actions.name')}
+          size="small"
+          value={addDialog.draft}
+          onChange={(e) => addDialog.setDraft(e.target.value)}
+          slotProps={{ htmlInput: { maxLength: VEHICLE_NAME_MAX_LENGTH } }}
+          autoFocus
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') void handleAdd()
+          }}
+        />
+      </AddFormDialog>
     </Box>
   )
 }

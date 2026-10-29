@@ -5,7 +5,7 @@ Read when adding a route, a feature folder, an API area or a shared module, or w
 ## Layout
 
 - `src/api`: one folder per area, `src/api/<area>/`, holding the typed HTTP client `<area>.ts` and its sibling `<area>Queries.ts` with the TanStack Query key factory and hooks, plus their tests. The investment modules (categories, sub-categories, products, holdings, snapshots, allocation, value series, segments, allocation plan, FII allocation/dividends/portfolio, trade confirmation lines) share `src/api/investments/`. `src/api/core/` holds the shared plumbing: `client`, `apiError`, `queryClient`, `schemaDrift`. Generated types are in `src/api/generated/`.
-- `src/components`: shared UI, grouped by role. `feedback/` for `ErrorAlert`, `ErrorBoundary`, `LoadFailedNotice`, `ConfirmDialog`, `fadeIn`; `table/` for `DataTableBody`, `PaginationControls`, `InlineEditActions`; `layout/` for `Layout`; `inputs/` for `MonthPicker` and `MonthNavigator`. Usage notes: [frontend-components.md](frontend-components.md).
+- `src/components`: shared UI, grouped by role. `feedback/` for `ErrorAlert`, `ErrorBoundary`, `LoadFailedNotice`, `ConfirmDialog`, `AddFormDialog`, `fadeIn`; `table/` for `DataTableBody`, `PaginationControls`, `InlineEditActions`; `layout/` for `Layout`; `inputs/` for `MonthPicker` and `MonthNavigator`. Usage notes: [frontend-components.md](frontend-components.md).
 - `src/features/<area>`: one folder per feature area, mapping to a route.
 - `src/hooks`: `queryState` (the query-result adapter), `useHasAccounts`, `useDelayedFlag`, `colorMode/` for the provider and `useColorMode`.
 - `src/utils`: framework-free helpers shared across features, e.g. `nameLookup`.

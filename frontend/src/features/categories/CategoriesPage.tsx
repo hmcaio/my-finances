@@ -4,9 +4,6 @@ import {
   Box,
   Button,
   Chip,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   IconButton,
   MenuItem,
   Paper,
@@ -34,9 +31,10 @@ import {
 } from '../../api/categories/categoriesQueries'
 import { defaultErrorMessage } from '../../api/core/apiError'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
-import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
+import { AddFormDialog } from '../../components/feedback/AddFormDialog'
 import { InlineEditActions } from '../../components/table/InlineEditActions'
 import { DataTableBody } from '../../components/table/DataTableBody'
+import { useAddDialog } from '../../hooks/useAddDialog'
 import { useQueryState } from '../../hooks/queryState'
 import { translateSeedName } from '../../i18n/seedNames'
 import { sortCategories } from './sortCategories'
@@ -71,28 +69,29 @@ export function CategoriesPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
 
-  const [newName, setNewName] = useState('')
-  const [newType, setNewType] = useState<CategoryType>('EXPENSE')
   const [adding, setAdding] = useState(false)
-  const [addDialogOpen, setAddDialogOpen] = useState(false)
+  const addDialog = useAddDialog<{ name: string; type: CategoryType }>({
+    name: '',
+    type: 'EXPENSE',
+  })
 
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
 
   function closeAddDialog() {
-    setAddDialogOpen(false)
-    setNewName('')
-    setNewType('EXPENSE')
+    addDialog.close()
     setError(null)
   }
 
   async function handleAdd() {
-    if (!newName.trim()) return
+    if (!addDialog.draft.name.trim()) return
     setError(null)
     setAdding(true)
     try {
-      await createMutation.mutateAsync({ name: newName.trim(), type: newType })
-      setNewName('')
-      setAddDialogOpen(false)
+      await createMutation.mutateAsync({
+        name: addDialog.draft.name.trim(),
+        type: addDialog.draft.type,
+      })
+      addDialog.close()
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {
@@ -153,7 +152,7 @@ export function CategoriesPage() {
         <Typography variant="h4" component="h1">
           {t('categories:title')}
         </Typography>
-        <Button variant="contained" onClick={() => setAddDialogOpen(true)}>
+        <Button variant="contained" onClick={addDialog.show}>
           {t('categories:addButton')}
         </Button>
       </Box>
@@ -162,7 +161,7 @@ export function CategoriesPage() {
       </Typography>
 
       {/* While the add dialog is open a save error shows inside it: this one sits behind it. */}
-      <ErrorAlert message={addDialogOpen ? null : error} onDismiss={() => setError(null)} />
+      <ErrorAlert message={addDialog.isOpen ? null : error} onDismiss={() => setError(null)} />
 
       <Paper variant="outlined" sx={{ mb: 3 }}>
         <TableContainer>
@@ -249,47 +248,38 @@ export function CategoriesPage() {
         </TableContainer>
       </Paper>
 
-      <ResponsiveDialog open={addDialogOpen} onClose={closeAddDialog}>
-        <DialogTitle>{t('categories:addDialogTitle')}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 1 }}>
-            <ErrorAlert message={error} onDismiss={() => setError(null)} />
-            <FormGrid>
-              <TextField
-                label={t('common:actions.name')}
-                size="small"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                slotProps={{ htmlInput: { maxLength: CATEGORY_NAME_MAX_LENGTH } }}
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') void handleAdd()
-                }}
-              />
-              <Select
-                size="small"
-                value={newType}
-                onChange={(e) => setNewType(e.target.value as CategoryType)}
-              >
-                <MenuItem value="EXPENSE">{t('categories:typeExpense')}</MenuItem>
-                <MenuItem value="INCOME">{t('categories:typeIncome')}</MenuItem>
-              </Select>
-            </FormGrid>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={closeAddDialog} disabled={adding}>
-            {t('common:actions.cancel')}
-          </Button>
-          <Button
-            variant="contained"
-            disabled={adding || !newName.trim()}
-            onClick={() => void handleAdd()}
-          >
-            {t('common:actions.add')}
-          </Button>
-        </DialogActions>
-      </ResponsiveDialog>
+      <AddFormDialog
+        open={addDialog.isOpen}
+        title={t('categories:addDialogTitle')}
+        error={error}
+        onDismissError={() => setError(null)}
+        busy={adding}
+        canSubmit={!!addDialog.draft.name.trim()}
+        onSubmit={() => void handleAdd()}
+        onCancel={closeAddDialog}
+      >
+        <TextField
+          label={t('common:actions.name')}
+          size="small"
+          value={addDialog.draft.name}
+          onChange={(e) => addDialog.setDraft((prev) => ({ ...prev, name: e.target.value }))}
+          slotProps={{ htmlInput: { maxLength: CATEGORY_NAME_MAX_LENGTH } }}
+          autoFocus
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') void handleAdd()
+          }}
+        />
+        <Select
+          size="small"
+          value={addDialog.draft.type}
+          onChange={(e) =>
+            addDialog.setDraft((prev) => ({ ...prev, type: e.target.value as CategoryType }))
+          }
+        >
+          <MenuItem value="EXPENSE">{t('categories:typeExpense')}</MenuItem>
+          <MenuItem value="INCOME">{t('categories:typeIncome')}</MenuItem>
+        </Select>
+      </AddFormDialog>
     </Box>
   )
 }

@@ -24,11 +24,13 @@ import {
 import { defaultErrorMessage } from '../../api/core/apiError'
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
+import { AddFormDialog } from '../../components/feedback/AddFormDialog'
 import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
 import { MonthPicker } from '../../components/inputs/MonthPicker'
 import { InlineEditActions } from '../../components/table/InlineEditActions'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
+import { useAddDialog } from '../../hooks/useAddDialog'
 import { useIsMobile } from '../../hooks/useBreakpointBand'
 import { currentMonth } from '../../utils/localDate'
 import { useLocale } from '../../hooks/locale/useLocale'
@@ -71,10 +73,8 @@ export function BudgetsPage() {
   const capMutation = useSetBudgetCap()
   const stopMutation = useStopBudget()
 
-  const [newCategoryId, setNewCategoryId] = useState('')
-  const [newCap, setNewCap] = useState('')
   const [adding, setAdding] = useState(false)
-  const [addDialogOpen, setAddDialogOpen] = useState(false)
+  const addDialog = useAddDialog({ categoryId: '', cap: '' })
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingCap, setEditingCap] = useState('')
@@ -96,25 +96,21 @@ export function BudgetsPage() {
   }, [categories, budgets])
 
   function closeAddDialog() {
-    setAddDialogOpen(false)
-    setNewCategoryId('')
-    setNewCap('')
+    addDialog.close()
     setError(null)
   }
 
   async function handleAdd() {
-    if (!newCategoryId || !isBudgetCapValid(newCap)) return
+    if (!addDialog.draft.categoryId || !isBudgetCapValid(addDialog.draft.cap)) return
     setError(null)
     setAdding(true)
     try {
       await createMutation.mutateAsync({
-        categoryId: newCategoryId,
-        monthlyCap: Number(newCap),
+        categoryId: addDialog.draft.categoryId,
+        monthlyCap: Number(addDialog.draft.cap),
         effectiveFrom: currentMonth(),
       })
-      setNewCategoryId('')
-      setNewCap('')
-      setAddDialogOpen(false)
+      addDialog.close()
     } catch (err) {
       setError(defaultErrorMessage(err))
     } finally {
@@ -250,7 +246,7 @@ export function BudgetsPage() {
         <Typography variant="h4" component="h1">
           {t('budgets:title')}
         </Typography>
-        <Button variant="contained" onClick={() => setAddDialogOpen(true)}>
+        <Button variant="contained" onClick={addDialog.show}>
           {t('budgets:addButton')}
         </Button>
       </Box>
@@ -260,7 +256,7 @@ export function BudgetsPage() {
 
       {/* While a dialog is open a save error shows inside it: this one sits behind it. */}
       <ErrorAlert
-        message={addDialogOpen || editDialogOpen ? null : error}
+        message={addDialog.isOpen || editDialogOpen ? null : error}
         onDismiss={() => setError(null)}
       />
 
@@ -277,57 +273,50 @@ export function BudgetsPage() {
         />
       </Box>
 
-      <ResponsiveDialog open={addDialogOpen} onClose={closeAddDialog}>
-        <DialogTitle>{t('budgets:addDialogTitle')}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 1 }}>
-            <ErrorAlert message={error} onDismiss={() => setError(null)} />
-            <FormGrid>
-              <Select
-                size="small"
-                displayEmpty
-                value={newCategoryId}
-                onChange={(e) => setNewCategoryId(e.target.value)}
-                aria-label={t('budgets:categoryLabel')}
-              >
-                <MenuItem value="" disabled>
-                  {t('budgets:categoryLabel')}
-                </MenuItem>
-                {unbudgetedExpenseCategories.map((c) => (
-                  <MenuItem key={c.id} value={c.id}>
-                    {translateSeedName('categories', c.name, t)}
-                  </MenuItem>
-                ))}
-              </Select>
-              <TextField
-                label={t('budgets:monthlyCapLabel')}
-                type="number"
-                size="small"
-                value={newCap}
-                onChange={(e) => setNewCap(e.target.value)}
-                slotProps={{ htmlInput: { step: '0.01', min: '0.01' } }}
-              />
-            </FormGrid>
+      <AddFormDialog
+        open={addDialog.isOpen}
+        title={t('budgets:addDialogTitle')}
+        error={error}
+        onDismissError={() => setError(null)}
+        busy={adding}
+        canSubmit={addDialog.draft.categoryId !== '' && isBudgetCapValid(addDialog.draft.cap)}
+        onSubmit={() => void handleAdd()}
+        onCancel={closeAddDialog}
+        afterFields={
+          <>
             {unbudgetedExpenseCategories.length === 0 && categories !== undefined && (
               <Typography color="text.secondary" variant="body2" sx={{ mt: 1 }}>
                 {t('budgets:everyExpenseBudgeted')}
               </Typography>
             )}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={closeAddDialog} disabled={adding}>
-            {t('common:actions.cancel')}
-          </Button>
-          <Button
-            variant="contained"
-            disabled={adding || !newCategoryId || !isBudgetCapValid(newCap)}
-            onClick={() => void handleAdd()}
-          >
-            {t('common:actions.add')}
-          </Button>
-        </DialogActions>
-      </ResponsiveDialog>
+          </>
+        }
+      >
+        <Select
+          size="small"
+          displayEmpty
+          value={addDialog.draft.categoryId}
+          onChange={(e) => addDialog.setDraft((prev) => ({ ...prev, categoryId: e.target.value }))}
+          aria-label={t('budgets:categoryLabel')}
+        >
+          <MenuItem value="" disabled>
+            {t('budgets:categoryLabel')}
+          </MenuItem>
+          {unbudgetedExpenseCategories.map((c) => (
+            <MenuItem key={c.id} value={c.id}>
+              {translateSeedName('categories', c.name, t)}
+            </MenuItem>
+          ))}
+        </Select>
+        <TextField
+          label={t('budgets:monthlyCapLabel')}
+          type="number"
+          size="small"
+          value={addDialog.draft.cap}
+          onChange={(e) => addDialog.setDraft((prev) => ({ ...prev, cap: e.target.value }))}
+          slotProps={{ htmlInput: { step: '0.01', min: '0.01' } }}
+        />
+      </AddFormDialog>
 
       <ResponsiveDialog open={editDialogOpen} onClose={savingCap ? undefined : cancelEditCap}>
         <DialogTitle>
