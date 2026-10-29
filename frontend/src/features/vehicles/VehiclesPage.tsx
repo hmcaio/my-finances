@@ -60,6 +60,7 @@ export function VehiclesPage() {
 
   function closeAddDialog() {
     setAddDialogOpen(false)
+    setNewName('')
     setError(null)
   }
 

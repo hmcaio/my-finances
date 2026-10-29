@@ -80,6 +80,8 @@ export function CategoriesPage() {
 
   function closeAddDialog() {
     setAddDialogOpen(false)
+    setNewName('')
+    setNewType('EXPENSE')
     setError(null)
   }
 

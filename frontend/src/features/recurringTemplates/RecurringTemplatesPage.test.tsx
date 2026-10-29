@@ -92,6 +92,27 @@ describe('RecurringTemplatesPage', () => {
     expect(screen.queryByRole('option', { name: seedFuelCategory.name })).not.toBeInTheDocument()
   })
 
+  it('reopens the add dialog empty after Cancel (issue #232)', async () => {
+    const user = userEvent.setup({ delay: null })
+    renderWithQueryClient(<RecurringTemplatesPage />)
+    await findRow(seedRentRecurringTemplate.description, templatesTable())
+    const dialog = await openAddDialog(user)
+
+    await user.click(within(dialog).getByLabelText('Category'))
+    await user.click(await screen.findByRole('option', { name: seedGroceriesCategory.name }))
+    await user.type(within(dialog).getByLabelText('Description'), 'Internet')
+    await user.type(within(dialog).getByLabelText('Amount'), '120')
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+    const reopened = await openAddDialog(user)
+    expect(within(reopened).getByLabelText('Description')).toHaveValue('')
+    expect(within(reopened).getByLabelText('Amount')).toHaveValue(null)
+    expect(within(reopened).getByRole('combobox', { name: 'Category' })).not.toHaveTextContent(
+      seedGroceriesCategory.name,
+    )
+  })
+
   it('adds a new recurring template', async () => {
     const user = userEvent.setup({ delay: null })
     renderWithQueryClient(<RecurringTemplatesPage />)

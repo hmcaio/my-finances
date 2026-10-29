@@ -129,6 +129,7 @@ export function RecurringTemplatesPage() {
 
   function closeAddDialog() {
     setAddDialogOpen(false)
+    setCreateForm(EMPTY_CREATE_FORM)
     setError(null)
   }
 

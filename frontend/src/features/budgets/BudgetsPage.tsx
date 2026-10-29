@@ -97,6 +97,8 @@ export function BudgetsPage() {
 
   function closeAddDialog() {
     setAddDialogOpen(false)
+    setNewCategoryId('')
+    setNewCap('')
     setError(null)
   }
 

@@ -68,6 +68,7 @@ export function InstitutionsPage() {
 
   function closeAddDialog() {
     setAddDialogOpen(false)
+    setNewName('')
     setError(null)
   }
 

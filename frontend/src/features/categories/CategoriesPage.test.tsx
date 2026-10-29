@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, screen, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
@@ -44,6 +44,22 @@ describe('CategoriesPage', () => {
 
   // Bespoke: type (income/expense), the built-in row per type, and their ordering have no
   // equivalent in the other settings pages, so they stay here on top of the shared contract.
+
+  it('reopens the add dialog with the default type after Cancel (issue #232)', async () => {
+    const user = userEvent.setup({ delay: null })
+    renderWithQueryClient(<CategoriesPage />)
+    await screen.findByText(builtInExpense.name)
+
+    await user.click(screen.getByRole('button', { name: 'Add category' }))
+    await user.click(within(screen.getByRole('dialog')).getByRole('combobox'))
+    await user.click(await screen.findByRole('option', { name: 'Income' }))
+    expect(within(screen.getByRole('dialog')).getByRole('combobox')).toHaveTextContent('Income')
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: 'Add category' }))
+    expect(within(screen.getByRole('dialog')).getByRole('combobox')).toHaveTextContent('Expense')
+  })
 
   it('lists each type with its built-in row first', async () => {
     renderWithQueryClient(<CategoriesPage />)
