@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **F038 — Investment Opening Position** — a holding's starting cotas and average price can be recorded without moving any cash, so an existing portfolio no longer has to be entered through a cash account. The create-product form has a collapsed, optional "Opening position" section (as-of date, cotas, average price and an optional current value, which also records the holding's snapshot), and the product page has an "Opening position" card to add, edit or delete it. It counts like a buy dated on its as-of date in cotas held, amount contributed, the monthly units and contributed series, the needs-snapshot flag and the Investments report (new "OPENING POSITIONS" section); net worth and cash balances are untouched. A trade dated before the position, or a position dated after the holding's earliest trade, is refused, and a holding with a position cannot be hard-deleted.
+  - Upgrade: a new migration (`V27`) adds the `investment_opening_positions` table on the next start; it only creates a table, so it cannot fail on existing data.
 - The fixed investment lists have more entries. FII segments: Fundo de Fundos, Hotel, Agências Bancárias, Educacional and Desenvolvimento. Investment sub-categories: RDB, Tesouro RendA+ and Tesouro Educa+ (Fixed Income); Renda Fixa DI, Crédito Privado, FIDC, FIP and Cambial (Funds); REITs and Funds (International); Bitcoin, Stablecoins and Altcoins (Crypto); Gold (Ouro) (Other). Existing entries are unchanged. (closes [#227](https://github.com/hmcaio/my-finances/issues/227))
   - Upgrade: a new migration (`V26`) adds the rows on the next start; it only inserts and skips any name already present, so it cannot fail on existing data.
 

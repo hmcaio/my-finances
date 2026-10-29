@@ -6,7 +6,7 @@ Branch `feature/f038-investment-opening-position`. Backend first: the request/re
 
 ## Phase 0 — Decision record
 The ADR and the PRD edits were written by `design-feature` on the docs branch.
-- [ ] Re-read [ADR 0033](../../adr/0033-opening-position-as-cashless-holding-start.md) and PRD §5.15, §6.6, §6.9 against what was built and amend them if the implementation diverged (the "Specified, not built (F038)" line in PRD §5.15 is removed in Phase 3).
+- [x] Re-read [ADR 0033](../../adr/0033-opening-position-as-cashless-holding-start.md) and PRD §5.15, §6.6, §6.9 against what was built and amend them if the implementation diverged (the "Specified, not built (F038)" line in PRD §5.15 is removed in Phase 3).
 
 ## Phase 1 — Backend: opening position
 - [x] Test first: `InvestmentOpeningPosition` rejects null fields, `quantity <= 0` and `unitPrice <= 0`; `amountContributed()` is `quantity × unitPrice` unrounded; `edit(...)` replaces the three values and keeps the holding; `toAuditSnapshot()` carries `holdingId`, `asOfDate`, `quantity`, `unitPrice`.
@@ -21,29 +21,29 @@ The ADR and the PRD edits were written by `design-feature` on the docs branch.
 - [x] Test first: `RealHasHoldingHistoryChecker` reports history for a holding that only has a position, and a hard delete of that holding is `409` (not a foreign-key `500`). Then update.
 - [x] Test first: `InvestmentsReportGenerator` writes the `OPENING POSITIONS` section (columns, `dateFrom`/`dateTo` filter on `as_of_date`, `current_value` empty without a same-day snapshot, nullable cells typed). Then update (`docs/conventions/csv-output.md`).
 - [x] REST: `InvestmentOpeningPositionController` (`PUT`/`GET`/`DELETE /api/investment-holdings/{holdingId}/opening-position`), `OpeningPositionRequest`/`OpeningPositionResponse`, the optional `@Valid openingPosition` on `CreateInvestmentProductRequest`, `@ApiResponse` for every status, controller tests for `200`/`201`/`204`/`400`/`404`/`409` including the new `409` on `POST`/`PUT /api/transfers`; regenerate `frontend/src/api/generated/schema.ts` (`npm run generate-api-types -- --offline`).
-- [ ] `./gradlew spotlessApply` then `scripts/verify.sh backend` (Docker running; includes the ArchUnit audit rule).
+- [x] `./gradlew spotlessApply` then `scripts/verify.sh backend` (Docker running; includes the ArchUnit audit rule).
 
 ## Phase 2 — Frontend: form section and card
 - [x] Test first: the `InvestmentProductForm` "Opening position" section is collapsed and optional; once started it requires cotas and average price but not current value; the as-of date defaults to today; the payload carries `openingPosition` only when filled. Then implement in `InvestmentProductForm.tsx` and `InvestmentProductsSection.tsx`.
 - [x] Test first: `OpeningPositionCard`/`OpeningPositionDialog` show the position (as-of date, cotas, average price, contributed), "Add opening position" when none (`useOpeningPosition` maps the not-found problem type to `null`), edit, delete with confirmation, actions hidden on a closed holding, and the server's `409`s rendered through `PROBLEM_TYPE_MESSAGES`. Then implement `src/api/investments/investmentOpeningPositions.ts`, `investmentOpeningPositionsQueries.ts`, the MSW handler and fixture, the card and dialog, and wire the card into `InvestmentProductDetailPage.tsx`.
 - [x] `apiError.ts` `PROBLEM_TYPE_MESSAGES` entries and `errors.json`, `investmentProducts.json` and `activity.json` strings in both locales (`localeParity.test.ts`); Activity page type list, `activityEnumLabels.ts`, `fieldLabels.ts`.
-- [ ] `scripts/verify.sh frontend`.
+- [x] `scripts/verify.sh frontend`.
 
 ## Phase 3 — Docs
-- [ ] Root `CLAUDE.md`/backend `CLAUDE.md`: only if a rule easy to violate appears (for example "a new table with an FK to `investment_holdings` is added to `RealHasHoldingHistoryChecker`", if not already stated); `docs/conventions/backend-structure.md` and `docs/conventions/accounts-and-investments.md` as listed in the spec.
-- [ ] Remove the "Specified, not built (F038)" line from PRD §5.15, verify the `docs/features/README.md` row against what was built and remove F038 from its "Status" list.
-- [ ] `CHANGELOG.md` `[Unreleased]` entry (user-visible: opening positions, `docs/conventions/release.md` format), in the implementing commit.
-- [ ] If F028 has shipped, wire `InvestmentSplitAdjustment` into the position (as-of date as the trade date) in `FiiPortfolioQuery` and `InvestmentValueSeriesQuery`, with a test (a split after `asOfDate` multiplies the position, one on or before it does not). If F028 has not shipped, leave a note in F028's plan (already added) and tick this item as deferred.
+- [x] Root `CLAUDE.md`/backend `CLAUDE.md`: only if a rule easy to violate appears (for example "a new table with an FK to `investment_holdings` is added to `RealHasHoldingHistoryChecker`", if not already stated); `docs/conventions/backend-structure.md` and `docs/conventions/accounts-and-investments.md` as listed in the spec.
+- [x] Remove the "Specified, not built (F038)" line from PRD §5.15, verify the `docs/features/README.md` row against what was built and remove F038 from its "Status" list.
+- [x] `CHANGELOG.md` `[Unreleased]` entry (user-visible: opening positions, `docs/conventions/release.md` format), in the implementing commit.
+- [x] If F028 has shipped, wire `InvestmentSplitAdjustment` into the position (as-of date as the trade date) in `FiiPortfolioQuery` and `InvestmentValueSeriesQuery`, with a test (a split after `asOfDate` multiplies the position, one on or before it does not). If F028 has not shipped, leave a note in F028's plan (already added) and tick this item as deferred. _Deferred: F028/F029 are not built (no `InvestmentSplit` in the code); F028's plan carries the mirror item, now that F038 has shipped._
 
 ## Verification
-- [ ] Create a product from the form with an opening position (as-of today, 40 cotas, 150.00, current value 6,400): the FII page shows cotas 40, contributed 6,000.00, value 6,400.00, no "needs snapshot" flag, and every cash account's balance is unchanged.
-- [ ] Repeat with the current value left empty: the holding shows as needing a snapshot.
-- [ ] On an existing holding with no position, add one from the product detail card; edit its quantity; delete it: the FII totals follow each step and the snapshot recorded by the first save is still there after the delete.
-- [ ] Record a trade dated before the position's as-of date: `409` with the mapped message; the same date and a later date are accepted.
-- [ ] On a holding that already has a trade dated 2026-06-01, add a position dated 2026-07-01: `409`; dated 2026-06-01 or earlier: accepted.
-- [ ] Try to hard-delete a holding that only has a position: `409`; delete the position, then the holding is deletable.
-- [ ] Add a position to a closed holding, and edit/delete one on a closed holding: `409`, and the card hides the actions.
-- [ ] Open the Investments report CSV for a range containing the as-of date: the `OPENING POSITIONS` section lists it; outside the range it does not.
-- [ ] The monthly value series chart: `units` is non-null from the position's month on, and the sum of the monthly `contributed` equals the FII page's amount contributed.
-- [ ] The Activity page lists the create, update and delete entries of a position with readable labels, in both languages.
+- [x] Create a product from the form with an opening position (as-of today, 40 cotas, 150.00, current value 6,400): the FII page shows cotas 40, contributed 6,000.00, value 6,400.00, no "needs snapshot" flag, and every cash account's balance is unchanged.
+- [x] Repeat with the current value left empty: the holding shows as needing a snapshot.
+- [x] On an existing holding with no position, add one from the product detail card; edit its quantity; delete it: the FII totals follow each step and the snapshot recorded by the first save is still there after the delete.
+- [x] Record a trade dated before the position's as-of date: `409` with the mapped message; the same date and a later date are accepted.
+- [x] On a holding that already has a trade dated 2026-06-01, add a position dated 2026-07-01: `409`; dated 2026-06-01 or earlier: accepted.
+- [x] Try to hard-delete a holding that only has a position: `409`; delete the position, then the holding is deletable.
+- [x] Add a position to a closed holding, and edit/delete one on a closed holding: `409`, and the card hides the actions.
+- [x] Open the Investments report CSV for a range containing the as-of date: the `OPENING POSITIONS` section lists it; outside the range it does not.
+- [x] The monthly value series chart: `units` is non-null from the position's month on, and the sum of the monthly `contributed` equals the FII page's amount contributed.
+- [x] The Activity page lists the create, update and delete entries of a position with readable labels, in both languages.
 - [ ] `scripts/verify.sh backend frontend` (Docker running) all green.

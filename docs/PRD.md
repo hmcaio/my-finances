@@ -304,7 +304,7 @@ _Specified, not built (F028/F029); planned for a release after 0.1.0._
 
 ### 5.15 Investment Opening Position
 
-_Specified, not built (F038)._ See [ADR 0033](../adr/0033-opening-position-as-cashless-holding-start.md).
+See [ADR 0033](../adr/0033-opening-position-as-cashless-holding-start.md).
 
 **InvestmentOpeningPosition** (a holding's starting quantity and cost basis, recorded without moving cash)
 - `id`
