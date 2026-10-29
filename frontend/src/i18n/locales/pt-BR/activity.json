@@ -49,7 +49,8 @@
     "investmentSnapshot": "Snapshot de investimento",
     "investmentSegment": "Segmento de investimento",
     "allocationPlan": "Plano de alocação",
-    "vehicle": "Veículo"
+    "vehicle": "Veículo",
+    "investmentOpeningPosition": "Posição inicial de investimento"
   },
   "actions": {
     "create": "Criar",
@@ -144,6 +145,12 @@
       "entries": "Itens",
       "investmentProductId": "Produto",
       "targetPercentage": "Percentual-alvo"
+    },
+    "investmentOpeningPosition": {
+      "holdingId": "Posição",
+      "asOfDate": "Em",
+      "quantity": "Quantidade",
+      "unitPrice": "Preço unitário"
     }
   }
 }

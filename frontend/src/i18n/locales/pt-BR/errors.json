@@ -27,7 +27,7 @@
     "sameAccountTransfer": "As duas contas de uma transferência devem ser diferentes.",
     "invalidTradeConfirmation": "Verifique as linhas da negociação: apenas uma linha por produto pode definir um saldo resultante, e a liquidação líquida não pode ser zero.",
     "investmentTransferInvalid": "O lado de investimento de uma confirmação de negociação deve ser uma conta de INVESTIMENTO e o lado em dinheiro não deve ser; uma transferência simples não pode ter como destino uma conta de INVESTIMENTO - use uma confirmação de negociação em vez disso.",
-    "investmentHoldingClosed": "Todo produto nesta transferência precisa de uma posição aberta existente na conta de investimento.",
+    "investmentHoldingClosed": "Esta posição está encerrada, então não aceita novas operações nem alterações na posição inicial.",
     "investmentCategoryNameAlreadyExists": "Já existe uma categoria de investimento com esse nome.",
     "investmentCategoryInUse": "Esta categoria ainda tem subcategorias ou é usada por um produto de investimento - exclua ou reclassifique-os primeiro.",
     "investmentSubcategoryNameAlreadyExists": "Esta categoria já tem uma subcategoria com esse nome.",
@@ -46,7 +46,11 @@
     "investmentSegmentInUse": "Este segmento ainda é usado por um produto de investimento - reclassifique-o primeiro.",
     "allocationPlanEntryNotFii": "Todo item deve ser um produto classificado na subcategoria \"REITs (FIIs)\".",
     "allocationPlanSumInvalid": "Os itens devem somar exatamente 100%.",
-    "allocationPlanDuplicateProduct": "O mesmo produto não pode aparecer duas vezes no plano de alocação."
+    "allocationPlanDuplicateProduct": "O mesmo produto não pode aparecer duas vezes no plano de alocação.",
+    "investmentOpeningPositionNotFound": "Esta posição não tem posição inicial.",
+    "invalidOpeningPosition": "A posição inicial é inválida: a data não pode estar no futuro, e as cotas e o preço médio devem ser positivos.",
+    "openingPositionAfterTrades": "A posição inicial não pode ter data posterior à primeira operação desta posição. Use a data da operação ou uma anterior.",
+    "tradeBeforeOpeningPosition": "A posição inicial desta posição tem data posterior à operação. Use a data da posição inicial ou uma posterior."
   },
   "validationCode": {
     "notBlank": "Este campo é obrigatório.",

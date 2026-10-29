@@ -27,7 +27,7 @@
     "sameAccountTransfer": "The two accounts in a transfer must be different.",
     "invalidTradeConfirmation": "Check the trade lines: only one line per product can set a resulting balance, and the net settlement can't be zero.",
     "investmentTransferInvalid": "A trade confirmation's investment side must be an INVESTMENT account and its cash side must not be; a plain transfer can't target an INVESTMENT account at all - use a trade confirmation instead.",
-    "investmentHoldingClosed": "Every product in this transfer needs an existing open holding in the investment account.",
+    "investmentHoldingClosed": "This holding is closed, so it takes no new trades or opening position changes.",
     "investmentCategoryNameAlreadyExists": "An investment category with this name already exists.",
     "investmentCategoryInUse": "This category still has sub-categories or is used by an investment product - delete or reclassify those first.",
     "investmentSubcategoryNameAlreadyExists": "This category already has a sub-category with this name.",
@@ -46,7 +46,11 @@
     "investmentSegmentInUse": "This segment is still used by an investment product - reclassify it first.",
     "allocationPlanEntryNotFii": "Every entry must be a product classified under the \"REITs (FIIs)\" sub-category.",
     "allocationPlanSumInvalid": "The entries must sum to exactly 100%.",
-    "allocationPlanDuplicateProduct": "The same product cannot appear twice in the allocation plan."
+    "allocationPlanDuplicateProduct": "The same product cannot appear twice in the allocation plan.",
+    "investmentOpeningPositionNotFound": "This holding has no opening position.",
+    "invalidOpeningPosition": "The opening position is invalid: the date cannot be in the future, and cotas and average price must be positive.",
+    "openingPositionAfterTrades": "The opening position cannot be dated after this holding's earliest trade. Use the trade's date or an earlier one.",
+    "tradeBeforeOpeningPosition": "This holding's opening position is dated after the trade. Use the opening position's date or a later one."
   },
   "validationCode": {
     "notBlank": "This field is required.",

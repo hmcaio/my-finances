@@ -19,7 +19,9 @@ interface SnapshotRequestBody {
   balance: number
 }
 
-const snapshots = createStore(seedBitcoinSnapshots)
+/** Shared with the opening-position handlers, whose `currentValue` records a snapshot. */
+export const investmentSnapshotsStore = createStore(seedBitcoinSnapshots)
+const snapshots = investmentSnapshotsStore
 
 /** Re-derives a holding's `latestSnapshot`/`hasHistory` from its remaining snapshots. */
 function syncLatestSnapshot(holdingId: string) {

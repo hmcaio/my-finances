@@ -26,7 +26,7 @@ The ADR and the PRD edits were written by `design-feature` on the docs branch.
 ## Phase 2 — Frontend: form section and card
 - [ ] Test first: the `InvestmentProductForm` "Opening position" section is collapsed and optional; once started it requires cotas and average price but not current value; the as-of date defaults to today; the payload carries `openingPosition` only when filled. Then implement in `InvestmentProductForm.tsx` and `InvestmentProductsSection.tsx`.
 - [ ] Test first: `OpeningPositionCard`/`OpeningPositionDialog` show the position (as-of date, cotas, average price, contributed), "Add opening position" when none (`useOpeningPosition` maps the not-found problem type to `null`), edit, delete with confirmation, actions hidden on a closed holding, and the server's `409`s rendered through `PROBLEM_TYPE_MESSAGES`. Then implement `src/api/investments/investmentOpeningPositions.ts`, `investmentOpeningPositionsQueries.ts`, the MSW handler and fixture, the card and dialog, and wire the card into `InvestmentProductDetailPage.tsx`.
-- [ ] `apiError.ts` `PROBLEM_TYPE_MESSAGES` entries and `errors.json`, `investmentProducts.json` and `activity.json` strings in both locales (`localeParity.test.ts`); Activity page type list, `activityEnumLabels.ts`, `fieldLabels.ts`.
+- [x] `apiError.ts` `PROBLEM_TYPE_MESSAGES` entries and `errors.json`, `investmentProducts.json` and `activity.json` strings in both locales (`localeParity.test.ts`); Activity page type list, `activityEnumLabels.ts`, `fieldLabels.ts`.
 - [ ] `scripts/verify.sh frontend`.
 
 ## Phase 3 — Docs

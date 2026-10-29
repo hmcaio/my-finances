@@ -1,7 +1,9 @@
 import { http, HttpResponse } from 'msw'
 import type { InvestmentHolding } from '../../api/investments/investmentHoldings'
+import type { OpeningPositionRequest } from '../../api/investments/investmentOpeningPositions'
 import type { InvestmentProduct } from '../../api/investments/investmentProducts'
 import { investmentHoldingsStore } from './investmentHoldings'
+import { savePosition } from './investmentOpeningPositions'
 import { createStore } from '../store'
 
 /**
@@ -55,6 +57,7 @@ interface ProductRequestBody {
   additionalNotes?: string | null
   ticker?: string | null
   segmentId?: string | null
+  openingPosition?: OpeningPositionRequest | null
 }
 
 /** Shared with the snapshot/holding handlers. */
@@ -151,6 +154,7 @@ export const investmentProductsHandlers = [
       latestSnapshot: null,
     }
     investmentHoldingsStore.add(holding)
+    if (body.openingPosition) savePosition(holding.id, body.openingPosition)
     return HttpResponse.json(withClosed(created), { status: 201 })
   }),
 

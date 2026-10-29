@@ -84,6 +84,12 @@ const BY_ENTITY_TYPE: Partial<Record<AuditEntityType, Record<string, string>>> =
     holdingId: 'activity:fields.investmentSnapshot.holdingId',
     balance: 'activity:fields.investmentSnapshot.balance',
   },
+  INVESTMENT_OPENING_POSITION: {
+    holdingId: 'activity:fields.investmentOpeningPosition.holdingId',
+    asOfDate: 'activity:fields.investmentOpeningPosition.asOfDate',
+    quantity: 'activity:fields.investmentOpeningPosition.quantity',
+    unitPrice: 'activity:fields.investmentOpeningPosition.unitPrice',
+  },
   ALLOCATION_PLAN: {
     planId: 'activity:fields.allocationPlan.planId',
     entries: 'activity:fields.allocationPlan.entries',

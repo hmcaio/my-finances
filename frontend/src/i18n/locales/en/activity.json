@@ -49,7 +49,8 @@
     "investmentSnapshot": "Investment snapshot",
     "investmentSegment": "Investment segment",
     "allocationPlan": "Allocation plan",
-    "vehicle": "Vehicle"
+    "vehicle": "Vehicle",
+    "investmentOpeningPosition": "Investment opening position"
   },
   "actions": {
     "create": "Create",
@@ -144,6 +145,12 @@
       "entries": "Entries",
       "investmentProductId": "Product",
       "targetPercentage": "Target percentage"
+    },
+    "investmentOpeningPosition": {
+      "holdingId": "Holding",
+      "asOfDate": "As of",
+      "quantity": "Quantity",
+      "unitPrice": "Unit price"
     }
   }
 }

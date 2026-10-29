@@ -19,6 +19,7 @@ const ENTITY_TYPE_KEYS: Record<AuditEntityType, string> = {
   INVESTMENT_PRODUCT: 'activity:entityTypes.investmentProduct',
   INVESTMENT_HOLDING: 'activity:entityTypes.investmentHolding',
   INVESTMENT_SNAPSHOT: 'activity:entityTypes.investmentSnapshot',
+  INVESTMENT_OPENING_POSITION: 'activity:entityTypes.investmentOpeningPosition',
   INVESTMENT_SEGMENT: 'activity:entityTypes.investmentSegment',
   ALLOCATION_PLAN: 'activity:entityTypes.allocationPlan',
   VEHICLE: 'activity:entityTypes.vehicle',

@@ -114,7 +114,14 @@
     "tickerLabel": "Ticker",
     "segmentLabel": "Segment",
     "noSegmentOption": "No segment",
-    "notesLabel": "Additional notes"
+    "notesLabel": "Additional notes",
+    "openingPositionTitle": "Opening position (optional)",
+    "openingPositionHint": "Already own cotas? Record how many and your average price. This moves no cash: your accounts' balances do not change.",
+    "openingAsOfLabel": "As of",
+    "openingQuantityLabel": "Cotas",
+    "openingUnitPriceLabel": "Average price",
+    "openingCurrentValueLabel": "Current value (optional)",
+    "openingCurrentValueHelper": "Skip it and the holding is flagged as needing a snapshot."
   },
   "chart": {
     "contributedTooltip": "{{month}}: contributed {{amount}}",
@@ -123,5 +130,27 @@
     "noData": "No data for this period.",
     "legendValue": "● Value (month-end snapshot)",
     "legendContributed": "▮ Contributions (buys minus sells)"
+  },
+  "openingPosition": {
+    "title": "Opening position",
+    "empty": "No opening position recorded. Add one to record the cotas you already hold and their average price, without moving any cash.",
+    "addButton": "Add opening position",
+    "editAria": "Edit opening position",
+    "deleteAria": "Delete opening position",
+    "loadFailed": "Could not load the opening position.",
+    "asOfDate": "As of",
+    "quantity": "Cotas",
+    "unitPrice": "Average price",
+    "amountContributed": "Amount contributed",
+    "addDialogTitle": "Add opening position",
+    "editDialogTitle": "Edit opening position",
+    "saveButton": "Save",
+    "currentValueLabel": "Current value (optional)",
+    "currentValueHelper": "Records the holding's value on the as-of date. Skip it and the holding is flagged as needing a snapshot.",
+    "noCashNote": "This moves no cash: your accounts' balances do not change.",
+    "deleteTitle": "Delete opening position?",
+    "deleteBody": "Delete the opening position as of {{date}}? Cotas held and the amount contributed no longer include it. Snapshots are kept.",
+    "deleteConfirm": "Delete",
+    "loading": "Loading opening position"
   }
 }
