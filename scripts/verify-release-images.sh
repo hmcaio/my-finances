@@ -52,9 +52,13 @@ report() { # report <PASS|FAIL> <name> [detail]
 }
 
 tmp=$(mktemp -d) || die "mktemp failed"
+# The checkout of the tagged commit for the smoke lives under .claude/worktrees/ (gitignored) of the
+# main checkout, like every worktree of this project, and is removed on exit.
+root=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+wt=$root/.claude/worktrees/verify-$tag
 cleanup() {
   trap - EXIT
-  git worktree remove --force "$tmp/src" >/dev/null 2>&1
+  git worktree remove --force "$wt" >/dev/null 2>&1
   rm -rf "$tmp"
 }
 trap cleanup EXIT
@@ -167,8 +171,9 @@ else
   if [ "$pulled" = 1 ]; then
     report PASS "anonymous pull of the three images"
     git cat-file -e "$sha^{commit}" 2>/dev/null || git fetch -q origin "refs/tags/$tag"
-    if git worktree add --detach -q "$tmp/src" "$sha"; then
-      if (cd "$tmp/src" \
+    git worktree remove --force "$wt" >/dev/null 2>&1 # leftover of an aborted run
+    if git worktree add --detach -q "$wt" "$sha"; then
+      if (cd "$wt" \
         && SMOKE_BACKEND_IMAGE=$REGISTRY/$OWNER_REPO-backend:$tag \
           SMOKE_FRONTEND_IMAGE=$REGISTRY/$OWNER_REPO-frontend:$tag \
           SMOKE_BACKUP_IMAGE=$REGISTRY/$OWNER_REPO-backup:$tag \

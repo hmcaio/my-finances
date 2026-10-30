@@ -125,10 +125,10 @@ Then ask for edits or approval of **the version, the draft and the rc decision**
 
 ## Step 7 — Branch, bump, commit (phase 2)
 
-Only after the Step 6 approval. The release is prepared in its own worktree so the user's checkout, whatever branch it is on and whatever it holds, is never switched or written. A dirty `CHANGELOG.md` in that checkout (an earlier draft, say) is not read and not touched: this step works from `origin/main`; mention it so the user can discard or keep it.
+Only after the Step 6 approval. The release is prepared in its own worktree under `<root>/.claude/worktrees/` (gitignored; `<root>` is the main checkout, found from any worktree with `dirname "$(git rev-parse --path-format=absolute --git-common-dir)"`, so worktrees never nest) so the user's checkout, whatever branch it is on and whatever it holds, is never switched or written. A dirty `CHANGELOG.md` in that checkout (an earlier draft, say) is not read and not touched: this step works from `origin/main`; mention it so the user can discard or keep it.
 
 1. **Preconditions.** `git fetch origin --tags`. If `origin/main` moved since Step 1, list the new commits; if any is user-visible, redo Steps 4–5 for them and show the delta before going on. The branch must not exist: `git rev-parse --verify --quiet refs/heads/chore/release-vX.Y.Z` and `git ls-remote --heads origin chore/release-vX.Y.Z` both empty, and neither must the tag `vX.Y.Z`. If one exists, stop and ask (resume, or pick another version).
-2. **Branch** (ADR 0032, never `main`): `git worktree add --no-track -b chore/release-vX.Y.Z ../my-finances-release-vX.Y.Z origin/main`, so the branch has no upstream until it is pushed at Checkpoint A. Everything below happens in that directory.
+2. **Branch** (ADR 0032, never `main`): `git worktree add --no-track -b chore/release-vX.Y.Z <root>/.claude/worktrees/release-vX.Y.Z origin/main`, so the branch has no upstream until it is pushed at Checkpoint A. Everything below happens in that directory.
 3. **CHANGELOG**: apply the approved fixes and the promotion exactly as shown in Step 6, footer included. Leave the file's header and earlier releases untouched.
 4. **Version bump** to `X.Y.Z`, equal in all three (ADR 0007): the `version = '…'` line of `backend/build.gradle`, and `npm version X.Y.Z --no-git-tag-version` in `frontend/`, which rewrites `package.json` and `package-lock.json` (it fails with "Version not changed" when they already equal the target, as for `0.1.0`; then edit nothing for that file). No `npm install`: the worktree has no `node_modules` and the command does not need one. Then `bash scripts/verify.sh versions`.
 5. **Scope check.** `git status --short` must list exactly `CHANGELOG.md`, `backend/build.gradle`, `frontend/package.json` and `frontend/package-lock.json` (fewer only when a version already matched). Anything else means something went wrong: stop and show it. `README.md`, `docs/operations.md` and `.env.example` hold no release version and are never edited.
@@ -151,7 +151,7 @@ If the tip carries one, tell the user to add a commit or reword before releasing
 Report what the commit holds (`git show --stat`), then show the PR title, the body (from the file) and the two commands, and ask for confirmation to run them:
 
 ```
-git -C ../my-finances-release-vX.Y.Z push -u origin chore/release-vX.Y.Z
+git -C <root>/.claude/worktrees/release-vX.Y.Z push -u origin chore/release-vX.Y.Z
 gh pr create --base main --head chore/release-vX.Y.Z --title "chore: release vX.Y.Z" --body-file <path to the PR body>
 ```
 
@@ -229,4 +229,4 @@ gh release create vX.Y.Z --verify-tag --latest --title vX.Y.Z --notes-file <abso
 
 On the yes, run it and give the release URL.
 
-Last, list what remains for the user: the manual checks of Step 9's report when there was no rc, pinning `IMAGE_TAG=vX.Y.Z` in the prod `.env` for a reproducible deploy, and ticking any plan item the release proved (for the first release, the F014 publish item). Offer to remove the release worktree (`git worktree remove ../my-finances-release-vX.Y.Z`) once the user is done with it; do not remove it unasked.
+Last, list what remains for the user: the manual checks of Step 9's report when there was no rc, pinning `IMAGE_TAG=vX.Y.Z` in the prod `.env` for a reproducible deploy, and ticking any plan item the release proved (for the first release, the F014 publish item). Offer to remove the release worktree (`git worktree remove <root>/.claude/worktrees/release-vX.Y.Z`) once the user is done with it; do not remove it unasked.
