@@ -2,6 +2,8 @@ package com.chm.myfinances.application.investmentsnapshot;
 
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
+import com.chm.myfinances.domain.investmentopeningposition.InvestmentOpeningPosition;
+import com.chm.myfinances.domain.investmentopeningposition.InvestmentOpeningPositionRepository;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.transfer.TransferTradeLine;
 import com.chm.myfinances.domain.transfer.TransferTradeLineRepository;
@@ -18,8 +20,10 @@ import org.springframework.stereotype.Service;
  * only with its next snapshot, so as of a date a holding is stale when it has a line (a {@code
  * TransferTradeLine} tagged with its product *and* its account) dated on or before that date and
  * after its latest snapshot on or before that date, or a line and no snapshot at all. A snapshot on
- * the line's own date is fresh. Computed on read, never stored - an application-layer query object
- * like {@code AccountBalanceQuery}.
+ * the line's own date is fresh. An opening position (F038, ADR 0033) is treated like a line dated
+ * its {@code asOfDate} for its own holding, so recording one with a current value (a snapshot dated
+ * the same day) is fresh and one without is stale. Computed on read, never stored - an
+ * application-layer query object like {@code AccountBalanceQuery}.
  *
  * <p>A line only carries {@code productId}, not a holding id (F022 spec: the holding is looked up
  * at read time, not stored directly), so each line is resolved to its holding by matching the
@@ -31,14 +35,17 @@ public class InvestmentSnapshotFreshnessQuery {
   private final LatestInvestmentSnapshotQuery latestSnapshotQuery;
   private final TransferTradeLineRepository tradeLineRepository;
   private final InvestmentHoldingRepository holdingRepository;
+  private final InvestmentOpeningPositionRepository openingPositionRepository;
 
   public InvestmentSnapshotFreshnessQuery(
       LatestInvestmentSnapshotQuery latestSnapshotQuery,
       TransferTradeLineRepository tradeLineRepository,
-      InvestmentHoldingRepository holdingRepository) {
+      InvestmentHoldingRepository holdingRepository,
+      InvestmentOpeningPositionRepository openingPositionRepository) {
     this.latestSnapshotQuery = latestSnapshotQuery;
     this.tradeLineRepository = tradeLineRepository;
     this.holdingRepository = holdingRepository;
+    this.openingPositionRepository = openingPositionRepository;
   }
 
   /** Ids of every holding that {@code needsSnapshot} as of {@code asOfDate}. */
@@ -56,6 +63,15 @@ public class InvestmentSnapshotFreshnessQuery {
       InvestmentSnapshot snapshot = latest.get(holdingId);
       if (snapshot == null || line.date().isAfter(snapshot.getDate())) {
         stale.add(holdingId);
+      }
+    }
+    for (InvestmentOpeningPosition position : openingPositionRepository.findAll()) {
+      if (position.getAsOfDate().isAfter(asOfDate)) {
+        continue;
+      }
+      InvestmentSnapshot snapshot = latest.get(position.getHoldingId());
+      if (snapshot == null || position.getAsOfDate().isAfter(snapshot.getDate())) {
+        stale.add(position.getHoldingId());
       }
     }
     return stale;

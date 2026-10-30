@@ -4,6 +4,7 @@ import com.chm.myfinances.application.auditlog.AuditEntityType;
 import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.application.investmentcategory.InvestmentCategoryNotFoundException;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingService;
+import com.chm.myfinances.application.investmentopeningposition.InvestmentOpeningPositionService;
 import com.chm.myfinances.application.investmentsegment.InvestmentSegmentNotFoundException;
 import com.chm.myfinances.application.investmentsubcategory.InvestmentSubcategoryNotFoundException;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
@@ -33,13 +34,14 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>Create and edit (PATCH is a full replace, so it can reclassify a product) verify, in order:
  * the category exists (404); the sub-category, when given, exists (404) and belongs to that
  * category (409, {@link InvestmentSubcategoryMismatchException}); and the name is globally unique
- * (409, F022). {@link #create} is a two-write {@code @Transactional} use case (backend/CLAUDE.md's
- * multi-write {@code @Transactional} rule): the product, then its first holding via {@link
- * InvestmentHoldingService} - a failure between the two must not leave a holding-less product or an
- * orphaned holding. There is no {@code close()} here any more; holdings close, not products (F022).
- * {@link #delete} is only allowed while the product has zero holdings (not zero history - even a
- * closed, empty holding still counts), via {@link InvestmentHoldingRepository#existsByProductId};
- * otherwise the user removes its holdings first.
+ * (409, F022). {@link #create} is a multi-write {@code @Transactional} use case
+ * (backend/CLAUDE.md's multi-write {@code @Transactional} rule): the product, then its first
+ * holding via {@link InvestmentHoldingService}, then the optional opening position (F038) - a
+ * failure between them must not leave a holding-less product, an orphaned holding or a holding with
+ * a half-written position. There is no {@code close()} here any more; holdings close, not products
+ * (F022). {@link #delete} is only allowed while the product has zero holdings (not zero history -
+ * even a closed, empty holding still counts), via {@link
+ * InvestmentHoldingRepository#existsByProductId}; otherwise the user removes its holdings first.
  */
 @Service
 public class InvestmentProductService {
@@ -50,6 +52,7 @@ public class InvestmentProductService {
   private final InvestmentSegmentRepository segmentRepository;
   private final InvestmentHoldingRepository holdingRepository;
   private final InvestmentHoldingService holdingService;
+  private final InvestmentOpeningPositionService openingPositionService;
   private final IdGenerator idGenerator;
   private final AuditRecorder auditRecorder;
 
@@ -60,6 +63,7 @@ public class InvestmentProductService {
       InvestmentSegmentRepository segmentRepository,
       InvestmentHoldingRepository holdingRepository,
       InvestmentHoldingService holdingService,
+      InvestmentOpeningPositionService openingPositionService,
       IdGenerator idGenerator,
       AuditRecorder auditRecorder) {
     this.productRepository = productRepository;
@@ -68,6 +72,7 @@ public class InvestmentProductService {
     this.segmentRepository = segmentRepository;
     this.holdingRepository = holdingRepository;
     this.holdingService = holdingService;
+    this.openingPositionService = openingPositionService;
     this.idGenerator = idGenerator;
     this.auditRecorder = auditRecorder;
   }
@@ -97,12 +102,8 @@ public class InvestmentProductService {
   }
 
   /**
-   * Creates the product and its first holding in {@code accountId} together. {@code
-   * InvestmentHoldingService.create} runs its own account/product validation (404/409); if it
-   * fails, the whole transaction - including the product insert - rolls back.
-   *
-   * <p>{@code ticker}/{@code segmentId} (F026) are both optional; an unknown {@code segmentId} is
-   * {@code 404}. The overload the controller calls.
+   * Creates the product (with a ticker/segment) and its first holding, without an opening position.
+   * See the 8-argument overload for the full behavior.
    */
   @Transactional
   public InvestmentProduct create(
@@ -113,6 +114,39 @@ public class InvestmentProductService {
       String additionalNotes,
       String ticker,
       UUID segmentId) {
+    return create(
+        accountId,
+        investmentCategoryId,
+        investmentSubcategoryId,
+        name,
+        additionalNotes,
+        ticker,
+        segmentId,
+        null);
+  }
+
+  /**
+   * Creates the product and its first holding in {@code accountId} together. {@code
+   * InvestmentHoldingService.create} runs its own account/product validation (404/409); if it
+   * fails, the whole transaction - including the product insert - rolls back.
+   *
+   * <p>{@code ticker}/{@code segmentId} (F026) are both optional; an unknown {@code segmentId} is
+   * {@code 404}. {@code openingPosition} (F038, ADR 0033) is optional too: when given, the new
+   * holding's opening position (and, with a current value, its snapshot) is written by {@link
+   * InvestmentOpeningPositionService#upsert} inside this same transaction, so any failure of the
+   * position - a future date, a non-positive quantity - takes the product and holding back with it.
+   * The overload the controller calls.
+   */
+  @Transactional
+  public InvestmentProduct create(
+      UUID accountId,
+      UUID investmentCategoryId,
+      UUID investmentSubcategoryId,
+      String name,
+      String additionalNotes,
+      String ticker,
+      UUID segmentId,
+      OpeningPositionInput openingPosition) {
     requireValidCategoryReferences(investmentCategoryId, investmentSubcategoryId);
     requireValidSegmentReference(segmentId);
     if (productRepository.existsByName(name)) {
@@ -133,7 +167,15 @@ public class InvestmentProductService {
         product.getId(),
         product.getName(),
         product.toAuditSnapshot());
-    holdingService.create(product.getId(), accountId, null);
+    InvestmentHolding holding = holdingService.create(product.getId(), accountId, null);
+    if (openingPosition != null) {
+      openingPositionService.upsert(
+          holding.getId(),
+          openingPosition.asOfDate(),
+          openingPosition.quantity(),
+          openingPosition.unitPrice(),
+          openingPosition.currentValue());
+    }
     return product;
   }
 

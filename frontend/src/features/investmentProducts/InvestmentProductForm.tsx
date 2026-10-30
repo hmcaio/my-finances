@@ -1,6 +1,9 @@
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Box,
   Button,
   DialogActions,
@@ -8,14 +11,25 @@ import {
   MenuItem,
   Select,
   TextField,
+  Typography,
 } from '@mui/material'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import {
   INVESTMENT_NAME_MAX_LENGTH,
   type InvestmentCategory,
 } from '../../api/investments/investmentCategories'
+import type { OpeningPositionRequest } from '../../api/investments/investmentOpeningPositions'
 import type { InvestmentSegment } from '../../api/investments/investmentSegments'
 import { FormGrid } from '../../components/feedback/ResponsiveDialog'
 import { translateSeedName } from '../../i18n/seedNames'
+import { today } from '../../utils/localDate'
+import {
+  emptyOpeningPositionDraft,
+  isOpeningPositionStarted,
+  openingPositionRequestOf,
+  type OpeningPositionDraft,
+} from './openingPositionDraft'
+import { OpeningPositionFields } from './OpeningPositionFields'
 import { relevantInvestmentFields } from './investmentProductFields'
 
 /**
@@ -30,6 +44,11 @@ export interface InvestmentProductFormValues {
   additionalNotes: string
   ticker: string
   segmentId: string
+  /**
+   * The holding's starting quantity and average price (F038, ADR 0033), only on create and only
+   * when the "Opening position" section was filled; `undefined` otherwise.
+   */
+  openingPosition?: OpeningPositionRequest
 }
 
 interface InvestmentProductFormProps {
@@ -62,6 +81,11 @@ interface InvestmentProductFormProps {
  * sub-categories, and is reset whenever the category changes - a sub-category always belongs to
  * exactly one category, and the backend rejects a mismatched pair. Some categories (Crypto) have
  * no sub-categories at all; a category-only product is valid.
+ *
+ * On create (no `initial`) the form also offers a collapsed, optional "Opening position" section
+ * (F038, ADR 0033) for every product: as-of date (today), cotas, average price and current value.
+ * Once anything is entered, cotas and average price are required; the current value stays optional.
+ * Left alone, nothing is submitted for it.
  */
 export function InvestmentProductForm({
   categories,
@@ -81,6 +105,12 @@ export function InvestmentProductForm({
   const [additionalNotes, setAdditionalNotes] = useState(initial?.additionalNotes ?? '')
   const [ticker, setTicker] = useState(initial?.ticker ?? '')
   const [segmentId, setSegmentId] = useState(initial?.segmentId ?? '')
+  const offersOpeningPosition = initial === undefined
+  const [defaultAsOfDate] = useState(today)
+  const [openingDraft, setOpeningDraft] = useState<OpeningPositionDraft>(emptyOpeningPositionDraft)
+  const openingStarted =
+    offersOpeningPosition && isOpeningPositionStarted(openingDraft, defaultAsOfDate)
+  const openingRequest = openingStarted ? openingPositionRequestOf(openingDraft) : null
 
   const subcategories = categories.find((c) => c.id === categoryId)?.subcategories ?? []
   const relevant = relevantInvestmentFields(categories, categoryId, subcategoryId)
@@ -171,12 +201,41 @@ export function InvestmentProductForm({
         slotProps={{ htmlInput: { maxLength: 500 } }}
         sx={dialog ? { gridColumn: '1 / -1' } : undefined}
       />
+      {offersOpeningPosition && (
+        <Accordion
+          disableGutters
+          variant="outlined"
+          slotProps={{ transition: { unmountOnExit: true } }}
+          // Transparent like the outlined fields around it: the opaque paper is darker than the
+          // dialog's elevation-lifted surface in dark mode.
+          sx={{
+            bgcolor: 'transparent',
+            ...(dialog ? { gridColumn: '1 / -1' } : { width: '100%' }),
+          }}
+        >
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography>{t('investmentProducts:form.openingPositionTitle')}</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              {t('investmentProducts:form.openingPositionHint')}
+            </Typography>
+            <FormGrid>
+              <OpeningPositionFields
+                draft={openingDraft}
+                onChange={setOpeningDraft}
+                currentValueHelper={t('investmentProducts:form.openingCurrentValueHelper')}
+              />
+            </FormGrid>
+          </AccordionDetails>
+        </Accordion>
+      )}
     </>
   )
   const submitButton = (
     <Button
       variant="contained"
-      disabled={submitting || !name.trim() || !categoryId}
+      disabled={submitting || !name.trim() || !categoryId || (openingStarted && !openingRequest)}
       onClick={() =>
         onSubmit({
           name: name.trim(),
@@ -185,6 +244,7 @@ export function InvestmentProductForm({
           additionalNotes: additionalNotes.trim(),
           ticker: showTicker ? ticker.trim() : '',
           segmentId: showSegment ? segmentId : '',
+          ...(openingRequest ? { openingPosition: openingRequest } : {}),
         })
       }
     >

@@ -15,6 +15,7 @@ import com.chm.myfinances.testsupport.TestClocks;
 import com.chm.myfinances.testsupport.fakes.FakeAllocationPlanRepository;
 import com.chm.myfinances.testsupport.fakes.FakeAllocationPlanVersionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentOpeningPositionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSegmentRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
@@ -59,13 +60,17 @@ class FiiAllocationQueryTest {
       new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository);
   private final InvestmentSnapshotFreshnessQuery freshnessQuery =
       new InvestmentSnapshotFreshnessQuery(
-          latestSnapshotQuery, tradeLineRepository, holdingRepository);
+          latestSnapshotQuery,
+          tradeLineRepository,
+          holdingRepository,
+          new FakeInvestmentOpeningPositionRepository());
   private final FiiPortfolioQuery portfolioQuery =
       new FiiPortfolioQuery(
           productRepository,
           subcategoryRepository,
           holdingRepository,
           tradeLineRepository,
+          new FakeInvestmentOpeningPositionRepository(),
           latestSnapshotQuery,
           freshnessQuery,
           clock);

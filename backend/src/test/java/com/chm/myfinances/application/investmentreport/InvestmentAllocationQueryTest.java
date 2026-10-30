@@ -18,6 +18,7 @@ import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInstitutionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentCategoryRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentOpeningPositionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSubcategoryRepository;
@@ -69,7 +70,10 @@ class InvestmentAllocationQueryTest {
           institutionRepository,
           latestQuery,
           new InvestmentSnapshotFreshnessQuery(
-              latestQuery, tradeLineRepository, holdingRepository));
+              latestQuery,
+              tradeLineRepository,
+              holdingRepository,
+              new FakeInvestmentOpeningPositionRepository()));
 
   private final Map<UUID, InvestmentHolding> holdingByProduct = new HashMap<>();
 

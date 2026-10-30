@@ -215,3 +215,65 @@ describe('ActivityPage field labels', () => {
     expect(screen.getByText('someFutureField')).toBeInTheDocument()
   })
 })
+
+describe('ActivityPage opening position entries (F038)', () => {
+  const entries = ['CREATE', 'UPDATE', 'DELETE'].map((action, i) => ({
+    id: `audit-open-${i}`,
+    occurredAt: `2026-03-16T1${i}:00:00Z`,
+    entityType: 'INVESTMENT_OPENING_POSITION',
+    entityId: 'iopen-1',
+    entityLabel: null,
+    action,
+    origin: 'USER',
+    changes:
+      action === 'UPDATE'
+        ? { quantity: { from: 40, to: 50 } }
+        : { asOfDate: { from: null, to: '2026-03-01' }, unitPrice: { from: null, to: 150 } },
+    requestId: null,
+  }))
+
+  function useEntries() {
+    server.use(
+      http.get('/api/audit-log', () =>
+        HttpResponse.json({
+          content: entries,
+          page: { size: 20, number: 0, totalElements: 3, totalPages: 1 },
+        }),
+      ),
+    )
+  }
+
+  it('lists create, update and delete entries with a readable type and field labels in English', async () => {
+    useEntries()
+    const user = userEvent.setup({ delay: null })
+    renderWithQueryClient(<ActivityPage />)
+
+    expect(await screen.findAllByText('Investment opening position')).toHaveLength(3)
+    await user.click(screen.getAllByRole('button', { name: 'Expand details' })[0])
+    expect(await screen.findByText('As of')).toBeInTheDocument()
+    expect(screen.getByText('Unit price')).toBeInTheDocument()
+  })
+
+  it('and in Brazilian Portuguese', async () => {
+    useEntries()
+    localStorage.setItem('my-finances:locale', 'pt-BR')
+    const user = userEvent.setup({ delay: null })
+    renderWithQueryClient(<ActivityPage />)
+
+    expect(await screen.findAllByText('Posição inicial de investimento')).toHaveLength(3)
+    await user.click(screen.getAllByRole('button', { name: /Expandir detalhes/ })[0])
+    expect(await screen.findByText('Preço unitário')).toBeInTheDocument()
+  })
+
+  it('offers the type in the entity type filter', async () => {
+    const user = userEvent.setup({ delay: null })
+    renderWithQueryClient(<ActivityPage />)
+    await screen.findByText('March 16, 2026')
+
+    await user.click(screen.getByRole('combobox', { name: 'Entity type filter' }))
+
+    expect(
+      await screen.findByRole('option', { name: 'Investment opening position' }),
+    ).toBeInTheDocument()
+  })
+})

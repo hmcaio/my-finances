@@ -157,6 +157,15 @@ export const PROBLEM_TYPE_MESSAGES: Record<string, string> = {
   'urn:my-finances:error:investment-snapshot-closed-holding':
     'errors:problemType.investmentSnapshotClosedHolding',
 
+  // Investment opening positions (F038)
+  'urn:my-finances:error:investment-opening-position-not-found':
+    'errors:problemType.investmentOpeningPositionNotFound',
+  'urn:my-finances:error:invalid-opening-position': 'errors:problemType.invalidOpeningPosition',
+  'urn:my-finances:error:opening-position-after-trades':
+    'errors:problemType.openingPositionAfterTrades',
+  'urn:my-finances:error:trade-before-opening-position':
+    'errors:problemType.tradeBeforeOpeningPosition',
+
   // Investment segments (F026)
   'urn:my-finances:error:investment-segment-name-already-exists':
     'errors:problemType.investmentSegmentNameAlreadyExists',

@@ -6,6 +6,8 @@ import com.chm.myfinances.application.investmentsnapshot.InvestmentSnapshotFresh
 import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
+import com.chm.myfinances.domain.investmentopeningposition.InvestmentOpeningPosition;
+import com.chm.myfinances.domain.investmentopeningposition.InvestmentOpeningPositionRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
@@ -32,8 +34,9 @@ import org.springframework.stereotype.Service;
  * on read the same way {@code InvestmentValueSeriesQuery.seriesOf} already derives {@code units}/
  * {@code contributed} - reusing {@code TransferTradeLineRepository.findByProductId} (F027, ADR
  * 0024) and each line's own quantity/total, signed by its {@code side} (BUY adds, SELL subtracts) -
- * but as a running total over all trades to date, not bucketed by month. {@code currentValue}/
- * {@code needsSnapshot} reuse {@code LatestInvestmentSnapshotQuery}/{@code
+ * but as a running total over all trades to date, not bucketed by month. An opening position (F038,
+ * ADR 0033) is added like a BUY line dated its {@code asOfDate}. {@code currentValue}/ {@code
+ * needsSnapshot} reuse {@code LatestInvestmentSnapshotQuery}/{@code
  * InvestmentSnapshotFreshnessQuery}, summed per product across its holdings. Nothing here is
  * price-derived (PRD S3/S9).
  */
@@ -44,6 +47,7 @@ public class FiiPortfolioQuery {
   private final InvestmentSubcategoryRepository subcategoryRepository;
   private final InvestmentHoldingRepository holdingRepository;
   private final TransferTradeLineRepository tradeLineRepository;
+  private final InvestmentOpeningPositionRepository openingPositionRepository;
   private final LatestInvestmentSnapshotQuery latestSnapshotQuery;
   private final InvestmentSnapshotFreshnessQuery freshnessQuery;
   private final Clock clock;
@@ -53,6 +57,7 @@ public class FiiPortfolioQuery {
       InvestmentSubcategoryRepository subcategoryRepository,
       InvestmentHoldingRepository holdingRepository,
       TransferTradeLineRepository tradeLineRepository,
+      InvestmentOpeningPositionRepository openingPositionRepository,
       LatestInvestmentSnapshotQuery latestSnapshotQuery,
       InvestmentSnapshotFreshnessQuery freshnessQuery,
       Clock clock) {
@@ -60,6 +65,7 @@ public class FiiPortfolioQuery {
     this.subcategoryRepository = subcategoryRepository;
     this.holdingRepository = holdingRepository;
     this.tradeLineRepository = tradeLineRepository;
+    this.openingPositionRepository = openingPositionRepository;
     this.latestSnapshotQuery = latestSnapshotQuery;
     this.freshnessQuery = freshnessQuery;
     this.clock = clock;
@@ -115,6 +121,16 @@ public class FiiPortfolioQuery {
       cotasHeld = buy ? cotasHeld.add(line.quantity()) : cotasHeld.subtract(line.quantity());
       BigDecimal total = line.quantity().multiply(line.unitPrice());
       amountContributed = buy ? amountContributed.add(total) : amountContributed.subtract(total);
+    }
+    // F038 (ADR 0033): an opening position counts like a BUY line dated its asOfDate.
+    List<UUID> holdingIds = holdings.stream().map(InvestmentHolding::getId).toList();
+    for (InvestmentOpeningPosition position :
+        openingPositionRepository.findByHoldingIds(holdingIds)) {
+      if (position.getAsOfDate().isAfter(asOf)) {
+        continue;
+      }
+      cotasHeld = cotasHeld.add(position.getQuantity());
+      amountContributed = amountContributed.add(position.amountContributed());
     }
 
     BigDecimal currentValue = BigDecimal.ZERO;

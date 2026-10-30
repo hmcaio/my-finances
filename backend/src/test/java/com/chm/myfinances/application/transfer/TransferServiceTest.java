@@ -21,6 +21,7 @@ import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
 import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentOpeningPositionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
 import com.chm.myfinances.testsupport.fakes.FakeTransferRepository;
@@ -59,6 +60,7 @@ class TransferServiceTest {
         transferRepository,
         accountRepository,
         holdingRepository,
+        new FakeInvestmentOpeningPositionRepository(),
         new InvestmentSnapshotService(
             snapshotRepository,
             holdingRepository,

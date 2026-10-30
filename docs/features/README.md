@@ -8,7 +8,6 @@ Every feature below is built except those listed here (documented, not built; de
 
 - F028 — investment splits, backend ([ADR 0025](../adr/0025-investment-split-as-read-side-adjustment.md))
 - F029 — investment splits, frontend (the product-detail split panel and dialog for F028)
-- F038 — investment opening position: a holding's starting quantity and cost basis recorded without moving cash ([ADR 0033](../adr/0033-opening-position-as-cashless-holding-start.md))
 
 ## Features
 

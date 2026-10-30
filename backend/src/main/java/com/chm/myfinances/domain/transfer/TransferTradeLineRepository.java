@@ -1,6 +1,8 @@
 package com.chm.myfinances.domain.transfer;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -23,4 +25,11 @@ public interface TransferTradeLineRepository {
    * The holding-history check (F027, superseding F009/F022's transfer-based check).
    */
   boolean existsByProductIdAndAccountId(UUID productId, UUID accountId);
+
+  /**
+   * The earliest transfer date of any line trading this product at this account (either endpoint of
+   * its parent transfer), or empty when there is none. Backs the opening position's date-order
+   * guard (F038, ADR 0033).
+   */
+  Optional<LocalDate> findEarliestDateByHolding(UUID productId, UUID investmentAccountId);
 }

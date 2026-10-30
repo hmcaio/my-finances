@@ -2,9 +2,11 @@ package com.chm.myfinances.infrastructure.persistence.transfer;
 
 import com.chm.myfinances.domain.transfer.TransferTradeLine;
 import com.chm.myfinances.domain.transfer.TransferTradeLineRepository;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 
@@ -42,6 +44,11 @@ public class TransferTradeLineRepositoryAdapter implements TransferTradeLineRepo
   public boolean existsByProductIdAndAccountId(UUID productId, UUID accountId) {
     return findByProductId(productId).stream()
         .anyMatch(l -> l.fromAccountId().equals(accountId) || l.toAccountId().equals(accountId));
+  }
+
+  @Override
+  public Optional<LocalDate> findEarliestDateByHolding(UUID productId, UUID investmentAccountId) {
+    return lineJpaRepository.findEarliestDate(productId, investmentAccountId);
   }
 
   private List<TransferTradeLine> toDomain(List<TransferTradeLineJpaEntity> lines) {

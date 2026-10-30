@@ -20,6 +20,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/investment-holdings/{holdingId}/opening-position": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["investmentOpeningPosition_get"];
+        put: operations["investmentOpeningPosition_put"];
+        post?: never;
+        delete: operations["investmentOpeningPosition_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/fii/allocation-plan": {
         parameters: {
             query?: never;
@@ -925,6 +941,24 @@ export interface components {
                 [key: string]: Record<string, never>;
             };
         };
+        OpeningPositionRequest: {
+            /** Format: date */
+            asOfDate: string;
+            quantity: number;
+            unitPrice: number;
+            currentValue?: number;
+        };
+        OpeningPositionResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            holdingId?: string;
+            /** Format: date */
+            asOfDate?: string;
+            quantity?: number;
+            unitPrice?: number;
+            amountContributed?: number;
+        };
         AllocationPlanEntryRequest: {
             /** Format: uuid */
             investmentProductId: string;
@@ -1124,6 +1158,7 @@ export interface components {
             ticker?: string;
             /** Format: uuid */
             segmentId?: string;
+            openingPosition?: components["schemas"]["OpeningPositionRequest"];
         };
         InvestmentProductResponse: {
             /** Format: uuid */
@@ -1552,7 +1587,7 @@ export interface components {
             /** Format: date-time */
             occurredAt?: string;
             /** @enum {string} */
-            entityType?: "TRANSACTION" | "TRANSFER" | "ACCOUNT" | "CATEGORY" | "PAYMENT_METHOD" | "INSTITUTION" | "BUDGET" | "RECURRING_TEMPLATE" | "INVESTMENT_CATEGORY" | "INVESTMENT_SUBCATEGORY" | "INVESTMENT_PRODUCT" | "INVESTMENT_HOLDING" | "INVESTMENT_SNAPSHOT" | "INVESTMENT_SEGMENT" | "ALLOCATION_PLAN" | "VEHICLE";
+            entityType?: "TRANSACTION" | "TRANSFER" | "ACCOUNT" | "CATEGORY" | "PAYMENT_METHOD" | "INSTITUTION" | "BUDGET" | "RECURRING_TEMPLATE" | "INVESTMENT_CATEGORY" | "INVESTMENT_SUBCATEGORY" | "INVESTMENT_PRODUCT" | "INVESTMENT_HOLDING" | "INVESTMENT_SNAPSHOT" | "INVESTMENT_OPENING_POSITION" | "INVESTMENT_SEGMENT" | "ALLOCATION_PLAN" | "VEHICLE";
             /** Format: uuid */
             entityId?: string;
             entityLabel?: string;
@@ -1660,6 +1695,137 @@ export interface operations {
                 };
             };
             /** @description type: urn:my-finances:error:investment-snapshot-closed-holding */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    investmentOpeningPosition_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                holdingId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The holding's opening position. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OpeningPositionResponse"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:investment-holding-not-found, urn:my-finances:error:investment-opening-position-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    investmentOpeningPosition_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                holdingId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpeningPositionRequest"];
+            };
+        };
+        responses: {
+            /** @description The holding's existing opening position was replaced. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OpeningPositionResponse"];
+                };
+            };
+            /** @description The opening position was created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OpeningPositionResponse"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:method-argument-not-valid, carrying an errors[] array of {field, code} with code one of: not-null, positive, positive-or-zero, digits; or urn:my-finances:error:invalid-opening-position (a future asOfDate) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:investment-holding-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:investment-holding-closed, urn:my-finances:error:opening-position-after-trades */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    investmentOpeningPosition_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                holdingId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description type: one of urn:my-finances:error:investment-holding-not-found, urn:my-finances:error:investment-opening-position-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:investment-holding-closed */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -1860,7 +2026,7 @@ export interface operations {
                     "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
-            /** @description type: one of urn:my-finances:error:account-closed, urn:my-finances:error:investment-transfer-invalid, urn:my-finances:error:investment-holding-closed */
+            /** @description type: one of urn:my-finances:error:account-closed, urn:my-finances:error:investment-transfer-invalid, urn:my-finances:error:investment-holding-closed, urn:my-finances:error:trade-before-opening-position */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -2181,7 +2347,7 @@ export interface operations {
                     "*/*": components["schemas"]["InvestmentProductResponse"];
                 };
             };
-            /** @description type: urn:my-finances:error:method-argument-not-valid, carrying an errors[] array of {field, code} with code one of: not-null, not-blank, size */
+            /** @description type: one of urn:my-finances:error:method-argument-not-valid, carrying an errors[] array of {field, code} with code one of: not-null, not-blank, size, positive, positive-or-zero, digits (the openingPosition.* fields included); or urn:my-finances:error:invalid-opening-position (a future openingPosition.asOfDate) */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -2968,7 +3134,7 @@ export interface operations {
                     "*/*": components["schemas"]["ProblemDetail"];
                 };
             };
-            /** @description type: one of urn:my-finances:error:account-closed, urn:my-finances:error:investment-transfer-invalid, urn:my-finances:error:investment-holding-closed */
+            /** @description type: one of urn:my-finances:error:account-closed, urn:my-finances:error:investment-transfer-invalid, urn:my-finances:error:investment-holding-closed, urn:my-finances:error:trade-before-opening-position */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -4114,7 +4280,7 @@ export interface operations {
             query: {
                 from?: string;
                 to?: string;
-                entityType?: "TRANSACTION" | "TRANSFER" | "ACCOUNT" | "CATEGORY" | "PAYMENT_METHOD" | "INSTITUTION" | "BUDGET" | "RECURRING_TEMPLATE" | "INVESTMENT_CATEGORY" | "INVESTMENT_SUBCATEGORY" | "INVESTMENT_PRODUCT" | "INVESTMENT_HOLDING" | "INVESTMENT_SNAPSHOT" | "INVESTMENT_SEGMENT" | "ALLOCATION_PLAN" | "VEHICLE";
+                entityType?: "TRANSACTION" | "TRANSFER" | "ACCOUNT" | "CATEGORY" | "PAYMENT_METHOD" | "INSTITUTION" | "BUDGET" | "RECURRING_TEMPLATE" | "INVESTMENT_CATEGORY" | "INVESTMENT_SUBCATEGORY" | "INVESTMENT_PRODUCT" | "INVESTMENT_HOLDING" | "INVESTMENT_SNAPSHOT" | "INVESTMENT_OPENING_POSITION" | "INVESTMENT_SEGMENT" | "ALLOCATION_PLAN" | "VEHICLE";
                 action?: "CREATE" | "UPDATE" | "DELETE" | "CLOSE" | "REOPEN" | "STOPPED" | "GENERATED";
                 origin?: "USER" | "SYSTEM";
                 entityId?: string;

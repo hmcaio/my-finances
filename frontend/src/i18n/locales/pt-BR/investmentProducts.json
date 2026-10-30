@@ -114,7 +114,14 @@
     "tickerLabel": "Ticker",
     "segmentLabel": "Segmento",
     "noSegmentOption": "Sem segmento",
-    "notesLabel": "Notas adicionais"
+    "notesLabel": "Notas adicionais",
+    "openingPositionTitle": "Posição inicial (opcional)",
+    "openingPositionHint": "Já tem cotas? Registre quantas e o seu preço médio. Isso não movimenta dinheiro: o saldo das suas contas não muda.",
+    "openingAsOfLabel": "Em",
+    "openingQuantityLabel": "Cotas",
+    "openingUnitPriceLabel": "Preço médio",
+    "openingCurrentValueLabel": "Valor atual (opcional)",
+    "openingCurrentValueHelper": "Se não informar, a posição fica marcada como precisando de um registro."
   },
   "chart": {
     "contributedTooltip": "{{month}}: aportado {{amount}}",
@@ -123,5 +130,27 @@
     "noData": "Nenhum dado para este período.",
     "legendValue": "● Valor (registro de fim de mês)",
     "legendContributed": "▮ Aportes (compras menos vendas)"
+  },
+  "openingPosition": {
+    "title": "Posição inicial",
+    "empty": "Nenhuma posição inicial registrada. Adicione uma para registrar as cotas que você já tem e o preço médio, sem movimentar dinheiro.",
+    "addButton": "Adicionar posição inicial",
+    "editAria": "Editar posição inicial",
+    "deleteAria": "Excluir posição inicial",
+    "loadFailed": "Não foi possível carregar a posição inicial.",
+    "asOfDate": "Em",
+    "quantity": "Cotas",
+    "unitPrice": "Preço médio",
+    "amountContributed": "Valor aportado",
+    "addDialogTitle": "Adicionar posição inicial",
+    "editDialogTitle": "Editar posição inicial",
+    "saveButton": "Salvar",
+    "currentValueLabel": "Valor atual (opcional)",
+    "currentValueHelper": "Registra o valor da posição na data informada. Se não informar, a posição fica marcada como precisando de um registro.",
+    "noCashNote": "Isso não movimenta dinheiro: o saldo das suas contas não muda.",
+    "deleteTitle": "Excluir posição inicial?",
+    "deleteBody": "Excluir a posição inicial de {{date}}? As cotas e o valor aportado deixam de incluí-la. Os registros de valor são mantidos.",
+    "deleteConfirm": "Excluir",
+    "loading": "Carregando posição inicial"
   }
 }

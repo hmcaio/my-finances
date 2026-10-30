@@ -26,6 +26,28 @@ export function formatNumber(value: number, locale: Locale, fractionDigits: numb
 }
 
 /**
+ * A quantity of units (cotas, shares, coins): as many decimals as it has, up to the 8 the backend
+ * stores (F038), none padded - `40` stays `40`, `0.12345678` keeps all eight.
+ */
+export function formatQuantity(value: number, locale: Locale): string {
+  return new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 8,
+  }).format(value)
+}
+
+/**
+ * A unit price (F038): money-style two decimals at least, more only when the price has them (the
+ * backend keeps 8), so a sub-cent price is not rounded away.
+ */
+export function formatUnitPrice(value: number, locale: Locale): string {
+  return new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 8,
+  }).format(value)
+}
+
+/**
  * A date (or date+time, via `options`) in the active locale. Defaults to a long calendar date
  * (`dateStyle: 'long'`: "March 16, 2026" / "16 de março de 2026"); pass `options` for a different
  * shape, e.g. a time-of-day label (`{ hour: '2-digit', minute: '2-digit' }`).

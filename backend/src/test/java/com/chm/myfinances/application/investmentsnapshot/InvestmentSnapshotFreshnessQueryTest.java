@@ -3,10 +3,12 @@ package com.chm.myfinances.application.investmentsnapshot;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
+import com.chm.myfinances.domain.investmentopeningposition.InvestmentOpeningPosition;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.transfer.TradeSide;
 import com.chm.myfinances.domain.transfer.TransferTradeLine;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentOpeningPositionRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
 import com.chm.myfinances.testsupport.fakes.FakeTransferTradeLineRepository;
 import com.chm.myfinances.testsupport.mothers.InvestmentHoldingMother;
@@ -28,13 +30,16 @@ class InvestmentSnapshotFreshnessQueryTest {
       new FakeInvestmentSnapshotRepository();
   private final FakeInvestmentHoldingRepository holdingRepository =
       new FakeInvestmentHoldingRepository();
+  private final FakeInvestmentOpeningPositionRepository positionRepository =
+      new FakeInvestmentOpeningPositionRepository();
   private final FakeTransferTradeLineRepository tradeLineRepository =
       new FakeTransferTradeLineRepository();
   private final InvestmentSnapshotFreshnessQuery query =
       new InvestmentSnapshotFreshnessQuery(
           new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository),
           tradeLineRepository,
-          holdingRepository);
+          holdingRepository,
+          positionRepository);
 
   private static final LocalDate ASOF = LocalDate.of(2026, 6, 30);
   private static final UUID CHECKING_ID = UUID.randomUUID();
@@ -135,5 +140,46 @@ class InvestmentSnapshotFreshnessQueryTest {
     snapshot(otherHolding, LocalDate.of(2026, 5, 31));
 
     assertThat(query.staleHoldingIds(ASOF)).containsExactly(holding.getId());
+  }
+
+  // --- F038: an opening position is treated like a line dated its asOfDate -------------------
+
+  private void position(InvestmentHolding holding, LocalDate asOf) {
+    positionRepository.save(
+        InvestmentOpeningPosition.create(
+            UUID.randomUUID(), holding.getId(), asOf, BigDecimal.TEN, BigDecimal.ONE));
+  }
+
+  @Test
+  void anOpeningPositionWithNoSnapshotNeedsOne() {
+    position(holding, LocalDate.of(2026, 4, 10));
+
+    assertThat(query.needsSnapshot(holding.getId(), ASOF)).isTrue();
+    assertThat(query.needsSnapshot(otherHolding.getId(), ASOF)).isFalse();
+  }
+
+  @Test
+  void anOpeningPositionDatedAfterTheLatestSnapshotNeedsOne() {
+    snapshot(holding, LocalDate.of(2026, 3, 31));
+    position(holding, LocalDate.of(2026, 4, 10));
+
+    assertThat(query.needsSnapshot(holding.getId(), ASOF)).isTrue();
+  }
+
+  @Test
+  void aSnapshotOnTheOpeningPositionsDateIsFresh() {
+    position(holding, LocalDate.of(2026, 4, 10));
+    snapshot(holding, LocalDate.of(2026, 4, 10));
+
+    assertThat(query.needsSnapshot(holding.getId(), ASOF)).isFalse();
+  }
+
+  @Test
+  void anOpeningPositionDatedAfterTheEvaluationDateIsIgnored() {
+    position(holding, LocalDate.of(2026, 7, 1));
+
+    assertThat(query.needsSnapshot(holding.getId(), ASOF)).isFalse();
+    assertThat(query.staleHoldingIds(ASOF)).doesNotContain(holding.getId());
+    assertThat(query.staleHoldingIds(LocalDate.of(2026, 7, 1))).contains(holding.getId());
   }
 }

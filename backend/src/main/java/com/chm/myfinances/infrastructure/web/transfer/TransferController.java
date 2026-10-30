@@ -94,7 +94,8 @@ public class TransferController {
       description =
           "type: one of urn:my-finances:error:account-closed, "
               + "urn:my-finances:error:investment-transfer-invalid, "
-              + "urn:my-finances:error:investment-holding-closed",
+              + "urn:my-finances:error:investment-holding-closed, "
+              + "urn:my-finances:error:trade-before-opening-position",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public TransferResponse create(@Valid @RequestBody CreateTransferRequest request) {
     List<TradeConfirmationLine> lines = toDomainLines(request.tradeConfirmation());
@@ -157,7 +158,8 @@ public class TransferController {
       description =
           "type: one of urn:my-finances:error:account-closed, "
               + "urn:my-finances:error:investment-transfer-invalid, "
-              + "urn:my-finances:error:investment-holding-closed",
+              + "urn:my-finances:error:investment-holding-closed, "
+              + "urn:my-finances:error:trade-before-opening-position",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public TransferResponse edit(
       @PathVariable UUID id, @Valid @RequestBody UpdateTransferRequest request) {

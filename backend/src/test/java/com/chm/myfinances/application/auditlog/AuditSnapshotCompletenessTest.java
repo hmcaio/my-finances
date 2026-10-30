@@ -14,6 +14,7 @@ import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.Institution;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
+import com.chm.myfinances.domain.investmentopeningposition.InvestmentOpeningPosition;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentsegment.InvestmentSegment;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
@@ -35,6 +36,7 @@ import com.chm.myfinances.infrastructure.persistence.category.CategoryJpaEntity;
 import com.chm.myfinances.infrastructure.persistence.institution.InstitutionJpaEntity;
 import com.chm.myfinances.infrastructure.persistence.investmentcategory.InvestmentCategoryJpaEntity;
 import com.chm.myfinances.infrastructure.persistence.investmentholding.InvestmentHoldingJpaEntity;
+import com.chm.myfinances.infrastructure.persistence.investmentopeningposition.InvestmentOpeningPositionJpaEntity;
 import com.chm.myfinances.infrastructure.persistence.investmentproduct.InvestmentProductJpaEntity;
 import com.chm.myfinances.infrastructure.persistence.investmentsegment.InvestmentSegmentJpaEntity;
 import com.chm.myfinances.infrastructure.persistence.investmentsnapshot.InvestmentSnapshotJpaEntity;
@@ -272,6 +274,22 @@ class AuditSnapshotCompletenessTest {
             UUID.randomUUID(), UUID.randomUUID(), LocalDate.of(2026, 1, 1), BigDecimal.TEN);
 
     assertThat(snapshot.toAuditSnapshot().keySet()).containsAll(persisted);
+  }
+
+  @Test
+  void investmentOpeningPositionSnapshotCoversEveryPersistedFieldExceptTechnicalOnes() {
+    Set<String> persisted = declaredFieldNames(InvestmentOpeningPositionJpaEntity.class);
+    persisted.removeAll(technicalFields());
+
+    InvestmentOpeningPosition position =
+        InvestmentOpeningPosition.create(
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            LocalDate.of(2026, 1, 1),
+            BigDecimal.TEN,
+            BigDecimal.ONE);
+
+    assertThat(position.toAuditSnapshot().keySet()).containsAll(persisted);
   }
 
   @Test

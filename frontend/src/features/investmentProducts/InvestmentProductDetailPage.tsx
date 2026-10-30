@@ -70,6 +70,7 @@ import { nameLookup } from '../../utils/nameLookup'
 import { today } from '../../utils/localDate'
 import { TransferForm, type TransferFormPreset } from '../transfers/TransferForm'
 import { InvestmentProductForm, type InvestmentProductFormValues } from './InvestmentProductForm'
+import { OpeningPositionCard } from './OpeningPositionCard'
 import { ValueSeriesChart } from './ValueSeriesChart'
 
 /** Tighter section padding on phones (F021), matching `AccountDetailPage`. */
@@ -581,52 +582,73 @@ export function InvestmentProductDetailPage() {
 
           {selectedHolding && (
             <>
-              <Paper variant="outlined" sx={{ p: SECTION_PADDING, mb: 3, maxWidth: 520 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                  <Typography variant="overline" color="text.secondary">
-                    {t('investmentProducts:detail.currentValue')}{' '}
-                    {selectedAccount ? `(${selectedAccount.name})` : ''}
-                  </Typography>
-                  {selectedHolding.closed ? (
-                    <Chip label={t('investmentProducts:detail.statusClosed')} size="small" />
-                  ) : (
-                    <Chip
-                      label={t('investmentProducts:detail.statusOpen')}
-                      size="small"
-                      color="success"
-                    />
-                  )}
-                  {selectedHolding.needsSnapshot && (
-                    <Tooltip title={t('investmentProducts:detail.needsSnapshotTooltip')}>
+              {/* Side by side from `sm` up (tablet and desktop), stacked on mobile. `minmax(0, ...)`
+                  lets each column shrink below its 520px cap, so a narrow tablet never overflows. */}
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 520px))' },
+                  gap: 3,
+                  mb: 3,
+                }}
+              >
+                <Paper variant="outlined" sx={{ p: SECTION_PADDING }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                    <Typography variant="overline" color="text.secondary">
+                      {t('investmentProducts:detail.currentValue')}{' '}
+                      {selectedAccount ? `(${selectedAccount.name})` : ''}
+                    </Typography>
+                    {selectedHolding.closed ? (
+                      <Chip label={t('investmentProducts:detail.statusClosed')} size="small" />
+                    ) : (
                       <Chip
-                        label={t('investmentProducts:detail.needsSnapshotChip')}
+                        label={t('investmentProducts:detail.statusOpen')}
                         size="small"
-                        color="warning"
+                        color="success"
                       />
-                    </Tooltip>
-                  )}
-                </Box>
-                <Typography variant="h3" sx={{ mb: 1, mt: 1 }}>
-                  {selectedHolding.latestSnapshot
-                    ? formatMoney(selectedHolding.latestSnapshot.balance, locale)
-                    : '-'}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  {selectedHolding.latestSnapshot
-                    ? t('investmentProducts:detail.latestSnapshotLine', {
-                        date: selectedHolding.latestSnapshot.date,
-                      })
-                    : t('investmentProducts:detail.noSnapshotYet')}
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 2 }}>
-                  <Button variant="contained" disabled={!canTrade} onClick={() => openTrade('buy')}>
-                    {t('investmentProducts:detail.buyButton')}
-                  </Button>
-                  <Button variant="outlined" disabled={!canTrade} onClick={() => openTrade('sell')}>
-                    {t('investmentProducts:detail.sellButton')}
-                  </Button>
-                </Box>
-              </Paper>
+                    )}
+                    {selectedHolding.needsSnapshot && (
+                      <Tooltip title={t('investmentProducts:detail.needsSnapshotTooltip')}>
+                        <Chip
+                          label={t('investmentProducts:detail.needsSnapshotChip')}
+                          size="small"
+                          color="warning"
+                        />
+                      </Tooltip>
+                    )}
+                  </Box>
+                  <Typography variant="h3" sx={{ mb: 1, mt: 1 }}>
+                    {selectedHolding.latestSnapshot
+                      ? formatMoney(selectedHolding.latestSnapshot.balance, locale)
+                      : '-'}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    {selectedHolding.latestSnapshot
+                      ? t('investmentProducts:detail.latestSnapshotLine', {
+                          date: selectedHolding.latestSnapshot.date,
+                        })
+                      : t('investmentProducts:detail.noSnapshotYet')}
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 2 }}>
+                    <Button
+                      variant="contained"
+                      disabled={!canTrade}
+                      onClick={() => openTrade('buy')}
+                    >
+                      {t('investmentProducts:detail.buyButton')}
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      disabled={!canTrade}
+                      onClick={() => openTrade('sell')}
+                    >
+                      {t('investmentProducts:detail.sellButton')}
+                    </Button>
+                  </Box>
+                </Paper>
+
+                <OpeningPositionCard holding={selectedHolding} padding={SECTION_PADDING} />
+              </Box>
 
               <Paper variant="outlined" sx={{ p: SECTION_PADDING, mb: 3 }}>
                 <Box

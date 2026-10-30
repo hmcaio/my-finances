@@ -19,7 +19,9 @@ import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import com.chm.myfinances.testsupport.web.JsonSupport;
 import com.chm.myfinances.testsupport.web.MockMvcSupport;
 import com.chm.myfinances.testsupport.web.WebIntegrationTest;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -113,6 +115,88 @@ class InvestmentProductControllerTest {
             .andExpect(status().isCreated())
             .andReturn();
     return JsonSupport.idOf(result);
+  }
+
+  private String bodyWithOpeningPosition(String name, Map<String, Object> openingPosition)
+      throws Exception {
+    Map<String, Object> body =
+        objectMapper.readValue(
+            body(accountId, fixedIncomeId, cdbId, name),
+            new TypeReference<Map<String, Object>>() {});
+    body.put("openingPosition", openingPosition);
+    return objectMapper.writeValueAsString(body);
+  }
+
+  @Test
+  void createWithAnOpeningPositionWritesThePositionAndItsSnapshotInOneCall() throws Exception {
+    MvcResult created =
+        mockMvc
+            .perform(
+                post("/api/investment-products")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        bodyWithOpeningPosition(
+                            "FII With Position Test",
+                            Map.of(
+                                "asOfDate", "2026-03-01",
+                                "quantity", "40",
+                                "unitPrice", "150.00",
+                                "currentValue", "6400.00"))))
+            .andExpect(status().isCreated())
+            .andReturn();
+    String productId = JsonSupport.idOf(created);
+
+    MvcResult holdings =
+        mockMvc
+            .perform(get("/api/investment-holdings").param("productId", productId))
+            .andExpect(status().isOk())
+            .andReturn();
+    String holdingId =
+        objectMapper
+            .readTree(holdings.getResponse().getContentAsString())
+            .get(0)
+            .get("id")
+            .asText();
+    mockMvc
+        .perform(get("/api/investment-holdings/" + holdingId + "/opening-position"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.quantity").value(40))
+        .andExpect(jsonPath("$.amountContributed").value(6000.00));
+    mockMvc
+        .perform(get("/api/investment-holdings/" + holdingId + "/snapshots"))
+        .andExpect(jsonPath("$[0].date").value("2026-03-01"))
+        .andExpect(jsonPath("$[0].balance").value(6400.00));
+  }
+
+  @Test
+  void createRejectsAnInvalidNestedOpeningPositionWith400() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/investment-products")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    bodyWithOpeningPosition(
+                        "FII Bad Position Test",
+                        Map.of("asOfDate", "2026-03-01", "quantity", "0", "unitPrice", "1"))))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors[0].field").value("openingPosition.quantity"))
+        .andExpect(jsonPath("$.errors[0].code").value("positive"));
+    mockMvc
+        .perform(
+            post("/api/investment-products")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    bodyWithOpeningPosition(
+                        "FII Future Position Test",
+                        Map.of(
+                            "asOfDate",
+                            LocalDate.now().plusDays(1).toString(),
+                            "quantity",
+                            "1",
+                            "unitPrice",
+                            "1"))))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.type").value("urn:my-finances:error:invalid-opening-position"));
   }
 
   @Test
