@@ -92,7 +92,7 @@ export function OpeningPositionCard({ holding, padding }: OpeningPositionCardPro
   const editable = !holding.closed
 
   return (
-    <Paper variant="outlined" sx={{ p: padding, mb: 3, maxWidth: 520 }}>
+    <Paper variant="outlined" sx={{ p: padding }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
         <Typography variant="overline" color="text.secondary" sx={{ flexGrow: 1 }}>
           {t('investmentProducts:openingPosition.title')}

@@ -97,6 +97,30 @@ test.describe('investment product detail', () => {
     await expectNoHorizontalOverflow(page)
   })
 
+  test('places the opening position card beside the current value card from tablet up, stacked on mobile', async ({
+    page,
+  }, testInfo) => {
+    const mobile = testInfo.project.name === 'mobile'
+    await mockApi(page, [accountsWithInvestmentHandler])
+    await page.goto('/investment-products/iprod-btc')
+    await expect(page.getByRole('heading', { name: 'Bitcoin', level: 1 })).toBeVisible()
+
+    // The first line of each card is its title, so their boxes tell the two cards' placement.
+    const currentValue = page.getByText(/^Current value/).first()
+    const openingPosition = page.getByText('Opening position', { exact: true }).first()
+    await expect(openingPosition).toBeVisible()
+    const a = (await currentValue.boundingBox())!
+    const b = (await openingPosition.boundingBox())!
+
+    if (mobile) {
+      expect(b.y).toBeGreaterThan(a.y + a.height)
+    } else {
+      expect(Math.abs(b.y - a.y)).toBeLessThanOrEqual(4)
+      expect(b.x).toBeGreaterThan(a.x + a.width - 1)
+    }
+    await expectNoHorizontalOverflow(page)
+  })
+
   test('Record snapshot opens through a header dialog, full screen only on mobile', async ({
     page,
   }, testInfo) => {
