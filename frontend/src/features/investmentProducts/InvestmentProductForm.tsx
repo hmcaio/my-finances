@@ -206,7 +206,12 @@ export function InvestmentProductForm({
           disableGutters
           variant="outlined"
           slotProps={{ transition: { unmountOnExit: true } }}
-          sx={dialog ? { gridColumn: '1 / -1' } : { width: '100%' }}
+          // Transparent like the outlined fields around it: the opaque paper is darker than the
+          // dialog's elevation-lifted surface in dark mode.
+          sx={{
+            bgcolor: 'transparent',
+            ...(dialog ? { gridColumn: '1 / -1' } : { width: '100%' }),
+          }}
         >
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
             <Typography>{t('investmentProducts:form.openingPositionTitle')}</Typography>
