@@ -188,16 +188,21 @@ Annotated, like the released tags. On the yes, run them in that order, confirm t
 
 ## Step 9 — Verify the published images (phase 3, or phase 4 without an rc)
 
-Runs against the tag just pushed, `<T>`. Everything that can be checked from a shell is checked here; what cannot is listed at the end for the user. Never run it where a real prod stack exists: `docker-compose.prod.yml` hardcodes container and volume names, and `scripts/smoke-prod.sh` refuses to start beside them. Check `docker ps -a --filter name=my-finances` first and ask if anything shows up.
+Runs against the tag just pushed, `<T>`, with one script, [`scripts/verify-release-images.sh`](../../../scripts/verify-release-images.sh), the single definition of the shell-checkable items of the runbook's "Verifying the published images":
 
-1. **The tag run.** `gh run list --workflow ci.yml --branch <T> --json databaseId,headSha,status,conclusion`; the run's `headSha` must be the tagged commit. Wait with `gh run watch <id> --exit-status` (long: run it in the background). A failure: report the failing job and stop. A transient failure (registry or network blip) is re-run from the Actions UI by the user; a workflow, Dockerfile or scan failure burns the tag, so the next candidate is `rc.N+1` (or the next patch) after an ordinary fix PR into `main` (runbook, "A publish-only failure burns the version").
-2. **Tags and digests, anonymously.** Use `export DOCKER_CONFIG=$(mktemp -d)` for these commands only, so the user's own `docker login` is neither used nor removed. For each of `backend`, `frontend` and `backup` (`ghcr.io/hmcaio/my-finances-<name>`): `docker buildx imagetools inspect <image>:<T>` and `<image>:sha-<short>` must both resolve, with the same `Digest:`. A failure to resolve means the GHCR package is private or missing. For a stable tag, `:latest` must have the same digest as `:vX.Y.Z`; for an rc, `:latest` must **not** have moved: its digest must equal `:v<last-tag>`'s (the last release from Step 2), or `:latest` must not exist when there is no earlier release.
-3. **Fresh-install smoke on the published images.** `docker pull` the three `<image>:<T>` with that same empty `DOCKER_CONFIG`, then from a checkout of the tag (`git worktree add --detach ../my-finances-release-verify <T>`, removed afterwards with `git worktree remove`) run `SMOKE_BACKEND_IMAGE=… SMOKE_FRONTEND_IMAGE=… SMOKE_BACKUP_IMAGE=… bash scripts/verify.sh smoke` with those refs. It asserts all four services healthy, ports on loopback only, the login and a wrong password, nginx's header and cache matrix, the backup status and a clean backend log, and tears its throwaway stack down itself. Its output is the evidence for the runbook lines it covers (healthy, loopback ports, login, logging hygiene on the smoke's own data).
-4. **Cleanup.** Remove the verify worktree and the scratch `DOCKER_CONFIG`; confirm `docker ps -a --filter name=my-finances` shows nothing the run left behind.
+```
+bash scripts/verify-release-images.sh <T>
+```
+
+Run from the checkout that has the script (the release worktree, or any up-to-date one); it waits for the tag run (long: run it in the background and wait for its exit), then checks that the three images resolve anonymously under `<T>` and `sha-<short>` with the same digest, that `latest` is the tag for the newest release or still the newest release for an rc, and that the fresh-install smoke (`scripts/smoke-prod.sh`) passes on the pulled images from a checkout of the tagged commit. It exits 0 only when every check passed, and prints one `PASS`/`FAIL` line per check.
+
+Before running it, `docker ps -a --filter name=my-finances`: a real prod stack (its container names are hardcoded in `docker-compose.prod.yml`) makes the smoke refuse to start. Do not stop or remove anyone's containers; ask the user to stop it, or run with `--skip-smoke` and say in the report that the smoke was not run.
+
+A failing tag run: report the failing job and stop. A transient failure (registry or network blip) is re-run from the Actions UI by the user; a workflow, Dockerfile or scan failure burns the tag, so the next candidate is `rc.N+1` (or the next patch) after an ordinary fix PR into `main` (runbook, "A publish-only failure burns the version").
 
 ### Report
 
-A table with one row per check (tag run, three images × tags, digests, `latest`, smoke), each pass or fail with the evidence (run URL, digests, smoke summary line). Then the runbook items this skill **cannot** do, for the user: one UI flow end to end (an account and a transaction, and the backup banner clearing after the first backup), the restore drill (wrong key, corrupt file, good restore) and, from the second release on, the upgrade test from the previous tag ([`docs/conventions/release.md`](../../../docs/conventions/release.md), "Verifying the published images"), each against `<T>`'s images. Say plainly what failed or was not run; do not call the candidate good on partial evidence.
+The script's `PASS`/`FAIL` lines as a table, with the evidence (run URL, digests, smoke result). Then the runbook items it **cannot** do, for the user: one UI flow end to end (an account and a transaction, and the backup banner clearing after the first backup), the restore drill (wrong key, corrupt file, good restore) and, from the second release on, the upgrade test from the previous tag ([`docs/conventions/release.md`](../../../docs/conventions/release.md), "Verifying the published images"), each against `<T>`'s images. Say plainly what failed or was not run (a `--skip-smoke` included); do not call the candidate good on partial evidence.
 
 For an rc, this is **Checkpoint C**: stop and wait for the user to confirm the report (and that their manual checks, if any, passed). A defect found during the rc is an ordinary fix PR into `main` with its CHANGELOG bullet under the existing `## [X.Y.Z]` section (re-dated to the day of the final tag), then `rc.N+1` and the final tag on that later commit; on "fixed and merged", repeat from Step 8 with that PR's squash commit.
 
@@ -214,7 +219,7 @@ git tag -a vX.Y.Z -m vX.Y.Z <sha>
 git push origin vX.Y.Z
 ```
 
-On the yes, run them in that order, confirm with `git rev-parse vX.Y.Z^{commit}` (it must print `<sha>`) and run Step 9 against `vX.Y.Z` (the tag run, all three images carry `vX.Y.Z` and `sha-<short>`, `latest` has the same digest as `vX.Y.Z`, the smoke) and report. Without a yes, stop; nothing was created.
+On the yes, run them in that order, confirm with `git rev-parse vX.Y.Z^{commit}` (it must print `<sha>`) and run Step 9 against `vX.Y.Z` (`bash scripts/verify-release-images.sh vX.Y.Z`) and report. Without a yes, stop; nothing was created.
 
 4. **GitHub release.** Only when that report is clean (a failed run or check means no release: say what it implies). Show the command and the notes and ask for confirmation again, as the push yes does not cover it:
 
