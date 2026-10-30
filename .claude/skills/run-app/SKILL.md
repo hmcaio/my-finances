@@ -36,7 +36,7 @@ printf 'AUTH_USERNAME=drive\nAUTH_PASSWORD=%s\nDRIVE_BASE_URL=http://localhost:5
 
 `generateAuthHash` prints the ready-made single-quoted `AUTH_PASSWORD_HASH='$argon2...'` line on stdout (the single quotes keep Compose from expanding the `$`; `.env.example` explains). Needs a local JDK 25.
 
-Done when `grep -c "^AUTH_PASSWORD_HASH='\$argon2id" <scratch>/stack.env` prints `1`.
+Done when `grep -cF "AUTH_PASSWORD_HASH='\$argon2id" <scratch>/stack.env` prints `1` (`-F` keeps the `$` literal: as a regex the same pattern printed `0` on a correct file).
 
 ## 3. Start the dev stack
 
