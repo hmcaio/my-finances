@@ -1,25 +1,51 @@
 ---
 name: release
-description: Prepares a my-finances release from the CHANGELOG.md that PRs keep current. Reconciles the `[Unreleased]` section on main against the Conventional Commits merged since the last vX.Y.Z tag (or the full history for the first release, 0.1.0) — missing entries, missing PR links, entries in the wrong section, missing upgrade notes — suggests the SemVer bump from commit types (ADR 0009), and drafts the promotion of `[Unreleased]` to `## [X.Y.Z] - date`. Also lists the manual release steps that remain (ADR 0007/0032, F014). Draft only — it never bumps versions in backend/build.gradle or frontend/package.json, never tags, pushes or opens a PR, and asks before writing CHANGELOG.md or creating any branch or commit. Use this whenever the user asks to prepare, draft, cut, check or plan a release, a version bump, release notes, "what's unreleased" or whether the CHANGELOG is up to date, or invokes /release [version], even if they don't say "changelog". Not for building a feature (implement-feature) or fixing an audit finding (audit-and-fix) — those two write the per-PR entries this skill checks.
+description: Prepares and drives a my-finances release from the CHANGELOG.md that PRs keep current. Reconciles the `[Unreleased]` section on main against the Conventional Commits merged since the last vX.Y.Z tag (or the full history for the first release, 0.1.0), suggests the SemVer bump (ADR 0009) and whether a release candidate is warranted, then on approval creates the `chore/release-vX.Y.Z` branch in a worktree and commits the CHANGELOG promotion with the version bumps. It then pushes the branch and opens the release PR, tags the release candidate when one is recommended, pushes the tags, verifies the published images and creates the GitHub release, each outward action only after the user confirms that exact command. Checkpointed — it never merges the PR; the user does, and says when. Use this whenever the user asks to prepare, draft, cut, check, continue or plan a release, a version bump, release notes, "what's unreleased" or whether the CHANGELOG is up to date, or invokes /release [version], even if they don't say "changelog". Not for building a feature (implement-feature) or fixing an audit finding (audit-and-fix) — those two write the per-PR entries this skill checks.
 ---
 
 # Release
 
-Feature and fix PRs add their own `CHANGELOG.md` entry under `## [Unreleased]` ([`docs/conventions/release.md`](../../../docs/conventions/release.md), "CHANGELOG entries"), so at release time the entry mostly exists already. This skill checks it against what actually merged, fixes the gaps, and drafts the promotion to a versioned section for the user to edit and approve.
+Feature and fix PRs add their own `CHANGELOG.md` entry under `## [Unreleased]` ([`docs/conventions/release.md`](../../../docs/conventions/release.md), "CHANGELOG entries"), so at release time the entry mostly exists already. This skill checks it against what actually merged, fixes the gaps, and then carries the release as far as the local repository and read-only checks go, stopping at every action only the user may take.
 
-Invoked as `/release` (suggest the version), `/release <version>` (`X.Y.Z`; a leading `v` is accepted, but the CHANGELOG heading uses `X.Y.Z` and the tag `vX.Y.Z`), or `/release --check` (reconcile only: report the gaps in `[Unreleased]` and stop — no version, no promotion — for keeping `main` current between releases).
+Invoked as `/release` (suggest the version), `/release <version>` (`X.Y.Z`; a leading `v` is accepted, but the CHANGELOG heading uses `X.Y.Z` and the tag `vX.Y.Z`), `/release --check` (reconcile only: report the gaps in `[Unreleased]` and stop — no version, no promotion, no branch), or `/release continue` (resume after a checkpoint, for example in a new session: work out the phase from the state below).
 
-This skill **drafts**. The release itself (version bump, tag, push, PRs) is a deliberate manual action by the user — [ADR 0007](../../../docs/adr/0007-single-shared-semver-and-changelog.md) keeps it manual on purpose, and a release tag push is the only thing that publishes the Docker images ([ADR 0032](../../../docs/adr/0032-github-flow-main-only.md), F014).
+The release itself stays a deliberate decision by the user — [ADR 0007](../../../docs/adr/0007-single-shared-semver-and-changelog.md) keeps it manual on purpose, and a release tag push is the only thing that publishes the Docker images ([ADR 0032](../../../docs/adr/0032-github-flow-main-only.md), F014). The skill runs the steps, including the push, PR and release creation, but each outward one only on the user's explicit confirmation (see Hard limits), and the PR merge is always the user's.
+
+## Phases and checkpoints
+
+| Phase | Steps | What the skill does | Then it waits for |
+|---|---|---|---|
+| 1. Draft | 1–6 | reconcile, version, rc recommendation, draft shown in chat | **approval** of version, draft and rc decision |
+| 2. Release PR | 7 | worktree + branch, CHANGELOG promotion, version bumps, one commit, PR text; after **confirmation**, pushes the branch and opens the PR | **the user to merge the PR** and say it is merged |
+| 3. Candidate | 8–9 | after **confirmation**, tags and pushes `vX.Y.Z-rc.N` (only when recommended) and verifies the published images | **the user to read the verification report** and say to go on |
+| 4. Release | 10 | after **confirmation**, tags and pushes `vX.Y.Z`, verifies the final images, and after a second **confirmation** runs `gh release create` | nothing: it reports and ends |
+
+A checkpoint is a stop: end the turn with what was done, the exact commands the user runs, and what you are waiting for. Continue only on the user's reply in a later turn; a reply to an earlier checkpoint never covers a later one. Without an rc, Step 9's verification runs after the final tag (Step 10), as the runbook says.
+
+State for resuming (`/release continue`, a new session): nothing lives only in the conversation. The version is in the branch name `chore/release-vX.Y.Z` (local, on origin, merged: `gh pr list --head chore/release-vX.Y.Z --state all`), the rc decision in the PR body's `Release candidate:` line (Step 7), the release commit in the PR's merge commit, and the tags in `git tag -l` and `git ls-remote --tags origin 'vX.Y.Z*'`. Together they say which phase is next. Tell the user what you inferred before acting on it, and ask when they disagree (a missing PR line, a tag on another commit).
 
 ## Hard limits
 
-Read-only git/gh only (`fetch`, `log`, `show`, `diff`, `tag -l`, `rev-parse`, `gh repo view`). Never, under any circumstances or on the user's behalf:
+Local git, `gh`, and docker for pulling and running the published images are all this skill uses. Allowed local writes, at the step that names them:
 
-- edit `version` in `backend/build.gradle` or `frontend/package.json`;
-- `git tag`, `git push`, `gh pr create` or anything else that publishes;
-- create a branch or a commit without asking first — and even then only what the user names. Nothing this skill proposes (commit message, PR title, PR body) may contain a skip-CI marker (see Step 7).
+- a worktree and the branch `chore/release-vX.Y.Z` off `origin/main` (Step 7);
+- `CHANGELOG.md`, `backend/build.gradle`, `frontend/package.json` and `frontend/package-lock.json` in that worktree, and nothing else (Step 7);
+- one commit, `chore: release vX.Y.Z` (Step 7);
+- with `--check` only, approved fixes to `CHANGELOG.md` in the current checkout, unstaged;
+- the annotated tags `vX.Y.Z-rc.N` and `vX.Y.Z` on the release PR's squash commit, created in the same confirmed action as their push (Steps 8 and 10), never ahead of it, so no unpushed tag is left lying around.
 
-The only file it may write is `CHANGELOG.md`, and only after the user has approved the draft (Step 6).
+**Outward actions need a confirmation each.** These are the only ones the skill performs, and only the exact command it showed:
+
+1. `git push -u origin chore/release-vX.Y.Z` and `gh pr create` (Checkpoint A);
+2. creating `vX.Y.Z-rc.N` and `git push origin vX.Y.Z-rc.N` (Checkpoint B);
+3. creating `vX.Y.Z` and `git push origin vX.Y.Z` (Step 10);
+4. `gh release create` (Step 10).
+
+The rule: show the command (with the title, body, sha or notes it will use) and ask; run it only when the user's next message says yes to it. An earlier approval, such as the Step 6 draft or the "go on" after a report, never covers a later action. If anything the command depends on changes after the yes (the sha, the notes, the title), ask again. A "no", silence or a question means do not run it. Do the actions one at a time and report each result (the PR URL, the pushed ref).
+
+**Check before acting, so a retry is safe.** Before each outward action, look at whether it already happened and report that instead of repeating it: the branch on origin (`git ls-remote --heads origin chore/release-vX.Y.Z`) and an open or merged PR (`gh pr list --head … --state all`) before Checkpoint A; the tag on origin (`git ls-remote --tags origin <tag>`) before a tag push; a release (`gh release view vX.Y.Z`) before `gh release create`. A half-done state (the branch pushed but no PR; a tag created whose push failed) is resumed from where it stopped. A local tag that is not on origin is reused only when it points at the intended `<sha>`; otherwise stop and ask, and do not delete it.
+
+Never, under any circumstances or even on request in passing: `gh pr merge` or any other way of merging the release PR (the user merges it), `git push --force`, moving, deleting or force-replacing a tag (they are immutable: a bad one means the next `rc.N` or patch), committing to `main`, amending after a push, or pushing anything but the release branch and the release tags. Nothing this skill proposes or runs (commit message, PR title, PR body, tag message, release notes) may contain a skip-CI marker (see Step 7).
 
 ## Step 1 — Pick the source ref
 
@@ -78,43 +104,130 @@ Check each of these and collect the findings; propose a concrete fix for each, n
   `git diff --stat <last-tag> origin/main -- 'docker-compose*.yml' .env.example 'backend/src/main/resources/application*.yml' 'backend/src/main/resources/db/migration' '**/Dockerfile' frontend/nginx.conf .github/workflows`
   (first release: nothing to diff against, so list the migrations, `.env.example` keys, compose volumes and services as they stand). Cover new or changed Docker volumes, env vars, compose services, config keys, image or nginx changes, and Flyway migrations (they run automatically on startup — say so, and note any that can fail on existing data, such as a new `UNIQUE` constraint). A note belongs only where a person running the stack has something to do or know; a new optional variable with a sane default is one line. On the **first release** there is no earlier version to upgrade from, so keep only notes that matter to someone with an existing dev/`latest` install.
 - **f. Entry that shouldn't exist**: a bullet for a docs/chore/test/dev-tooling-only change. Flag it as a candidate to drop.
+- **g. Release candidate.** Recommend an `-rc.N` (runbook step 3) when the range touches what only a real publish exercises: `git diff --stat <last-tag> origin/main -- .github/workflows '**/Dockerfile' 'docker-compose*.yml'` is non-empty (this is also "the first release after any of them changed"), or there is no earlier tag. Otherwise say it is optional and not recommended: the PR-time image build, scan and prod smoke cover the rest. Always give the reason, naming the files. The user decides.
+- **h. Section order.** The `###` sections of `[Unreleased]` must follow the Keep a Changelog order of `release.md`: Added, Changed, Deprecated, Removed, Fixed, Security. Flag any out of order (entries are often added Fixed-first by whichever PR landed first) and reorder them in the draft; it is a layout fix, not a content change, but say so.
 
 If everything matches, say so plainly; don't invent findings.
 
-**`/release --check` stops here**: report the findings from Step 5 with their proposed fixes, plus what's unreleased so far (commit counts by type since the last release), and end. No version, no promotion, no manual-steps list. Writing the fixes still needs the user's approval and follows Step 6's rules.
+**`/release --check` stops here**: report the findings from Step 5 with their proposed fixes, plus what's unreleased so far (commit counts by type since the last release), and end. No version, no promotion, no branch, no tags. Writing the fixes still needs the user's approval; they go into `CHANGELOG.md` in the current checkout only, unstaged and uncommitted, and `git diff CHANGELOG.md` is shown.
 
 ## Step 6 — Show the draft and wait
 
 Reply in chat with, in this order:
 
 1. **Version**: suggested (or the one the user passed), the last tag and range used, and why. Both `version` fields' current values.
-2. **Reconciliation findings**, grouped a–f, each with the proposed fix. "No gaps" is a valid answer.
-3. **The result**, as a fenced markdown block exactly as it would appear in `CHANGELOG.md` after the fixes and the promotion: a fresh empty `## [Unreleased]`, then `## [X.Y.Z] - YYYY-MM-DD` (today's date from `date +%F`; the user can change it to the actual release day) holding the entries. Sections that have no content are omitted.
+2. **Reconciliation findings**, grouped a–h, each with the proposed fix. "No gaps" is a valid answer.
+3. **The result.** Write the complete new `CHANGELOG.md` to a file in the scratchpad directory (`CHANGELOG.proposed.md`), and show its path and a compact view against `origin/main`'s: the new heading and intro paragraph in full, the footer lines in full, the reordered sections, and one line per bullet that changed, saying how (`+ PR links #221`), not the bullet text. A release section runs to dozens of very long lines, so pasting it whole is unreadable; show it whole only when it is short, or when the user asks. The file holds exactly: a fresh empty `## [Unreleased]`, then `## [X.Y.Z] - YYYY-MM-DD` (the date must be the day the final tag is pushed, so ask when that will be: with no rc it is normally today (`date +%F`), with an rc it is usually later, after the rc has been checked; use the day the user names) holding the entries, and the link footer: `[Unreleased]` re-pointed to `compare/vX.Y.Z...HEAD` and a new `[X.Y.Z]: …/compare/v<previous>...vX.Y.Z` line above the older ones (the first release has no `compare` base: `…/releases/tag/vX.Y.Z`, as `[0.1.0]` does). Sections that have no content are omitted. Step 7 copies this file, so what the user approved is what gets committed.
 4. **Left out**: counts of commits by type, then the borderline commits and any non-conventional or tooling-only ones, each with the reason.
-5. **Warnings**: breaking-while-0.x conflict, a version/bump mismatch, a tag that is not on `main`, a skip-CI marker (Step 7), anything that looked wrong.
+5. **Release candidate**: recommended or not, with the Step 5g reason, and that the user may flip it.
+6. **Warnings**: breaking-while-0.x conflict, a version/bump mismatch, a tag that is not on `main`, a skip-CI marker (Step 7), anything that looked wrong.
 
-Then ask for edits or approval. Iterate until the user approves. **Do not write `CHANGELOG.md` before that.** On approval, edit only `CHANGELOG.md`: apply the approved fixes to the `[Unreleased]` entries, then rename it to `## [X.Y.Z] - date` with a fresh empty `## [Unreleased]` above it, leaving the file's header and earlier releases untouched. Show `git diff CHANGELOG.md`. Don't stage or commit it. If the checked-out branch isn't one the user expects for this (`main` or a release branch), say so before writing.
+Then ask for edits or approval of **the version, the draft and the rc decision**. Iterate until the user approves. **Write nothing before that**: the version is decided here, and it is what the branch is named after. Approval authorizes Step 7 and nothing past its checkpoint.
 
-## Step 7 — Skip-CI check
+## Step 7 — Branch, bump, commit (phase 2)
+
+Only after the Step 6 approval. The release is prepared in its own worktree under `<root>/.claude/worktrees/` (gitignored; `<root>` is the main checkout, found from any worktree with `dirname "$(git rev-parse --path-format=absolute --git-common-dir)"`, so worktrees never nest) so the user's checkout, whatever branch it is on and whatever it holds, is never switched or written. A dirty `CHANGELOG.md` in that checkout (an earlier draft, say) is not read and not touched: this step works from `origin/main`; mention it so the user can discard or keep it.
+
+1. **Preconditions.** `git fetch origin --tags`. If `origin/main` moved since Step 1, list the new commits; if any is user-visible, redo Steps 4–5 for them and show the delta before going on. The branch must not exist: `git rev-parse --verify --quiet refs/heads/chore/release-vX.Y.Z` and `git ls-remote --heads origin chore/release-vX.Y.Z` both empty, and neither must the tag `vX.Y.Z`. If one exists, stop and ask (resume, or pick another version).
+2. **Branch** (ADR 0032, never `main`): `git worktree add --no-track -b chore/release-vX.Y.Z <root>/.claude/worktrees/release-vX.Y.Z origin/main`, so the branch has no upstream until it is pushed at Checkpoint A. Everything below happens in that directory.
+3. **CHANGELOG**: copy the approved `CHANGELOG.proposed.md` over `CHANGELOG.md` in the worktree, but only if `origin/main`'s `CHANGELOG.md` is unchanged since Step 1 (`git diff <Step 1 commit> origin/main -- CHANGELOG.md` is empty); if it changed, regenerate the file and show the difference again. Then `git diff --stat` should show the header and earlier releases untouched.
+4. **Version bump** to `X.Y.Z`, equal in all three (ADR 0007): the `version = '…'` line of `backend/build.gradle`, and `npm version X.Y.Z --no-git-tag-version` in `frontend/`, which rewrites `package.json` and `package-lock.json` (it fails with "Version not changed" when they already equal the target, as for `0.1.0`; then edit nothing for that file). No `npm install`: the worktree has no `node_modules` and the command does not need one. Then `bash scripts/verify.sh versions`.
+5. **Scope check.** `git status --short` must list exactly `CHANGELOG.md`, `backend/build.gradle`, `frontend/package.json` and `frontend/package-lock.json` (fewer only when a version already matched). Anything else means something went wrong: stop and show it. `README.md`, `docs/operations.md` and `.env.example` hold no release version and are never edited.
+6. **Skip-CI check** (below) on the commit message and the PR text before committing.
+7. **Commit**: stage the four files by name, `git add CHANGELOG.md backend/build.gradle frontend/package.json frontend/package-lock.json` (never `-A` or `.`; `git commit` alone commits nothing when nothing is staged), then one commit, `chore: release vX.Y.Z` ([ADR 0009](../../../docs/adr/0009-conventional-commits.md)), no skip marker. Afterwards `git log -1 --stat` must list those four files and `git status --short` must be empty; a commit that did not happen shows as unstaged changes and no new `git log` entry, so look at the output instead of assuming. The local pre-commit hook may run a format check; if it fails, fix what it names and commit again (nothing is pushed, so there is nothing to protect).
+8. **PR text.** Load the `pr` skill when it is available and write the body to a file in the scratchpad directory (drafting only); the title is `chore: release vX.Y.Z`. The body carries two plain lines the skill reads back when it resumes: `Release candidate: rc recommended (<reason>)` or `Release candidate: not recommended (<reason>)`, and `Tag day: YYYY-MM-DD` (the CHANGELOG date). Check title and body for a skip marker.
+
+### Skip-CI check
 
 A `vX.Y.Z` (or `vX.Y.Z-rc.N`) tag push is the only thing that triggers CI's `build-and-push` to publish images (ADR 0032, F014), and GitHub skips workflow runs entirely when the relevant commit message carries a marker such as `[skip ci]`, `[ci skip]`, `[no ci]`, `[skip actions]`, `[actions skip]` or a `skip-checks: true` trailer. A release that carries one silently publishes nothing. Check and report:
 
 - the current `origin/main` tip (the release PR's base) and the release PR's head commit, which its PR runs key off; the squash commit that becomes the tagged commit takes its message from the PR title and body;
-- the release commit you propose, and the PR titles and bodies you propose — none may contain a marker. If a `pr` skill is available, load it to draft the PR body (drafting only; this skill still never runs `gh pr create`), and check its output for a marker;
+- the release commit and the PR title and body from this step — none may contain a marker;
 - history: `git log <range> -i --grep='skip ci'` (and the other spellings) — informational only, since only the head/tag commit matters, but name any hit so the user knows the marker is there and the tag must not land on it.
 
-If the tip carries one, tell the user to add a commit or reword before releasing. Never suggest `[skip ci]` in anything you propose here.
+If the tip carries one, tell the user to add a commit or reword before releasing. Never suggest `[skip ci]` in anything you propose here. Step 8 repeats the check on the real squash commit before any tag.
 
-## Step 8 — Remaining manual steps
+### Checkpoint A — the release PR
 
-End by listing what is left for the user. The runbook, with the checks and the gotchas, is [`docs/conventions/release.md`](../../../docs/conventions/release.md); in short, in this order (ADR 0007, ADR 0032, F014's Release Process: the order that keeps the tag on a commit that contains the CHANGELOG and matching versions). There is no promotion PR and no merge-back:
+Report what the commit holds (`git show --stat`), then show the PR title, the body (from the file) and the two commands, and ask for confirmation to run them:
 
-1. Branch `chore/release-vX.Y.Z` off an up-to-date `main` (ADR 0032; never commit to `main` directly).
-2. Apply the approved CHANGELOG changes (already in the working tree if Step 6 wrote them) **and** set `version` to `X.Y.Z` in `backend/build.gradle`, `frontend/package.json` and `frontend/package-lock.json` — equal, per ADR 0007. Nothing else changes: `README.md`, `docs/operations.md` and `.env.example` carry no release version (placeholders and `latest`), so the release PR touches only `CHANGELOG.md` (promotion, link footer, PR links) and those three version files. The date is the day the tag will be pushed.
-3. One commit, `chore: release vX.Y.Z` (ADR 0009) — no skip-CI marker. PR into `main`, squash-merged (keep skip markers out of the PR title/body too). The version files match the PR-time `images` filter, so `Build images and scan` and `Prod smoke` (`bash scripts/verify.sh smoke`) run on the release PR; scan locally (`bash scripts/verify.sh scan`) only if the PR turns out docs-only.
-4. Release candidate `vX.Y.Z-rc.1`, tagged on the release PR's squash commit (optional now that the PR-time image build and prod smoke jobs exist; do it for a release that touches the workflow, the Dockerfiles or the compose file, and for the first release after any of them changed, as the runbook's step 3 says). It publishes `vX.Y.Z-rc.N` and `sha-<short>` and never moves `latest`. Tags are immutable: a bad one means `rc.N+1`, never a retag. A fix found during the rc is an ordinary PR into `main` with its CHANGELOG bullet under the existing `## [X.Y.Z]` section (re-dated), then `rc.N+1` and the final tag on that later commit. Verify the published images from a clean directory (the runbook's checklist).
-5. Tag `vX.Y.Z` on the release PR's squash commit (not on whatever `main` is by then) and push the tag; that publishes the `:vX.Y.Z`, `:sha-<short>` and `:latest` images. Confirm the tagged commit's message has no skip marker first. Check the CI run (its guard fails a tag that is not on `main`), that all three images carry the tag and that `latest` has the same digest.
-6. `gh release create vX.Y.Z --verify-tag --latest` with the notes from the CHANGELOG section; pin `IMAGE_TAG=vX.Y.Z` in the prod `.env` for a reproducible deploy.
-7. Tick any plan item the release proved (for the first release, the F014 publish item).
+```
+git -C <root>/.claude/worktrees/release-vX.Y.Z push -u origin chore/release-vX.Y.Z
+gh pr create --base main --head chore/release-vX.Y.Z --title "chore: release vX.Y.Z" --body-file <path to the PR body>
+```
 
-Offer, without doing, to create the branch and commit ("say the word and I'll create `chore/release-vX.Y.Z` and commit the CHANGELOG"). Note that ADR 0007 wants the CHANGELOG and the version bump in one commit, so a commit made by this skill would hold only the CHANGELOG unless the user does the bump first.
+On the yes, run them in that order and give the PR URL. Then say what to wait for before merging: the required checks, including `Build images and scan` and `Prod smoke`, which run because the version files match the `images` filter (scan locally with `bash scripts/verify.sh scan` only if the PR turns out docs-only), and that the merge is a **squash** (ADR 0032) with a title and body free of skip markers. The user merges. If the tag day is going to move, the date needs a docs-only PR first (runbook gotcha), so ask to be told about a delay.
+
+Then stop and wait for the user to say the PR is merged. `gh pr view <N> --json state,mergeCommit` confirms it before Step 8 goes on.
+
+## Step 8 — Release candidate (phase 3)
+
+On the user's "merged":
+
+1. `git fetch origin --tags`, then find the squash commit: `gh pr list --head chore/release-vX.Y.Z --state merged --json number,mergeCommit` (or `gh pr view <N> --json mergeCommit -q .mergeCommit.oid`). Call it `<sha>`. Never use "whatever `main` is now": merges that landed in between must not leak in.
+2. Check the commit and report each result:
+   - `git merge-base --is-ancestor <sha> origin/main` (the tag guard needs it);
+   - `git show <sha>:backend/build.gradle`, `:frontend/package.json` and `:frontend/package-lock.json` carry `X.Y.Z`;
+   - `git show <sha>:CHANGELOG.md` has `## [X.Y.Z] - <date>` and no missing PR links;
+   - the full message (`git show -s --format=%B <sha>`) has no skip-CI marker;
+   - the push-to-`main` run on `<sha>` (`gh run list --workflow ci.yml --branch main --commit <sha> --json databaseId,status,conclusion`) has **finished green**. Right after a merge it is usually still running: wait with `gh run watch <id> --exit-status` (in the background) rather than calling a pending run green. A red run means no tag.
+   - Any failure: stop and say what it implies (a bad commit is fixed by an ordinary PR into `main`, and `<sha>` becomes that PR's squash commit).
+3. **The date.** Compare the CHANGELOG date with the tag day the user gave (the `Tag day:` line of the PR body): if the final tag will not be pushed on that day any more, say now that a docs-only re-date PR is needed before the final tag, instead of finding out at Step 10.
+4. **Decide the rc.** Read the `Release candidate:` line of the PR body; the user may have flipped it in chat, and then their word wins. **Not recommended**: say so and go to Step 10.
+5. **rc recommended**: the number is one above the highest `vX.Y.Z-rc.N` on origin (`git ls-remote --tags origin 'vX.Y.Z-rc.*'`), `1` when none. Nothing is created yet: the rc tag is made and pushed together at Checkpoint B. It publishes `vX.Y.Z-rc.N` and `sha-<short>` and never moves `latest`.
+
+### Checkpoint B — create and push the rc tag
+
+Show the tag name, `<sha>` with its subject, and the commands, and ask for confirmation:
+
+```
+git tag -a vX.Y.Z-rc.N -m vX.Y.Z-rc.N <sha>
+git push origin vX.Y.Z-rc.N
+```
+
+Annotated, like the released tags. On the yes, run them in that order, confirm the tag with `git rev-parse vX.Y.Z-rc.N^{commit}` (it must print `<sha>`), and go straight to Step 9. Without one, stop; nothing was created.
+
+## Step 9 — Verify the published images (phase 3, or phase 4 without an rc)
+
+Runs against the tag just pushed, `<T>`, with one script, [`scripts/verify-release-images.sh`](../../../scripts/verify-release-images.sh), the single definition of the shell-checkable items of the runbook's "Verifying the published images":
+
+```
+bash scripts/verify-release-images.sh <T>
+```
+
+Run from the checkout that has the script (the release worktree, or any up-to-date one); it waits for the tag run (long: run it in the background and wait for its exit), then checks that the three images resolve anonymously under `<T>` and `sha-<short>` with the same digest, that `latest` is the tag for the newest release or still the newest release for an rc, and that the fresh-install smoke (`scripts/smoke-prod.sh`) passes on the pulled images from a checkout of the tagged commit. It exits 0 only when every check passed, and prints one `PASS`/`FAIL` line per check.
+
+Before running it, `docker ps -a --filter name=my-finances`: a real prod stack (its container names are hardcoded in `docker-compose.prod.yml`) makes the smoke refuse to start. Do not stop or remove anyone's containers; ask the user to stop it, or run with `--skip-smoke` and say in the report that the smoke was not run.
+
+A failing tag run: report the failing job and stop. A transient failure (registry or network blip) is re-run from the Actions UI by the user; a workflow, Dockerfile or scan failure burns the tag, so the next candidate is `rc.N+1` (or the next patch) after an ordinary fix PR into `main` (runbook, "A publish-only failure burns the version").
+
+### Report
+
+The script's `PASS`/`FAIL` lines as a table, with the evidence (run URL, digests, smoke result). Then the runbook items it **cannot** do, for the user: one UI flow end to end (an account and a transaction, and the backup banner clearing after the first backup), the restore drill (wrong key, corrupt file, good restore) and, from the second release on, the upgrade test from the previous tag ([`docs/conventions/release.md`](../../../docs/conventions/release.md), "Verifying the published images"), each against `<T>`'s images. Say plainly what failed or was not run (a `--skip-smoke` included); do not call the candidate good on partial evidence.
+
+For an rc, this is **Checkpoint C**: stop and wait for the user to confirm the report (and that their manual checks, if any, passed). A defect found during the rc is an ordinary fix PR into `main` with its CHANGELOG bullet under the existing `## [X.Y.Z]` section (re-dated to the day of the final tag), then `rc.N+1` and the final tag on that later commit; on "fixed and merged", repeat from Step 8 with that PR's squash commit.
+
+## Step 10 — Tag the release (phase 4)
+
+On the user's go-ahead after Checkpoint C (or straight from Step 8 when no rc was recommended):
+
+1. `<sha>` is the release PR's squash commit (after an rc fix cycle, the last fix's squash commit), never the current `main`. Repeat the Step 8 checks on it, plus: the CHANGELOG date equals `date +%F` (it is the day the tag is pushed; if not, stop: a docs-only PR into `main` fixes the date and the tag goes on that later commit), and `vX.Y.Z` does not exist on origin (`git ls-remote --tags origin vX.Y.Z`).
+2. Write the release notes to a file in the scratchpad directory: the body of the `## [X.Y.Z]` section of `git show <sha>:CHANGELOG.md` (intro paragraph and the subsections, up to the next `## `), as the earlier releases do. The release is titled `vX.Y.Z`.
+3. Show the tag name, `<sha>` with its subject, the notes file's contents and the commands, and ask for confirmation to tag and push:
+
+```
+git tag -a vX.Y.Z -m vX.Y.Z <sha>
+git push origin vX.Y.Z
+```
+
+On the yes, run them in that order, confirm with `git rev-parse vX.Y.Z^{commit}` (it must print `<sha>`) and run Step 9 against `vX.Y.Z` (`bash scripts/verify-release-images.sh vX.Y.Z`) and report. Without a yes, stop; nothing was created.
+
+4. **GitHub release.** Only when that report is clean (a failed run or check means no release: say what it implies). Show the command and the notes and ask for confirmation again, as the push yes does not cover it:
+
+```
+gh release create vX.Y.Z --verify-tag --latest --title vX.Y.Z --notes-file <absolute path of the notes file>
+```
+
+On the yes, run it and give the release URL.
+
+Last, list what remains for the user: the manual checks of Step 9's report when there was no rc, pinning `IMAGE_TAG=vX.Y.Z` in the prod `.env` for a reproducible deploy, and ticking any plan item the release proved (for the first release, the F014 publish item). Offer to remove the release worktree (`git worktree remove <root>/.claude/worktrees/release-vX.Y.Z`) once the user is done with it; do not remove it unasked.
