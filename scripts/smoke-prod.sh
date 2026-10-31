@@ -106,7 +106,7 @@ esac
 
 # .env: .env.example (so the shipped example is what runs) minus the keys set here. The free
 # frontend port is left to Docker (FRONTEND_PORT=0) and read back with `compose port`.
-overrides='STACK_NAME|IMAGE_TAG|AUTH_USERNAME|AUTH_PASSWORD_HASH|POSTGRES_PASSWORD|FRONTEND_PORT|BIND_ADDR|BACKUP_DIR|BACKUP_AGE_RECIPIENT'
+overrides='BACKUP_ALLOW_VOLATILE_STORAGE|STACK_NAME|IMAGE_TAG|AUTH_USERNAME|AUTH_PASSWORD_HASH|POSTGRES_PASSWORD|FRONTEND_PORT|BIND_ADDR|BACKUP_DIR|BACKUP_AGE_RECIPIENT'
 {
   grep -vE "^($overrides)=" .env.example
   echo "STACK_NAME=$STACK"
@@ -118,6 +118,7 @@ overrides='STACK_NAME|IMAGE_TAG|AUTH_USERNAME|AUTH_PASSWORD_HASH|POSTGRES_PASSWO
   echo "BIND_ADDR=127.0.0.1"
   echo "BACKUP_DIR=$backups_native"
   echo "BACKUP_AGE_RECIPIENT="
+  echo "BACKUP_ALLOW_VOLATILE_STORAGE=1" # $tmp is under the host /tmp, which may be a tmpfs
 } > "$tmp/.env"
 unset hash_line
 

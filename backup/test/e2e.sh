@@ -212,6 +212,57 @@ docker run --rm \
 [ -f "$RETENTION_DIR/$FOREIGN_FILE" ] && pass "retention: foreign file left untouched" ||
   fail "retention: foreign file was wrongly deleted"
 
+# Volatile storage (issue #239): after a Docker Desktop restart a bind mount can come up as an
+# in-memory directory, and the sidecar used to back up into it and report success. A `--tmpfs`
+# /backups is the same thing in a container of its own. These runs need no Postgres data of their
+# own: backup.sh refuses before pg_dump, and the entrypoint checks before anything else.
+echo "== backup.sh refuses a tmpfs /backups =="
+VOLATILE_ENV=(--network "$NETWORK" -e PGHOST="$SRC_PG" -e PGPORT=5432 -e PGDATABASE=myfinances -e PGUSER=myfinances
+  -e PGPASSWORD=myfinances -e BACKUP_AGE_RECIPIENT="$RECIPIENT" -e IMAGE_TAG=e2e-test)
+VOLATILE_OUT=$(docker run --rm "${VOLATILE_ENV[@]}" --tmpfs /backups --entrypoint bash "$IMAGE" -c \
+  'backup.sh; echo "rc=$?"; echo "dumps=$(find /backups -name "myfinances-*.dump.age" | wc -l)"; echo "lastError=$(jq -r .lastError /backups/status.json)"' 2>&1)
+grep -q '^rc=1$' <<<"$VOLATILE_OUT" && pass "volatile: backup.sh exits non-zero on a tmpfs /backups" ||
+  fail "volatile: backup.sh did not refuse a tmpfs /backups: $VOLATILE_OUT"
+grep -q '^dumps=0$' <<<"$VOLATILE_OUT" && pass "volatile: no dump was written into the tmpfs" ||
+  fail "volatile: a dump was written into the tmpfs"
+grep -q '^lastError=storage_not_persistent$' <<<"$VOLATILE_OUT" && pass "volatile: status.json says storage_not_persistent" ||
+  fail "volatile: status.json lacks lastError storage_not_persistent: $VOLATILE_OUT"
+
+# Both runs below start the entrypoint detached and wait on it with bounded calls: a plain
+# `timeout docker run` cannot stop it (the client forwards SIGTERM to a PID 1 that ignores it), so an
+# entrypoint that never exits would hang the whole test instead of failing a check.
+echo "== the entrypoint exits inside the grace window so the restart policy can retry =="
+GRACE_NAME="$NETWORK-grace"
+docker rm -fv "$GRACE_NAME" >/dev/null 2>&1
+docker run -d --name "$GRACE_NAME" "${VOLATILE_ENV[@]}" -e BACKUP_STORAGE_GRACE_SECONDS=300 --tmpfs /backups \
+  "$IMAGE" entrypoint.sh >/dev/null
+GRACE_RC=$(timeout -k 5 60 docker wait "$GRACE_NAME" 2>/dev/null || echo "never exited")
+GRACE_OUT=$(docker logs "$GRACE_NAME" 2>&1)
+docker rm -fv "$GRACE_NAME" >/dev/null 2>&1
+[ "$GRACE_RC" = "1" ] && pass "volatile: entrypoint.sh exits 1 inside the grace window" ||
+  fail "volatile: entrypoint.sh exit status inside the grace window: $GRACE_RC: $GRACE_OUT"
+grep -q 'restart policy' <<<"$GRACE_OUT" && pass "volatile: the exit says why" ||
+  fail "volatile: the grace-window exit does not explain itself: $GRACE_OUT"
+
+echo "== past the grace window the sidecar starts anyway but takes no backup =="
+DEGRADED_NAME="$NETWORK-degraded"
+docker rm -fv "$DEGRADED_NAME" >/dev/null 2>&1
+docker run -d --name "$DEGRADED_NAME" "${VOLATILE_ENV[@]}" -e BACKUP_STORAGE_GRACE_SECONDS=0 --tmpfs /backups \
+  "$IMAGE" entrypoint.sh >/dev/null
+for _ in $(seq 1 40); do
+  docker logs "$DEGRADED_NAME" 2>&1 | grep -q '\[entrypoint.sh\] ready' && break
+  [ "$(docker inspect -f '{{.State.Running}}' "$DEGRADED_NAME" 2>/dev/null)" = "true" ] || break
+  sleep 1
+done
+DEGRADED_OUT=$(docker logs "$DEGRADED_NAME" 2>&1)
+docker rm -fv "$DEGRADED_NAME" >/dev/null 2>&1
+grep -q '\[entrypoint.sh\] ready' <<<"$DEGRADED_OUT" && pass "volatile: the sidecar still becomes ready, so the app is never kept down" ||
+  fail "volatile: the sidecar did not become ready past the grace window: $DEGRADED_OUT"
+grep -q 'failed: storage_not_persistent' <<<"$DEGRADED_OUT" && pass "volatile: it refuses to back up" ||
+  fail "volatile: no refusal was logged past the grace window: $DEGRADED_OUT"
+grep -q 'wrote myfinances-' <<<"$DEGRADED_OUT" &&
+  fail "volatile: it wrote a backup into the tmpfs" || pass "volatile: it wrote no backup"
+
 if [ "$FAILED" -eq 0 ]; then
   echo "E2E: all checks passed"
   exit 0

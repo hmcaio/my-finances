@@ -15,6 +15,8 @@ A small standalone image — plain `alpine` (full patch tag) + the Postgres clie
 
 `backup.sh` does one run: `pg_dump -Fc` → `age`-encrypt → atomic rename to `myfinances-<UTC timestamp>[.pre-upgrade].dump.age` → optional `rclone` push → prune → update `status.json`. Non-zero exit on any failure, previous backups untouched.
 
+`storage.sh` answers one question: does the folder `/backups` survive the container? It finds the mount that contains it in `/proc/self/mountinfo` and calls it volatile when that is a `tmpfs`, a `ramfs` or the container's own layer, which is what a bind mount becomes after a Docker Desktop restart if its drive is not mounted yet. `backup.sh` then refuses (`lastError: storage_not_persistent`, no dump), and `entrypoint.sh` exits at start so the restart policy retries for `BACKUP_STORAGE_GRACE_SECONDS` (default 300), then starts anyway, logs an error and takes no backup. A configured `BACKUP_RCLONE_REMOTE` skips the check (the remote holds the copy); `BACKUP_ALLOW_VOLATILE_STORAGE=1` skips it for tests. Why and what it costs: [ADR 0015](../docs/adr/0015-automated-encrypted-backups-sidecar.md).
+
 `prune.sh` is a pure function over a list of filenames and "now" — GFS retention (7 daily / 5 weekly / 12 monthly) by calendar bucket, `pre-upgrade` files exempt until a later ordinary backup succeeds. Kept pure specifically so it's unit-testable without a real filesystem or Postgres.
 
 `restore.sh <file> --yes` and `backup-keygen` are one-off manual scripts, run via `docker compose run --rm --no-deps backup ...` — see the Backups section of [docs/operations.md](../docs/operations.md#backups) for the exact invocation (and its setup order: `.env` auth variables must be set and the backups volume created, or `BACKUP_DIR` set, before `backup-keygen`).
@@ -26,10 +28,11 @@ An on-demand backup is `docker compose -f docker-compose.prod.yml exec -u <BACKU
 ```
 ./test/decide.bats   # forced/stale/fresh decision logic
 ./test/prune.bats     # GFS bucket selection, boundary cases, pre-upgrade exemption
+./test/storage.bats   # volatile vs persistent folder, from real /proc/self/mountinfo lines
 ./test/e2e.sh         # builds the real image, dumps/encrypts/restores against throwaway Postgres containers
 ```
 
-All three run as part of `scripts/verify.sh backup` from the repo root (what CI runs); only Docker is needed: `decide.bats`/`prune.bats` run in an image built from `backup/test/Dockerfile` (the sidecar's Alpine plus bats), so there is no bats-core to install, and `e2e.sh` builds the real sidecar image. [docs/conventions/tooling.md](../docs/conventions/tooling.md) has the details.
+All four run as part of `scripts/verify.sh backup` from the repo root (what CI runs); only Docker is needed: the `.bats` files run in an image built from `backup/test/Dockerfile` (the sidecar's Alpine plus bats), so there is no bats-core to install, and `e2e.sh` builds the real sidecar image. [docs/conventions/tooling.md](../docs/conventions/tooling.md) has the details.
 
 ## Logging and secrets
 

@@ -85,6 +85,8 @@ Pass `-u`, with the same `BACKUP_UID:BACKUP_GID` as `.env` if you changed them f
 
 Retention keeps only the newest backup of each UTC day, so an on-demand backup replaces an earlier one from the same UTC day instead of sitting beside it. That includes an upgrade's `pre-upgrade` file (it loses its retention exemption once a later ordinary backup exists), so if you might still roll back after an upgrade, copy it somewhere safe before taking another backup the same day.
 
+**If the sidecar's log says `storage is volatile`** (`failed: storage_not_persistent`): after a Docker Desktop or WSL restart, `BACKUP_DIR` can come up as an in-memory directory because its drive is not mounted yet, and anything backed up into it is lost when the container is recreated. The sidecar checks what is mounted at `/backups` and, on a `tmpfs`, `ramfs` or the container's own layer, takes no backup and exits so Docker restarts it, for `BACKUP_STORAGE_GRACE_SECONDS` (300 by default); past that it starts anyway, logs an error every hour and still takes no backup. Make sure the drive is available, then `docker restart my-finances-backup-prod` (or `docker compose -f docker-compose.prod.yml up -d --force-recreate backup`). It does not apply when `BACKUP_RCLONE_REMOTE` is set, since the remote then holds the copy.
+
 **Restoring** is destructive, so it always takes a safety dump of the current database first and requires an explicit `--yes`:
 
 ```bash
