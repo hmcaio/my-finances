@@ -6,8 +6,9 @@
 #                        [--image-tag <tag>] [--cpus <n>] [--keep]
 #
 # By default it runs the real docker-compose.prod.yml (nginx, the production images, Postgres on a
-# volume, the backup sidecar) as its own Compose project, layered with bench.override.yml, and may
-# run beside a real prod stack: guard.mjs checks the resolved config before anything is created.
+# volume, the backup sidecar) as its own Compose project with STACK_NAME set to the project name, so
+# it shares no container or volume name with a real prod stack and may run beside one: guard.mjs
+# checks the resolved config before anything is created.
 #
 #   --sizes      ledger row counts to seed and measure, one after the other
 #   --ttfc       also time first content in headless Chromium (needs frontend/node_modules and
@@ -20,7 +21,7 @@
 #                stack running beside it (prod itself has no limit, so this departs from it)
 #   --keep       keep the scratch directory (logs, env files) instead of deleting it
 #
-# Needs Docker (Compose 2.24+ for the `!reset` tag) and Node; never touches the dev or prod stack.
+# Needs Docker and Node; never touches the dev or prod stack.
 set -euo pipefail
 SELF=$(cd "$(dirname "$0")" && pwd)/$(basename "$0")
 cd "$(dirname "$SELF")/../.."
@@ -46,9 +47,6 @@ done
 need() { command -v "$1" >/dev/null || { echo "bench: '$1' is required" >&2; exit 2; }; }
 for tool in docker node curl; do need "$tool"; done
 [ -n "$BASELINE" ] && need git
-compose_version=$(docker compose version --short 2>/dev/null || true)
-[ -n "$compose_version" ] && [ "$(printf '%s\n' 2.24.0 "$compose_version" | sort -V | head -1)" = 2.24.0 ] \
-  || { echo "bench: Docker Compose 2.24+ is required (found '${compose_version:-none}'), for the !reset tag" >&2; exit 2; }
 if [ "$TTFC" = 1 ] && [ ! -d frontend/node_modules ]; then
   echo "bench: --ttfc needs frontend/node_modules (run 'npm ci' in frontend/)" >&2
   exit 2
@@ -104,8 +102,8 @@ setup_compose() {
   mkdir -p "$STACK/backups"
   local native=$STACK
   if command -v cygpath >/dev/null 2>&1; then native=$(cygpath -m "$STACK"); fi # C:/... for bind mounts
-  cp docker-compose.prod.yml "$BENCH/bench.override.yml" "$STACK/"
-  COMPOSE_FILES=(-f docker-compose.prod.yml -f bench.override.yml)
+  cp docker-compose.prod.yml "$STACK/"
+  COMPOSE_FILES=(-f docker-compose.prod.yml)
   if [ -n "$CPUS" ]; then
     printf 'services:\n  postgres:\n    cpus: %s\n  backend:\n    cpus: %s\n  frontend:\n    cpus: %s\n' \
       "$CPUS" "$CPUS" "$CPUS" >"$STACK/cpus.override.yml"
@@ -139,9 +137,10 @@ setup_compose() {
     *) cat "$SCRATCH/hash.err" >&2; echo "bench: the backend image printed no AUTH_PASSWORD_HASH line" >&2; exit 1 ;;
   esac
   FRONTEND_PORT=$(free_port)
-  local overrides='IMAGE_TAG|AUTH_USERNAME|AUTH_PASSWORD_HASH|POSTGRES_PASSWORD|FRONTEND_PORT|BIND_ADDR|BACKUP_DIR|BACKUP_AGE_RECIPIENT'
+  local overrides='STACK_NAME|IMAGE_TAG|AUTH_USERNAME|AUTH_PASSWORD_HASH|POSTGRES_PASSWORD|FRONTEND_PORT|BIND_ADDR|BACKUP_DIR|BACKUP_AGE_RECIPIENT'
   {
     grep -vE "^($overrides)=" .env.example
+    echo "STACK_NAME=$PROJECT"
     echo "IMAGE_TAG=$tag"
     echo "AUTH_USERNAME=bench"
     echo "$hash_line"

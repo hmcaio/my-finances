@@ -26,6 +26,13 @@ const good = () => ({
 
 test('a project-scoped stack passes', () => assert.deepEqual(violations(good(), ctx), []))
 
+test('names built from the project through STACK_NAME pass', () => {
+  const config = good()
+  config.services.backend.container_name = 'mf-bench-1-backend-prod'
+  config.volumes.logs = { name: 'mf-bench-1-logs-prod' }
+  assert.deepEqual(violations(config, ctx), [])
+})
+
 test('a pinned container name is refused', () => {
   const config = good()
   config.services.backend.container_name = 'my-finances-backend-prod'
