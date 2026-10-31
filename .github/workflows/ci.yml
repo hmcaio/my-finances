@@ -168,6 +168,12 @@ jobs:
         # thresholds) and uploaded below.
         run: bash scripts/verify.sh frontend
 
+      - name: Script tests (release scripts, bench guard)
+        # The repo's own scripts have node:test suites (scripts/**/*.test.mjs). They need only Node
+        # and git, so they ride in this job, which already has Node, instead of a new required check.
+        if: ${{ !cancelled() }}
+        run: bash scripts/verify.sh scripts
+
       - name: Upload test report
         # Vitest's HTML reporter output (configured in vite.config.ts). Unlike the coverage
         # report below it isn't a static site: to browse a downloaded copy run
