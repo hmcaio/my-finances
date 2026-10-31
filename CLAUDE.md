@@ -42,7 +42,7 @@ docker compose down
 - Login, session, CSRF, CORS, `BIND_ADDR` or auth env vars → `docs/conventions/auth.md`.
 - A log statement, log config, the request id or log reading → `docs/conventions/logging.md`.
 - A new text or amount field, a limit constant or a money-precision exception → `docs/conventions/data-constraints.md`.
-- Compose files (`docker-compose.prod.yml` replaces the dev Postgres container), Dockerfiles, CI, `verify.sh` prerequisites, pinned-version siblings, API type generation, time zone (`TZ`, `Clock`, date logic), git worktrees (under `.claude/worktrees/`) → `docs/conventions/tooling.md`.
+- Compose files (`docker-compose.prod.yml` replaces the dev Postgres container), Dockerfiles, CI, `verify.sh` prerequisites, pinned-version siblings, API type generation, time zone (`TZ`, `Clock`, date logic), git worktrees (under `.claude/worktrees/`), a second stack beside a running one (`STACK_NAME`, ports) → `docs/conventions/tooling.md`.
 - A performance claim (benchmark, statements per request, time to first content, baseline comparison) → `docs/conventions/performance.md`.
 - A user-visible change (its `CHANGELOG.md` entry), cutting a release PR, tagging a version → `docs/conventions/release.md`.
 
