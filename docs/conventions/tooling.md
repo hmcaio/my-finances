@@ -25,6 +25,7 @@ The real dev and prod stacks set none of the variables below. A second stack (an
 - **Prod**: `FRONTEND_PORT` (0 asks Docker for a free one) and `BACKUP_DIR` set to a scratch folder, so the external backups volume is not mounted.
 - **The check**: `scripts/stack/isolation.test.mjs` (the `scripts` stage) renders both files with `docker compose config`, once with nothing set (the result must be the real names and ports) and once with `STACK_NAME` and non-default ports (it must share none of them). A name or port pinned in a compose file again fails it, instead of surfacing as a collision with real prod.
 - **Not covered**: names, ports and volumes only, not the daemon: a `docker rm -f` or `down -v` against the wrong project still reaches real containers. Two dev stacks of one checkout share its bind-mounted source, so give each its own worktree.
+- **A dev stack started from a worktree leaves root-owned paths in it**: `backend/logs/` (the backend container's log file) and an empty `frontend/node_modules/` (the mount point of the named volume). `git worktree remove` then fails with "Permission denied". After the stack is down, clear both with a root container before removing the worktree: `docker run --rm -v "<worktree>/backend:/b" -v "<worktree>/frontend:/f" alpine rm -rf /b/logs /f/node_modules`.
 
 ## Verify and CI
 

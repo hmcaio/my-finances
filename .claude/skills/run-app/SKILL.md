@@ -97,6 +97,6 @@ docker ps -a --filter name=my-finances-drive                       # prints no r
 docker volume ls -q | sort | comm -13 <scratch>/volumes.before -   # prints nothing
 ```
 
-Last, view any screenshots you still need, delete the scratch directory (env files, screenshots), and confirm `ls <scratch>` reports no such directory.
+If the stack ran from a worktree, it left root-owned `backend/logs` and `frontend/node_modules` in it: clear them as `docs/conventions/tooling.md` says before removing the worktree. Last, view any screenshots you still need, delete the scratch directory (env files, screenshots), and confirm `ls <scratch>` reports no such directory.
 
 Done when all three checks pass. Run teardown on failure paths too: a stack left up holds ports and names for the next run.
