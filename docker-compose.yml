@@ -4,12 +4,17 @@
 # are prefixed with it (my-finances-dev_*). prod's name stays directory-derived on purpose
 # (docker-compose.prod.yml): its data volume is prefixed with it, so pinning it would move the
 # database of every deploy whose folder is not called my-finances. `-p` still overrides this.
-name: my-finances-dev
+#
+# A second dev stack beside this one (an agent's throwaway, a worktree's) sets STACK_NAME and the
+# four host ports below; every pinned name and port is built from them, and with none set the
+# names and ports are the ones this file always had. The variables and the check that keeps them
+# complete: docs/conventions/tooling.md and scripts/stack/isolation.test.mjs.
+name: ${STACK_NAME:-my-finances}-dev
 
 services:
   postgres:
     image: postgres:18.6-alpine
-    container_name: my-finances-postgres
+    container_name: ${STACK_NAME:-my-finances}-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: myfinances
@@ -19,7 +24,7 @@ services:
       # Host loopback only, regardless of BIND_ADDR (F036, ADR 0029): there is no legitimate reason
       # for the database to be reachable from another machine, and BIND_ADDR exists to expose the
       # (authenticated) app - not this.
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       # Postgres 18+ keeps its cluster in /var/lib/postgresql/18/docker and declares the VOLUME at
       # /var/lib/postgresql, so that is the mount point (the image refuses to start with a mount at
@@ -33,7 +38,7 @@ services:
 
   pgadmin:
     image: dpage/pgadmin4:9.18
-    container_name: my-finances-pgadmin
+    container_name: ${STACK_NAME:-my-finances}-pgadmin
     restart: unless-stopped
     environment:
       # Plain-text dev-only credentials, matching this file's existing convention for postgres's
@@ -43,7 +48,7 @@ services:
     ports:
       # http://localhost:5050 - log in with PGADMIN_DEFAULT_EMAIL / PGADMIN_DEFAULT_PASSWORD above.
       # Host loopback only, regardless of BIND_ADDR (F036, ADR 0029) - same reason as postgres.
-      - "127.0.0.1:5050:80"
+      - "127.0.0.1:${PGADMIN_PORT:-5050}:80"
     volumes:
       - my-finances-pgadmin-data:/var/lib/pgadmin
     configs:
@@ -62,7 +67,7 @@ services:
   backend:
     profiles: [full]
     image: eclipse-temurin:25.0.4.1_1-jdk-alpine
-    container_name: my-finances-backend
+    container_name: ${STACK_NAME:-my-finances}-backend
     working_dir: /workspace
     # dev-run.sh runs bootRun plus a background recompile on source change; DevTools (on the
     # bootRun classpath) restarts the app when the new classes land.
@@ -84,13 +89,13 @@ services:
       # Credentialed CORS needs exact origins: the Vite dev server on localhost, and on BIND_ADDR
       # when the dev stack is exposed there (the SPA then calls the API on the host it was served
       # from - see frontend/src/api/core/client.ts).
-      MYFINANCES_CORS_ALLOWED_ORIGINS: http://localhost:5173,http://${BIND_ADDR:-127.0.0.1}:5173
+      MYFINANCES_CORS_ALLOWED_ORIGINS: http://localhost:${FRONTEND_DEV_PORT:-5173},http://${BIND_ADDR:-127.0.0.1}:${FRONTEND_DEV_PORT:-5173}
       # Optional remote debugger: publish 5005 below and attach an IDE "Remote JVM Debug" config.
       # JAVA_TOOL_OPTIONS: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
     ports:
       # Host loopback by default (PRD S7.1); BIND_ADDR (F036, ADR 0029) is the one knob that moves
       # it to a private-network interface. The browser calls the API directly (VITE_API_BASE_URL).
-      - "${BIND_ADDR:-127.0.0.1}:8080:8080"
+      - "${BIND_ADDR:-127.0.0.1}:${BACKEND_PORT:-8080}:8080"
     volumes:
       - ./backend:/workspace
       - my-finances-gradle-cache:/root/.gradle
@@ -111,15 +116,18 @@ services:
   frontend:
     profiles: [full]
     image: node:24.22.1-alpine
-    container_name: my-finances-frontend
+    container_name: ${STACK_NAME:-my-finances}-frontend
     working_dir: /app
     command: sh -c "npm ci --no-audit --no-fund && exec npm run dev -- --host 0.0.0.0"
     environment:
       # Bind mounts from a Windows host don't deliver file-change events; see vite.config.ts.
       VITE_USE_POLLING: "true"
+      # The browser calls the API on the host port published above; set here it wins over
+      # frontend/.env.development, which hardcodes 8080 (Vite lets the environment win).
+      VITE_API_BASE_URL: http://localhost:${BACKEND_PORT:-8080}/api
     ports:
       # Same BIND_ADDR knob as the backend above (F036, ADR 0029).
-      - "${BIND_ADDR:-127.0.0.1}:5173:5173"
+      - "${BIND_ADDR:-127.0.0.1}:${FRONTEND_DEV_PORT:-5173}:5173"
     volumes:
       - ./frontend:/app
       - my-finances-frontend-node-modules:/app/node_modules

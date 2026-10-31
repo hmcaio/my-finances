@@ -5,6 +5,12 @@
 #
 #   docker compose -f docker-compose.prod.yml up -d
 #
+# The real stack never sets STACK_NAME: the container names and the two fixed-name volumes below
+# are then the ones this file always had. A second stack beside it (a smoke test, a benchmark, an
+# agent's throwaway) sets STACK_NAME, a free FRONTEND_PORT and a scratch BACKUP_DIR, and shares
+# nothing with the real one (docs/conventions/tooling.md; scripts/stack/isolation.test.mjs fails
+# when a name is pinned here again).
+#
 # Requires a .env file next to this one (gitignored) — copy .env.example and fill in real
 # values. Images:
 #   ghcr.io/hmcaio/my-finances-backend:${IMAGE_TAG}
@@ -40,7 +46,7 @@ x-logging: &default-logging
 services:
   postgres:
     image: postgres:18.6-alpine
-    container_name: my-finances-postgres-prod
+    container_name: ${STACK_NAME:-my-finances}-postgres-prod
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
@@ -65,7 +71,7 @@ services:
   # new Flyway migration touches the database - see the healthcheck below, which backend waits on.
   backup:
     image: ghcr.io/hmcaio/my-finances-backup:${IMAGE_TAG}
-    container_name: my-finances-backup-prod
+    container_name: ${STACK_NAME:-my-finances}-backup-prod
     restart: unless-stopped
     # No fixed `user:` here (unlike every other service): the container must start as root so
     # entrypoint.sh can chown a fresh volume/bind mount - root:root by default, unwritable by any
@@ -117,7 +123,7 @@ services:
 
   backend:
     image: ghcr.io/hmcaio/my-finances-backend:${IMAGE_TAG}
-    container_name: my-finances-backend-prod
+    container_name: ${STACK_NAME:-my-finances}-backend-prod
     restart: unless-stopped
     environment:
       # The JVM's default zone is the app's "today" (form defaults, recurring catch-up). Containers
@@ -161,7 +167,7 @@ services:
 
   frontend:
     image: ghcr.io/hmcaio/my-finances-frontend:${IMAGE_TAG}
-    container_name: my-finances-frontend-prod
+    container_name: ${STACK_NAME:-my-finances}-frontend-prod
     restart: unless-stopped
     ports:
       # BIND_ADDR (F036, ADR 0029) defaults to host loopback; set it to a private-network
@@ -187,8 +193,8 @@ volumes:
   my-finances-logs-prod:
     # Explicit name (compose would otherwise prefix it with the project name, e.g.
     # my-finances_my-finances-logs-prod) so the documented `docker run -v my-finances-logs-prod:...`
-    # read command works from any checkout directory.
-    name: my-finances-logs-prod
+    # read command works from any checkout directory. STACK_NAME moves it for a second stack only.
+    name: ${STACK_NAME:-my-finances}-logs-prod
   my-finances-backups-prod:
     # F018, ADR 0015: external (unlike the two volumes above) so `docker compose down -v` cannot
     # remove it along with the data it exists to protect - that is the whole point, and also a
@@ -198,4 +204,4 @@ volumes:
     # in .env before keygen), this declared-but-unreferenced volume is simply never mounted by
     # either service.
     external: true
-    name: my-finances-backups-prod
+    name: ${STACK_NAME:-my-finances}-backups-prod
