@@ -1,6 +1,6 @@
 # Running, verifying and shipping the stack
 
-Read when changing compose files, Dockerfiles, CI, a pinned tool version, the verify script, or when running the prod-shaped stack locally. The commands themselves live in `scripts/verify.sh` (stages and their prerequisites are in its header) and `.github/workflows/ci.yml`; this file keeps only what those don't say.
+Read when changing compose files, Dockerfiles, CI, a pinned tool version, the verify script, or when running the prod-shaped stack locally, and before creating a git worktree. The commands themselves live in `scripts/verify.sh` (stages and their prerequisites are in its header) and `.github/workflows/ci.yml`; this file keeps only what those don't say.
 
 ## Dev stack
 
@@ -12,9 +12,14 @@ Read when changing compose files, Dockerfiles, CI, a pinned tool version, the ve
 - pgAdmin login, the pre-registered server, and the "editing `servers.json` needs `docker compose down -v`" caveat are commented in `docker-compose.yml`.
 - Port exposure (`BIND_ADDR`): [auth.md](auth.md).
 
+## Worktrees
+
+Every worktree a skill or script creates lives under `<root>/.claude/worktrees/<name>` (gitignored), `<root>` being the **main** checkout, never a sibling folder, so the parent directory stays clean and worktrees never nest. Find `<root>` from any worktree with `dirname "$(git rev-parse --path-format=absolute --git-common-dir)"`. Today: `release-vX.Y.Z` (the `release` skill via `scripts/release/prepare.sh`), `verify-<tag>` (`scripts/verify-release-images.sh`), `<id>-docs` (`design-feature`); `implement-feature`'s subagent isolation (`isolation: "worktree"`) lands there by itself. Remove one with `git worktree remove <path>` once its work is merged; a squash-merge leaves the branch unmerged in git's view, so deleting it needs `git branch -D`.
+
 ## Verify and CI
 
 - `scripts/verify.sh` is the one definition of the checks: CI's jobs call it, so a green local run means a green CI run. Change a check in that script, not only in `ci.yml`. It runs every stage even if one fails.
+- `scripts` stage: `node --test` over every `scripts/**/*.test.mjs` (the release scripts, the bench guard), found with `find`, so a new test file next to its script is picked up without editing `verify.sh`. It needs only Node and git; CI runs it as a step of the `Frontend tests` job, which already has Node, so there is no extra required check.
 - `backup` stage: needs only Docker. The bats unit tests run in an image built from `backup/test/Dockerfile` (the sidecar's Alpine tag plus `bats`, `bash`, `coreutils`, `findutils`, `jq`), so a checkout needs no bats-core and the tests run on the userland the scripts ship on; CI uses the same path. `backup/test/e2e.sh` (the stage's second half) builds the real sidecar image and runs it against throwaway Postgres containers of its own: safe to re-run, cleans up after itself. The `postgres` image declares its data directory as a volume, so a throwaway Postgres started without a data mount leaves an anonymous volume behind after `docker rm -f`: the script keeps that directory on a `--tmpfs` and removes with `rm -fv`, and any new script that starts one must do the same (`docker run --rm` also works). Testcontainers needs nothing extra: its reaper removes the volumes, even when the test JVM is killed.
 - CI builds and pushes all three images to GHCR on `vX.Y.Z` and `vX.Y.Z-rc.N` tags only (`build-and-push` job in `ci.yml`, ADR 0032); a `main` push publishes nothing. The workflow triggers on PRs, `main` pushes and `v*` tag pushes, so a feature branch is built once, by its PR, and the tag run repeats the test jobs the publish job needs. A stable tag publishes `vX.Y.Z`, `sha-<short>` and `latest`; an rc tag publishes `vX.Y.Z-rc.N` and `sha-<short>` and never moves `latest`. A guard step fails the run unless the tag is release-shaped and its commit is an ancestor of `origin/main`.
 - The same job scans the images and smoke-tests the production stack on them before pushing any of them: [Image vulnerability scan](#image-vulnerability-scan-adr-0031) and [Prod smoke](#prod-smoke-adr-0032).

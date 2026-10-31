@@ -19,8 +19,7 @@ npm-debug.log*
 # same gitignore convention as .env. Never commit.
 rclone.conf
 
-# Worktrees: every skill and script puts them here (subagents via isolation:"worktree", e.g. implement-feature;
-# the release and design-feature skills; scripts/verify-release-images.sh)
+# Worktrees: every skill and script puts them here (see docs/conventions/tooling.md)
 .claude/worktrees/
 
 # IDE
