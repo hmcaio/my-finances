@@ -2,10 +2,12 @@
 # The one definition of "the checks" (issue #73): CI's jobs call this script, and so do you, so a
 # green local run means a green CI run. Usage:
 #
-#   scripts/verify.sh [stage...]     stages: versions backend frontend e2e backup scan smoke   (default: versions backend frontend)
+#   scripts/verify.sh [stage...]     stages: versions scripts backend frontend e2e backup scan smoke   (default: versions scripts backend frontend)
 #
 #   scripts/verify.sh                everything CI's unit-test jobs run
 #   scripts/verify.sh frontend       just the frontend checks
+#   scripts/verify.sh scripts        node --test over every scripts/**/*.test.mjs (the release scripts, the bench
+#                                    guard); needs Node and git, no install (CI runs it in the Frontend tests job)
 #   scripts/verify.sh e2e            Playwright layout checks (needs `npx playwright install chromium` once)
 #   E2E_SHARD=1/3 scripts/verify.sh e2e
 #                                    only that third of the Playwright tests (CI runs the three shards in parallel)
@@ -52,6 +54,20 @@ in_dir() { local dir=$1; shift; (cd "$dir" && "$@"); }
 
 stage_versions() {
   run "versions: pinned tool versions agree" bash scripts/check-versions.sh
+}
+
+# The tests of the repo's own scripts (scripts/release, scripts/bench): plain node:test files, no
+# dependencies to install. Listed with find so a new *.test.mjs is picked up without editing this.
+scripts_tests() {
+  local files
+  files=$(find scripts -name '*.test.mjs' -not -path '*/node_modules/*' | sort)
+  if [ -z "$files" ]; then echo "no scripts/**/*.test.mjs found" >&2; return 1; fi
+  # shellcheck disable=SC2086 # one path per line, none with spaces
+  node --test $files
+}
+
+stage_scripts() {
+  run "scripts: node tests" scripts_tests
 }
 
 stage_backend() {
@@ -160,12 +176,12 @@ stage_smoke() {
 }
 
 stages=("$@")
-[ ${#stages[@]} -eq 0 ] && stages=(versions backend frontend)
+[ ${#stages[@]} -eq 0 ] && stages=(versions scripts backend frontend)
 
 for stage in "${stages[@]}"; do
   case $stage in
-    versions|backend|frontend|e2e|backup|scan|smoke) "stage_$stage" ;;
-    *) echo "unknown stage '$stage' (versions backend frontend e2e backup scan smoke)" >&2; exit 2 ;;
+    versions|scripts|backend|frontend|e2e|backup|scan|smoke) "stage_$stage" ;;
+    *) echo "unknown stage '$stage' (versions scripts backend frontend e2e backup scan smoke)" >&2; exit 2 ;;
   esac
 done
 

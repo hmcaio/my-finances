@@ -16,7 +16,7 @@ docker compose --profile full down
 docker compose up -d      # Postgres only (+ pgAdmin at http://localhost:5050), for running the apps natively; data persists in a named volume
 docker compose down
 ```
-`full` and native `bootRun`/`npm run dev` both bind 8080/5173: use one. `scripts/verify.sh [versions|backend|frontend|e2e|backup]` is the one definition of the checks (CI calls it); change a check there, not only in `ci.yml`. Run `scripts/setup-hooks.sh` once to install the local pre-commit format check. Backend and frontend commands: their own `CLAUDE.md`.
+`full` and native `bootRun`/`npm run dev` both bind 8080/5173: use one. `scripts/verify.sh [versions|scripts|backend|frontend|e2e|backup]` is the one definition of the checks (CI calls it); change a check there, not only in `ci.yml`. Run `scripts/setup-hooks.sh` once to install the local pre-commit format check. Backend and frontend commands: their own `CLAUDE.md`.
 
 ## Workflow
 
@@ -42,7 +42,7 @@ docker compose down
 - Login, session, CSRF, CORS, `BIND_ADDR` or auth env vars → `docs/conventions/auth.md`.
 - A log statement, log config, the request id or log reading → `docs/conventions/logging.md`.
 - A new text or amount field, a limit constant or a money-precision exception → `docs/conventions/data-constraints.md`.
-- Compose files (`docker-compose.prod.yml` replaces the dev Postgres container), Dockerfiles, CI, `verify.sh` prerequisites, pinned-version siblings, API type generation, time zone (`TZ`, `Clock`, date logic) → `docs/conventions/tooling.md`.
+- Compose files (`docker-compose.prod.yml` replaces the dev Postgres container), Dockerfiles, CI, `verify.sh` prerequisites, pinned-version siblings, API type generation, time zone (`TZ`, `Clock`, date logic), git worktrees (under `.claude/worktrees/`) → `docs/conventions/tooling.md`.
 - A performance claim (benchmark, statements per request, time to first content, baseline comparison) → `docs/conventions/performance.md`.
 - A user-visible change (its `CHANGELOG.md` entry), cutting a release PR, tagging a version → `docs/conventions/release.md`.
 

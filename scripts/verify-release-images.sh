@@ -52,8 +52,8 @@ report() { # report <PASS|FAIL> <name> [detail]
 }
 
 tmp=$(mktemp -d) || die "mktemp failed"
-# The checkout of the tagged commit for the smoke lives under .claude/worktrees/ (gitignored) of the
-# main checkout, like every worktree of this project, and is removed on exit.
+# The checkout of the tagged commit for the smoke is a worktree (see docs/conventions/tooling.md),
+# removed on exit.
 root=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
 wt=$root/.claude/worktrees/verify-$tag
 cleanup() {
