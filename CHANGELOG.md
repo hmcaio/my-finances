@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- A second dev or prod-shaped stack can run beside the real ones. `STACK_NAME` (default `my-finances`) builds every container and volume name the compose files pin, and the dev stack's four host ports have variables (`POSTGRES_PORT`, `PGADMIN_PORT`, `BACKEND_PORT`, `FRONTEND_DEV_PORT`; the CORS origin and the frontend's API URL follow them). With none set, every name and port is the one it always was. The prod smoke test (`scripts/verify.sh smoke`) now runs beside a real prod stack instead of refusing to, and the benchmark no longer needs Docker Compose 2.24. (closes [#242](https://github.com/hmcaio/my-finances/issues/242))
+
 ## [0.2.0] - 2026-10-30
 
 Adds the investment opening position (F038) and a larger set of seeded investment lists, speeds up balance and net-worth reads on large ledgers, and moves the stack to PostgreSQL 18 and JDK 25. **The PostgreSQL 18 move needs a backup and restore of the production database before upgrading** (see the Changed entry).

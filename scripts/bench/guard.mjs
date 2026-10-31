@@ -1,8 +1,10 @@
 // Pre-flight for the prod-shaped benchmark stack: reads the RESOLVED compose config
 // (`docker compose ... config --format json`) and exits 1 unless the stack can only touch
 // resources of its own, so it can run beside a real prod stack. run.sh runs it before anything is
-// created. It checks the resolved config, not the override, so a name newly pinned in
-// docker-compose.prod.yml fails the run instead of reaching prod.
+// created. run.sh sets STACK_NAME to the project name, which builds every name the prod file pins
+// (container names, the logs and backups volumes) under that prefix; the guard checks the
+// resolved config, so a name newly pinned in docker-compose.prod.yml fails the run instead of
+// reaching prod.
 //
 //   node guard.mjs <config.json> <project> <image tag> <frontend port> <scratch dir>
 import { readFileSync } from 'node:fs'
@@ -12,10 +14,14 @@ const OUR_IMAGES = 'ghcr.io/hmcaio/'
 
 export function violations(config, { project, tag, port, scratch }) {
   const found = []
-  const scoped = (name) => typeof name === 'string' && name.startsWith(`${project}_`)
+  // Compose prefixes its own names with `<project>_`; STACK_NAME builds the pinned ones as `<project>-`.
+  const scoped = (name) =>
+    typeof name === 'string' && (name.startsWith(`${project}_`) || name.startsWith(`${project}-`))
 
   for (const [service, def] of Object.entries(config.services ?? {})) {
-    if (def.container_name) found.push(`${service}: pins container_name '${def.container_name}'`)
+    if (def.container_name && !def.container_name.startsWith(`${project}-`)) {
+      found.push(`${service}: pins container_name '${def.container_name}', outside '${project}-'`)
+    }
     if (def.network_mode) found.push(`${service}: network_mode '${def.network_mode}'`)
     if (def.privileged) found.push(`${service}: privileged`)
     if (def.pid || def.ipc) found.push(`${service}: shares the host's pid/ipc namespace`)

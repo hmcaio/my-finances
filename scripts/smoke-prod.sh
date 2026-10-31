@@ -10,9 +10,10 @@
 # (default my-finances-<name>:smoke). They are tagged ghcr.io/hmcaio/my-finances-<name>:smoke and
 # the stack runs with IMAGE_TAG=smoke, so the compose file needs no edit and nothing is pulled.
 #
-# Isolation. The prod compose file hardcodes container_name (my-finances-*-prod) and the
-# my-finances-logs-prod volume, so it cannot run beside a real prod stack: the script refuses to
-# start when any of them exists. Everything else is throwaway: its own compose project
+# Isolation. STACK_NAME=my-finances-smoke builds every name the prod compose file pins (container
+# names, the logs and backups volumes) under its own prefix, so the run shares nothing with a real
+# prod stack and can run beside one (docs/conventions/tooling.md). It refuses to start only when
+# leftovers of an aborted smoke run exist. Everything is throwaway: its own compose project
 # (my-finances-smoke), a temp directory holding a copy of the compose file, the .env, the backups
 # bind folder and the cookie jar, a random login password and Postgres password, and an age
 # recipient made by the documented backup-keygen (the private key is dropped unread). The EXIT trap
@@ -23,6 +24,7 @@ cd "$(dirname "$0")/.." || exit 1
 ROOT=$PWD
 
 PROJECT=my-finances-smoke
+STACK=$PROJECT # STACK_NAME: container and volume names are under it, never the real stack's
 TAG=smoke
 USER_NAME=smoke
 IMAGE_PREFIX=ghcr.io/hmcaio/my-finances
@@ -39,13 +41,13 @@ for src in "$BACKEND_SRC" "$FRONTEND_SRC" "$BACKUP_SRC"; do
   docker image inspect "$src" >/dev/null 2>&1 || die "image '$src' not found (bash scripts/verify.sh smoke builds them)"
 done
 clash=$( {
-  docker ps -a --format '{{.Names}}' | grep -xE 'my-finances-(postgres|backup|backend|frontend)-prod'
+  docker ps -a --format '{{.Names}}' | grep -xE "$STACK-(postgres|backup|backend|frontend)-prod"
   docker ps -a --filter "label=com.docker.compose.project=$PROJECT" --format '{{.Names}}'
-  docker volume ls -q | grep -xE "my-finances-logs-prod|${PROJECT}_.*"
+  docker volume ls -q | grep -xE "$STACK-logs-prod|${PROJECT}_.*"
 } 2>/dev/null | sort -u)
 if [ -n "$clash" ]; then
-  echo "smoke: refusing to run: these already exist, and docker-compose.prod.yml hardcodes their names" >&2
-  echo "(a real prod stack, or leftovers of an aborted smoke run):" >&2
+  echo "smoke: refusing to run: these already exist, under the smoke stack's own names" >&2
+  echo "(leftovers of an aborted smoke run):" >&2
   while IFS= read -r line; do echo "  $line" >&2; done <<< "$clash"
   die "stop and remove them first (docker rm -f / docker volume rm), then re-run"
 fi
@@ -64,8 +66,9 @@ cleanup() {
   trap - EXIT
   cd "$ROOT" || true
   dc down -v --remove-orphans >/dev/null 2>&1
-  # Anything the precheck proved absent and exists now is ours (the logs volume has a fixed name).
-  docker volume ls -q | grep -xE "my-finances-logs-prod|${PROJECT}_.*" | xargs -r docker volume rm >/dev/null 2>&1
+  # Anything the precheck proved absent and exists now is ours (the logs volume's name is built
+  # from STACK_NAME, not from the project).
+  docker volume ls -q | grep -xE "$STACK-logs-prod|${PROJECT}_.*" | xargs -r docker volume rm >/dev/null 2>&1
   # The sidecar chowns the bind folder to uid 1000, so the host user may not be able to empty it.
   MSYS_NO_PATHCONV=1 docker run --rm -v "$backups_native:/b" --entrypoint sh "$BACKUP_SRC" \
     -c 'rm -rf /b/* /b/.[!.]*' >/dev/null 2>&1
@@ -103,9 +106,10 @@ esac
 
 # .env: .env.example (so the shipped example is what runs) minus the keys set here. The free
 # frontend port is left to Docker (FRONTEND_PORT=0) and read back with `compose port`.
-overrides='IMAGE_TAG|AUTH_USERNAME|AUTH_PASSWORD_HASH|POSTGRES_PASSWORD|FRONTEND_PORT|BIND_ADDR|BACKUP_DIR|BACKUP_AGE_RECIPIENT'
+overrides='STACK_NAME|IMAGE_TAG|AUTH_USERNAME|AUTH_PASSWORD_HASH|POSTGRES_PASSWORD|FRONTEND_PORT|BIND_ADDR|BACKUP_DIR|BACKUP_AGE_RECIPIENT'
 {
   grep -vE "^($overrides)=" .env.example
+  echo "STACK_NAME=$STACK"
   echo "IMAGE_TAG=$TAG"
   echo "AUTH_USERNAME=$USER_NAME"
   echo "$hash_line"
@@ -160,12 +164,12 @@ hvalue() { grep -i -m1 "^$2:" "$1.h" | sed 's/^[^:]*: *//' | tr -d '\r'; }
 # status back: a healthcheck removed from any service, the frontend's included, fails here.
 echo "smoke: health"
 for s in "${SERVICES[@]}"; do
-  check "$s container health" "$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "my-finances-$s-prod" | tr -d '\r')" healthy
+  check "$s container health" "$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$STACK-$s-prod" | tr -d '\r')" healthy
 done
 
 echo "smoke: ports"
 for s in "${SERVICES[@]}"; do
-  bound=$(docker inspect -f '{{range $p, $b := .NetworkSettings.Ports}}{{range $b}}{{.HostIp}}:{{.HostPort}} {{end}}{{end}}' "my-finances-$s-prod" | tr -d '\r')
+  bound=$(docker inspect -f '{{range $p, $b := .NetworkSettings.Ports}}{{range $b}}{{.HostIp}}:{{.HostPort}} {{end}}{{end}}' "$STACK-$s-prod" | tr -d '\r')
   if [ "$s" = frontend ]; then
     other=0; n=0
     for b in $bound; do n=$((n + 1)); case $b in 127.0.0.1:[0-9]*) ;; *) other=$((other + 1)) ;; esac; done
@@ -177,7 +181,7 @@ done
 
 # The sidecar image declares no VOLUME (#204; built on the postgres image it got an anonymous
 # volume per container at /var/lib/postgresql/data, the volume Postgres 17 declared): its only mounts are the two compose binds.
-mounts=$(docker inspect -f '{{range .Mounts}}{{.Type}}:{{.Destination}} {{end}}' my-finances-backup-prod | tr -s ' \r\n' '\n' | grep . | sort | tr '\n' ' ')
+mounts=$(docker inspect -f '{{range .Mounts}}{{.Type}}:{{.Destination}} {{end}}' "$STACK-backup-prod" | tr -s ' \r\n' '\n' | grep . | sort | tr '\n' ' ')
 check "backup mounts only the backups folder and rclone.conf, no inherited volume" "${mounts% }" "bind:/backups bind:/etc/rclone/rclone.conf"
 
 echo "smoke: edge and login"

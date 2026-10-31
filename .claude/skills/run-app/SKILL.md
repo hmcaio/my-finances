@@ -9,17 +9,17 @@ Starts a disposable copy of the stack, drives it with `scripts/drive/driveApp.mj
 
 Shell state does not persist between Bash calls: write the scratch directory path down once and spell it out in each later command. Use the session scratchpad directory when the harness names one, otherwise `mktemp -d`; write it with forward slashes in Git Bash.
 
-## 1. Precondition: nothing of the developer's is running
+## 1. Precondition: this run's names and ports are free
 
-The compose files pin `container_name: my-finances-*` and publish host ports 8080, 5173, 5432 and 5050, so a second stack collides with a developer's live one and shares nothing safely.
+The compose files build every pinned name and the dev host ports from `STACK_NAME` and four port variables ([`tooling.md`](../../../docs/conventions/tooling.md)), so this run uses `STACK_NAME=my-finances-drive` and its own ports and shares nothing with the developer's live stack, which stays untouched. Never set `STACK_NAME` to the default `my-finances`.
 
 ```
-docker ps -a --filter name=my-finances
+docker ps -a --filter name=my-finances-drive
 ```
 
-(`-a`: a stopped container still holds its name.) Also confirm nothing native listens on 8080 or 5173 (`netstat -ano | grep -E ':(8080|5173) .*LISTENING'`).
+(`-a`: a stopped container still holds its name.) Also confirm nothing listens on the ports this run publishes, 18080 (backend), 15173 (frontend) and 15432 (Postgres): `ss -ltn | grep -E ':(18080|15173|15432) '` (Git Bash: `netstat -ano | grep -E ':(18080|15173|15432) .*LISTENING'`).
 
-Done when both print nothing. If either prints a row, stop and ask the user (use a different time, or let them stop their stack); their containers, volumes and ports stay untouched.
+Done when both print nothing. A row is a leftover of an earlier run (`my-finances-drive-*` containers: remove them) or a port taken by something else (pick other ports and use them below); the developer's containers (`my-finances-*` without `-drive`) are never touched.
 
 Snapshot the volumes so teardown can prove it left none behind: `docker volume ls -q | sort > <scratch>/volumes.before`.
 
@@ -29,9 +29,9 @@ The repo `.env` is the user's and stays unread and unwritten. The hash goes in a
 
 ```
 PW=$(node -e "console.log(require('crypto').randomBytes(12).toString('hex'))")
-printf 'AUTH_USERNAME=drive\n' > <scratch>/stack.env
+printf 'STACK_NAME=my-finances-drive\nBACKEND_PORT=18080\nFRONTEND_DEV_PORT=15173\nPOSTGRES_PORT=15432\nAUTH_USERNAME=drive\n' > <scratch>/stack.env
 (cd backend && AUTH_PASSWORD=$PW ./gradlew -q generateAuthHash) >> <scratch>/stack.env
-printf 'AUTH_USERNAME=drive\nAUTH_PASSWORD=%s\nDRIVE_BASE_URL=http://localhost:5173\n' "$PW" > <scratch>/driver.env
+printf 'AUTH_USERNAME=drive\nAUTH_PASSWORD=%s\nDRIVE_BASE_URL=http://localhost:15173\n' "$PW" > <scratch>/driver.env
 ```
 
 `generateAuthHash` prints the ready-made single-quoted `AUTH_PASSWORD_HASH='$argon2...'` line on stdout (the single quotes keep Compose from expanding the `$`; `.env.example` explains). Needs a local JDK 25.
@@ -44,16 +44,16 @@ Done when `grep -cF "AUTH_PASSWORD_HASH='\$argon2id" <scratch>/stack.env` prints
 docker compose -p my-finances-drive --env-file <scratch>/stack.env --profile full up -d postgres backend frontend
 ```
 
-`-p` gives the run its own project name, so its named volumes are separate from the developer's `my-finances_*` data (the default project name is the checkout's folder name). `--env-file` replaces `.env` for this command. pgAdmin is left out (port 5050 is not needed). The first start is slow: Gradle and `npm ci` run inside the containers, several minutes with fresh caches.
+`-p` (the same value as `STACK_NAME`) gives the run its own project name, so its named volumes are separate from the developer's. `--env-file` replaces `.env` for this command. pgAdmin is left out (its port is not needed). The first start is slow: Gradle and `npm ci` run inside the containers, several minutes with fresh caches.
 
 Wait until the backend reports healthy and Vite answers:
 
 ```
-until [ "$(docker inspect -f '{{.State.Health.Status}}' my-finances-backend)" = healthy ]; do sleep 5; done
-until curl -sf -o /dev/null http://localhost:5173/; do sleep 3; done
+until [ "$(docker inspect -f '{{.State.Health.Status}}' my-finances-drive-backend)" = healthy ]; do sleep 5; done
+until curl -sf -o /dev/null http://localhost:15173/; do sleep 3; done
 ```
 
-Done when both loops exit. A backend that never turns healthy has a startup message that names what to fix: `docker logs --tail 50 my-finances-backend`.
+Done when both loops exit. A backend that never turns healthy has a startup message that names what to fix: `docker logs --tail 50 my-finances-drive-backend`.
 
 ## 4. Drive
 
@@ -71,16 +71,16 @@ Done when the flow exits 0 and you have opened the screenshots with Read and see
 Facts about this app that save time:
 
 - A fresh database shows the onboarding screen on first load.
-- Dev serves the SPA on `localhost:5173` and calls the API on `localhost:8080` cross-origin. A direct `fetch` from the page needs `credentials: 'include'` plus an `X-XSRF-TOKEN` header copied from the `XSRF-TOKEN` cookie (clicking through the UI sends both itself); a mutation without the header gets 403.
-- Every wrong password counts toward the five-attempt lockout (429); `docker restart my-finances-backend` clears it.
+- Dev serves the SPA on `localhost:<FRONTEND_DEV_PORT>` and calls the API on `localhost:<BACKEND_PORT>` cross-origin (5173 and 8080 by default; 15173 and 18080 here). A direct `fetch` from the page needs `credentials: 'include'` plus an `X-XSRF-TOKEN` header copied from the `XSRF-TOKEN` cookie (clicking through the UI sends both itself); a mutation without the header gets 403.
+- Every wrong password counts toward the five-attempt lockout (429); `docker restart my-finances-drive-backend` clears it.
 - Logs hold ids and counts only (ADR 0011); follow one request by its `X-Request-Id`.
 
 ## 5. Prod-stack variant
 
 For checks that need the nginx, same-origin setup or the backup sidecar. Build the three `:local` images, create the keygen recipient and write the env file as `docs/conventions/tooling.md` (Production packaging) describes, with these differences so the run stays disposable:
 
-- Env file in `<scratch>`, copied from `.env.example` (shape only) with the scratch `AUTH_*` values, `IMAGE_TAG=local`, a free `FRONTEND_PORT` (for example 18081), and `BACKUP_DIR` set to an absolute path under `<scratch>` (the default backups volume `my-finances-backups-prod` is external and belongs to the developer).
-- Precondition addition: `docker volume ls -q | grep -x my-finances-logs-prod` prints nothing. That volume has a fixed, project-independent name, so a run would write into the developer's real logs.
+- Env file in `<scratch>`, copied from `.env.example` (shape only) with the scratch `AUTH_*` values, `STACK_NAME=my-finances-drive`, `IMAGE_TAG=local`, a free `FRONTEND_PORT` (for example 18081), and `BACKUP_DIR` set to an absolute path under `<scratch>` (the backups volume is external, and `BACKUP_DIR` keeps it unmounted).
+- `STACK_NAME` also moves the logs volume (`my-finances-drive-logs-prod`), so the run never writes into the developer's real logs.
 - `docker compose -f docker-compose.prod.yml -p my-finances-drive-prod --env-file <scratch>/prod.env up -d`, then drive with `DRIVE_BASE_URL=http://localhost:<FRONTEND_PORT>`.
 - Tear down with plain `down` (then the volume sweep in step 6), then `docker rmi` the three `ghcr.io/hmcaio/my-finances-*:local` images this run built.
 
@@ -90,13 +90,13 @@ For checks that need the nginx, same-origin setup or the backup sidecar. Build t
 docker compose -p my-finances-drive --env-file <scratch>/stack.env --profile full down -v
 ```
 
-(prod: the same with `-f docker-compose.prod.yml -p my-finances-drive-prod --env-file <scratch>/prod.env` and no `-v`.) Then remove any volume this run created that `down` left (for prod: the fixed-name logs volume and the `my-finances-drive-prod_` data volume), and run the checks:
+(prod: the same with `-f docker-compose.prod.yml -p my-finances-drive-prod --env-file <scratch>/prod.env` and no `-v`.) Then remove any volume this run created that `down` left (for prod: the `my-finances-drive-logs-prod` volume and the `my-finances-drive-prod_` data volume), and run the checks:
 
 ```
-docker ps -a --filter name=my-finances                             # prints no rows
+docker ps -a --filter name=my-finances-drive                       # prints no rows
 docker volume ls -q | sort | comm -13 <scratch>/volumes.before -   # prints nothing
 ```
 
 Last, view any screenshots you still need, delete the scratch directory (env files, screenshots), and confirm `ls <scratch>` reports no such directory.
 
-Done when all three checks pass. Run teardown on failure paths too: a stack left up is a collision for the next run and for the developer.
+Done when all three checks pass. Run teardown on failure paths too: a stack left up holds ports and names for the next run.

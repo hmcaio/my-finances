@@ -7,7 +7,8 @@
 #   scripts/verify.sh                everything CI's unit-test jobs run
 #   scripts/verify.sh frontend       just the frontend checks
 #   scripts/verify.sh scripts        node --test over every scripts/**/*.test.mjs (the release scripts, the bench
-#                                    guard); needs Node and git, no install (CI runs it in the Frontend tests job)
+#                                    guard, the compose isolation check); needs Node and git, no install, plus
+#                                    `docker compose` for the isolation tests (CI runs it in the Frontend tests job)
 #   scripts/verify.sh e2e            Playwright layout checks (needs `npx playwright install chromium` once)
 #   E2E_SHARD=1/3 scripts/verify.sh e2e
 #                                    only that third of the Playwright tests (CI runs the three shards in parallel)
@@ -22,7 +23,7 @@
 #                                    them behind a throwaway login (scripts/smoke-prod.sh): healthy
 #                                    services, loopback ports, login, nginx header/cache matrix, backup
 #                                    status, clean backend log (not in the default run: it builds images).
-#                                    Refuses to run beside a real prod stack (hardcoded container names)
+#                                    Runs beside a real prod stack (STACK_NAME=my-finances-smoke)
 #   SMOKE_BACKEND_IMAGE=ref SMOKE_FRONTEND_IMAGE=ref SMOKE_BACKUP_IMAGE=ref scripts/verify.sh smoke
 #                                    smoke-tests those images instead, without building (CI's
 #                                    build-and-push job, before it pushes)

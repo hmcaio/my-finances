@@ -10,7 +10,7 @@ Add a file here when an area's mechanics would otherwise grow a `CLAUDE.md`, and
 | [auth.md](auth.md) | login, session, CSRF, CORS, `BIND_ADDR`, auth env vars, the route guard, controller-test authentication |
 | [logging.md](logging.md) | a log statement, log config or retention, the request id, reading prod logs, the frontend `logger` |
 | [data-constraints.md](data-constraints.md) | a new text or amount field, a limit constant, a money-precision exception |
-| [tooling.md](tooling.md) | compose files, Dockerfiles, CI, `verify.sh` prerequisites, pinned-version siblings, the prod smoke test, API type generation, time zone, git worktrees |
+| [tooling.md](tooling.md) | compose files, Dockerfiles, CI, `verify.sh` prerequisites, pinned-version siblings, the prod smoke test, API type generation, time zone, git worktrees, running a second stack (`STACK_NAME`, ports) |
 | [release.md](release.md) | a user-visible change (its `CHANGELOG.md` entry), cutting a release PR, tagging a version, verifying the published images (the `release` skill points here) |
 | [performance.md](performance.md) | a performance claim: a benchmark, a statements-per-request count, a time to first content, a baseline-versus-current comparison (`scripts/bench/run.sh`) |
 | [backend-structure.md](backend-structure.md) | a new aggregate, use-case service, repository adapter (incl. replacing child rows), query object, port, list/update endpoint, name-uniqueness check |
