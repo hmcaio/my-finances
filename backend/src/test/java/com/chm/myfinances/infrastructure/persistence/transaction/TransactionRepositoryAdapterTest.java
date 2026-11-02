@@ -277,12 +277,11 @@ class TransactionRepositoryAdapterTest {
   }
 
   @Test
-  void existsByCategoryIdAndExistsByPaymentMethodIdReflectPersistedState() {
+  void existsByCategoryIdReflectsPersistedState() {
     UUID freshCategoryId = persistCategory("Fresh Category", CategoryType.EXPENSE).getId();
     UUID freshPaymentMethodId = persistPaymentMethod("Fresh Payment Method").getId();
 
     assertThat(transactionRepository.existsByCategoryId(freshCategoryId)).isFalse();
-    assertThat(transactionRepository.existsByPaymentMethodId(freshPaymentMethodId)).isFalse();
 
     transactionRepository.save(
         newTransaction(
@@ -294,7 +293,6 @@ class TransactionRepositoryAdapterTest {
             freshPaymentMethodId));
 
     assertThat(transactionRepository.existsByCategoryId(freshCategoryId)).isTrue();
-    assertThat(transactionRepository.existsByPaymentMethodId(freshPaymentMethodId)).isTrue();
   }
 
   @Test

@@ -59,9 +59,6 @@ public interface TransactionRepository {
    */
   boolean existsByCategoryId(UUID categoryId);
 
-  /** Same as {@link #existsByCategoryId} but for {@code PaymentMethodService}'s delete guard. */
-  boolean existsByPaymentMethodId(UUID paymentMethodId);
-
   /** Whether any transaction is posted to {@code accountId} - part of the account delete guard. */
   boolean existsByAccountId(UUID accountId);
 
