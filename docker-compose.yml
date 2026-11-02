@@ -115,7 +115,7 @@ services:
 
   frontend:
     profiles: [full]
-    image: node:24.22.1-alpine
+    image: node:24.22.2-alpine
     container_name: ${STACK_NAME:-my-finances}-frontend
     working_dir: /app
     command: sh -c "npm ci --no-audit --no-fund && exec npm run dev -- --host 0.0.0.0"
