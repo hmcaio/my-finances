@@ -33,6 +33,11 @@ class BackupStatusControllerTest {
   @DynamicPropertySource
   static void overrideStatusPath(DynamicPropertyRegistry registry) {
     registry.add("myfinances.backup.status-path", () -> tempDir.resolve("status.json").toString());
+    // No mountinfo: nothing is known about the temp folder's mount, so the adapter never reports it
+    // as an in-memory one. Without this, a machine whose /tmp is a tmpfs would turn every marker
+    // below into storage_not_persistent (issue #239; VolatileMountTest covers the rule itself).
+    registry.add(
+        "myfinances.backup.mountinfo-path", () -> tempDir.resolve("no-mountinfo").toString());
   }
 
   @Autowired private WebApplicationContext webApplicationContext;

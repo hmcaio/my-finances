@@ -53,10 +53,9 @@ class RecurringTemplateControllerTest {
    * Overrides the app's {@code Clock} bean (issue #31, B1) with a {@link MutableClock},
    * {@code @Primary} so every constructor-injected {@code Clock} in this context (including {@code
    * RecurringOccurrenceCatchUpService}'s and {@code RecurringTemplateService}'s) resolves to it
-   * instead of the real one - only {@link
-   * #setCapForANewMonthUpdatesTheAmountShownOnAnAlreadyGeneratedPendingOccurrenceButNotOlderOnes}
-   * pins it; every other test in this class leaves it at its default (a plain system clock), so
-   * they behave exactly as before this change.
+   * instead of the real one. Every test whose outcome depends on which cycles are due "today" pins
+   * it through {@link #pinTodayToMidMonth()}; the others leave it at its default (a plain system
+   * clock), because they do not depend on the day of the month.
    */
   @TestConfiguration(proxyBeanMethods = false)
   public static class FixedClockTestConfig {
@@ -92,6 +91,20 @@ class RecurringTemplateControllerTest {
         TestFixtures.checkingAccount(accountRepository, institutionRepository, "Checking").getId();
     paymentMethodId =
         TestFixtures.paymentMethod(paymentMethodRepository, "Debit Card Test").getId();
+  }
+
+  /**
+   * "Today" for a test that needs the catch-up to have an occurrence due: day 15 of a synthetic
+   * month, past the templates' day 5 in this month and the last, whatever the real date is (issue
+   * #249: with the real date, these tests failed on days 1 to 5 of every month).
+   */
+  private static final LocalDate MID_MONTH_TODAY = LocalDate.of(2024, 6, 15);
+
+  /** Pins the app's clock to {@link #MID_MONTH_TODAY} and returns its month. */
+  private YearMonth pinTodayToMidMonth() {
+    testClock.set(
+        MID_MONTH_TODAY.atStartOfDay(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault());
+    return YearMonth.from(MID_MONTH_TODAY);
   }
 
   /** Undoes any {@link MutableClock#set} so a fixed clock never leaks into another test. */
@@ -232,12 +245,9 @@ class RecurringTemplateControllerTest {
   @Test
   void setCapForANewMonthUpdatesTheAmountShownOnAnAlreadyGeneratedPendingOccurrenceButNotOlderOnes()
       throws Exception {
-    // A fixed clock (issue #31, B1) - decoupled from the real wall clock, so this no longer needs
-    // "today is at least the 6th whenever CI runs this": day 15 of a synthetic month, well past the
-    // template's day-5 cycle in both this month and last.
-    LocalDate today = LocalDate.of(2024, 6, 15);
-    testClock.set(today.atStartOfDay(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault());
-    YearMonth thisMonth = YearMonth.from(today);
+    // A fixed clock (issue #31, B1), decoupled from the real wall clock: day 15 of a synthetic
+    // month, well past the template's day-5 cycle in both this month and last.
+    YearMonth thisMonth = pinTodayToMidMonth();
     YearMonth lastMonth = thisMonth.minusMonths(1);
     String lastMonthDueDate = lastMonth.atDay(5).toString();
     String thisMonthDueDate = thisMonth.atDay(5).toString();
@@ -303,9 +313,9 @@ class RecurringTemplateControllerTest {
 
   @Test
   void pendingReturnsAGeneratedOccurrenceAfterCatchUp() throws Exception {
-    // effectiveFrom this month with day 5 (today is at least the 6th whenever CI runs this) -
-    // generates exactly one pending occurrence for the current cycle only.
-    createTemplate(YearMonth.now().toString());
+    // effectiveFrom this month with day 5, and "today" past it: generates exactly one pending
+    // occurrence for the current cycle only.
+    createTemplate(pinTodayToMidMonth().toString());
 
     mockMvc
         .perform(get("/api/recurring-templates/pending"))
@@ -315,7 +325,7 @@ class RecurringTemplateControllerTest {
 
   @Test
   void confirmCreatesATransactionAndRemovesThePendingOccurrence() throws Exception {
-    createTemplate(YearMonth.now().toString());
+    createTemplate(pinTodayToMidMonth().toString());
     MvcResult pendingResult = mockMvc.perform(get("/api/recurring-templates/pending")).andReturn();
     String pendingId =
         objectMapper
@@ -344,7 +354,7 @@ class RecurringTemplateControllerTest {
 
   @Test
   void confirmWithAnOverriddenAmountUsesTheOverrideNotTheTemplatesAmount() throws Exception {
-    createTemplate(YearMonth.now().toString());
+    createTemplate(pinTodayToMidMonth().toString());
     MvcResult pendingResult = mockMvc.perform(get("/api/recurring-templates/pending")).andReturn();
     String pendingId =
         objectMapper
@@ -381,7 +391,7 @@ class RecurringTemplateControllerTest {
 
   @Test
   void dismissDeletesThePendingOccurrenceWithoutCreatingATransaction() throws Exception {
-    createTemplate(YearMonth.now().toString());
+    createTemplate(pinTodayToMidMonth().toString());
     MvcResult pendingResult = mockMvc.perform(get("/api/recurring-templates/pending")).andReturn();
     String pendingId =
         objectMapper

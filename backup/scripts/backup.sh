@@ -123,6 +123,14 @@ fi
 
 mkdir -p "$STORAGE_DIR"
 
+# A folder that is an in-memory mount (a bind that came up before its drive was mounted) loses every
+# file when the container is recreated, yet a dump written into it looks like a success. Refuse
+# before touching the database: storage.sh says why (a filesystem type, never a path; ADR 0015, #239).
+if ! STORAGE_VERDICT=$("$SCRIPT_DIR/storage.sh" "$STORAGE_DIR"); then
+  log "ERROR storage is volatile (${STORAGE_VERDICT#volatile }): no backup taken"
+  fail "storage_not_persistent"
+fi
+
 NOW_EPOCH=$(date -u +%s)
 NOW_COMPACT=$(date -u -d "@$NOW_EPOCH" +%Y%m%dT%H%M%SZ)
 SUFFIX=""

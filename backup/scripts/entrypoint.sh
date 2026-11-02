@@ -15,6 +15,10 @@ BUILD_ID_FILE="${BACKUP_BUILD_ID_FILE:-/etc/backup-build-id}"
 HEALTH_FILE="${BACKUP_HEALTH_FILE:-/tmp/backup-healthcheck-ready}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MAX_AGE_HOURS="${BACKUP_MAX_AGE_HOURS:-20}"
+GRACE_SECONDS="${BACKUP_STORAGE_GRACE_SECONDS:-300}"
+# When storage.sh first found the folder volatile, in /tmp: it survives a restart of the container
+# (what the restart policy does) and not a recreate, which is exactly the retry window we want.
+VOLATILE_SINCE_FILE="${BACKUP_VOLATILE_SINCE_FILE:-/tmp/backup-volatile-since}"
 
 log() { echo "[entrypoint.sh] $*"; }
 
@@ -31,6 +35,32 @@ if [ "$(id -u)" = "0" ]; then
   chown "$TARGET_UID:$TARGET_GID" "$STORAGE_DIR" 2>/dev/null || true
   exec gosu "$TARGET_UID:$TARGET_GID" "$0" "$@"
 fi
+
+# Issue #239, ADR 0015: after a Docker Desktop restart a bind mount can come up as an in-memory
+# directory because its drive is not mounted yet. A restart of this container resolves the bind
+# again, so while the folder is volatile this exits non-zero and the restart policy retries; the
+# retry that lands after the drive is mounted gets the real folder. Only for GRACE_SECONDS from the
+# first detection: after that the sidecar starts anyway (the backend waits for it, and a typo in
+# BACKUP_DIR must not keep the whole app down). backup.sh refuses to take a backup there.
+check_storage_at_start() {
+  local verdict now since elapsed
+  if verdict=$("$SCRIPT_DIR/storage.sh" "$STORAGE_DIR"); then
+    rm -f "$VOLATILE_SINCE_FILE"
+    return 0
+  fi
+  now=$(date +%s)
+  since=$(cat "$VOLATILE_SINCE_FILE" 2>/dev/null || true)
+  if ! [[ $since =~ ^[0-9]+$ ]]; then
+    since=$now
+    echo "$now" >"$VOLATILE_SINCE_FILE"
+  fi
+  elapsed=$((now - since))
+  if [ "$elapsed" -lt "$GRACE_SECONDS" ]; then
+    log "storage is volatile (${verdict#volatile }): exiting so the restart policy retries ($((GRACE_SECONDS - elapsed))s of grace left)"
+    exit 1
+  fi
+  log "ERROR storage is volatile (${verdict#volatile }) after ${elapsed}s: starting anyway so the app is not kept down; no backup will be taken until this container is restarted on a real folder"
+}
 
 check_and_backup_if_needed() {
   local build_id now marker_json decision
@@ -60,6 +90,8 @@ check_and_backup_if_needed() {
 }
 
 mkdir -p "$STORAGE_DIR"
+
+check_storage_at_start
 
 log "start-time check"
 check_and_backup_if_needed || true

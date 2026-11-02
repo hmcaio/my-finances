@@ -21,4 +21,11 @@ public record BackupStatus(
     String targetType,
     boolean remoteConfigured,
     Boolean remoteOk,
-    int count) {}
+    int count) {
+
+  /**
+   * The {@code lastError} category for a backups folder that is an in-memory mount (issue #239):
+   * the sidecar writes it, and the backend reports it too when its own view of the folder is one.
+   */
+  public static final String STORAGE_NOT_PERSISTENT = "storage_not_persistent";
+}

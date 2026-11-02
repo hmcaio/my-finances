@@ -31,9 +31,9 @@ ARG BUILD_ID=dev
 RUN apk add --no-cache "postgresql${POSTGRES_MAJOR}-client" bash coreutils findutils jq age rclone gosu \
   && printf '%s' "$BUILD_ID" >/etc/backup-build-id
 
-COPY scripts/backup.sh scripts/entrypoint.sh scripts/prune.sh scripts/decide.sh scripts/restore.sh scripts/backup-keygen /usr/local/bin/
+COPY scripts/backup.sh scripts/entrypoint.sh scripts/prune.sh scripts/decide.sh scripts/storage.sh scripts/restore.sh scripts/backup-keygen /usr/local/bin/
 RUN chmod +x /usr/local/bin/backup.sh /usr/local/bin/entrypoint.sh /usr/local/bin/prune.sh \
-  /usr/local/bin/decide.sh /usr/local/bin/restore.sh /usr/local/bin/backup-keygen
+  /usr/local/bin/decide.sh /usr/local/bin/storage.sh /usr/local/bin/restore.sh /usr/local/bin/backup-keygen
 
 WORKDIR /backups
 
