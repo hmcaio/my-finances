@@ -82,6 +82,28 @@ describe('BackupStatusBanner', () => {
     expect(alert).toHaveTextContent('2026')
   })
 
+  it('names the cause when the backups folder is not persistent, instead of the generic text', async () => {
+    mockStatus({ state: 'FAILING', lastError: 'storage_not_persistent' })
+
+    renderWithQueryClient(<BackupStatusBanner />)
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent(/BACKUP_DIR/)
+    expect(alert).toHaveTextContent(/not being saved/i)
+    expect(alert).toHaveTextContent('docker compose restart backup backend')
+    expect(alert).not.toHaveTextContent(/last success/i)
+  })
+
+  it('keeps the generic text for any other failure category', async () => {
+    mockStatus({ state: 'FAILING', lastError: 'dump_failed' })
+
+    renderWithQueryClient(<BackupStatusBanner />)
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent(/failing/i)
+    expect(alert).toHaveTextContent(/last success/i)
+  })
+
   it('shows an info banner for localOnly (when otherwise OK)', async () => {
     mockStatus({ state: 'OK', localOnly: true })
 

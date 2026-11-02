@@ -96,6 +96,13 @@ services:
       # anything this image does; backup.sh just re-derives the same rule to label status.json.
       BACKUP_DIR: ${BACKUP_DIR:-}
       BACKUP_MAX_AGE_HOURS: ${BACKUP_MAX_AGE_HOURS:-20}
+      # A folder that is an in-memory mount (a bind that came up before its drive was mounted) is
+      # refused: the container exits for this many seconds so Docker restarts it until the real
+      # folder is there, then starts degraded so the app is never kept down (ADR 0015, #239).
+      BACKUP_STORAGE_GRACE_SECONDS: ${BACKUP_STORAGE_GRACE_SECONDS:-300}
+      # 1 skips that check. For the smoke test and the benchmark, whose scratch folder can sit on a
+      # host /tmp that is itself a tmpfs; never set it for a real stack.
+      BACKUP_ALLOW_VOLATILE_STORAGE: ${BACKUP_ALLOW_VOLATILE_STORAGE:-}
       BACKUP_RCLONE_REMOTE: ${BACKUP_RCLONE_REMOTE:-}
       # rclone reads its config from this path when set. If ./rclone.conf (next to .env,
       # gitignored) doesn't exist, Docker silently mounts an empty directory there instead of

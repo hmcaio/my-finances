@@ -5,6 +5,13 @@ import { useBackupStatus } from '../../api/backupStatus/backupStatusQueries'
 import { useLocale, type Locale } from '../../hooks/locale/useLocale'
 import { formatDate } from '../../i18n/format'
 
+/**
+ * The sidecar's `lastError` category for a backups folder that is an in-memory mount (issue #239,
+ * ADR 0015): the one cause the banner names, because the generic text gives the user nothing to act
+ * on. Every other category keeps the generic message.
+ */
+const VOLATILE_STORAGE_ERROR = 'storage_not_persistent'
+
 /** `lastSuccessAt` is `null` before any backup has ever succeeded. */
 function formatLastSuccess(
   lastSuccessAt: string | null,
@@ -37,6 +44,14 @@ export function BackupStatusBanner() {
   const [dismissed, setDismissed] = useState(false)
 
   if (dismissed || !status) return null
+
+  if (status.state === 'FAILING' && status.lastError === VOLATILE_STORAGE_ERROR) {
+    return (
+      <Alert severity="warning" onClose={() => setDismissed(true)}>
+        {t('backupStatus.volatileStorage')}
+      </Alert>
+    )
+  }
 
   if (status.state === 'STALE' || status.state === 'FAILING') {
     const verb = status.state === 'FAILING' ? t('backupStatus.failing') : t('backupStatus.stale')

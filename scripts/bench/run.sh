@@ -137,7 +137,7 @@ setup_compose() {
     *) cat "$SCRATCH/hash.err" >&2; echo "bench: the backend image printed no AUTH_PASSWORD_HASH line" >&2; exit 1 ;;
   esac
   FRONTEND_PORT=$(free_port)
-  local overrides='STACK_NAME|IMAGE_TAG|AUTH_USERNAME|AUTH_PASSWORD_HASH|POSTGRES_PASSWORD|FRONTEND_PORT|BIND_ADDR|BACKUP_DIR|BACKUP_AGE_RECIPIENT'
+  local overrides='BACKUP_ALLOW_VOLATILE_STORAGE|STACK_NAME|IMAGE_TAG|AUTH_USERNAME|AUTH_PASSWORD_HASH|POSTGRES_PASSWORD|FRONTEND_PORT|BIND_ADDR|BACKUP_DIR|BACKUP_AGE_RECIPIENT'
   {
     grep -vE "^($overrides)=" .env.example
     echo "STACK_NAME=$PROJECT"
@@ -149,6 +149,7 @@ setup_compose() {
     echo "BIND_ADDR=127.0.0.1"
     echo "BACKUP_DIR=$native/backups"
     echo "BACKUP_AGE_RECIPIENT="
+    echo "BACKUP_ALLOW_VOLATILE_STORAGE=1" # the scratch folder is under the host /tmp, which may be a tmpfs
   } >"$STACK/.env"
   unset hash_line
 

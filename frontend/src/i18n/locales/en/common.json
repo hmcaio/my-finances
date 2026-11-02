@@ -65,6 +65,7 @@
     "stale": "stale",
     "failing": "failing",
     "message": "Backups are {{state}} - last success: {{lastSuccess}}.",
+    "volatileStorage": "Backups are not being saved to the configured folder - check that the BACKUP_DIR drive is available, then restart the backup and backend services (docker compose restart backup backend).",
     "localOnly": "Backups exist only on this machine - set BACKUP_DIR to a synced folder or configure rclone for an off-machine copy."
   },
   "actions": {

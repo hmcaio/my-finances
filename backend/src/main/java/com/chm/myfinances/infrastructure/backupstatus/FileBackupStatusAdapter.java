@@ -15,10 +15,12 @@ import org.springframework.stereotype.Component;
 
 /**
  * Reads the F018 backup sidecar's {@code status.json} marker off disk (spec's Backend section),
- * through the read-only {@code /backups} mount in {@code docker-compose.prod.yml}. A missing
- * folder/file or a file that doesn't parse is {@link Optional#empty()}, never an exception - the
- * dev stack has no sidecar and no mount at all, which must behave the same as a prod stack whose
- * sidecar hasn't written its first marker yet.
+ * through the read-only {@code /backups} mount in {@code docker-compose.prod.yml}. When that folder
+ * is an in-memory mount (and no rclone remote holds the copy) the marker is reported with {@code
+ * lastError = storage_not_persistent}, see {@link VolatileMount}. A missing folder/file or a file
+ * that doesn't parse is {@link Optional#empty()}, never an exception - the dev stack has no sidecar
+ * and no mount at all, which must behave the same as a prod stack whose sidecar hasn't written its
+ * first marker yet.
  *
  * <p>Logs only that the marker could not be read, never its content or the parse exception's own
  * message (which could echo a file-content snippet) - ADR 0011.
@@ -36,8 +38,27 @@ public class FileBackupStatusAdapter implements BackupStatusPort {
   private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
   private final String statusPath;
 
-  public FileBackupStatusAdapter(@Value("${myfinances.backup.status-path}") String statusPath) {
+  private final String mountInfoPath;
+
+  public FileBackupStatusAdapter(
+      @Value("${myfinances.backup.status-path}") String statusPath,
+      @Value("${myfinances.backup.mountinfo-path:/proc/self/mountinfo}") String mountInfoPath) {
     this.statusPath = statusPath;
+    this.mountInfoPath = mountInfoPath;
+  }
+
+  private static BackupStatus withError(BackupStatus status, String lastError) {
+    return new BackupStatus(
+        status.lastSuccessAt(),
+        status.lastAttemptAt(),
+        lastError,
+        status.imageTag(),
+        status.buildId(),
+        status.schemaVersion(),
+        status.targetType(),
+        status.remoteConfigured(),
+        status.remoteOk(),
+        status.count());
   }
 
   @Override
@@ -54,7 +75,14 @@ public class FileBackupStatusAdapter implements BackupStatusPort {
       if (content.isBlank()) {
         return Optional.empty();
       }
-      return Optional.of(objectMapper.readValue(content, BackupStatus.class));
+      BackupStatus status = objectMapper.readValue(content, BackupStatus.class);
+      if (!status.remoteConfigured() && VolatileMount.holds(path, Path.of(mountInfoPath))) {
+        // The folder this backend reads is an in-memory mount (issue #239): whatever the marker
+        // says, it is not what is on the real drive, and a sidecar that has since remounted the
+        // real folder is invisible here until the backend restarts too.
+        return Optional.of(withError(status, BackupStatus.STORAGE_NOT_PERSISTENT));
+      }
+      return Optional.of(status);
     } catch (IOException | RuntimeException e) {
       log.warn("backup status marker could not be read: {}", e.getClass().getSimpleName());
       return Optional.empty();
