@@ -38,6 +38,7 @@ import { useAddDialog } from '../../hooks/useAddDialog'
 import { useQueryState } from '../../hooks/queryState'
 import { translateSeedName } from '../../i18n/seedNames'
 import { sortCategories } from './sortCategories'
+import { StarterCategoriesPrompt } from './StarterCategoriesPrompt'
 
 /**
  * Settings-style CRUD screen for categories (F002 spec): table with name + type, inline rename,
@@ -162,6 +163,10 @@ export function CategoriesPage() {
 
       {/* While the add dialog is open a save error shows inside it: this one sits behind it. */}
       <ErrorAlert message={addDialog.isOpen ? null : error} onDismiss={() => setError(null)} />
+
+      {/* Issue #168: onboarding's category step can be missed (reload after step 1), so it is
+          offered here whenever no regular category exists. */}
+      {categories?.every(isProtectedCategory) && <StarterCategoriesPrompt />}
 
       <Paper variant="outlined" sx={{ mb: 3 }}>
         <TableContainer>

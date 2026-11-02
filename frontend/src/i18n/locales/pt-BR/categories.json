@@ -6,5 +6,8 @@
   "typeColumn": "Tipo",
   "emptyList": "Nenhuma categoria ainda.",
   "typeExpense": "Despesa",
-  "typeIncome": "Receita"
+  "typeIncome": "Receita",
+  "starterPrompt": "Comece com um conjunto de categorias sugeridas, ou continue adicionando as suas.",
+  "starterButton": "Sugerir categorias",
+  "starterDialogTitle": "Categorias sugeridas"
 }

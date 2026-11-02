@@ -6,5 +6,8 @@
   "typeColumn": "Type",
   "emptyList": "No categories yet.",
   "typeExpense": "Expense",
-  "typeIncome": "Income"
+  "typeIncome": "Income",
+  "starterPrompt": "Start with a set of suggested categories, or keep adding your own.",
+  "starterButton": "Suggest categories",
+  "starterDialogTitle": "Suggested categories"
 }
