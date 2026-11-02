@@ -12,11 +12,11 @@ import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
-import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import com.chm.myfinances.domain.transaction.FuelDetails;
 import com.chm.myfinances.domain.transaction.FuelType;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
+import com.chm.myfinances.testsupport.mothers.TaxonomySeeder;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import com.chm.myfinances.testsupport.mothers.TransactionMother;
 import com.chm.myfinances.testsupport.web.JsonSupport;
@@ -31,6 +31,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.context.WebApplicationContext;
@@ -42,12 +43,13 @@ import org.springframework.web.context.WebApplicationContext;
 @WebIntegrationTest
 class VehicleControllerTest {
 
+  @Autowired private JdbcTemplate jdbcTemplate;
+
   @Autowired private InstitutionRepository institutionRepository;
   @Autowired private WebApplicationContext webApplicationContext;
   @Autowired private TransactionRepository transactionRepository;
   @Autowired private AccountRepository accountRepository;
   @Autowired private CategoryRepository categoryRepository;
-  @Autowired private PaymentMethodRepository paymentMethodRepository;
 
   private final ObjectMapper objectMapper = JsonSupport.MAPPER;
 
@@ -109,7 +111,7 @@ class VehicleControllerTest {
             .filter(Category::isFuelCategory)
             .findFirst()
             .orElseThrow();
-    var paymentMethod = TestFixtures.paymentMethod(paymentMethodRepository, "Debit Card Test");
+    var paymentMethod = TaxonomySeeder.paymentMethod(jdbcTemplate, "Debit Card Test");
     transactionRepository.save(
         TransactionMother.expense()
             .withAmount(BigDecimal.TEN)
@@ -178,8 +180,7 @@ class VehicleControllerTest {
             .filter(Category::isFuelCategory)
             .findFirst()
             .orElseThrow();
-    var paymentMethod =
-        TestFixtures.paymentMethod(paymentMethodRepository, "Debit Card History Test");
+    var paymentMethod = TaxonomySeeder.paymentMethod(jdbcTemplate, "Debit Card History Test");
 
     transactionRepository.save(
         TransactionMother.expense()

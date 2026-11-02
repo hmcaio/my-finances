@@ -160,11 +160,6 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
   }
 
   @Override
-  public boolean existsByPaymentMethodId(UUID paymentMethodId) {
-    return jpaRepository.existsByPaymentMethodId(paymentMethodId);
-  }
-
-  @Override
   public boolean existsByAccountId(UUID accountId) {
     return jpaRepository.existsByAccountId(accountId);
   }

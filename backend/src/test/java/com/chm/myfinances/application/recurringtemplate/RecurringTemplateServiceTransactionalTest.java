@@ -11,13 +11,13 @@ import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
-import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.recurringtemplate.PendingRecurringOccurrence;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateRepository;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersion;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
 import com.chm.myfinances.testsupport.AbstractTransactionalBoundaryTest;
+import com.chm.myfinances.testsupport.mothers.TaxonomySeeder;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -25,6 +25,7 @@ import java.time.YearMonth;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * End-to-end proof (real Spring context + Testcontainers Postgres, ADR 0010) that {@link
@@ -54,11 +55,12 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 class RecurringTemplateServiceTransactionalTest extends AbstractTransactionalBoundaryTest {
 
+  @Autowired private JdbcTemplate jdbcTemplate;
+
   @Autowired private InstitutionRepository institutionRepository;
   @Autowired private RecurringTemplateService service;
   @Autowired private CategoryRepository categoryRepository;
   @Autowired private AccountRepository accountRepository;
-  @Autowired private PaymentMethodRepository paymentMethodRepository;
   @Autowired private RecurringTemplateRepository templateRepository;
   @Autowired private TransactionRepository transactionRepository;
 
@@ -97,7 +99,7 @@ class RecurringTemplateServiceTransactionalTest extends AbstractTransactionalBou
     Account account =
         TestFixtures.checkingAccount(
             accountRepository, institutionRepository, "Checking Confirm Test");
-    UUID paymentMethodId = TestFixtures.paymentMethod(paymentMethodRepository, "Debit").getId();
+    UUID paymentMethodId = TaxonomySeeder.paymentMethod(jdbcTemplate, "Debit").getId();
     RecurringTemplate template =
         service.create(
             categoryId,

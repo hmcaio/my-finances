@@ -8,17 +8,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.chm.myfinances.domain.investmentsegment.InvestmentSegment;
-import com.chm.myfinances.domain.investmentsegment.InvestmentSegmentRepository;
+import com.chm.myfinances.testsupport.mothers.TaxonomySeeder;
 import com.chm.myfinances.testsupport.web.JsonSupport;
 import com.chm.myfinances.testsupport.web.MockMvcSupport;
 import com.chm.myfinances.testsupport.web.WebIntegrationTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -32,8 +32,9 @@ import org.springframework.web.context.WebApplicationContext;
 @WebIntegrationTest
 class InvestmentSegmentControllerTest {
 
+  @Autowired private JdbcTemplate jdbcTemplate;
+
   @Autowired private WebApplicationContext webApplicationContext;
-  @Autowired private InvestmentSegmentRepository segmentRepository;
 
   private final ObjectMapper objectMapper = JsonSupport.MAPPER;
 
@@ -68,8 +69,7 @@ class InvestmentSegmentControllerTest {
 
   @Test
   void patchIsNoLongerSupported() throws Exception {
-    InvestmentSegment segment =
-        segmentRepository.save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Immutable Test"));
+    InvestmentSegment segment = TaxonomySeeder.investmentSegment(jdbcTemplate, "Immutable Test");
 
     mockMvc
         .perform(
@@ -81,9 +81,7 @@ class InvestmentSegmentControllerTest {
 
   @Test
   void deleteIsNoLongerSupported() throws Exception {
-    InvestmentSegment segment =
-        segmentRepository.save(
-            InvestmentSegment.reconstitute(UUID.randomUUID(), "Undeletable Test"));
+    InvestmentSegment segment = TaxonomySeeder.investmentSegment(jdbcTemplate, "Undeletable Test");
 
     mockMvc
         .perform(delete("/api/investment-segments/" + segment.getId()))

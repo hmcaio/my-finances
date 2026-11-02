@@ -10,17 +10,16 @@ import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
-import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
-import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionFilter;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
+import com.chm.myfinances.testsupport.mothers.TaxonomySeeder;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -34,6 +33,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * Persistence-layer integration test for {@link TransactionRepositoryAdapter}: hits a real,
@@ -49,14 +49,14 @@ import org.springframework.data.domain.Sort;
 @DatabaseIntegrationTest
 class TransactionRepositoryAdapterTest {
 
+  @Autowired private JdbcTemplate jdbcTemplate;
+
   @Autowired private InstitutionRepository institutionRepository;
   @Autowired private TransactionRepository transactionRepository;
   @Autowired private CategoryRepository categoryRepository;
   @Autowired private AccountRepository accountRepository;
-  @Autowired private PaymentMethodRepository paymentMethodRepository;
   @Autowired private InvestmentHoldingRepository investmentHoldingRepository;
   @Autowired private InvestmentProductRepository investmentProductRepository;
-  @Autowired private InvestmentCategoryRepository investmentCategoryRepository;
 
   private UUID categoryId;
   private UUID otherCategoryId;
@@ -82,7 +82,7 @@ class TransactionRepositoryAdapterTest {
   }
 
   private PaymentMethod persistPaymentMethod(String name) {
-    return TestFixtures.paymentMethod(paymentMethodRepository, name);
+    return TaxonomySeeder.paymentMethod(jdbcTemplate, name);
   }
 
   private Transaction newTransaction(LocalDate date, BigDecimal amount) {
@@ -157,8 +157,7 @@ class TransactionRepositoryAdapterTest {
   @Test
   void savesAndReloadsAnInvestmentHoldingId() {
     InvestmentCategory category =
-        investmentCategoryRepository.save(
-            InvestmentCategory.reconstitute(UUID.randomUUID(), "Variable Income Txn Repo Test"));
+        TaxonomySeeder.investmentCategory(jdbcTemplate, "Variable Income Txn Repo Test");
     InvestmentProduct product =
         investmentProductRepository.save(
             InvestmentProduct.create(
@@ -278,12 +277,11 @@ class TransactionRepositoryAdapterTest {
   }
 
   @Test
-  void existsByCategoryIdAndExistsByPaymentMethodIdReflectPersistedState() {
+  void existsByCategoryIdReflectsPersistedState() {
     UUID freshCategoryId = persistCategory("Fresh Category", CategoryType.EXPENSE).getId();
     UUID freshPaymentMethodId = persistPaymentMethod("Fresh Payment Method").getId();
 
     assertThat(transactionRepository.existsByCategoryId(freshCategoryId)).isFalse();
-    assertThat(transactionRepository.existsByPaymentMethodId(freshPaymentMethodId)).isFalse();
 
     transactionRepository.save(
         newTransaction(
@@ -295,7 +293,6 @@ class TransactionRepositoryAdapterTest {
             freshPaymentMethodId));
 
     assertThat(transactionRepository.existsByCategoryId(freshCategoryId)).isTrue();
-    assertThat(transactionRepository.existsByPaymentMethodId(freshPaymentMethodId)).isTrue();
   }
 
   @Test

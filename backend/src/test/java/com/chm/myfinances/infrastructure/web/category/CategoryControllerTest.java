@@ -12,10 +12,10 @@ import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.budget.BudgetRepository;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
-import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
 import com.chm.myfinances.testsupport.mothers.BudgetMother;
+import com.chm.myfinances.testsupport.mothers.TaxonomySeeder;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import com.chm.myfinances.testsupport.mothers.TransactionMother;
 import com.chm.myfinances.testsupport.web.JsonSupport;
@@ -29,6 +29,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.context.WebApplicationContext;
@@ -47,11 +48,12 @@ import org.springframework.web.context.WebApplicationContext;
 @WebIntegrationTest
 class CategoryControllerTest {
 
+  @Autowired private JdbcTemplate jdbcTemplate;
+
   @Autowired private InstitutionRepository institutionRepository;
   @Autowired private WebApplicationContext webApplicationContext;
   @Autowired private TransactionRepository transactionRepository;
   @Autowired private AccountRepository accountRepository;
-  @Autowired private PaymentMethodRepository paymentMethodRepository;
   @Autowired private BudgetRepository budgetRepository;
 
   // Plain (non-Spring-managed) ObjectMapper used only to build/parse test JSON fixtures - no
@@ -206,8 +208,7 @@ class CategoryControllerTest {
 
     Account account =
         TestFixtures.checkingAccount(accountRepository, institutionRepository, "Checking");
-    PaymentMethod paymentMethod =
-        TestFixtures.paymentMethod(paymentMethodRepository, "Debit Card Test");
+    PaymentMethod paymentMethod = TaxonomySeeder.paymentMethod(jdbcTemplate, "Debit Card Test");
     transactionRepository.save(
         TransactionMother.expense()
             .withAmount(BigDecimal.TEN)

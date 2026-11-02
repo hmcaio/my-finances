@@ -7,18 +7,16 @@ import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
-import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
-import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
 /**
- * Object-mother helpers for real-DB tests (issue #31, B5) that just need *an* {@link Account},
- * {@link Category} or {@link PaymentMethod} to exist, persisted through the real, Spring-managed
- * repository ports (not a {@code Fake*Repository}). Extracted from the near-identical {@code
- * persistAccount}/{@code persistCategory}/{@code persistPaymentMethod} helpers duplicated across
- * {@code TransactionRepositoryAdapterTest}, {@code TransferRepositoryAdapterTest}, {@code
+ * Object-mother helpers for real-DB tests (issue #31, B5) that just need *an* {@link Account} or
+ * {@link Category} to exist, persisted through the real, Spring-managed repository ports (not a
+ * {@code Fake*Repository}). Extracted from the near-identical {@code persistAccount}/{@code
+ * persistCategory}/{@code persistPaymentMethod} helpers duplicated across {@code
+ * TransactionRepositoryAdapterTest}, {@code TransferRepositoryAdapterTest}, {@code
  * TransferControllerTest} and others.
  *
  * <p>Defaults match what those helpers already used: opening balance {@link BigDecimal#ZERO} and
@@ -68,11 +66,5 @@ public final class TestFixtures {
   public static Category category(
       CategoryRepository categoryRepository, String name, CategoryType type) {
     return categoryRepository.save(Category.create(UUID.randomUUID(), name, type));
-  }
-
-  /** Persists and returns a {@link PaymentMethod} with the given name. */
-  public static PaymentMethod paymentMethod(
-      PaymentMethodRepository paymentMethodRepository, String name) {
-    return paymentMethodRepository.save(PaymentMethod.reconstitute(UUID.randomUUID(), name));
   }
 }

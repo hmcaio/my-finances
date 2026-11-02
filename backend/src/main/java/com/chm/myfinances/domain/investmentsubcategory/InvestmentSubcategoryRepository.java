@@ -11,8 +11,6 @@ import java.util.UUID;
  */
 public interface InvestmentSubcategoryRepository {
 
-  InvestmentSubcategory save(InvestmentSubcategory subcategory);
-
   Optional<InvestmentSubcategory> findById(UUID id);
 
   List<InvestmentSubcategory> findAll();

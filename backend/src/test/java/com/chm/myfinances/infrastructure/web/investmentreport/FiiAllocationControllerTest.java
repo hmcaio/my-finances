@@ -14,12 +14,11 @@ import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
-import com.chm.myfinances.domain.investmentsegment.InvestmentSegment;
-import com.chm.myfinances.domain.investmentsegment.InvestmentSegmentRepository;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshotRepository;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
 import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategoryRepository;
+import com.chm.myfinances.testsupport.mothers.TaxonomySeeder;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import com.chm.myfinances.testsupport.web.MockMvcSupport;
 import com.chm.myfinances.testsupport.web.WebIntegrationTest;
@@ -31,6 +30,7 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -44,10 +44,11 @@ import org.springframework.web.context.WebApplicationContext;
 @WebIntegrationTest
 class FiiAllocationControllerTest {
 
+  @Autowired private JdbcTemplate jdbcTemplate;
+
   @Autowired private WebApplicationContext webApplicationContext;
   @Autowired private InvestmentSubcategoryRepository subcategoryRepository;
   @Autowired private InvestmentProductRepository productRepository;
-  @Autowired private InvestmentSegmentRepository segmentRepository;
   @Autowired private InvestmentHoldingRepository holdingRepository;
   @Autowired private InvestmentSnapshotRepository snapshotRepository;
   @Autowired private AccountRepository accountRepository;
@@ -100,10 +101,7 @@ class FiiAllocationControllerTest {
   @Test
   void actualByTickerRowSerializesItsOwnSegmentId() throws Exception {
     UUID segmentId =
-        segmentRepository
-            .save(
-                InvestmentSegment.reconstitute(
-                    UUID.randomUUID(), "Allocation Controller Test Segment"))
+        TaxonomySeeder.investmentSegment(jdbcTemplate, "Allocation Controller Test Segment")
             .getId();
     InvestmentProduct fii =
         productRepository.save(

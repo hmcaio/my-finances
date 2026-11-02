@@ -10,14 +10,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
-import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
-import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
-import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
-import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategoryRepository;
+import com.chm.myfinances.testsupport.mothers.TaxonomySeeder;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import com.chm.myfinances.testsupport.web.JsonSupport;
 import com.chm.myfinances.testsupport.web.MockMvcSupport;
@@ -32,6 +29,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -44,11 +42,11 @@ import org.springframework.web.context.WebApplicationContext;
 @WebIntegrationTest
 class InvestmentReportControllerTest {
 
+  @Autowired private JdbcTemplate jdbcTemplate;
+
   @Autowired private WebApplicationContext webApplicationContext;
   @Autowired private AccountRepository accountRepository;
   @Autowired private InstitutionRepository institutionRepository;
-  @Autowired private InvestmentCategoryRepository categoryRepository;
-  @Autowired private InvestmentSubcategoryRepository subcategoryRepository;
   @Autowired private InvestmentProductRepository productRepository;
   @Autowired private InvestmentHoldingRepository holdingRepository;
 
@@ -80,14 +78,10 @@ class InvestmentReportControllerTest {
                 AccountType.INVESTMENT)
             .getId();
     reportCategoryId =
-        categoryRepository
-            .save(InvestmentCategory.reconstitute(UUID.randomUUID(), "Alloc Category Report Test"))
-            .getId();
+        TaxonomySeeder.investmentCategory(jdbcTemplate, "Alloc Category Report Test").getId();
     reportSubcategoryId =
-        subcategoryRepository
-            .save(
-                InvestmentSubcategory.reconstitute(
-                    UUID.randomUUID(), reportCategoryId, "Alloc Sub Report Test"))
+        TaxonomySeeder.investmentSubcategory(
+                jdbcTemplate, reportCategoryId, "Alloc Sub Report Test")
             .getId();
     cdbProductId = product("CDB Report Test", reportSubcategoryId);
     cdbHoldingId = holdingOf(cdbProductId);

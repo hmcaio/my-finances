@@ -13,7 +13,6 @@ import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
-import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
@@ -21,6 +20,7 @@ import com.chm.myfinances.domain.transfer.TradeConfirmationLine;
 import com.chm.myfinances.domain.transfer.TradeSide;
 import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.domain.transfer.TransferRepository;
+import com.chm.myfinances.testsupport.mothers.TaxonomySeeder;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import com.chm.myfinances.testsupport.mothers.TransactionMother;
 import com.chm.myfinances.testsupport.mothers.TransferMother;
@@ -33,6 +33,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.context.WebApplicationContext;
@@ -46,13 +47,14 @@ import org.springframework.web.context.WebApplicationContext;
 @WebIntegrationTest
 class LedgerControllerTest {
 
+  @Autowired private JdbcTemplate jdbcTemplate;
+
   private static final LocalDate DAY = LocalDate.of(2094, 5, 10);
 
   @Autowired private WebApplicationContext webApplicationContext;
   @Autowired private InstitutionRepository institutionRepository;
   @Autowired private AccountRepository accountRepository;
   @Autowired private CategoryRepository categoryRepository;
-  @Autowired private PaymentMethodRepository paymentMethodRepository;
   @Autowired private TransactionRepository transactionRepository;
   @Autowired private TransferRepository transferRepository;
   @Autowired private InvestmentProductRepository investmentProductRepository;
@@ -77,8 +79,7 @@ class LedgerControllerTest {
     incomeCategoryId =
         TestFixtures.category(categoryRepository, "Salary Ledger Test", CategoryType.INCOME)
             .getId();
-    paymentMethodId =
-        TestFixtures.paymentMethod(paymentMethodRepository, "Debit Card Ledger Test").getId();
+    paymentMethodId = TaxonomySeeder.paymentMethod(jdbcTemplate, "Debit Card Ledger Test").getId();
   }
 
   private Account persistAccount(String name, AccountType type) {

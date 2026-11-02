@@ -9,13 +9,11 @@ import jakarta.persistence.Table;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 /** JPA mapping for the {@code payment_methods} table (F002 spec). */
 @Entity
 @Table(name = "payment_methods")
 @Getter
-@Setter
 @NoArgsConstructor
 public class PaymentMethodJpaEntity extends AuditableEntity {
 
@@ -23,9 +21,4 @@ public class PaymentMethodJpaEntity extends AuditableEntity {
 
   @Column(nullable = false, length = TextFieldConstraints.MAX_NAME_LENGTH)
   private String name;
-
-  public PaymentMethodJpaEntity(UUID id, String name) {
-    this.id = id;
-    this.name = name;
-  }
 }

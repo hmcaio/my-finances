@@ -9,14 +9,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.chm.myfinances.domain.institution.Institution;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
-import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
-import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import com.chm.myfinances.domain.transfer.TransferRepository;
 import com.chm.myfinances.testsupport.mothers.InvestmentProductMother;
+import com.chm.myfinances.testsupport.mothers.TaxonomySeeder;
 import com.chm.myfinances.testsupport.mothers.TestInstitutions;
 import com.chm.myfinances.testsupport.mothers.TransferMother;
 import com.chm.myfinances.testsupport.web.JsonSupport;
@@ -34,6 +33,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.context.WebApplicationContext;
@@ -47,9 +47,10 @@ import org.springframework.web.context.WebApplicationContext;
 @WebIntegrationTest
 class AccountControllerTest {
 
+  @Autowired private JdbcTemplate jdbcTemplate;
+
   @Autowired private WebApplicationContext webApplicationContext;
   @Autowired private InstitutionRepository institutionRepository;
-  @Autowired private InvestmentCategoryRepository investmentCategoryRepository;
   @Autowired private InvestmentProductRepository investmentProductRepository;
   @Autowired private InvestmentHoldingRepository investmentHoldingRepository;
   @Autowired private TransferRepository transferRepository;
@@ -532,10 +533,7 @@ class AccountControllerTest {
   void closingAnInvestmentAccountWithAnOpenHoldingIsRejectedUntilTheHoldingIsClosed()
       throws Exception {
     String accountId = createInvestmentAccount("XP Close Test");
-    UUID categoryId =
-        investmentCategoryRepository
-            .save(InvestmentCategory.reconstitute(UUID.randomUUID(), "Crypto Close Test"))
-            .getId();
+    UUID categoryId = TaxonomySeeder.investmentCategory(jdbcTemplate, "Crypto Close Test").getId();
     UUID productId =
         investmentProductRepository
             .save(

@@ -10,8 +10,6 @@ import java.util.UUID;
  */
 public interface PaymentMethodRepository {
 
-  PaymentMethod save(PaymentMethod paymentMethod);
-
   Optional<PaymentMethod> findById(UUID id);
 
   List<PaymentMethod> findAll();
