@@ -7,11 +7,10 @@ import com.chm.myfinances.domain.allocationplan.AllocationPlanEntry;
 import com.chm.myfinances.domain.allocationplan.AllocationPlanRepository;
 import com.chm.myfinances.domain.allocationplan.AllocationPlanVersion;
 import com.chm.myfinances.domain.allocationplan.AllocationPlanVersionRepository;
-import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
-import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
+import com.chm.myfinances.testsupport.mothers.TaxonomySeeder;
 import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.util.List;
@@ -20,6 +19,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * Persistence-layer integration test for {@link AllocationPlanVersionRepositoryAdapter} against a
@@ -29,10 +29,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 @DatabaseIntegrationTest
 class AllocationPlanVersionRepositoryAdapterTest {
 
+  @Autowired private JdbcTemplate jdbcTemplate;
+
   @Autowired private AllocationPlanRepository planRepository;
   @Autowired private AllocationPlanVersionRepository versionRepository;
   @Autowired private InvestmentProductRepository productRepository;
-  @Autowired private InvestmentCategoryRepository categoryRepository;
 
   private UUID planId;
   private UUID productAId;
@@ -42,11 +43,7 @@ class AllocationPlanVersionRepositoryAdapterTest {
   void setUp() {
     planId = planRepository.save(AllocationPlan.create(UUID.randomUUID())).getId();
     UUID categoryId =
-        categoryRepository
-            .save(
-                InvestmentCategory.reconstitute(
-                    UUID.randomUUID(), "Variable Income Plan Repo Test"))
-            .getId();
+        TaxonomySeeder.investmentCategory(jdbcTemplate, "Variable Income Plan Repo Test").getId();
     productAId =
         productRepository
             .save(

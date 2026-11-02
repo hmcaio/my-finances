@@ -1,8 +1,6 @@
 package com.chm.myfinances.domain.investmentcategory;
 
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -18,7 +16,7 @@ import java.util.UUID;
 public final class InvestmentCategory {
 
   private final UUID id;
-  private String name;
+  private final String name;
 
   private InvestmentCategory(UUID id, String name) {
     this.id = Objects.requireNonNull(id, "id must not be null");
@@ -47,12 +45,5 @@ public final class InvestmentCategory {
 
   public String getName() {
     return name;
-  }
-
-  /** Flat snapshot of every persisted field (F025 spec, ADR 0022). */
-  public Map<String, Object> toAuditSnapshot() {
-    Map<String, Object> snapshot = new LinkedHashMap<>();
-    snapshot.put("name", name);
-    return snapshot;
   }
 }

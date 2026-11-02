@@ -3,21 +3,17 @@ package com.chm.myfinances.infrastructure.persistence.investmentproduct;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
-import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
-import com.chm.myfinances.domain.investmentsegment.InvestmentSegment;
-import com.chm.myfinances.domain.investmentsegment.InvestmentSegmentRepository;
-import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
-import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategoryRepository;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
+import com.chm.myfinances.testsupport.mothers.TaxonomySeeder;
 import jakarta.persistence.EntityManager;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * Persistence-layer integration test for {@link InvestmentProductRepositoryAdapter} against a real
@@ -29,10 +25,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 @DatabaseIntegrationTest
 class InvestmentProductRepositoryAdapterTest {
 
+  @Autowired private JdbcTemplate jdbcTemplate;
+
   @Autowired private InvestmentProductRepository productRepository;
-  @Autowired private InvestmentCategoryRepository categoryRepository;
-  @Autowired private InvestmentSubcategoryRepository subcategoryRepository;
-  @Autowired private InvestmentSegmentRepository segmentRepository;
   @Autowired private EntityManager entityManager;
 
   private UUID fixedIncomeId;
@@ -42,19 +37,10 @@ class InvestmentProductRepositoryAdapterTest {
   @BeforeEach
   void setUp() {
     fixedIncomeId =
-        categoryRepository
-            .save(InvestmentCategory.reconstitute(UUID.randomUUID(), "Fixed Income Repo Test"))
-            .getId();
-    cryptoId =
-        categoryRepository
-            .save(InvestmentCategory.reconstitute(UUID.randomUUID(), "Crypto Repo Test"))
-            .getId();
+        TaxonomySeeder.investmentCategory(jdbcTemplate, "Fixed Income Repo Test").getId();
+    cryptoId = TaxonomySeeder.investmentCategory(jdbcTemplate, "Crypto Repo Test").getId();
     cdbId =
-        subcategoryRepository
-            .save(
-                InvestmentSubcategory.reconstitute(
-                    UUID.randomUUID(), fixedIncomeId, "CDB Repo Test"))
-            .getId();
+        TaxonomySeeder.investmentSubcategory(jdbcTemplate, fixedIncomeId, "CDB Repo Test").getId();
   }
 
   private InvestmentProduct newProduct(UUID category, UUID subcategory, String name) {
@@ -164,10 +150,7 @@ class InvestmentProductRepositoryAdapterTest {
 
   @Test
   void savesAndReloadsTickerAndSegmentId() {
-    UUID segmentId =
-        segmentRepository
-            .save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Shoppings Repo Test"))
-            .getId();
+    UUID segmentId = TaxonomySeeder.investmentSegment(jdbcTemplate, "Shoppings Repo Test").getId();
     InvestmentProduct product =
         InvestmentProduct.create(
             UUID.randomUUID(), fixedIncomeId, null, "KNRI11 Repo Test", null, "KNRI11", segmentId);
@@ -193,10 +176,7 @@ class InvestmentProductRepositoryAdapterTest {
 
   @Test
   void existsBySegmentIdBacksTheSegmentDeleteGuard() {
-    UUID segmentId =
-        segmentRepository
-            .save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Logistica Repo Test"))
-            .getId();
+    UUID segmentId = TaxonomySeeder.investmentSegment(jdbcTemplate, "Logistica Repo Test").getId();
     assertThat(productRepository.existsBySegmentId(segmentId)).isFalse();
 
     productRepository.save(

@@ -12,14 +12,10 @@ import com.chm.myfinances.domain.budget.BudgetVersion;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.Institution;
-import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentopeningposition.InvestmentOpeningPosition;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
-import com.chm.myfinances.domain.investmentsegment.InvestmentSegment;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
-import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
-import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateVersion;
 import com.chm.myfinances.domain.transaction.Transaction;
@@ -34,14 +30,10 @@ import com.chm.myfinances.infrastructure.persistence.allocationplan.AllocationPl
 import com.chm.myfinances.infrastructure.persistence.budget.BudgetVersionJpaEntity;
 import com.chm.myfinances.infrastructure.persistence.category.CategoryJpaEntity;
 import com.chm.myfinances.infrastructure.persistence.institution.InstitutionJpaEntity;
-import com.chm.myfinances.infrastructure.persistence.investmentcategory.InvestmentCategoryJpaEntity;
 import com.chm.myfinances.infrastructure.persistence.investmentholding.InvestmentHoldingJpaEntity;
 import com.chm.myfinances.infrastructure.persistence.investmentopeningposition.InvestmentOpeningPositionJpaEntity;
 import com.chm.myfinances.infrastructure.persistence.investmentproduct.InvestmentProductJpaEntity;
-import com.chm.myfinances.infrastructure.persistence.investmentsegment.InvestmentSegmentJpaEntity;
 import com.chm.myfinances.infrastructure.persistence.investmentsnapshot.InvestmentSnapshotJpaEntity;
-import com.chm.myfinances.infrastructure.persistence.investmentsubcategory.InvestmentSubcategoryJpaEntity;
-import com.chm.myfinances.infrastructure.persistence.paymentmethod.PaymentMethodJpaEntity;
 import com.chm.myfinances.infrastructure.persistence.recurringtemplate.RecurringTemplateJpaEntity;
 import com.chm.myfinances.infrastructure.persistence.recurringtemplate.RecurringTemplateVersionJpaEntity;
 import com.chm.myfinances.infrastructure.persistence.transaction.TransactionJpaEntity;
@@ -174,16 +166,6 @@ class AuditSnapshotCompletenessTest {
   }
 
   @Test
-  void paymentMethodSnapshotCoversEveryPersistedFieldExceptTechnicalOnes() {
-    Set<String> persisted = declaredFieldNames(PaymentMethodJpaEntity.class);
-    persisted.removeAll(technicalFields());
-
-    PaymentMethod paymentMethod = PaymentMethod.reconstitute(UUID.randomUUID(), "Debit Card");
-
-    assertThat(paymentMethod.toAuditSnapshot().keySet()).containsAll(persisted);
-  }
-
-  @Test
   void institutionSnapshotCoversEveryPersistedFieldExceptTechnicalOnes() {
     Set<String> persisted = declaredFieldNames(InstitutionJpaEntity.class);
     persisted.removeAll(technicalFields());
@@ -201,38 +183,6 @@ class AuditSnapshotCompletenessTest {
     Vehicle vehicle = Vehicle.create(UUID.randomUUID(), "Civic");
 
     assertThat(vehicle.toAuditSnapshot().keySet()).containsAll(persisted);
-  }
-
-  @Test
-  void investmentSegmentSnapshotCoversEveryPersistedFieldExceptTechnicalOnes() {
-    Set<String> persisted = declaredFieldNames(InvestmentSegmentJpaEntity.class);
-    persisted.removeAll(technicalFields());
-
-    InvestmentSegment segment = InvestmentSegment.reconstitute(UUID.randomUUID(), "Shoppings");
-
-    assertThat(segment.toAuditSnapshot().keySet()).containsAll(persisted);
-  }
-
-  @Test
-  void investmentCategorySnapshotCoversEveryPersistedFieldExceptTechnicalOnes() {
-    Set<String> persisted = declaredFieldNames(InvestmentCategoryJpaEntity.class);
-    persisted.removeAll(technicalFields());
-
-    InvestmentCategory category =
-        InvestmentCategory.reconstitute(UUID.randomUUID(), "Fixed Income");
-
-    assertThat(category.toAuditSnapshot().keySet()).containsAll(persisted);
-  }
-
-  @Test
-  void investmentSubcategorySnapshotCoversEveryPersistedFieldExceptTechnicalOnes() {
-    Set<String> persisted = declaredFieldNames(InvestmentSubcategoryJpaEntity.class);
-    persisted.removeAll(technicalFields());
-
-    InvestmentSubcategory subcategory =
-        InvestmentSubcategory.reconstitute(UUID.randomUUID(), UUID.randomUUID(), "CDB");
-
-    assertThat(subcategory.toAuditSnapshot().keySet()).containsAll(persisted);
   }
 
   @Test

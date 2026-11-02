@@ -21,21 +21,6 @@ public class PaymentMethodRepositoryAdapter implements PaymentMethodRepository {
   }
 
   @Override
-  public PaymentMethod save(PaymentMethod paymentMethod) {
-    PaymentMethodJpaEntity entity =
-        jpaRepository
-            .findById(paymentMethod.getId())
-            .map(
-                existing -> {
-                  existing.setName(paymentMethod.getName());
-                  return existing;
-                })
-            .orElseGet(
-                () -> new PaymentMethodJpaEntity(paymentMethod.getId(), paymentMethod.getName()));
-    return toDomain(jpaRepository.save(entity));
-  }
-
-  @Override
   public Optional<PaymentMethod> findById(UUID id) {
     return jpaRepository.findById(id).map(PaymentMethodRepositoryAdapter::toDomain);
   }

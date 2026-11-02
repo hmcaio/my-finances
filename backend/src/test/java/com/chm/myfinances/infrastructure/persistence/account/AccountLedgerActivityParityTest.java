@@ -16,7 +16,6 @@ import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshotRepository;
-import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
 import com.chm.myfinances.domain.transfer.TradeConfirmation;
@@ -27,6 +26,7 @@ import com.chm.myfinances.domain.transfer.TransferRepository;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
 import com.chm.myfinances.testsupport.StatementCount;
 import com.chm.myfinances.testsupport.fakes.FakeAccountLedgerActivity;
+import com.chm.myfinances.testsupport.mothers.TaxonomySeeder;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import com.chm.myfinances.testsupport.mothers.TestInstitutions;
 import jakarta.persistence.EntityManager;
@@ -41,6 +41,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * Parity test for issue #189, fix 2: the SQL adapter of {@link AccountLedgerActivityPort} must give
@@ -53,6 +54,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 @DatabaseIntegrationTest
 class AccountLedgerActivityParityTest {
 
+  @Autowired private JdbcTemplate jdbcTemplate;
+
   private static final LocalDate FIRST_DAY = LocalDate.of(1990, 1, 1);
   private static final int DAYS = 60;
 
@@ -60,7 +63,6 @@ class AccountLedgerActivityParityTest {
   @Autowired private AccountRepository accountRepository;
   @Autowired private InstitutionRepository institutionRepository;
   @Autowired private CategoryRepository categoryRepository;
-  @Autowired private PaymentMethodRepository paymentMethodRepository;
   @Autowired private TransactionRepository transactionRepository;
   @Autowired private TransferRepository transferRepository;
   @Autowired private InvestmentCategoryRepository investmentCategoryRepository;
@@ -131,8 +133,7 @@ class AccountLedgerActivityParityTest {
     UUID incomeCategory =
         TestFixtures.category(categoryRepository, "Parity Income Test", CategoryType.INCOME)
             .getId();
-    UUID paymentMethodId =
-        TestFixtures.paymentMethod(paymentMethodRepository, "Parity Method Test").getId();
+    UUID paymentMethodId = TaxonomySeeder.paymentMethod(jdbcTemplate, "Parity Method Test").getId();
 
     for (int i = 0; i < 250; i++) {
       boolean expense = random.nextBoolean();

@@ -10,8 +10,8 @@ import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
-import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
+import com.chm.myfinances.testsupport.mothers.TaxonomySeeder;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import com.chm.myfinances.testsupport.mothers.TransactionMother;
 import com.chm.myfinances.testsupport.web.JsonSupport;
@@ -27,6 +27,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.context.WebApplicationContext;
@@ -39,11 +40,12 @@ import org.springframework.web.context.WebApplicationContext;
 @WebIntegrationTest
 class BudgetControllerTest {
 
+  @Autowired private JdbcTemplate jdbcTemplate;
+
   @Autowired private InstitutionRepository institutionRepository;
   @Autowired private WebApplicationContext webApplicationContext;
   @Autowired private CategoryRepository categoryRepository;
   @Autowired private AccountRepository accountRepository;
-  @Autowired private PaymentMethodRepository paymentMethodRepository;
   @Autowired private TransactionRepository transactionRepository;
 
   private final ObjectMapper objectMapper = JsonSupport.MAPPER;
@@ -65,8 +67,7 @@ class BudgetControllerTest {
         TestFixtures.category(categoryRepository, "Salary Test", CategoryType.INCOME).getId();
     accountId =
         TestFixtures.checkingAccount(accountRepository, institutionRepository, "Checking").getId();
-    paymentMethodId =
-        TestFixtures.paymentMethod(paymentMethodRepository, "Debit Card Test").getId();
+    paymentMethodId = TaxonomySeeder.paymentMethod(jdbcTemplate, "Debit Card Test").getId();
   }
 
   private String createBudgetBody(UUID categoryId, String monthlyCap, String effectiveFrom)

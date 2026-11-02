@@ -10,11 +10,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
-import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
-import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
-import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
-import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategoryRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
+import com.chm.myfinances.testsupport.mothers.TaxonomySeeder;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import com.chm.myfinances.testsupport.web.JsonSupport;
 import com.chm.myfinances.testsupport.web.MockMvcSupport;
@@ -32,6 +29,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.context.WebApplicationContext;
@@ -46,11 +44,11 @@ import org.springframework.web.context.WebApplicationContext;
 @WebIntegrationTest
 class InvestmentProductControllerTest {
 
+  @Autowired private JdbcTemplate jdbcTemplate;
+
   @Autowired private WebApplicationContext webApplicationContext;
   @Autowired private AccountRepository accountRepository;
   @Autowired private InstitutionRepository institutionRepository;
-  @Autowired private InvestmentCategoryRepository categoryRepository;
-  @Autowired private InvestmentSubcategoryRepository subcategoryRepository;
 
   private final ObjectMapper objectMapper = JsonSupport.MAPPER;
 
@@ -69,18 +67,10 @@ class InvestmentProductControllerTest {
     otherAccountId = saveAccount("Nubank Product Test", AccountType.INVESTMENT);
     checkingId = saveAccount("Checking Product Test", AccountType.CHECKING);
     fixedIncomeId =
-        categoryRepository
-            .save(InvestmentCategory.reconstitute(UUID.randomUUID(), "Fixed Income Product Test"))
-            .getId();
-    cryptoId =
-        categoryRepository
-            .save(InvestmentCategory.reconstitute(UUID.randomUUID(), "Crypto Product Test"))
-            .getId();
+        TaxonomySeeder.investmentCategory(jdbcTemplate, "Fixed Income Product Test").getId();
+    cryptoId = TaxonomySeeder.investmentCategory(jdbcTemplate, "Crypto Product Test").getId();
     cdbId =
-        subcategoryRepository
-            .save(
-                InvestmentSubcategory.reconstitute(
-                    UUID.randomUUID(), fixedIncomeId, "CDB Product Test"))
+        TaxonomySeeder.investmentSubcategory(jdbcTemplate, fixedIncomeId, "CDB Product Test")
             .getId();
   }
 
