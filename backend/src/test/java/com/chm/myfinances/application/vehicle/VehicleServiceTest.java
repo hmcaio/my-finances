@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Application-layer tests for {@link VehicleService}, against hand-written fakes - plain JUnit, no
- * Spring context (ADR 0004). Mirrors {@code PaymentMethodServiceTest}.
+ * Spring context (ADR 0004). Mirrors {@code CategoryServiceTest}.
  */
 class VehicleServiceTest {
 
