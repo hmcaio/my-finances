@@ -176,3 +176,50 @@ describe('CategoriesPage responsive layout (F021)', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })
+
+describe('CategoriesPage starter categories prompt (issue #168)', () => {
+  const protectedOnly = seedCategories.filter((c) => c.builtIn)
+
+  it('is not offered while a regular category exists', async () => {
+    renderWithQueryClient(<CategoriesPage />)
+    await screen.findByText(seedGroceriesCategory.name)
+
+    expect(screen.queryByRole('button', { name: 'Suggest categories' })).not.toBeInTheDocument()
+  })
+
+  it('offers the onboarding suggestions when only protected categories exist and creates the checked ones', async () => {
+    const created: string[] = []
+    server.use(
+      http.get('/api/categories', () => HttpResponse.json(protectedOnly)),
+      http.post('/api/categories', async ({ request }) => {
+        created.push(((await request.json()) as { name: string }).name)
+        return HttpResponse.json({}, { status: 201 })
+      }),
+    )
+    const user = userEvent.setup({ delay: null })
+    renderWithQueryClient(<CategoriesPage />)
+
+    await user.click(await screen.findByRole('button', { name: 'Suggest categories' }))
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).getByRole('checkbox', { name: 'Groceries' })).toBeChecked()
+
+    await user.click(within(dialog).getByRole('checkbox', { name: 'Groceries' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Finish' }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(created).toContain('Rent')
+    expect(created).not.toContain('Groceries')
+  })
+
+  it('closes without creating anything on Cancel', async () => {
+    server.use(http.get('/api/categories', () => HttpResponse.json(protectedOnly)))
+    const user = userEvent.setup({ delay: null })
+    renderWithQueryClient(<CategoriesPage />)
+
+    await user.click(await screen.findByRole('button', { name: 'Suggest categories' }))
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.getByRole('button', { name: 'Suggest categories' })).toBeInTheDocument()
+  })
+})
