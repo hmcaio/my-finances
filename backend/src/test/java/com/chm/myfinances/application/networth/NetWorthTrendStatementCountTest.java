@@ -15,9 +15,9 @@ import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshotRepository;
-import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
 import com.chm.myfinances.testsupport.StatementCount;
+import com.chm.myfinances.testsupport.mothers.TaxonomySeeder;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import com.chm.myfinances.testsupport.mothers.TestInstitutions;
 import jakarta.persistence.EntityManager;
@@ -49,7 +49,6 @@ class NetWorthTrendStatementCountTest {
   @Autowired private AccountRepository accountRepository;
   @Autowired private InstitutionRepository institutionRepository;
   @Autowired private CategoryRepository categoryRepository;
-  @Autowired private PaymentMethodRepository paymentMethodRepository;
   @Autowired private InvestmentCategoryRepository investmentCategoryRepository;
   @Autowired private InvestmentProductRepository investmentProductRepository;
   @Autowired private InvestmentHoldingRepository holdingRepository;
@@ -96,8 +95,7 @@ class NetWorthTrendStatementCountTest {
     categoryId =
         TestFixtures.category(categoryRepository, "Trend Expense Test", CategoryType.EXPENSE)
             .getId();
-    paymentMethodId =
-        TestFixtures.paymentMethod(paymentMethodRepository, "Trend Method Test").getId();
+    paymentMethodId = TaxonomySeeder.paymentMethod(jdbcTemplate, "Trend Method Test").getId();
     UUID investmentCategoryId = investmentCategoryRepository.findAll().get(0).getId();
     for (int i = 0; i < 3; i++) {
       UUID productId =

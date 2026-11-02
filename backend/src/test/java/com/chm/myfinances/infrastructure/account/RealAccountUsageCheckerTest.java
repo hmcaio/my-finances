@@ -11,19 +11,18 @@ import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
-import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
-import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplate;
 import com.chm.myfinances.domain.recurringtemplate.RecurringTemplateRepository;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
 import com.chm.myfinances.domain.transfer.TransferRepository;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
 import com.chm.myfinances.testsupport.mothers.InvestmentProductMother;
+import com.chm.myfinances.testsupport.mothers.TaxonomySeeder;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import com.chm.myfinances.testsupport.mothers.TransactionMother;
 import com.chm.myfinances.testsupport.mothers.TransferMother;
@@ -47,11 +46,9 @@ class RealAccountUsageCheckerTest {
   @Autowired private AccountRepository accountRepository;
   @Autowired private InstitutionRepository institutionRepository;
   @Autowired private CategoryRepository categoryRepository;
-  @Autowired private PaymentMethodRepository paymentMethodRepository;
   @Autowired private TransactionRepository transactionRepository;
   @Autowired private TransferRepository transferRepository;
   @Autowired private RecurringTemplateRepository recurringTemplateRepository;
-  @Autowired private InvestmentCategoryRepository investmentCategoryRepository;
   @Autowired private InvestmentProductRepository investmentProductRepository;
   @Autowired private InvestmentHoldingRepository investmentHoldingRepository;
 
@@ -106,7 +103,7 @@ class RealAccountUsageCheckerTest {
   void aTransactionMakesTheAccountUsed() {
     Category category =
         TestFixtures.category(categoryRepository, "Usage Expense Test", CategoryType.EXPENSE);
-    PaymentMethod method = TestFixtures.paymentMethod(paymentMethodRepository, "Usage Card Test");
+    PaymentMethod method = TaxonomySeeder.paymentMethod(jdbcTemplate, "Usage Card Test");
     transactionRepository.save(
         TransactionMother.expense()
             .withAccountId(account.getId())
@@ -170,8 +167,7 @@ class RealAccountUsageCheckerTest {
         TestFixtures.account(
             accountRepository, institutionRepository, "Usage Broker", AccountType.INVESTMENT);
     InvestmentCategory category =
-        investmentCategoryRepository.save(
-            InvestmentCategory.reconstitute(UUID.randomUUID(), "Usage Invest Test"));
+        TaxonomySeeder.investmentCategory(jdbcTemplate, "Usage Invest Test");
     InvestmentProduct product =
         investmentProductRepository.save(
             InvestmentProductMother.product()

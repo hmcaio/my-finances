@@ -6,13 +6,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.chm.myfinances.domain.account.AccountRepository;
 import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
-import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
-import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
+import com.chm.myfinances.testsupport.mothers.TaxonomySeeder;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDate;
@@ -21,6 +20,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * Persistence-layer integration test for {@link InvestmentHoldingRepositoryAdapter} against a real
@@ -32,11 +32,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 @DatabaseIntegrationTest
 class InvestmentHoldingRepositoryAdapterTest {
 
+  @Autowired private JdbcTemplate jdbcTemplate;
+
   @Autowired private InvestmentHoldingRepository holdingRepository;
   @Autowired private InvestmentProductRepository productRepository;
   @Autowired private AccountRepository accountRepository;
   @Autowired private InstitutionRepository institutionRepository;
-  @Autowired private InvestmentCategoryRepository categoryRepository;
   @Autowired private EntityManager entityManager;
 
   private UUID accountId;
@@ -48,11 +49,7 @@ class InvestmentHoldingRepositoryAdapterTest {
     accountId = saveInvestmentAccount("XP Holding Repo Test");
     otherAccountId = saveInvestmentAccount("Nubank Holding Repo Test");
     UUID categoryId =
-        categoryRepository
-            .save(
-                InvestmentCategory.reconstitute(
-                    UUID.randomUUID(), "Fixed Income Holding Repo Test"))
-            .getId();
+        TaxonomySeeder.investmentCategory(jdbcTemplate, "Fixed Income Holding Repo Test").getId();
     productId =
         productRepository
             .save(

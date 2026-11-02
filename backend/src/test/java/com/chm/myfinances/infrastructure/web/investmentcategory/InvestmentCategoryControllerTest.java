@@ -8,19 +8,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
-import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
-import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
-import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategoryRepository;
+import com.chm.myfinances.testsupport.mothers.TaxonomySeeder;
 import com.chm.myfinances.testsupport.web.JsonSupport;
 import com.chm.myfinances.testsupport.web.MockMvcSupport;
 import com.chm.myfinances.testsupport.web.WebIntegrationTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -37,9 +35,9 @@ import org.springframework.web.context.WebApplicationContext;
 @WebIntegrationTest
 class InvestmentCategoryControllerTest {
 
+  @Autowired private JdbcTemplate jdbcTemplate;
+
   @Autowired private WebApplicationContext webApplicationContext;
-  @Autowired private InvestmentCategoryRepository categoryRepository;
-  @Autowired private InvestmentSubcategoryRepository subcategoryRepository;
 
   private final ObjectMapper objectMapper = JsonSupport.MAPPER;
 
@@ -51,16 +49,14 @@ class InvestmentCategoryControllerTest {
   }
 
   private InvestmentCategory saveCategory(String name) {
-    return categoryRepository.save(InvestmentCategory.reconstitute(UUID.randomUUID(), name));
+    return TaxonomySeeder.investmentCategory(jdbcTemplate, name);
   }
 
   @Test
   void listNestsSubcategoriesAndIncludesTheSeed() throws Exception {
     InvestmentCategory category = saveCategory("Nested Test");
-    subcategoryRepository.save(
-        InvestmentSubcategory.reconstitute(UUID.randomUUID(), category.getId(), "Child B Test"));
-    subcategoryRepository.save(
-        InvestmentSubcategory.reconstitute(UUID.randomUUID(), category.getId(), "Child A Test"));
+    TaxonomySeeder.investmentSubcategory(jdbcTemplate, category.getId(), "Child B Test");
+    TaxonomySeeder.investmentSubcategory(jdbcTemplate, category.getId(), "Child A Test");
     String id = category.getId().toString();
 
     mockMvc

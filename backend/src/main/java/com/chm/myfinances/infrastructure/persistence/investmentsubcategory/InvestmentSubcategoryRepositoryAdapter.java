@@ -23,25 +23,6 @@ public class InvestmentSubcategoryRepositoryAdapter implements InvestmentSubcate
   }
 
   @Override
-  public InvestmentSubcategory save(InvestmentSubcategory subcategory) {
-    InvestmentSubcategoryJpaEntity entity =
-        jpaRepository
-            .findById(subcategory.getId())
-            .map(
-                existing -> {
-                  existing.setName(subcategory.getName());
-                  return existing;
-                })
-            .orElseGet(
-                () ->
-                    new InvestmentSubcategoryJpaEntity(
-                        subcategory.getId(),
-                        subcategory.getInvestmentCategoryId(),
-                        subcategory.getName()));
-    return toDomain(jpaRepository.save(entity));
-  }
-
-  @Override
   public Optional<InvestmentSubcategory> findById(UUID id) {
     return jpaRepository.findById(id).map(InvestmentSubcategoryRepositoryAdapter::toDomain);
   }

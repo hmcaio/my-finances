@@ -13,9 +13,9 @@ import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
-import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import com.chm.myfinances.testsupport.MutableClock;
+import com.chm.myfinances.testsupport.mothers.TaxonomySeeder;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import com.chm.myfinances.testsupport.web.JsonSupport;
 import com.chm.myfinances.testsupport.web.MockMvcSupport;
@@ -36,6 +36,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.context.WebApplicationContext;
@@ -48,6 +49,8 @@ import org.springframework.web.context.WebApplicationContext;
 @WebIntegrationTest
 @Import(RecurringTemplateControllerTest.FixedClockTestConfig.class)
 class RecurringTemplateControllerTest {
+
+  @Autowired private JdbcTemplate jdbcTemplate;
 
   /**
    * Overrides the app's {@code Clock} bean (issue #31, B1) with a {@link MutableClock},
@@ -70,7 +73,6 @@ class RecurringTemplateControllerTest {
   @Autowired private WebApplicationContext webApplicationContext;
   @Autowired private CategoryRepository categoryRepository;
   @Autowired private AccountRepository accountRepository;
-  @Autowired private PaymentMethodRepository paymentMethodRepository;
   @Autowired private MutableClock testClock;
 
   private final ObjectMapper objectMapper = JsonSupport.MAPPER;
@@ -89,8 +91,7 @@ class RecurringTemplateControllerTest {
         TestFixtures.category(categoryRepository, "Rent Test", CategoryType.EXPENSE).getId();
     accountId =
         TestFixtures.checkingAccount(accountRepository, institutionRepository, "Checking").getId();
-    paymentMethodId =
-        TestFixtures.paymentMethod(paymentMethodRepository, "Debit Card Test").getId();
+    paymentMethodId = TaxonomySeeder.paymentMethod(jdbcTemplate, "Debit Card Test").getId();
   }
 
   /**

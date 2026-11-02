@@ -22,20 +22,6 @@ public class InvestmentSegmentRepositoryAdapter implements InvestmentSegmentRepo
   }
 
   @Override
-  public InvestmentSegment save(InvestmentSegment segment) {
-    InvestmentSegmentJpaEntity entity =
-        jpaRepository
-            .findById(segment.getId())
-            .map(
-                existing -> {
-                  existing.setName(segment.getName());
-                  return existing;
-                })
-            .orElseGet(() -> new InvestmentSegmentJpaEntity(segment.getId(), segment.getName()));
-    return toDomain(jpaRepository.save(entity));
-  }
-
-  @Override
   public Optional<InvestmentSegment> findById(UUID id) {
     return jpaRepository.findById(id).map(InvestmentSegmentRepositoryAdapter::toDomain);
   }
@@ -48,23 +34,8 @@ public class InvestmentSegmentRepositoryAdapter implements InvestmentSegmentRepo
   }
 
   @Override
-  public void deleteById(UUID id) {
-    jpaRepository.deleteById(id);
-  }
-
-  @Override
   public boolean existsById(UUID id) {
     return jpaRepository.existsById(id);
-  }
-
-  @Override
-  public boolean existsByName(String name) {
-    return jpaRepository.existsByName(name);
-  }
-
-  @Override
-  public boolean existsByNameAndIdNot(String name, UUID excludedId) {
-    return jpaRepository.existsByNameAndIdNot(name, excludedId);
   }
 
   private static InvestmentSegment toDomain(InvestmentSegmentJpaEntity entity) {

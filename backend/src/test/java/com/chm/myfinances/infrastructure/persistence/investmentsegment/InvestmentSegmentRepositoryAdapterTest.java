@@ -6,83 +6,45 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.chm.myfinances.domain.investmentsegment.InvestmentSegment;
 import com.chm.myfinances.domain.investmentsegment.InvestmentSegmentRepository;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
-import jakarta.persistence.EntityManager;
+import com.chm.myfinances.testsupport.mothers.TaxonomySeeder;
 import java.util.Optional;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * Persistence-layer integration test for {@link InvestmentSegmentRepositoryAdapter} against a real
- * Testcontainers Postgres (ADR 0010), so {@code V20} runs for real (F026 spec).
+ * Testcontainers Postgres (ADR 0010), so {@code V20} runs for real (F026 spec). The port is
+ * read-only (ADR 0028), so rows are inserted with {@link TaxonomySeeder}.
  */
 @DatabaseIntegrationTest
 class InvestmentSegmentRepositoryAdapterTest {
 
+  @Autowired private JdbcTemplate jdbcTemplate;
   @Autowired private InvestmentSegmentRepository segmentRepository;
-  @Autowired private EntityManager entityManager;
 
   @Test
-  void savesAndReloadsASegment() {
-    InvestmentSegment segment = InvestmentSegment.reconstitute(UUID.randomUUID(), "Shoppings Test");
-
-    segmentRepository.save(segment);
+  void findsASegmentById() {
+    InvestmentSegment segment = TaxonomySeeder.investmentSegment(jdbcTemplate, "Shoppings Test");
 
     Optional<InvestmentSegment> reloaded = segmentRepository.findById(segment.getId());
     assertThat(reloaded).isPresent();
     assertThat(reloaded.get().getName()).isEqualTo("Shoppings Test");
+    assertThat(segmentRepository.existsById(segment.getId())).isTrue();
   }
 
   @Test
-  void savingAgainWithTheSameIdUpdatesTheRow() {
-    // F034/ADR 0028: rename() was deleted (the row is now fixed content) - this still proves
-    // save() is an upsert-by-id, re-saving a freshly reconstituted instance for the same id.
-    UUID id = UUID.randomUUID();
-    segmentRepository.save(InvestmentSegment.reconstitute(id, "Original Test"));
-
-    segmentRepository.save(InvestmentSegment.reconstitute(id, "Renamed Test"));
-
-    assertThat(segmentRepository.findById(id).orElseThrow().getName()).isEqualTo("Renamed Test");
+  void theMigrationSeedsTheStarterSegments() {
+    assertThat(segmentRepository.findAll())
+        .extracting(InvestmentSegment::getName)
+        .contains("Shoppings");
   }
 
   @Test
-  void deleteRemovesTheSegment() {
-    InvestmentSegment segment = InvestmentSegment.reconstitute(UUID.randomUUID(), "Temp Test");
-    segmentRepository.save(segment);
+  void theDatabaseRejectsADuplicateName() {
+    TaxonomySeeder.investmentSegment(jdbcTemplate, "Twice Test");
 
-    segmentRepository.deleteById(segment.getId());
-
-    assertThat(segmentRepository.existsById(segment.getId())).isFalse();
-  }
-
-  @Test
-  void existsByNameIsTrueOnlyForAnExactMatch() {
-    segmentRepository.save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Unique Name Test"));
-
-    assertThat(segmentRepository.existsByName("Unique Name Test")).isTrue();
-    assertThat(segmentRepository.existsByName("unique name test")).isFalse();
-  }
-
-  @Test
-  void existsByNameAndIdNotExcludesTheGivenId() {
-    InvestmentSegment segment =
-        segmentRepository.save(
-            InvestmentSegment.reconstitute(UUID.randomUUID(), "Exclude Self Test"));
-
-    assertThat(segmentRepository.existsByNameAndIdNot("Exclude Self Test", segment.getId()))
-        .isFalse();
-    assertThat(segmentRepository.existsByNameAndIdNot("Exclude Self Test", UUID.randomUUID()))
-        .isTrue();
-  }
-
-  @Test
-  void theDatabaseRejectsADuplicateNameEvenIfTheServiceCheckIsBypassed() {
-    segmentRepository.save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Twice Test"));
-    entityManager.flush();
-
-    segmentRepository.save(InvestmentSegment.reconstitute(UUID.randomUUID(), "Twice Test"));
-
-    assertThatThrownBy(() -> entityManager.flush())
+    assertThatThrownBy(() -> TaxonomySeeder.investmentSegment(jdbcTemplate, "Twice Test"))
         .hasStackTraceContaining("uq_investment_segments_name");
   }
 }

@@ -14,10 +14,10 @@ import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
-import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import com.chm.myfinances.domain.vehicle.Vehicle;
 import com.chm.myfinances.domain.vehicle.VehicleRepository;
+import com.chm.myfinances.testsupport.mothers.TaxonomySeeder;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import com.chm.myfinances.testsupport.mothers.TestInstitutions;
 import com.chm.myfinances.testsupport.web.JsonSupport;
@@ -33,6 +33,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.context.WebApplicationContext;
@@ -45,11 +46,12 @@ import org.springframework.web.context.WebApplicationContext;
 @WebIntegrationTest
 class TransactionControllerTest {
 
+  @Autowired private JdbcTemplate jdbcTemplate;
+
   @Autowired private InstitutionRepository institutionRepository;
   @Autowired private WebApplicationContext webApplicationContext;
   @Autowired private CategoryRepository categoryRepository;
   @Autowired private AccountRepository accountRepository;
-  @Autowired private PaymentMethodRepository paymentMethodRepository;
   @Autowired private VehicleRepository vehicleRepository;
 
   private final ObjectMapper objectMapper = JsonSupport.MAPPER;
@@ -100,9 +102,8 @@ class TransactionControllerTest {
             LocalDate.now());
     closed.close(LocalDate.now());
     closedAccountId = accountRepository.save(closed).getId();
-    paymentMethodId =
-        TestFixtures.paymentMethod(paymentMethodRepository, "Debit Card Test").getId();
-    otherPaymentMethodId = TestFixtures.paymentMethod(paymentMethodRepository, "Cash Test").getId();
+    paymentMethodId = TaxonomySeeder.paymentMethod(jdbcTemplate, "Debit Card Test").getId();
+    otherPaymentMethodId = TaxonomySeeder.paymentMethod(jdbcTemplate, "Cash Test").getId();
   }
 
   private String createTransactionBody(

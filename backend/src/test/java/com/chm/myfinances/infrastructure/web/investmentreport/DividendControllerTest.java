@@ -11,14 +11,12 @@ import com.chm.myfinances.domain.account.AccountType;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.institution.InstitutionRepository;
-import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
-import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProductRepository;
 import com.chm.myfinances.domain.paymentmethod.PaymentMethod;
-import com.chm.myfinances.domain.paymentmethod.PaymentMethodRepository;
+import com.chm.myfinances.testsupport.mothers.TaxonomySeeder;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import com.chm.myfinances.testsupport.web.JsonSupport;
 import com.chm.myfinances.testsupport.web.MockMvcSupport;
@@ -30,6 +28,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -42,12 +41,12 @@ import org.springframework.web.context.WebApplicationContext;
 @WebIntegrationTest
 class DividendControllerTest {
 
+  @Autowired private JdbcTemplate jdbcTemplate;
+
   @Autowired private WebApplicationContext webApplicationContext;
   @Autowired private CategoryRepository categoryRepository;
   @Autowired private AccountRepository accountRepository;
   @Autowired private InstitutionRepository institutionRepository;
-  @Autowired private PaymentMethodRepository paymentMethodRepository;
-  @Autowired private InvestmentCategoryRepository investmentCategoryRepository;
   @Autowired private InvestmentProductRepository productRepository;
   @Autowired private InvestmentHoldingRepository holdingRepository;
 
@@ -76,8 +75,7 @@ class DividendControllerTest {
             "Dividend Controller Test " + UUID.randomUUID(),
             AccountType.CHECKING);
     PaymentMethod paymentMethod =
-        TestFixtures.paymentMethod(
-            paymentMethodRepository, "Dividend Controller Test " + UUID.randomUUID());
+        TaxonomySeeder.paymentMethod(jdbcTemplate, "Dividend Controller Test " + UUID.randomUUID());
     Map<String, Object> body =
         Map.of(
             "date", date,
@@ -100,10 +98,8 @@ class DividendControllerTest {
 
   private UUID fiiHolding(String ticker) {
     UUID categoryId =
-        investmentCategoryRepository
-            .save(
-                InvestmentCategory.reconstitute(
-                    UUID.randomUUID(), "Variable Income Dividend Test " + UUID.randomUUID()))
+        TaxonomySeeder.investmentCategory(
+                jdbcTemplate, "Variable Income Dividend Test " + UUID.randomUUID())
             .getId();
     InvestmentProduct product =
         productRepository.save(
@@ -160,7 +156,7 @@ class DividendControllerTest {
             "No Holding Dividend Test",
             AccountType.CHECKING);
     PaymentMethod paymentMethod =
-        TestFixtures.paymentMethod(paymentMethodRepository, "No Holding Dividend Test");
+        TaxonomySeeder.paymentMethod(jdbcTemplate, "No Holding Dividend Test");
     Map<String, Object> body =
         Map.of(
             "date",
