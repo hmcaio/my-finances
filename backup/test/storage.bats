@@ -10,6 +10,8 @@
 # the prod sidecar whose bind mount came up as a tmpfs after a Docker Desktop restart (the bug), a
 # `--tmpfs` mount, a named volume, a host bind and a container with nothing mounted at the folder.
 # The 9p line is built from the shape of the same sidecar's /proc/mounts line once it was healthy.
+# backend/.../backupstatus/VolatileMountTest.java uses the same lines for the backend's twin of this
+# rule: change them together.
 
 setup() {
   SCRIPT="$BATS_TEST_DIRNAME/../scripts/storage.sh"

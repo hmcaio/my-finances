@@ -16,7 +16,9 @@
 #   - BACKUP_ALLOW_VOLATILE_STORAGE=1: for tests whose host /tmp is itself a tmpfs ("ok override").
 # Where nothing can be known (no readable mountinfo) it fails open ("ok unknown"): a false alarm
 # would be worse than the silence it replaces. The output carries a filesystem type, never a path
-# (ADR 0011).
+# (ADR 0011). The backend applies the same rule to its own view of the folder in
+# backend/.../infrastructure/backupstatus/VolatileMount.java (only tmpfs and ramfs there: it cannot
+# tell the container's own layer from a native run); change the two together.
 set -uo pipefail
 
 DIR=${1:-${BACKUP_STORAGE_DIR:-/backups}}
