@@ -90,6 +90,7 @@ describe('BackupStatusBanner', () => {
     const alert = await screen.findByRole('alert')
     expect(alert).toHaveTextContent(/BACKUP_DIR/)
     expect(alert).toHaveTextContent(/not being saved/i)
+    expect(alert).toHaveTextContent('docker compose restart backup backend')
     expect(alert).not.toHaveTextContent(/last success/i)
   })
 

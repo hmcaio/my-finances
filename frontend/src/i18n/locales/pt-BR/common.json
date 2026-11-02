@@ -65,7 +65,7 @@
     "stale": "desatualizados",
     "failing": "falhando",
     "message": "Os backups estão {{state}} - último sucesso: {{lastSuccess}}.",
-    "volatileStorage": "Os backups não estão sendo salvos na pasta configurada - verifique se a unidade de BACKUP_DIR está disponível e reinicie o serviço de backup (docker compose restart backup).",
+    "volatileStorage": "Os backups não estão sendo salvos na pasta configurada - verifique se a unidade de BACKUP_DIR está disponível e reinicie os serviços de backup e do backend (docker compose restart backup backend).",
     "localOnly": "Os backups existem apenas nesta máquina - defina BACKUP_DIR para uma pasta sincronizada ou configure o rclone para uma cópia fora da máquina."
   },
   "actions": {
