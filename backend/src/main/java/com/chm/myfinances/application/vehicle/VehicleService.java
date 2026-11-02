@@ -14,11 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Use cases for {@link Vehicle}: create/rename/findAll/findById/delete (F024 spec). New ids come
- * from the {@link IdGenerator} port (ADR 0005). Same shape as {@code PaymentMethodService}.
+ * from the {@link IdGenerator} port (ADR 0005). Same shape as {@code CategoryService}.
  *
  * <p>Delete is a 409 ({@link VehicleInUseException}) while any transaction's fuel details reference
  * the vehicle ({@link TransactionRepository#existsByFuelDetailsVehicleId}) - same
- * referenced-by-transaction pattern as {@code PaymentMethodService}/{@code CategoryService}.
+ * referenced-by-transaction pattern as {@code CategoryService}.
  *
  * <p>Create/rename reject a duplicate name (409, {@link VehicleNameAlreadyExistsException}) - exact
  * match, case-sensitive, backed by {@code vehicles.name UNIQUE} ({@code V18}).
