@@ -606,6 +606,26 @@ describe('InvestmentProductDetailPage actions', () => {
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     })
 
+    it('switches the selected holding when its row is clicked', async () => {
+      const user = userEvent.setup({ delay: null })
+      renderDetail('iprod-btc', [secondBroker])
+      await screen.findByRole('button', { name: 'Close holding' })
+      const holdings = screen.getByRole('table', { name: 'Holdings' })
+      await user.click(screen.getByRole('button', { name: 'Add holding' }))
+      const dialog = within(await screen.findByRole('dialog', { name: 'Add holding' }))
+      await selectOption(user, 'Account', 'Second Broker', dialog)
+      await user.click(dialog.getByRole('button', { name: 'Add holding' }))
+
+      // The new holding becomes the selected one.
+      expect(await screen.findByText('Current value (Second Broker)')).toBeInTheDocument()
+
+      await user.click(within(holdings).getByText(seedInvestmentAccount.name))
+
+      expect(
+        await screen.findByText(`Current value (${seedInvestmentAccount.name})`),
+      ).toBeInTheDocument()
+    })
+
     it('keeps the add dialog open and shows the error inside it when the holding is rejected', async () => {
       const user = userEvent.setup({ delay: null })
       server.use(investmentHoldingCreateConflictHandler)

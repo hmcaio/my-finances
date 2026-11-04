@@ -1,81 +1,38 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom'
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  Link as MuiLink,
-  MenuItem,
-  Paper,
-  Select,
-  Skeleton,
-  Table,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
-  Tooltip,
-  Typography,
-} from '@mui/material'
+import { Link as RouterLink, useParams } from 'react-router-dom'
+import { Alert, Box, IconButton, Link as MuiLink, Skeleton, Typography } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
-import LockIcon from '@mui/icons-material/Lock'
 import { useAccounts } from '../../api/accounts/accountsQueries'
 import { defaultErrorMessage } from '../../api/core/apiError'
 import { useInvestmentCategories } from '../../api/investments/investmentCategoriesQueries'
 import { useInvestmentSegments } from '../../api/investments/investmentSegmentsQueries'
-import type { InvestmentHolding } from '../../api/investments/investmentHoldings'
-import {
-  useCloseInvestmentHolding,
-  useCreateInvestmentHolding,
-  useDeleteInvestmentHolding,
-  useEditInvestmentHoldingNotes,
-  useInvestmentHoldingsByProduct,
-} from '../../api/investments/investmentHoldingsQueries'
-import {
-  useDeleteInvestmentProduct,
-  useEditInvestmentProduct,
-  useInvestmentProduct,
-} from '../../api/investments/investmentProductsQueries'
-import type { InvestmentSnapshot } from '../../api/investments/investmentSnapshots'
-import {
-  useDeleteInvestmentSnapshot,
-  useInvestmentSnapshots,
-  useRecordInvestmentSnapshot,
-  useUpdateInvestmentSnapshot,
-} from '../../api/investments/investmentSnapshotsQueries'
+import { useInvestmentHoldingsByProduct } from '../../api/investments/investmentHoldingsQueries'
+import { useInvestmentProduct } from '../../api/investments/investmentProductsQueries'
+import { useInvestmentSnapshots } from '../../api/investments/investmentSnapshotsQueries'
 import { useInvestmentValueSeries } from '../../api/investments/investmentValueSeriesQueries'
-import type { ValueSeriesPoint } from '../../api/investments/investmentValueSeries'
-import type { TradeConfirmationLineRecord } from '../../api/investments/tradeConfirmationLines'
 import { useTradeConfirmationLinesByProduct } from '../../api/investments/tradeConfirmationLinesQueries'
-import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
-import { InlineEditActions } from '../../components/table/InlineEditActions'
-import { DataTableBody } from '../../components/table/DataTableBody'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { fadeInSx } from '../../components/feedback/fadeIn'
-import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
-import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
-import { combineLoadState, useQueryState, type LoadState } from '../../hooks/queryState'
-import { useAction } from '../../hooks/useAction'
+import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
-import { useLocale, type Locale } from '../../hooks/locale/useLocale'
-import { formatMoney } from '../../i18n/format'
 import { nameLookup } from '../../utils/nameLookup'
-import { today } from '../../utils/localDate'
-import { TransferForm, type TransferFormPreset } from '../transfers/TransferForm'
-import { InvestmentProductForm, type InvestmentProductFormValues } from './InvestmentProductForm'
+import { CurrentValueCard } from './CurrentValueCard'
+import { SECTION_PADDING } from './detailLayout'
+import { HoldingDialogs } from './HoldingDialogs'
+import { HoldingsPanel } from './HoldingsPanel'
 import { OpeningPositionCard } from './OpeningPositionCard'
-import { ValueSeriesChart } from './ValueSeriesChart'
-
-/** Tighter section padding on phones (F021), matching `AccountDetailPage`. */
-const SECTION_PADDING = { xs: 2, sm: 3 }
+import { ProductDialogs } from './ProductDialogs'
+import { SnapshotDialogs } from './SnapshotDialogs'
+import { SnapshotsPanel } from './SnapshotsPanel'
+import { TradeDialog } from './TradeDialog'
+import { TradesPanel } from './TradesPanel'
+import { useHoldingActions } from './useHoldingActions'
+import { useProductActions } from './useProductActions'
+import { useSnapshotActions } from './useSnapshotActions'
+import { useTradeDialog } from './useTradeDialog'
+import { ValueOverTimePanel } from './ValueOverTimePanel'
 
 /**
  * Per-product detail view (F008 spec, made holding-aware by F022/ADR 0020): the product's taxonomy
@@ -92,10 +49,8 @@ const SECTION_PADDING = { xs: 2, sm: 3 }
  */
 export function InvestmentProductDetailPage() {
   const { t } = useTranslation(['investmentProducts', 'common'])
-  const { locale } = useLocale()
   const { id } = useParams<{ id: string }>()
   const productId = id ?? ''
-  const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
 
   const productQuery = useInvestmentProduct(id)
@@ -118,7 +73,6 @@ export function InvestmentProductDetailPage() {
   const [selectedHoldingId, setSelectedHoldingId] = useState<string>('')
   const selectedHolding =
     holdings?.find((h) => h.id === selectedHoldingId) ?? holdings?.[0] ?? undefined
-  const holdingAccountIds = new Set((holdings ?? []).map((h) => h.accountId))
 
   const snapshotsQuery = useInvestmentSnapshots(selectedHolding?.id)
   const snapshots = snapshotsQuery.data
@@ -127,45 +81,19 @@ export function InvestmentProductDetailPage() {
   const series = seriesQuery.data
   const seriesState = useQueryState(seriesQuery, setError)
   const tradesQuery = useTradeConfirmationLinesByProduct(productId)
-  // transferId alone isn't unique across rows (partial fills put more than one line under the
-  // same confirmation), so each row gets a synthetic client-side key.
-  const trades = tradesQuery.data?.map((t, i) => ({ ...t, rowKey: `${t.transferId}-${i}` }))
   const tradesState = useQueryState(tradesQuery, setError)
-  const recordSnapshot = useRecordInvestmentSnapshot()
-  const updateSnapshot = useUpdateInvestmentSnapshot()
-  const deleteSnapshot = useDeleteInvestmentSnapshot()
-  const editProduct = useEditInvestmentProduct()
-  const deleteProduct = useDeleteInvestmentProduct()
-  const createHolding = useCreateInvestmentHolding()
-  const closeHolding = useCloseInvestmentHolding()
-  const deleteHolding = useDeleteInvestmentHolding()
-  const editHoldingNotes = useEditInvestmentHoldingNotes()
 
-  const [snapshotForm, setSnapshotForm] = useState(() => ({ date: today(), balance: '' }))
-  const [snapshotDialogOpen, setSnapshotDialogOpen] = useState(false)
-  const recordAction = useAction(setError)
-  const [editing, setEditing] = useState<SnapshotEdit | null>(null)
-  const saveEditAction = useAction(setError)
-  const [deleteTarget, setDeleteTarget] = useState<InvestmentSnapshot | null>(null)
-  const deleteSnapshotAction = useAction(setError)
-  const [tradeDialog, setTradeDialog] = useState<TransferFormPreset | null>(null)
-  // The dialog form remounts fresh for each Buy/Sell click.
-  const [dialogKey, setDialogKey] = useState(0)
-
-  const [editProductOpen, setEditProductOpen] = useState(false)
-  const saveProductAction = useAction(setError)
-  const [deleteProductConfirm, setDeleteProductConfirm] = useState(false)
-  const deleteProductAction = useAction(setError)
-  const [addHoldingOpen, setAddHoldingOpen] = useState(false)
-  const [addHoldingAccountId, setAddHoldingAccountId] = useState('')
-  const [addHoldingNotes, setAddHoldingNotes] = useState('')
-  const addHoldingAction = useAction(setError)
-  const [closeHoldingTarget, setCloseHoldingTarget] = useState<InvestmentHolding | null>(null)
-  // Closing and deleting a holding share one confirmation spinner.
-  const holdingConfirmAction = useAction(setError)
-  const [deleteHoldingTarget, setDeleteHoldingTarget] = useState<InvestmentHolding | null>(null)
-  const [notesEdit, setNotesEdit] = useState<{ id: string; value: string } | null>(null)
-  const notesAction = useAction(setError)
+  const snapshotActions = useSnapshotActions({ holdingId: selectedHolding?.id, setError })
+  const tradeDialog = useTradeDialog({ holding: selectedHolding, product, setError })
+  const productActions = useProductActions({ product, setError })
+  const holdingActions = useHoldingActions({
+    productId: product?.id,
+    accounts,
+    holdings,
+    selectedHoldingId,
+    setSelectedHoldingId,
+    setError,
+  })
 
   const { loading, loadError } = combineLoadState(productState)
   const showSkeleton = useDelayedFlag(loading)
@@ -178,269 +106,16 @@ export function InvestmentProductDetailPage() {
     accounts !== undefined
 
   const points = series?.[0]?.points ?? []
-  const hasUnits = points.some((p) => p.units !== null)
+
+  // The same dismissible banner, rendered inside a dialog.
+  const errorBanner = <ErrorAlert message={error} onDismiss={() => setError(null)} />
 
   // While any dialog is open, a save error shows inside it: the page banner sits behind it.
   const anyDialogOpen =
-    tradeDialog !== null || snapshotDialogOpen || editProductOpen || addHoldingOpen
-
-  function openSnapshotDialog() {
-    setError(null)
-    setSnapshotForm({ date: today(), balance: '' })
-    setSnapshotDialogOpen(true)
-  }
-
-  function closeSnapshotDialog() {
-    setSnapshotDialogOpen(false)
-    setError(null)
-  }
-
-  async function handleRecordSnapshot() {
-    if (!selectedHolding) return
-    const balance = Number(snapshotForm.balance)
-    if (snapshotForm.date === '' || snapshotForm.balance === '' || !(balance >= 0)) return
-    // A same-day entry replaces the earlier one; the refetch after the write reorders the list.
-    const recorded = await recordAction.run(() =>
-      recordSnapshot.mutateAsync({
-        holdingId: selectedHolding.id,
-        date: snapshotForm.date,
-        balance,
-      }),
-    )
-    if (recorded) setSnapshotDialogOpen(false)
-  }
-
-  async function handleSaveEdit() {
-    if (!selectedHolding || !editing) return
-    const balance = Number(editing.balance)
-    if (editing.date === '' || editing.balance === '' || !(balance >= 0)) return
-    const saved = await saveEditAction.run(
-      () =>
-        updateSnapshot.mutateAsync({
-          holdingId: selectedHolding.id,
-          snapshotId: editing.id,
-          date: editing.date,
-          balance,
-        }),
-      { 404: t('investmentProducts:detail.snapshotNotFound') },
-    )
-    if (saved) setEditing(null)
-  }
-
-  async function handleConfirmDelete() {
-    if (!selectedHolding || !deleteTarget) return
-    await deleteSnapshotAction.run(
-      () =>
-        deleteSnapshot.mutateAsync({
-          holdingId: selectedHolding.id,
-          snapshotId: deleteTarget.id,
-        }),
-      { 404: t('investmentProducts:detail.snapshotNotFound') },
-    )
-    setDeleteTarget(null)
-  }
-
-  function openTrade(direction: 'buy' | 'sell') {
-    if (!selectedHolding || !product) return
-    setError(null)
-    setDialogKey((n) => n + 1)
-    setTradeDialog({
-      direction,
-      investmentAccountId: selectedHolding.accountId,
-      productId: product.id,
-      productName: product.name,
-    })
-  }
-
-  function handleTradeSaved() {
-    setTradeDialog(null)
-  }
-
-  async function handleEditProduct(values: InvestmentProductFormValues) {
-    if (!product) return
-    const saved = await saveProductAction.run(() =>
-      editProduct.mutateAsync({
-        id: product.id,
-        investmentCategoryId: values.categoryId,
-        investmentSubcategoryId: values.subcategoryId || undefined,
-        name: values.name,
-        additionalNotes: values.additionalNotes || undefined,
-        ticker: values.ticker || undefined,
-        segmentId: values.segmentId || undefined,
-      }),
-    )
-    if (saved) setEditProductOpen(false)
-  }
-
-  async function handleDeleteProduct() {
-    if (!product) return
-    if (await deleteProductAction.run(() => deleteProduct.mutateAsync(product.id))) {
-      navigate('/accounts')
-    } else {
-      setDeleteProductConfirm(false)
-    }
-  }
-
-  function openAddHolding() {
-    setError(null)
-    setAddHoldingAccountId('')
-    setAddHoldingNotes('')
-    setAddHoldingOpen(true)
-  }
-
-  async function handleAddHolding() {
-    if (!product || addHoldingAccountId === '') return
-    const added = await addHoldingAction.run(async () => {
-      const created = await createHolding.mutateAsync({
-        productId: product.id,
-        accountId: addHoldingAccountId,
-        additionalNotes: addHoldingNotes.trim() || undefined,
-      })
-      setSelectedHoldingId(created.id)
-    })
-    if (added) setAddHoldingOpen(false)
-  }
-
-  async function confirmCloseHolding() {
-    if (!closeHoldingTarget) return
-    if (await holdingConfirmAction.run(() => closeHolding.mutateAsync(closeHoldingTarget.id))) {
-      setCloseHoldingTarget(null)
-    }
-  }
-
-  async function confirmDeleteHolding() {
-    if (!deleteHoldingTarget) return
-    const deleted = await holdingConfirmAction.run(() =>
-      deleteHolding.mutateAsync(deleteHoldingTarget.id),
-    )
-    if (deleted && selectedHoldingId === deleteHoldingTarget.id) setSelectedHoldingId('')
-    setDeleteHoldingTarget(null)
-  }
-
-  async function handleSaveNotes() {
-    if (!notesEdit) return
-    const saved = await notesAction.run(() =>
-      editHoldingNotes.mutateAsync({
-        id: notesEdit.id,
-        additionalNotes: notesEdit.value || undefined,
-      }),
-    )
-    if (saved) setNotesEdit(null)
-  }
-
-  const availableAccountsForNewHolding = (accounts ?? []).filter(
-    (a) => a.type === 'INVESTMENT' && !a.closed && !holdingAccountIds.has(a.id),
-  )
-
-  const monthlyColumns: ResponsiveColumn<ValueSeriesPoint>[] = [
-    {
-      key: 'month',
-      header: t('investmentProducts:detail.monthlyColumns.month'),
-      role: 'primary',
-      render: (p) => p.month,
-    },
-    {
-      key: 'value',
-      header: t('investmentProducts:detail.monthlyColumns.value'),
-      align: 'right',
-      render: (p) => (p.value === null ? '-' : formatMoney(p.value, locale)),
-    },
-    {
-      key: 'contributed',
-      header: t('investmentProducts:detail.monthlyColumns.contributed'),
-      align: 'right',
-      render: (p) => formatMoney(p.contributed, locale),
-    },
-    ...(hasUnits
-      ? ([
-          {
-            key: 'units',
-            header: t('investmentProducts:detail.monthlyColumns.units'),
-            align: 'right',
-            render: (p: ValueSeriesPoint) => (p.units === null ? '-' : String(p.units)),
-          },
-        ] satisfies ResponsiveColumn<ValueSeriesPoint>[])
-      : []),
-  ]
-
-  // F027 (ADR 0024): one row per matching line (not per confirmation); Taxes dropped - a
-  // confirmation's taxes cover its whole settlement, not one product. Each row links back to its
-  // parent confirmation so the real total taxes stay reachable.
-  type TradeRow = TradeConfirmationLineRecord & { rowKey: string }
-  const sideLabel = (side: TradeRow['side']) =>
-    side === 'BUY'
-      ? t('investmentProducts:detail.sideBuy')
-      : t('investmentProducts:detail.sideSell')
-  const tradeColumns: ResponsiveColumn<TradeRow>[] = [
-    {
-      key: 'date',
-      header: t('investmentProducts:detail.tradeColumns.date'),
-      role: 'secondary',
-      render: (trade) => trade.date,
-    },
-    {
-      key: 'side',
-      header: t('investmentProducts:detail.tradeColumns.side'),
-      render: (trade) => sideLabel(trade.side),
-    },
-    {
-      key: 'quantity',
-      header: t('investmentProducts:detail.tradeColumns.quantity'),
-      align: 'right',
-      render: (trade) => String(trade.quantity),
-    },
-    {
-      key: 'unitPrice',
-      header: t('investmentProducts:detail.tradeColumns.unitPrice'),
-      align: 'right',
-      tabletPriority: 'low',
-      render: (trade) => String(trade.unitPrice),
-    },
-    {
-      key: 'resultingBalance',
-      header: t('investmentProducts:detail.tradeColumns.resultingBalance'),
-      align: 'right',
-      tabletPriority: 'low',
-      render: (trade) =>
-        trade.resultingBalance === null ? '-' : formatMoney(trade.resultingBalance, locale),
-    },
-    {
-      key: 'confirmation',
-      header: t('investmentProducts:detail.tradeColumns.confirmation'),
-      role: 'primary',
-      render: (trade) => (
-        <MuiLink component={RouterLink} to={`/ledger?focus=${trade.transferId}`} underline="hover">
-          {t('investmentProducts:detail.viewConfirmation')}
-        </MuiLink>
-      ),
-    },
-  ]
-
-  function renderTradeCard(trade: TradeRow) {
-    return (
-      <Paper variant="outlined" sx={{ p: 1.5 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-          <Typography variant="subtitle1" component="div">
-            {trade.date}
-          </Typography>
-          <Chip label={sideLabel(trade.side)} size="small" />
-        </Box>
-        <Typography variant="body2" color="text.secondary">
-          {t('investmentProducts:detail.tradeCardLine', {
-            quantity: trade.quantity,
-            price: trade.unitPrice,
-          })}
-          {trade.resultingBalance !== null &&
-            t('investmentProducts:detail.tradeCardResultingBalance', {
-              balance: formatMoney(trade.resultingBalance, locale),
-            })}
-        </Typography>
-        <MuiLink component={RouterLink} to={`/ledger?focus=${trade.transferId}`} underline="hover">
-          {t('investmentProducts:detail.viewConfirmation')}
-        </MuiLink>
-      </Paper>
-    )
-  }
+    tradeDialog.preset !== null ||
+    snapshotActions.record.open ||
+    productActions.edit.open ||
+    holdingActions.add.open
 
   return (
     <Box sx={{ py: { xs: 2, sm: 4 } }}>
@@ -475,7 +150,7 @@ export function InvestmentProductDetailPage() {
             <IconButton
               size="small"
               aria-label={t('investmentProducts:detail.editProductAria')}
-              onClick={() => setEditProductOpen(true)}
+              onClick={() => productActions.edit.setOpen(true)}
             >
               <EditIcon fontSize="small" />
             </IconButton>
@@ -483,7 +158,7 @@ export function InvestmentProductDetailPage() {
               <IconButton
                 size="small"
                 aria-label={t('investmentProducts:detail.deleteProductAria')}
-                onClick={() => setDeleteProductConfirm(true)}
+                onClick={() => productActions.remove.setOpen(true)}
               >
                 <DeleteIcon fontSize="small" />
               </IconButton>
@@ -497,39 +172,18 @@ export function InvestmentProductDetailPage() {
 
           <ErrorAlert message={anyDialogOpen ? null : error} onDismiss={() => setError(null)} />
 
-          <Paper variant="outlined" sx={{ p: SECTION_PADDING, mb: 3 }}>
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 2,
-                mb: 2,
-              }}
-            >
-              <Typography variant="h6">{t('investmentProducts:detail.holdingsTitle')}</Typography>
-              <Button
-                variant="outlined"
-                size="small"
-                disabled={availableAccountsForNewHolding.length === 0}
-                onClick={openAddHolding}
-              >
-                {t('investmentProducts:detail.addHoldingButton')}
-              </Button>
-            </Box>
-            <HoldingsTable
-              holdings={holdings}
-              state={holdingsState}
-              accountName={accountName}
-              selectedId={selectedHolding?.id}
-              onSelect={setSelectedHoldingId}
-              onEditNotes={(h) => setNotesEdit({ id: h.id, value: h.additionalNotes ?? '' })}
-              onClose={setCloseHoldingTarget}
-              onDelete={setDeleteHoldingTarget}
-              t={t as (key: string, options?: Record<string, unknown>) => string}
-              locale={locale}
-            />
-          </Paper>
+          <HoldingsPanel
+            holdings={holdings}
+            state={holdingsState}
+            accountName={accountName}
+            selectedId={selectedHolding?.id}
+            addDisabled={holdingActions.add.availableAccounts.length === 0}
+            onAdd={holdingActions.add.openDialog}
+            onSelect={setSelectedHoldingId}
+            onEditNotes={holdingActions.notes.start}
+            onClose={holdingActions.closing.setTarget}
+            onDelete={holdingActions.removing.setTarget}
+          />
 
           {selectedHolding && (
             <>
@@ -543,620 +197,54 @@ export function InvestmentProductDetailPage() {
                   mb: 3,
                 }}
               >
-                <Paper variant="outlined" sx={{ p: SECTION_PADDING }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                    <Typography variant="overline" color="text.secondary">
-                      {t('investmentProducts:detail.currentValue')}{' '}
-                      {selectedAccount ? `(${selectedAccount.name})` : ''}
-                    </Typography>
-                    {selectedHolding.closed ? (
-                      <Chip label={t('investmentProducts:detail.statusClosed')} size="small" />
-                    ) : (
-                      <Chip
-                        label={t('investmentProducts:detail.statusOpen')}
-                        size="small"
-                        color="success"
-                      />
-                    )}
-                    {selectedHolding.needsSnapshot && (
-                      <Tooltip title={t('investmentProducts:detail.needsSnapshotTooltip')}>
-                        <Chip
-                          label={t('investmentProducts:detail.needsSnapshotChip')}
-                          size="small"
-                          color="warning"
-                        />
-                      </Tooltip>
-                    )}
-                  </Box>
-                  <Typography variant="h3" sx={{ mb: 1, mt: 1 }}>
-                    {selectedHolding.latestSnapshot
-                      ? formatMoney(selectedHolding.latestSnapshot.balance, locale)
-                      : '-'}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    {selectedHolding.latestSnapshot
-                      ? t('investmentProducts:detail.latestSnapshotLine', {
-                          date: selectedHolding.latestSnapshot.date,
-                        })
-                      : t('investmentProducts:detail.noSnapshotYet')}
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 2 }}>
-                    <Button
-                      variant="contained"
-                      disabled={!canTrade}
-                      onClick={() => openTrade('buy')}
-                    >
-                      {t('investmentProducts:detail.buyButton')}
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      disabled={!canTrade}
-                      onClick={() => openTrade('sell')}
-                    >
-                      {t('investmentProducts:detail.sellButton')}
-                    </Button>
-                  </Box>
-                </Paper>
+                <CurrentValueCard
+                  holding={selectedHolding}
+                  accountName={selectedAccount?.name}
+                  canTrade={canTrade}
+                  onTrade={tradeDialog.open}
+                />
 
                 <OpeningPositionCard holding={selectedHolding} padding={SECTION_PADDING} />
               </Box>
 
-              <Paper variant="outlined" sx={{ p: SECTION_PADDING, mb: 3 }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 2,
-                    mb: 2,
-                  }}
-                >
-                  <Typography variant="h6">
-                    {t('investmentProducts:detail.snapshotsTitle')}
-                  </Typography>
-                  <Button variant="contained" onClick={openSnapshotDialog}>
-                    {t('investmentProducts:detail.recordSnapshotButton')}
-                  </Button>
-                </Box>
-                <SnapshotHistory
-                  snapshots={snapshots}
-                  state={snapshotsState}
-                  onRetry={snapshotsState.reload}
-                  editing={editing}
-                  onEditingChange={setEditing}
-                  onSaveEdit={() => void handleSaveEdit()}
-                  savingEdit={saveEditAction.pending}
-                  onDelete={setDeleteTarget}
-                  t={t as (key: string, options?: Record<string, unknown>) => string}
-                  locale={locale}
-                />
-              </Paper>
+              <SnapshotsPanel
+                snapshots={snapshots}
+                state={snapshotsState}
+                onRecord={snapshotActions.record.openDialog}
+                editing={snapshotActions.edit.editing}
+                onEditingChange={snapshotActions.edit.setEditing}
+                onSaveEdit={() => void snapshotActions.edit.save()}
+                savingEdit={snapshotActions.edit.pending}
+                onDelete={snapshotActions.remove.setTarget}
+              />
             </>
           )}
 
-          <Paper variant="outlined" sx={{ p: SECTION_PADDING, mb: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              {t('investmentProducts:detail.valueOverTimeTitle')}
-            </Typography>
-            {seriesState.loading ? (
-              <Skeleton variant="rounded" height={200} />
-            ) : (
-              <>
-                <ValueSeriesChart points={points} />
-                <Box sx={{ mt: 2 }}>
-                  <ResponsiveTable
-                    aria-label={t('investmentProducts:detail.monthlyValuesAria')}
-                    columns={monthlyColumns}
-                    rows={points}
-                    getRowKey={(p) => p.month}
-                    state={seriesState}
-                    onRetry={seriesState.reload}
-                    emptyMessage={t('investmentProducts:detail.emptyMonthly')}
-                  />
-                </Box>
-              </>
-            )}
-          </Paper>
+          <ValueOverTimePanel points={points} state={seriesState} />
 
-          <Paper variant="outlined" sx={{ p: SECTION_PADDING }}>
-            <Typography variant="h6" gutterBottom>
-              {t('investmentProducts:detail.tradesTitle')}
-            </Typography>
-            <ResponsiveTable
-              aria-label={t('investmentProducts:detail.tradesAria')}
-              columns={tradeColumns}
-              rows={trades}
-              getRowKey={(trade) => trade.rowKey}
-              state={tradesState}
-              onRetry={tradesState.reload}
-              renderCard={renderTradeCard}
-              emptyMessage={t('investmentProducts:detail.emptyTrades')}
-            />
-          </Paper>
+          <TradesPanel lines={tradesQuery.data} state={tradesState} />
         </Box>
       )}
 
-      <ConfirmDialog
-        open={deleteTarget !== null}
-        title={t('investmentProducts:detail.deleteSnapshotTitle')}
-        body={t('investmentProducts:detail.deleteSnapshotBody', { date: deleteTarget?.date ?? '' })}
-        confirmLabel={t('investmentProducts:detail.deleteSnapshotConfirm')}
-        loading={deleteSnapshotAction.pending}
-        onConfirm={() => void handleConfirmDelete()}
-        onCancel={() => setDeleteTarget(null)}
+      <SnapshotDialogs actions={snapshotActions} banner={errorBanner} />
+
+      <TradeDialog
+        trade={tradeDialog}
+        productName={product?.name}
+        accounts={accounts}
+        setError={setError}
+        banner={errorBanner}
       />
 
-      <ResponsiveDialog
-        open={snapshotDialogOpen}
-        onClose={recordAction.pending ? undefined : closeSnapshotDialog}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>{t('investmentProducts:detail.recordSnapshotDialogTitle')}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 1 }}>
-            <ErrorAlert message={error} onDismiss={() => setError(null)} />
-            <FormGrid>
-              <TextField
-                label={t('investmentProducts:detail.snapshotDateLabel')}
-                type="date"
-                value={snapshotForm.date}
-                onChange={(e) => setSnapshotForm((prev) => ({ ...prev, date: e.target.value }))}
-                slotProps={{ inputLabel: { shrink: true } }}
-              />
-              <TextField
-                label={t('investmentProducts:detail.balanceLabel')}
-                type="number"
-                value={snapshotForm.balance}
-                onChange={(e) => setSnapshotForm((prev) => ({ ...prev, balance: e.target.value }))}
-                helperText={t('investmentProducts:detail.balanceHelperText')}
-                slotProps={{ htmlInput: { step: '0.01', min: '0' } }}
-              />
-            </FormGrid>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={closeSnapshotDialog} disabled={recordAction.pending}>
-            {t('common:actions.cancel')}
-          </Button>
-          <Button
-            variant="contained"
-            disabled={
-              recordAction.pending ||
-              snapshotForm.date === '' ||
-              snapshotForm.balance === '' ||
-              !(Number(snapshotForm.balance) >= 0)
-            }
-            onClick={() => void handleRecordSnapshot()}
-          >
-            {t('investmentProducts:detail.recordSnapshotButton')}
-          </Button>
-        </DialogActions>
-      </ResponsiveDialog>
-
-      <ResponsiveDialog
-        open={tradeDialog !== null}
-        onClose={() => setTradeDialog(null)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          {t('investmentProducts:detail.tradeDialogTitle', {
-            direction:
-              tradeDialog?.direction === 'sell'
-                ? t('investmentProducts:detail.sellButton')
-                : t('investmentProducts:detail.buyButton'),
-            product: product?.name,
-          })}
-        </DialogTitle>
-        {tradeDialog && accounts && (
-          <TransferForm
-            key={dialogKey}
-            dialog
-            banner={<ErrorAlert message={error} onDismiss={() => setError(null)} />}
-            accounts={accounts}
-            preset={tradeDialog}
-            onSaved={handleTradeSaved}
-            onError={setError}
-            onCancel={() => setTradeDialog(null)}
-          />
-        )}
-      </ResponsiveDialog>
-
-      <ResponsiveDialog
-        open={editProductOpen}
-        onClose={saveProductAction.pending ? undefined : () => setEditProductOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>{t('investmentProducts:detail.editProductDialogTitle')}</DialogTitle>
-        {product && categories && (
-          <InvestmentProductForm
-            dialog
-            banner={<ErrorAlert message={error} onDismiss={() => setError(null)} />}
-            categories={categories}
-            segments={segments ?? []}
-            initial={{
-              name: product.name,
-              categoryId: product.investmentCategoryId,
-              subcategoryId: product.investmentSubcategoryId ?? '',
-              additionalNotes: product.additionalNotes ?? '',
-              ticker: product.ticker ?? '',
-              segmentId: product.segmentId ?? '',
-            }}
-            submitLabel={t('common:actions.save')}
-            submitting={saveProductAction.pending}
-            onSubmit={(values) => void handleEditProduct(values)}
-            onCancel={() => setEditProductOpen(false)}
-          />
-        )}
-      </ResponsiveDialog>
-
-      <ConfirmDialog
-        open={deleteProductConfirm}
-        title={t('investmentProducts:detail.deleteProductTitle', { name: product?.name })}
-        body={t('investmentProducts:detail.deleteProductBody')}
-        confirmLabel={t('investmentProducts:detail.deleteProductConfirm')}
-        loading={deleteProductAction.pending}
-        onConfirm={() => void handleDeleteProduct()}
-        onCancel={() => setDeleteProductConfirm(false)}
+      <ProductDialogs
+        actions={productActions}
+        product={product}
+        categories={categories}
+        segments={segments}
+        banner={errorBanner}
       />
 
-      <ResponsiveDialog
-        open={addHoldingOpen}
-        onClose={addHoldingAction.pending ? undefined : () => setAddHoldingOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>{t('investmentProducts:detail.addHoldingDialogTitle')}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 1 }}>
-            <ErrorAlert message={error} onDismiss={() => setError(null)} />
-            <FormGrid>
-              <Select
-                size="small"
-                displayEmpty
-                value={addHoldingAccountId}
-                onChange={(e) => setAddHoldingAccountId(e.target.value)}
-                aria-label={t('investmentProducts:detail.accountLabel')}
-              >
-                <MenuItem value="" disabled>
-                  {t('investmentProducts:detail.accountLabel')}
-                </MenuItem>
-                {availableAccountsForNewHolding.map((a) => (
-                  <MenuItem key={a.id} value={a.id}>
-                    {a.name}
-                  </MenuItem>
-                ))}
-              </Select>
-              <TextField
-                label={t('investmentProducts:detail.notesLabel')}
-                size="small"
-                multiline
-                value={addHoldingNotes}
-                onChange={(e) => setAddHoldingNotes(e.target.value)}
-                slotProps={{ htmlInput: { maxLength: 500 } }}
-              />
-            </FormGrid>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAddHoldingOpen(false)} disabled={addHoldingAction.pending}>
-            {t('common:actions.cancel')}
-          </Button>
-          <Button
-            variant="contained"
-            disabled={addHoldingAction.pending || addHoldingAccountId === ''}
-            onClick={() => void handleAddHolding()}
-          >
-            {t('investmentProducts:detail.addHoldingButton')}
-          </Button>
-        </DialogActions>
-      </ResponsiveDialog>
-
-      <ResponsiveDialog
-        open={notesEdit !== null}
-        onClose={notesAction.pending ? undefined : () => setNotesEdit(null)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>{t('investmentProducts:detail.editHoldingNotesTitle')}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 1 }}>
-            <ErrorAlert message={error} onDismiss={() => setError(null)} />
-            <TextField
-              label={t('investmentProducts:detail.notesLabel')}
-              size="small"
-              fullWidth
-              multiline
-              value={notesEdit?.value ?? ''}
-              onChange={(e) =>
-                setNotesEdit((prev) => (prev ? { ...prev, value: e.target.value } : prev))
-              }
-              slotProps={{ htmlInput: { maxLength: 500 } }}
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setNotesEdit(null)} disabled={notesAction.pending}>
-            {t('common:actions.cancel')}
-          </Button>
-          <Button
-            variant="contained"
-            disabled={notesAction.pending}
-            onClick={() => void handleSaveNotes()}
-          >
-            {t('common:actions.save')}
-          </Button>
-        </DialogActions>
-      </ResponsiveDialog>
-
-      <ConfirmDialog
-        open={closeHoldingTarget !== null}
-        title={t('investmentProducts:detail.closeHoldingTitle', {
-          account: closeHoldingTarget ? accountName(closeHoldingTarget.accountId) : '',
-        })}
-        body={t('investmentProducts:detail.closeHoldingBody')}
-        confirmLabel={t('investmentProducts:detail.closeHoldingConfirm')}
-        loading={holdingConfirmAction.pending}
-        onConfirm={() => void confirmCloseHolding()}
-        onCancel={() => setCloseHoldingTarget(null)}
-      />
-
-      <ConfirmDialog
-        open={deleteHoldingTarget !== null}
-        title={t('investmentProducts:detail.deleteHoldingTitle', {
-          account: deleteHoldingTarget ? accountName(deleteHoldingTarget.accountId) : '',
-        })}
-        body={t('investmentProducts:detail.deleteHoldingBody')}
-        confirmLabel={t('investmentProducts:detail.deleteHoldingConfirm')}
-        loading={holdingConfirmAction.pending}
-        onConfirm={() => void confirmDeleteHolding()}
-        onCancel={() => setDeleteHoldingTarget(null)}
-      />
+      <HoldingDialogs actions={holdingActions} accountName={accountName} banner={errorBanner} />
     </Box>
-  )
-}
-
-interface SnapshotEdit {
-  id: string
-  date: string
-  balance: string
-}
-
-interface SnapshotHistoryProps {
-  snapshots: InvestmentSnapshot[] | undefined
-  state: LoadState
-  onRetry: () => void
-  editing: SnapshotEdit | null
-  onEditingChange: (edit: SnapshotEdit | null) => void
-  onSaveEdit: () => void
-  savingEdit: boolean
-  onDelete: (snapshot: InvestmentSnapshot) => void
-  t: (key: string, options?: Record<string, unknown>) => string
-  locale: Locale
-}
-
-/**
- * The selected holding's snapshots, most recent first, each editable (date and balance) or
- * deletable. Two data columns (Date, Balance), so it stays a plain table at every size (F021's
- * 1-2-column rule) - only the "Record snapshot" add form above became a dialog.
- */
-function SnapshotHistory({
-  snapshots,
-  state,
-  onRetry,
-  editing,
-  onEditingChange,
-  onSaveEdit,
-  savingEdit,
-  onDelete,
-  t,
-  locale,
-}: SnapshotHistoryProps) {
-  return (
-    <TableContainer>
-      <Table size="small" aria-label={t('investmentProducts:detail.snapshotHistoryAria')}>
-        <TableHead>
-          <TableRow>
-            <TableCell>{t('investmentProducts:detail.snapshotColumns.date')}</TableCell>
-            <TableCell align="right">
-              {t('investmentProducts:detail.snapshotColumns.balance')}
-            </TableCell>
-            <TableCell align="right">
-              {t('investmentProducts:detail.snapshotColumns.actions')}
-            </TableCell>
-          </TableRow>
-        </TableHead>
-        <DataTableBody state={state} onRetry={onRetry} columns={3} actionsColumn>
-          {snapshots?.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={3} align="center">
-                <Typography color="text.secondary">
-                  {t('investmentProducts:detail.emptySnapshots')}
-                </Typography>
-              </TableCell>
-            </TableRow>
-          )}
-          {snapshots?.map((snapshot) => {
-            const edit = editing?.id === snapshot.id ? editing : null
-            return (
-              <TableRow key={snapshot.id}>
-                <TableCell>
-                  {edit ? (
-                    <TextField
-                      size="small"
-                      type="date"
-                      value={edit.date}
-                      onChange={(e) => onEditingChange({ ...edit, date: e.target.value })}
-                      slotProps={{
-                        htmlInput: {
-                          'aria-label': t('investmentProducts:detail.editSnapshotDateAria'),
-                        },
-                      }}
-                    />
-                  ) : (
-                    snapshot.date
-                  )}
-                </TableCell>
-                <TableCell align="right">
-                  {edit ? (
-                    <TextField
-                      size="small"
-                      type="number"
-                      value={edit.balance}
-                      onChange={(e) => onEditingChange({ ...edit, balance: e.target.value })}
-                      slotProps={{
-                        htmlInput: {
-                          'aria-label': t('investmentProducts:detail.editSnapshotBalanceAria'),
-                          step: '0.01',
-                          min: '0',
-                        },
-                      }}
-                    />
-                  ) : (
-                    formatMoney(snapshot.balance, locale)
-                  )}
-                </TableCell>
-                <TableCell align="right">
-                  <InlineEditActions
-                    editing={edit !== null}
-                    onEdit={() =>
-                      onEditingChange({
-                        id: snapshot.id,
-                        date: snapshot.date,
-                        balance: String(snapshot.balance),
-                      })
-                    }
-                    onSave={onSaveEdit}
-                    onCancel={() => onEditingChange(null)}
-                    editLabel={t('investmentProducts:detail.editSnapshotAria')}
-                    saveLabel={t('investmentProducts:detail.saveSnapshotAria')}
-                    saving={savingEdit}
-                  />
-                  {!edit && (
-                    <IconButton
-                      size="small"
-                      aria-label={t('investmentProducts:detail.deleteSnapshotAria')}
-                      onClick={() => onDelete(snapshot)}
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  )}
-                </TableCell>
-              </TableRow>
-            )
-          })}
-        </DataTableBody>
-      </Table>
-    </TableContainer>
-  )
-}
-
-interface HoldingsTableProps {
-  holdings: InvestmentHolding[] | undefined
-  state: LoadState
-  accountName: (id: string) => string
-  selectedId: string | undefined
-  onSelect: (id: string) => void
-  onEditNotes: (holding: InvestmentHolding) => void
-  onClose: (holding: InvestmentHolding) => void
-  onDelete: (holding: InvestmentHolding) => void
-  t: (key: string, options?: Record<string, unknown>) => string
-  locale: Locale
-}
-
-/** Every account this product is held in - the F022 holding-management panel. */
-function HoldingsTable({
-  holdings,
-  state,
-  accountName,
-  selectedId,
-  onSelect,
-  onEditNotes,
-  onClose,
-  onDelete,
-  t,
-  locale,
-}: HoldingsTableProps) {
-  return (
-    <TableContainer>
-      <Table size="small" aria-label={t('investmentProducts:detail.holdingsTitle')}>
-        <TableHead>
-          <TableRow>
-            <TableCell>{t('investmentProducts:detail.holdingsColumns.account')}</TableCell>
-            <TableCell>{t('investmentProducts:detail.holdingsColumns.status')}</TableCell>
-            <TableCell align="right">
-              {t('investmentProducts:detail.holdingsColumns.latestValue')}
-            </TableCell>
-            <TableCell align="right">
-              {t('investmentProducts:detail.holdingsColumns.actions')}
-            </TableCell>
-          </TableRow>
-        </TableHead>
-        <DataTableBody state={state} onRetry={state.reload} columns={4} actionsColumn>
-          {holdings?.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={4} align="center">
-                <Typography color="text.secondary">
-                  {t('investmentProducts:detail.emptyHoldings')}
-                </Typography>
-              </TableCell>
-            </TableRow>
-          )}
-          {holdings?.map((holding) => (
-            <TableRow
-              key={holding.id}
-              selected={holding.id === selectedId}
-              hover
-              onClick={() => onSelect(holding.id)}
-              sx={{ cursor: 'pointer' }}
-            >
-              <TableCell>{accountName(holding.accountId)}</TableCell>
-              <TableCell>
-                {holding.closed ? (
-                  <Chip label={t('investmentProducts:detail.statusClosed')} size="small" />
-                ) : (
-                  <Chip
-                    label={t('investmentProducts:detail.statusOpen')}
-                    size="small"
-                    color="success"
-                  />
-                )}
-              </TableCell>
-              <TableCell align="right">
-                {holding.latestSnapshot ? formatMoney(holding.latestSnapshot.balance, locale) : '-'}
-              </TableCell>
-              <TableCell align="right" onClick={(e) => e.stopPropagation()}>
-                <IconButton
-                  size="small"
-                  aria-label={t('investmentProducts:detail.editNotesAria')}
-                  onClick={() => onEditNotes(holding)}
-                >
-                  <EditIcon fontSize="small" />
-                </IconButton>
-                <IconButton
-                  size="small"
-                  aria-label={t('investmentProducts:detail.closeHoldingAria')}
-                  disabled={holding.closed}
-                  onClick={() => onClose(holding)}
-                >
-                  <LockIcon fontSize="small" />
-                </IconButton>
-                {!holding.hasHistory && (
-                  <IconButton
-                    size="small"
-                    aria-label={t('investmentProducts:detail.deleteHoldingAria')}
-                    onClick={() => onDelete(holding)}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                )}
-              </TableCell>
-            </TableRow>
-          ))}
-        </DataTableBody>
-      </Table>
-    </TableContainer>
   )
 }
