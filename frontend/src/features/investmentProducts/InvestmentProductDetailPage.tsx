@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom'
+import { Link as RouterLink, useParams } from 'react-router-dom'
 import {
   Alert,
   Box,
@@ -17,33 +17,28 @@ import { defaultErrorMessage } from '../../api/core/apiError'
 import { useInvestmentCategories } from '../../api/investments/investmentCategoriesQueries'
 import { useInvestmentSegments } from '../../api/investments/investmentSegmentsQueries'
 import { useInvestmentHoldingsByProduct } from '../../api/investments/investmentHoldingsQueries'
-import {
-  useDeleteInvestmentProduct,
-  useEditInvestmentProduct,
-  useInvestmentProduct,
-} from '../../api/investments/investmentProductsQueries'
+import { useInvestmentProduct } from '../../api/investments/investmentProductsQueries'
 import { useInvestmentSnapshots } from '../../api/investments/investmentSnapshotsQueries'
 import { useInvestmentValueSeries } from '../../api/investments/investmentValueSeriesQueries'
 import { useTradeConfirmationLinesByProduct } from '../../api/investments/tradeConfirmationLinesQueries'
-import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { fadeInSx } from '../../components/feedback/fadeIn'
 import { ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
-import { useAction } from '../../hooks/useAction'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { nameLookup } from '../../utils/nameLookup'
 import { TransferForm, type TransferFormPreset } from '../transfers/TransferForm'
-import { InvestmentProductForm, type InvestmentProductFormValues } from './InvestmentProductForm'
 import { CurrentValueCard } from './CurrentValueCard'
 import { SECTION_PADDING } from './detailLayout'
 import { HoldingDialogs } from './HoldingDialogs'
 import { HoldingsPanel } from './HoldingsPanel'
 import { OpeningPositionCard } from './OpeningPositionCard'
+import { ProductDialogs } from './ProductDialogs'
 import { SnapshotDialogs } from './SnapshotDialogs'
 import { SnapshotsPanel } from './SnapshotsPanel'
 import { TradesPanel } from './TradesPanel'
 import { useHoldingActions } from './useHoldingActions'
+import { useProductActions } from './useProductActions'
 import { useSnapshotActions } from './useSnapshotActions'
 import { ValueOverTimePanel } from './ValueOverTimePanel'
 
@@ -64,7 +59,6 @@ export function InvestmentProductDetailPage() {
   const { t } = useTranslation(['investmentProducts', 'common'])
   const { id } = useParams<{ id: string }>()
   const productId = id ?? ''
-  const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
 
   const productQuery = useInvestmentProduct(id)
@@ -96,18 +90,13 @@ export function InvestmentProductDetailPage() {
   const seriesState = useQueryState(seriesQuery, setError)
   const tradesQuery = useTradeConfirmationLinesByProduct(productId)
   const tradesState = useQueryState(tradesQuery, setError)
-  const editProduct = useEditInvestmentProduct()
-  const deleteProduct = useDeleteInvestmentProduct()
 
   const snapshotActions = useSnapshotActions({ holdingId: selectedHolding?.id, setError })
   const [tradeDialog, setTradeDialog] = useState<TransferFormPreset | null>(null)
   // The dialog form remounts fresh for each Buy/Sell click.
   const [dialogKey, setDialogKey] = useState(0)
 
-  const [editProductOpen, setEditProductOpen] = useState(false)
-  const saveProductAction = useAction(setError)
-  const [deleteProductConfirm, setDeleteProductConfirm] = useState(false)
-  const deleteProductAction = useAction(setError)
+  const productActions = useProductActions({ product, setError })
   const holdingActions = useHoldingActions({
     productId: product?.id,
     accounts,
@@ -136,7 +125,7 @@ export function InvestmentProductDetailPage() {
   const anyDialogOpen =
     tradeDialog !== null ||
     snapshotActions.record.open ||
-    editProductOpen ||
+    productActions.edit.open ||
     holdingActions.add.open
 
   function openTrade(direction: 'buy' | 'sell') {
@@ -153,31 +142,6 @@ export function InvestmentProductDetailPage() {
 
   function handleTradeSaved() {
     setTradeDialog(null)
-  }
-
-  async function handleEditProduct(values: InvestmentProductFormValues) {
-    if (!product) return
-    const saved = await saveProductAction.run(() =>
-      editProduct.mutateAsync({
-        id: product.id,
-        investmentCategoryId: values.categoryId,
-        investmentSubcategoryId: values.subcategoryId || undefined,
-        name: values.name,
-        additionalNotes: values.additionalNotes || undefined,
-        ticker: values.ticker || undefined,
-        segmentId: values.segmentId || undefined,
-      }),
-    )
-    if (saved) setEditProductOpen(false)
-  }
-
-  async function handleDeleteProduct() {
-    if (!product) return
-    if (await deleteProductAction.run(() => deleteProduct.mutateAsync(product.id))) {
-      navigate('/accounts')
-    } else {
-      setDeleteProductConfirm(false)
-    }
   }
 
   return (
@@ -213,7 +177,7 @@ export function InvestmentProductDetailPage() {
             <IconButton
               size="small"
               aria-label={t('investmentProducts:detail.editProductAria')}
-              onClick={() => setEditProductOpen(true)}
+              onClick={() => productActions.edit.setOpen(true)}
             >
               <EditIcon fontSize="small" />
             </IconButton>
@@ -221,7 +185,7 @@ export function InvestmentProductDetailPage() {
               <IconButton
                 size="small"
                 aria-label={t('investmentProducts:detail.deleteProductAria')}
-                onClick={() => setDeleteProductConfirm(true)}
+                onClick={() => productActions.remove.setOpen(true)}
               >
                 <DeleteIcon fontSize="small" />
               </IconButton>
@@ -320,43 +284,12 @@ export function InvestmentProductDetailPage() {
         )}
       </ResponsiveDialog>
 
-      <ResponsiveDialog
-        open={editProductOpen}
-        onClose={saveProductAction.pending ? undefined : () => setEditProductOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>{t('investmentProducts:detail.editProductDialogTitle')}</DialogTitle>
-        {product && categories && (
-          <InvestmentProductForm
-            dialog
-            banner={errorBanner}
-            categories={categories}
-            segments={segments ?? []}
-            initial={{
-              name: product.name,
-              categoryId: product.investmentCategoryId,
-              subcategoryId: product.investmentSubcategoryId ?? '',
-              additionalNotes: product.additionalNotes ?? '',
-              ticker: product.ticker ?? '',
-              segmentId: product.segmentId ?? '',
-            }}
-            submitLabel={t('common:actions.save')}
-            submitting={saveProductAction.pending}
-            onSubmit={(values) => void handleEditProduct(values)}
-            onCancel={() => setEditProductOpen(false)}
-          />
-        )}
-      </ResponsiveDialog>
-
-      <ConfirmDialog
-        open={deleteProductConfirm}
-        title={t('investmentProducts:detail.deleteProductTitle', { name: product?.name })}
-        body={t('investmentProducts:detail.deleteProductBody')}
-        confirmLabel={t('investmentProducts:detail.deleteProductConfirm')}
-        loading={deleteProductAction.pending}
-        onConfirm={() => void handleDeleteProduct()}
-        onCancel={() => setDeleteProductConfirm(false)}
+      <ProductDialogs
+        actions={productActions}
+        product={product}
+        categories={categories}
+        segments={segments}
+        banner={errorBanner}
       />
 
       <HoldingDialogs actions={holdingActions} accountName={accountName} banner={errorBanner} />
