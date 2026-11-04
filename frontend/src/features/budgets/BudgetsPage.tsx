@@ -21,7 +21,6 @@ import {
   useSetBudgetCap,
   useStopBudget,
 } from '../../api/budgets/budgetsQueries'
-import { defaultErrorMessage } from '../../api/core/apiError'
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { AddFormDialog } from '../../components/feedback/AddFormDialog'
@@ -30,8 +29,10 @@ import { MonthPicker } from '../../components/inputs/MonthPicker'
 import { InlineEditActions } from '../../components/table/InlineEditActions'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
+import { useAction } from '../../hooks/useAction'
 import { useAddDialog } from '../../hooks/useAddDialog'
 import { useIsMobile } from '../../hooks/useBreakpointBand'
+import { useInlineEdit } from '../../hooks/useInlineEdit'
 import { currentMonth } from '../../utils/localDate'
 import { useLocale } from '../../hooks/locale/useLocale'
 import { formatMoney } from '../../i18n/format'
@@ -73,15 +74,15 @@ export function BudgetsPage() {
   const capMutation = useSetBudgetCap()
   const stopMutation = useStopBudget()
 
-  const [adding, setAdding] = useState(false)
+  const addAction = useAction(setError)
   const addDialog = useAddDialog({ categoryId: '', cap: '' })
 
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editingCap, setEditingCap] = useState('')
-  const [savingCap, setSavingCap] = useState(false)
+  const edit = useInlineEdit('')
+  const { editingId, draft: editingCap, setDraft: setEditingCap, cancel: cancelEditCap } = edit
+  const capAction = useAction(setError)
 
   const [stopTarget, setStopTarget] = useState<Budget | null>(null)
-  const [stopping, setStopping] = useState(false)
+  const stopAction = useAction(setError)
 
   const [reportMonth, setReportMonth] = useState(currentMonth())
 
@@ -102,63 +103,38 @@ export function BudgetsPage() {
 
   async function handleAdd() {
     if (!addDialog.draft.categoryId || !isBudgetCapValid(addDialog.draft.cap)) return
-    setError(null)
-    setAdding(true)
-    try {
-      await createMutation.mutateAsync({
+    const added = await addAction.run(() =>
+      createMutation.mutateAsync({
         categoryId: addDialog.draft.categoryId,
         monthlyCap: Number(addDialog.draft.cap),
         effectiveFrom: currentMonth(),
-      })
-      addDialog.close()
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    } finally {
-      setAdding(false)
-    }
+      }),
+    )
+    if (added) addDialog.close()
   }
 
   function startEditCap(budget: Budget) {
-    setEditingId(budget.id)
-    setEditingCap(budget.currentCap !== null ? String(budget.currentCap) : '')
-  }
-
-  function cancelEditCap() {
-    setEditingId(null)
-    setEditingCap('')
+    edit.start(budget.id, budget.currentCap !== null ? String(budget.currentCap) : '')
   }
 
   async function saveEditCap(id: string) {
     if (!isBudgetCapValid(editingCap)) return
-    setError(null)
-    setSavingCap(true)
-    try {
-      await capMutation.mutateAsync({
+    const saved = await capAction.run(() =>
+      capMutation.mutateAsync({
         id,
         monthlyCap: Number(editingCap),
         effectiveFrom: currentMonth(),
-      })
-      cancelEditCap()
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    } finally {
-      setSavingCap(false)
-    }
+      }),
+    )
+    if (saved) cancelEditCap()
   }
 
   async function handleStop() {
     if (stopTarget === null) return
-    setError(null)
-    setStopping(true)
-    try {
-      await stopMutation.mutateAsync({ id: stopTarget.id, effectiveFrom: currentMonth() })
-      setStopTarget(null)
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-      setStopTarget(null)
-    } finally {
-      setStopping(false)
-    }
+    await stopAction.run(() =>
+      stopMutation.mutateAsync({ id: stopTarget.id, effectiveFrom: currentMonth() }),
+    )
+    setStopTarget(null)
   }
 
   // One load state for the table plus the lookup list behind its name column: rows show only once
@@ -217,7 +193,7 @@ export function BudgetsPage() {
           onCancel={cancelEditCap}
           editLabel={budget.stopped ? t('budgets:resumeBudgetAction') : t('budgets:editCapAction')}
           saveLabel={budget.stopped ? t('budgets:resumeWithCapAction') : t('budgets:saveCapAction')}
-          saving={savingCap}
+          saving={capAction.pending}
         />
         {!budget.stopped && !editingInline && (
           <IconButton
@@ -278,7 +254,7 @@ export function BudgetsPage() {
         title={t('budgets:addDialogTitle')}
         error={error}
         onDismissError={() => setError(null)}
-        busy={adding}
+        busy={addAction.pending}
         canSubmit={addDialog.draft.categoryId !== '' && isBudgetCapValid(addDialog.draft.cap)}
         onSubmit={() => void handleAdd()}
         onCancel={closeAddDialog}
@@ -318,7 +294,10 @@ export function BudgetsPage() {
         />
       </AddFormDialog>
 
-      <ResponsiveDialog open={editDialogOpen} onClose={savingCap ? undefined : cancelEditCap}>
+      <ResponsiveDialog
+        open={editDialogOpen}
+        onClose={capAction.pending ? undefined : cancelEditCap}
+      >
         <DialogTitle>
           {editingBudget?.stopped
             ? t('budgets:resumeBudgetAction')
@@ -334,12 +313,12 @@ export function BudgetsPage() {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={cancelEditCap} disabled={savingCap}>
+          <Button onClick={cancelEditCap} disabled={capAction.pending}>
             {t('common:actions.cancel')}
           </Button>
           <Button
             variant="contained"
-            disabled={savingCap || !isBudgetCapValid(editingCap)}
+            disabled={capAction.pending || !isBudgetCapValid(editingCap)}
             onClick={() => editingId && void saveEditCap(editingId)}
           >
             {editingBudget?.stopped ? t('budgets:resumeWithCapAction') : t('budgets:saveCapAction')}
@@ -354,7 +333,7 @@ export function BudgetsPage() {
         })}
         body={t('budgets:stop.body')}
         confirmLabel={t('budgets:stop.confirmLabel')}
-        loading={stopping}
+        loading={stopAction.pending}
         onConfirm={() => void handleStop()}
         onCancel={() => setStopTarget(null)}
       />
