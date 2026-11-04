@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
-import { Route, Routes, useLocation, type InitialEntry } from 'react-router-dom'
+import { Route, Routes, useLocation, useNavigate, type InitialEntry } from 'react-router-dom'
 import { server } from '../../mocks/server'
 import {
   accountsWithInvestmentHandler,
@@ -642,6 +642,136 @@ describe('LedgerPage', () => {
 
       expect(await screen.findByText(/could not be found/i)).toBeInTheDocument()
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      await waitFor(() => expect(url()).not.toContain('focus='))
+    })
+  })
+
+  describe('URL-driven dialogs (navigation state and ?focus=)', () => {
+    /** The page plus buttons that drive history, and a probe for the location state. */
+    function StatefulProbe() {
+      const { state } = useLocation()
+      return <div data-testid="state">{JSON.stringify(state)}</div>
+    }
+
+    function NavButtons({ focusId }: { focusId: string }) {
+      const navigate = useNavigate()
+      return (
+        <>
+          <button onClick={() => navigate('/elsewhere')}>go elsewhere</button>
+          <button onClick={() => navigate(-1)}>go back</button>
+          <button onClick={() => navigate(`/ledger?month=2026-01&focus=${focusId}`)}>
+            open link
+          </button>
+        </>
+      )
+    }
+
+    function renderWithHistory(entries: InitialEntry[]) {
+      return renderWithRouter(
+        <>
+          <Routes>
+            <Route path="/ledger" element={<LedgerPage />} />
+            <Route path="/elsewhere" element={<p>elsewhere page</p>} />
+          </Routes>
+          <LocationProbe />
+          <StatefulProbe />
+          <NavButtons focusId={seedBitcoinBuyTransfer.id} />
+        </>,
+        { initialEntries: entries },
+      )
+    }
+
+    it('consumes the preset category once: state is cleared in place and back does not reopen it', async () => {
+      server.use(
+        http.get('/api/categories', () => HttpResponse.json([...seedCategories, seedFuelCategory])),
+      )
+      renderWithHistory([
+        '/elsewhere',
+        {
+          pathname: '/ledger',
+          search: '?month=2026-01',
+          state: { presetCategoryId: seedFuelCategory.id },
+        },
+      ])
+
+      expect(await screen.findByRole('dialog')).toBeInTheDocument()
+      // Cleared (replace, same path and search), keeping the rest of the URL.
+      await waitFor(() => expect(screen.getByTestId('state')).toHaveTextContent('null'))
+      expect(url()).toBe('/ledger?month=2026-01')
+
+      // The cleared state replaced the original entry, so back leaves the page entirely.
+      await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+      await userEvent.click(screen.getByRole('button', { name: 'go back' }))
+      expect(await screen.findByText('elsewhere page')).toBeInTheDocument()
+    })
+
+    it('does not reopen the preset dialog after leaving the page and returning by history', async () => {
+      server.use(
+        http.get('/api/categories', () => HttpResponse.json([...seedCategories, seedFuelCategory])),
+      )
+      renderWithHistory([
+        {
+          pathname: '/ledger',
+          search: '?month=2026-01',
+          state: { presetCategoryId: seedFuelCategory.id },
+        },
+      ])
+      await screen.findByRole('dialog')
+      await waitFor(() => expect(screen.getByTestId('state')).toHaveTextContent('null'))
+      await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+      await userEvent.click(screen.getByRole('button', { name: 'go elsewhere' }))
+      expect(await screen.findByText('elsewhere page')).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: 'go back' }))
+
+      expect(await screen.findByRole('table')).toBeInTheDocument()
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    it('opens no dialog and leaves the state alone when there is no preset', async () => {
+      renderWithHistory([{ pathname: '/ledger', search: '?month=2026-01', state: { other: 1 } }])
+
+      expect(await screen.findByRole('table')).toBeInTheDocument()
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(screen.getByTestId('state')).toHaveTextContent('{"other":1}')
+    })
+
+    it('drops only the focus key, in place: other params stay and back does not reopen the transfer', async () => {
+      server.use(accountsWithInvestmentHandler)
+      renderWithHistory([
+        '/elsewhere',
+        `/ledger?month=2026-01&type=transfer&q=bitcoin&focus=${seedBitcoinBuyTransfer.id}`,
+      ])
+
+      expect(await screen.findByRole('dialog')).toBeInTheDocument()
+      await waitFor(() => expect(url()).not.toContain('focus='))
+      expect(url()).toBe('/ledger?month=2026-01&type=transfer&q=bitcoin')
+
+      // The focus-less URL replaced the focus entry, so back leaves the page entirely.
+      await userEvent.click(
+        within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }),
+      )
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+      await userEvent.click(screen.getByRole('button', { name: 'go back' }))
+      expect(await screen.findByText('elsewhere page')).toBeInTheDocument()
+    })
+
+    it('opens the same focus link again after the dialog was closed', async () => {
+      server.use(accountsWithInvestmentHandler)
+      renderWithHistory([`/ledger?month=2026-01&focus=${seedBitcoinBuyTransfer.id}`])
+
+      const first = await screen.findByRole('dialog')
+      expect(within(first).getByText('Edit transfer')).toBeInTheDocument()
+      await waitFor(() => expect(url()).not.toContain('focus='))
+      await userEvent.click(within(first).getByRole('button', { name: 'Cancel' }))
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+      await userEvent.click(screen.getByRole('button', { name: 'open link' }))
+
+      const second = await screen.findByRole('dialog')
+      expect(within(second).getByText('Edit transfer')).toBeInTheDocument()
       await waitFor(() => expect(url()).not.toContain('focus='))
     })
   })
