@@ -3,165 +3,33 @@ import { useTranslation } from 'react-i18next'
 import {
   Box,
   Button,
-  Checkbox,
   DialogActions,
   DialogContent,
-  FormControlLabel,
-  IconButton,
-  MenuItem,
-  Select,
-  TextField,
   ToggleButton,
   ToggleButtonGroup,
-  Typography,
 } from '@mui/material'
-import AddIcon from '@mui/icons-material/Add'
-import DeleteIcon from '@mui/icons-material/Delete'
 import type { Account } from '../../api/accounts/accounts'
 import { defaultErrorMessage } from '../../api/core/apiError'
 import { useInvestmentHoldingsByAccount } from '../../api/investments/investmentHoldingsQueries'
 import { useInvestmentProducts } from '../../api/investments/investmentProductsQueries'
-import type { CreateTransferRequest, Transfer } from '../../api/transfers/transfers'
+import type { Transfer } from '../../api/transfers/transfers'
 import { useCreateTransfer, useEditTransfer } from '../../api/transfers/transfersQueries'
 import { FormGrid } from '../../components/feedback/ResponsiveDialog'
 import { useQueryState } from '../../hooks/queryState'
-import { useLocale } from '../../hooks/locale/useLocale'
-import { formatMoney } from '../../i18n/format'
-import { today } from '../../utils/localDate'
-import { netSettlementDirection, netSettlementPreview, type TradeSide } from './tradeMath'
+import {
+  buildTransferRequest,
+  pickerAccounts,
+  type FormMode,
+  type TransferFormPreset,
+} from './transferFormState'
+import { isTransferFormValid } from './transferValidation'
+import { TradeLinesFields } from './TradeLinesFields'
+import { PlainTransferFields } from './PlainTransferFields'
+import { TradeAccountFields } from './TradeAccountFields'
+import { TransferCommonFields } from './TransferCommonFields'
+import { useTransferForm } from './useTransferForm'
 
-/**
- * A buy/sell to start the form with (F009 spec, kept by F027): the product's own INVESTMENT
- * account on the traded side, the product selected and a suggested description. The user still
- * picks the cash account and everything else.
- */
-export interface TransferFormPreset {
-  direction: 'buy' | 'sell'
-  investmentAccountId: string
-  productId: string
-  productName: string
-}
-
-interface LineState {
-  key: number
-  productId: string
-  side: TradeSide
-  quantity: string
-  unitPrice: string
-  resultingBalance: string
-  closeHolding: boolean
-}
-
-type FormMode = 'plain' | 'trade'
-
-interface FormState {
-  mode: FormMode
-  date: string
-  description: string
-  additionalNotes: string
-  // Plain mode.
-  fromAccountId: string
-  toAccountId: string
-  amount: string
-  // Trade mode (F027, ADR 0024): cashAccountId/investmentAccountId are unlabeled - direction is
-  // derived from the lines' net settlement, never picked by the user.
-  cashAccountId: string
-  investmentAccountId: string
-  taxes: string
-  lines: LineState[]
-}
-
-function blankLine(key: number, productId = '', side: TradeSide = 'BUY'): LineState {
-  return {
-    key,
-    productId,
-    side,
-    quantity: '',
-    unitPrice: '',
-    resultingBalance: '',
-    closeHolding: false,
-  }
-}
-
-/** A fresh form, built per use so its date is today's local date rather than the date the module
- * was first loaded. */
-function initialState(
-  editing: Transfer | null,
-  preset: TransferFormPreset | null,
-  t: (key: never, options?: Record<string, unknown>) => string,
-): FormState {
-  const blank: FormState = {
-    mode: 'plain',
-    date: today(),
-    description: '',
-    additionalNotes: '',
-    fromAccountId: '',
-    toAccountId: '',
-    amount: '',
-    cashAccountId: '',
-    investmentAccountId: '',
-    taxes: '0',
-    lines: [blankLine(0)],
-  }
-  if (editing) {
-    if (editing.tradeConfirmation) {
-      return {
-        ...blank,
-        mode: 'trade',
-        date: editing.date,
-        description: editing.description,
-        additionalNotes: editing.additionalNotes ?? '',
-        taxes: editing.taxes === null ? '0' : String(editing.taxes),
-        lines: editing.tradeConfirmation.lines.map((line, i) => ({
-          key: i,
-          productId: line.productId,
-          side: line.side,
-          quantity: String(line.quantity),
-          unitPrice: String(line.unitPrice),
-          resultingBalance: line.resultingBalance === null ? '' : String(line.resultingBalance),
-          closeHolding: line.closeHolding,
-        })),
-        // cashAccountId/investmentAccountId are re-derived from from/to once accounts load (the
-        // caller passes `accounts`, not available here); the form fills them in on first render
-        // via `deriveTradeAccounts`, called from the component body below.
-        fromAccountId: editing.fromAccountId,
-        toAccountId: editing.toAccountId,
-      }
-    }
-    return {
-      ...blank,
-      mode: 'plain',
-      date: editing.date,
-      amount: String(editing.amount),
-      fromAccountId: editing.fromAccountId,
-      toAccountId: editing.toAccountId,
-      description: editing.description,
-      additionalNotes: editing.additionalNotes ?? '',
-    }
-  }
-  if (preset) {
-    return {
-      ...blank,
-      mode: 'trade',
-      investmentAccountId: preset.investmentAccountId,
-      lines: [blankLine(0, preset.productId, preset.direction === 'buy' ? 'BUY' : 'SELL')],
-      description: t(
-        (preset.direction === 'buy'
-          ? 'transfers:tradeLabelBuy'
-          : 'transfers:tradeLabelSell') as never,
-        { product: preset.productName },
-      ),
-    }
-  }
-  return blank
-}
-
-/** A form field's text as a number, or `null` when empty or not a number. */
-function numberOrNull(text: string): number | null {
-  if (text.trim() === '') return null
-  const value = Number(text)
-  return Number.isFinite(value) ? value : null
-}
+export type { TransferFormPreset }
 
 interface TransferFormProps {
   /** Every account; closed ones are left out of the pickers. */
@@ -207,37 +75,14 @@ export function TransferForm({
   banner,
 }: TransferFormProps) {
   const { t } = useTranslation(['transfers', 'common'])
-  const { locale } = useLocale()
-  const [form, setForm] = useState(() => {
-    const initial = initialState(editing, preset, t as (key: never) => string)
-    // Trade-confirmation edit: derive cashAccountId/investmentAccountId from from/to now that
-    // `accounts` is available (the INVESTMENT side is whichever endpoint is an INVESTMENT account).
-    if (initial.mode === 'trade' && editing?.tradeConfirmation) {
-      const toAccount = accounts.find((a) => a.id === editing.toAccountId)
-      const fromAccount = accounts.find((a) => a.id === editing.fromAccountId)
-      const investmentId =
-        toAccount?.type === 'INVESTMENT'
-          ? editing.toAccountId
-          : fromAccount?.type === 'INVESTMENT'
-            ? editing.fromAccountId
-            : ''
-      const cashId =
-        investmentId === editing.toAccountId ? editing.fromAccountId : editing.toAccountId
-      return { ...initial, investmentAccountId: investmentId, cashAccountId: cashId }
-    }
-    return initial
-  })
+  const { form, patch, setMode, setInvestmentAccountId, lineActions } = useTransferForm(
+    accounts,
+    editing,
+    preset,
+  )
   const [saving, setSaving] = useState(false)
-  const [nextLineKey, setNextLineKey] = useState(form.lines.length)
 
-  const openAccounts = accounts.filter((a) => !a.closed)
-  // Neither a confirmation's cash side nor either side of a plain transfer may be INVESTMENT
-  // (F027/ADR 0024's "a transfer between two investment accounts is not supported", generalized
-  // to plain transfers too, issue #113: an INVESTMENT account has no cash balance of its own, so a
-  // lineless transfer into/out of one has no trackable destination - money must move in/out of it
-  // only through a trade confirmation).
-  const investmentAccounts = openAccounts.filter((a) => a.type === 'INVESTMENT')
-  const cashOptions = openAccounts.filter((a) => a.type !== 'INVESTMENT')
+  const { cashOptions, investmentAccounts } = pickerAccounts(accounts)
 
   const holdingsQuery = useInvestmentHoldingsByAccount(form.investmentAccountId || undefined, {
     enabled: form.mode === 'trade' && form.investmentAccountId !== '',
@@ -247,159 +92,17 @@ export function TransferForm({
   const productsQuery = useInvestmentProducts()
   useQueryState(productsQuery, onError)
   const products = productsQuery.data
-  const productName = (id: string) => products?.find((p) => p.id === id)?.name ?? ''
   const createMutation = useCreateTransfer()
   const editMutation = useEditTransfer()
 
-  function patch(changes: Partial<FormState>) {
-    setForm((prev) => ({ ...prev, ...changes }))
-  }
-
-  function setMode(mode: FormMode) {
-    if (mode === 'plain') {
-      // Declassifying a trade confirmation back to plain (TransferService.edit's "clearing any
-      // trade confirmation it had") would otherwise keep the confirmation's INVESTMENT account in
-      // a now-plain fromAccountId/toAccountId - drop whichever side that is so the picker (which
-      // excludes INVESTMENT accounts) doesn't show a stale, unselectable value.
-      const fromIsInvestment = investmentAccounts.some((a) => a.id === form.fromAccountId)
-      const toIsInvestment = investmentAccounts.some((a) => a.id === form.toAccountId)
-      patch({
-        mode,
-        fromAccountId: fromIsInvestment ? '' : form.fromAccountId,
-        toAccountId: toIsInvestment ? '' : form.toAccountId,
-      })
-      return
-    }
-    patch({ mode })
-  }
-
-  function setInvestmentAccountId(investmentAccountId: string) {
-    // The holdings offered depend on the account, so changing it drops every line's product pick.
-    patch({
-      investmentAccountId,
-      lines: form.lines.map((l) => ({ ...l, productId: '' })),
-    })
-  }
-
-  function holdingOptionsFor(line: LineState) {
-    return (holdings ?? []).filter((h) => !h.closed || h.productId === line.productId)
-  }
-
-  function updateLine(key: number, changes: Partial<LineState>) {
-    patch({ lines: form.lines.map((l) => (l.key === key ? { ...l, ...changes } : l)) })
-  }
-
-  function addLine() {
-    patch({ lines: [...form.lines, blankLine(nextLineKey)] })
-    setNextLineKey((n) => n + 1)
-  }
-
-  function removeLine(key: number) {
-    patch({ lines: form.lines.filter((l) => l.key !== key) })
-  }
-
-  const taxes = numberOrNull(form.taxes)
-  const previewInputs = form.lines.map((l) => ({
-    side: l.side,
-    quantity: numberOrNull(l.quantity),
-    unitPrice: numberOrNull(l.unitPrice),
-  }))
-  const netPreview = form.mode === 'trade' ? netSettlementPreview(previewInputs, taxes) : null
-  const direction = netSettlementDirection(netPreview)
-  const cashAccountName =
-    accounts.find((a) => a.id === form.cashAccountId)?.name ??
-    t('transfers:form.cashAccountFallback')
-  const investmentAccountName =
-    accounts.find((a) => a.id === form.investmentAccountId)?.name ??
-    t('transfers:form.investmentAccountFallback')
-
-  /**
-   * Product ids with a `resultingBalance` set on more than one line - mirrors the backend's
-   * `TradeConfirmation`/`TradeConfirmationRequest` cross-line invariant (a holding has one snapshot
-   * per date, so two lines of the same product each trying to set one would be ambiguous). Blocked
-   * client-side, same as the same-account case, since the backend sends no message for its 400.
-   */
-  function duplicateResultingBalanceProductIds(lines: LineState[]): Set<string> {
-    const seen = new Set<string>()
-    const duplicates = new Set<string>()
-    for (const line of lines) {
-      if (line.resultingBalance.trim() === '' || line.productId === '') continue
-      if (seen.has(line.productId)) duplicates.add(line.productId)
-      seen.add(line.productId)
-    }
-    return duplicates
-  }
-
-  function isLineValid(line: LineState): boolean {
-    if (line.productId === '') return false
-    const quantity = numberOrNull(line.quantity)
-    const unitPrice = numberOrNull(line.unitPrice)
-    if (!(quantity !== null && quantity > 0)) return false
-    if (!(unitPrice !== null && unitPrice > 0)) return false
-    if (
-      line.resultingBalance.trim() !== '' &&
-      !((numberOrNull(line.resultingBalance) ?? -1) >= 0)
-    ) {
-      return false
-    }
-    if (line.closeHolding && line.side !== 'SELL') return false
-    return true
-  }
-
-  function isFormValid(): boolean {
-    if (form.date === '' || form.description.trim() === '') return false
-    if (form.mode === 'plain') {
-      const amount = Number(form.amount)
-      return (
-        amount > 0 &&
-        form.fromAccountId !== '' &&
-        form.toAccountId !== '' &&
-        form.fromAccountId !== form.toAccountId
-      )
-    }
-    if (form.cashAccountId === '' || form.investmentAccountId === '') return false
-    if (form.cashAccountId === form.investmentAccountId) return false
-    if (form.lines.length === 0) return false
-    if (!(taxes !== null && taxes >= 0)) return false
-    if (!form.lines.every(isLineValid)) return false
-    if (duplicateResultingBalanceProductIds(form.lines).size > 0) return false
-    return netPreview !== null && netPreview !== 0
-  }
+  const formValid = isTransferFormValid(form)
 
   async function handleSubmit() {
-    if (!isFormValid()) return
+    if (!formValid) return
     onError(null)
     setSaving(true)
     try {
-      const request: CreateTransferRequest =
-        form.mode === 'plain'
-          ? {
-              date: form.date,
-              fromAccountId: form.fromAccountId,
-              toAccountId: form.toAccountId,
-              amount: Number(form.amount),
-              description: form.description.trim(),
-              additionalNotes: form.additionalNotes.trim() || undefined,
-            }
-          : {
-              date: form.date,
-              cashAccountId: form.cashAccountId,
-              investmentAccountId: form.investmentAccountId,
-              description: form.description.trim(),
-              additionalNotes: form.additionalNotes.trim() || undefined,
-              tradeConfirmation: {
-                taxes: taxes ?? 0,
-                lines: form.lines.map((l) => ({
-                  productId: l.productId,
-                  side: l.side,
-                  quantity: Number(l.quantity),
-                  unitPrice: Number(l.unitPrice),
-                  resultingBalance:
-                    l.resultingBalance.trim() === '' ? undefined : Number(l.resultingBalance),
-                  closeHolding: l.closeHolding,
-                })),
-              },
-            }
+      const request = buildTransferRequest(form)
       const saved = editing
         ? await editMutation.mutateAsync({ id: editing.id, ...request })
         : await createMutation.mutateAsync(request)
@@ -424,232 +127,6 @@ export function TransferForm({
     )
   }
 
-  const commonFields = (
-    <>
-      <TextField
-        label={t('transfers:form.dateLabel')}
-        type="date"
-        size="small"
-        value={form.date}
-        onChange={(e) => patch({ date: e.target.value })}
-        slotProps={{ inputLabel: { shrink: true } }}
-      />
-      <TextField
-        label={t('transfers:form.descriptionLabel')}
-        size="small"
-        required
-        value={form.description}
-        onChange={(e) => patch({ description: e.target.value })}
-        slotProps={{ htmlInput: { maxLength: 150 } }}
-        sx={wide}
-      />
-      <TextField
-        label={t('transfers:form.additionalNotesLabel')}
-        size="small"
-        value={form.additionalNotes}
-        onChange={(e) => patch({ additionalNotes: e.target.value })}
-        slotProps={{ htmlInput: { maxLength: 500 } }}
-        sx={wide}
-      />
-    </>
-  )
-
-  const plainFields = (
-    <>
-      <Select
-        size="small"
-        displayEmpty
-        value={form.fromAccountId}
-        onChange={(e) => patch({ fromAccountId: e.target.value })}
-        aria-label={t('transfers:form.fromAccountLabel')}
-        sx={{ minWidth: 160 }}
-      >
-        <MenuItem value="" disabled>
-          {t('transfers:form.fromAccountLabel')}
-        </MenuItem>
-        {cashOptions.map((a) => (
-          <MenuItem key={a.id} value={a.id}>
-            {a.name}
-          </MenuItem>
-        ))}
-      </Select>
-      <Select
-        size="small"
-        displayEmpty
-        value={form.toAccountId}
-        onChange={(e) => patch({ toAccountId: e.target.value })}
-        aria-label={t('transfers:form.toAccountLabel')}
-        sx={{ minWidth: 160 }}
-      >
-        <MenuItem value="" disabled>
-          {t('transfers:form.toAccountLabel')}
-        </MenuItem>
-        {cashOptions
-          .filter((a) => a.id !== form.fromAccountId)
-          .map((a) => (
-            <MenuItem key={a.id} value={a.id}>
-              {a.name}
-            </MenuItem>
-          ))}
-      </Select>
-      <TextField
-        label={t('transfers:form.amountLabel')}
-        type="number"
-        size="small"
-        value={form.amount}
-        onChange={(e) => patch({ amount: e.target.value })}
-        slotProps={{ htmlInput: { step: '0.01', min: '0.01' } }}
-      />
-    </>
-  )
-
-  const tradeAccountFields = (
-    <>
-      <Select
-        size="small"
-        displayEmpty
-        value={form.cashAccountId}
-        onChange={(e) => patch({ cashAccountId: e.target.value })}
-        aria-label={t('transfers:form.cashAccountLabel')}
-        sx={{ minWidth: 160 }}
-      >
-        <MenuItem value="" disabled>
-          {t('transfers:form.cashAccountLabel')}
-        </MenuItem>
-        {cashOptions
-          .filter((a) => a.id !== form.investmentAccountId)
-          .map((a) => (
-            <MenuItem key={a.id} value={a.id}>
-              {a.name}
-            </MenuItem>
-          ))}
-      </Select>
-      <Select
-        size="small"
-        displayEmpty
-        value={form.investmentAccountId}
-        onChange={(e) => setInvestmentAccountId(e.target.value)}
-        aria-label={t('transfers:form.investmentAccountLabel')}
-        sx={{ minWidth: 160 }}
-      >
-        <MenuItem value="" disabled>
-          {t('transfers:form.investmentAccountLabel')}
-        </MenuItem>
-        {investmentAccounts
-          .filter((a) => a.id !== form.cashAccountId)
-          .map((a) => (
-            <MenuItem key={a.id} value={a.id}>
-              {a.name}
-            </MenuItem>
-          ))}
-      </Select>
-      <TextField
-        label={t('transfers:form.taxesLabel')}
-        type="number"
-        size="small"
-        value={form.taxes}
-        onChange={(e) => patch({ taxes: e.target.value })}
-        slotProps={{ htmlInput: { step: '0.01', min: '0' } }}
-      />
-    </>
-  )
-
-  const duplicateResultingBalanceIds = duplicateResultingBalanceProductIds(form.lines)
-  const lineRows = form.lines.map((line) => {
-    const holdingOptions = holdingOptionsFor(line)
-    const hasDuplicateResultingBalance =
-      line.resultingBalance.trim() !== '' && duplicateResultingBalanceIds.has(line.productId)
-    return (
-      <Box
-        key={line.key}
-        sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap', mb: 1 }}
-      >
-        <Select
-          size="small"
-          displayEmpty
-          value={holdingOptions.some((h) => h.productId === line.productId) ? line.productId : ''}
-          onChange={(e) => updateLine(line.key, { productId: e.target.value })}
-          aria-label={t('transfers:form.productLabel')}
-          sx={{ minWidth: 180 }}
-        >
-          <MenuItem value="" disabled>
-            {t('transfers:form.productLabel')}
-          </MenuItem>
-          {holdingOptions.map((h) => (
-            <MenuItem key={h.id} value={h.productId}>
-              {productName(h.productId)}
-            </MenuItem>
-          ))}
-        </Select>
-        <Select
-          size="small"
-          value={line.side}
-          onChange={(e) =>
-            updateLine(line.key, {
-              side: e.target.value as TradeSide,
-              closeHolding: e.target.value === 'SELL' ? line.closeHolding : false,
-            })
-          }
-          aria-label={t('transfers:form.sideAria')}
-        >
-          <MenuItem value="BUY">{t('transfers:form.buyOption')}</MenuItem>
-          <MenuItem value="SELL">{t('transfers:form.sellOption')}</MenuItem>
-        </Select>
-        <TextField
-          label={t('transfers:form.quantityLabel')}
-          type="number"
-          size="small"
-          value={line.quantity}
-          onChange={(e) => updateLine(line.key, { quantity: e.target.value })}
-          slotProps={{ htmlInput: { step: 'any', min: '0' } }}
-        />
-        <TextField
-          label={t('transfers:form.unitPriceLabel')}
-          type="number"
-          size="small"
-          value={line.unitPrice}
-          onChange={(e) => updateLine(line.key, { unitPrice: e.target.value })}
-          slotProps={{ htmlInput: { step: 'any', min: '0' } }}
-        />
-        <TextField
-          label={t('transfers:form.resultingBalanceLabel')}
-          type="number"
-          size="small"
-          value={line.resultingBalance}
-          onChange={(e) => updateLine(line.key, { resultingBalance: e.target.value })}
-          error={hasDuplicateResultingBalance}
-          helperText={
-            hasDuplicateResultingBalance
-              ? t('transfers:form.resultingBalanceDuplicateHelper')
-              : t('transfers:form.resultingBalanceHelper')
-          }
-          slotProps={{ htmlInput: { step: '0.01', min: '0' } }}
-        />
-        {line.side === 'SELL' && (
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={line.closeHolding}
-                onChange={(e) => updateLine(line.key, { closeHolding: e.target.checked })}
-              />
-            }
-            label={t('transfers:form.closeHoldingLabel')}
-          />
-        )}
-        {form.lines.length > 1 && (
-          <IconButton
-            size="small"
-            aria-label={t('transfers:form.removeLineAria')}
-            onClick={() => removeLine(line.key)}
-            sx={{ alignSelf: 'center' }}
-          >
-            <DeleteIcon fontSize="small" />
-          </IconButton>
-        )}
-      </Box>
-    )
-  })
-
   const body = (
     <>
       <ToggleButtonGroup
@@ -665,46 +142,30 @@ export function TransferForm({
       </ToggleButtonGroup>
 
       {fieldRow(
-        form.mode === 'plain' ? (
-          <>
-            {commonFields}
-            {plainFields}
-          </>
-        ) : (
-          <>
-            {commonFields}
-            {tradeAccountFields}
-          </>
-        ),
+        <>
+          <TransferCommonFields form={form} patch={patch} wide={wide} />
+          {form.mode === 'plain' ? (
+            <PlainTransferFields form={form} patch={patch} cashOptions={cashOptions} />
+          ) : (
+            <TradeAccountFields
+              form={form}
+              patch={patch}
+              cashOptions={cashOptions}
+              investmentAccounts={investmentAccounts}
+              onInvestmentAccountChange={setInvestmentAccountId}
+            />
+          )}
+        </>,
       )}
 
       {form.mode === 'trade' && (
-        <Box sx={{ mt: 2 }} role="group" aria-label={t('transfers:form.tradeLinesGroupAria')}>
-          <Typography variant="subtitle2" gutterBottom>
-            {t('transfers:form.productLinesTitle')}
-          </Typography>
-          {lineRows}
-          <Button size="small" startIcon={<AddIcon />} onClick={addLine} sx={{ mt: 1 }}>
-            {t('transfers:form.addLineButton')}
-          </Button>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }} aria-live="polite">
-            {netPreview === null
-              ? t('transfers:form.previewEnterValues')
-              : netPreview === 0
-                ? t('transfers:form.previewZero')
-                : direction === 'cost'
-                  ? t('transfers:form.previewSettlement', {
-                      amount: formatMoney(Math.abs(netPreview), locale),
-                      from: cashAccountName,
-                      to: investmentAccountName,
-                    })
-                  : t('transfers:form.previewSettlement', {
-                      amount: formatMoney(Math.abs(netPreview), locale),
-                      from: investmentAccountName,
-                      to: cashAccountName,
-                    })}
-          </Typography>
-        </Box>
+        <TradeLinesFields
+          form={form}
+          accounts={accounts}
+          holdings={holdings}
+          products={products}
+          lineActions={lineActions}
+        />
       )}
     </>
   )
@@ -716,11 +177,7 @@ export function TransferForm({
       </Button>
     ) : null
   const submitButton = (
-    <Button
-      variant="contained"
-      disabled={saving || !isFormValid()}
-      onClick={() => void handleSubmit()}
-    >
+    <Button variant="contained" disabled={saving || !formValid} onClick={() => void handleSubmit()}>
       {editing ? t('transfers:form.saveChanges') : t('common:actions.add')}
     </Button>
   )
