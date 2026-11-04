@@ -3,6 +3,7 @@ import { Box, Typography } from '@mui/material'
 import type { LedgerSummary as LedgerSummaryData } from '../../api/ledger/ledger'
 import { useLocale } from '../../hooks/locale/useLocale'
 import { formatMoney } from '../../i18n/format'
+import { WRAP_ANYWHERE } from '../../components/layout/layoutSx'
 
 interface LedgerSummaryProps {
   /** `undefined` until the first Ledger response has arrived. */
@@ -51,7 +52,7 @@ export function LedgerSummary({ summary }: LedgerSummaryProps) {
           <Typography
             variant="h6"
             component="div"
-            sx={{ color: item.color, fontWeight: 600, overflowWrap: 'anywhere' }}
+            sx={{ color: item.color, fontWeight: 600, ...WRAP_ANYWHERE }}
           >
             {figure(item.value)}
           </Typography>

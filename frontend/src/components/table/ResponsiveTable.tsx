@@ -20,6 +20,7 @@ import type { LoadState } from '../../hooks/queryState'
 import { useBreakpointBand } from '../../hooks/useBreakpointBand'
 import { fadeInSx } from '../feedback/fadeIn'
 import { DataTableBody } from './DataTableBody'
+import { WRAP_ANYWHERE } from '../layout/layoutSx'
 
 export interface ResponsiveColumn<T> {
   /** Stable id (React key). */
@@ -254,12 +255,7 @@ function GenericCard<T>({
   return (
     <Paper variant="outlined" sx={{ p: 1.5 }}>
       {primary.map((c) => (
-        <Typography
-          key={c.key}
-          variant="subtitle1"
-          component="div"
-          sx={{ overflowWrap: 'anywhere' }}
-        >
+        <Typography key={c.key} variant="subtitle1" component="div" sx={WRAP_ANYWHERE}>
           {c.render(row)}
         </Typography>
       ))}
@@ -269,7 +265,7 @@ function GenericCard<T>({
           variant="body2"
           color="text.secondary"
           component="div"
-          sx={{ overflowWrap: 'anywhere' }}
+          sx={WRAP_ANYWHERE}
         >
           {c.render(row)}
         </Typography>
@@ -323,7 +319,7 @@ function FieldList<T>({
           <Typography
             component="dd"
             variant="body2"
-            sx={{ m: 0, textAlign: 'right', overflowWrap: 'anywhere' }}
+            sx={{ m: 0, textAlign: 'right', ...WRAP_ANYWHERE }}
           >
             {c.render(row)}
           </Typography>

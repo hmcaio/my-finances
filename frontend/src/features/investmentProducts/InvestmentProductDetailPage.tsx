@@ -33,6 +33,7 @@ import { useSnapshotActions } from './useSnapshotActions'
 import { useTradeDialog } from './useTradeDialog'
 import { ValueOverTimePanel } from './ValueOverTimePanel'
 import { PageContainer } from '../../components/layout/PageContainer'
+import { WRAP_ANYWHERE } from '../../components/layout/layoutSx'
 
 /**
  * Per-product detail view (F008 spec, made holding-aware by F022/ADR 0020): the product's taxonomy
@@ -144,7 +145,7 @@ export function InvestmentProductDetailPage() {
           <Box
             sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2, mb: 1, flexWrap: 'wrap' }}
           >
-            <Typography variant="h4" component="h1" sx={{ overflowWrap: 'anywhere' }}>
+            <Typography variant="h4" component="h1" sx={WRAP_ANYWHERE}>
               {product.name}
             </Typography>
             <IconButton
@@ -165,7 +166,7 @@ export function InvestmentProductDetailPage() {
             )}
           </Box>
           {product.additionalNotes && (
-            <Typography color="text.secondary" sx={{ mb: 2, overflowWrap: 'anywhere' }}>
+            <Typography color="text.secondary" sx={{ mb: 2, ...WRAP_ANYWHERE }}>
               {product.additionalNotes}
             </Typography>
           )}

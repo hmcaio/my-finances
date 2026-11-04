@@ -17,6 +17,7 @@ import { InvestmentProductsSection } from '../investmentProducts/InvestmentProdu
 import { AccountLedger } from '../ledger/AccountLedger'
 import { PageContainer } from '../../components/layout/PageContainer'
 import { PageSection } from '../../components/layout/PageSection'
+import { WRAP_ANYWHERE } from '../../components/layout/layoutSx'
 
 /** Section padding: tighter on phones so the embedded lists keep their width (F021). */
 
@@ -65,7 +66,7 @@ export function AccountDetailPage() {
           <Box
             sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 2, mt: 2, mb: 1 }}
           >
-            <Typography variant="h4" component="h1" sx={{ overflowWrap: 'anywhere' }}>
+            <Typography variant="h4" component="h1" sx={WRAP_ANYWHERE}>
               {account.name}
             </Typography>
             {account.closed ? (
@@ -74,7 +75,7 @@ export function AccountDetailPage() {
               <Chip label={t('accounts:status.open')} color="success" />
             )}
           </Box>
-          <Typography color="text.secondary" sx={{ mb: 3, overflowWrap: 'anywhere' }}>
+          <Typography color="text.secondary" sx={{ mb: 3, ...WRAP_ANYWHERE }}>
             {institutionName(account.institutionId)} &middot; {accountTypeLabel(account.type, t)}
           </Typography>
 
@@ -82,7 +83,7 @@ export function AccountDetailPage() {
             <Typography variant="overline" color="text.secondary">
               {t('accounts:detail.runningBalance')}
             </Typography>
-            <Typography variant="h3" sx={{ mb: 2, overflowWrap: 'anywhere' }}>
+            <Typography variant="h3" sx={{ mb: 2, ...WRAP_ANYWHERE }}>
               {formatMoney(account.balance, locale)}
             </Typography>
             <Typography variant="body2" color="text.secondary">

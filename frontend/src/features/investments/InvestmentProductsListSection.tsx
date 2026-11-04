@@ -26,6 +26,7 @@ import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/R
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { translateSeedName } from '../../i18n/seedNames'
 import { nameLookup } from '../../utils/nameLookup'
+import { WRAP_ANYWHERE } from '../../components/layout/layoutSx'
 
 const PAGE_SIZE = 20
 
@@ -227,7 +228,7 @@ export function InvestmentProductsListSection() {
             <Box
               sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}
             >
-              <Typography variant="subtitle1" component="div" sx={{ overflowWrap: 'anywhere' }}>
+              <Typography variant="subtitle1" component="div" sx={WRAP_ANYWHERE}>
                 {productLink(product)}
               </Typography>
               {statusChip(product, t)}

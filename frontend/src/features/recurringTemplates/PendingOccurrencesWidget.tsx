@@ -35,6 +35,7 @@ import { formatMoney } from '../../i18n/format'
 import { translateSeedName } from '../../i18n/seedNames'
 import { nameLookup } from '../../utils/nameLookup'
 import { FormDialogContent } from '../../components/feedback/FormDialogContent'
+import { WRAP_ANYWHERE } from '../../components/layout/layoutSx'
 
 /**
  * "Upcoming recurring bills" widget (F007 spec, embedded on F012's dashboard and on {@link
@@ -214,17 +215,17 @@ export function PendingOccurrencesWidget() {
     return (
       <Paper variant="outlined" sx={{ p: 1.5 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
-          <Typography variant="subtitle1" component="div" sx={{ overflowWrap: 'anywhere' }}>
+          <Typography variant="subtitle1" component="div" sx={WRAP_ANYWHERE}>
             {template?.description ?? '—'}
           </Typography>
           <Typography variant="subtitle1" component="div" sx={{ flexShrink: 0, fontWeight: 600 }}>
             {formatMoney(occurrence.amount, locale)}
           </Typography>
         </Box>
-        <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
+        <Typography variant="body2" color="text.secondary" sx={WRAP_ANYWHERE}>
           {occurrence.dueDate} · {template ? categoryName(template.categoryId) : '—'}
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
+        <Typography variant="body2" color="text.secondary" sx={WRAP_ANYWHERE}>
           {template ? accountName(template.accountId) : '—'}
         </Typography>
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 0.5 }}>{actions}</Box>
