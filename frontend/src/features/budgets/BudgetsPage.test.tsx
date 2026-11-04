@@ -369,3 +369,93 @@ describe('BudgetsPage responsive layout (F021)', () => {
     })
   })
 })
+
+describe('BudgetsPage row states', () => {
+  const noCapBudget = { ...seedGroceriesBudget, currentCap: null, currentCapEffectiveFrom: null }
+  const stoppedBudget = { ...noCapBudget, stopped: true }
+
+  afterEach(restoreViewport)
+
+  function serveBudgets(budget: typeof seedGroceriesBudget) {
+    server.use(http.get('/api/budgets', () => HttpResponse.json([budget])))
+  }
+
+  describe('desktop', () => {
+    beforeEach(() => setViewportWidth(VIEWPORT.desktop))
+
+    it('shows "No cap yet" and a dash for a budget without a cap or effective month', async () => {
+      serveBudgets(noCapBudget)
+      renderWithQueryClient(<BudgetsPage />)
+
+      const row = await findRow(seedGroceriesCategory.name, settingsTable())
+      expect(row.getByText('No cap yet')).toBeInTheDocument()
+      expect(row.getByText('—')).toBeInTheDocument()
+      expect(row.getByRole('button', { name: 'Edit cap' })).toBeInTheDocument()
+      expect(row.getByRole('button', { name: 'Stop budget' })).toBeInTheDocument()
+    })
+
+    it('shows a stopped budget as Stopped with Resume budget and no Stop button', async () => {
+      serveBudgets(stoppedBudget)
+      renderWithQueryClient(<BudgetsPage />)
+
+      const row = await findRow(seedGroceriesCategory.name, settingsTable())
+      expect(row.getByText('Stopped')).toBeInTheDocument()
+      expect(row.getByRole('button', { name: 'Resume budget' })).toBeInTheDocument()
+      expect(row.queryByRole('button', { name: 'Stop budget' })).not.toBeInTheDocument()
+    })
+
+    it('swaps the cap cell for an input while editing, hides Stop, and Cancel restores the cell', async () => {
+      const user = userEvent.setup({ delay: null })
+      renderWithQueryClient(<BudgetsPage />)
+      const row = await findRow(seedGroceriesCategory.name, settingsTable())
+      const cap = seedGroceriesBudget.currentCap!.toFixed(2)
+
+      await user.click(row.getByRole('button', { name: 'Edit cap' }))
+
+      expect(row.getByLabelText('Monthly cap')).toHaveValue(seedGroceriesBudget.currentCap)
+      expect(row.queryByText(cap)).not.toBeInTheDocument()
+      expect(row.queryByRole('button', { name: 'Stop budget' })).not.toBeInTheDocument()
+      await user.click(row.getByRole('button', { name: 'Cancel' }))
+
+      expect(row.queryByLabelText('Monthly cap')).not.toBeInTheDocument()
+      expect(row.getByText(cap)).toBeInTheDocument()
+      expect(row.getByRole('button', { name: 'Stop budget' })).toBeInTheDocument()
+    })
+
+    it('keeps the row in edit mode when the cap is not positive', async () => {
+      const user = userEvent.setup({ delay: null })
+      renderWithQueryClient(<BudgetsPage />)
+      const row = await findRow(seedGroceriesCategory.name, settingsTable())
+
+      await user.click(row.getByRole('button', { name: 'Edit cap' }))
+      await user.clear(row.getByLabelText('Monthly cap'))
+      await user.click(row.getByRole('button', { name: 'Save cap' }))
+
+      expect(row.getByLabelText('Monthly cap')).toBeInTheDocument()
+    })
+  })
+
+  describe('mobile', () => {
+    beforeEach(() => setViewportWidth(VIEWPORT.mobile))
+
+    it('shows a stopped budget card with Stopped and Resume budget, and resumes through the dialog', async () => {
+      serveBudgets(stoppedBudget)
+      const user = userEvent.setup({ delay: null })
+      renderWithQueryClient(<BudgetsPage />)
+      const list = await screen.findByRole('list', { name: 'Budgets' })
+      await within(list).findByText(seedGroceriesCategory.name)
+      const card = within(within(list).getAllByRole('listitem')[0])
+
+      expect(card.getByText('Stopped')).toBeInTheDocument()
+      expect(card.queryByRole('button', { name: 'Stop budget' })).not.toBeInTheDocument()
+      await user.click(card.getByRole('button', { name: 'Resume budget' }))
+
+      const dialog = await screen.findByRole('dialog')
+      expect(
+        within(dialog).getByText(`Resume budget — ${seedGroceriesCategory.name}`),
+      ).toBeInTheDocument()
+      expect(within(dialog).getByRole('button', { name: 'Resume with this cap' })).toBeDisabled()
+      expect(screen.getAllByLabelText('Monthly cap')).toHaveLength(1)
+    })
+  })
+})
