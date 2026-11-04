@@ -15,11 +15,6 @@ import {
   Paper,
   Select,
   Skeleton,
-  Table,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   TextField,
   Tooltip,
   Typography,
@@ -55,16 +50,14 @@ import type { ValueSeriesPoint } from '../../api/investments/investmentValueSeri
 import type { TradeConfirmationLineRecord } from '../../api/investments/tradeConfirmationLines'
 import { useTradeConfirmationLinesByProduct } from '../../api/investments/tradeConfirmationLinesQueries'
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
-import { InlineEditActions } from '../../components/table/InlineEditActions'
-import { DataTableBody } from '../../components/table/DataTableBody'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { fadeInSx } from '../../components/feedback/fadeIn'
 import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
-import { combineLoadState, useQueryState, type LoadState } from '../../hooks/queryState'
+import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useAction } from '../../hooks/useAction'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
-import { useLocale, type Locale } from '../../hooks/locale/useLocale'
+import { useLocale } from '../../hooks/locale/useLocale'
 import { formatMoney } from '../../i18n/format'
 import { nameLookup } from '../../utils/nameLookup'
 import { today } from '../../utils/localDate'
@@ -73,6 +66,7 @@ import { InvestmentProductForm, type InvestmentProductFormValues } from './Inves
 import { SECTION_PADDING } from './detailLayout'
 import { HoldingsPanel } from './HoldingsPanel'
 import { OpeningPositionCard } from './OpeningPositionCard'
+import { SnapshotsPanel, type SnapshotEdit } from './SnapshotsPanel'
 import { ValueSeriesChart } from './ValueSeriesChart'
 
 /**
@@ -578,36 +572,16 @@ export function InvestmentProductDetailPage() {
                 <OpeningPositionCard holding={selectedHolding} padding={SECTION_PADDING} />
               </Box>
 
-              <Paper variant="outlined" sx={{ p: SECTION_PADDING, mb: 3 }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 2,
-                    mb: 2,
-                  }}
-                >
-                  <Typography variant="h6">
-                    {t('investmentProducts:detail.snapshotsTitle')}
-                  </Typography>
-                  <Button variant="contained" onClick={openSnapshotDialog}>
-                    {t('investmentProducts:detail.recordSnapshotButton')}
-                  </Button>
-                </Box>
-                <SnapshotHistory
-                  snapshots={snapshots}
-                  state={snapshotsState}
-                  onRetry={snapshotsState.reload}
-                  editing={editing}
-                  onEditingChange={setEditing}
-                  onSaveEdit={() => void handleSaveEdit()}
-                  savingEdit={saveEditAction.pending}
-                  onDelete={setDeleteTarget}
-                  t={t as (key: string, options?: Record<string, unknown>) => string}
-                  locale={locale}
-                />
-              </Paper>
+              <SnapshotsPanel
+                snapshots={snapshots}
+                state={snapshotsState}
+                onRecord={openSnapshotDialog}
+                editing={editing}
+                onEditingChange={setEditing}
+                onSaveEdit={() => void handleSaveEdit()}
+                savingEdit={saveEditAction.pending}
+                onDelete={setDeleteTarget}
+              />
             </>
           )}
 
@@ -892,140 +866,5 @@ export function InvestmentProductDetailPage() {
         onCancel={() => setDeleteHoldingTarget(null)}
       />
     </Box>
-  )
-}
-
-interface SnapshotEdit {
-  id: string
-  date: string
-  balance: string
-}
-
-interface SnapshotHistoryProps {
-  snapshots: InvestmentSnapshot[] | undefined
-  state: LoadState
-  onRetry: () => void
-  editing: SnapshotEdit | null
-  onEditingChange: (edit: SnapshotEdit | null) => void
-  onSaveEdit: () => void
-  savingEdit: boolean
-  onDelete: (snapshot: InvestmentSnapshot) => void
-  t: (key: string, options?: Record<string, unknown>) => string
-  locale: Locale
-}
-
-/**
- * The selected holding's snapshots, most recent first, each editable (date and balance) or
- * deletable. Two data columns (Date, Balance), so it stays a plain table at every size (F021's
- * 1-2-column rule) - only the "Record snapshot" add form above became a dialog.
- */
-function SnapshotHistory({
-  snapshots,
-  state,
-  onRetry,
-  editing,
-  onEditingChange,
-  onSaveEdit,
-  savingEdit,
-  onDelete,
-  t,
-  locale,
-}: SnapshotHistoryProps) {
-  return (
-    <TableContainer>
-      <Table size="small" aria-label={t('investmentProducts:detail.snapshotHistoryAria')}>
-        <TableHead>
-          <TableRow>
-            <TableCell>{t('investmentProducts:detail.snapshotColumns.date')}</TableCell>
-            <TableCell align="right">
-              {t('investmentProducts:detail.snapshotColumns.balance')}
-            </TableCell>
-            <TableCell align="right">
-              {t('investmentProducts:detail.snapshotColumns.actions')}
-            </TableCell>
-          </TableRow>
-        </TableHead>
-        <DataTableBody state={state} onRetry={onRetry} columns={3} actionsColumn>
-          {snapshots?.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={3} align="center">
-                <Typography color="text.secondary">
-                  {t('investmentProducts:detail.emptySnapshots')}
-                </Typography>
-              </TableCell>
-            </TableRow>
-          )}
-          {snapshots?.map((snapshot) => {
-            const edit = editing?.id === snapshot.id ? editing : null
-            return (
-              <TableRow key={snapshot.id}>
-                <TableCell>
-                  {edit ? (
-                    <TextField
-                      size="small"
-                      type="date"
-                      value={edit.date}
-                      onChange={(e) => onEditingChange({ ...edit, date: e.target.value })}
-                      slotProps={{
-                        htmlInput: {
-                          'aria-label': t('investmentProducts:detail.editSnapshotDateAria'),
-                        },
-                      }}
-                    />
-                  ) : (
-                    snapshot.date
-                  )}
-                </TableCell>
-                <TableCell align="right">
-                  {edit ? (
-                    <TextField
-                      size="small"
-                      type="number"
-                      value={edit.balance}
-                      onChange={(e) => onEditingChange({ ...edit, balance: e.target.value })}
-                      slotProps={{
-                        htmlInput: {
-                          'aria-label': t('investmentProducts:detail.editSnapshotBalanceAria'),
-                          step: '0.01',
-                          min: '0',
-                        },
-                      }}
-                    />
-                  ) : (
-                    formatMoney(snapshot.balance, locale)
-                  )}
-                </TableCell>
-                <TableCell align="right">
-                  <InlineEditActions
-                    editing={edit !== null}
-                    onEdit={() =>
-                      onEditingChange({
-                        id: snapshot.id,
-                        date: snapshot.date,
-                        balance: String(snapshot.balance),
-                      })
-                    }
-                    onSave={onSaveEdit}
-                    onCancel={() => onEditingChange(null)}
-                    editLabel={t('investmentProducts:detail.editSnapshotAria')}
-                    saveLabel={t('investmentProducts:detail.saveSnapshotAria')}
-                    saving={savingEdit}
-                  />
-                  {!edit && (
-                    <IconButton
-                      size="small"
-                      aria-label={t('investmentProducts:detail.deleteSnapshotAria')}
-                      onClick={() => onDelete(snapshot)}
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  )}
-                </TableCell>
-              </TableRow>
-            )
-          })}
-        </DataTableBody>
-      </Table>
-    </TableContainer>
   )
 }
