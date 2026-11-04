@@ -12,6 +12,8 @@ const useBreakpointMessage =
 const rawMediaQueryImports = [
   { name: '@mui/material', importNames: ['useMediaQuery'], message: useBreakpointMessage },
   { name: '@mui/material/useMediaQuery', message: useBreakpointMessage },
+  { name: '@mui/system', importNames: ['useMediaQuery'], message: useBreakpointMessage },
+  { name: '@mui/system/useMediaQuery', message: useBreakpointMessage },
 ]
 
 const rawQueryImport = {
@@ -57,12 +59,12 @@ export default tseslint.config(
   },
   ...pluginQuery.configs['flat/recommended'],
   {
-    // Breakpoint logic (F021, ADR 0019): `hooks/useBreakpointBand` is the one place that reads
-    // viewport width; `Layout` (the nav switch at `lg`) is the one other reader. Everything else
-    // uses the hook or `theme.breakpoints` in `sx`. Features get this same restriction again
-    // below, because a later `no-restricted-imports` entry replaces an earlier one for its files.
+    // Breakpoint logic (F021, ADR 0019): `hooks/useBreakpointBand` is the only place that reads
+    // viewport width (`Layout`'s nav switch at `lg` uses it too). Everything else uses the hook or
+    // `theme.breakpoints` in `sx`. Features and components get this same restriction again below,
+    // because a later `no-restricted-imports` entry replaces an earlier one for its files.
     files: ['src/**/*.{ts,tsx}'],
-    ignores: ['src/hooks/useBreakpointBand.ts', 'src/components/layout/Layout.tsx'],
+    ignores: ['src/hooks/useBreakpointBand.ts'],
     rules: {
       'no-restricted-imports': ['error', { paths: rawMediaQueryImports }],
     },
@@ -100,10 +102,9 @@ export default tseslint.config(
   },
   {
     // Shared components get the same raw-query ban as features: a component that needs data takes
-    // it from an area hook. `Layout` stays exempt from the media-query ban (see above), so it is
-    // left to that earlier block.
+    // it from an area hook.
     files: ['src/components/**/*.{ts,tsx}'],
-    ignores: ['**/*.test.{ts,tsx}', 'src/components/layout/Layout.tsx'],
+    ignores: ['**/*.test.{ts,tsx}'],
     rules: {
       'no-restricted-imports': ['error', { paths: [...rawMediaQueryImports, rawQueryImport] }],
     },
