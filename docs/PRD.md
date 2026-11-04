@@ -21,6 +21,8 @@
   - [5.12 Audit Log Entry](#512-audit-log-entry)
   - [5.13 Investment Segment, Allocation Plan & FII Dividends](#513-investment-segment-allocation-plan--fii-dividends)
   - [5.14 Investment Split](#514-investment-split)
+  - [5.15 Investment Opening Position](#515-investment-opening-position)
+  - [5.16 Goal & Goal Allocation](#516-goal--goal-allocation)
 - [6. Functional Requirements](#6-functional-requirements)
   - [6.1 Transactions](#61-transactions)
   - [6.2 Accounts & Transfers](#62-accounts--transfers)
@@ -38,6 +40,7 @@
   - [6.14 Language / Localization](#614-language--localization)
   - [6.15 Authentication](#615-authentication)
   - [6.16 Ledger](#616-ledger)
+  - [6.17 Goals](#617-goals)
 - [7. Technical Design](#7-technical-design)
   - [7.1 Stack](#71-stack)
   - [7.2 Architecture & Methodology](#72-architecture--methodology)
@@ -66,7 +69,7 @@ Designed for solo use today, with a data model that can extend to household/mult
 
 - No bank/card auto-sync — manual entry / CSV import only, and CSV import is a stretch goal, not required for v1.
 - No multi-currency support — single currency only.
-- No *computed* investment math: a buy/sell records its quantity, unit price and taxes as plain data (§5.5), but nothing price-derived is computed from them — no live or computed market prices, no automatic gain/loss calculation. Investment values are always manually entered as snapshots (§5.8). Running totals of plain recorded fields — cotas held and amount contributed per FII product (§5.13) — are sums of `quantity`/`amount`, the same computed-not-stored style as §5.8's existing monthly `units`/`contributed` value-series fields, not a price-derived valuation, so they stay outside this non-goal. An opening position (§5.15) is likewise plain recorded data (a quantity and an average unit price), not a computed valuation.
+- No *computed* investment math: a buy/sell records its quantity, unit price and taxes as plain data (§5.5), but nothing price-derived is computed from them — no live or computed market prices, no automatic gain/loss calculation. Investment values are always manually entered as snapshots (§5.8). Running totals of plain recorded fields — cotas held and amount contributed per FII product (§5.13) — are sums of `quantity`/`amount`, the same computed-not-stored style as §5.8's existing monthly `units`/`contributed` value-series fields, not a price-derived valuation, so they stay outside this non-goal. An opening position (§5.15) is likewise plain recorded data (a quantity and an average unit price), not a computed valuation. Goal projections (§5.16) compound only assumptions the user types (a planned contribution and three real return rates) on top of a manually entered snapshot value: nothing is derived from prices or market data, and they are presented as estimates, so they stay outside this non-goal ([ADR 0034](../adr/0034-goals-as-allocation-and-deterministic-projection.md)).
 - No manual physical assets (real estate, vehicles) in net worth — the `Vehicle` entity introduced for fuel-transaction tracking (§5.11) is a plain label for grouping fuel purchases, not a valued asset counted in net worth.
 - No user-editable fuel types — Etanol, Etanol Aditivado, Gasolina and Gasolina Aditivada are a fixed list (§5.11); adding others (e.g. electric) is a future direction (§9).
 - No multi-user accounts or per-user data scoping — a single shared credential gates access (§6.15), the app remains single-user (§4), and the network it's reachable on (localhost, LAN, a private overlay network, a VPS) is an environment-level choice, not something the app models or depends on (§7.1, [ADR 0029](../adr/0029-session-auth-and-generic-network-binding.md)).
@@ -212,7 +215,7 @@ Investments live in accounts of type `INVESTMENT` (§5.4) — there is no separa
 - Latest snapshot per holding = current value of that holding. A product's total value (used in the category/sub-category allocation views) is the sum of its holdings' latest snapshots; an `INVESTMENT` account's balance is the sum of the latest snapshots of the holdings pointing at it (both rollups computed on read, not stored).
 - **Keeping snapshots fresh.** Because a buy or sell (§5.5) changes cash immediately but a holding's value only when a snapshot is recorded, a holding whose latest transfer is dated after its latest snapshot (or that has a trade but no snapshot) is flagged as needing a snapshot, in the product list and on the allocation view. A trade can carry an optional resulting balance, which records that snapshot in the same step ("Sold entire position" records `0`). A holding can only be closed while its latest snapshot is `0` or absent, so a closed holding never keeps counting a stale value. An opening position (§5.15) counts like a trade for this rule: a holding is also flagged when its opening position is dated after its latest snapshot, or it has one and no snapshot at all.
 - Reclassifying a product changes how past dates group it in allocation views, since grouping uses its current category and sub-category.
-- **Delete safety** — `INVESTMENT` accounts follow the `Account` rule (§5.4): closed once they have history, hard-deleted only while nothing references them. A holding with any snapshot or buy/sell transfer can't be hard-deleted either (it would orphan that history and break past net worth/allocation calculations) — it can only be closed (`closed_date` set), which drops it from "add a trade" pickers and live views while its history stays intact and exportable. Hard delete is only allowed for a holding with zero history. A product can only be hard-deleted while it has zero holdings at all. Category and sub-category are both fixed system taxonomy now (above) — neither is ever deletable, so there is no in-use guard to speak of for them. A holding with an opening position (§5.15) can't be hard-deleted either; deleting the position itself leaves any snapshots in place.
+- **Delete safety** — `INVESTMENT` accounts follow the `Account` rule (§5.4): closed once they have history, hard-deleted only while nothing references them. A holding with any snapshot or buy/sell transfer can't be hard-deleted either (it would orphan that history and break past net worth/allocation calculations) — it can only be closed (`closed_date` set), which drops it from "add a trade" pickers and live views while its history stays intact and exportable. Hard delete is only allowed for a holding with zero history. A product can only be hard-deleted while it has zero holdings at all and no goal allocation (§5.16). Category and sub-category are both fixed system taxonomy now (above) — neither is ever deletable, so there is no in-use guard to speak of for them. A holding with an opening position (§5.15) can't be hard-deleted either; deleting the position itself leaves any snapshots in place.
 
 ### 5.9 Net Worth (computed, not stored)
 `net_worth(as_of_date)` = Σ asset account balances (`CHECKING`/`SAVINGS`/`CASH_WALLET`, as_of_date) + Σ investment account balances (`INVESTMENT`, as_of_date; each the sum of the latest snapshots of the holdings it contains) − Σ credit card account balances (as_of_date)
@@ -319,6 +322,32 @@ See [ADR 0033](../adr/0033-opening-position-as-cashless-holding-start.md).
 - **Date order**: a trade, or a trade edit, dated before its holding's opening position is rejected (`409`); creating or moving a position to a date after the holding's earliest trade is rejected (`409`). Same day is allowed. The position is the start of the holding's tracked history, so earlier trades would double-count.
 - It can be edited and hard-deleted while the holding is open, audited (§5.12); deleting it leaves snapshots alone. It counts as holding history (§5.8 delete safety).
 
+### 5.16 Goal & Goal Allocation
+
+See [ADR 0034](../adr/0034-goals-as-allocation-and-deterministic-projection.md).
+
+**Goal** (something to save toward; allocation of products to it is part of the same concept)
+- `id`
+- `name` (required, bounded), `notes` (optional, bounded)
+- `target_amount` (money, positive) and optional `target_date`. A goal without a date (an emergency fund) is projected until the target is reached.
+- `planned_monthly_contribution` (money, zero or more): what the user intends to add each month. Constant, in today's money.
+- `return_pessimistic`, `return_base`, `return_optimistic`: **real** annual returns in percent (above inflation, so "IPCA + 6%" is `6`), from `-50` to `100`, ordered pessimistic ≤ base ≤ optimistic. Everything about a goal is expressed in **today's money**; there is no inflation input.
+- `status`: `ACTIVE`, `ACHIEVED` or `ARCHIVED`, set manually. An automatic "target reached" indicator shows when the allocated value is at least the target; it does not change the status.
+- `show_on_dashboard` (default true). Archiving a goal turns it off, and turning it on for an archived goal is rejected; restoring a goal does not turn it back on.
+- Edited in place and audited (§5.12); not versioned. Goals can be hard-deleted (their allocations go with them).
+
+**GoalAllocation** (a share of an investment product assigned to a goal)
+- `id`, `goal_id`, `product_id` (references `InvestmentProduct`, §5.8), `percentage` (above 0, up to 100, two decimals). Unique per (goal, product).
+- The link is at **product** level and only investment products can be linked: a goal's value is `Σ percentage ÷ 100 × the product's value`, where a product's value is the sum of its holdings' latest snapshots (§5.8). A product with no snapshot counts as zero.
+- For each product, the percentages across all **non-archived** goals sum to at most 100; the remainder is "unassigned". Archiving a goal frees its percentages; restoring it must fit again.
+- A product with any goal allocation can't be hard-deleted (§5.8). Closing it is allowed and its value then reads as zero.
+
+**Projection** (computed on read, never stored)
+- Per scenario, month by month: `value[m] = value[m−1] × (1 + i) + contribution`, with `i = (1 + return)^(1/12) − 1` and contributions at month end, starting from the allocated value now.
+- A dated goal gets: the projected value at the target date, the surplus or shortfall against the target, and the **monthly contribution required** to reach the target on time (zero if the allocated value alone is enough). A dateless goal gets the months until the target is reached, simulated up to 50 years ("not reached within 50 years" otherwise).
+- It uses no market data and nothing is derived from prices (§3); it is an estimate that is only as good as the assumptions and the freshness of the snapshots.
+- **Progress history** applies the **current** split to each product's monthly value series (§5.8). Past splits are not stored, so the chart is labeled "as of the current allocation".
+
 
 ## 6. Functional Requirements
 
@@ -373,6 +402,7 @@ See [ADR 0033](../adr/0033-opening-position-as-cashless-holding-start.md).
 - Net worth trend over time (line chart), switchable between change-date points and monthly points.
 - Investment allocation by category, drilling into sub-categories (pie/bar chart, from latest product snapshots).
 - Upcoming recurring bills (pending occurrences awaiting confirmation).
+- Goals (§6.17): the goals the user flagged "show on dashboard", each with a progress bar and one status line; hidden when none is flagged.
 
 ### 6.9 Reports
 Eleven curated, human-readable reports a user generates on demand, superseding the earlier all-entity backup-shaped export (F013) now that real database backups (§7.3-adjacent, F018) are the disaster-recovery mechanism — these reports are for reading and analysis, not recovery (see Non-Goals, §3).
@@ -436,6 +466,16 @@ One page, the Ledger, replaces the separate Transactions and Transfers pages. It
 - **Account page:** the account detail page shows the same Ledger, scoped to that account, read-only, with the month navigator and summary and a link to the full Ledger. An `INVESTMENT` account keeps its products section above it and, since it takes no transactions (§5.4), lists only transfers.
 - Not in v1 (§9): a running balance per row, user-selectable sort, search on names or tickers, match highlighting. The reports (§6.9) remain the export path.
 
+### 6.17 Goals
+A Goals page (`/goals`) lists the user's goals; a goal opens its own page.
+- **List.** Each goal shows its progress (allocated value ÷ target, which may exceed 100%), the "target reached" indicator, a status line from the base scenario and a "Show on dashboard" switch. Dated goals come first by target date, then dateless goals by name; archived goals are hidden unless asked for. There is no priority field.
+- **Create and edit.** Name, notes, target amount, optional target date (it must be in the future when set or changed), planned monthly contribution, the three real returns, status (on edit) and "Show on dashboard" (default on). All text is bounded.
+- **Target helpers.** A "Suggest a target" action only fills the target field and stores nothing: *emergency fund* = N months (default 6) × the average monthly expense of the last 12 full months (months before the first expense are skipped; transfers are not expenses, §5.5); *retirement* = desired monthly income × 12 ÷ withdrawal rate (default 4% a year).
+- **Allocation.** On the goal page, the user picks investment products and a percentage for each. The editor shows each product's remaining capacity and the unassigned remainder, and rejects a total above 100% for any product across non-archived goals. The product detail page lists, read-only, the goals a product is allocated to.
+- **Projection.** A chart with the pessimistic, base and optimistic lines against the target, and a table per scenario: projected value at the target date, surplus or shortfall, the monthly contribution required, and, for a dateless goal, the months until the target is reached. Every value states that it is in today's money and shows the latest snapshot date. A second chart shows the progress history (§5.16).
+- **Dashboard card.** Any number of goals can be flagged; the card (§6.8) lists them in the same order with a progress bar and one base-scenario status line ("on track", "short by X at <date>", or "reached in N months"), and links to `/goals`. It is hidden when no goal is flagged. One request serves the whole card.
+- Not in v1 (§9): Monte Carlo simulation, a contribution step-up, linking whole accounts, actual-contribution tracking, stored allocation history.
+
 ## 7. Technical Design
 
 ### 7.1 Stack
@@ -485,6 +525,7 @@ These are low-level choices left to implementation rather than product decisions
 - Cash-in-lieu handling for a fractional split remainder ("sobra de desdobramento", §5.14) — recorded as an ordinary transfer for now, not a dedicated field on `InvestmentSplit`.
 - Guided import of a whole existing portfolio in one form (one opening position per holding is entered by hand for now, §5.15), or of a broker statement (see the bank/card import entry above).
 - Notifications (email/push) for budget overages or pending recurring bills.
+- Goal refinements (§5.16, §6.17): a Monte Carlo simulation (probability of reaching a target; it needs a per-goal volatility the app has no data for), a yearly contribution step-up, linking whole accounts (savings, checking) to a goal, tracking the actual contribution from trades, and storing allocation history so the progress chart can use the split of each past month.
 - Ledger refinements (§6.16): a running balance column per row, user-selectable sort, text search that also matches category/account/product names or trade-line tickers, and match highlighting.
 - Additional UI languages beyond English and Brazilian Portuguese (§6.14); server-side/multi-user locale (today it's a single client-side preference, no backend involvement).
 - Currency symbol display (§6.14) — tied to the existing no-multi-currency-support non-goal (§3), not introduced by the language toggle.
