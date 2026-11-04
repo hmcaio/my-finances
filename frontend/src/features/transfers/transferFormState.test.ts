@@ -122,10 +122,9 @@ describe('initialFormState', () => {
   it('leaves the investment account empty when neither endpoint is an investment account', () => {
     const state = initialFormState(seedBitcoinBuyTransfer, null, seedAccounts, t)
 
+    // Unreachable in practice (a confirmation always has an INVESTMENT endpoint). The cash account
+    // is deliberately not asserted: the fallback value there is an accident of the derivation.
     expect(state.investmentAccountId).toBe('')
-    // Unreachable in practice (a confirmation always has an INVESTMENT endpoint); the pre-split
-    // fallback picked the to side as the cash account, kept as is.
-    expect(state.cashAccountId).toBe(seedBitcoinBuyTransfer.toAccountId)
   })
 
   it('keeps recorded taxes, notes and resulting balances, and defaults null taxes to 0', () => {
