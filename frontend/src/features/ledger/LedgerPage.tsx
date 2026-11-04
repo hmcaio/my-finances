@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { Alert, Box, Button, DialogTitle, Menu, MenuItem, Typography } from '@mui/material'
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown'
-import { defaultErrorMessage } from '../../api/core/apiError'
 import type { LedgerEntry } from '../../api/ledger/ledger'
 import { useLedger } from '../../api/ledger/ledgerQueries'
 import { useDeleteTransaction, useTransaction } from '../../api/transactions/transactionsQueries'
@@ -12,6 +11,7 @@ import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
+import { useAction } from '../../hooks/useAction'
 import { TransactionFormDialog } from '../transactions/TransactionFormDialog'
 import { TransferForm } from '../transfers/TransferForm'
 import { LedgerFilters } from './LedgerFilters'
@@ -88,7 +88,7 @@ export function LedgerPage() {
   const [newTransfer, setNewTransfer] = useState(false)
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<LedgerEntry | null>(null)
-  const [deleting, setDeleting] = useState(false)
+  const deleteAction = useAction(setError)
   const [addMenuAnchor, setAddMenuAnchor] = useState<HTMLElement | null>(null)
 
   // Clears the navigation state right after consuming it, so a later back-navigation to this page
@@ -151,20 +151,12 @@ export function LedgerPage() {
 
   async function confirmDelete() {
     if (!deleteTarget) return
-    setError(null)
-    setDeleting(true)
-    try {
-      if (deleteTarget.type === 'TRANSFER') {
-        await deleteTransfer.mutateAsync(deleteTarget.id)
-      } else {
-        await deleteTransaction.mutateAsync(deleteTarget.id)
-      }
-      setDeleteTarget(null)
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    } finally {
-      setDeleting(false)
-    }
+    const deleted = await deleteAction.run(() =>
+      deleteTarget.type === 'TRANSFER'
+        ? deleteTransfer.mutateAsync(deleteTarget.id)
+        : deleteTransaction.mutateAsync(deleteTarget.id),
+    )
+    if (deleted) setDeleteTarget(null)
   }
 
   function retry() {
@@ -330,7 +322,7 @@ export function LedgerPage() {
             ? t('transfers:deleteConfirm.confirmLabel')
             : t('transactions:deleteConfirm.confirmLabel')
         }
-        loading={deleting}
+        loading={deleteAction.pending}
         onConfirm={() => void confirmDelete()}
         onCancel={() => setDeleteTarget(null)}
       />

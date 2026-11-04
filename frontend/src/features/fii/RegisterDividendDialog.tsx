@@ -10,7 +10,6 @@ import {
   TextField,
 } from '@mui/material'
 import { useAccounts } from '../../api/accounts/accountsQueries'
-import { defaultErrorMessage } from '../../api/core/apiError'
 import { useCategories } from '../../api/categories/categoriesQueries'
 import { useRegisterDividend } from '../../api/investments/fiiDividendsQueries'
 import { useInvestmentHoldingsByProduct } from '../../api/investments/investmentHoldingsQueries'
@@ -18,6 +17,7 @@ import type { InvestmentProduct } from '../../api/investments/investmentProducts
 import { usePaymentMethods } from '../../api/paymentMethods/paymentMethodsQueries'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
+import { useAction } from '../../hooks/useAction'
 import { translateSeedName } from '../../i18n/seedNames'
 import { today } from '../../utils/localDate'
 import { nameLookup } from '../../utils/nameLookup'
@@ -70,7 +70,7 @@ export function RegisterDividendDialog({
   const [amount, setAmount] = useState('')
   const [date, setDate] = useState(today())
   const [description, setDescription] = useState('')
-  const [saving, setSaving] = useState(false)
+  const saveAction = useAction(setError)
 
   const selectedProduct = fiiProducts.find((p) => p.id === productId)
 
@@ -97,10 +97,8 @@ export function RegisterDividendDialog({
 
   async function handleSubmit() {
     if (!dividendCategory || !holdingId || !accountId || !paymentMethodId || !amount) return
-    setError(null)
-    setSaving(true)
-    try {
-      await registerDividend.mutateAsync({
+    const registered = await saveAction.run(() =>
+      registerDividend.mutateAsync({
         date,
         amount: Number(amount),
         categoryId: dividendCategory.id,
@@ -112,13 +110,9 @@ export function RegisterDividendDialog({
             ticker: selectedProduct?.ticker ?? selectedProduct?.name ?? '',
           }),
         investmentHoldingId: holdingId,
-      })
-      handleClose()
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    } finally {
-      setSaving(false)
-    }
+      }),
+    )
+    if (registered) handleClose()
   }
 
   const canSubmit = Boolean(
@@ -222,12 +216,12 @@ export function RegisterDividendDialog({
         </FormGrid>
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose} disabled={saving}>
+        <Button onClick={handleClose} disabled={saveAction.pending}>
           {t('common:actions.cancel')}
         </Button>
         <Button
           variant="contained"
-          disabled={saving || !canSubmit}
+          disabled={saveAction.pending || !canSubmit}
           onClick={() => void handleSubmit()}
         >
           {t('registerDialog.registerButton')}
