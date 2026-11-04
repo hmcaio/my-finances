@@ -1,6 +1,6 @@
 ---
 name: release
-description: Prepares and drives a my-finances release (CHANGELOG promotion, version bump, release PR, rc and final tags, published-image check, GitHub release); every push or publish waits for the user's explicit confirmation. Use for /release [X.Y.Z], /release --check (reconcile only), /release continue (resume), or any ask to prepare, cut, check or plan a release, a version bump, release notes or "what's unreleased". Not for building a feature (implement-feature) or fixing an audit finding (audit-and-fix).
+description: Prepares and drives a my-finances release (CHANGELOG promotion, version bump, release PR, rc and final tags, published-image check, GitHub release); every push or publish waits for the user's explicit confirmation. Use for /release [X.Y.Z], /release --check (reconcile only), /release continue (resume), or any ask to prepare, cut, check or plan a release, a version bump, release notes or "what's unreleased". Not for building a feature (implement-feature) or fixing an audit finding (fix-issue).
 ---
 
 # Release

@@ -23,7 +23,7 @@ docker compose down
 - Conventional Commits (ADR 0009). Branch off `main` and PR into `main`, squash-merged (ADR 0032); never commit to `main` directly; push or open a PR only when asked.
 - Never put `[skip ci]` in a commit. A docs-only PR (only `docs/`, `*.md`, `.claude/`) skips the test jobs by file path (`changes` job in `ci.yml`); the marker would leave the required checks pending and block the merge (rulesets, ADR 0032), and on a release commit or tag it publishes no images.
 - **CHANGELOG entries ship with the PR.** A user-visible change adds its bullet under `## [Unreleased]` in `CHANGELOG.md`, in the same commit as the code; which changes qualify, the bullet format and the `Upgrade:` note are in `docs/conventions/release.md`.
-- `/implement-feature` builds a planned feature from `docs/features/FXXX`; `/audit-and-fix` handles cross-cutting audits and fixes (issue → branch → fix with tests → verify → docs); to launch the stack and drive a flow in the browser, use the `run-app` skill (throwaway login, its own compose project, torn down afterwards).
+- `/implement-feature` builds a planned feature from `docs/features/FXXX`; `/audit` finds cross-cutting gaps and files the issue, `/fix-issue <N>` fixes one (branch → fix with tests → verify → docs); to launch the stack and drive a flow in the browser, use the `run-app` skill (throwaway login, its own compose project, torn down afterwards).
 
 ## Rules for every task
 

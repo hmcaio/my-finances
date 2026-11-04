@@ -1,6 +1,6 @@
 ---
 name: design-feature
-description: Turns a rough feature idea into this repo's planning docs — an interview that stress-tests the idea into a shared design, then an ADR (if the design warrants one) and docs/features/<FXXX>-*/{spec.md,plan.md}, with the PRD and every index file kept in sync — committed on its own docs/ branch (never with a skip-ci marker, which would block the PR's required checks) and pushed/PR'd only when asked. Use whenever the user wants to design, plan, spec out or scope a new feature before building it ("let's design a feature for X", "help me plan X", "spec out X") — not for building a feature that's already specified (use implement-feature) and not for a cross-cutting bug/gap fix (use audit-and-fix).
+description: Turns a rough feature idea into this repo's planning docs — an interview that stress-tests the idea into a shared design, then an ADR (if the design warrants one) and docs/features/<FXXX>-*/{spec.md,plan.md}, with the PRD and every index file kept in sync — committed on its own docs/ branch (never with a skip-ci marker, which would block the PR's required checks) and pushed/PR'd only when asked. Use whenever the user wants to design, plan, spec out or scope a new feature before building it ("let's design a feature for X", "help me plan X", "spec out X") — not for building a feature that's already specified (use implement-feature) and not for a cross-cutting bug/gap fix (use fix-issue).
 ---
 
 # Design Feature
@@ -38,7 +38,7 @@ Create the docs workspace before the first file is written, so every file lands 
 - **Default: a worktree** (where and how: [`tooling.md`](../../../docs/conventions/tooling.md)) — `git worktree add -b docs/<short-slug> <root>/.claude/worktrees/<id>-docs origin/main` (`<id>` lowercase, e.g. `f024`; the first id of a split pair). Use it whenever the current checkout is not a clean `main` (another branch checked out, or uncommitted work, including an `implement-feature` branch in progress). The checkout and its branch stay untouched. Run Phase 3 and Phase 4 inside the worktree.
 - **Clean `main`** (`git status` clean, `git branch --show-current` is `main`, local `main` equal to `origin/main`): `git checkout -b docs/<short-slug>` here.
 
-The branch is `docs/`-prefixed per [ADR 0032](../../../docs/adr/0032-github-flow-main-only.md): docs-only work, the same prefix `audit-and-fix` uses for doc-only changes. The `feature/` prefix belongs to the `implement-feature` run that builds this later.
+The branch is `docs/`-prefixed per [ADR 0032](../../../docs/adr/0032-github-flow-main-only.md): docs-only work, the same prefix `fix-issue` uses for doc-only changes. The `feature/` prefix belongs to the `implement-feature` run that builds this later.
 
 ### Template
 
@@ -77,7 +77,7 @@ Ship from the Phase 3 workspace (its branch is already `docs/<short-slug>`).
 
 1. Stage exactly the files this skill touched — explicit paths, never `-A`/`.` (`git status` after to confirm nothing stray got swept in).
 2. Commit with Conventional Commits (ADR 0009), type `docs`, scope the feature id(s) (`docs(F028-F029): ...`), and **do not add `[skip ci]`**: the branch ruleset (ADR 0032) requires the CI checks, and a skipped workflow leaves them pending so the PR can never merge. A docs-only PR is skipped by file path instead (`changes` job in `.github/workflows/ci.yml`; the test jobs report as skipped, which counts as passed). No `CHANGELOG.md` entry: `docs` commits aren't user-visible changes (ADR 0009's type table).
-3. **Push and open the PR only when the user says so** — same rule `audit-and-fix` follows; confirming the design in Phase 1 is not the same as approving a push. When asked: `git push -u origin docs/<slug>` and `gh pr create --base main`. If a `pr` skill is available, load it first and write the body with it; either way the body carries a summary of what was added (ADR / which `FXXX` folders / PRD sections) and a test plan noting this is docs-only (nothing to run; `implement-feature <FXXX>` is the next step). Return the PR URL.
+3. **Push and open the PR only when the user says so** — same rule `fix-issue` follows; confirming the design in Phase 1 is not the same as approving a push. When asked: `git push -u origin docs/<slug>` and `gh pr create --base main`. If a `pr` skill is available, load it first and write the body with it; either way the body carries a summary of what was added (ADR / which `FXXX` folders / PRD sections) and a test plan noting this is docs-only (nothing to run; `implement-feature <FXXX>` is the next step). Return the PR URL.
 4. **Clean up after the merge**, when the user says the docs PR is merged or `gh pr view` reports `MERGED`, and the workspace was a worktree. From the original checkout: `git worktree remove <root>/.claude/worktrees/<id>-docs`, `git branch -D docs/<slug>`, `git worktree prune` (`-D` because a squash-merge leaves the branch unmerged in git's view). Done when `git worktree list` shows no entry for `.claude/worktrees/<id>-docs`.
 
 ## Closing message
