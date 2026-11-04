@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { Box, Skeleton, ToggleButton, ToggleButtonGroup, Typography, useTheme } from '@mui/material'
 import type { NetWorthGranularity, NetWorthPoint } from '../../api/netWorth/netWorth'
 import { useNetWorthTrend } from '../../api/netWorth/netWorthQueries'
+import { CHART_HEIGHT, CHART_WIDTH, ChartSvg, YGrid } from '../../components/charts/ChartSvg'
+import { createDayScale, createYScale } from '../../components/charts/chartMath'
 import { fadeInSx } from '../../components/feedback/fadeIn'
 import { LoadFailedNotice } from '../../components/feedback/LoadFailedNotice'
 import { useQueryState } from '../../hooks/queryState'
@@ -10,10 +12,7 @@ import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { useLocale, type Locale } from '../../hooks/locale/useLocale'
 import { formatMoney, formatNumber } from '../../i18n/format'
 
-const WIDTH = 640
-const HEIGHT = 260
 const MARGIN = { top: 16, right: 16, bottom: 32, left: 72 }
-const DAY_MS = 24 * 60 * 60 * 1000
 const X_LABELS = 4
 
 /** Screen-reader-only text, the same "Loading…" marker `DataTableBody`'s skeleton carries. */
@@ -25,20 +24,6 @@ const VISUALLY_HIDDEN = {
   clip: 'rect(0 0 0 0)',
   whiteSpace: 'nowrap',
 } as const
-
-/** Rounds a raw axis range up to a "nice" tick step (1, 2, 5 x 10^n). */
-function niceStep(range: number, ticks: number): number {
-  const rough = range / ticks
-  const magnitude = 10 ** Math.floor(Math.log10(rough))
-  const normalized = rough / magnitude
-  const factor = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10
-  return factor * magnitude
-}
-
-/** `YYYY-MM-DD` as a day count, timezone-free (parsed as UTC on purpose: only differences matter). */
-function dayNumber(date: string): number {
-  return Date.parse(`${date}T00:00:00Z`) / DAY_MS
-}
 
 /** The x-axis label of a point: a month for the monthly series, the full date otherwise. */
 function dateLabel(date: string, granularity: NetWorthGranularity): string {
@@ -95,7 +80,7 @@ export function NetWorthTrendChart() {
         <Box component="span" sx={VISUALLY_HIDDEN}>
           {t('loading')}
         </Box>
-        <Skeleton variant="rounded" height={HEIGHT} />
+        <Skeleton variant="rounded" height={CHART_HEIGHT} />
       </Box>
     )
   }
@@ -135,21 +120,14 @@ function Chart({ points, granularity, lineColor, axisColor, gridColor, t, locale
   const values = points.map((p) => p.netWorth)
   const max = Math.max(0, ...values)
   const min = Math.min(0, ...values)
-  const step = niceStep(max - min || 1, 4)
-  const top = Math.ceil(max / step) * step
-  const bottom = Math.floor(min / step) * step
-  const innerWidth = WIDTH - MARGIN.left - MARGIN.right
-  const innerHeight = HEIGHT - MARGIN.top - MARGIN.bottom
-  const y = (v: number) => MARGIN.top + ((top - v) / (top - bottom || 1)) * innerHeight
-
-  const firstDay = dayNumber(points[0].date)
-  const span = dayNumber(points[points.length - 1].date) - firstDay
+  const { ticks, y } = createYScale({ min, max, height: CHART_HEIGHT, margin: MARGIN })
   // A single point (or several on one day) sits in the middle.
-  const x = (date: string) =>
-    MARGIN.left + (span === 0 ? innerWidth / 2 : ((dayNumber(date) - firstDay) / span) * innerWidth)
-
-  const ticks: number[] = []
-  for (let t = bottom; t <= top + step / 2; t += step) ticks.push(t)
+  const x = createDayScale(
+    points[0].date,
+    points[points.length - 1].date,
+    MARGIN.left,
+    CHART_WIDTH - MARGIN.left - MARGIN.right,
+  )
 
   const labelIndexes = [
     ...new Set(
@@ -173,39 +151,21 @@ function Chart({ points, granularity, lineColor, axisColor, gridColor, t, locale
 
   return (
     <Box>
-      <Box
-        component="svg"
-        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        role="img"
-        aria-label={granularity === 'MONTH' ? t('chartAriaMonth') : t('chartAriaChange')}
-        sx={{ width: '100%', maxWidth: WIDTH, height: 'auto', display: 'block' }}
-      >
-        {ticks.map((tick) => (
-          <g key={tick}>
-            <line
-              x1={MARGIN.left}
-              x2={WIDTH - MARGIN.right}
-              y1={y(tick)}
-              y2={y(tick)}
-              stroke={gridColor}
-            />
-            <text
-              x={MARGIN.left - 8}
-              y={y(tick)}
-              textAnchor="end"
-              dominantBaseline="middle"
-              fontSize="11"
-              fill={axisColor}
-            >
-              {formatNumber(tick, locale, 0)}
-            </text>
-          </g>
-        ))}
+      <ChartSvg label={granularity === 'MONTH' ? t('chartAriaMonth') : t('chartAriaChange')}>
+        <YGrid
+          ticks={ticks}
+          y={y}
+          marginLeft={MARGIN.left}
+          marginRight={MARGIN.right}
+          gridColor={gridColor}
+          axisColor={axisColor}
+          formatTick={(tick) => formatNumber(tick, locale, 0)}
+        />
         {labelIndexes.map((index) => (
           <text
             key={points[index].date}
             x={x(points[index].date)}
-            y={HEIGHT - MARGIN.bottom + 18}
+            y={CHART_HEIGHT - MARGIN.bottom + 18}
             textAnchor={
               points.length === 1
                 ? 'middle'
@@ -235,7 +195,7 @@ function Chart({ points, granularity, lineColor, axisColor, gridColor, t, locale
             </title>
           </circle>
         ))}
-      </Box>
+      </ChartSvg>
       <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
         {t('summary', {
           date: latest.date,

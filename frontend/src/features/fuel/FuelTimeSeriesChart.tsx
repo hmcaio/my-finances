@@ -1,27 +1,10 @@
 import { useTranslation } from 'react-i18next'
 import { Box, Typography } from '@mui/material'
+import { CHART_HEIGHT, CHART_WIDTH, ChartSvg, YGrid } from '../../components/charts/ChartSvg'
+import { createDayScale, createYScale } from '../../components/charts/chartMath'
 
-const WIDTH = 640
-const HEIGHT = 260
 const MARGIN = { top: 16, right: 16, bottom: 32, left: 64 }
-const DAY_MS = 24 * 60 * 60 * 1000
 const X_LABELS = 4
-
-/** Rounds a raw axis range up to a "nice" tick step (1, 2, 5 x 10^n) - same helper as
- * `NetWorthTrendChart`/`ValueSeriesChart`. */
-function niceStep(range: number, ticks: number): number {
-  const rough = range / ticks
-  const magnitude = 10 ** Math.floor(Math.log10(rough))
-  const normalized = rough / magnitude
-  const factor = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10
-  return factor * magnitude
-}
-
-/** `YYYY-MM-DD` as a day count, timezone-free (parsed as UTC on purpose: only differences
- * matter) - same helper as `NetWorthTrendChart`. */
-function dayNumber(date: string): number {
-  return Date.parse(`${date}T00:00:00Z`) / DAY_MS
-}
 
 export interface FuelSeriesPoint {
   date: string
@@ -85,23 +68,15 @@ export function FuelTimeSeriesChart({
   const baseline = zeroBaseline ? [0] : []
   const max = Math.max(...baseline, ...values)
   const min = Math.min(...baseline, ...values)
-  const step = niceStep(max - min || 1, 4)
-  const top = Math.ceil(max / step) * step
-  const bottom = Math.floor(min / step) * step
-  const innerWidth = WIDTH - MARGIN.left - MARGIN.right
-  const innerHeight = HEIGHT - MARGIN.top - MARGIN.bottom
-  const y = (v: number) => MARGIN.top + ((top - v) / (top - bottom || 1)) * innerHeight
-
-  const days = allPoints.map((p) => dayNumber(p.date))
-  const firstDay = Math.min(...days)
-  const span = Math.max(...days) - firstDay
-  const x = (date: string) =>
-    MARGIN.left + (span === 0 ? innerWidth / 2 : ((dayNumber(date) - firstDay) / span) * innerWidth)
-
-  const ticks: number[] = []
-  for (let t = bottom; t <= top + step / 2; t += step) ticks.push(t)
+  const { ticks, y } = createYScale({ min, max, height: CHART_HEIGHT, margin: MARGIN })
 
   const sortedAllDates = [...new Set(allPoints.map((p) => p.date))].sort()
+  const x = createDayScale(
+    sortedAllDates[0],
+    sortedAllDates[sortedAllDates.length - 1],
+    MARGIN.left,
+    CHART_WIDTH - MARGIN.left - MARGIN.right,
+  )
   const labelIndexes = [
     ...new Set(
       Array.from({ length: Math.min(X_LABELS, sortedAllDates.length) }, (_, i) =>
@@ -114,39 +89,21 @@ export function FuelTimeSeriesChart({
 
   return (
     <Box>
-      <Box
-        component="svg"
-        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        role="img"
-        aria-label={label}
-        sx={{ width: '100%', maxWidth: WIDTH, height: 'auto', display: 'block' }}
-      >
-        {ticks.map((t) => (
-          <g key={t}>
-            <line
-              x1={MARGIN.left}
-              x2={WIDTH - MARGIN.right}
-              y1={y(t)}
-              y2={y(t)}
-              stroke={gridColor}
-            />
-            <text
-              x={MARGIN.left - 8}
-              y={y(t)}
-              textAnchor="end"
-              dominantBaseline="middle"
-              fontSize="11"
-              fill={axisColor}
-            >
-              {formatValue(t)}
-            </text>
-          </g>
-        ))}
+      <ChartSvg label={label}>
+        <YGrid
+          ticks={ticks}
+          y={y}
+          marginLeft={MARGIN.left}
+          marginRight={MARGIN.right}
+          gridColor={gridColor}
+          axisColor={axisColor}
+          formatTick={formatValue}
+        />
         {labelIndexes.map((index) => (
           <text
             key={sortedAllDates[index]}
             x={x(sortedAllDates[index])}
-            y={HEIGHT - MARGIN.bottom + 18}
+            y={CHART_HEIGHT - MARGIN.bottom + 18}
             textAnchor={
               sortedAllDates.length === 1
                 ? 'middle'
@@ -186,7 +143,7 @@ export function FuelTimeSeriesChart({
             </g>
           )
         })}
-      </Box>
+      </ChartSvg>
       {series.length > 1 && (
         <Box sx={{ display: 'flex', gap: 3, mt: 1, flexWrap: 'wrap' }} aria-hidden="true">
           {series.map((s) => (
