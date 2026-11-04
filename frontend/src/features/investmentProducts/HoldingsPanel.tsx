@@ -4,7 +4,6 @@ import {
   Button,
   Chip,
   IconButton,
-  Paper,
   Table,
   TableCell,
   TableContainer,
@@ -20,7 +19,7 @@ import { DataTableBody } from '../../components/table/DataTableBody'
 import type { LoadState } from '../../hooks/queryState'
 import { useLocale } from '../../hooks/locale/useLocale'
 import { formatMoney } from '../../i18n/format'
-import { SECTION_PADDING } from './detailLayout'
+import { PageSection } from '../../components/layout/PageSection'
 
 interface HoldingsPanelProps {
   holdings: InvestmentHolding[] | undefined
@@ -51,7 +50,7 @@ export function HoldingsPanel({
   const { t } = useTranslation('investmentProducts')
   const { locale } = useLocale()
   return (
-    <Paper variant="outlined" sx={{ p: SECTION_PADDING, mb: 3 }}>
+    <PageSection sx={{ mb: 3 }}>
       <Box
         sx={{
           display: 'flex',
@@ -136,6 +135,6 @@ export function HoldingsPanel({
           </DataTableBody>
         </Table>
       </TableContainer>
-    </Paper>
+    </PageSection>
   )
 }

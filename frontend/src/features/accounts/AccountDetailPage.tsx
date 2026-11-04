@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link as RouterLink, useParams } from 'react-router-dom'
-import { Alert, Box, Chip, Link as MuiLink, Paper, Skeleton, Typography } from '@mui/material'
+import { Alert, Box, Chip, Link as MuiLink, Skeleton, Typography } from '@mui/material'
 import { useAccount } from '../../api/accounts/accountsQueries'
 import { defaultErrorMessage } from '../../api/core/apiError'
 import { useInstitutions } from '../../api/institutions/institutionsQueries'
@@ -16,9 +16,9 @@ import { accountTypeLabel } from './accountTypes'
 import { InvestmentProductsSection } from '../investmentProducts/InvestmentProductsSection'
 import { AccountLedger } from '../ledger/AccountLedger'
 import { PageContainer } from '../../components/layout/PageContainer'
+import { PageSection } from '../../components/layout/PageSection'
 
 /** Section padding: tighter on phones so the embedded lists keep their width (F021). */
-const SECTION_PADDING = { xs: 2, sm: 3 }
 
 /**
  * Account detail view (F003 spec): running balance plus account fields, plus one embedded,
@@ -78,7 +78,7 @@ export function AccountDetailPage() {
             {institutionName(account.institutionId)} &middot; {accountTypeLabel(account.type, t)}
           </Typography>
 
-          <Paper variant="outlined" sx={{ p: SECTION_PADDING, mb: 3, maxWidth: 480 }}>
+          <PageSection sx={{ mb: 3, maxWidth: 480 }}>
             <Typography variant="overline" color="text.secondary">
               {t('accounts:detail.runningBalance')}
             </Typography>
@@ -96,25 +96,25 @@ export function AccountDetailPage() {
                 ? t('accounts:detail.closedSuffix', { date: account.closedDate })
                 : ''}
             </Typography>
-          </Paper>
+          </PageSection>
 
           {account.type === 'INVESTMENT' && (
             // An investment account's value comes from its products (F008 spec), listed above its
             // transfers (buys and sells).
-            <Paper variant="outlined" sx={{ p: SECTION_PADDING, mb: 3 }}>
+            <PageSection sx={{ mb: 3 }}>
               <Typography variant="h6" gutterBottom>
                 {t('accounts:detail.products')}
               </Typography>
               <InvestmentProductsSection accountId={account.id} accountClosed={account.closed} />
-            </Paper>
+            </PageSection>
           )}
 
-          <Paper variant="outlined" sx={{ p: SECTION_PADDING }}>
+          <PageSection>
             <Typography variant="h6" gutterBottom>
               {t('accounts:detail.ledger')}
             </Typography>
             <AccountLedger accountId={account.id} />
-          </Paper>
+          </PageSection>
         </Box>
       )}
     </PageContainer>
@@ -132,16 +132,16 @@ function AccountDetailSkeleton() {
       </Box>
       <Skeleton variant="text" width={200} sx={{ mb: 3 }} />
 
-      <Paper variant="outlined" sx={{ p: SECTION_PADDING, mb: 3, maxWidth: 480 }}>
+      <PageSection sx={{ mb: 3, maxWidth: 480 }}>
         <Skeleton variant="text" width={110} sx={{ typography: 'overline' }} />
         <Skeleton variant="text" width={180} sx={{ typography: 'h3', mb: 2 }} />
         <Skeleton variant="text" width="80%" sx={{ typography: 'body2' }} />
-      </Paper>
+      </PageSection>
 
-      <Paper variant="outlined" sx={{ p: SECTION_PADDING }}>
+      <PageSection>
         <Skeleton variant="text" width={120} sx={{ typography: 'h6', mb: 1 }} />
         <Skeleton variant="rounded" height={160} />
-      </Paper>
+      </PageSection>
     </Box>
   )
 }

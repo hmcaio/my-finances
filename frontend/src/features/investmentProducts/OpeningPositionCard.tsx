@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Box, Button, IconButton, Paper, Skeleton, Typography } from '@mui/material'
+import { Box, Button, IconButton, Skeleton, Typography } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
 import type { InvestmentHolding } from '../../api/investments/investmentHoldings'
@@ -20,12 +20,11 @@ import { useAction } from '../../hooks/useAction'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { formatDate, formatMoney, formatQuantity, formatUnitPrice } from '../../i18n/format'
 import { OpeningPositionDialog } from './OpeningPositionDialog'
+import { PageSection } from '../../components/layout/PageSection'
 
 interface OpeningPositionCardProps {
   /** The selected holding of the product detail page. */
   holding: InvestmentHolding
-  /** Same horizontal padding as the neighbouring cards. */
-  padding: { xs: number; sm: number }
 }
 
 /** A plain `YYYY-MM-DD` date: formatted in UTC so no local time zone shifts it a day. */
@@ -39,7 +38,7 @@ const DATE_OPTIONS: Intl.DateTimeFormatOptions = { dateStyle: 'long', timeZone: 
  * the backend's not-found problem type to `null`. Mutations refetch everything (ADR 0016), so the
  * holding's flag, snapshots, series and FII totals follow without any coordination here.
  */
-export function OpeningPositionCard({ holding, padding }: OpeningPositionCardProps) {
+export function OpeningPositionCard({ holding }: OpeningPositionCardProps) {
   const { t } = useTranslation(['investmentProducts', 'common'])
   const { locale } = useLocale()
   const query = useOpeningPosition(holding.id)
@@ -77,7 +76,7 @@ export function OpeningPositionCard({ holding, padding }: OpeningPositionCardPro
   const editable = !holding.closed
 
   return (
-    <Paper variant="outlined" sx={{ p: padding }}>
+    <PageSection>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
         <Typography variant="overline" color="text.secondary" sx={{ flexGrow: 1 }}>
           {t('investmentProducts:openingPosition.title')}
@@ -174,7 +173,7 @@ export function OpeningPositionCard({ holding, padding }: OpeningPositionCardPro
         onConfirm={() => void handleDelete()}
         onCancel={() => setConfirmDelete(false)}
       />
-    </Paper>
+    </PageSection>
   )
 }
 

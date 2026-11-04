@@ -3,7 +3,6 @@ import {
   Box,
   Button,
   IconButton,
-  Paper,
   Table,
   TableCell,
   TableContainer,
@@ -19,7 +18,7 @@ import { InlineEditActions } from '../../components/table/InlineEditActions'
 import type { LoadState } from '../../hooks/queryState'
 import { useLocale } from '../../hooks/locale/useLocale'
 import { formatMoney } from '../../i18n/format'
-import { SECTION_PADDING } from './detailLayout'
+import { PageSection } from '../../components/layout/PageSection'
 
 export interface SnapshotEdit {
   id: string
@@ -56,7 +55,7 @@ export function SnapshotsPanel({
   const { t } = useTranslation('investmentProducts')
   const { locale } = useLocale()
   return (
-    <Paper variant="outlined" sx={{ p: SECTION_PADDING, mb: 3 }}>
+    <PageSection sx={{ mb: 3 }}>
       <Box
         sx={{
           display: 'flex',
@@ -158,6 +157,6 @@ export function SnapshotsPanel({
           </DataTableBody>
         </Table>
       </TableContainer>
-    </Paper>
+    </PageSection>
   )
 }

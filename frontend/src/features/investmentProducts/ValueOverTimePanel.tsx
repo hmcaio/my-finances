@@ -1,12 +1,12 @@
 import { useTranslation } from 'react-i18next'
-import { Box, Paper, Skeleton, Typography } from '@mui/material'
+import { Box, Skeleton, Typography } from '@mui/material'
 import type { ValueSeriesPoint } from '../../api/investments/investmentValueSeries'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import type { LoadState } from '../../hooks/queryState'
 import { useLocale } from '../../hooks/locale/useLocale'
 import { formatMoney } from '../../i18n/format'
-import { SECTION_PADDING } from './detailLayout'
 import { ValueSeriesChart } from './ValueSeriesChart'
+import { PageSection } from '../../components/layout/PageSection'
 
 interface ValueOverTimePanelProps {
   points: ValueSeriesPoint[]
@@ -51,7 +51,7 @@ export function ValueOverTimePanel({ points, state }: ValueOverTimePanelProps) {
   ]
 
   return (
-    <Paper variant="outlined" sx={{ p: SECTION_PADDING, mb: 3 }}>
+    <PageSection sx={{ mb: 3 }}>
       <Typography variant="h6" gutterBottom>
         {t('detail.valueOverTimeTitle')}
       </Typography>
@@ -73,6 +73,6 @@ export function ValueOverTimePanel({ points, state }: ValueOverTimePanelProps) {
           </Box>
         </>
       )}
-    </Paper>
+    </PageSection>
   )
 }

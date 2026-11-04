@@ -19,7 +19,6 @@ import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { nameLookup } from '../../utils/nameLookup'
 import { CurrentValueCard } from './CurrentValueCard'
-import { SECTION_PADDING } from './detailLayout'
 import { HoldingDialogs } from './HoldingDialogs'
 import { HoldingsPanel } from './HoldingsPanel'
 import { OpeningPositionCard } from './OpeningPositionCard'
@@ -205,7 +204,7 @@ export function InvestmentProductDetailPage() {
                   onTrade={tradeDialog.open}
                 />
 
-                <OpeningPositionCard holding={selectedHolding} padding={SECTION_PADDING} />
+                <OpeningPositionCard holding={selectedHolding} />
               </Box>
 
               <SnapshotsPanel

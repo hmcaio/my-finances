@@ -6,7 +6,7 @@ import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/R
 import type { LoadState } from '../../hooks/queryState'
 import { useLocale } from '../../hooks/locale/useLocale'
 import { formatMoney } from '../../i18n/format'
-import { SECTION_PADDING } from './detailLayout'
+import { PageSection } from '../../components/layout/PageSection'
 
 interface TradesPanelProps {
   lines: TradeConfirmationLineRecord[] | undefined
@@ -100,7 +100,7 @@ export function TradesPanel({ lines, state }: TradesPanelProps) {
   }
 
   return (
-    <Paper variant="outlined" sx={{ p: SECTION_PADDING }}>
+    <PageSection>
       <Typography variant="h6" gutterBottom>
         {t('detail.tradesTitle')}
       </Typography>
@@ -114,6 +114,6 @@ export function TradesPanel({ lines, state }: TradesPanelProps) {
         renderCard={renderTradeCard}
         emptyMessage={t('detail.emptyTrades')}
       />
-    </Paper>
+    </PageSection>
   )
 }

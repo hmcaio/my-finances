@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next'
-import { Box, Button, Chip, Paper, Tooltip, Typography } from '@mui/material'
+import { Box, Button, Chip, Tooltip, Typography } from '@mui/material'
 import type { InvestmentHolding } from '../../api/investments/investmentHoldings'
 import { useLocale } from '../../hooks/locale/useLocale'
 import { formatMoney } from '../../i18n/format'
-import { SECTION_PADDING } from './detailLayout'
+import { PageSection } from '../../components/layout/PageSection'
 
 interface CurrentValueCardProps {
   holding: InvestmentHolding
@@ -23,7 +23,7 @@ export function CurrentValueCard({
   const { t } = useTranslation('investmentProducts')
   const { locale } = useLocale()
   return (
-    <Paper variant="outlined" sx={{ p: SECTION_PADDING }}>
+    <PageSection>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
         <Typography variant="overline" color="text.secondary">
           {t('detail.currentValue')} {accountName ? `(${accountName})` : ''}
@@ -55,6 +55,6 @@ export function CurrentValueCard({
           {t('detail.sellButton')}
         </Button>
       </Box>
-    </Paper>
+    </PageSection>
   )
 }
