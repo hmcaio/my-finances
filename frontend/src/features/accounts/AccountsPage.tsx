@@ -35,6 +35,7 @@ import { buildAccountColumns } from './accountColumns'
 import { AccountEditFields } from './AccountEditFields'
 import { AccountRowActions } from './AccountRowActions'
 import { PageContainer } from '../../components/layout/PageContainer'
+import { PageHeader } from '../../components/layout/PageHeader'
 
 /**
  * Account list/management screen (F003 spec): table with name, institution, type, running
@@ -162,22 +163,11 @@ export function AccountsPage() {
 
   return (
     <PageContainer>
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 2,
-          mb: 1,
-        }}
-      >
-        <Typography variant="h4" component="h1">
-          {t('accounts:title')}
-        </Typography>
+      <PageHeader title={t('accounts:title')}>
         <Button variant="contained" onClick={() => setAddDialogOpen(true)}>
           {t('accounts:addButton')}
         </Button>
-      </Box>
+      </PageHeader>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         {t('accounts:description')}
       </Typography>

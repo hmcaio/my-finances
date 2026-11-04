@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  Box,
   Button,
   IconButton,
   Paper,
@@ -30,6 +29,7 @@ import { useAddDialog } from '../../hooks/useAddDialog'
 import { useInlineEdit } from '../../hooks/useInlineEdit'
 import { useQueryState } from '../../hooks/queryState'
 import { PageContainer } from '../../components/layout/PageContainer'
+import { PageHeader } from '../../components/layout/PageHeader'
 
 /**
  * Settings-style CRUD screen for vehicles (F024 spec): table with name, inline rename, add-new
@@ -96,22 +96,11 @@ export function VehiclesPage() {
 
   return (
     <PageContainer>
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 2,
-          mb: 1,
-        }}
-      >
-        <Typography variant="h4" component="h1">
-          {t('vehicles:title')}
-        </Typography>
+      <PageHeader title={t('vehicles:title')}>
         <Button variant="contained" onClick={addDialog.show}>
           {t('vehicles:addButton')}
         </Button>
-      </Box>
+      </PageHeader>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         {t('vehicles:description')}
       </Typography>

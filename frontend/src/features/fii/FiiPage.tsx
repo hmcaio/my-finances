@@ -17,6 +17,7 @@ import { FiiNestedAllocationDonutChart } from './FiiNestedAllocationDonutChart'
 import { RegisterDividendDialog } from './RegisterDividendDialog'
 import type { FiiPortfolioRow } from '../../api/investments/fiiPortfolio'
 import { PageContainer } from '../../components/layout/PageContainer'
+import { PageHeader } from '../../components/layout/PageHeader'
 
 /** The sub-category name every FII product is classified under (mirrors `AllocationPlanService`). */
 const FII_SUBCATEGORY_NAME = 'REITs (FIIs)'
@@ -104,22 +105,11 @@ export function FiiPage() {
 
   return (
     <PageContainer>
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 2,
-          mb: 1,
-        }}
-      >
-        <Typography variant="h4" component="h1">
-          {t('title')}
-        </Typography>
+      <PageHeader title={t('title')}>
         <Button variant="contained" onClick={() => setRegisterOpen(true)}>
           {t('registerDividendButton')}
         </Button>
-      </Box>
+      </PageHeader>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         {t('description')}
       </Typography>

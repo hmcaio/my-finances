@@ -40,6 +40,7 @@ import { BudgetRowActions } from './BudgetRowActions'
 import { isBudgetCapValid } from './budgetEdit'
 import { BudgetVsActualReport } from './BudgetVsActualReport'
 import { PageContainer } from '../../components/layout/PageContainer'
+import { PageHeader } from '../../components/layout/PageHeader'
 
 /**
  * Budgets screen (F006 spec): a settings-style list of budgeted categories with their current cap
@@ -174,22 +175,11 @@ export function BudgetsPage() {
 
   return (
     <PageContainer>
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 2,
-          mb: 1,
-        }}
-      >
-        <Typography variant="h4" component="h1">
-          {t('budgets:title')}
-        </Typography>
+      <PageHeader title={t('budgets:title')}>
         <Button variant="contained" onClick={addDialog.show}>
           {t('budgets:addButton')}
         </Button>
-      </Box>
+      </PageHeader>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         {t('budgets:description')}
       </Typography>

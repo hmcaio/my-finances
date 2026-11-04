@@ -37,6 +37,7 @@ import {
   isRecurringTemplateEditValid,
 } from './recurringTemplateEdit'
 import { PageContainer } from '../../components/layout/PageContainer'
+import { PageHeader } from '../../components/layout/PageHeader'
 
 /**
  * Recurring templates settings screen (F007 spec): a list of templates (description, category,
@@ -207,22 +208,11 @@ export function RecurringTemplatesPage() {
 
   return (
     <PageContainer>
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 2,
-          mb: 1,
-        }}
-      >
-        <Typography variant="h4" component="h1">
-          {t('recurringTemplates:title')}
-        </Typography>
+      <PageHeader title={t('recurringTemplates:title')}>
         <Button variant="contained" onClick={addDialog.show}>
           {t('recurringTemplates:addButton')}
         </Button>
-      </Box>
+      </PageHeader>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         {t('recurringTemplates:description')}
       </Typography>
