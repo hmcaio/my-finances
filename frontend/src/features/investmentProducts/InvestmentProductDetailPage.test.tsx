@@ -266,6 +266,45 @@ describe('InvestmentProductDetailPage', () => {
     expect(within(row).getByLabelText('Edit snapshot date')).toBeInTheDocument()
   })
 
+  it('shows "Snapshot not found." when an edit hits a snapshot that no longer exists (404)', async () => {
+    const user = userEvent.setup({ delay: null })
+    server.use(
+      http.put('/api/investment-holdings/:id/snapshots/:snapshotId', () =>
+        HttpResponse.json({ type: 'urn:my-finances:error:not-found' }, { status: 404 }),
+      ),
+    )
+    renderDetail()
+    await screen.findByRole('heading', { name: 'Bitcoin' })
+    const history = screen.getByRole('table', { name: 'Snapshot history' })
+    const row = (await within(history).findByText('2026-07-31')).closest('tr')!
+
+    await user.click(within(row).getByRole('button', { name: 'Edit snapshot' }))
+    await user.click(within(row).getByRole('button', { name: 'Save snapshot' }))
+
+    expect(await screen.findByText('Snapshot not found.')).toBeInTheDocument()
+    expect(within(row).getByLabelText('Edit snapshot date')).toBeInTheDocument()
+  })
+
+  it('shows "Snapshot not found." and closes the confirmation when a delete hits a missing snapshot (404)', async () => {
+    const user = userEvent.setup({ delay: null })
+    server.use(
+      http.delete('/api/investment-holdings/:id/snapshots/:snapshotId', () =>
+        HttpResponse.json({ type: 'urn:my-finances:error:not-found' }, { status: 404 }),
+      ),
+    )
+    renderDetail()
+    await screen.findByRole('heading', { name: 'Bitcoin' })
+    const history = screen.getByRole('table', { name: 'Snapshot history' })
+    const row = (await within(history).findByText('2026-08-05')).closest('tr')!
+
+    await user.click(within(row).getByRole('button', { name: 'Delete snapshot' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Delete snapshot?' })
+    await user.click(within(dialog).getByRole('button', { name: 'Delete' }))
+
+    expect(await screen.findByText('Snapshot not found.')).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  })
+
   it('deletes a snapshot after confirming and moves the current value back', async () => {
     const user = userEvent.setup({ delay: null })
     renderDetail()
