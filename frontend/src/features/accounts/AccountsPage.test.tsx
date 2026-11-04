@@ -589,3 +589,105 @@ describe('AccountsPage responsive layout (F021)', () => {
     })
   })
 })
+
+describe('AccountsPage row states', () => {
+  const open = seedAccounts.find((a) => !a.closed)!
+  const closed = seedAccounts.find((a) => a.closed)!
+
+  afterEach(restoreViewport)
+
+  describe('desktop', () => {
+    beforeEach(() => setViewportWidth(VIEWPORT.desktop))
+
+    it('links each row name to the account detail page and shows the type label', async () => {
+      renderPage()
+
+      const row = await findRow(open.name)
+      expect(row.getByRole('link', { name: open.name })).toHaveAttribute(
+        'href',
+        `/accounts/${open.id}`,
+      )
+      expect(row.getByText('Checking')).toBeInTheDocument()
+      expect(row.getByText(formatMoney(open.balance, 'en'))).toBeInTheDocument()
+    })
+
+    it('shows a closed account as Closed with its Close button disabled', async () => {
+      const user = userEvent.setup({ delay: null })
+      renderPage()
+      await screen.findByText(open.name)
+      await user.click(screen.getByRole('switch', { name: 'Show closed accounts' }))
+
+      const closedRow = await findRow(closed.name)
+      expect(closedRow.getByText('Closed')).toBeInTheDocument()
+      expect(closedRow.getByRole('button', { name: 'Close' })).toBeDisabled()
+      expect(closedRow.getByRole('button', { name: 'Delete' })).toBeEnabled()
+      expect((await findRow(open.name)).getByText('Open')).toBeInTheDocument()
+    })
+
+    it('hides Close and Delete while the row is edited inline, and the name link comes back after Cancel', async () => {
+      const user = userEvent.setup({ delay: null })
+      renderPage()
+      const row = await findRow(open.name)
+
+      await user.click(row.getByRole('button', { name: 'Edit' }))
+
+      expect(row.queryByRole('link', { name: open.name })).not.toBeInTheDocument()
+      expect(row.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument()
+      expect(row.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
+      await user.click(row.getByRole('button', { name: 'Cancel' }))
+      expect(row.getByRole('link', { name: open.name })).toBeInTheDocument()
+      expect(row.getByRole('button', { name: 'Close' })).toBeInTheDocument()
+    })
+
+    it('saves the inline rename on Enter and cancels it on Escape', async () => {
+      const user = userEvent.setup({ delay: null })
+      renderPage()
+      const row = await findRow(open.name)
+
+      await user.click(row.getByRole('button', { name: 'Edit' }))
+      await user.type(row.getByRole('textbox', { name: 'Name' }), '{Escape}')
+      expect(row.queryByRole('textbox', { name: 'Name' })).not.toBeInTheDocument()
+      expect(row.getByRole('link', { name: open.name })).toBeInTheDocument()
+
+      await user.click(row.getByRole('button', { name: 'Edit' }))
+      const nameInput = row.getByRole('textbox', { name: 'Name' })
+      await user.clear(nameInput)
+      await user.type(nameInput, 'Via Enter{Enter}')
+
+      expect(await screen.findByRole('link', { name: 'Via Enter' })).toBeInTheDocument()
+    })
+  })
+
+  describe('mobile', () => {
+    beforeEach(() => setViewportWidth(VIEWPORT.mobile))
+
+    it('shows a closed account card as Closed with Close disabled, and no inline inputs while editing', async () => {
+      const user = userEvent.setup({ delay: null })
+      renderPage()
+      await screen.findByRole('list', { name: 'Accounts' })
+      await user.click(screen.getByRole('switch', { name: 'Show closed accounts' }))
+      const list = screen.getByRole('list', { name: 'Accounts' })
+      await within(list).findByText(closed.name)
+      const closedCard = within(
+        within(list)
+          .getAllByRole('listitem')
+          .find((item) => within(item).queryByText(closed.name))!,
+      )
+
+      expect(closedCard.getByText('Closed')).toBeInTheDocument()
+      expect(closedCard.getByRole('button', { name: 'Close' })).toBeDisabled()
+
+      const openCard = within(
+        within(list)
+          .getAllByRole('listitem')
+          .find((item) => within(item).queryByText(open.name))!,
+      )
+      await user.click(openCard.getByRole('button', { name: 'Edit' }))
+      await screen.findByRole('dialog')
+      // The only name input is the dialog's; the card keeps its link and its Close/Delete buttons.
+      expect(screen.getAllByRole('textbox', { name: 'Name', hidden: true })).toHaveLength(1)
+      expect(openCard.getByRole('link', { name: open.name, hidden: true })).toBeInTheDocument()
+      expect(openCard.getByRole('button', { name: 'Close', hidden: true })).toBeInTheDocument()
+    })
+  })
+})

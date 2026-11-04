@@ -353,3 +353,129 @@ describe('RecurringTemplatesPage responsive layout (F021)', () => {
     })
   })
 })
+
+describe('RecurringTemplatesPage row states', () => {
+  const noCapTemplate = {
+    ...seedRentRecurringTemplate,
+    currentAmount: null,
+    currentDayOfMonth: null,
+  }
+  const stoppedTemplate = { ...seedRentRecurringTemplate, active: false }
+
+  afterEach(restoreViewport)
+
+  function serveTemplates(...templates: (typeof seedRentRecurringTemplate)[]) {
+    server.use(http.get('/api/recurring-templates', () => HttpResponse.json(templates)))
+  }
+
+  describe('desktop', () => {
+    beforeEach(() => setViewportWidth(VIEWPORT.desktop))
+
+    it('shows "No cap yet" and a dash for a template without a current cap', async () => {
+      serveTemplates(noCapTemplate)
+      renderWithQueryClient(<RecurringTemplatesPage />)
+
+      const row = await findRow(noCapTemplate.description, templatesTable())
+      expect(row.getByText('No cap yet')).toBeInTheDocument()
+      expect(row.getByText('—')).toBeInTheDocument()
+    })
+
+    it('shows a stopped template as Stopped with a Reactivate button, and reactivates it', async () => {
+      let active = false
+      server.use(
+        http.get('/api/recurring-templates', () =>
+          HttpResponse.json([{ ...seedRentRecurringTemplate, active }]),
+        ),
+        http.post('/api/recurring-templates/:id/reactivate', () => {
+          active = true
+          return HttpResponse.json({ ...seedRentRecurringTemplate, active })
+        }),
+      )
+      const user = userEvent.setup({ delay: null })
+      renderWithQueryClient(<RecurringTemplatesPage />)
+      const row = await findRow(stoppedTemplate.description, templatesTable())
+
+      expect(row.getByText('Stopped')).toBeInTheDocument()
+      expect(row.queryByRole('button', { name: 'Stop' })).not.toBeInTheDocument()
+      await user.click(row.getByRole('button', { name: 'Reactivate' }))
+
+      expect(await row.findByText('Active')).toBeInTheDocument()
+    })
+
+    it('swaps the amount and day cells for inputs while editing, hides Stop, and Cancel restores them', async () => {
+      const user = userEvent.setup({ delay: null })
+      renderWithQueryClient(<RecurringTemplatesPage />)
+      const row = await findRow(seedRentRecurringTemplate.description, templatesTable())
+      const money = formatMoney(seedRentRecurringTemplate.currentAmount!, 'en')
+
+      await user.click(row.getByRole('button', { name: 'Edit amount and day' }))
+
+      expect(row.getByLabelText('Amount')).toHaveValue(seedRentRecurringTemplate.currentAmount)
+      expect(row.getByLabelText('Day of month')).toHaveValue(
+        seedRentRecurringTemplate.currentDayOfMonth,
+      )
+      expect(row.queryByText(money)).not.toBeInTheDocument()
+      expect(row.queryByRole('button', { name: 'Stop' })).not.toBeInTheDocument()
+      expect(row.queryByRole('button', { name: 'Edit amount and day' })).not.toBeInTheDocument()
+
+      await user.click(row.getByRole('button', { name: 'Cancel' }))
+
+      expect(row.queryByLabelText('Amount')).not.toBeInTheDocument()
+      expect(row.getByText(money)).toBeInTheDocument()
+      expect(row.getByRole('button', { name: 'Stop' })).toBeInTheDocument()
+    })
+
+    it('disables Save cap while the edited amount is not positive', async () => {
+      const user = userEvent.setup({ delay: null })
+      renderWithQueryClient(<RecurringTemplatesPage />)
+      const row = await findRow(seedRentRecurringTemplate.description, templatesTable())
+
+      await user.click(row.getByRole('button', { name: 'Edit amount and day' }))
+      await user.clear(row.getByLabelText('Amount'))
+      await user.click(row.getByRole('button', { name: 'Save cap' }))
+
+      // An invalid draft is not submitted: the row stays in edit mode.
+      expect(row.getByLabelText('Amount')).toBeInTheDocument()
+    })
+  })
+
+  describe('mobile', () => {
+    beforeEach(() => setViewportWidth(VIEWPORT.mobile))
+
+    async function findCard(description: string) {
+      const list = await screen.findByRole('list', { name: 'Recurring templates' })
+      await within(list).findByText(description)
+      const items = within(list).getAllByRole('listitem')
+      return within(items.find((item) => within(item).queryByText(description))!)
+    }
+
+    it('shows a stopped template without a cap as Stopped, "No cap yet · Day —", with Reactivate', async () => {
+      serveTemplates({ ...noCapTemplate, active: false })
+      renderWithQueryClient(<RecurringTemplatesPage />)
+
+      const card = await findCard(noCapTemplate.description)
+
+      expect(card.getByText('Stopped')).toBeInTheDocument()
+      expect(card.getByText(/No cap yet.*Day.*—/)).toBeInTheDocument()
+      expect(card.getByRole('button', { name: 'Reactivate' })).toBeInTheDocument()
+      expect(card.queryByRole('button', { name: 'Stop' })).not.toBeInTheDocument()
+    })
+
+    it('edits in a dialog only: no inline inputs in the card, and Cancel closes the dialog unchanged', async () => {
+      const user = userEvent.setup({ delay: null })
+      renderWithQueryClient(<RecurringTemplatesPage />)
+      const card = await findCard(seedRentRecurringTemplate.description)
+
+      await user.click(card.getByRole('button', { name: 'Edit amount and day' }))
+
+      const dialog = await screen.findByRole('dialog')
+      expect(screen.getAllByLabelText('Amount')).toHaveLength(1)
+      expect(card.getByRole('button', { name: 'Stop', hidden: true })).toBeInTheDocument()
+      await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+      expect(
+        card.getByText(new RegExp(formatMoney(seedRentRecurringTemplate.currentAmount!, 'en'))),
+      ).toBeInTheDocument()
+    })
+  })
+})

@@ -1,21 +1,6 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  Box,
-  Button,
-  Chip,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  MenuItem,
-  Paper,
-  Select,
-  TextField,
-  Typography,
-} from '@mui/material'
-import PauseIcon from '@mui/icons-material/Pause'
-import PlayArrowIcon from '@mui/icons-material/PlayArrow'
+import { Box, Button, DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material'
 import { useAccounts } from '../../api/accounts/accountsQueries'
 import { useCategories } from '../../api/categories/categoriesQueries'
 import type { RecurringTemplate } from '../../api/recurringTemplates/recurringTemplates'
@@ -29,33 +14,28 @@ import {
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { AddFormDialog } from '../../components/feedback/AddFormDialog'
 import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
-import { InlineEditActions } from '../../components/table/InlineEditActions'
-import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
+import { ResponsiveTable } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useAction } from '../../hooks/useAction'
 import { useAddDialog } from '../../hooks/useAddDialog'
 import { useIsMobile } from '../../hooks/useBreakpointBand'
 import { useInlineEdit } from '../../hooks/useInlineEdit'
 import { useLocale } from '../../hooks/locale/useLocale'
-import { formatMoney } from '../../i18n/format'
 import { translateSeedName } from '../../i18n/seedNames'
 import { currentMonth } from '../../utils/localDate'
 import { nameLookup } from '../../utils/nameLookup'
 import { PendingOccurrencesWidget } from './PendingOccurrencesWidget'
+import { RecurringTemplateCreateFields } from './RecurringTemplateCreateFields'
+import { RecurringTemplateEditFields } from './RecurringTemplateEditFields'
 import {
-  RecurringTemplateAmountField,
-  RecurringTemplateDayOfMonthField,
-  RecurringTemplateEditFields,
-} from './RecurringTemplateEditFields'
-import { isRecurringTemplateEditValid } from './recurringTemplateEdit'
-
-const EMPTY_CREATE_FORM = {
-  categoryId: '',
-  accountId: '',
-  description: '',
-  amount: '',
-  dayOfMonth: '1',
-}
+  buildRecurringTemplateColumns,
+  renderRecurringTemplateCard,
+} from './recurringTemplateColumns'
+import { RecurringTemplateRowActions } from './RecurringTemplateRowActions'
+import {
+  EMPTY_RECURRING_TEMPLATE_CREATE_FORM,
+  isRecurringTemplateEditValid,
+} from './recurringTemplateEdit'
 
 /**
  * Recurring templates settings screen (F007 spec): a list of templates (description, category,
@@ -91,7 +71,7 @@ export function RecurringTemplatesPage() {
   const stopMutation = useStopRecurringTemplate()
   const reactivateMutation = useReactivateRecurringTemplate()
 
-  const addDialog = useAddDialog(EMPTY_CREATE_FORM)
+  const addDialog = useAddDialog(EMPTY_RECURRING_TEMPLATE_CREATE_FORM)
   const createForm = addDialog.draft
   const setCreateForm = addDialog.setDraft
   const createAction = useAction(setError)
@@ -194,138 +174,33 @@ export function RecurringTemplatesPage() {
   // On mobile the edit happens in a dialog opened from the card, so the card stays plain text.
   const editDialogOpen = isMobile && editingId !== null
 
-  const columns: ResponsiveColumn<RecurringTemplate>[] = [
-    {
-      key: 'description',
-      header: t('recurringTemplates:columns.description'),
-      render: (template) => template.description,
-    },
-    {
-      key: 'category',
-      header: t('recurringTemplates:columns.category'),
-      tabletPriority: 'low',
-      render: (template) => categoryName(template.categoryId),
-    },
-    {
-      key: 'account',
-      header: t('recurringTemplates:columns.account'),
-      render: (template) => accountName(template.accountId),
-    },
-    {
-      key: 'amount',
-      header: t('recurringTemplates:columns.amount'),
-      align: 'right',
-      render: (template) =>
-        editingId === template.id && !isMobile ? (
-          <RecurringTemplateAmountField
-            value={editAmount}
-            onChange={(amount) => edit.setDraft((d) => ({ ...d, amount }))}
-            autoFocus
-            sx={{ width: 110 }}
-          />
-        ) : template.currentAmount !== null ? (
-          formatMoney(template.currentAmount, locale)
-        ) : (
-          <Typography color="text.secondary" component="span">
-            {t('recurringTemplates:noCapYet')}
-          </Typography>
-        ),
-    },
-    {
-      key: 'dayOfMonth',
-      header: t('recurringTemplates:columns.dayOfMonth'),
-      align: 'right',
-      render: (template) =>
-        editingId === template.id && !isMobile ? (
-          <RecurringTemplateDayOfMonthField
-            value={editDayOfMonth}
-            onChange={(dayOfMonth) => edit.setDraft((d) => ({ ...d, dayOfMonth }))}
-            sx={{ width: 80 }}
-          />
-        ) : (
-          (template.currentDayOfMonth ?? '—')
-        ),
-    },
-    {
-      key: 'status',
-      header: t('recurringTemplates:columns.status'),
-      render: (template) => (
-        <Chip
-          size="small"
-          label={
-            template.active
-              ? t('recurringTemplates:statusActive')
-              : t('recurringTemplates:statusStopped')
+  const display = { t, locale, categoryName, accountName }
+  const columns = buildRecurringTemplateColumns({
+    ...display,
+    inlineEdit:
+      editingId !== null && !isMobile
+        ? {
+            rowId: editingId,
+            amount: editAmount,
+            dayOfMonth: editDayOfMonth,
+            onAmountChange: (amount) => edit.setDraft((d) => ({ ...d, amount })),
+            onDayOfMonthChange: (dayOfMonth) => edit.setDraft((d) => ({ ...d, dayOfMonth })),
           }
-          color={template.active ? 'success' : 'default'}
-        />
-      ),
-    },
-  ]
+        : null,
+  })
 
   function rowActions(template: RecurringTemplate) {
-    const editingInline = editingId === template.id && !isMobile
     return (
-      <>
-        <InlineEditActions
-          editing={editingInline}
-          onEdit={() => startEditCap(template)}
-          onSave={() => void saveEditCap(template.id)}
-          onCancel={cancelEditCap}
-          editLabel={t('recurringTemplates:editAmountDayAction')}
-          saveLabel={t('recurringTemplates:saveCapAction')}
-          saving={capAction.pending}
-        />
-        {!editingInline && (
-          <IconButton
-            size="small"
-            aria-label={
-              template.active
-                ? t('recurringTemplates:stopAria')
-                : t('recurringTemplates:reactivateAria')
-            }
-            disabled={togglingId === template.id}
-            onClick={() => void toggleActive(template)}
-          >
-            {template.active ? <PauseIcon fontSize="small" /> : <PlayArrowIcon fontSize="small" />}
-          </IconButton>
-        )}
-      </>
-    )
-  }
-
-  // The card leads with what/how much, like Transactions: description and status up top, then
-  // category/account, then amount and day of month.
-  function renderCard(template: RecurringTemplate, actions: ReactNode) {
-    return (
-      <Paper variant="outlined" sx={{ p: 1.5 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
-          <Typography variant="subtitle1" component="div" sx={{ overflowWrap: 'anywhere' }}>
-            {template.description}
-          </Typography>
-          <Chip
-            size="small"
-            label={
-              template.active
-                ? t('recurringTemplates:statusActive')
-                : t('recurringTemplates:statusStopped')
-            }
-            color={template.active ? 'success' : 'default'}
-          />
-        </Box>
-        <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
-          {categoryName(template.categoryId)} · {accountName(template.accountId)}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {template.currentAmount !== null
-            ? formatMoney(template.currentAmount, locale)
-            : t('recurringTemplates:noCapYet')}{' '}
-          · {t('recurringTemplates:dayPrefix')} {template.currentDayOfMonth ?? '—'}
-        </Typography>
-        {actions && (
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>{actions}</Box>
-        )}
-      </Paper>
+      <RecurringTemplateRowActions
+        template={template}
+        editingInline={editingId === template.id && !isMobile}
+        saving={capAction.pending}
+        toggling={togglingId === template.id}
+        onStartEdit={startEditCap}
+        onSave={(id) => void saveEditCap(id)}
+        onCancel={cancelEditCap}
+        onToggle={(row) => void toggleActive(row)}
+      />
     )
   }
 
@@ -366,7 +241,9 @@ export function RecurringTemplatesPage() {
           state={tableState}
           onRetry={retry}
           actions={rowActions}
-          renderCard={renderCard}
+          renderCard={(template, actions) =>
+            renderRecurringTemplateCard(display, template, actions)
+          }
           emptyMessage={t('recurringTemplates:emptyList')}
         />
       </Box>
@@ -381,61 +258,11 @@ export function RecurringTemplatesPage() {
         onSubmit={() => void handleCreate()}
         onCancel={closeAddDialog}
       >
-        <Select
-          size="small"
-          displayEmpty
-          value={createForm.categoryId}
-          onChange={(e) => setCreateForm((prev) => ({ ...prev, categoryId: e.target.value }))}
-          aria-label={t('recurringTemplates:categoryLabel')}
-        >
-          <MenuItem value="" disabled>
-            {t('recurringTemplates:categoryLabel')}
-          </MenuItem>
-          {templateCategories.map((c) => (
-            <MenuItem key={c.id} value={c.id}>
-              {translateSeedName('categories', c.name, t)}
-            </MenuItem>
-          ))}
-        </Select>
-        <Select
-          size="small"
-          displayEmpty
-          value={createForm.accountId}
-          onChange={(e) => setCreateForm((prev) => ({ ...prev, accountId: e.target.value }))}
-          aria-label={t('recurringTemplates:accountLabel')}
-        >
-          <MenuItem value="" disabled>
-            {t('recurringTemplates:accountLabel')}
-          </MenuItem>
-          {templateAccounts.map((a) => (
-            <MenuItem key={a.id} value={a.id}>
-              {a.name}
-            </MenuItem>
-          ))}
-        </Select>
-        <TextField
-          label={t('recurringTemplates:descriptionLabel')}
-          size="small"
-          value={createForm.description}
-          onChange={(e) => setCreateForm((prev) => ({ ...prev, description: e.target.value }))}
-          slotProps={{ htmlInput: { maxLength: 150 } }}
-          sx={{ gridColumn: '1 / -1' }}
-        />
-        <TextField
-          label={t('recurringTemplates:amountLabel')}
-          type="number"
-          size="small"
-          value={createForm.amount}
-          onChange={(e) => setCreateForm((prev) => ({ ...prev, amount: e.target.value }))}
-          slotProps={{ htmlInput: { step: '0.01', min: '0.01' } }}
-        />
-        <TextField
-          label={t('recurringTemplates:dayOfMonthLabel')}
-          type="number"
-          size="small"
-          value={createForm.dayOfMonth}
-          onChange={(e) => setCreateForm((prev) => ({ ...prev, dayOfMonth: e.target.value }))}
-          slotProps={{ htmlInput: { min: 1, max: 31 } }}
+        <RecurringTemplateCreateFields
+          form={createForm}
+          setForm={setCreateForm}
+          categories={templateCategories}
+          accounts={templateAccounts}
         />
       </AddFormDialog>
 
