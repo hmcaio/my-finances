@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { Alert, Box, Button, DialogTitle, Menu, MenuItem, Typography } from '@mui/material'
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown'
 import type { LedgerEntry } from '../../api/ledger/ledger'
@@ -24,6 +24,8 @@ import {
   toLedgerFilter,
   type LedgerView,
 } from './ledgerSearchParams'
+import { useConsumeNavigationState } from './useConsumeNavigationState'
+import { useFocusParam } from './useFocusParam'
 import { useLedgerLookups } from './useLedgerLookups'
 
 /** What a row's edit button points at; the full record is fetched by id before its dialog opens. */
@@ -31,6 +33,10 @@ interface EditTarget {
   kind: 'transaction' | 'transfer'
   id: string
 }
+
+/** The fuel category the Fuel page's "add fill-up" link passes in the navigation state, if any. */
+const readPresetCategoryId = (state: unknown) =>
+  (state as { presetCategoryId?: string } | null)?.presetCategoryId
 
 /**
  * The Ledger (F037, PRD S6.16): transactions and transfers interleaved in one list, newest first,
@@ -49,8 +55,6 @@ interface EditTarget {
 export function LedgerPage() {
   const { t } = useTranslation(['ledger', 'transactions', 'transfers', 'common'])
   const [searchParams, setSearchParams] = useSearchParams()
-  const location = useLocation()
-  const navigate = useNavigate()
   const view = useMemo(() => parseLedgerView(searchParams), [searchParams])
   const [error, setError] = useState<string | null>(null)
 
@@ -78,12 +82,11 @@ export function LedgerPage() {
   }
 
   // --- dialogs ------------------------------------------------------------------------------------
-  // The Fuel page's "add fill-up" arrives with the fuel category in the navigation state: read once,
-  // in the initial state, so the dialog opens straight into an add form for it.
-  const initialPresetCategoryId = (location.state as { presetCategoryId?: string } | null)
-    ?.presetCategoryId
+  // The Fuel page's "add fill-up" arrives with the fuel category in the navigation state, consumed
+  // once so the dialog opens straight into an add form for it (and a back-navigation does not).
+  const presetCategoryId = useConsumeNavigationState(readPresetCategoryId)
   const [newTransaction, setNewTransaction] = useState<{ presetCategoryId?: string } | null>(() =>
-    initialPresetCategoryId ? { presetCategoryId: initialPresetCategoryId } : null,
+    presetCategoryId ? { presetCategoryId } : null,
   )
   const [newTransfer, setNewTransfer] = useState(false)
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null)
@@ -91,38 +94,8 @@ export function LedgerPage() {
   const deleteAction = useAction(setError)
   const [addMenuAnchor, setAddMenuAnchor] = useState<HTMLElement | null>(null)
 
-  // Clears the navigation state right after consuming it, so a later back-navigation to this page
-  // does not reopen the dialog. `navigate` is a legitimate effect; only the initial state above
-  // needs to be synchronous.
-  useEffect(() => {
-    if (initialPresetCategoryId) {
-      navigate(
-        { pathname: location.pathname, search: location.search },
-        { replace: true, state: null },
-      )
-    }
-    // Runs once on mount only: it consumes the location state this page mounted with.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
   // `?focus={transferId}` opens that transfer for editing, then drops only the `focus` key.
-  // `handledFocus` follows the param back to empty, so opening the same link again works.
-  const [handledFocus, setHandledFocus] = useState('')
-  if (view.focus !== handledFocus) {
-    setHandledFocus(view.focus)
-    if (view.focus) setEditTarget({ kind: 'transfer', id: view.focus })
-  }
-  useEffect(() => {
-    if (!view.focus) return
-    setSearchParams(
-      (previous) => {
-        const next = new URLSearchParams(previous)
-        next.delete('focus')
-        return next
-      },
-      { replace: true },
-    )
-  }, [view.focus, setSearchParams])
+  useFocusParam(view.focus, (id) => setEditTarget({ kind: 'transfer', id }))
 
   // Edit: fetch the full record, then open its dialog. `useTransaction`/`useTransfer` are disabled
   // while their id is `null`.
