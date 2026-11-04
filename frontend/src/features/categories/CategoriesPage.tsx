@@ -29,12 +29,13 @@ import {
   useDeleteCategory,
   useRenameCategory,
 } from '../../api/categories/categoriesQueries'
-import { defaultErrorMessage } from '../../api/core/apiError'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { AddFormDialog } from '../../components/feedback/AddFormDialog'
 import { InlineEditActions } from '../../components/table/InlineEditActions'
 import { DataTableBody } from '../../components/table/DataTableBody'
+import { useAction } from '../../hooks/useAction'
 import { useAddDialog } from '../../hooks/useAddDialog'
+import { useInlineEdit } from '../../hooks/useInlineEdit'
 import { useQueryState } from '../../hooks/queryState'
 import { translateSeedName } from '../../i18n/seedNames'
 import { sortCategories } from './sortCategories'
@@ -67,15 +68,17 @@ export function CategoriesPage() {
   const deleteMutation = useDeleteCategory()
   const sorted = useMemo(() => sortCategories(categories ?? []), [categories])
 
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editingName, setEditingName] = useState('')
+  const edit = useInlineEdit('')
+  const { editingId, draft: editingName, setDraft: setEditingName, cancel: cancelEdit } = edit
+  const saveAction = useAction(setError)
 
-  const [adding, setAdding] = useState(false)
+  const addAction = useAction(setError)
   const addDialog = useAddDialog<{ name: string; type: CategoryType }>({
     name: '',
     type: 'EXPENSE',
   })
 
+  const deleteAction = useAction(setError)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
 
   function closeAddDialog() {
@@ -85,52 +88,29 @@ export function CategoriesPage() {
 
   async function handleAdd() {
     if (!addDialog.draft.name.trim()) return
-    setError(null)
-    setAdding(true)
-    try {
-      await createMutation.mutateAsync({
+    const added = await addAction.run(() =>
+      createMutation.mutateAsync({
         name: addDialog.draft.name.trim(),
         type: addDialog.draft.type,
-      })
-      addDialog.close()
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    } finally {
-      setAdding(false)
-    }
+      }),
+    )
+    if (added) addDialog.close()
   }
 
   function startEdit(category: Category) {
-    setEditingId(category.id)
-    setEditingName(category.name)
-  }
-
-  function cancelEdit() {
-    setEditingId(null)
-    setEditingName('')
+    edit.start(category.id, category.name)
   }
 
   async function saveEdit(id: string) {
     if (!editingName.trim()) return
-    setError(null)
-    try {
-      await renameMutation.mutateAsync({ id, name: editingName.trim() })
+    if (await saveAction.run(() => renameMutation.mutateAsync({ id, name: editingName.trim() })))
       cancelEdit()
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    }
   }
 
   async function handleDelete(id: string) {
-    setError(null)
     setPendingDeleteId(id)
-    try {
-      await deleteMutation.mutateAsync(id)
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    } finally {
-      setPendingDeleteId(null)
-    }
+    await deleteAction.run(() => deleteMutation.mutateAsync(id))
+    setPendingDeleteId(null)
   }
 
   // Clears the stale banner before retrying, so it doesn't outlive a successful retry.
@@ -258,7 +238,7 @@ export function CategoriesPage() {
         title={t('categories:addDialogTitle')}
         error={error}
         onDismissError={() => setError(null)}
-        busy={adding}
+        busy={addAction.pending}
         canSubmit={!!addDialog.draft.name.trim()}
         onSubmit={() => void handleAdd()}
         onCancel={closeAddDialog}
