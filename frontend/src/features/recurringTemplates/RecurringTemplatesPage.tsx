@@ -26,15 +26,16 @@ import {
   useSetRecurringTemplateCap,
   useStopRecurringTemplate,
 } from '../../api/recurringTemplates/recurringTemplatesQueries'
-import { defaultErrorMessage } from '../../api/core/apiError'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { AddFormDialog } from '../../components/feedback/AddFormDialog'
 import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
 import { InlineEditActions } from '../../components/table/InlineEditActions'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
+import { useAction } from '../../hooks/useAction'
 import { useAddDialog } from '../../hooks/useAddDialog'
 import { useIsMobile } from '../../hooks/useBreakpointBand'
+import { useInlineEdit } from '../../hooks/useInlineEdit'
 import { useLocale } from '../../hooks/locale/useLocale'
 import { formatMoney } from '../../i18n/format'
 import { translateSeedName } from '../../i18n/seedNames'
@@ -93,13 +94,15 @@ export function RecurringTemplatesPage() {
   const addDialog = useAddDialog(EMPTY_CREATE_FORM)
   const createForm = addDialog.draft
   const setCreateForm = addDialog.setDraft
-  const [creating, setCreating] = useState(false)
+  const createAction = useAction(setError)
 
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editAmount, setEditAmount] = useState('')
-  const [editDayOfMonth, setEditDayOfMonth] = useState('')
-  const [savingCap, setSavingCap] = useState(false)
+  const edit = useInlineEdit({ amount: '', dayOfMonth: '' })
+  const { editingId, cancel: cancelEditCap } = edit
+  const editAmount = edit.draft.amount
+  const editDayOfMonth = edit.draft.dayOfMonth
+  const capAction = useAction(setError)
 
+  const toggleAction = useAction(setError)
   const [togglingId, setTogglingId] = useState<string | null>(null)
 
   const categoryName = useMemo(
@@ -137,67 +140,47 @@ export function RecurringTemplatesPage() {
 
   async function handleCreate() {
     if (!isCreateFormValid()) return
-    setError(null)
-    setCreating(true)
-    try {
-      await createMutation.mutateAsync({
+    const created = await createAction.run(() =>
+      createMutation.mutateAsync({
         categoryId: createForm.categoryId,
         accountId: createForm.accountId,
         description: createForm.description.trim(),
         amount: Number(createForm.amount),
         dayOfMonth: Number(createForm.dayOfMonth),
         effectiveFrom: currentMonth(),
-      })
-      addDialog.close()
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    } finally {
-      setCreating(false)
-    }
+      }),
+    )
+    if (created) addDialog.close()
   }
 
   function startEditCap(template: RecurringTemplate) {
-    setEditingId(template.id)
-    setEditAmount(template.currentAmount !== null ? String(template.currentAmount) : '')
-    setEditDayOfMonth(template.currentDayOfMonth !== null ? String(template.currentDayOfMonth) : '')
-  }
-
-  function cancelEditCap() {
-    setEditingId(null)
-    setEditAmount('')
-    setEditDayOfMonth('')
+    edit.start(template.id, {
+      amount: template.currentAmount !== null ? String(template.currentAmount) : '',
+      dayOfMonth: template.currentDayOfMonth !== null ? String(template.currentDayOfMonth) : '',
+    })
   }
 
   async function saveEditCap(id: string) {
     if (!isRecurringTemplateEditValid(editAmount, editDayOfMonth)) return
-    setError(null)
-    setSavingCap(true)
-    try {
-      await capMutation.mutateAsync({
+    const saved = await capAction.run(() =>
+      capMutation.mutateAsync({
         id,
         amount: Number(editAmount),
         dayOfMonth: Number(editDayOfMonth),
         effectiveFrom: currentMonth(),
-      })
-      cancelEditCap()
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    } finally {
-      setSavingCap(false)
-    }
+      }),
+    )
+    if (saved) cancelEditCap()
   }
 
   async function toggleActive(template: RecurringTemplate) {
-    setError(null)
     setTogglingId(template.id)
-    try {
-      if (template.active) await stopMutation.mutateAsync(template.id)
-      else await reactivateMutation.mutateAsync(template.id)
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    } finally {
-      setTogglingId(null)
-    }
+    await toggleAction.run(() =>
+      template.active
+        ? stopMutation.mutateAsync(template.id)
+        : reactivateMutation.mutateAsync(template.id),
+    )
+    setTogglingId(null)
   }
 
   // One load state for the table plus the lookup lists behind its name columns: rows show only
@@ -236,7 +219,7 @@ export function RecurringTemplatesPage() {
         editingId === template.id && !isMobile ? (
           <RecurringTemplateAmountField
             value={editAmount}
-            onChange={setEditAmount}
+            onChange={(amount) => edit.setDraft((d) => ({ ...d, amount }))}
             autoFocus
             sx={{ width: 110 }}
           />
@@ -256,7 +239,7 @@ export function RecurringTemplatesPage() {
         editingId === template.id && !isMobile ? (
           <RecurringTemplateDayOfMonthField
             value={editDayOfMonth}
-            onChange={setEditDayOfMonth}
+            onChange={(dayOfMonth) => edit.setDraft((d) => ({ ...d, dayOfMonth }))}
             sx={{ width: 80 }}
           />
         ) : (
@@ -291,7 +274,7 @@ export function RecurringTemplatesPage() {
           onCancel={cancelEditCap}
           editLabel={t('recurringTemplates:editAmountDayAction')}
           saveLabel={t('recurringTemplates:saveCapAction')}
-          saving={savingCap}
+          saving={capAction.pending}
         />
         {!editingInline && (
           <IconButton
@@ -393,7 +376,7 @@ export function RecurringTemplatesPage() {
         title={t('recurringTemplates:addDialogTitle')}
         error={error}
         onDismissError={() => setError(null)}
-        busy={creating}
+        busy={createAction.pending}
         canSubmit={isCreateFormValid()}
         onSubmit={() => void handleCreate()}
         onCancel={closeAddDialog}
@@ -456,7 +439,10 @@ export function RecurringTemplatesPage() {
         />
       </AddFormDialog>
 
-      <ResponsiveDialog open={editDialogOpen} onClose={savingCap ? undefined : cancelEditCap}>
+      <ResponsiveDialog
+        open={editDialogOpen}
+        onClose={capAction.pending ? undefined : cancelEditCap}
+      >
         <DialogTitle>{t('recurringTemplates:editDialogTitle')}</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
@@ -465,19 +451,21 @@ export function RecurringTemplatesPage() {
               <RecurringTemplateEditFields
                 amount={editAmount}
                 dayOfMonth={editDayOfMonth}
-                onAmountChange={setEditAmount}
-                onDayOfMonthChange={setEditDayOfMonth}
+                onAmountChange={(amount) => edit.setDraft((d) => ({ ...d, amount }))}
+                onDayOfMonthChange={(dayOfMonth) => edit.setDraft((d) => ({ ...d, dayOfMonth }))}
               />
             </FormGrid>
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={cancelEditCap} disabled={savingCap}>
+          <Button onClick={cancelEditCap} disabled={capAction.pending}>
             {t('common:actions.cancel')}
           </Button>
           <Button
             variant="contained"
-            disabled={savingCap || !isRecurringTemplateEditValid(editAmount, editDayOfMonth)}
+            disabled={
+              capAction.pending || !isRecurringTemplateEditValid(editAmount, editDayOfMonth)
+            }
             onClick={() => editingId && void saveEditCap(editingId)}
           >
             {t('recurringTemplates:saveCapAction')}
