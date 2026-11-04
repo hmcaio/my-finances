@@ -43,7 +43,7 @@ Local dev needs only Docker. The default is to run everything in containers with
 
 3. Open `http://localhost:5173` and sign in. The first start downloads Gradle and npm dependencies (a couple of minutes). The API's Swagger UI is at `http://localhost:8080/swagger-ui.html` (dev only, and it needs a session; see [docs/conventions/auth.md](docs/conventions/auth.md)).
 
-Optional: `scripts/seed-dev.sh` loads sample data (accounts incl. a brokerage account, about four months of transactions and transfers, budgets, investment holdings with trades and dividends, fuel fill-ups, recurring templates) into the dev database, once the backend has started and migrated it. It refuses to run over existing data and is dev-only; see [docs/conventions/tooling.md](docs/conventions/tooling.md#dev-stack).
+Optional: `scripts/seed-dev.sh` loads sample data (accounts incl. a brokerage account, about four months of transactions and transfers, budgets, investment holdings with trades and dividends, a closed holding, an FII allocation plan, fuel fill-ups, recurring templates) into the dev database, once the backend has started and migrated it. It refuses to run over existing data and is dev-only; see [docs/conventions/tooling.md](docs/conventions/tooling.md#dev-stack).
 
 To run the apps natively instead (fastest loop, IDE debugging) you need a JDK 25 and the Node version in `frontend/.nvmrc` (`npm` refuses another major), and you must not run the `full` profile at the same time: both use ports 8080 and 5173. See [backend/CLAUDE.md](backend/CLAUDE.md) and [frontend/CLAUDE.md](frontend/CLAUDE.md) for the exact commands (build, lint, test, run). The short version:
 

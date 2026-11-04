@@ -67,10 +67,10 @@ class DevSeedScriptTest extends AbstractMigrationTest {
     try (Connection connection = connection()) {
       runSeed(connection);
 
-      assertThat(count(connection, "SELECT count(*) FROM investment_holdings")).isEqualTo(4);
+      assertThat(count(connection, "SELECT count(*) FROM investment_holdings")).isEqualTo(5);
       assertThat(count(connection, "SELECT count(*) FROM investment_opening_positions"))
           .isEqualTo(1);
-      assertThat(count(connection, "SELECT count(*) FROM transfer_trade_lines")).isEqualTo(7);
+      assertThat(count(connection, "SELECT count(*) FROM transfer_trade_lines")).isEqualTo(9);
       assertThat(count(connection, "SELECT count(*) FROM vehicles")).isEqualTo(1);
       assertThat(count(connection, "SELECT count(*) FROM recurring_templates")).isEqualTo(4);
       assertThat(count(connection, "SELECT count(*) FROM recurring_template_versions"))
@@ -133,6 +133,72 @@ class DevSeedScriptTest extends AbstractMigrationTest {
                       + "   WHERE account_id = a.id AND date < date_trunc('month', current_date))"
                       + " <> (SELECT coalesce(sum(amount), 0) FROM transfers"
                       + "   WHERE to_account_id = a.id AND date < date_trunc('month', current_date))"))
+          .isZero();
+    }
+  }
+
+  @Test
+  void seedsAnAllocationPlanOverFiisAndAClosedHolding() throws Exception {
+    flyway("latest").migrate();
+    try (Connection connection = connection()) {
+      runSeed(connection);
+
+      assertThat(count(connection, "SELECT count(*) FROM allocation_plans")).isEqualTo(1);
+      assertThat(count(connection, "SELECT count(*) FROM allocation_plan_versions")).isEqualTo(2);
+      assertThat(count(connection, "SELECT count(*) FROM allocation_plan_entries")).isEqualTo(4);
+      // Every version's targets sum to exactly 100 (the application-layer rule).
+      assertThat(
+              count(
+                  connection,
+                  "SELECT count(*) FROM (SELECT version_id FROM allocation_plan_entries"
+                      + " GROUP BY version_id HAVING sum(target_percentage) <> 100) bad"))
+          .isZero();
+      // Entries are FII products only (AllocationPlanService.requireFiiProduct).
+      assertThat(
+              count(
+                  connection,
+                  "SELECT count(*) FROM allocation_plan_entries e"
+                      + " JOIN investment_products p ON p.id = e.investment_product_id"
+                      + " LEFT JOIN investment_subcategories s ON s.id = p.investment_subcategory_id"
+                      + " WHERE s.name IS DISTINCT FROM 'REITs (FIIs)'"))
+          .isZero();
+
+      assertThat(
+              count(
+                  connection,
+                  "SELECT count(*) FROM investment_holdings WHERE closed_date IS NOT NULL"))
+          .isEqualTo(1);
+      // A closed holding's latest snapshot is zero (InvestmentHoldingService.close), it has no
+      // snapshot after its close, and no trade after it either.
+      assertThat(
+              count(
+                  connection,
+                  "SELECT count(*) FROM investment_holdings h WHERE h.closed_date IS NOT NULL AND"
+                      + " (SELECT balance FROM investment_snapshots WHERE holding_id = h.id"
+                      + "   ORDER BY date DESC LIMIT 1) <> 0"))
+          .isZero();
+      assertThat(
+              count(
+                  connection,
+                  "SELECT count(*) FROM investment_holdings h"
+                      + " JOIN investment_snapshots s ON s.holding_id = h.id"
+                      + " WHERE h.closed_date IS NOT NULL AND s.date > h.closed_date"))
+          .isZero();
+      assertThat(
+              count(
+                  connection,
+                  "SELECT count(*) FROM investment_holdings h"
+                      + " JOIN transfer_trade_lines l ON l.product_id = h.product_id"
+                      + " JOIN transfers t ON t.id = l.transfer_id"
+                      + " WHERE h.closed_date IS NOT NULL AND t.date > h.closed_date"))
+          .isZero();
+      // The closed holding's lines net to nothing held: bought quantity equals sold quantity.
+      assertThat(
+              count(
+                  connection,
+                  "SELECT count(*) FROM investment_holdings h WHERE h.closed_date IS NOT NULL AND"
+                      + " (SELECT coalesce(sum(CASE l.side WHEN 'BUY' THEN l.quantity ELSE -l.quantity END), 0)"
+                      + "   FROM transfer_trade_lines l WHERE l.product_id = h.product_id) <> 0"))
           .isZero();
     }
   }

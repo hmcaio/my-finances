@@ -4,9 +4,11 @@
 -- Covers: one institution, categories, five accounts (checking, savings, cash wallet, credit card
 -- and an INVESTMENT "Brokerage"), ~4 months of transactions, credit-card/savings/cash transfers,
 -- budgets (with one cap change), four investment products and holdings (a Treasury bond with an
--- opening position, a CDB, two FIIs) with trade confirmations, snapshots and dividends, one vehicle
--- with fuel fill-ups, and four recurring templates (one with two versions) whose past cycles are
--- already approved. The current cycle is left for the app's catch-up, so the pending list is not empty.
+-- opening position, a CDB, two FIIs) with trade confirmations, snapshots and dividends, a fifth
+-- FII that was bought, paid a dividend, then fully sold and closed, a two-version FII allocation
+-- plan, one vehicle with fuel fill-ups, and four recurring templates (one with two versions) whose
+-- past cycles are already approved. The current cycle is left for the app's catch-up, so the pending
+-- list is not empty.
 --
 -- Every date is relative to current_date (pg_temp.d below), so the data always looks recent.
 -- Nothing is random: re-seeding an emptied database gives the same shape. The ids come from
@@ -196,7 +198,8 @@ FROM (VALUES
     ('Tesouro Selic 2029',     NULL,     'Fixed Income',    'Tesouro Selic',  NULL,                  'Existing position, see its opening position'),
     ('CDB 110% CDI',           NULL,     'Fixed Income',    'CDB',            NULL,                  NULL),
     ('Demo Logistics FII',     'DEMO11', 'Variable Income', 'REITs (FIIs)',   'Logística',           NULL),
-    ('Demo Receivables FII',   'DEMO12', 'Variable Income', 'REITs (FIIs)',   'Papel (Recebíveis)',  NULL)
+    ('Demo Receivables FII',   'DEMO12', 'Variable Income', 'REITs (FIIs)',   'Papel (Recebíveis)',  NULL),
+    ('Demo Hotel FII',         'DEMO13', 'Variable Income', 'REITs (FIIs)',   'Hotel',               'Sold out and closed, kept for its history')
 ) AS p(name, ticker, category, subcategory, segment, notes)
 JOIN investment_categories ic ON ic.name = p.category
 JOIN investment_subcategories isc ON isc.investment_category_id = ic.id AND isc.name = p.subcategory
@@ -228,7 +231,8 @@ CREATE TEMP TABLE seed_trade (
     side              text NOT NULL,
     quantity          numeric(19,8) NOT NULL,
     unit_price        numeric(19,8) NOT NULL,
-    resulting_balance numeric(19,2) NOT NULL
+    resulting_balance numeric(19,2) NOT NULL,
+    close_holding     boolean NOT NULL DEFAULT false
 ) ON COMMIT DROP;
 
 INSERT INTO seed_trade (n, day, description, taxes, product, side, quantity, unit_price, resulting_balance) VALUES
@@ -239,6 +243,13 @@ INSERT INTO seed_trade (n, day, description, taxes, product, side, quantity, uni
     (1,  4, 'Treasury top-up',         0.00, 'Tesouro Selic 2029',   'BUY',   0.10, 15210.00, 9129.00),
     (1, 16, 'Bought DEMO11',           0.20, 'Demo Logistics FII',   'BUY',   5, 101.20,   1518.00),
     (1, 20, 'Partial CDB redemption',  0.00, 'CDB 110% CDI',         'SELL',  1, 1520.00,  1513.40);
+
+-- The closed holding: bought, then sold in full. The sell line carries a zero resulting balance
+-- (the holding's last snapshot) and close_holding, the combination TransferService accepts for a
+-- close (a holding can only be closed while its latest snapshot is zero).
+INSERT INTO seed_trade (n, day, description, taxes, product, side, quantity, unit_price, resulting_balance, close_holding) VALUES
+    (3, 12, 'Bought DEMO13',           0.20, 'Demo Hotel FII',       'BUY',   6,   85.00,    510.00, false),
+    (1, 12, 'Sold DEMO13 in full',     0.15, 'Demo Hotel FII',       'SELL',  6,   88.40,      0.00, true);
 
 INSERT INTO transfers (id, date, from_account_id, to_account_id, amount, description, taxes, created_at, last_modified_at)
 SELECT s.transfer_id, pg_temp.d(s.n, s.day),
@@ -251,9 +262,16 @@ FROM (SELECT t.*, round((CASE t.side WHEN 'BUY' THEN 1 ELSE -1 END) * t.quantity
 INSERT INTO transfer_trade_lines (id, transfer_id, product_id, side, quantity, unit_price, resulting_balance,
                                   close_holding, created_at, last_modified_at)
 SELECT gen_random_uuid(), t.transfer_id, ip.id, t.side, t.quantity, t.unit_price, t.resulting_balance,
-       false, now(), now()
+       t.close_holding, now(), now()
 FROM seed_trade t
 JOIN investment_products ip ON ip.name = t.product;
+
+-- Closing sets the holding's closed date (here the day of the closing trade).
+UPDATE investment_holdings h
+SET closed_date = pg_temp.d(t.n, t.day)
+FROM seed_trade t
+JOIN investment_products ip ON ip.name = t.product
+WHERE t.close_holding AND h.product_id = ip.id;
 
 INSERT INTO investment_snapshots (id, date, balance, holding_id, created_at, last_modified_at)
 SELECT gen_random_uuid(), pg_temp.d(t.n, t.day), t.resulting_balance, h.id, now(), now()
@@ -261,7 +279,8 @@ FROM seed_trade t
 JOIN investment_products ip ON ip.name = t.product
 JOIN investment_holdings h ON h.product_id = ip.id;
 
--- Month-start valuations between the trades (the first of the month, never a trade day).
+-- Month-start valuations between the trades (the first of the month, never a trade day). None after
+-- a holding's close: a closed holding takes no more snapshots.
 INSERT INTO investment_snapshots (id, date, balance, holding_id, created_at, last_modified_at)
 SELECT gen_random_uuid(), pg_temp.d(k.n, 1), k.balance, h.id, now(), now()
 FROM (VALUES
@@ -276,10 +295,31 @@ FROM (VALUES
     ('Demo Logistics FII',   1,  980.00),
     ('Demo Logistics FII',   0, 1531.50),
     ('Demo Receivables FII', 1,  829.60),
-    ('Demo Receivables FII', 0,  834.40)
+    ('Demo Receivables FII', 0,  834.40),
+    ('Demo Hotel FII',       2,  512.40),
+    ('Demo Hotel FII',       1,  505.80)
 ) AS k(product, n, balance)
 JOIN investment_products ip ON ip.name = k.product
 JOIN investment_holdings h ON h.product_id = ip.id;
+
+-- FII allocation plan (ADR 0023): versioned like a budget, FII products only, each version's
+-- targets summing to exactly 100. The closed FII is not in it. Targets are rebalanced from last month.
+INSERT INTO allocation_plans (id, created_at, last_modified_at) VALUES (gen_random_uuid(), now(), now());
+
+INSERT INTO allocation_plan_versions (id, plan_id, effective_from, created_at, last_modified_at)
+SELECT gen_random_uuid(), (SELECT id FROM allocation_plans), pg_temp.d(v.months_back, 1), now(), now()
+FROM (VALUES (3), (1)) AS v(months_back);
+
+INSERT INTO allocation_plan_entries (id, version_id, investment_product_id, target_percentage, created_at, last_modified_at)
+SELECT gen_random_uuid(), apv.id, ip.id, e.target_percentage, now(), now()
+FROM (VALUES
+    (3, 'Demo Logistics FII',   50.00),
+    (3, 'Demo Receivables FII', 50.00),
+    (1, 'Demo Logistics FII',   60.00),
+    (1, 'Demo Receivables FII', 40.00)
+) AS e(months_back, product, target_percentage)
+JOIN allocation_plan_versions apv ON apv.effective_from = pg_temp.d(e.months_back, 1)
+JOIN investment_products ip ON ip.name = e.product;
 
 -- Dividends: income in the flagged dividend category, tied to the holding that paid it and received
 -- in a normal (non-INVESTMENT) account.
@@ -294,7 +334,8 @@ SELECT gen_random_uuid(), pg_temp.d(v.n, v.day), v.amount,
 FROM (VALUES
     ('Demo Logistics FII',   2, 15,  9.20, 'DEMO11 dividend'),
     ('Demo Logistics FII',   1, 15, 14.25, 'DEMO11 dividend'),
-    ('Demo Receivables FII', 1, 15,  8.40, 'DEMO12 dividend')
+    ('Demo Receivables FII', 1, 15,  8.40, 'DEMO12 dividend'),
+    ('Demo Hotel FII',       2, 15,  4.80, 'DEMO13 dividend')
 ) AS v(product, n, day, amount, description)
 JOIN investment_products ip ON ip.name = v.product
 JOIN investment_holdings h ON h.product_id = ip.id;
