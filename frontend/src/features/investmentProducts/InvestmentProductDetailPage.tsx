@@ -35,13 +35,7 @@ import {
   useEditInvestmentProduct,
   useInvestmentProduct,
 } from '../../api/investments/investmentProductsQueries'
-import type { InvestmentSnapshot } from '../../api/investments/investmentSnapshots'
-import {
-  useDeleteInvestmentSnapshot,
-  useInvestmentSnapshots,
-  useRecordInvestmentSnapshot,
-  useUpdateInvestmentSnapshot,
-} from '../../api/investments/investmentSnapshotsQueries'
+import { useInvestmentSnapshots } from '../../api/investments/investmentSnapshotsQueries'
 import { useInvestmentValueSeries } from '../../api/investments/investmentValueSeriesQueries'
 import { useTradeConfirmationLinesByProduct } from '../../api/investments/tradeConfirmationLinesQueries'
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
@@ -52,15 +46,16 @@ import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useAction } from '../../hooks/useAction'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { nameLookup } from '../../utils/nameLookup'
-import { today } from '../../utils/localDate'
 import { TransferForm, type TransferFormPreset } from '../transfers/TransferForm'
 import { InvestmentProductForm, type InvestmentProductFormValues } from './InvestmentProductForm'
 import { CurrentValueCard } from './CurrentValueCard'
 import { SECTION_PADDING } from './detailLayout'
 import { HoldingsPanel } from './HoldingsPanel'
 import { OpeningPositionCard } from './OpeningPositionCard'
-import { SnapshotsPanel, type SnapshotEdit } from './SnapshotsPanel'
+import { SnapshotDialogs } from './SnapshotDialogs'
+import { SnapshotsPanel } from './SnapshotsPanel'
 import { TradesPanel } from './TradesPanel'
+import { useSnapshotActions } from './useSnapshotActions'
 import { ValueOverTimePanel } from './ValueOverTimePanel'
 
 /**
@@ -113,9 +108,6 @@ export function InvestmentProductDetailPage() {
   const seriesState = useQueryState(seriesQuery, setError)
   const tradesQuery = useTradeConfirmationLinesByProduct(productId)
   const tradesState = useQueryState(tradesQuery, setError)
-  const recordSnapshot = useRecordInvestmentSnapshot()
-  const updateSnapshot = useUpdateInvestmentSnapshot()
-  const deleteSnapshot = useDeleteInvestmentSnapshot()
   const editProduct = useEditInvestmentProduct()
   const deleteProduct = useDeleteInvestmentProduct()
   const createHolding = useCreateInvestmentHolding()
@@ -123,13 +115,7 @@ export function InvestmentProductDetailPage() {
   const deleteHolding = useDeleteInvestmentHolding()
   const editHoldingNotes = useEditInvestmentHoldingNotes()
 
-  const [snapshotForm, setSnapshotForm] = useState(() => ({ date: today(), balance: '' }))
-  const [snapshotDialogOpen, setSnapshotDialogOpen] = useState(false)
-  const recordAction = useAction(setError)
-  const [editing, setEditing] = useState<SnapshotEdit | null>(null)
-  const saveEditAction = useAction(setError)
-  const [deleteTarget, setDeleteTarget] = useState<InvestmentSnapshot | null>(null)
-  const deleteSnapshotAction = useAction(setError)
+  const snapshotActions = useSnapshotActions({ holdingId: selectedHolding?.id, setError })
   const [tradeDialog, setTradeDialog] = useState<TransferFormPreset | null>(null)
   // The dialog form remounts fresh for each Buy/Sell click.
   const [dialogKey, setDialogKey] = useState(0)
@@ -161,65 +147,12 @@ export function InvestmentProductDetailPage() {
 
   const points = series?.[0]?.points ?? []
 
+  // The same dismissible banner, rendered inside a dialog.
+  const errorBanner = <ErrorAlert message={error} onDismiss={() => setError(null)} />
+
   // While any dialog is open, a save error shows inside it: the page banner sits behind it.
   const anyDialogOpen =
-    tradeDialog !== null || snapshotDialogOpen || editProductOpen || addHoldingOpen
-
-  function openSnapshotDialog() {
-    setError(null)
-    setSnapshotForm({ date: today(), balance: '' })
-    setSnapshotDialogOpen(true)
-  }
-
-  function closeSnapshotDialog() {
-    setSnapshotDialogOpen(false)
-    setError(null)
-  }
-
-  async function handleRecordSnapshot() {
-    if (!selectedHolding) return
-    const balance = Number(snapshotForm.balance)
-    if (snapshotForm.date === '' || snapshotForm.balance === '' || !(balance >= 0)) return
-    // A same-day entry replaces the earlier one; the refetch after the write reorders the list.
-    const recorded = await recordAction.run(() =>
-      recordSnapshot.mutateAsync({
-        holdingId: selectedHolding.id,
-        date: snapshotForm.date,
-        balance,
-      }),
-    )
-    if (recorded) setSnapshotDialogOpen(false)
-  }
-
-  async function handleSaveEdit() {
-    if (!selectedHolding || !editing) return
-    const balance = Number(editing.balance)
-    if (editing.date === '' || editing.balance === '' || !(balance >= 0)) return
-    const saved = await saveEditAction.run(
-      () =>
-        updateSnapshot.mutateAsync({
-          holdingId: selectedHolding.id,
-          snapshotId: editing.id,
-          date: editing.date,
-          balance,
-        }),
-      { 404: t('investmentProducts:detail.snapshotNotFound') },
-    )
-    if (saved) setEditing(null)
-  }
-
-  async function handleConfirmDelete() {
-    if (!selectedHolding || !deleteTarget) return
-    await deleteSnapshotAction.run(
-      () =>
-        deleteSnapshot.mutateAsync({
-          holdingId: selectedHolding.id,
-          snapshotId: deleteTarget.id,
-        }),
-      { 404: t('investmentProducts:detail.snapshotNotFound') },
-    )
-    setDeleteTarget(null)
-  }
+    tradeDialog !== null || snapshotActions.record.open || editProductOpen || addHoldingOpen
 
   function openTrade(direction: 'buy' | 'sell') {
     if (!selectedHolding || !product) return
@@ -406,12 +339,12 @@ export function InvestmentProductDetailPage() {
               <SnapshotsPanel
                 snapshots={snapshots}
                 state={snapshotsState}
-                onRecord={openSnapshotDialog}
-                editing={editing}
-                onEditingChange={setEditing}
-                onSaveEdit={() => void handleSaveEdit()}
-                savingEdit={saveEditAction.pending}
-                onDelete={setDeleteTarget}
+                onRecord={snapshotActions.record.openDialog}
+                editing={snapshotActions.edit.editing}
+                onEditingChange={snapshotActions.edit.setEditing}
+                onSaveEdit={() => void snapshotActions.edit.save()}
+                savingEdit={snapshotActions.edit.pending}
+                onDelete={snapshotActions.remove.setTarget}
               />
             </>
           )}
@@ -422,63 +355,7 @@ export function InvestmentProductDetailPage() {
         </Box>
       )}
 
-      <ConfirmDialog
-        open={deleteTarget !== null}
-        title={t('investmentProducts:detail.deleteSnapshotTitle')}
-        body={t('investmentProducts:detail.deleteSnapshotBody', { date: deleteTarget?.date ?? '' })}
-        confirmLabel={t('investmentProducts:detail.deleteSnapshotConfirm')}
-        loading={deleteSnapshotAction.pending}
-        onConfirm={() => void handleConfirmDelete()}
-        onCancel={() => setDeleteTarget(null)}
-      />
-
-      <ResponsiveDialog
-        open={snapshotDialogOpen}
-        onClose={recordAction.pending ? undefined : closeSnapshotDialog}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>{t('investmentProducts:detail.recordSnapshotDialogTitle')}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 1 }}>
-            <ErrorAlert message={error} onDismiss={() => setError(null)} />
-            <FormGrid>
-              <TextField
-                label={t('investmentProducts:detail.snapshotDateLabel')}
-                type="date"
-                value={snapshotForm.date}
-                onChange={(e) => setSnapshotForm((prev) => ({ ...prev, date: e.target.value }))}
-                slotProps={{ inputLabel: { shrink: true } }}
-              />
-              <TextField
-                label={t('investmentProducts:detail.balanceLabel')}
-                type="number"
-                value={snapshotForm.balance}
-                onChange={(e) => setSnapshotForm((prev) => ({ ...prev, balance: e.target.value }))}
-                helperText={t('investmentProducts:detail.balanceHelperText')}
-                slotProps={{ htmlInput: { step: '0.01', min: '0' } }}
-              />
-            </FormGrid>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={closeSnapshotDialog} disabled={recordAction.pending}>
-            {t('common:actions.cancel')}
-          </Button>
-          <Button
-            variant="contained"
-            disabled={
-              recordAction.pending ||
-              snapshotForm.date === '' ||
-              snapshotForm.balance === '' ||
-              !(Number(snapshotForm.balance) >= 0)
-            }
-            onClick={() => void handleRecordSnapshot()}
-          >
-            {t('investmentProducts:detail.recordSnapshotButton')}
-          </Button>
-        </DialogActions>
-      </ResponsiveDialog>
+      <SnapshotDialogs actions={snapshotActions} banner={errorBanner} />
 
       <ResponsiveDialog
         open={tradeDialog !== null}
@@ -499,7 +376,7 @@ export function InvestmentProductDetailPage() {
           <TransferForm
             key={dialogKey}
             dialog
-            banner={<ErrorAlert message={error} onDismiss={() => setError(null)} />}
+            banner={errorBanner}
             accounts={accounts}
             preset={tradeDialog}
             onSaved={handleTradeSaved}
@@ -519,7 +396,7 @@ export function InvestmentProductDetailPage() {
         {product && categories && (
           <InvestmentProductForm
             dialog
-            banner={<ErrorAlert message={error} onDismiss={() => setError(null)} />}
+            banner={errorBanner}
             categories={categories}
             segments={segments ?? []}
             initial={{
@@ -557,7 +434,7 @@ export function InvestmentProductDetailPage() {
         <DialogTitle>{t('investmentProducts:detail.addHoldingDialogTitle')}</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
-            <ErrorAlert message={error} onDismiss={() => setError(null)} />
+            {errorBanner}
             <FormGrid>
               <Select
                 size="small"
@@ -609,7 +486,7 @@ export function InvestmentProductDetailPage() {
         <DialogTitle>{t('investmentProducts:detail.editHoldingNotesTitle')}</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
-            <ErrorAlert message={error} onDismiss={() => setError(null)} />
+            {errorBanner}
             <TextField
               label={t('investmentProducts:detail.notesLabel')}
               size="small"
