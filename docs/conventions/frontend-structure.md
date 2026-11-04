@@ -8,12 +8,12 @@ Read when adding a route, a feature folder, an API area or a shared module, or w
 - `src/components`: shared UI, grouped by role. `feedback/` for `ErrorAlert`, `ErrorBoundary`, `LoadFailedNotice`, `ConfirmDialog`, `AddFormDialog`, `fadeIn`; `table/` for `DataTableBody`, `PaginationControls`, `InlineEditActions`; `layout/` for `Layout`; `charts/` for the shared line-chart math and svg frame ([frontend-charts.md](frontend-charts.md)); `inputs/` for `MonthPicker` and `MonthNavigator`. Usage notes: [frontend-components.md](frontend-components.md).
 - `src/features/<area>`: one folder per feature area, mapping to a route.
 - `src/hooks`: `queryState` (the query-result adapter), `useAction` (a guarded write: clears the banner, maps the error, exposes `pending`), `useAddDialog` and `useInlineEdit` (the add-dialog and inline-row-edit state of a settings-style page), `useHasAccounts`, `useDelayedFlag`, `colorMode/` for the provider and `useColorMode`.
-- `src/utils`: framework-free helpers shared across features, e.g. `nameLookup`.
+- `src/utils`: helpers shared across features with no UI of their own, e.g. `nameLookup`, `lazyNamed` (route code splitting).
 - `src/mocks`: MSW handlers and their in-memory stores. `src/test`: Vitest setup and helpers.
 
 ## Routes
 
-**Every route in `App.tsx` is `React.lazy`-loaded** (issue #94: all pages were one eagerly-bundled >500kB chunk) behind one shared `<Suspense>` around `<Routes>`. Page components are named exports, not default, so each needs `lazy(() => import('./features/x/XPage').then((m) => ({ default: m.XPage })))`: a new route follows the same shape, not a bare `lazy(() => import(...))`. The login guard around the routes: [auth.md](auth.md).
+**Every route in `App.tsx` is `React.lazy`-loaded** (issue #94: all pages were one eagerly-bundled >500kB chunk) behind one shared `<Suspense>` around `<Routes>`. Page components are named exports, not default, so each is `lazyNamed(() => import('./features/x/XPage'), 'XPage')` (`src/utils/lazyNamed.ts`, a typed `React.lazy` wrapper: the name is checked against the module and the `import()` stays literal, so each page is still its own chunk): a new route follows the same shape, not a bare `lazy(() => import(...))`. The login guard around the routes: [auth.md](auth.md).
 
 ## API clients
 

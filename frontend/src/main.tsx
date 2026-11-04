@@ -1,10 +1,11 @@
-import { lazy, StrictMode, Suspense } from 'react'
+import { StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
 import './i18n/i18n'
 import App from './App'
 import { createQueryClient } from './api/core/queryClient'
+import { lazyNamed } from './utils/lazyNamed'
 import { installGlobalErrorLogging, reactRootErrorHandlers } from './utils/globalErrorLogging'
 
 installGlobalErrorLogging()
@@ -18,9 +19,7 @@ const queryClient = createQueryClient()
 // (e.g. a `ResponsiveFilterBar` sheet's "Done"), intercepting the click (F021).
 const ReactQueryDevtools =
   import.meta.env.DEV && !import.meta.env.VITE_E2E
-    ? lazy(() =>
-        import('@tanstack/react-query-devtools').then((m) => ({ default: m.ReactQueryDevtools })),
-      )
+    ? lazyNamed(() => import('@tanstack/react-query-devtools'), 'ReactQueryDevtools')
     : null
 
 createRoot(document.getElementById('root')!, reactRootErrorHandlers).render(
