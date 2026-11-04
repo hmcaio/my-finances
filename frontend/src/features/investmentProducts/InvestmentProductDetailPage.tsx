@@ -16,7 +16,6 @@ import {
   Select,
   Skeleton,
   TextField,
-  Tooltip,
   Typography,
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
@@ -63,6 +62,7 @@ import { nameLookup } from '../../utils/nameLookup'
 import { today } from '../../utils/localDate'
 import { TransferForm, type TransferFormPreset } from '../transfers/TransferForm'
 import { InvestmentProductForm, type InvestmentProductFormValues } from './InvestmentProductForm'
+import { CurrentValueCard } from './CurrentValueCard'
 import { SECTION_PADDING } from './detailLayout'
 import { HoldingsPanel } from './HoldingsPanel'
 import { OpeningPositionCard } from './OpeningPositionCard'
@@ -514,60 +514,12 @@ export function InvestmentProductDetailPage() {
                   mb: 3,
                 }}
               >
-                <Paper variant="outlined" sx={{ p: SECTION_PADDING }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                    <Typography variant="overline" color="text.secondary">
-                      {t('investmentProducts:detail.currentValue')}{' '}
-                      {selectedAccount ? `(${selectedAccount.name})` : ''}
-                    </Typography>
-                    {selectedHolding.closed ? (
-                      <Chip label={t('investmentProducts:detail.statusClosed')} size="small" />
-                    ) : (
-                      <Chip
-                        label={t('investmentProducts:detail.statusOpen')}
-                        size="small"
-                        color="success"
-                      />
-                    )}
-                    {selectedHolding.needsSnapshot && (
-                      <Tooltip title={t('investmentProducts:detail.needsSnapshotTooltip')}>
-                        <Chip
-                          label={t('investmentProducts:detail.needsSnapshotChip')}
-                          size="small"
-                          color="warning"
-                        />
-                      </Tooltip>
-                    )}
-                  </Box>
-                  <Typography variant="h3" sx={{ mb: 1, mt: 1 }}>
-                    {selectedHolding.latestSnapshot
-                      ? formatMoney(selectedHolding.latestSnapshot.balance, locale)
-                      : '-'}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    {selectedHolding.latestSnapshot
-                      ? t('investmentProducts:detail.latestSnapshotLine', {
-                          date: selectedHolding.latestSnapshot.date,
-                        })
-                      : t('investmentProducts:detail.noSnapshotYet')}
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 2 }}>
-                    <Button
-                      variant="contained"
-                      disabled={!canTrade}
-                      onClick={() => openTrade('buy')}
-                    >
-                      {t('investmentProducts:detail.buyButton')}
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      disabled={!canTrade}
-                      onClick={() => openTrade('sell')}
-                    >
-                      {t('investmentProducts:detail.sellButton')}
-                    </Button>
-                  </Box>
-                </Paper>
+                <CurrentValueCard
+                  holding={selectedHolding}
+                  accountName={selectedAccount?.name}
+                  canTrade={canTrade}
+                  onTrade={openTrade}
+                />
 
                 <OpeningPositionCard holding={selectedHolding} padding={SECTION_PADDING} />
               </Box>
