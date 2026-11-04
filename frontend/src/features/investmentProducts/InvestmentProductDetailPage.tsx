@@ -1,15 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link as RouterLink, useParams } from 'react-router-dom'
-import {
-  Alert,
-  Box,
-  DialogTitle,
-  IconButton,
-  Link as MuiLink,
-  Skeleton,
-  Typography,
-} from '@mui/material'
+import { Alert, Box, IconButton, Link as MuiLink, Skeleton, Typography } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
 import { useAccounts } from '../../api/accounts/accountsQueries'
@@ -23,11 +15,9 @@ import { useInvestmentValueSeries } from '../../api/investments/investmentValueS
 import { useTradeConfirmationLinesByProduct } from '../../api/investments/tradeConfirmationLinesQueries'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { fadeInSx } from '../../components/feedback/fadeIn'
-import { ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { nameLookup } from '../../utils/nameLookup'
-import { TransferForm, type TransferFormPreset } from '../transfers/TransferForm'
 import { CurrentValueCard } from './CurrentValueCard'
 import { SECTION_PADDING } from './detailLayout'
 import { HoldingDialogs } from './HoldingDialogs'
@@ -36,10 +26,12 @@ import { OpeningPositionCard } from './OpeningPositionCard'
 import { ProductDialogs } from './ProductDialogs'
 import { SnapshotDialogs } from './SnapshotDialogs'
 import { SnapshotsPanel } from './SnapshotsPanel'
+import { TradeDialog } from './TradeDialog'
 import { TradesPanel } from './TradesPanel'
 import { useHoldingActions } from './useHoldingActions'
 import { useProductActions } from './useProductActions'
 import { useSnapshotActions } from './useSnapshotActions'
+import { useTradeDialog } from './useTradeDialog'
 import { ValueOverTimePanel } from './ValueOverTimePanel'
 
 /**
@@ -92,10 +84,7 @@ export function InvestmentProductDetailPage() {
   const tradesState = useQueryState(tradesQuery, setError)
 
   const snapshotActions = useSnapshotActions({ holdingId: selectedHolding?.id, setError })
-  const [tradeDialog, setTradeDialog] = useState<TransferFormPreset | null>(null)
-  // The dialog form remounts fresh for each Buy/Sell click.
-  const [dialogKey, setDialogKey] = useState(0)
-
+  const tradeDialog = useTradeDialog({ holding: selectedHolding, product, setError })
   const productActions = useProductActions({ product, setError })
   const holdingActions = useHoldingActions({
     productId: product?.id,
@@ -123,26 +112,10 @@ export function InvestmentProductDetailPage() {
 
   // While any dialog is open, a save error shows inside it: the page banner sits behind it.
   const anyDialogOpen =
-    tradeDialog !== null ||
+    tradeDialog.preset !== null ||
     snapshotActions.record.open ||
     productActions.edit.open ||
     holdingActions.add.open
-
-  function openTrade(direction: 'buy' | 'sell') {
-    if (!selectedHolding || !product) return
-    setError(null)
-    setDialogKey((n) => n + 1)
-    setTradeDialog({
-      direction,
-      investmentAccountId: selectedHolding.accountId,
-      productId: product.id,
-      productName: product.name,
-    })
-  }
-
-  function handleTradeSaved() {
-    setTradeDialog(null)
-  }
 
   return (
     <Box sx={{ py: { xs: 2, sm: 4 } }}>
@@ -228,7 +201,7 @@ export function InvestmentProductDetailPage() {
                   holding={selectedHolding}
                   accountName={selectedAccount?.name}
                   canTrade={canTrade}
-                  onTrade={openTrade}
+                  onTrade={tradeDialog.open}
                 />
 
                 <OpeningPositionCard holding={selectedHolding} padding={SECTION_PADDING} />
@@ -255,34 +228,13 @@ export function InvestmentProductDetailPage() {
 
       <SnapshotDialogs actions={snapshotActions} banner={errorBanner} />
 
-      <ResponsiveDialog
-        open={tradeDialog !== null}
-        onClose={() => setTradeDialog(null)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          {t('investmentProducts:detail.tradeDialogTitle', {
-            direction:
-              tradeDialog?.direction === 'sell'
-                ? t('investmentProducts:detail.sellButton')
-                : t('investmentProducts:detail.buyButton'),
-            product: product?.name,
-          })}
-        </DialogTitle>
-        {tradeDialog && accounts && (
-          <TransferForm
-            key={dialogKey}
-            dialog
-            banner={errorBanner}
-            accounts={accounts}
-            preset={tradeDialog}
-            onSaved={handleTradeSaved}
-            onError={setError}
-            onCancel={() => setTradeDialog(null)}
-          />
-        )}
-      </ResponsiveDialog>
+      <TradeDialog
+        trade={tradeDialog}
+        productName={product?.name}
+        accounts={accounts}
+        setError={setError}
+        banner={errorBanner}
+      />
 
       <ProductDialogs
         actions={productActions}
