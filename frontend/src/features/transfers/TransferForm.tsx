@@ -29,17 +29,9 @@ import { useLocale } from '../../hooks/locale/useLocale'
 import { formatMoney } from '../../i18n/format'
 import { netSettlementDirection, type TradeSide } from './tradeMath'
 import {
-  appendLine,
-  changeInvestmentAccount,
-  changeLineSide,
   buildTransferRequest,
-  initialFormState,
   pickerAccounts,
-  removeLine as removeLineFrom,
-  switchMode,
-  updateLine as updateLineIn,
   type FormMode,
-  type FormState,
   type LineState,
   type TransferFormPreset,
 } from './transferFormState'
@@ -48,6 +40,7 @@ import {
   isTransferFormValid,
   tradeNetPreview,
 } from './transferValidation'
+import { useTransferForm } from './useTransferForm'
 
 export type { TransferFormPreset }
 
@@ -96,11 +89,12 @@ export function TransferForm({
 }: TransferFormProps) {
   const { t } = useTranslation(['transfers', 'common'])
   const { locale } = useLocale()
-  const [form, setForm] = useState(() =>
-    initialFormState(editing, preset, accounts, t as (key: never) => string),
+  const { form, patch, setMode, setInvestmentAccountId, lineActions } = useTransferForm(
+    accounts,
+    editing,
+    preset,
   )
   const [saving, setSaving] = useState(false)
-  const [nextLineKey, setNextLineKey] = useState(form.lines.length)
 
   const { cashOptions, investmentAccounts } = pickerAccounts(accounts)
 
@@ -116,39 +110,8 @@ export function TransferForm({
   const createMutation = useCreateTransfer()
   const editMutation = useEditTransfer()
 
-  function patch(changes: Partial<FormState>) {
-    setForm((prev) => ({ ...prev, ...changes }))
-  }
-
-  function setMode(mode: FormMode) {
-    setForm((prev) =>
-      switchMode(
-        prev,
-        mode,
-        investmentAccounts.map((a) => a.id),
-      ),
-    )
-  }
-
-  function setInvestmentAccountId(investmentAccountId: string) {
-    setForm((prev) => changeInvestmentAccount(prev, investmentAccountId))
-  }
-
   function holdingOptionsFor(line: LineState) {
     return (holdings ?? []).filter((h) => !h.closed || h.productId === line.productId)
-  }
-
-  function updateLine(key: number, changes: Partial<LineState>) {
-    setForm((prev) => ({ ...prev, lines: updateLineIn(prev.lines, key, changes) }))
-  }
-
-  function addLine() {
-    patch({ lines: appendLine(form.lines, nextLineKey) })
-    setNextLineKey((n) => n + 1)
-  }
-
-  function removeLine(key: number) {
-    setForm((prev) => ({ ...prev, lines: removeLineFrom(prev.lines, key) }))
   }
 
   const netPreview = tradeNetPreview(form)
@@ -336,7 +299,7 @@ export function TransferForm({
           size="small"
           displayEmpty
           value={holdingOptions.some((h) => h.productId === line.productId) ? line.productId : ''}
-          onChange={(e) => updateLine(line.key, { productId: e.target.value })}
+          onChange={(e) => lineActions.update(line.key, { productId: e.target.value })}
           aria-label={t('transfers:form.productLabel')}
           sx={{ minWidth: 180 }}
         >
@@ -352,7 +315,7 @@ export function TransferForm({
         <Select
           size="small"
           value={line.side}
-          onChange={(e) => updateLine(line.key, changeLineSide(line, e.target.value as TradeSide))}
+          onChange={(e) => lineActions.changeSide(line, e.target.value as TradeSide)}
           aria-label={t('transfers:form.sideAria')}
         >
           <MenuItem value="BUY">{t('transfers:form.buyOption')}</MenuItem>
@@ -363,7 +326,7 @@ export function TransferForm({
           type="number"
           size="small"
           value={line.quantity}
-          onChange={(e) => updateLine(line.key, { quantity: e.target.value })}
+          onChange={(e) => lineActions.update(line.key, { quantity: e.target.value })}
           slotProps={{ htmlInput: { step: 'any', min: '0' } }}
         />
         <TextField
@@ -371,7 +334,7 @@ export function TransferForm({
           type="number"
           size="small"
           value={line.unitPrice}
-          onChange={(e) => updateLine(line.key, { unitPrice: e.target.value })}
+          onChange={(e) => lineActions.update(line.key, { unitPrice: e.target.value })}
           slotProps={{ htmlInput: { step: 'any', min: '0' } }}
         />
         <TextField
@@ -379,7 +342,7 @@ export function TransferForm({
           type="number"
           size="small"
           value={line.resultingBalance}
-          onChange={(e) => updateLine(line.key, { resultingBalance: e.target.value })}
+          onChange={(e) => lineActions.update(line.key, { resultingBalance: e.target.value })}
           error={hasDuplicateResultingBalance}
           helperText={
             hasDuplicateResultingBalance
@@ -393,7 +356,7 @@ export function TransferForm({
             control={
               <Checkbox
                 checked={line.closeHolding}
-                onChange={(e) => updateLine(line.key, { closeHolding: e.target.checked })}
+                onChange={(e) => lineActions.update(line.key, { closeHolding: e.target.checked })}
               />
             }
             label={t('transfers:form.closeHoldingLabel')}
@@ -403,7 +366,7 @@ export function TransferForm({
           <IconButton
             size="small"
             aria-label={t('transfers:form.removeLineAria')}
-            onClick={() => removeLine(line.key)}
+            onClick={() => lineActions.remove(line.key)}
             sx={{ alignSelf: 'center' }}
           >
             <DeleteIcon fontSize="small" />
@@ -447,7 +410,7 @@ export function TransferForm({
             {t('transfers:form.productLinesTitle')}
           </Typography>
           {lineRows}
-          <Button size="small" startIcon={<AddIcon />} onClick={addLine} sx={{ mt: 1 }}>
+          <Button size="small" startIcon={<AddIcon />} onClick={lineActions.add} sx={{ mt: 1 }}>
             {t('transfers:form.addLineButton')}
           </Button>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }} aria-live="polite">
