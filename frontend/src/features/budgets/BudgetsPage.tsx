@@ -6,13 +6,11 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  IconButton,
   MenuItem,
   Select,
   TextField,
   Typography,
 } from '@mui/material'
-import StopCircleOutlinedIcon from '@mui/icons-material/StopCircleOutlined'
 import { useCategories } from '../../api/categories/categoriesQueries'
 import type { Budget } from '../../api/budgets/budgets'
 import {
@@ -26,8 +24,7 @@ import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { AddFormDialog } from '../../components/feedback/AddFormDialog'
 import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
 import { MonthPicker } from '../../components/inputs/MonthPicker'
-import { InlineEditActions } from '../../components/table/InlineEditActions'
-import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
+import { ResponsiveTable } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useAction } from '../../hooks/useAction'
 import { useAddDialog } from '../../hooks/useAddDialog'
@@ -35,10 +32,11 @@ import { useIsMobile } from '../../hooks/useBreakpointBand'
 import { useInlineEdit } from '../../hooks/useInlineEdit'
 import { currentMonth } from '../../utils/localDate'
 import { useLocale } from '../../hooks/locale/useLocale'
-import { formatMoney } from '../../i18n/format'
 import { translateSeedName } from '../../i18n/seedNames'
 import { nameLookup } from '../../utils/nameLookup'
 import { BudgetCapField } from './BudgetEditFields'
+import { buildBudgetColumns } from './budgetColumns'
+import { BudgetRowActions } from './BudgetRowActions'
 import { isBudgetCapValid } from './budgetEdit'
 import { BudgetVsActualReport } from './BudgetVsActualReport'
 
@@ -149,62 +147,27 @@ export function BudgetsPage() {
   const editDialogOpen = isMobile && editingId !== null
   const editingBudget = budgets?.find((b) => b.id === editingId) ?? null
 
-  const columns: ResponsiveColumn<Budget>[] = [
-    {
-      key: 'category',
-      header: t('budgets:columns.category'),
-      role: 'primary',
-      render: (budget) => categoryName(budget.categoryId),
-    },
-    {
-      key: 'cap',
-      header: t('budgets:columns.currentCap'),
-      align: 'right',
-      render: (budget) =>
-        editingId === budget.id && !isMobile ? (
-          <BudgetCapField value={editingCap} onChange={setEditingCap} autoFocus />
-        ) : budget.stopped ? (
-          <Typography color="text.secondary" component="span">
-            {t('budgets:stopped')}
-          </Typography>
-        ) : budget.currentCap !== null ? (
-          formatMoney(budget.currentCap, locale)
-        ) : (
-          <Typography color="text.secondary" component="span">
-            {t('budgets:noCapYet')}
-          </Typography>
-        ),
-    },
-    {
-      key: 'effectiveFrom',
-      header: t('budgets:columns.effectiveFrom'),
-      render: (budget) => budget.currentCapEffectiveFrom ?? '—',
-    },
-  ]
+  const columns = buildBudgetColumns({
+    t,
+    locale,
+    categoryName,
+    inlineEdit:
+      editingId !== null && !isMobile
+        ? { rowId: editingId, cap: editingCap, onCapChange: setEditingCap }
+        : null,
+  })
 
   function rowActions(budget: Budget) {
-    const editingInline = editingId === budget.id && !isMobile
     return (
-      <>
-        <InlineEditActions
-          editing={editingInline}
-          onEdit={() => startEditCap(budget)}
-          onSave={() => void saveEditCap(budget.id)}
-          onCancel={cancelEditCap}
-          editLabel={budget.stopped ? t('budgets:resumeBudgetAction') : t('budgets:editCapAction')}
-          saveLabel={budget.stopped ? t('budgets:resumeWithCapAction') : t('budgets:saveCapAction')}
-          saving={capAction.pending}
-        />
-        {!budget.stopped && !editingInline && (
-          <IconButton
-            size="small"
-            aria-label={t('budgets:stopBudgetAria')}
-            onClick={() => setStopTarget(budget)}
-          >
-            <StopCircleOutlinedIcon fontSize="small" />
-          </IconButton>
-        )}
-      </>
+      <BudgetRowActions
+        budget={budget}
+        editingInline={editingId === budget.id && !isMobile}
+        saving={capAction.pending}
+        onStartEdit={startEditCap}
+        onSave={(id) => void saveEditCap(id)}
+        onCancel={cancelEditCap}
+        onStop={setStopTarget}
+      />
     )
   }
 
