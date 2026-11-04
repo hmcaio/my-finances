@@ -409,7 +409,7 @@ describe('TransferForm plain transfers', () => {
   })
 })
 
-describe('TransferForm characterization (behaviors the refactor of finding 4 must keep)', () => {
+describe('TransferForm characterization', () => {
   const NUBANK = seedAccounts[2].name
 
   async function fillBuyLine(
