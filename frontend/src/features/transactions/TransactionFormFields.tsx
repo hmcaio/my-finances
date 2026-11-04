@@ -7,6 +7,8 @@ import type { Vehicle } from '../../api/vehicles/vehicles'
 import { translateSeedName } from '../../i18n/seedNames'
 import { FUEL_TYPES, fuelTypeLabel } from '../../utils/fuelType'
 import type { TransactionFormValues } from './transactionForm'
+import { SELECT_MIN_WIDTH } from '../../components/layout/layoutSx'
+import { FORM_GRID_FULL_ROW } from '../../components/layout/layoutSx'
 
 /** Every field F024 added, empty/cleared. */
 const EMPTY_FUEL_FIELDS = {
@@ -82,7 +84,7 @@ export function TransactionFormFields({
         value={selectedCategory ? form.categoryId : ''}
         onChange={(e) => handleCategoryChange(e.target.value)}
         aria-label={t('transactions:form.categoryAria')}
-        sx={{ minWidth: 160 }}
+        sx={SELECT_MIN_WIDTH}
       >
         <MenuItem value="" disabled>
           {t('transactions:form.categoryPlaceholder')}
@@ -99,7 +101,7 @@ export function TransactionFormFields({
         value={form.accountId}
         onChange={(e) => onChange({ accountId: e.target.value })}
         aria-label={t('transactions:form.accountAria')}
-        sx={{ minWidth: 160 }}
+        sx={SELECT_MIN_WIDTH}
       >
         <MenuItem value="" disabled>
           {t('transactions:form.accountPlaceholder')}
@@ -116,7 +118,7 @@ export function TransactionFormFields({
         value={form.paymentMethodId}
         onChange={(e) => onChange({ paymentMethodId: e.target.value })}
         aria-label={t('transactions:form.paymentMethodAria')}
-        sx={{ minWidth: 160 }}
+        sx={SELECT_MIN_WIDTH}
       >
         <MenuItem value="" disabled>
           {t('transactions:form.paymentMethodPlaceholder')}
@@ -134,7 +136,7 @@ export function TransactionFormFields({
         value={form.description}
         onChange={(e) => onChange({ description: e.target.value })}
         slotProps={{ htmlInput: { maxLength: 150 } }}
-        sx={{ gridColumn: '1 / -1' }}
+        sx={FORM_GRID_FULL_ROW}
       />
       <TextField
         label={t('transactions:form.additionalNotesLabel')}
@@ -142,7 +144,7 @@ export function TransactionFormFields({
         value={form.additionalNotes}
         onChange={(e) => onChange({ additionalNotes: e.target.value })}
         slotProps={{ htmlInput: { maxLength: 500 } }}
-        sx={{ gridColumn: '1 / -1' }}
+        sx={FORM_GRID_FULL_ROW}
       />
       {isFuelCategory && (
         <>
@@ -152,7 +154,7 @@ export function TransactionFormFields({
             value={form.vehicleId}
             onChange={(e) => onChange({ vehicleId: e.target.value })}
             aria-label={t('transactions:form.vehicleAria')}
-            sx={{ minWidth: 160 }}
+            sx={SELECT_MIN_WIDTH}
           >
             <MenuItem value="" disabled>
               {t('transactions:form.vehiclePlaceholder')}
@@ -169,7 +171,7 @@ export function TransactionFormFields({
             value={form.fuelType}
             onChange={(e) => onChange({ fuelType: e.target.value })}
             aria-label={t('transactions:form.fuelTypeAria')}
-            sx={{ minWidth: 160 }}
+            sx={SELECT_MIN_WIDTH}
           >
             <MenuItem value="" disabled>
               {t('transactions:form.fuelTypePlaceholder')}

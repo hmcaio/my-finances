@@ -9,6 +9,7 @@ import { today } from '../../utils/localDate'
 import { InstitutionSelect } from '../institutions/InstitutionSelect'
 import { ACCOUNT_TYPES, accountTypeLabel } from './accountTypes'
 import { FormDialogContent } from '../../components/feedback/FormDialogContent'
+import { FORM_GRID_FULL_ROW } from '../../components/layout/layoutSx'
 
 interface AccountCreateFormProps {
   /** Called with the created account once the backend accepted it. Lists refetch on their own. */
@@ -88,7 +89,7 @@ export function AccountCreateForm({
         size="small"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        sx={{ gridColumn: '1 / -1' }}
+        sx={FORM_GRID_FULL_ROW}
       />
       <InstitutionSelect value={institutionId} onChange={setInstitutionId} fullWidth />
       <Select

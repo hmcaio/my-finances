@@ -9,6 +9,7 @@ import type {
 import { ResponsiveFilterBar } from '../../components/layout/ResponsiveFilterBar'
 import { actionLabel, entityTypeLabel, originLabel } from './activityEnumLabels'
 import { ACTIONS, ENTITY_TYPES, ORIGINS, endOfDayIso, startOfDayIso } from './activityFilters'
+import { SELECT_MIN_WIDTH } from '../../components/layout/layoutSx'
 
 interface ActivityFilterBarProps {
   filters: AuditLogFilter
@@ -47,7 +48,7 @@ export function ActivityFilterBar({ filters, onChange, onClear }: ActivityFilter
         value={filters.entityType ?? ''}
         onChange={(e) => onChange({ entityType: (e.target.value || undefined) as AuditEntityType })}
         aria-label={t('filters.entityTypeAria')}
-        sx={{ minWidth: 160 }}
+        sx={SELECT_MIN_WIDTH}
       >
         <MenuItem value="">{t('filters.allEntityTypes')}</MenuItem>
         {ENTITY_TYPES.map((entityType) => (

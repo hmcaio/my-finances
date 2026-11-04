@@ -5,6 +5,7 @@ import type { Account } from '../../api/accounts/accounts'
 import type { Category } from '../../api/categories/categories'
 import { translateSeedName } from '../../i18n/seedNames'
 import type { RecurringTemplateCreateForm } from './recurringTemplateEdit'
+import { FORM_GRID_FULL_ROW } from '../../components/layout/layoutSx'
 
 interface Props {
   form: RecurringTemplateCreateForm
@@ -58,7 +59,7 @@ export function RecurringTemplateCreateFields({ form, setForm, categories, accou
         value={form.description}
         onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
         slotProps={{ htmlInput: { maxLength: 150 } }}
-        sx={{ gridColumn: '1 / -1' }}
+        sx={FORM_GRID_FULL_ROW}
       />
       <TextField
         label={t('recurringTemplates:amountLabel')}

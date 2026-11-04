@@ -22,6 +22,7 @@ import { TradeAccountFields } from './TradeAccountFields'
 import { TransferCommonFields } from './TransferCommonFields'
 import { useTransferForm } from './useTransferForm'
 import { FormDialogContent } from '../../components/feedback/FormDialogContent'
+import { FORM_GRID_FULL_ROW } from '../../components/layout/layoutSx'
 
 export type { TransferFormPreset }
 
@@ -110,7 +111,7 @@ export function TransferForm({
 
   // Inline: wrapping flex rows, as before. Dialog: a one-column-on-phone grid, where the long
   // fields carry `gridColumn: '1 / -1'` (`wide`).
-  const wide = dialog ? { gridColumn: '1 / -1' } : undefined
+  const wide = dialog ? FORM_GRID_FULL_ROW : undefined
   function fieldRow(children: ReactNode, columns = 2) {
     return dialog ? (
       <FormGrid columns={columns}>{children}</FormGrid>

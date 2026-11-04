@@ -31,6 +31,7 @@ import {
 import { OpeningPositionFields } from './OpeningPositionFields'
 import { relevantInvestmentFields } from './investmentProductFields'
 import { FormDialogContent } from '../../components/feedback/FormDialogContent'
+import { FORM_GRID_FULL_ROW } from '../../components/layout/layoutSx'
 
 /**
  * What the form collects; an empty `subcategoryId` means "no sub-category", an empty `ticker`
@@ -130,7 +131,7 @@ export function InvestmentProductForm({
         value={name}
         onChange={(e) => setName(e.target.value)}
         slotProps={{ htmlInput: { maxLength: INVESTMENT_NAME_MAX_LENGTH } }}
-        sx={dialog ? { gridColumn: '1 / -1' } : undefined}
+        sx={dialog ? FORM_GRID_FULL_ROW : undefined}
       />
       <Select
         size="small"
@@ -199,7 +200,7 @@ export function InvestmentProductForm({
         value={additionalNotes}
         onChange={(e) => setAdditionalNotes(e.target.value)}
         slotProps={{ htmlInput: { maxLength: 500 } }}
-        sx={dialog ? { gridColumn: '1 / -1' } : undefined}
+        sx={dialog ? FORM_GRID_FULL_ROW : undefined}
       />
       {offersOpeningPosition && (
         <Accordion
@@ -210,7 +211,7 @@ export function InvestmentProductForm({
           // dialog's elevation-lifted surface in dark mode.
           sx={{
             bgcolor: 'transparent',
-            ...(dialog ? { gridColumn: '1 / -1' } : { width: '100%' }),
+            ...(dialog ? FORM_GRID_FULL_ROW : { width: '100%' }),
           }}
         >
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
