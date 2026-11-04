@@ -21,12 +21,13 @@ import {
   useRenameVehicle,
   useDeleteVehicle,
 } from '../../api/vehicles/vehiclesQueries'
-import { defaultErrorMessage } from '../../api/core/apiError'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { AddFormDialog } from '../../components/feedback/AddFormDialog'
 import { InlineEditActions } from '../../components/table/InlineEditActions'
 import { DataTableBody } from '../../components/table/DataTableBody'
+import { useAction } from '../../hooks/useAction'
 import { useAddDialog } from '../../hooks/useAddDialog'
+import { useInlineEdit } from '../../hooks/useInlineEdit'
 import { useQueryState } from '../../hooks/queryState'
 
 /**
@@ -47,12 +48,14 @@ export function VehiclesPage() {
   const renameMutation = useRenameVehicle()
   const deleteMutation = useDeleteVehicle()
 
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editingName, setEditingName] = useState('')
+  const edit = useInlineEdit('')
+  const { editingId, draft: editingName, setDraft: setEditingName, cancel: cancelEdit } = edit
+  const saveAction = useAction(setError)
 
-  const [adding, setAdding] = useState(false)
+  const addAction = useAction(setError)
   const addDialog = useAddDialog('')
 
+  const deleteAction = useAction(setError)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
 
   function closeAddDialog() {
@@ -62,49 +65,26 @@ export function VehiclesPage() {
 
   async function handleAdd() {
     if (!addDialog.draft.trim()) return
-    setError(null)
-    setAdding(true)
-    try {
-      await createMutation.mutateAsync({ name: addDialog.draft.trim() })
-      addDialog.close()
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    } finally {
-      setAdding(false)
-    }
+    const added = await addAction.run(() =>
+      createMutation.mutateAsync({ name: addDialog.draft.trim() }),
+    )
+    if (added) addDialog.close()
   }
 
   function startEdit(vehicle: Vehicle) {
-    setEditingId(vehicle.id)
-    setEditingName(vehicle.name)
-  }
-
-  function cancelEdit() {
-    setEditingId(null)
-    setEditingName('')
+    edit.start(vehicle.id, vehicle.name)
   }
 
   async function saveEdit(id: string) {
     if (!editingName.trim()) return
-    setError(null)
-    try {
-      await renameMutation.mutateAsync({ id, name: editingName.trim() })
+    if (await saveAction.run(() => renameMutation.mutateAsync({ id, name: editingName.trim() })))
       cancelEdit()
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    }
   }
 
   async function handleDelete(id: string) {
-    setError(null)
     setPendingDeleteId(id)
-    try {
-      await deleteMutation.mutateAsync(id)
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    } finally {
-      setPendingDeleteId(null)
-    }
+    await deleteAction.run(() => deleteMutation.mutateAsync(id))
+    setPendingDeleteId(null)
   }
 
   // Clears the stale banner before retrying, so it doesn't outlive a successful retry.
@@ -205,7 +185,7 @@ export function VehiclesPage() {
         title={t('vehicles:addDialogTitle')}
         error={error}
         onDismissError={() => setError(null)}
-        busy={adding}
+        busy={addAction.pending}
         canSubmit={!!addDialog.draft.trim()}
         columns={1}
         onSubmit={() => void handleAdd()}

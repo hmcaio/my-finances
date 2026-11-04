@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Box, Button, Paper, TextField, Typography } from '@mui/material'
-import { defaultErrorMessage } from '../../api/core/apiError'
 import {
   useCurrentAllocationPlan,
   useSetAllocationPlan,
@@ -10,6 +9,7 @@ import type { InvestmentProduct } from '../../api/investments/investmentProducts
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { MonthPicker } from '../../components/inputs/MonthPicker'
 import { useLocale } from '../../hooks/locale/useLocale'
+import { useAction } from '../../hooks/useAction'
 import { formatNumber } from '../../i18n/format'
 import { currentMonth } from '../../utils/localDate'
 
@@ -37,7 +37,7 @@ export function AllocationPlanEditor({ fiiProducts }: AllocationPlanEditorProps)
   // (below) are the displayed default for everything else, so there is nothing to sync via an
   // effect (React's "you might not need an effect": derive during render instead).
   const [edited, setEdited] = useState<Record<string, string>>({})
-  const [saving, setSaving] = useState(false)
+  const saveAction = useAction(setError)
   const [saved, setSaved] = useState(false)
 
   const defaults = useMemo(() => {
@@ -61,20 +61,12 @@ export function AllocationPlanEditor({ fiiProducts }: AllocationPlanEditorProps)
   }
 
   async function handleSave() {
-    setError(null)
     setSaved(false)
-    setSaving(true)
-    try {
-      const entries = fiiProducts
-        .map((p) => ({ investmentProductId: p.id, targetPercentage: Number(valueOf(p.id)) || 0 }))
-        .filter((e) => e.targetPercentage > 0)
-      await setAllocation.mutateAsync({ entries, effectiveFrom })
-      setSaved(true)
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    } finally {
-      setSaving(false)
-    }
+    const entries = fiiProducts
+      .map((p) => ({ investmentProductId: p.id, targetPercentage: Number(valueOf(p.id)) || 0 }))
+      .filter((e) => e.targetPercentage > 0)
+    const ok = await saveAction.run(() => setAllocation.mutateAsync({ entries, effectiveFrom }))
+    if (ok) setSaved(true)
   }
 
   const sumIsValid = roundedTotal === 100
@@ -130,7 +122,7 @@ export function AllocationPlanEditor({ fiiProducts }: AllocationPlanEditorProps)
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
         <Button
           variant="contained"
-          disabled={saving || !sumIsValid || fiiProducts.length === 0}
+          disabled={saveAction.pending || !sumIsValid || fiiProducts.length === 0}
           onClick={() => void handleSave()}
         >
           {t('allocationPlan.saveButton')}

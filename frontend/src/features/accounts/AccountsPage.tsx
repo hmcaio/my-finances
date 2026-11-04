@@ -23,7 +23,6 @@ import {
   useDeleteAccount,
   useEditAccount,
 } from '../../api/accounts/accountsQueries'
-import { defaultErrorMessage } from '../../api/core/apiError'
 import { useInstitutions } from '../../api/institutions/institutionsQueries'
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
@@ -31,7 +30,9 @@ import { FormGrid, ResponsiveDialog } from '../../components/feedback/Responsive
 import { InlineEditActions } from '../../components/table/InlineEditActions'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
+import { useAction } from '../../hooks/useAction'
 import { useIsMobile } from '../../hooks/useBreakpointBand'
+import { useInlineEdit } from '../../hooks/useInlineEdit'
 import { useLocale } from '../../hooks/locale/useLocale'
 import { formatMoney } from '../../i18n/format'
 import { translateSeedName } from '../../i18n/seedNames'
@@ -74,27 +75,23 @@ export function AccountsPage() {
     [institutions, t],
   )
 
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editingName, setEditingName] = useState('')
-  const [editingInstitutionId, setEditingInstitutionId] = useState<string | undefined>()
-  const [savingEdit, setSavingEdit] = useState(false)
+  const edit = useInlineEdit<{ name: string; institutionId: string | undefined }>({
+    name: '',
+    institutionId: undefined,
+  })
+  const { editingId, cancel: cancelEdit } = edit
+  const editingName = edit.draft.name
+  const editingInstitutionId = edit.draft.institutionId
+  const saveAction = useAction(setError)
   const [addDialogOpen, setAddDialogOpen] = useState(false)
 
   const [closeTarget, setCloseTarget] = useState<Account | null>(null)
-  const [closing, setClosing] = useState(false)
+  const closeAction = useAction(setError)
   const [deleteTarget, setDeleteTarget] = useState<Account | null>(null)
-  const [deleting, setDeleting] = useState(false)
+  const deleteAction = useAction(setError)
 
   function startEdit(account: Account) {
-    setEditingId(account.id)
-    setEditingName(account.name)
-    setEditingInstitutionId(account.institutionId)
-  }
-
-  function cancelEdit() {
-    setEditingId(null)
-    setEditingName('')
-    setEditingInstitutionId(undefined)
+    edit.start(account.id, { name: account.name, institutionId: account.institutionId })
   }
 
   function closeAddDialog() {
@@ -104,49 +101,27 @@ export function AccountsPage() {
 
   async function saveEdit(id: string) {
     if (!isAccountEditValid(editingName, editingInstitutionId) || !editingInstitutionId) return
-    setError(null)
-    setSavingEdit(true)
-    try {
-      await editMutation.mutateAsync({
+    const saved = await saveAction.run(() =>
+      editMutation.mutateAsync({
         id,
         name: editingName.trim(),
         institutionId: editingInstitutionId,
-      })
-      cancelEdit()
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    } finally {
-      setSavingEdit(false)
-    }
+      }),
+    )
+    if (saved) cancelEdit()
   }
 
   async function confirmClose() {
     if (!closeTarget) return
-    setError(null)
-    setClosing(true)
-    try {
-      await closeMutation.mutateAsync(closeTarget.id)
+    if (await closeAction.run(() => closeMutation.mutateAsync(closeTarget.id))) {
       setCloseTarget(null)
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    } finally {
-      setClosing(false)
     }
   }
 
   async function confirmDelete() {
     if (!deleteTarget) return
-    setError(null)
-    setDeleting(true)
-    try {
-      await deleteMutation.mutateAsync(deleteTarget.id)
-      setDeleteTarget(null)
-    } catch (err) {
-      setDeleteTarget(null)
-      setError(defaultErrorMessage(err))
-    } finally {
-      setDeleting(false)
-    }
+    await deleteAction.run(() => deleteMutation.mutateAsync(deleteTarget.id))
+    setDeleteTarget(null)
   }
 
   // One load state for the table plus the institutions behind its Institution column: rows show
@@ -169,7 +144,7 @@ export function AccountsPage() {
         editingId === account.id && !isMobile ? (
           <AccountNameField
             value={editingName}
-            onChange={setEditingName}
+            onChange={(name) => edit.setDraft((d) => ({ ...d, name }))}
             autoFocus
             onKeyDown={(e) => {
               if (e.key === 'Enter') void saveEdit(account.id)
@@ -188,7 +163,10 @@ export function AccountsPage() {
       role: 'secondary',
       render: (account) =>
         editingId === account.id && !isMobile ? (
-          <InstitutionSelect value={editingInstitutionId} onChange={setEditingInstitutionId} />
+          <InstitutionSelect
+            value={editingInstitutionId}
+            onChange={(institutionId) => edit.setDraft((d) => ({ ...d, institutionId }))}
+          />
         ) : (
           institutionName(account.institutionId)
         ),
@@ -312,7 +290,7 @@ export function AccountsPage() {
         />
       </ResponsiveDialog>
 
-      <ResponsiveDialog open={editDialogOpen} onClose={savingEdit ? undefined : cancelEdit}>
+      <ResponsiveDialog open={editDialogOpen} onClose={saveAction.pending ? undefined : cancelEdit}>
         <DialogTitle>{t('accounts:editDialogTitle')}</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
@@ -321,20 +299,22 @@ export function AccountsPage() {
               <AccountEditFields
                 name={editingName}
                 institutionId={editingInstitutionId}
-                onNameChange={setEditingName}
-                onInstitutionChange={setEditingInstitutionId}
+                onNameChange={(name) => edit.setDraft((d) => ({ ...d, name }))}
+                onInstitutionChange={(institutionId) =>
+                  edit.setDraft((d) => ({ ...d, institutionId }))
+                }
                 onSubmit={() => editingId && void saveEdit(editingId)}
               />
             </FormGrid>
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={cancelEdit} disabled={savingEdit}>
+          <Button onClick={cancelEdit} disabled={saveAction.pending}>
             {t('common:actions.cancel')}
           </Button>
           <Button
             variant="contained"
-            disabled={savingEdit || !isAccountEditValid(editingName, editingInstitutionId)}
+            disabled={saveAction.pending || !isAccountEditValid(editingName, editingInstitutionId)}
             onClick={() => editingId && void saveEdit(editingId)}
           >
             {t('accounts:saveChanges')}
@@ -347,7 +327,7 @@ export function AccountsPage() {
         title={t('accounts:close.title', { name: closeTarget?.name })}
         body={t('accounts:close.body')}
         confirmLabel={t('accounts:close.confirmLabel')}
-        loading={closing}
+        loading={closeAction.pending}
         onConfirm={() => void confirmClose()}
         onCancel={() => setCloseTarget(null)}
       />
@@ -357,7 +337,7 @@ export function AccountsPage() {
         title={t('accounts:delete.title', { name: deleteTarget?.name })}
         body={t('accounts:delete.body')}
         confirmLabel={t('accounts:delete.confirmLabel')}
-        loading={deleting}
+        loading={deleteAction.pending}
         onConfirm={() => void confirmDelete()}
         onCancel={() => setDeleteTarget(null)}
       />
