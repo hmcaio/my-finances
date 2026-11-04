@@ -5,9 +5,9 @@ import { useTheme } from '@mui/material/styles'
 export type BreakpointBand = 'mobile' | 'tablet' | 'desktop'
 
 /**
- * The one place feature-facing breakpoint logic lives (besides `Layout`, which keeps its own
- * queries). Shared primitives call this; feature code should use them, or `theme.breakpoints` in
- * `sx`, instead of a raw `useMediaQuery`.
+ * The one place breakpoint logic lives: the only file allowed to import `useMediaQuery` (an ESLint
+ * `no-restricted-imports` rule enforces it). Components, `Layout` included, call this hook, or use
+ * `theme.breakpoints` in `sx`.
  */
 export function useBreakpointBand(): BreakpointBand {
   const theme = useTheme()
