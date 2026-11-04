@@ -122,7 +122,9 @@ describe('initialFormState', () => {
     const state = initialFormState(seedBitcoinBuyTransfer, null, seedAccounts, t)
 
     expect(state.investmentAccountId).toBe('')
-    expect(state.cashAccountId).toBe(seedBitcoinBuyTransfer.fromAccountId)
+    // Unreachable in practice (a confirmation always has an INVESTMENT endpoint); the pre-split
+    // fallback picked the to side as the cash account, kept as is.
+    expect(state.cashAccountId).toBe(seedBitcoinBuyTransfer.toAccountId)
   })
 
   it('keeps recorded taxes, notes and resulting balances, and defaults null taxes to 0', () => {

@@ -21,147 +21,34 @@ import type { Account } from '../../api/accounts/accounts'
 import { defaultErrorMessage } from '../../api/core/apiError'
 import { useInvestmentHoldingsByAccount } from '../../api/investments/investmentHoldingsQueries'
 import { useInvestmentProducts } from '../../api/investments/investmentProductsQueries'
-import type { CreateTransferRequest, Transfer } from '../../api/transfers/transfers'
+import type { Transfer } from '../../api/transfers/transfers'
 import { useCreateTransfer, useEditTransfer } from '../../api/transfers/transfersQueries'
 import { FormGrid } from '../../components/feedback/ResponsiveDialog'
 import { useQueryState } from '../../hooks/queryState'
 import { useLocale } from '../../hooks/locale/useLocale'
 import { formatMoney } from '../../i18n/format'
-import { today } from '../../utils/localDate'
-import { netSettlementDirection, netSettlementPreview, type TradeSide } from './tradeMath'
+import { netSettlementDirection, type TradeSide } from './tradeMath'
+import {
+  appendLine,
+  changeInvestmentAccount,
+  changeLineSide,
+  buildTransferRequest,
+  initialFormState,
+  removeLine as removeLineFrom,
+  switchMode,
+  updateLine as updateLineIn,
+  type FormMode,
+  type FormState,
+  type LineState,
+  type TransferFormPreset,
+} from './transferFormState'
+import {
+  duplicateResultingBalanceProductIds,
+  isTransferFormValid,
+  tradeNetPreview,
+} from './transferValidation'
 
-/**
- * A buy/sell to start the form with (F009 spec, kept by F027): the product's own INVESTMENT
- * account on the traded side, the product selected and a suggested description. The user still
- * picks the cash account and everything else.
- */
-export interface TransferFormPreset {
-  direction: 'buy' | 'sell'
-  investmentAccountId: string
-  productId: string
-  productName: string
-}
-
-interface LineState {
-  key: number
-  productId: string
-  side: TradeSide
-  quantity: string
-  unitPrice: string
-  resultingBalance: string
-  closeHolding: boolean
-}
-
-type FormMode = 'plain' | 'trade'
-
-interface FormState {
-  mode: FormMode
-  date: string
-  description: string
-  additionalNotes: string
-  // Plain mode.
-  fromAccountId: string
-  toAccountId: string
-  amount: string
-  // Trade mode (F027, ADR 0024): cashAccountId/investmentAccountId are unlabeled - direction is
-  // derived from the lines' net settlement, never picked by the user.
-  cashAccountId: string
-  investmentAccountId: string
-  taxes: string
-  lines: LineState[]
-}
-
-function blankLine(key: number, productId = '', side: TradeSide = 'BUY'): LineState {
-  return {
-    key,
-    productId,
-    side,
-    quantity: '',
-    unitPrice: '',
-    resultingBalance: '',
-    closeHolding: false,
-  }
-}
-
-/** A fresh form, built per use so its date is today's local date rather than the date the module
- * was first loaded. */
-function initialState(
-  editing: Transfer | null,
-  preset: TransferFormPreset | null,
-  t: (key: never, options?: Record<string, unknown>) => string,
-): FormState {
-  const blank: FormState = {
-    mode: 'plain',
-    date: today(),
-    description: '',
-    additionalNotes: '',
-    fromAccountId: '',
-    toAccountId: '',
-    amount: '',
-    cashAccountId: '',
-    investmentAccountId: '',
-    taxes: '0',
-    lines: [blankLine(0)],
-  }
-  if (editing) {
-    if (editing.tradeConfirmation) {
-      return {
-        ...blank,
-        mode: 'trade',
-        date: editing.date,
-        description: editing.description,
-        additionalNotes: editing.additionalNotes ?? '',
-        taxes: editing.taxes === null ? '0' : String(editing.taxes),
-        lines: editing.tradeConfirmation.lines.map((line, i) => ({
-          key: i,
-          productId: line.productId,
-          side: line.side,
-          quantity: String(line.quantity),
-          unitPrice: String(line.unitPrice),
-          resultingBalance: line.resultingBalance === null ? '' : String(line.resultingBalance),
-          closeHolding: line.closeHolding,
-        })),
-        // cashAccountId/investmentAccountId are re-derived from from/to once accounts load (the
-        // caller passes `accounts`, not available here); the form fills them in on first render
-        // via `deriveTradeAccounts`, called from the component body below.
-        fromAccountId: editing.fromAccountId,
-        toAccountId: editing.toAccountId,
-      }
-    }
-    return {
-      ...blank,
-      mode: 'plain',
-      date: editing.date,
-      amount: String(editing.amount),
-      fromAccountId: editing.fromAccountId,
-      toAccountId: editing.toAccountId,
-      description: editing.description,
-      additionalNotes: editing.additionalNotes ?? '',
-    }
-  }
-  if (preset) {
-    return {
-      ...blank,
-      mode: 'trade',
-      investmentAccountId: preset.investmentAccountId,
-      lines: [blankLine(0, preset.productId, preset.direction === 'buy' ? 'BUY' : 'SELL')],
-      description: t(
-        (preset.direction === 'buy'
-          ? 'transfers:tradeLabelBuy'
-          : 'transfers:tradeLabelSell') as never,
-        { product: preset.productName },
-      ),
-    }
-  }
-  return blank
-}
-
-/** A form field's text as a number, or `null` when empty or not a number. */
-function numberOrNull(text: string): number | null {
-  if (text.trim() === '') return null
-  const value = Number(text)
-  return Number.isFinite(value) ? value : null
-}
+export type { TransferFormPreset }
 
 interface TransferFormProps {
   /** Every account; closed ones are left out of the pickers. */
@@ -208,25 +95,9 @@ export function TransferForm({
 }: TransferFormProps) {
   const { t } = useTranslation(['transfers', 'common'])
   const { locale } = useLocale()
-  const [form, setForm] = useState(() => {
-    const initial = initialState(editing, preset, t as (key: never) => string)
-    // Trade-confirmation edit: derive cashAccountId/investmentAccountId from from/to now that
-    // `accounts` is available (the INVESTMENT side is whichever endpoint is an INVESTMENT account).
-    if (initial.mode === 'trade' && editing?.tradeConfirmation) {
-      const toAccount = accounts.find((a) => a.id === editing.toAccountId)
-      const fromAccount = accounts.find((a) => a.id === editing.fromAccountId)
-      const investmentId =
-        toAccount?.type === 'INVESTMENT'
-          ? editing.toAccountId
-          : fromAccount?.type === 'INVESTMENT'
-            ? editing.fromAccountId
-            : ''
-      const cashId =
-        investmentId === editing.toAccountId ? editing.fromAccountId : editing.toAccountId
-      return { ...initial, investmentAccountId: investmentId, cashAccountId: cashId }
-    }
-    return initial
-  })
+  const [form, setForm] = useState(() =>
+    initialFormState(editing, preset, accounts, t as (key: never) => string),
+  )
   const [saving, setSaving] = useState(false)
   const [nextLineKey, setNextLineKey] = useState(form.lines.length)
 
@@ -256,29 +127,17 @@ export function TransferForm({
   }
 
   function setMode(mode: FormMode) {
-    if (mode === 'plain') {
-      // Declassifying a trade confirmation back to plain (TransferService.edit's "clearing any
-      // trade confirmation it had") would otherwise keep the confirmation's INVESTMENT account in
-      // a now-plain fromAccountId/toAccountId - drop whichever side that is so the picker (which
-      // excludes INVESTMENT accounts) doesn't show a stale, unselectable value.
-      const fromIsInvestment = investmentAccounts.some((a) => a.id === form.fromAccountId)
-      const toIsInvestment = investmentAccounts.some((a) => a.id === form.toAccountId)
-      patch({
+    setForm((prev) =>
+      switchMode(
+        prev,
         mode,
-        fromAccountId: fromIsInvestment ? '' : form.fromAccountId,
-        toAccountId: toIsInvestment ? '' : form.toAccountId,
-      })
-      return
-    }
-    patch({ mode })
+        investmentAccounts.map((a) => a.id),
+      ),
+    )
   }
 
   function setInvestmentAccountId(investmentAccountId: string) {
-    // The holdings offered depend on the account, so changing it drops every line's product pick.
-    patch({
-      investmentAccountId,
-      lines: form.lines.map((l) => ({ ...l, productId: '' })),
-    })
+    setForm((prev) => changeInvestmentAccount(prev, investmentAccountId))
   }
 
   function holdingOptionsFor(line: LineState) {
@@ -286,25 +145,19 @@ export function TransferForm({
   }
 
   function updateLine(key: number, changes: Partial<LineState>) {
-    patch({ lines: form.lines.map((l) => (l.key === key ? { ...l, ...changes } : l)) })
+    setForm((prev) => ({ ...prev, lines: updateLineIn(prev.lines, key, changes) }))
   }
 
   function addLine() {
-    patch({ lines: [...form.lines, blankLine(nextLineKey)] })
+    patch({ lines: appendLine(form.lines, nextLineKey) })
     setNextLineKey((n) => n + 1)
   }
 
   function removeLine(key: number) {
-    patch({ lines: form.lines.filter((l) => l.key !== key) })
+    setForm((prev) => ({ ...prev, lines: removeLineFrom(prev.lines, key) }))
   }
 
-  const taxes = numberOrNull(form.taxes)
-  const previewInputs = form.lines.map((l) => ({
-    side: l.side,
-    quantity: numberOrNull(l.quantity),
-    unitPrice: numberOrNull(l.unitPrice),
-  }))
-  const netPreview = form.mode === 'trade' ? netSettlementPreview(previewInputs, taxes) : null
+  const netPreview = tradeNetPreview(form)
   const direction = netSettlementDirection(netPreview)
   const cashAccountName =
     accounts.find((a) => a.id === form.cashAccountId)?.name ??
@@ -313,93 +166,14 @@ export function TransferForm({
     accounts.find((a) => a.id === form.investmentAccountId)?.name ??
     t('transfers:form.investmentAccountFallback')
 
-  /**
-   * Product ids with a `resultingBalance` set on more than one line - mirrors the backend's
-   * `TradeConfirmation`/`TradeConfirmationRequest` cross-line invariant (a holding has one snapshot
-   * per date, so two lines of the same product each trying to set one would be ambiguous). Blocked
-   * client-side, same as the same-account case, since the backend sends no message for its 400.
-   */
-  function duplicateResultingBalanceProductIds(lines: LineState[]): Set<string> {
-    const seen = new Set<string>()
-    const duplicates = new Set<string>()
-    for (const line of lines) {
-      if (line.resultingBalance.trim() === '' || line.productId === '') continue
-      if (seen.has(line.productId)) duplicates.add(line.productId)
-      seen.add(line.productId)
-    }
-    return duplicates
-  }
-
-  function isLineValid(line: LineState): boolean {
-    if (line.productId === '') return false
-    const quantity = numberOrNull(line.quantity)
-    const unitPrice = numberOrNull(line.unitPrice)
-    if (!(quantity !== null && quantity > 0)) return false
-    if (!(unitPrice !== null && unitPrice > 0)) return false
-    if (
-      line.resultingBalance.trim() !== '' &&
-      !((numberOrNull(line.resultingBalance) ?? -1) >= 0)
-    ) {
-      return false
-    }
-    if (line.closeHolding && line.side !== 'SELL') return false
-    return true
-  }
-
-  function isFormValid(): boolean {
-    if (form.date === '' || form.description.trim() === '') return false
-    if (form.mode === 'plain') {
-      const amount = Number(form.amount)
-      return (
-        amount > 0 &&
-        form.fromAccountId !== '' &&
-        form.toAccountId !== '' &&
-        form.fromAccountId !== form.toAccountId
-      )
-    }
-    if (form.cashAccountId === '' || form.investmentAccountId === '') return false
-    if (form.cashAccountId === form.investmentAccountId) return false
-    if (form.lines.length === 0) return false
-    if (!(taxes !== null && taxes >= 0)) return false
-    if (!form.lines.every(isLineValid)) return false
-    if (duplicateResultingBalanceProductIds(form.lines).size > 0) return false
-    return netPreview !== null && netPreview !== 0
-  }
+  const formValid = isTransferFormValid(form)
 
   async function handleSubmit() {
-    if (!isFormValid()) return
+    if (!formValid) return
     onError(null)
     setSaving(true)
     try {
-      const request: CreateTransferRequest =
-        form.mode === 'plain'
-          ? {
-              date: form.date,
-              fromAccountId: form.fromAccountId,
-              toAccountId: form.toAccountId,
-              amount: Number(form.amount),
-              description: form.description.trim(),
-              additionalNotes: form.additionalNotes.trim() || undefined,
-            }
-          : {
-              date: form.date,
-              cashAccountId: form.cashAccountId,
-              investmentAccountId: form.investmentAccountId,
-              description: form.description.trim(),
-              additionalNotes: form.additionalNotes.trim() || undefined,
-              tradeConfirmation: {
-                taxes: taxes ?? 0,
-                lines: form.lines.map((l) => ({
-                  productId: l.productId,
-                  side: l.side,
-                  quantity: Number(l.quantity),
-                  unitPrice: Number(l.unitPrice),
-                  resultingBalance:
-                    l.resultingBalance.trim() === '' ? undefined : Number(l.resultingBalance),
-                  closeHolding: l.closeHolding,
-                })),
-              },
-            }
+      const request = buildTransferRequest(form)
       const saved = editing
         ? await editMutation.mutateAsync({ id: editing.id, ...request })
         : await createMutation.mutateAsync(request)
@@ -584,12 +358,7 @@ export function TransferForm({
         <Select
           size="small"
           value={line.side}
-          onChange={(e) =>
-            updateLine(line.key, {
-              side: e.target.value as TradeSide,
-              closeHolding: e.target.value === 'SELL' ? line.closeHolding : false,
-            })
-          }
+          onChange={(e) => updateLine(line.key, changeLineSide(line, e.target.value as TradeSide))}
           aria-label={t('transfers:form.sideAria')}
         >
           <MenuItem value="BUY">{t('transfers:form.buyOption')}</MenuItem>
@@ -716,11 +485,7 @@ export function TransferForm({
       </Button>
     ) : null
   const submitButton = (
-    <Button
-      variant="contained"
-      disabled={saving || !isFormValid()}
-      onClick={() => void handleSubmit()}
-    >
+    <Button variant="contained" disabled={saving || !formValid} onClick={() => void handleSubmit()}>
       {editing ? t('transfers:form.saveChanges') : t('common:actions.add')}
     </Button>
   )
