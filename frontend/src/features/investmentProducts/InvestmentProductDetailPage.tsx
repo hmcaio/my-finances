@@ -5,14 +5,12 @@ import {
   Alert,
   Box,
   Button,
-  Chip,
   DialogActions,
   DialogContent,
   DialogTitle,
   IconButton,
   Link as MuiLink,
   MenuItem,
-  Paper,
   Select,
   Skeleton,
   TextField,
@@ -45,19 +43,14 @@ import {
   useUpdateInvestmentSnapshot,
 } from '../../api/investments/investmentSnapshotsQueries'
 import { useInvestmentValueSeries } from '../../api/investments/investmentValueSeriesQueries'
-import type { ValueSeriesPoint } from '../../api/investments/investmentValueSeries'
-import type { TradeConfirmationLineRecord } from '../../api/investments/tradeConfirmationLines'
 import { useTradeConfirmationLinesByProduct } from '../../api/investments/tradeConfirmationLinesQueries'
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { fadeInSx } from '../../components/feedback/fadeIn'
 import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
-import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useAction } from '../../hooks/useAction'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
-import { useLocale } from '../../hooks/locale/useLocale'
-import { formatMoney } from '../../i18n/format'
 import { nameLookup } from '../../utils/nameLookup'
 import { today } from '../../utils/localDate'
 import { TransferForm, type TransferFormPreset } from '../transfers/TransferForm'
@@ -67,7 +60,8 @@ import { SECTION_PADDING } from './detailLayout'
 import { HoldingsPanel } from './HoldingsPanel'
 import { OpeningPositionCard } from './OpeningPositionCard'
 import { SnapshotsPanel, type SnapshotEdit } from './SnapshotsPanel'
-import { ValueSeriesChart } from './ValueSeriesChart'
+import { TradesPanel } from './TradesPanel'
+import { ValueOverTimePanel } from './ValueOverTimePanel'
 
 /**
  * Per-product detail view (F008 spec, made holding-aware by F022/ADR 0020): the product's taxonomy
@@ -84,7 +78,6 @@ import { ValueSeriesChart } from './ValueSeriesChart'
  */
 export function InvestmentProductDetailPage() {
   const { t } = useTranslation(['investmentProducts', 'common'])
-  const { locale } = useLocale()
   const { id } = useParams<{ id: string }>()
   const productId = id ?? ''
   const navigate = useNavigate()
@@ -119,9 +112,6 @@ export function InvestmentProductDetailPage() {
   const series = seriesQuery.data
   const seriesState = useQueryState(seriesQuery, setError)
   const tradesQuery = useTradeConfirmationLinesByProduct(productId)
-  // transferId alone isn't unique across rows (partial fills put more than one line under the
-  // same confirmation), so each row gets a synthetic client-side key.
-  const trades = tradesQuery.data?.map((t, i) => ({ ...t, rowKey: `${t.transferId}-${i}` }))
   const tradesState = useQueryState(tradesQuery, setError)
   const recordSnapshot = useRecordInvestmentSnapshot()
   const updateSnapshot = useUpdateInvestmentSnapshot()
@@ -170,7 +160,6 @@ export function InvestmentProductDetailPage() {
     accounts !== undefined
 
   const points = series?.[0]?.points ?? []
-  const hasUnits = points.some((p) => p.units !== null)
 
   // While any dialog is open, a save error shows inside it: the page banner sits behind it.
   const anyDialogOpen =
@@ -324,116 +313,6 @@ export function InvestmentProductDetailPage() {
     (a) => a.type === 'INVESTMENT' && !a.closed && !holdingAccountIds.has(a.id),
   )
 
-  const monthlyColumns: ResponsiveColumn<ValueSeriesPoint>[] = [
-    {
-      key: 'month',
-      header: t('investmentProducts:detail.monthlyColumns.month'),
-      role: 'primary',
-      render: (p) => p.month,
-    },
-    {
-      key: 'value',
-      header: t('investmentProducts:detail.monthlyColumns.value'),
-      align: 'right',
-      render: (p) => (p.value === null ? '-' : formatMoney(p.value, locale)),
-    },
-    {
-      key: 'contributed',
-      header: t('investmentProducts:detail.monthlyColumns.contributed'),
-      align: 'right',
-      render: (p) => formatMoney(p.contributed, locale),
-    },
-    ...(hasUnits
-      ? ([
-          {
-            key: 'units',
-            header: t('investmentProducts:detail.monthlyColumns.units'),
-            align: 'right',
-            render: (p: ValueSeriesPoint) => (p.units === null ? '-' : String(p.units)),
-          },
-        ] satisfies ResponsiveColumn<ValueSeriesPoint>[])
-      : []),
-  ]
-
-  // F027 (ADR 0024): one row per matching line (not per confirmation); Taxes dropped - a
-  // confirmation's taxes cover its whole settlement, not one product. Each row links back to its
-  // parent confirmation so the real total taxes stay reachable.
-  type TradeRow = TradeConfirmationLineRecord & { rowKey: string }
-  const sideLabel = (side: TradeRow['side']) =>
-    side === 'BUY'
-      ? t('investmentProducts:detail.sideBuy')
-      : t('investmentProducts:detail.sideSell')
-  const tradeColumns: ResponsiveColumn<TradeRow>[] = [
-    {
-      key: 'date',
-      header: t('investmentProducts:detail.tradeColumns.date'),
-      role: 'secondary',
-      render: (trade) => trade.date,
-    },
-    {
-      key: 'side',
-      header: t('investmentProducts:detail.tradeColumns.side'),
-      render: (trade) => sideLabel(trade.side),
-    },
-    {
-      key: 'quantity',
-      header: t('investmentProducts:detail.tradeColumns.quantity'),
-      align: 'right',
-      render: (trade) => String(trade.quantity),
-    },
-    {
-      key: 'unitPrice',
-      header: t('investmentProducts:detail.tradeColumns.unitPrice'),
-      align: 'right',
-      tabletPriority: 'low',
-      render: (trade) => String(trade.unitPrice),
-    },
-    {
-      key: 'resultingBalance',
-      header: t('investmentProducts:detail.tradeColumns.resultingBalance'),
-      align: 'right',
-      tabletPriority: 'low',
-      render: (trade) =>
-        trade.resultingBalance === null ? '-' : formatMoney(trade.resultingBalance, locale),
-    },
-    {
-      key: 'confirmation',
-      header: t('investmentProducts:detail.tradeColumns.confirmation'),
-      role: 'primary',
-      render: (trade) => (
-        <MuiLink component={RouterLink} to={`/ledger?focus=${trade.transferId}`} underline="hover">
-          {t('investmentProducts:detail.viewConfirmation')}
-        </MuiLink>
-      ),
-    },
-  ]
-
-  function renderTradeCard(trade: TradeRow) {
-    return (
-      <Paper variant="outlined" sx={{ p: 1.5 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-          <Typography variant="subtitle1" component="div">
-            {trade.date}
-          </Typography>
-          <Chip label={sideLabel(trade.side)} size="small" />
-        </Box>
-        <Typography variant="body2" color="text.secondary">
-          {t('investmentProducts:detail.tradeCardLine', {
-            quantity: trade.quantity,
-            price: trade.unitPrice,
-          })}
-          {trade.resultingBalance !== null &&
-            t('investmentProducts:detail.tradeCardResultingBalance', {
-              balance: formatMoney(trade.resultingBalance, locale),
-            })}
-        </Typography>
-        <MuiLink component={RouterLink} to={`/ledger?focus=${trade.transferId}`} underline="hover">
-          {t('investmentProducts:detail.viewConfirmation')}
-        </MuiLink>
-      </Paper>
-    )
-  }
-
   return (
     <Box sx={{ py: { xs: 2, sm: 4 } }}>
       <MuiLink
@@ -537,45 +416,9 @@ export function InvestmentProductDetailPage() {
             </>
           )}
 
-          <Paper variant="outlined" sx={{ p: SECTION_PADDING, mb: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              {t('investmentProducts:detail.valueOverTimeTitle')}
-            </Typography>
-            {seriesState.loading ? (
-              <Skeleton variant="rounded" height={200} />
-            ) : (
-              <>
-                <ValueSeriesChart points={points} />
-                <Box sx={{ mt: 2 }}>
-                  <ResponsiveTable
-                    aria-label={t('investmentProducts:detail.monthlyValuesAria')}
-                    columns={monthlyColumns}
-                    rows={points}
-                    getRowKey={(p) => p.month}
-                    state={seriesState}
-                    onRetry={seriesState.reload}
-                    emptyMessage={t('investmentProducts:detail.emptyMonthly')}
-                  />
-                </Box>
-              </>
-            )}
-          </Paper>
+          <ValueOverTimePanel points={points} state={seriesState} />
 
-          <Paper variant="outlined" sx={{ p: SECTION_PADDING }}>
-            <Typography variant="h6" gutterBottom>
-              {t('investmentProducts:detail.tradesTitle')}
-            </Typography>
-            <ResponsiveTable
-              aria-label={t('investmentProducts:detail.tradesAria')}
-              columns={tradeColumns}
-              rows={trades}
-              getRowKey={(trade) => trade.rowKey}
-              state={tradesState}
-              onRetry={tradesState.reload}
-              renderCard={renderTradeCard}
-              emptyMessage={t('investmentProducts:detail.emptyTrades')}
-            />
-          </Paper>
+          <TradesPanel lines={tradesQuery.data} state={tradesState} />
         </Box>
       )}
 
