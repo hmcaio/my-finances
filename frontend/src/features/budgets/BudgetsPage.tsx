@@ -4,7 +4,6 @@ import {
   Box,
   Button,
   DialogActions,
-  DialogContent,
   DialogTitle,
   MenuItem,
   Select,
@@ -41,6 +40,7 @@ import { isBudgetCapValid } from './budgetEdit'
 import { BudgetVsActualReport } from './BudgetVsActualReport'
 import { PageContainer } from '../../components/layout/PageContainer'
 import { PageHeader } from '../../components/layout/PageHeader'
+import { FormDialogContent } from '../../components/feedback/FormDialogContent'
 
 /**
  * Budgets screen (F006 spec): a settings-style list of budgeted categories with their current cap
@@ -258,14 +258,12 @@ export function BudgetsPage() {
             : t('budgets:editBudgetCapTitle')}
           {editingBudget ? ` — ${categoryName(editingBudget.categoryId)}` : ''}
         </DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 1 }}>
-            <ErrorAlert message={error} onDismiss={() => setError(null)} />
-            <FormGrid columns={1}>
-              <BudgetCapField value={editingCap} onChange={setEditingCap} autoFocus />
-            </FormGrid>
-          </Box>
-        </DialogContent>
+        <FormDialogContent>
+          <ErrorAlert message={error} onDismiss={() => setError(null)} />
+          <FormGrid columns={1}>
+            <BudgetCapField value={editingCap} onChange={setEditingCap} autoFocus />
+          </FormGrid>
+        </FormDialogContent>
         <DialogActions>
           <Button onClick={cancelEditCap} disabled={capAction.pending}>
             {t('common:actions.cancel')}

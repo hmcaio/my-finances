@@ -4,7 +4,6 @@ import {
   Box,
   Button,
   DialogActions,
-  DialogContent,
   DialogTitle,
   FormControlLabel,
   Switch,
@@ -36,6 +35,7 @@ import { AccountEditFields } from './AccountEditFields'
 import { AccountRowActions } from './AccountRowActions'
 import { PageContainer } from '../../components/layout/PageContainer'
 import { PageHeader } from '../../components/layout/PageHeader'
+import { FormDialogContent } from '../../components/feedback/FormDialogContent'
 
 /**
  * Account list/management screen (F003 spec): table with name, institution, type, running
@@ -212,22 +212,20 @@ export function AccountsPage() {
 
       <ResponsiveDialog open={editDialogOpen} onClose={saveAction.pending ? undefined : cancelEdit}>
         <DialogTitle>{t('accounts:editDialogTitle')}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 1 }}>
-            <ErrorAlert message={error} onDismiss={() => setError(null)} />
-            <FormGrid>
-              <AccountEditFields
-                name={editingName}
-                institutionId={editingInstitutionId}
-                onNameChange={(name) => edit.setDraft((d) => ({ ...d, name }))}
-                onInstitutionChange={(institutionId) =>
-                  edit.setDraft((d) => ({ ...d, institutionId }))
-                }
-                onSubmit={() => editingId && void saveEdit(editingId)}
-              />
-            </FormGrid>
-          </Box>
-        </DialogContent>
+        <FormDialogContent>
+          <ErrorAlert message={error} onDismiss={() => setError(null)} />
+          <FormGrid>
+            <AccountEditFields
+              name={editingName}
+              institutionId={editingInstitutionId}
+              onNameChange={(name) => edit.setDraft((d) => ({ ...d, name }))}
+              onInstitutionChange={(institutionId) =>
+                edit.setDraft((d) => ({ ...d, institutionId }))
+              }
+              onSubmit={() => editingId && void saveEdit(editingId)}
+            />
+          </FormGrid>
+        </FormDialogContent>
         <DialogActions>
           <Button onClick={cancelEdit} disabled={saveAction.pending}>
             {t('common:actions.cancel')}

@@ -7,7 +7,6 @@ import {
   Box,
   Button,
   DialogActions,
-  DialogContent,
   MenuItem,
   Select,
   TextField,
@@ -31,6 +30,7 @@ import {
 } from './openingPositionDraft'
 import { OpeningPositionFields } from './OpeningPositionFields'
 import { relevantInvestmentFields } from './investmentProductFields'
+import { FormDialogContent } from '../../components/feedback/FormDialogContent'
 
 /**
  * What the form collects; an empty `subcategoryId` means "no sub-category", an empty `ticker`
@@ -260,12 +260,10 @@ export function InvestmentProductForm({
   if (dialog) {
     return (
       <>
-        <DialogContent>
-          <Box sx={{ pt: 1 }}>
-            {banner}
-            <FormGrid>{fields}</FormGrid>
-          </Box>
-        </DialogContent>
+        <FormDialogContent>
+          {banner}
+          <FormGrid>{fields}</FormGrid>
+        </FormDialogContent>
         <DialogActions>
           {cancelButton}
           {submitButton}

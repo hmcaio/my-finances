@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Box, Button, DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material'
+import { Box, Button, DialogActions, DialogTitle, Typography } from '@mui/material'
 import { useAccounts } from '../../api/accounts/accountsQueries'
 import { useCategories } from '../../api/categories/categoriesQueries'
 import type { RecurringTemplate } from '../../api/recurringTemplates/recurringTemplates'
@@ -38,6 +38,7 @@ import {
 } from './recurringTemplateEdit'
 import { PageContainer } from '../../components/layout/PageContainer'
 import { PageHeader } from '../../components/layout/PageHeader'
+import { FormDialogContent } from '../../components/feedback/FormDialogContent'
 
 /**
  * Recurring templates settings screen (F007 spec): a list of templates (description, category,
@@ -262,19 +263,17 @@ export function RecurringTemplatesPage() {
         onClose={capAction.pending ? undefined : cancelEditCap}
       >
         <DialogTitle>{t('recurringTemplates:editDialogTitle')}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 1 }}>
-            <ErrorAlert message={error} onDismiss={() => setError(null)} />
-            <FormGrid columns={1}>
-              <RecurringTemplateEditFields
-                amount={editAmount}
-                dayOfMonth={editDayOfMonth}
-                onAmountChange={(amount) => edit.setDraft((d) => ({ ...d, amount }))}
-                onDayOfMonthChange={(dayOfMonth) => edit.setDraft((d) => ({ ...d, dayOfMonth }))}
-              />
-            </FormGrid>
-          </Box>
-        </DialogContent>
+        <FormDialogContent>
+          <ErrorAlert message={error} onDismiss={() => setError(null)} />
+          <FormGrid columns={1}>
+            <RecurringTemplateEditFields
+              amount={editAmount}
+              dayOfMonth={editDayOfMonth}
+              onAmountChange={(amount) => edit.setDraft((d) => ({ ...d, amount }))}
+              onDayOfMonthChange={(dayOfMonth) => edit.setDraft((d) => ({ ...d, dayOfMonth }))}
+            />
+          </FormGrid>
+        </FormDialogContent>
         <DialogActions>
           <Button onClick={cancelEditCap} disabled={capAction.pending}>
             {t('common:actions.cancel')}

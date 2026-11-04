@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, DialogActions, DialogContent, DialogTitle, Typography, Box } from '@mui/material'
+import { Button, DialogActions, DialogTitle, Typography } from '@mui/material'
 import type {
   OpeningPosition,
   OpeningPositionRequest,
@@ -14,6 +14,7 @@ import {
   type OpeningPositionDraft,
 } from './openingPositionDraft'
 import { OpeningPositionFields } from './OpeningPositionFields'
+import { FormDialogContent } from '../../components/feedback/FormDialogContent'
 
 interface OpeningPositionDialogProps {
   open: boolean
@@ -79,21 +80,19 @@ function DialogBody({
   const request = openingPositionRequestOf(draft)
   return (
     <>
-      <DialogContent>
-        <Box sx={{ pt: 1 }}>
-          <ErrorAlert message={error} onDismiss={onDismissError} />
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {t('investmentProducts:openingPosition.noCashNote')}
-          </Typography>
-          <FormGrid>
-            <OpeningPositionFields
-              draft={draft}
-              onChange={setDraft}
-              currentValueHelper={t('investmentProducts:openingPosition.currentValueHelper')}
-            />
-          </FormGrid>
-        </Box>
-      </DialogContent>
+      <FormDialogContent>
+        <ErrorAlert message={error} onDismiss={onDismissError} />
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          {t('investmentProducts:openingPosition.noCashNote')}
+        </Typography>
+        <FormGrid>
+          <OpeningPositionFields
+            draft={draft}
+            onChange={setDraft}
+            currentValueHelper={t('investmentProducts:openingPosition.currentValueHelper')}
+          />
+        </FormGrid>
+      </FormDialogContent>
       <DialogActions>
         <Button onClick={onClose} disabled={saving}>
           {t('common:actions.cancel')}
