@@ -4,16 +4,10 @@ import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom'
 import {
   Alert,
   Box,
-  Button,
-  DialogActions,
-  DialogContent,
   DialogTitle,
   IconButton,
   Link as MuiLink,
-  MenuItem,
-  Select,
   Skeleton,
-  TextField,
   Typography,
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
@@ -22,14 +16,7 @@ import { useAccounts } from '../../api/accounts/accountsQueries'
 import { defaultErrorMessage } from '../../api/core/apiError'
 import { useInvestmentCategories } from '../../api/investments/investmentCategoriesQueries'
 import { useInvestmentSegments } from '../../api/investments/investmentSegmentsQueries'
-import type { InvestmentHolding } from '../../api/investments/investmentHoldings'
-import {
-  useCloseInvestmentHolding,
-  useCreateInvestmentHolding,
-  useDeleteInvestmentHolding,
-  useEditInvestmentHoldingNotes,
-  useInvestmentHoldingsByProduct,
-} from '../../api/investments/investmentHoldingsQueries'
+import { useInvestmentHoldingsByProduct } from '../../api/investments/investmentHoldingsQueries'
 import {
   useDeleteInvestmentProduct,
   useEditInvestmentProduct,
@@ -41,7 +28,7 @@ import { useTradeConfirmationLinesByProduct } from '../../api/investments/tradeC
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { fadeInSx } from '../../components/feedback/fadeIn'
-import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
+import { ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useAction } from '../../hooks/useAction'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
@@ -50,11 +37,13 @@ import { TransferForm, type TransferFormPreset } from '../transfers/TransferForm
 import { InvestmentProductForm, type InvestmentProductFormValues } from './InvestmentProductForm'
 import { CurrentValueCard } from './CurrentValueCard'
 import { SECTION_PADDING } from './detailLayout'
+import { HoldingDialogs } from './HoldingDialogs'
 import { HoldingsPanel } from './HoldingsPanel'
 import { OpeningPositionCard } from './OpeningPositionCard'
 import { SnapshotDialogs } from './SnapshotDialogs'
 import { SnapshotsPanel } from './SnapshotsPanel'
 import { TradesPanel } from './TradesPanel'
+import { useHoldingActions } from './useHoldingActions'
 import { useSnapshotActions } from './useSnapshotActions'
 import { ValueOverTimePanel } from './ValueOverTimePanel'
 
@@ -98,7 +87,6 @@ export function InvestmentProductDetailPage() {
   const [selectedHoldingId, setSelectedHoldingId] = useState<string>('')
   const selectedHolding =
     holdings?.find((h) => h.id === selectedHoldingId) ?? holdings?.[0] ?? undefined
-  const holdingAccountIds = new Set((holdings ?? []).map((h) => h.accountId))
 
   const snapshotsQuery = useInvestmentSnapshots(selectedHolding?.id)
   const snapshots = snapshotsQuery.data
@@ -110,10 +98,6 @@ export function InvestmentProductDetailPage() {
   const tradesState = useQueryState(tradesQuery, setError)
   const editProduct = useEditInvestmentProduct()
   const deleteProduct = useDeleteInvestmentProduct()
-  const createHolding = useCreateInvestmentHolding()
-  const closeHolding = useCloseInvestmentHolding()
-  const deleteHolding = useDeleteInvestmentHolding()
-  const editHoldingNotes = useEditInvestmentHoldingNotes()
 
   const snapshotActions = useSnapshotActions({ holdingId: selectedHolding?.id, setError })
   const [tradeDialog, setTradeDialog] = useState<TransferFormPreset | null>(null)
@@ -124,16 +108,14 @@ export function InvestmentProductDetailPage() {
   const saveProductAction = useAction(setError)
   const [deleteProductConfirm, setDeleteProductConfirm] = useState(false)
   const deleteProductAction = useAction(setError)
-  const [addHoldingOpen, setAddHoldingOpen] = useState(false)
-  const [addHoldingAccountId, setAddHoldingAccountId] = useState('')
-  const [addHoldingNotes, setAddHoldingNotes] = useState('')
-  const addHoldingAction = useAction(setError)
-  const [closeHoldingTarget, setCloseHoldingTarget] = useState<InvestmentHolding | null>(null)
-  // Closing and deleting a holding share one confirmation spinner.
-  const holdingConfirmAction = useAction(setError)
-  const [deleteHoldingTarget, setDeleteHoldingTarget] = useState<InvestmentHolding | null>(null)
-  const [notesEdit, setNotesEdit] = useState<{ id: string; value: string } | null>(null)
-  const notesAction = useAction(setError)
+  const holdingActions = useHoldingActions({
+    productId: product?.id,
+    accounts,
+    holdings,
+    selectedHoldingId,
+    setSelectedHoldingId,
+    setError,
+  })
 
   const { loading, loadError } = combineLoadState(productState)
   const showSkeleton = useDelayedFlag(loading)
@@ -152,7 +134,10 @@ export function InvestmentProductDetailPage() {
 
   // While any dialog is open, a save error shows inside it: the page banner sits behind it.
   const anyDialogOpen =
-    tradeDialog !== null || snapshotActions.record.open || editProductOpen || addHoldingOpen
+    tradeDialog !== null ||
+    snapshotActions.record.open ||
+    editProductOpen ||
+    holdingActions.add.open
 
   function openTrade(direction: 'buy' | 'sell') {
     if (!selectedHolding || !product) return
@@ -194,57 +179,6 @@ export function InvestmentProductDetailPage() {
       setDeleteProductConfirm(false)
     }
   }
-
-  function openAddHolding() {
-    setError(null)
-    setAddHoldingAccountId('')
-    setAddHoldingNotes('')
-    setAddHoldingOpen(true)
-  }
-
-  async function handleAddHolding() {
-    if (!product || addHoldingAccountId === '') return
-    const added = await addHoldingAction.run(async () => {
-      const created = await createHolding.mutateAsync({
-        productId: product.id,
-        accountId: addHoldingAccountId,
-        additionalNotes: addHoldingNotes.trim() || undefined,
-      })
-      setSelectedHoldingId(created.id)
-    })
-    if (added) setAddHoldingOpen(false)
-  }
-
-  async function confirmCloseHolding() {
-    if (!closeHoldingTarget) return
-    if (await holdingConfirmAction.run(() => closeHolding.mutateAsync(closeHoldingTarget.id))) {
-      setCloseHoldingTarget(null)
-    }
-  }
-
-  async function confirmDeleteHolding() {
-    if (!deleteHoldingTarget) return
-    const deleted = await holdingConfirmAction.run(() =>
-      deleteHolding.mutateAsync(deleteHoldingTarget.id),
-    )
-    if (deleted && selectedHoldingId === deleteHoldingTarget.id) setSelectedHoldingId('')
-    setDeleteHoldingTarget(null)
-  }
-
-  async function handleSaveNotes() {
-    if (!notesEdit) return
-    const saved = await notesAction.run(() =>
-      editHoldingNotes.mutateAsync({
-        id: notesEdit.id,
-        additionalNotes: notesEdit.value || undefined,
-      }),
-    )
-    if (saved) setNotesEdit(null)
-  }
-
-  const availableAccountsForNewHolding = (accounts ?? []).filter(
-    (a) => a.type === 'INVESTMENT' && !a.closed && !holdingAccountIds.has(a.id),
-  )
 
   return (
     <Box sx={{ py: { xs: 2, sm: 4 } }}>
@@ -306,12 +240,12 @@ export function InvestmentProductDetailPage() {
             state={holdingsState}
             accountName={accountName}
             selectedId={selectedHolding?.id}
-            addDisabled={availableAccountsForNewHolding.length === 0}
-            onAdd={openAddHolding}
+            addDisabled={holdingActions.add.availableAccounts.length === 0}
+            onAdd={holdingActions.add.openDialog}
             onSelect={setSelectedHoldingId}
-            onEditNotes={(h) => setNotesEdit({ id: h.id, value: h.additionalNotes ?? '' })}
-            onClose={setCloseHoldingTarget}
-            onDelete={setDeleteHoldingTarget}
+            onEditNotes={holdingActions.notes.start}
+            onClose={holdingActions.closing.setTarget}
+            onDelete={holdingActions.removing.setTarget}
           />
 
           {selectedHolding && (
@@ -425,118 +359,7 @@ export function InvestmentProductDetailPage() {
         onCancel={() => setDeleteProductConfirm(false)}
       />
 
-      <ResponsiveDialog
-        open={addHoldingOpen}
-        onClose={addHoldingAction.pending ? undefined : () => setAddHoldingOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>{t('investmentProducts:detail.addHoldingDialogTitle')}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 1 }}>
-            {errorBanner}
-            <FormGrid>
-              <Select
-                size="small"
-                displayEmpty
-                value={addHoldingAccountId}
-                onChange={(e) => setAddHoldingAccountId(e.target.value)}
-                aria-label={t('investmentProducts:detail.accountLabel')}
-              >
-                <MenuItem value="" disabled>
-                  {t('investmentProducts:detail.accountLabel')}
-                </MenuItem>
-                {availableAccountsForNewHolding.map((a) => (
-                  <MenuItem key={a.id} value={a.id}>
-                    {a.name}
-                  </MenuItem>
-                ))}
-              </Select>
-              <TextField
-                label={t('investmentProducts:detail.notesLabel')}
-                size="small"
-                multiline
-                value={addHoldingNotes}
-                onChange={(e) => setAddHoldingNotes(e.target.value)}
-                slotProps={{ htmlInput: { maxLength: 500 } }}
-              />
-            </FormGrid>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAddHoldingOpen(false)} disabled={addHoldingAction.pending}>
-            {t('common:actions.cancel')}
-          </Button>
-          <Button
-            variant="contained"
-            disabled={addHoldingAction.pending || addHoldingAccountId === ''}
-            onClick={() => void handleAddHolding()}
-          >
-            {t('investmentProducts:detail.addHoldingButton')}
-          </Button>
-        </DialogActions>
-      </ResponsiveDialog>
-
-      <ResponsiveDialog
-        open={notesEdit !== null}
-        onClose={notesAction.pending ? undefined : () => setNotesEdit(null)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>{t('investmentProducts:detail.editHoldingNotesTitle')}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 1 }}>
-            {errorBanner}
-            <TextField
-              label={t('investmentProducts:detail.notesLabel')}
-              size="small"
-              fullWidth
-              multiline
-              value={notesEdit?.value ?? ''}
-              onChange={(e) =>
-                setNotesEdit((prev) => (prev ? { ...prev, value: e.target.value } : prev))
-              }
-              slotProps={{ htmlInput: { maxLength: 500 } }}
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setNotesEdit(null)} disabled={notesAction.pending}>
-            {t('common:actions.cancel')}
-          </Button>
-          <Button
-            variant="contained"
-            disabled={notesAction.pending}
-            onClick={() => void handleSaveNotes()}
-          >
-            {t('common:actions.save')}
-          </Button>
-        </DialogActions>
-      </ResponsiveDialog>
-
-      <ConfirmDialog
-        open={closeHoldingTarget !== null}
-        title={t('investmentProducts:detail.closeHoldingTitle', {
-          account: closeHoldingTarget ? accountName(closeHoldingTarget.accountId) : '',
-        })}
-        body={t('investmentProducts:detail.closeHoldingBody')}
-        confirmLabel={t('investmentProducts:detail.closeHoldingConfirm')}
-        loading={holdingConfirmAction.pending}
-        onConfirm={() => void confirmCloseHolding()}
-        onCancel={() => setCloseHoldingTarget(null)}
-      />
-
-      <ConfirmDialog
-        open={deleteHoldingTarget !== null}
-        title={t('investmentProducts:detail.deleteHoldingTitle', {
-          account: deleteHoldingTarget ? accountName(deleteHoldingTarget.accountId) : '',
-        })}
-        body={t('investmentProducts:detail.deleteHoldingBody')}
-        confirmLabel={t('investmentProducts:detail.deleteHoldingConfirm')}
-        loading={holdingConfirmAction.pending}
-        onConfirm={() => void confirmDeleteHolding()}
-        onCancel={() => setDeleteHoldingTarget(null)}
-      />
+      <HoldingDialogs actions={holdingActions} accountName={accountName} banner={errorBanner} />
     </Box>
   )
 }
