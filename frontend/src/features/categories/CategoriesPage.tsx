@@ -40,6 +40,7 @@ import { useQueryState } from '../../hooks/queryState'
 import { translateSeedName } from '../../i18n/seedNames'
 import { sortCategories } from './sortCategories'
 import { StarterCategoriesPrompt } from './StarterCategoriesPrompt'
+import { PageContainer } from '../../components/layout/PageContainer'
 
 /**
  * Settings-style CRUD screen for categories (F002 spec): table with name + type, inline rename,
@@ -120,7 +121,7 @@ export function CategoriesPage() {
   }
 
   return (
-    <Box sx={{ py: { xs: 2, sm: 4 } }}>
+    <PageContainer>
       <Box
         sx={{
           display: 'flex',
@@ -265,6 +266,6 @@ export function CategoriesPage() {
           <MenuItem value="INCOME">{t('categories:typeIncome')}</MenuItem>
         </Select>
       </AddFormDialog>
-    </Box>
+    </PageContainer>
   )
 }

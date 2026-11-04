@@ -16,6 +16,7 @@ import { DividendHistorySection } from './DividendHistorySection'
 import { FiiNestedAllocationDonutChart } from './FiiNestedAllocationDonutChart'
 import { RegisterDividendDialog } from './RegisterDividendDialog'
 import type { FiiPortfolioRow } from '../../api/investments/fiiPortfolio'
+import { PageContainer } from '../../components/layout/PageContainer'
 
 /** The sub-category name every FII product is classified under (mirrors `AllocationPlanService`). */
 const FII_SUBCATEGORY_NAME = 'REITs (FIIs)'
@@ -102,7 +103,7 @@ export function FiiPage() {
   ]
 
   return (
-    <Box sx={{ py: { xs: 2, sm: 4 } }}>
+    <PageContainer>
       <Box
         sx={{
           display: 'flex',
@@ -216,6 +217,6 @@ export function FiiPage() {
         onClose={() => setRegisterOpen(false)}
         fiiProducts={fiiProducts}
       />
-    </Box>
+    </PageContainer>
   )
 }

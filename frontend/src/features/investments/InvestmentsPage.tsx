@@ -23,6 +23,7 @@ import { InvestmentAccountAllocationChart } from './InvestmentAccountAllocationC
 import { InvestmentAllocationChart } from './InvestmentAllocationChart'
 import { InvestmentProductsListSection } from './InvestmentProductsListSection'
 import { InvestmentSubcategoryAllocationChart } from './InvestmentSubcategoryAllocationChart'
+import { PageContainer } from '../../components/layout/PageContainer'
 
 /** Tighter section padding on phones (F021), matching `AccountDetailPage`. */
 const SECTION_PADDING = { xs: 2, sm: 3 }
@@ -58,7 +59,7 @@ export function InvestmentsPage() {
   }
 
   return (
-    <Box sx={{ py: { xs: 2, sm: 4 } }}>
+    <PageContainer>
       <Typography variant="h4" component="h1" gutterBottom>
         {t('title')}
       </Typography>
@@ -174,6 +175,6 @@ export function InvestmentsPage() {
           </Paper>
         )}
       </Box>
-    </Box>
+    </PageContainer>
   )
 }

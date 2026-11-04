@@ -14,6 +14,7 @@ import { formatMoney, formatNumber } from '../../i18n/format'
 import { fuelTypeLabel } from '../../utils/fuelType'
 import type { Transaction } from '../../api/transactions/transactions'
 import { FuelTimeSeriesChart, type FuelSeries } from './FuelTimeSeriesChart'
+import { PageContainer } from '../../components/layout/PageContainer'
 
 /** One color per fuel type (F024 spec: "price/liter chart shows separate lines per fuel type
  * used"), drawn from the theme's existing palette slots rather than inventing new brand colors. */
@@ -167,7 +168,7 @@ export function FuelPage() {
   }
 
   return (
-    <Box sx={{ py: { xs: 2, sm: 4 } }}>
+    <PageContainer>
       <Box
         sx={{
           display: 'flex',
@@ -264,6 +265,6 @@ export function FuelPage() {
           />
         </>
       )}
-    </Box>
+    </PageContainer>
   )
 }

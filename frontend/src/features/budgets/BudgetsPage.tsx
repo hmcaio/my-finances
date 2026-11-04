@@ -39,6 +39,7 @@ import { buildBudgetColumns } from './budgetColumns'
 import { BudgetRowActions } from './BudgetRowActions'
 import { isBudgetCapValid } from './budgetEdit'
 import { BudgetVsActualReport } from './BudgetVsActualReport'
+import { PageContainer } from '../../components/layout/PageContainer'
 
 /**
  * Budgets screen (F006 spec): a settings-style list of budgeted categories with their current cap
@@ -172,7 +173,7 @@ export function BudgetsPage() {
   }
 
   return (
-    <Box sx={{ py: { xs: 2, sm: 4 } }}>
+    <PageContainer>
       <Box
         sx={{
           display: 'flex',
@@ -313,6 +314,6 @@ export function BudgetsPage() {
       </Box>
 
       <BudgetVsActualReport month={reportMonth} />
-    </Box>
+    </PageContainer>
   )
 }

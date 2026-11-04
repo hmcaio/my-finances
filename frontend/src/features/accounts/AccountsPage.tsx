@@ -34,6 +34,7 @@ import { isAccountEditValid } from './accountEdit'
 import { buildAccountColumns } from './accountColumns'
 import { AccountEditFields } from './AccountEditFields'
 import { AccountRowActions } from './AccountRowActions'
+import { PageContainer } from '../../components/layout/PageContainer'
 
 /**
  * Account list/management screen (F003 spec): table with name, institution, type, running
@@ -160,7 +161,7 @@ export function AccountsPage() {
   }
 
   return (
-    <Box sx={{ py: { xs: 2, sm: 4 } }}>
+    <PageContainer>
       <Box
         sx={{
           display: 'flex',
@@ -270,6 +271,6 @@ export function AccountsPage() {
         onConfirm={() => void confirmDelete()}
         onCancel={() => setDeleteTarget(null)}
       />
-    </Box>
+    </PageContainer>
   )
 }

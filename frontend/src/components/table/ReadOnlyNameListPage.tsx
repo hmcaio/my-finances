@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  Box,
   Paper,
   Table,
   TableCell,
@@ -14,6 +13,7 @@ import type { UseQueryResult } from '@tanstack/react-query'
 import { ErrorAlert } from '../feedback/ErrorAlert'
 import { useQueryState } from '../../hooks/queryState'
 import { DataTableBody } from './DataTableBody'
+import { PageContainer } from '../layout/PageContainer'
 
 interface NamedRow {
   id: string
@@ -60,7 +60,7 @@ export function ReadOnlyNameListPage({
   }
 
   return (
-    <Box sx={{ py: { xs: 2, sm: 4 } }}>
+    <PageContainer>
       <Typography variant="h4" component="h1" sx={{ mb: 1 }}>
         {title}
       </Typography>
@@ -95,6 +95,6 @@ export function ReadOnlyNameListPage({
           </Table>
         </TableContainer>
       </Paper>
-    </Box>
+    </PageContainer>
   )
 }

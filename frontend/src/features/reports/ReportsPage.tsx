@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Alert,
-  Box,
   Button,
   Checkbox,
   FormControlLabel,
@@ -32,6 +31,7 @@ import { MonthPicker } from '../../components/inputs/MonthPicker'
 import { ResponsiveFilterBar } from '../../components/layout/ResponsiveFilterBar'
 import { useQueryState } from '../../hooks/queryState'
 import { translateKey } from '../../i18n/translate'
+import { PageContainer } from '../../components/layout/PageContainer'
 
 /**
  * Reports (F030 spec, PRD S6.9), replacing F013's all-entity export: a checkbox list of the
@@ -101,7 +101,7 @@ export function ReportsPage() {
   }
 
   return (
-    <Box sx={{ py: { xs: 2, sm: 4 } }}>
+    <PageContainer>
       <Typography variant="h4" component="h1" gutterBottom>
         {t('title')}
       </Typography>
@@ -246,6 +246,6 @@ export function ReportsPage() {
           {t('downloaded')}
         </Alert>
       )}
-    </Box>
+    </PageContainer>
   )
 }

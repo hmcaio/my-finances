@@ -15,6 +15,7 @@ import { nameLookup } from '../../utils/nameLookup'
 import { accountTypeLabel } from './accountTypes'
 import { InvestmentProductsSection } from '../investmentProducts/InvestmentProductsSection'
 import { AccountLedger } from '../ledger/AccountLedger'
+import { PageContainer } from '../../components/layout/PageContainer'
 
 /** Section padding: tighter on phones so the embedded lists keep their width (F021). */
 const SECTION_PADDING = { xs: 2, sm: 3 }
@@ -46,7 +47,7 @@ export function AccountDetailPage() {
   const showSkeleton = useDelayedFlag(loading)
 
   return (
-    <Box sx={{ py: { xs: 2, sm: 4 } }}>
+    <PageContainer>
       <MuiLink component={RouterLink} to="/accounts" underline="hover">
         {t('accounts:detail.backLink')}
       </MuiLink>
@@ -116,7 +117,7 @@ export function AccountDetailPage() {
           </Paper>
         </Box>
       )}
-    </Box>
+    </PageContainer>
   )
 }
 

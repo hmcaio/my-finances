@@ -36,6 +36,7 @@ import {
   EMPTY_RECURRING_TEMPLATE_CREATE_FORM,
   isRecurringTemplateEditValid,
 } from './recurringTemplateEdit'
+import { PageContainer } from '../../components/layout/PageContainer'
 
 /**
  * Recurring templates settings screen (F007 spec): a list of templates (description, category,
@@ -205,7 +206,7 @@ export function RecurringTemplatesPage() {
   }
 
   return (
-    <Box sx={{ py: { xs: 2, sm: 4 } }}>
+    <PageContainer>
       <Box
         sx={{
           display: 'flex',
@@ -301,6 +302,6 @@ export function RecurringTemplatesPage() {
       </ResponsiveDialog>
 
       <PendingOccurrencesWidget />
-    </Box>
+    </PageContainer>
   )
 }

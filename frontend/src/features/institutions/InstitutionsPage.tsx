@@ -31,6 +31,7 @@ import { useInlineEdit } from '../../hooks/useInlineEdit'
 import { useQueryState } from '../../hooks/queryState'
 import { translateSeedName } from '../../i18n/seedNames'
 import { sortInstitutions } from './sortInstitutions'
+import { PageContainer } from '../../components/layout/PageContainer'
 
 /**
  * Settings-style CRUD screen for institutions (F017 spec): table with name, inline rename,
@@ -102,7 +103,7 @@ export function InstitutionsPage() {
   }
 
   return (
-    <Box sx={{ py: { xs: 2, sm: 4 } }}>
+    <PageContainer>
       <Box
         sx={{
           display: 'flex',
@@ -221,6 +222,6 @@ export function InstitutionsPage() {
           }}
         />
       </AddFormDialog>
-    </Box>
+    </PageContainer>
   )
 }

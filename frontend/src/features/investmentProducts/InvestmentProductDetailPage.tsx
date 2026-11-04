@@ -33,6 +33,7 @@ import { useProductActions } from './useProductActions'
 import { useSnapshotActions } from './useSnapshotActions'
 import { useTradeDialog } from './useTradeDialog'
 import { ValueOverTimePanel } from './ValueOverTimePanel'
+import { PageContainer } from '../../components/layout/PageContainer'
 
 /**
  * Per-product detail view (F008 spec, made holding-aware by F022/ADR 0020): the product's taxonomy
@@ -118,7 +119,7 @@ export function InvestmentProductDetailPage() {
     holdingActions.add.open
 
   return (
-    <Box sx={{ py: { xs: 2, sm: 4 } }}>
+    <PageContainer>
       <MuiLink
         component={RouterLink}
         to={selectedHolding ? `/accounts/${selectedHolding.accountId}` : '/accounts'}
@@ -245,6 +246,6 @@ export function InvestmentProductDetailPage() {
       />
 
       <HoldingDialogs actions={holdingActions} accountName={accountName} banner={errorBanner} />
-    </Box>
+    </PageContainer>
   )
 }

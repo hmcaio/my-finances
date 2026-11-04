@@ -27,6 +27,7 @@ import {
 import { useConsumeNavigationState } from './useConsumeNavigationState'
 import { useFocusParam } from './useFocusParam'
 import { useLedgerLookups } from './useLedgerLookups'
+import { PageContainer } from '../../components/layout/PageContainer'
 
 /** What a row's edit button points at; the full record is fetched by id before its dialog opens. */
 interface EditTarget {
@@ -147,7 +148,7 @@ export function LedgerPage() {
   const bannerError = dialogOpen ? null : (error ?? editLoadError)
 
   return (
-    <Box sx={{ py: { xs: 2, sm: 4 } }}>
+    <PageContainer>
       <Box
         sx={{
           display: 'flex',
@@ -299,6 +300,6 @@ export function LedgerPage() {
         onConfirm={() => void confirmDelete()}
         onCancel={() => setDeleteTarget(null)}
       />
-    </Box>
+    </PageContainer>
   )
 }

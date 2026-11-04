@@ -29,6 +29,7 @@ import { useAction } from '../../hooks/useAction'
 import { useAddDialog } from '../../hooks/useAddDialog'
 import { useInlineEdit } from '../../hooks/useInlineEdit'
 import { useQueryState } from '../../hooks/queryState'
+import { PageContainer } from '../../components/layout/PageContainer'
 
 /**
  * Settings-style CRUD screen for vehicles (F024 spec): table with name, inline rename, add-new
@@ -94,7 +95,7 @@ export function VehiclesPage() {
   }
 
   return (
-    <Box sx={{ py: { xs: 2, sm: 4 } }}>
+    <PageContainer>
       <Box
         sx={{
           display: 'flex',
@@ -203,6 +204,6 @@ export function VehiclesPage() {
           }}
         />
       </AddFormDialog>
-    </Box>
+    </PageContainer>
   )
 }
