@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { Alert } from '@mui/material'
 import { useBackupStatus } from '../../api/backupStatus/backupStatusQueries'
 import { useLocale, type Locale } from '../../hooks/locale/useLocale'
@@ -16,7 +17,7 @@ const VOLATILE_STORAGE_ERROR = 'storage_not_persistent'
 function formatLastSuccess(
   lastSuccessAt: string | null,
   locale: Locale,
-  t: (key: string) => string,
+  t: TFunction<'common'>,
 ): string {
   if (lastSuccessAt === null) return t('backupStatus.never')
   return formatDate(lastSuccessAt, locale, { dateStyle: 'medium', timeStyle: 'short' })
@@ -59,11 +60,7 @@ export function BackupStatusBanner() {
       <Alert severity="warning" onClose={() => setDismissed(true)}>
         {t('backupStatus.message', {
           state: verb,
-          lastSuccess: formatLastSuccess(
-            status.lastSuccessAt,
-            locale,
-            t as (key: string) => string,
-          ),
+          lastSuccess: formatLastSuccess(status.lastSuccessAt, locale, t),
         })}
       </Alert>
     )

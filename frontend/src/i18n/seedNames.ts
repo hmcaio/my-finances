@@ -1,3 +1,5 @@
+import { translateKey, type QualifiedKey, type Translate } from './translate'
+
 export type SeedTable =
   | 'categories'
   | 'paymentMethods'
@@ -22,13 +24,13 @@ export type SeedTable =
  * inserts whichever language was active at the time, so both the English and Portuguese literal
  * of each of its 8 pre-existing names (Groceries/Rent/Utilities/Subscriptions/Transport/
  * Dining/Health/Salary) need an entry here, reusing the one translation key each already had from
- * the old migration seed - `Record<string, string>` supports two keys sharing one value with no
+ * the old migration seed - `Record<string, QualifiedKey>` supports two keys sharing one value with no
  * change to the lookup mechanism itself. `investmentSegments` holds V24's and V26's B3 FII sectors
  * (F034/ADR 0028) - unlike every other table here, every one of its rows is permanently protected
  * (no create/rename/delete endpoint exists at all), so this is the one lookup that can never fall
  * through to the verbatim-name branch.
  */
-const CATEGORY_SEED_NAMES: Record<string, string> = {
+const CATEGORY_SEED_NAMES: Record<string, QualifiedKey> = {
   Groceries: 'common:seedNames.categories.groceries',
   Mercado: 'common:seedNames.categories.groceries',
   Rent: 'common:seedNames.categories.rent',
@@ -63,7 +65,7 @@ const CATEGORY_SEED_NAMES: Record<string, string> = {
 }
 
 /** V2's starter payment methods. */
-const PAYMENT_METHOD_SEED_NAMES: Record<string, string> = {
+const PAYMENT_METHOD_SEED_NAMES: Record<string, QualifiedKey> = {
   'Debit Card': 'common:seedNames.paymentMethods.debitCard',
   'Credit Card': 'common:seedNames.paymentMethods.creditCard',
   PIX: 'common:seedNames.paymentMethods.pix',
@@ -71,12 +73,12 @@ const PAYMENT_METHOD_SEED_NAMES: Record<string, string> = {
 }
 
 /** V12's single built-in institution. */
-const INSTITUTION_SEED_NAMES: Record<string, string> = {
+const INSTITUTION_SEED_NAMES: Record<string, QualifiedKey> = {
   'No institution': 'common:seedNames.institutions.noInstitution',
 }
 
 /** V13's starter investment categories. */
-const INVESTMENT_CATEGORY_SEED_NAMES: Record<string, string> = {
+const INVESTMENT_CATEGORY_SEED_NAMES: Record<string, QualifiedKey> = {
   'Fixed Income': 'common:seedNames.investmentCategories.fixedIncome',
   'Variable Income': 'common:seedNames.investmentCategories.variableIncome',
   Funds: 'common:seedNames.investmentCategories.funds',
@@ -91,7 +93,7 @@ const INVESTMENT_CATEGORY_SEED_NAMES: Record<string, string> = {
  * under both Variable Income and International, which is why this is one flat lookup rather than
  * nested per category: both translate to the same word, so there is no collision in practice).
  */
-const INVESTMENT_SUBCATEGORY_SEED_NAMES: Record<string, string> = {
+const INVESTMENT_SUBCATEGORY_SEED_NAMES: Record<string, QualifiedKey> = {
   'Tesouro Selic': 'common:seedNames.investmentSubcategories.tesouroSelic',
   'Tesouro IPCA+': 'common:seedNames.investmentSubcategories.tesouroIpca',
   'Tesouro Prefixado': 'common:seedNames.investmentSubcategories.tesouroPrefixado',
@@ -136,7 +138,7 @@ const INVESTMENT_SUBCATEGORY_SEED_NAMES: Record<string, string> = {
  * never user-created/renamed, so every row is always a match here; nothing ever falls through to
  * the verbatim branch).
  */
-const INVESTMENT_SEGMENT_SEED_NAMES: Record<string, string> = {
+const INVESTMENT_SEGMENT_SEED_NAMES: Record<string, QualifiedKey> = {
   'Lajes Corporativas': 'common:seedNames.investmentSegments.lajesCorporativas',
   Shoppings: 'common:seedNames.investmentSegments.shoppings',
   Logística: 'common:seedNames.investmentSegments.logistica',
@@ -154,7 +156,7 @@ const INVESTMENT_SEGMENT_SEED_NAMES: Record<string, string> = {
   Outros: 'common:seedNames.investmentSegments.outros',
 }
 
-const SEED_NAMES: Record<SeedTable, Record<string, string>> = {
+const SEED_NAMES: Record<SeedTable, Record<string, QualifiedKey>> = {
   categories: CATEGORY_SEED_NAMES,
   paymentMethods: PAYMENT_METHOD_SEED_NAMES,
   institutions: INSTITUTION_SEED_NAMES,
@@ -168,18 +170,11 @@ const SEED_NAMES: Record<SeedTable, Record<string, string>> = {
  * otherwise returns it verbatim. Call wherever that table's rows render as a label - a list, a
  * select, a chip.
  *
- * `t` is typed as `(key: never) => string` rather than `i18next`'s own `TFunction`:
- * `useTranslation()`'s return type is branded by the namespace(s) passed to it, so a `TFunction`
- * scoped to e.g. `["categories", "common"]` doesn't structurally match one scoped to
- * `["paymentMethods", "common"]` - a `never` parameter is (contravariantly) assignable from any
- * such `TFunction` regardless of its namespace brand, so every call site's real `t` fits here
- * without a cast; the lookup key itself is cast once, internally, below.
+ * `t` is the loosely typed `Translate` (`src/i18n/translate.ts`): `useTranslation()`'s `t` is
+ * branded by its namespace(s), so every call site's real `t` fits without a cast. The seeded keys
+ * themselves are checked against the `en` resources by `QualifiedKey`.
  */
-export function translateSeedName(
-  table: SeedTable,
-  currentName: string,
-  t: (key: never) => string,
-): string {
+export function translateSeedName(table: SeedTable, currentName: string, t: Translate): string {
   const key = SEED_NAMES[table][currentName]
-  return key ? t(key as never) : currentName
+  return key ? translateKey(t, key) : currentName
 }

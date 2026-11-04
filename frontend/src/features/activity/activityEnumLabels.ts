@@ -1,11 +1,12 @@
 import type { AuditAction, AuditEntityType, AuditOrigin } from '../../api/auditLog/auditLog'
+import { translateKey, type QualifiedKey, type Translate } from '../../i18n/translate'
 
 /**
  * Translation-key lookups for the Activity page's three enums (F033/ADR 0027: were a single
- * generic `enumLabel()` title-caser before this feature). `t` is typed loosely for the same
- * reason `translateSeedName`'s is - see its own docblock (`src/i18n/seedNames.ts`).
+ * generic `enumLabel()` title-caser before this feature). `t` is the loosely typed `Translate`
+ * (`src/i18n/translate.ts`); the keys are checked against the `en` resources by `QualifiedKey`.
  */
-const ENTITY_TYPE_KEYS: Record<AuditEntityType, string> = {
+const ENTITY_TYPE_KEYS: Record<AuditEntityType, QualifiedKey> = {
   TRANSACTION: 'activity:entityTypes.transaction',
   TRANSFER: 'activity:entityTypes.transfer',
   ACCOUNT: 'activity:entityTypes.account',
@@ -25,7 +26,7 @@ const ENTITY_TYPE_KEYS: Record<AuditEntityType, string> = {
   VEHICLE: 'activity:entityTypes.vehicle',
 }
 
-const ACTION_KEYS: Record<AuditAction, string> = {
+const ACTION_KEYS: Record<AuditAction, QualifiedKey> = {
   CREATE: 'activity:actions.create',
   UPDATE: 'activity:actions.update',
   DELETE: 'activity:actions.delete',
@@ -35,19 +36,19 @@ const ACTION_KEYS: Record<AuditAction, string> = {
   GENERATED: 'activity:actions.generated',
 }
 
-const ORIGIN_KEYS: Record<AuditOrigin, string> = {
+const ORIGIN_KEYS: Record<AuditOrigin, QualifiedKey> = {
   USER: 'activity:origins.user',
   SYSTEM: 'activity:origins.system',
 }
 
-export function entityTypeLabel(type: AuditEntityType, t: (key: never) => string): string {
-  return t(ENTITY_TYPE_KEYS[type] as never)
+export function entityTypeLabel(type: AuditEntityType, t: Translate): string {
+  return translateKey(t, ENTITY_TYPE_KEYS[type])
 }
 
-export function actionLabel(action: AuditAction, t: (key: never) => string): string {
-  return t(ACTION_KEYS[action] as never)
+export function actionLabel(action: AuditAction, t: Translate): string {
+  return translateKey(t, ACTION_KEYS[action])
 }
 
-export function originLabel(origin: AuditOrigin, t: (key: never) => string): string {
-  return t(ORIGIN_KEYS[origin] as never)
+export function originLabel(origin: AuditOrigin, t: Translate): string {
+  return translateKey(t, ORIGIN_KEYS[origin])
 }

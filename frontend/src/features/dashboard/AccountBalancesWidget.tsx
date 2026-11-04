@@ -57,9 +57,7 @@ export function AccountBalancesWidget() {
                 {account.name}
               </MuiLink>
             </TableCell>
-            <TableCell>
-              {accountTypeLabel(account.type, t as unknown as (key: never) => string)}
-            </TableCell>
+            <TableCell>{accountTypeLabel(account.type, t)}</TableCell>
             <TableCell align="right">
               {formatMoney(account.balance, locale)}
               {account.type === 'CREDIT_CARD' && t('dashboard:accountBalances.owedSuffix')}

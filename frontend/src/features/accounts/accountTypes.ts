@@ -1,12 +1,13 @@
 import type { AccountType } from '../../api/accounts/accounts'
+import { translateKey, type QualifiedKey, type Translate } from '../../i18n/translate'
 
 /**
  * Translation-key lookup for every account type, shared by the account list, form and detail page
  * (F033/ADR 0027: was a plain `Record<AccountType, string>` of literal English labels before this
- * feature). `t` is typed loosely for the same reason `translateSeedName` is - see its own
- * docblock (`src/i18n/seedNames.ts`).
+ * feature). `t` is the loosely typed `Translate` (`src/i18n/translate.ts`); the keys are checked
+ * against the `en` resources by `QualifiedKey`.
  */
-const ACCOUNT_TYPE_KEYS: Record<AccountType, string> = {
+const ACCOUNT_TYPE_KEYS: Record<AccountType, QualifiedKey> = {
   CHECKING: 'accounts:accountTypes.checking',
   SAVINGS: 'accounts:accountTypes.savings',
   CASH_WALLET: 'accounts:accountTypes.cashWallet',
@@ -23,6 +24,6 @@ export const ACCOUNT_TYPES: AccountType[] = [
   'INVESTMENT',
 ]
 
-export function accountTypeLabel(type: AccountType, t: (key: never) => string): string {
-  return t(ACCOUNT_TYPE_KEYS[type] as never)
+export function accountTypeLabel(type: AccountType, t: Translate): string {
+  return translateKey(t, ACCOUNT_TYPE_KEYS[type])
 }

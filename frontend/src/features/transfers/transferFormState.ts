@@ -1,5 +1,6 @@
 import type { Account } from '../../api/accounts/accounts'
 import type { CreateTransferRequest, Transfer } from '../../api/transfers/transfers'
+import { translateKey, type Translate } from '../../i18n/translate'
 import { today } from '../../utils/localDate'
 import type { TradeSide } from './tradeMath'
 import { numberOrNull } from './transferValidation'
@@ -91,7 +92,7 @@ export function initialFormState(
   editing: Transfer | null,
   preset: TransferFormPreset | null,
   accounts: Account[],
-  t: (key: never, options?: Record<string, unknown>) => string,
+  t: Translate,
 ): FormState {
   const blank: FormState = {
     mode: 'plain',
@@ -146,10 +147,9 @@ export function initialFormState(
       mode: 'trade',
       investmentAccountId: preset.investmentAccountId,
       lines: [blankLine(0, preset.productId, preset.direction === 'buy' ? 'BUY' : 'SELL')],
-      description: t(
-        (preset.direction === 'buy'
-          ? 'transfers:tradeLabelBuy'
-          : 'transfers:tradeLabelSell') as never,
+      description: translateKey(
+        t,
+        preset.direction === 'buy' ? 'transfers:tradeLabelBuy' : 'transfers:tradeLabelSell',
         { product: preset.productName },
       ),
     }

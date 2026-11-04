@@ -1,4 +1,5 @@
 import type { CategoryType } from '../../api/categories/categories'
+import type { QualifiedKey } from '../../i18n/translate'
 
 export interface SuggestedCategory {
   /**
@@ -9,7 +10,7 @@ export interface SuggestedCategory {
    * whichever language was active at onboarding time is exactly what `translateSeedName` matches
    * on every later render (F035/ADR 0028).
    */
-  translationKey: string
+  translationKey: QualifiedKey
   type: CategoryType
 }
 
