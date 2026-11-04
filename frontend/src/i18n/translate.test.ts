@@ -10,8 +10,23 @@ describe('translateKey', () => {
     expect(t).toHaveBeenCalledExactlyOnceWith('accounts:accountTypes.checking')
   })
 
+  it('forwards interpolation options when given, and none when not', () => {
+    const t = vi.fn(
+      (key: never, options?: Record<string, unknown>) =>
+        `${String(key)}|${String(options?.product)}`,
+    )
+
+    expect(translateKey(t, 'transfers:tradeLabelBuy', { product: 'BTC' })).toBe(
+      'transfers:tradeLabelBuy|BTC',
+    )
+    expect(t).toHaveBeenLastCalledWith('transfers:tradeLabelBuy', { product: 'BTC' })
+    translateKey(t, 'transfers:tradeLabelSell')
+    expect(t).toHaveBeenLastCalledWith('transfers:tradeLabelSell')
+  })
+
   it('works with the real t, whatever namespaces it was created for', () => {
     expect(translateKey(i18n.t, 'accounts:accountTypes.checking')).toBe('Checking')
+    expect(translateKey(i18n.t, 'transfers:tradeLabelBuy', { product: 'BTC' })).toContain('BTC')
     expect(translateKey(i18n.getFixedT('en', 'ledger'), 'activity:actions.create')).toBe('Create')
     expect(translateKey(i18n.getFixedT('pt-BR', 'common'), 'accounts:accountTypes.checking')).toBe(
       'Conta Corrente',
