@@ -25,13 +25,13 @@ import {
   usePendingRecurringOccurrences,
   useRecurringTemplates,
 } from '../../api/recurringTemplates/recurringTemplatesQueries'
-import { defaultErrorMessage } from '../../api/core/apiError'
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useLocale } from '../../hooks/locale/useLocale'
+import { useAction } from '../../hooks/useAction'
 import { formatMoney } from '../../i18n/format'
 import { translateSeedName } from '../../i18n/seedNames'
 import { nameLookup } from '../../utils/nameLookup'
@@ -80,10 +80,10 @@ export function PendingOccurrencesWidget() {
   const [confirmDate, setConfirmDate] = useState('')
   const [confirmAccountId, setConfirmAccountId] = useState('')
   const [confirmPaymentMethodId, setConfirmPaymentMethodId] = useState('')
-  const [confirming, setConfirming] = useState(false)
+  const confirmAction = useAction(setError)
 
   const [dismissTarget, setDismissTarget] = useState<PendingRecurringOccurrence | null>(null)
-  const [dismissing, setDismissing] = useState(false)
+  const dismissAction = useAction(setError)
 
   const templateById = useMemo(() => {
     const map = new Map((templates ?? []).map((t) => [t.id, t]))
@@ -119,35 +119,22 @@ export function PendingOccurrencesWidget() {
 
   async function handleConfirm() {
     if (!confirmTarget || !isConfirmValid()) return
-    setError(null)
-    setConfirming(true)
-    try {
-      await confirmMutation.mutateAsync({
+    const confirmed = await confirmAction.run(() =>
+      confirmMutation.mutateAsync({
         id: confirmTarget.id,
         amount: Number(confirmAmount),
         date: confirmDate,
         accountId: confirmAccountId,
         paymentMethodId: confirmPaymentMethodId,
-      })
-      closeConfirm()
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    } finally {
-      setConfirming(false)
-    }
+      }),
+    )
+    if (confirmed) closeConfirm()
   }
 
   async function handleDismiss() {
     if (!dismissTarget) return
-    setError(null)
-    setDismissing(true)
-    try {
-      await dismissMutation.mutateAsync(dismissTarget.id)
+    if (await dismissAction.run(() => dismissMutation.mutateAsync(dismissTarget.id))) {
       setDismissTarget(null)
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    } finally {
-      setDismissing(false)
     }
   }
 
@@ -270,7 +257,7 @@ export function PendingOccurrencesWidget() {
 
       <ResponsiveDialog
         open={confirmTarget !== null}
-        onClose={confirming ? undefined : closeConfirm}
+        onClose={confirmAction.pending ? undefined : closeConfirm}
       >
         <DialogTitle>{t('recurringTemplates:pending.confirmDialogTitle')}</DialogTitle>
         <DialogContent>
@@ -329,12 +316,12 @@ export function PendingOccurrencesWidget() {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeConfirm} disabled={confirming}>
+          <Button onClick={closeConfirm} disabled={confirmAction.pending}>
             {t('common:actions.cancel')}
           </Button>
           <Button
             variant="contained"
-            disabled={confirming || !isConfirmValid()}
+            disabled={confirmAction.pending || !isConfirmValid()}
             onClick={() => void handleConfirm()}
           >
             {t('recurringTemplates:pending.confirmButton')}
@@ -347,7 +334,7 @@ export function PendingOccurrencesWidget() {
         title={t('recurringTemplates:pending.dismissConfirm.title')}
         body={t('recurringTemplates:pending.dismissConfirm.body')}
         confirmLabel={t('recurringTemplates:pending.dismissConfirm.confirmLabel')}
-        loading={dismissing}
+        loading={dismissAction.pending}
         onConfirm={() => void handleDismiss()}
         onCancel={() => setDismissTarget(null)}
       />

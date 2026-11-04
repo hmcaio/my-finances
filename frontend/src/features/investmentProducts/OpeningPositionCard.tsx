@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { Box, Button, IconButton, Paper, Skeleton, Typography } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
-import { defaultErrorMessage } from '../../api/core/apiError'
 import type { InvestmentHolding } from '../../api/investments/investmentHoldings'
 import type { OpeningPositionRequest } from '../../api/investments/investmentOpeningPositions'
 import {
@@ -17,6 +16,7 @@ import { fadeInSx } from '../../components/feedback/fadeIn'
 import { LoadFailedNotice } from '../../components/feedback/LoadFailedNotice'
 import { useQueryState } from '../../hooks/queryState'
 import { useLocale } from '../../hooks/locale/useLocale'
+import { useAction } from '../../hooks/useAction'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { formatDate, formatMoney, formatQuantity, formatUnitPrice } from '../../i18n/format'
 import { OpeningPositionDialog } from './OpeningPositionDialog'
@@ -52,10 +52,10 @@ export function OpeningPositionCard({ holding, padding }: OpeningPositionCardPro
   // Fixed when the dialog opens: the refetch after a save must not flip an add dialog into an edit
   // one while it is still animating closed.
   const [editingExisting, setEditingExisting] = useState(false)
-  const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const saveAction = useAction(setError)
+  const deleteAction = useAction(setError)
 
   function openDialog() {
     setError(null)
@@ -64,29 +64,14 @@ export function OpeningPositionCard({ holding, padding }: OpeningPositionCardPro
   }
 
   async function handleSave(request: OpeningPositionRequest) {
-    setError(null)
-    setSaving(true)
-    try {
-      await save.mutateAsync({ holdingId: holding.id, ...request })
+    if (await saveAction.run(() => save.mutateAsync({ holdingId: holding.id, ...request }))) {
       setDialogOpen(false)
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    } finally {
-      setSaving(false)
     }
   }
 
   async function handleDelete() {
-    setError(null)
-    setDeleting(true)
-    try {
-      await remove.mutateAsync(holding.id)
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    } finally {
-      setDeleting(false)
-      setConfirmDelete(false)
-    }
+    await deleteAction.run(() => remove.mutateAsync(holding.id))
+    setConfirmDelete(false)
   }
 
   const editable = !holding.closed
@@ -168,7 +153,7 @@ export function OpeningPositionCard({ holding, padding }: OpeningPositionCardPro
       <OpeningPositionDialog
         open={dialogOpen}
         position={editingExisting ? (position ?? null) : null}
-        saving={saving}
+        saving={saveAction.pending}
         error={error}
         onDismissError={() => setError(null)}
         onSave={(request) => void handleSave(request)}
@@ -185,7 +170,7 @@ export function OpeningPositionCard({ holding, padding }: OpeningPositionCardPro
           date: position ? formatDate(position.asOfDate, locale, DATE_OPTIONS) : '',
         })}
         confirmLabel={t('investmentProducts:openingPosition.deleteConfirm')}
-        loading={deleting}
+        loading={deleteAction.pending}
         onConfirm={() => void handleDelete()}
         onCancel={() => setConfirmDelete(false)}
       />

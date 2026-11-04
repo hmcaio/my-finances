@@ -11,7 +11,6 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import { defaultErrorMessage } from '../../api/core/apiError'
 import { useInvestmentCategories } from '../../api/investments/investmentCategoriesQueries'
 import { useInvestmentHoldingsByAccount } from '../../api/investments/investmentHoldingsQueries'
 import type { InvestmentHolding } from '../../api/investments/investmentHoldings'
@@ -23,6 +22,7 @@ import { ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useLocale } from '../../hooks/locale/useLocale'
+import { useAction } from '../../hooks/useAction'
 import { formatMoney } from '../../i18n/format'
 import { translateSeedName } from '../../i18n/seedNames'
 import { nameLookup } from '../../utils/nameLookup'
@@ -84,7 +84,7 @@ export function InvestmentProductsSection({
   )
 
   const [addDialogOpen, setAddDialogOpen] = useState(false)
-  const [adding, setAdding] = useState(false)
+  const addAction = useAction(setError)
   // Bumped on each open so the dialog's form mounts with fresh state.
   const [formKey, setFormKey] = useState(0)
 
@@ -108,10 +108,8 @@ export function InvestmentProductsSection({
   }
 
   async function handleAdd(values: InvestmentProductFormValues) {
-    setError(null)
-    setAdding(true)
-    try {
-      await createMutation.mutateAsync({
+    const added = await addAction.run(() =>
+      createMutation.mutateAsync({
         accountId,
         investmentCategoryId: values.categoryId,
         investmentSubcategoryId: values.subcategoryId || undefined,
@@ -120,13 +118,9 @@ export function InvestmentProductsSection({
         ticker: values.ticker || undefined,
         segmentId: values.segmentId || undefined,
         openingPosition: values.openingPosition,
-      })
-      setAddDialogOpen(false)
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    } finally {
-      setAdding(false)
-    }
+      }),
+    )
+    if (added) setAddDialogOpen(false)
   }
 
   function productLink(holding: InvestmentHolding) {
@@ -274,7 +268,7 @@ export function InvestmentProductsSection({
             categories={categories}
             segments={segments ?? []}
             submitLabel={t('investmentProducts:section.addButton')}
-            submitting={adding}
+            submitting={addAction.pending}
             onSubmit={(values) => void handleAdd(values)}
             onCancel={closeAddDialog}
           />
