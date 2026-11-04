@@ -3,19 +3,13 @@ import { useTranslation } from 'react-i18next'
 import {
   Box,
   Button,
-  Chip,
   DialogActions,
   DialogContent,
   DialogTitle,
   FormControlLabel,
-  IconButton,
-  Link as MuiLink,
   Switch,
   Typography,
 } from '@mui/material'
-import { Link as RouterLink } from 'react-router-dom'
-import DeleteIcon from '@mui/icons-material/Delete'
-import LockIcon from '@mui/icons-material/Lock'
 import type { Account } from '../../api/accounts/accounts'
 import {
   useAccounts,
@@ -27,21 +21,19 @@ import { useInstitutions } from '../../api/institutions/institutionsQueries'
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
-import { InlineEditActions } from '../../components/table/InlineEditActions'
-import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
+import { ResponsiveTable } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useAction } from '../../hooks/useAction'
 import { useIsMobile } from '../../hooks/useBreakpointBand'
 import { useInlineEdit } from '../../hooks/useInlineEdit'
 import { useLocale } from '../../hooks/locale/useLocale'
-import { formatMoney } from '../../i18n/format'
 import { translateSeedName } from '../../i18n/seedNames'
 import { nameLookup } from '../../utils/nameLookup'
-import { accountTypeLabel } from './accountTypes'
-import { InstitutionSelect } from '../institutions/InstitutionSelect'
 import { AccountCreateForm } from './AccountCreateForm'
 import { isAccountEditValid } from './accountEdit'
-import { AccountEditFields, AccountNameField } from './AccountEditFields'
+import { buildAccountColumns } from './accountColumns'
+import { AccountEditFields } from './AccountEditFields'
+import { AccountRowActions } from './AccountRowActions'
 
 /**
  * Account list/management screen (F003 spec): table with name, institution, type, running
@@ -135,98 +127,35 @@ export function AccountsPage() {
   // On mobile the edit happens in a dialog opened from the card, so the card stays plain text.
   const editDialogOpen = isMobile && editingId !== null
 
-  const columns: ResponsiveColumn<Account>[] = [
-    {
-      key: 'name',
-      header: t('accounts:columns.name'),
-      role: 'primary',
-      render: (account) =>
-        editingId === account.id && !isMobile ? (
-          <AccountNameField
-            value={editingName}
-            onChange={(name) => edit.setDraft((d) => ({ ...d, name }))}
-            autoFocus
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') void saveEdit(account.id)
-              if (e.key === 'Escape') cancelEdit()
-            }}
-          />
-        ) : (
-          <MuiLink component={RouterLink} to={`/accounts/${account.id}`} underline="hover">
-            {account.name}
-          </MuiLink>
-        ),
-    },
-    {
-      key: 'institution',
-      header: t('accounts:columns.institution'),
-      role: 'secondary',
-      render: (account) =>
-        editingId === account.id && !isMobile ? (
-          <InstitutionSelect
-            value={editingInstitutionId}
-            onChange={(institutionId) => edit.setDraft((d) => ({ ...d, institutionId }))}
-          />
-        ) : (
-          institutionName(account.institutionId)
-        ),
-    },
-    {
-      key: 'type',
-      header: t('accounts:columns.type'),
-      role: 'secondary',
-      tabletPriority: 'low',
-      render: (account) => accountTypeLabel(account.type, t),
-    },
-    {
-      key: 'balance',
-      header: t('accounts:columns.balance'),
-      align: 'right',
-      render: (account) => formatMoney(account.balance, locale),
-    },
-    {
-      key: 'status',
-      header: t('accounts:columns.status'),
-      render: (account) =>
-        account.closed ? (
-          <Chip label={t('accounts:status.closed')} size="small" />
-        ) : (
-          <Chip label={t('accounts:status.open')} size="small" color="success" />
-        ),
-    },
-  ]
+  const columns = buildAccountColumns({
+    t,
+    locale,
+    institutionName,
+    inlineEdit:
+      editingId !== null && !isMobile
+        ? {
+            rowId: editingId,
+            name: editingName,
+            institutionId: editingInstitutionId,
+            onNameChange: (name) => edit.setDraft((d) => ({ ...d, name })),
+            onInstitutionChange: (institutionId) => edit.setDraft((d) => ({ ...d, institutionId })),
+            onSave: (id) => void saveEdit(id),
+            onCancel: cancelEdit,
+          }
+        : null,
+  })
 
   function rowActions(account: Account) {
-    const editingInline = editingId === account.id && !isMobile
     return (
-      <>
-        <InlineEditActions
-          editing={editingInline}
-          onEdit={() => startEdit(account)}
-          onSave={() => void saveEdit(account.id)}
-          onCancel={cancelEdit}
-          editLabel={t('accounts:editAction')}
-        />
-        {!editingInline && (
-          <IconButton
-            size="small"
-            aria-label={t('accounts:closeAction')}
-            disabled={account.closed}
-            onClick={() => setCloseTarget(account)}
-          >
-            <LockIcon fontSize="small" />
-          </IconButton>
-        )}
-        {!editingInline && (
-          <IconButton
-            size="small"
-            aria-label={t('common:actions.delete')}
-            onClick={() => setDeleteTarget(account)}
-          >
-            <DeleteIcon fontSize="small" />
-          </IconButton>
-        )}
-      </>
+      <AccountRowActions
+        account={account}
+        editingInline={editingId === account.id && !isMobile}
+        onStartEdit={startEdit}
+        onSave={(id) => void saveEdit(id)}
+        onCancel={cancelEdit}
+        onClose={setCloseTarget}
+        onDelete={setDeleteTarget}
+      />
     )
   }
 
