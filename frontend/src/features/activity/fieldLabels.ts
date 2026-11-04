@@ -1,4 +1,5 @@
 import type { AuditEntityType } from '../../api/auditLog/auditLog'
+import { translateKey, type QualifiedKey, type Translate } from '../../i18n/translate'
 
 /**
  * Friendly translation-key labels for the field names that appear in an audit entry's diff (F025
@@ -8,7 +9,7 @@ import type { AuditEntityType } from '../../api/auditLog/auditLog'
  * every entity type unless that type's own map overrides them; reference fields (ids) are shown
  * as-is - no extra lookups in v1.
  */
-const COMMON: Record<string, string> = {
+const COMMON: Record<string, QualifiedKey> = {
   name: 'activity:fields.common.name',
   description: 'activity:fields.common.description',
   additionalNotes: 'activity:fields.common.additionalNotes',
@@ -21,7 +22,7 @@ const COMMON: Record<string, string> = {
   requestId: 'activity:fields.common.requestId',
 }
 
-const BY_ENTITY_TYPE: Partial<Record<AuditEntityType, Record<string, string>>> = {
+const BY_ENTITY_TYPE: Partial<Record<AuditEntityType, Record<string, QualifiedKey>>> = {
   TRANSACTION: {
     amount: 'activity:fields.transaction.amount',
     categoryId: 'activity:fields.transaction.categoryId',
@@ -99,15 +100,10 @@ const BY_ENTITY_TYPE: Partial<Record<AuditEntityType, Record<string, string>>> =
 }
 
 /**
- * Friendly label for `field` on `entityType`, falling back to the raw field name. `t` is typed
- * loosely for the same reason `translateSeedName`'s is - see its own docblock
- * (`src/i18n/seedNames.ts`).
+ * Friendly label for `field` on `entityType`, falling back to the raw field name. `t` is the
+ * loosely typed `Translate` (`src/i18n/translate.ts`); the keys are checked by `QualifiedKey`.
  */
-export function fieldLabel(
-  entityType: AuditEntityType,
-  field: string,
-  t: (key: never) => string,
-): string {
+export function fieldLabel(entityType: AuditEntityType, field: string, t: Translate): string {
   const key = BY_ENTITY_TYPE[entityType]?.[field] ?? COMMON[field]
-  return key ? t(key as never) : field
+  return key ? translateKey(t, key) : field
 }

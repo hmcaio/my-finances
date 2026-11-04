@@ -1,6 +1,7 @@
 import { Fragment, useState, type PropsWithChildren } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import type { ParseKeys, TFunction } from 'i18next'
 import {
   AppBar,
   Box,
@@ -30,8 +31,10 @@ import { useLocale } from '../../hooks/locale/useLocale'
 
 const DRAWER_WIDTH = 240
 
+type NavLabelKey = ParseKeys<'common'>
+
 interface NavItem {
-  labelKey: string
+  labelKey: NavLabelKey
   path: string
 }
 
@@ -75,7 +78,7 @@ function NavListItem({
 }: {
   item: NavItem
   pathname: string
-  t: (key: never) => string
+  t: TFunction<'common'>
   indent?: boolean
 }) {
   return (
@@ -86,7 +89,7 @@ function NavListItem({
         selected={pathname === item.path}
         sx={indent ? { pl: 4 } : undefined}
       >
-        <ListItemText primary={t(item.labelKey as never)} />
+        <ListItemText primary={t(item.labelKey)} />
       </ListItemButton>
     </ListItem>
   )

@@ -4,6 +4,7 @@ import { unwrap } from '../core/apiError'
 import type { NetWorthGranularity } from '../netWorth/netWorth'
 import { today } from '../../utils/localDate'
 import i18n from '../../i18n/i18n'
+import type { QualifiedKey } from '../../i18n/translate'
 
 /** The eleven curated report types (F030 spec, PRD S6.9), replacing F013's all-entity export. */
 export type ReportType =
@@ -26,7 +27,7 @@ export type ReportFilterDimension =
 export interface ReportTypeInfo {
   type: ReportType
   /** `t()` key for the checkbox label (F033/ADR 0027 - was a literal English `label` string). */
-  labelKey: string
+  labelKey: QualifiedKey
   /** Matches backend `ReportType.slug()` - used to name a bare (non-zip) downloaded file. */
   slug: string
   dimensions: ReportFilterDimension[]

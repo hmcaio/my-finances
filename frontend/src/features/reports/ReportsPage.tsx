@@ -31,6 +31,7 @@ import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { MonthPicker } from '../../components/inputs/MonthPicker'
 import { ResponsiveFilterBar } from '../../components/layout/ResponsiveFilterBar'
 import { useQueryState } from '../../hooks/queryState'
+import { translateKey } from '../../i18n/translate'
 
 /**
  * Reports (F030 spec, PRD S6.9), replacing F013's all-entity export: a checkbox list of the
@@ -120,7 +121,7 @@ export function ReportsPage() {
                 onChange={(e) => toggleType(info.type, e.target.checked)}
               />
             }
-            label={t(info.labelKey as never)}
+            label={translateKey(t, info.labelKey)}
           />
         ))}
       </FormGroup>

@@ -16,6 +16,7 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import { CATEGORY_NAME_MAX_LENGTH, type CategoryType } from '../../api/categories/categories'
 import { useCreateCategory } from '../../api/categories/categoriesQueries'
 import { defaultErrorMessage } from '../../api/core/apiError'
+import { translateKey } from '../../i18n/translate'
 import { SUGGESTED_CATEGORIES } from './suggestedCategories'
 
 interface CustomEntry {
@@ -75,7 +76,7 @@ export function CategorySuggestionsStep({ onError, onCompleted }: CategorySugges
     setFinishing(true)
     const desired = [
       ...SUGGESTED_CATEGORIES.filter((s) => checked[s.translationKey]).map((s) => ({
-        name: t(s.translationKey as never),
+        name: translateKey(t, s.translationKey),
         type: s.type,
       })),
       ...customEntries.map((entry) => ({ name: entry.name, type: entry.type })),
@@ -119,7 +120,7 @@ export function CategorySuggestionsStep({ onError, onCompleted }: CategorySugges
                 onChange={() => toggle(suggestion.translationKey)}
               />
             }
-            label={t(suggestion.translationKey as never)}
+            label={translateKey(t, suggestion.translationKey)}
           />
         ))}
       </Stack>
@@ -135,7 +136,7 @@ export function CategorySuggestionsStep({ onError, onCompleted }: CategorySugges
                 onChange={() => toggle(suggestion.translationKey)}
               />
             }
-            label={t(suggestion.translationKey as never)}
+            label={translateKey(t, suggestion.translationKey)}
           />
         ))}
       </Stack>

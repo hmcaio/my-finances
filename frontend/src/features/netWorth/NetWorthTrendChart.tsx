@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { Box, Skeleton, ToggleButton, ToggleButtonGroup, Typography, useTheme } from '@mui/material'
 import type { NetWorthGranularity, NetWorthPoint } from '../../api/netWorth/netWorth'
 import { useNetWorthTrend } from '../../api/netWorth/netWorthQueries'
@@ -98,7 +99,7 @@ export function NetWorthTrendChart() {
           lineColor={theme.palette.primary.main}
           axisColor={theme.palette.text.secondary}
           gridColor={theme.palette.divider}
-          t={t as (key: string, options?: Record<string, unknown>) => string}
+          t={t}
           locale={locale}
         />
       )}
@@ -112,7 +113,7 @@ interface ChartProps {
   lineColor: string
   axisColor: string
   gridColor: string
-  t: (key: string, options?: Record<string, unknown>) => string
+  t: TFunction<'netWorth'>
   locale: Locale
 }
 

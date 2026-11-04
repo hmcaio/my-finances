@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { Link as RouterLink } from 'react-router-dom'
 import {
   Box,
@@ -30,11 +31,11 @@ const PAGE_SIZE = 20
 
 /** A row's own derived status (the response's `closed` field, F023) - accurate under every status
  * filter, including `ALL` where rows of both statuses can appear together. */
-function statusChip(product: InvestmentProduct, t: (key: never) => string) {
+function statusChip(product: InvestmentProduct, t: TFunction<'investments'>) {
   return product.closed ? (
-    <Chip label={t('productsList.statusClosed' as never)} size="small" />
+    <Chip label={t('productsList.statusClosed')} size="small" />
   ) : (
-    <Chip label={t('productsList.statusOpen' as never)} size="small" color="success" />
+    <Chip label={t('productsList.statusOpen')} size="small" color="success" />
   )
 }
 
@@ -135,7 +136,7 @@ export function InvestmentProductsListSection() {
     {
       key: 'status',
       header: t('productsList.columns.status'),
-      render: (p) => statusChip(p, t as (key: never) => string),
+      render: (p) => statusChip(p, t),
     },
   ]
 
@@ -229,7 +230,7 @@ export function InvestmentProductsListSection() {
               <Typography variant="subtitle1" component="div" sx={{ overflowWrap: 'anywhere' }}>
                 {productLink(product)}
               </Typography>
-              {statusChip(product, t as (key: never) => string)}
+              {statusChip(product, t)}
             </Box>
             <Typography variant="body2" color="text.secondary">
               {categoryName(product.investmentCategoryId)}

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import {
   Box,
   Chip,
@@ -96,11 +97,7 @@ function isReferenceValue(value: unknown): value is ReferenceValue {
  * "Label (id)" (falling back to the bare id when the backend had no label for it, e.g. an older
  * audit row predating label resolution, or a deleted referenced entity), everything else as-is.
  */
-function formatDiffValue(
-  value: unknown,
-  locale: Locale,
-  t: (key: string, options?: Record<string, unknown>) => string,
-): string {
+function formatDiffValue(value: unknown, locale: Locale, t: ActivityT): string {
   if (value === null || value === undefined) return '—'
   if (typeof value === 'boolean') return value ? t('boolean.yes') : t('boolean.no')
   if (typeof value === 'number')
@@ -114,7 +111,7 @@ function originColor(origin: AuditOrigin): 'primary' | 'default' {
   return origin === 'USER' ? 'primary' : 'default'
 }
 
-type ActivityT = (key: string, options?: Record<string, unknown>) => string
+type ActivityT = TFunction<'activity'>
 
 interface EntryRowProps {
   entry: AuditLogEntry
@@ -399,7 +396,7 @@ export function ActivityPage() {
                     entry={entry}
                     expanded={expandedId === entry.id}
                     onToggle={() => toggle(entry.id)}
-                    t={t as ActivityT}
+                    t={t}
                     locale={locale}
                   />
                 ))
@@ -422,7 +419,7 @@ export function ActivityPage() {
                         entry={entry}
                         expanded={expandedId === entry.id}
                         onToggle={() => toggle(entry.id)}
-                        t={t as ActivityT}
+                        t={t}
                         locale={locale}
                       />
                     ))}

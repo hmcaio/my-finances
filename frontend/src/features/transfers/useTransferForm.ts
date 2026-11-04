@@ -37,9 +37,7 @@ export function useTransferForm(
   preset: TransferFormPreset | null,
 ) {
   const { t } = useTranslation(['transfers'])
-  const [form, setForm] = useState(() =>
-    initialFormState(editing, preset, accounts, t as (key: never) => string),
-  )
+  const [form, setForm] = useState(() => initialFormState(editing, preset, accounts, t))
   const [nextLineKey, setNextLineKey] = useState(form.lines.length)
 
   function patch(changes: Partial<FormState>) {
