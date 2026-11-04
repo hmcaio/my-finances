@@ -63,6 +63,7 @@ import { fadeInSx } from '../../components/feedback/fadeIn'
 import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import { combineLoadState, useQueryState, type LoadState } from '../../hooks/queryState'
+import { useAction } from '../../hooks/useAction'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { useLocale, type Locale } from '../../hooks/locale/useLocale'
 import { formatMoney } from '../../i18n/format'
@@ -142,28 +143,29 @@ export function InvestmentProductDetailPage() {
 
   const [snapshotForm, setSnapshotForm] = useState(() => ({ date: today(), balance: '' }))
   const [snapshotDialogOpen, setSnapshotDialogOpen] = useState(false)
-  const [recording, setRecording] = useState(false)
+  const recordAction = useAction(setError)
   const [editing, setEditing] = useState<SnapshotEdit | null>(null)
-  const [savingEdit, setSavingEdit] = useState(false)
+  const saveEditAction = useAction(setError)
   const [deleteTarget, setDeleteTarget] = useState<InvestmentSnapshot | null>(null)
-  const [deleting, setDeleting] = useState(false)
+  const deleteSnapshotAction = useAction(setError)
   const [tradeDialog, setTradeDialog] = useState<TransferFormPreset | null>(null)
   // The dialog form remounts fresh for each Buy/Sell click.
   const [dialogKey, setDialogKey] = useState(0)
 
   const [editProductOpen, setEditProductOpen] = useState(false)
-  const [savingProduct, setSavingProduct] = useState(false)
+  const saveProductAction = useAction(setError)
   const [deleteProductConfirm, setDeleteProductConfirm] = useState(false)
-  const [deletingProduct, setDeletingProduct] = useState(false)
+  const deleteProductAction = useAction(setError)
   const [addHoldingOpen, setAddHoldingOpen] = useState(false)
   const [addHoldingAccountId, setAddHoldingAccountId] = useState('')
   const [addHoldingNotes, setAddHoldingNotes] = useState('')
-  const [addingHolding, setAddingHolding] = useState(false)
+  const addHoldingAction = useAction(setError)
   const [closeHoldingTarget, setCloseHoldingTarget] = useState<InvestmentHolding | null>(null)
-  const [confirmingHolding, setConfirmingHolding] = useState(false)
+  // Closing and deleting a holding share one confirmation spinner.
+  const holdingConfirmAction = useAction(setError)
   const [deleteHoldingTarget, setDeleteHoldingTarget] = useState<InvestmentHolding | null>(null)
   const [notesEdit, setNotesEdit] = useState<{ id: string; value: string } | null>(null)
-  const [savingNotes, setSavingNotes] = useState(false)
+  const notesAction = useAction(setError)
 
   const { loading, loadError } = combineLoadState(productState)
   const showSkeleton = useDelayedFlag(loading)
@@ -197,59 +199,45 @@ export function InvestmentProductDetailPage() {
     if (!selectedHolding) return
     const balance = Number(snapshotForm.balance)
     if (snapshotForm.date === '' || snapshotForm.balance === '' || !(balance >= 0)) return
-    setError(null)
-    setRecording(true)
-    try {
-      // A same-day entry replaces the earlier one; the refetch after the write reorders the list.
-      await recordSnapshot.mutateAsync({
+    // A same-day entry replaces the earlier one; the refetch after the write reorders the list.
+    const recorded = await recordAction.run(() =>
+      recordSnapshot.mutateAsync({
         holdingId: selectedHolding.id,
         date: snapshotForm.date,
         balance,
-      })
-      setSnapshotDialogOpen(false)
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    } finally {
-      setRecording(false)
-    }
+      }),
+    )
+    if (recorded) setSnapshotDialogOpen(false)
   }
 
   async function handleSaveEdit() {
     if (!selectedHolding || !editing) return
     const balance = Number(editing.balance)
     if (editing.date === '' || editing.balance === '' || !(balance >= 0)) return
-    setError(null)
-    setSavingEdit(true)
-    try {
-      await updateSnapshot.mutateAsync({
-        holdingId: selectedHolding.id,
-        snapshotId: editing.id,
-        date: editing.date,
-        balance,
-      })
-      setEditing(null)
-    } catch (err) {
-      setError(defaultErrorMessage(err, { 404: t('investmentProducts:detail.snapshotNotFound') }))
-    } finally {
-      setSavingEdit(false)
-    }
+    const saved = await saveEditAction.run(
+      () =>
+        updateSnapshot.mutateAsync({
+          holdingId: selectedHolding.id,
+          snapshotId: editing.id,
+          date: editing.date,
+          balance,
+        }),
+      { 404: t('investmentProducts:detail.snapshotNotFound') },
+    )
+    if (saved) setEditing(null)
   }
 
   async function handleConfirmDelete() {
     if (!selectedHolding || !deleteTarget) return
-    setError(null)
-    setDeleting(true)
-    try {
-      await deleteSnapshot.mutateAsync({
-        holdingId: selectedHolding.id,
-        snapshotId: deleteTarget.id,
-      })
-    } catch (err) {
-      setError(defaultErrorMessage(err, { 404: t('investmentProducts:detail.snapshotNotFound') }))
-    } finally {
-      setDeleting(false)
-      setDeleteTarget(null)
-    }
+    await deleteSnapshotAction.run(
+      () =>
+        deleteSnapshot.mutateAsync({
+          holdingId: selectedHolding.id,
+          snapshotId: deleteTarget.id,
+        }),
+      { 404: t('investmentProducts:detail.snapshotNotFound') },
+    )
+    setDeleteTarget(null)
   }
 
   function openTrade(direction: 'buy' | 'sell') {
@@ -270,10 +258,8 @@ export function InvestmentProductDetailPage() {
 
   async function handleEditProduct(values: InvestmentProductFormValues) {
     if (!product) return
-    setError(null)
-    setSavingProduct(true)
-    try {
-      await editProduct.mutateAsync({
+    const saved = await saveProductAction.run(() =>
+      editProduct.mutateAsync({
         id: product.id,
         investmentCategoryId: values.categoryId,
         investmentSubcategoryId: values.subcategoryId || undefined,
@@ -281,27 +267,17 @@ export function InvestmentProductDetailPage() {
         additionalNotes: values.additionalNotes || undefined,
         ticker: values.ticker || undefined,
         segmentId: values.segmentId || undefined,
-      })
-      setEditProductOpen(false)
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    } finally {
-      setSavingProduct(false)
-    }
+      }),
+    )
+    if (saved) setEditProductOpen(false)
   }
 
   async function handleDeleteProduct() {
     if (!product) return
-    setError(null)
-    setDeletingProduct(true)
-    try {
-      await deleteProduct.mutateAsync(product.id)
+    if (await deleteProductAction.run(() => deleteProduct.mutateAsync(product.id))) {
       navigate('/accounts')
-    } catch (err) {
-      setError(defaultErrorMessage(err))
+    } else {
       setDeleteProductConfirm(false)
-    } finally {
-      setDeletingProduct(false)
     }
   }
 
@@ -314,67 +290,42 @@ export function InvestmentProductDetailPage() {
 
   async function handleAddHolding() {
     if (!product || addHoldingAccountId === '') return
-    setError(null)
-    setAddingHolding(true)
-    try {
+    const added = await addHoldingAction.run(async () => {
       const created = await createHolding.mutateAsync({
         productId: product.id,
         accountId: addHoldingAccountId,
         additionalNotes: addHoldingNotes.trim() || undefined,
       })
       setSelectedHoldingId(created.id)
-      setAddHoldingOpen(false)
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    } finally {
-      setAddingHolding(false)
-    }
+    })
+    if (added) setAddHoldingOpen(false)
   }
 
   async function confirmCloseHolding() {
     if (!closeHoldingTarget) return
-    setError(null)
-    setConfirmingHolding(true)
-    try {
-      await closeHolding.mutateAsync(closeHoldingTarget.id)
+    if (await holdingConfirmAction.run(() => closeHolding.mutateAsync(closeHoldingTarget.id))) {
       setCloseHoldingTarget(null)
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    } finally {
-      setConfirmingHolding(false)
     }
   }
 
   async function confirmDeleteHolding() {
     if (!deleteHoldingTarget) return
-    setError(null)
-    setConfirmingHolding(true)
-    try {
-      await deleteHolding.mutateAsync(deleteHoldingTarget.id)
-      if (selectedHoldingId === deleteHoldingTarget.id) setSelectedHoldingId('')
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    } finally {
-      setConfirmingHolding(false)
-      setDeleteHoldingTarget(null)
-    }
+    const deleted = await holdingConfirmAction.run(() =>
+      deleteHolding.mutateAsync(deleteHoldingTarget.id),
+    )
+    if (deleted && selectedHoldingId === deleteHoldingTarget.id) setSelectedHoldingId('')
+    setDeleteHoldingTarget(null)
   }
 
   async function handleSaveNotes() {
     if (!notesEdit) return
-    setError(null)
-    setSavingNotes(true)
-    try {
-      await editHoldingNotes.mutateAsync({
+    const saved = await notesAction.run(() =>
+      editHoldingNotes.mutateAsync({
         id: notesEdit.id,
         additionalNotes: notesEdit.value || undefined,
-      })
-      setNotesEdit(null)
-    } catch (err) {
-      setError(defaultErrorMessage(err))
-    } finally {
-      setSavingNotes(false)
-    }
+      }),
+    )
+    if (saved) setNotesEdit(null)
   }
 
   const availableAccountsForNewHolding = (accounts ?? []).filter(
@@ -674,7 +625,7 @@ export function InvestmentProductDetailPage() {
                   editing={editing}
                   onEditingChange={setEditing}
                   onSaveEdit={() => void handleSaveEdit()}
-                  savingEdit={savingEdit}
+                  savingEdit={saveEditAction.pending}
                   onDelete={setDeleteTarget}
                   t={t as (key: string, options?: Record<string, unknown>) => string}
                   locale={locale}
@@ -730,14 +681,14 @@ export function InvestmentProductDetailPage() {
         title={t('investmentProducts:detail.deleteSnapshotTitle')}
         body={t('investmentProducts:detail.deleteSnapshotBody', { date: deleteTarget?.date ?? '' })}
         confirmLabel={t('investmentProducts:detail.deleteSnapshotConfirm')}
-        loading={deleting}
+        loading={deleteSnapshotAction.pending}
         onConfirm={() => void handleConfirmDelete()}
         onCancel={() => setDeleteTarget(null)}
       />
 
       <ResponsiveDialog
         open={snapshotDialogOpen}
-        onClose={recording ? undefined : closeSnapshotDialog}
+        onClose={recordAction.pending ? undefined : closeSnapshotDialog}
         maxWidth="sm"
         fullWidth
       >
@@ -765,13 +716,13 @@ export function InvestmentProductDetailPage() {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeSnapshotDialog} disabled={recording}>
+          <Button onClick={closeSnapshotDialog} disabled={recordAction.pending}>
             {t('common:actions.cancel')}
           </Button>
           <Button
             variant="contained"
             disabled={
-              recording ||
+              recordAction.pending ||
               snapshotForm.date === '' ||
               snapshotForm.balance === '' ||
               !(Number(snapshotForm.balance) >= 0)
@@ -814,7 +765,7 @@ export function InvestmentProductDetailPage() {
 
       <ResponsiveDialog
         open={editProductOpen}
-        onClose={savingProduct ? undefined : () => setEditProductOpen(false)}
+        onClose={saveProductAction.pending ? undefined : () => setEditProductOpen(false)}
         maxWidth="sm"
         fullWidth
       >
@@ -834,7 +785,7 @@ export function InvestmentProductDetailPage() {
               segmentId: product.segmentId ?? '',
             }}
             submitLabel={t('common:actions.save')}
-            submitting={savingProduct}
+            submitting={saveProductAction.pending}
             onSubmit={(values) => void handleEditProduct(values)}
             onCancel={() => setEditProductOpen(false)}
           />
@@ -846,14 +797,14 @@ export function InvestmentProductDetailPage() {
         title={t('investmentProducts:detail.deleteProductTitle', { name: product?.name })}
         body={t('investmentProducts:detail.deleteProductBody')}
         confirmLabel={t('investmentProducts:detail.deleteProductConfirm')}
-        loading={deletingProduct}
+        loading={deleteProductAction.pending}
         onConfirm={() => void handleDeleteProduct()}
         onCancel={() => setDeleteProductConfirm(false)}
       />
 
       <ResponsiveDialog
         open={addHoldingOpen}
-        onClose={addingHolding ? undefined : () => setAddHoldingOpen(false)}
+        onClose={addHoldingAction.pending ? undefined : () => setAddHoldingOpen(false)}
         maxWidth="sm"
         fullWidth
       >
@@ -890,12 +841,12 @@ export function InvestmentProductDetailPage() {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setAddHoldingOpen(false)} disabled={addingHolding}>
+          <Button onClick={() => setAddHoldingOpen(false)} disabled={addHoldingAction.pending}>
             {t('common:actions.cancel')}
           </Button>
           <Button
             variant="contained"
-            disabled={addingHolding || addHoldingAccountId === ''}
+            disabled={addHoldingAction.pending || addHoldingAccountId === ''}
             onClick={() => void handleAddHolding()}
           >
             {t('investmentProducts:detail.addHoldingButton')}
@@ -905,7 +856,7 @@ export function InvestmentProductDetailPage() {
 
       <ResponsiveDialog
         open={notesEdit !== null}
-        onClose={savingNotes ? undefined : () => setNotesEdit(null)}
+        onClose={notesAction.pending ? undefined : () => setNotesEdit(null)}
         maxWidth="sm"
         fullWidth
       >
@@ -927,10 +878,14 @@ export function InvestmentProductDetailPage() {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setNotesEdit(null)} disabled={savingNotes}>
+          <Button onClick={() => setNotesEdit(null)} disabled={notesAction.pending}>
             {t('common:actions.cancel')}
           </Button>
-          <Button variant="contained" disabled={savingNotes} onClick={() => void handleSaveNotes()}>
+          <Button
+            variant="contained"
+            disabled={notesAction.pending}
+            onClick={() => void handleSaveNotes()}
+          >
             {t('common:actions.save')}
           </Button>
         </DialogActions>
@@ -943,7 +898,7 @@ export function InvestmentProductDetailPage() {
         })}
         body={t('investmentProducts:detail.closeHoldingBody')}
         confirmLabel={t('investmentProducts:detail.closeHoldingConfirm')}
-        loading={confirmingHolding}
+        loading={holdingConfirmAction.pending}
         onConfirm={() => void confirmCloseHolding()}
         onCancel={() => setCloseHoldingTarget(null)}
       />
@@ -955,7 +910,7 @@ export function InvestmentProductDetailPage() {
         })}
         body={t('investmentProducts:detail.deleteHoldingBody')}
         confirmLabel={t('investmentProducts:detail.deleteHoldingConfirm')}
-        loading={confirmingHolding}
+        loading={holdingConfirmAction.pending}
         onConfirm={() => void confirmDeleteHolding()}
         onCancel={() => setDeleteHoldingTarget(null)}
       />
