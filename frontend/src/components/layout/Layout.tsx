@@ -16,9 +16,7 @@ import {
   ListSubheader,
   Toolbar,
   Typography,
-  useMediaQuery,
 } from '@mui/material'
-import { useTheme } from '@mui/material/styles'
 import MenuIcon from '@mui/icons-material/Menu'
 import DarkModeIcon from '@mui/icons-material/DarkMode'
 import LightModeIcon from '@mui/icons-material/LightMode'
@@ -28,6 +26,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { useLogout } from '../../api/auth/authQueries'
 import { useColorMode } from '../../hooks/colorMode/useColorMode'
 import { useLocale } from '../../hooks/locale/useLocale'
+import { useBreakpointBand } from '../../hooks/useBreakpointBand'
 
 const DRAWER_WIDTH = 240
 
@@ -107,9 +106,9 @@ export function Layout({ children }: PropsWithChildren) {
   const { t } = useTranslation()
   const logout = useLogout()
   const { pathname } = useLocation()
-  const theme = useTheme()
-  const isDesktop = useMediaQuery(theme.breakpoints.up('lg'))
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+  const band = useBreakpointBand()
+  const isDesktop = band === 'desktop'
+  const isMobile = band === 'mobile'
   // The drawer closes as soon as the pathname changes from whatever it was open on, without an
   // effect: comparing against the *current* pathname (not a remembered one) means a later
   // navigation back to that same pathname can't make it reopen by itself.
