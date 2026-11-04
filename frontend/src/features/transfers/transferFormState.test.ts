@@ -13,6 +13,7 @@ import {
   changeInvestmentAccount,
   changeLineSide,
   initialFormState,
+  pickerAccounts,
   removeLine,
   switchMode,
   updateLine,
@@ -346,5 +347,19 @@ describe('buildTransferRequest', () => {
         ],
       },
     })
+  })
+})
+
+describe('pickerAccounts', () => {
+  it('leaves closed accounts out and splits INVESTMENT from cash accounts', () => {
+    const closedBroker = { ...seedInvestmentAccount, id: 'acct-inv-closed', closed: true }
+
+    const { cashOptions, investmentAccounts } = pickerAccounts([...accounts, closedBroker])
+
+    expect(investmentAccounts.map((a) => a.id)).toEqual([seedInvestmentAccount.id])
+    expect(cashOptions.every((a) => !a.closed && a.type !== 'INVESTMENT')).toBe(true)
+    expect(cashOptions.map((a) => a.id)).toEqual(
+      seedAccounts.filter((a) => !a.closed).map((a) => a.id),
+    )
   })
 })
