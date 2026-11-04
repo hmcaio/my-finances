@@ -37,6 +37,7 @@ One file per decision, numbered sequentially, never renumbered or edited to chan
 | [0031](0031-image-vulnerability-scan-gates-publishing.md) | Scan container images for vulnerabilities with a pinned Trivy image and gate publishing on the result | Accepted (publish trigger amended by [0032](0032-github-flow-main-only.md)) |
 | [0032](0032-github-flow-main-only.md) | Plain GitHub Flow: `main` is the only long-lived branch, and images publish on release tags only | Accepted (supersedes [0008](0008-github-flow-with-develop-branch.md); amends the publish trigger of [0006](0006-separate-prod-packaging-from-dev.md), [0031](0031-image-vulnerability-scan-gates-publishing.md)) |
 | [0033](0033-opening-position-as-cashless-holding-start.md) | Record a holding's starting quantity and cost basis as a cashless opening position | Accepted (amends [0012](0012-investments-as-accounts-and-transfers.md), [0024](0024-trade-confirmations-as-multi-line-transfers.md)) |
+| [0034](0034-goals-as-allocation-and-deterministic-projection.md) | Model goals and allocation as one aggregate, and project them deterministically from user-entered assumptions | Accepted |
 
 Template:
 ```
