@@ -34,6 +34,7 @@ import {
   changeLineSide,
   buildTransferRequest,
   initialFormState,
+  pickerAccounts,
   removeLine as removeLineFrom,
   switchMode,
   updateLine as updateLineIn,
@@ -101,14 +102,7 @@ export function TransferForm({
   const [saving, setSaving] = useState(false)
   const [nextLineKey, setNextLineKey] = useState(form.lines.length)
 
-  const openAccounts = accounts.filter((a) => !a.closed)
-  // Neither a confirmation's cash side nor either side of a plain transfer may be INVESTMENT
-  // (F027/ADR 0024's "a transfer between two investment accounts is not supported", generalized
-  // to plain transfers too, issue #113: an INVESTMENT account has no cash balance of its own, so a
-  // lineless transfer into/out of one has no trackable destination - money must move in/out of it
-  // only through a trade confirmation).
-  const investmentAccounts = openAccounts.filter((a) => a.type === 'INVESTMENT')
-  const cashOptions = openAccounts.filter((a) => a.type !== 'INVESTMENT')
+  const { cashOptions, investmentAccounts } = pickerAccounts(accounts)
 
   const holdingsQuery = useInvestmentHoldingsByAccount(form.investmentAccountId || undefined, {
     enabled: form.mode === 'trade' && form.investmentAccountId !== '',

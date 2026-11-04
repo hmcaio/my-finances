@@ -204,6 +204,21 @@ export function removeLine(lines: LineState[], key: number): LineState[] {
   return lines.filter((l) => l.key !== key)
 }
 
+/**
+ * The accounts the pickers offer: closed ones are left out. Neither a confirmation's cash side nor
+ * either side of a plain transfer may be INVESTMENT (F027/ADR 0024's "a transfer between two
+ * investment accounts is not supported", generalized to plain transfers too, issue #113: an
+ * INVESTMENT account has no cash balance of its own, so a lineless transfer into/out of one has no
+ * trackable destination - money must move in/out of it only through a trade confirmation).
+ */
+export function pickerAccounts(accounts: Account[]) {
+  const openAccounts = accounts.filter((a) => !a.closed)
+  return {
+    investmentAccounts: openAccounts.filter((a) => a.type === 'INVESTMENT'),
+    cashOptions: openAccounts.filter((a) => a.type !== 'INVESTMENT'),
+  }
+}
+
 /** The create/edit request for a form that already passed `isTransferFormValid`. */
 export function buildTransferRequest(form: FormState): CreateTransferRequest {
   const common = {
