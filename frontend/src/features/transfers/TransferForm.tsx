@@ -40,6 +40,9 @@ import {
   isTransferFormValid,
   tradeNetPreview,
 } from './transferValidation'
+import { PlainTransferFields } from './PlainTransferFields'
+import { TradeAccountFields } from './TradeAccountFields'
+import { TransferCommonFields } from './TransferCommonFields'
 import { useTransferForm } from './useTransferForm'
 
 export type { TransferFormPreset }
@@ -155,136 +158,6 @@ export function TransferForm({
     )
   }
 
-  const commonFields = (
-    <>
-      <TextField
-        label={t('transfers:form.dateLabel')}
-        type="date"
-        size="small"
-        value={form.date}
-        onChange={(e) => patch({ date: e.target.value })}
-        slotProps={{ inputLabel: { shrink: true } }}
-      />
-      <TextField
-        label={t('transfers:form.descriptionLabel')}
-        size="small"
-        required
-        value={form.description}
-        onChange={(e) => patch({ description: e.target.value })}
-        slotProps={{ htmlInput: { maxLength: 150 } }}
-        sx={wide}
-      />
-      <TextField
-        label={t('transfers:form.additionalNotesLabel')}
-        size="small"
-        value={form.additionalNotes}
-        onChange={(e) => patch({ additionalNotes: e.target.value })}
-        slotProps={{ htmlInput: { maxLength: 500 } }}
-        sx={wide}
-      />
-    </>
-  )
-
-  const plainFields = (
-    <>
-      <Select
-        size="small"
-        displayEmpty
-        value={form.fromAccountId}
-        onChange={(e) => patch({ fromAccountId: e.target.value })}
-        aria-label={t('transfers:form.fromAccountLabel')}
-        sx={{ minWidth: 160 }}
-      >
-        <MenuItem value="" disabled>
-          {t('transfers:form.fromAccountLabel')}
-        </MenuItem>
-        {cashOptions.map((a) => (
-          <MenuItem key={a.id} value={a.id}>
-            {a.name}
-          </MenuItem>
-        ))}
-      </Select>
-      <Select
-        size="small"
-        displayEmpty
-        value={form.toAccountId}
-        onChange={(e) => patch({ toAccountId: e.target.value })}
-        aria-label={t('transfers:form.toAccountLabel')}
-        sx={{ minWidth: 160 }}
-      >
-        <MenuItem value="" disabled>
-          {t('transfers:form.toAccountLabel')}
-        </MenuItem>
-        {cashOptions
-          .filter((a) => a.id !== form.fromAccountId)
-          .map((a) => (
-            <MenuItem key={a.id} value={a.id}>
-              {a.name}
-            </MenuItem>
-          ))}
-      </Select>
-      <TextField
-        label={t('transfers:form.amountLabel')}
-        type="number"
-        size="small"
-        value={form.amount}
-        onChange={(e) => patch({ amount: e.target.value })}
-        slotProps={{ htmlInput: { step: '0.01', min: '0.01' } }}
-      />
-    </>
-  )
-
-  const tradeAccountFields = (
-    <>
-      <Select
-        size="small"
-        displayEmpty
-        value={form.cashAccountId}
-        onChange={(e) => patch({ cashAccountId: e.target.value })}
-        aria-label={t('transfers:form.cashAccountLabel')}
-        sx={{ minWidth: 160 }}
-      >
-        <MenuItem value="" disabled>
-          {t('transfers:form.cashAccountLabel')}
-        </MenuItem>
-        {cashOptions
-          .filter((a) => a.id !== form.investmentAccountId)
-          .map((a) => (
-            <MenuItem key={a.id} value={a.id}>
-              {a.name}
-            </MenuItem>
-          ))}
-      </Select>
-      <Select
-        size="small"
-        displayEmpty
-        value={form.investmentAccountId}
-        onChange={(e) => setInvestmentAccountId(e.target.value)}
-        aria-label={t('transfers:form.investmentAccountLabel')}
-        sx={{ minWidth: 160 }}
-      >
-        <MenuItem value="" disabled>
-          {t('transfers:form.investmentAccountLabel')}
-        </MenuItem>
-        {investmentAccounts
-          .filter((a) => a.id !== form.cashAccountId)
-          .map((a) => (
-            <MenuItem key={a.id} value={a.id}>
-              {a.name}
-            </MenuItem>
-          ))}
-      </Select>
-      <TextField
-        label={t('transfers:form.taxesLabel')}
-        type="number"
-        size="small"
-        value={form.taxes}
-        onChange={(e) => patch({ taxes: e.target.value })}
-        slotProps={{ htmlInput: { step: '0.01', min: '0' } }}
-      />
-    </>
-  )
-
   const duplicateResultingBalanceIds = duplicateResultingBalanceProductIds(form.lines)
   const lineRows = form.lines.map((line) => {
     const holdingOptions = holdingOptionsFor(line)
@@ -391,17 +264,20 @@ export function TransferForm({
       </ToggleButtonGroup>
 
       {fieldRow(
-        form.mode === 'plain' ? (
-          <>
-            {commonFields}
-            {plainFields}
-          </>
-        ) : (
-          <>
-            {commonFields}
-            {tradeAccountFields}
-          </>
-        ),
+        <>
+          <TransferCommonFields form={form} patch={patch} wide={wide} />
+          {form.mode === 'plain' ? (
+            <PlainTransferFields form={form} patch={patch} cashOptions={cashOptions} />
+          ) : (
+            <TradeAccountFields
+              form={form}
+              patch={patch}
+              cashOptions={cashOptions}
+              investmentAccounts={investmentAccounts}
+              onInvestmentAccountChange={setInvestmentAccountId}
+            />
+          )}
+        </>,
       )}
 
       {form.mode === 'trade' && (
