@@ -1,9 +1,10 @@
-import { lazy, Suspense, useMemo, useState, type PropsWithChildren } from 'react'
+import { Suspense, useMemo, useState, type PropsWithChildren } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Box, CssBaseline, Skeleton, ThemeProvider } from '@mui/material'
 import { ColorModeProvider } from './hooks/colorMode/ColorModeProvider'
 import { useColorMode } from './hooks/colorMode/useColorMode'
 import { LocaleProvider } from './hooks/locale/LocaleProvider'
+import { lazyNamed } from './utils/lazyNamed'
 import { useHasAccounts } from './hooks/useHasAccounts'
 import { getTheme } from './theme'
 import { Layout } from './components/layout/Layout'
@@ -17,74 +18,53 @@ import { RequireAuth } from './features/auth/RequireAuth'
 import { TransactionsRedirect, TransfersRedirect } from './features/ledger/LegacyRedirects'
 
 // Route-level code splitting: each page is its own chunk, fetched on first navigation instead of
-// all being bundled into one >500kB entry chunk. Named exports, so each needs its own `.then`.
-const LoginPage = lazy(() =>
-  import('./features/auth/LoginPage').then((m) => ({ default: m.LoginPage })),
+// all being bundled into one >500kB entry chunk. Named exports, so each goes through `lazyNamed`.
+const LoginPage = lazyNamed(() => import('./features/auth/LoginPage'), 'LoginPage')
+const DashboardPage = lazyNamed(() => import('./features/dashboard/DashboardPage'), 'DashboardPage')
+const AccountsPage = lazyNamed(() => import('./features/accounts/AccountsPage'), 'AccountsPage')
+const AccountDetailPage = lazyNamed(
+  () => import('./features/accounts/AccountDetailPage'),
+  'AccountDetailPage',
 )
-const DashboardPage = lazy(() =>
-  import('./features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })),
+const CategoriesPage = lazyNamed(
+  () => import('./features/categories/CategoriesPage'),
+  'CategoriesPage',
 )
-const AccountsPage = lazy(() =>
-  import('./features/accounts/AccountsPage').then((m) => ({ default: m.AccountsPage })),
+const FuelPage = lazyNamed(() => import('./features/fuel/FuelPage'), 'FuelPage')
+const InstitutionsPage = lazyNamed(
+  () => import('./features/institutions/InstitutionsPage'),
+  'InstitutionsPage',
 )
-const AccountDetailPage = lazy(() =>
-  import('./features/accounts/AccountDetailPage').then((m) => ({ default: m.AccountDetailPage })),
+const InvestmentsPage = lazyNamed(
+  () => import('./features/investments/InvestmentsPage'),
+  'InvestmentsPage',
 )
-const CategoriesPage = lazy(() =>
-  import('./features/categories/CategoriesPage').then((m) => ({ default: m.CategoriesPage })),
+const InvestmentProductDetailPage = lazyNamed(
+  () => import('./features/investmentProducts/InvestmentProductDetailPage'),
+  'InvestmentProductDetailPage',
 )
-const FuelPage = lazy(() =>
-  import('./features/fuel/FuelPage').then((m) => ({ default: m.FuelPage })),
+const InvestmentCategoriesPage = lazyNamed(
+  () => import('./features/investmentCategories/InvestmentCategoriesPage'),
+  'InvestmentCategoriesPage',
 )
-const InstitutionsPage = lazy(() =>
-  import('./features/institutions/InstitutionsPage').then((m) => ({
-    default: m.InstitutionsPage,
-  })),
+const InvestmentSegmentsPage = lazyNamed(
+  () => import('./features/investmentSegments/InvestmentSegmentsPage'),
+  'InvestmentSegmentsPage',
 )
-const InvestmentsPage = lazy(() =>
-  import('./features/investments/InvestmentsPage').then((m) => ({ default: m.InvestmentsPage })),
+const FiiPage = lazyNamed(() => import('./features/fii/FiiPage'), 'FiiPage')
+const PaymentMethodsPage = lazyNamed(
+  () => import('./features/paymentMethods/PaymentMethodsPage'),
+  'PaymentMethodsPage',
 )
-const InvestmentProductDetailPage = lazy(() =>
-  import('./features/investmentProducts/InvestmentProductDetailPage').then((m) => ({
-    default: m.InvestmentProductDetailPage,
-  })),
+const LedgerPage = lazyNamed(() => import('./features/ledger/LedgerPage'), 'LedgerPage')
+const BudgetsPage = lazyNamed(() => import('./features/budgets/BudgetsPage'), 'BudgetsPage')
+const ReportsPage = lazyNamed(() => import('./features/reports/ReportsPage'), 'ReportsPage')
+const RecurringTemplatesPage = lazyNamed(
+  () => import('./features/recurringTemplates/RecurringTemplatesPage'),
+  'RecurringTemplatesPage',
 )
-const InvestmentCategoriesPage = lazy(() =>
-  import('./features/investmentCategories/InvestmentCategoriesPage').then((m) => ({
-    default: m.InvestmentCategoriesPage,
-  })),
-)
-const InvestmentSegmentsPage = lazy(() =>
-  import('./features/investmentSegments/InvestmentSegmentsPage').then((m) => ({
-    default: m.InvestmentSegmentsPage,
-  })),
-)
-const FiiPage = lazy(() => import('./features/fii/FiiPage').then((m) => ({ default: m.FiiPage })))
-const PaymentMethodsPage = lazy(() =>
-  import('./features/paymentMethods/PaymentMethodsPage').then((m) => ({
-    default: m.PaymentMethodsPage,
-  })),
-)
-const LedgerPage = lazy(() =>
-  import('./features/ledger/LedgerPage').then((m) => ({ default: m.LedgerPage })),
-)
-const BudgetsPage = lazy(() =>
-  import('./features/budgets/BudgetsPage').then((m) => ({ default: m.BudgetsPage })),
-)
-const ReportsPage = lazy(() =>
-  import('./features/reports/ReportsPage').then((m) => ({ default: m.ReportsPage })),
-)
-const RecurringTemplatesPage = lazy(() =>
-  import('./features/recurringTemplates/RecurringTemplatesPage').then((m) => ({
-    default: m.RecurringTemplatesPage,
-  })),
-)
-const VehiclesPage = lazy(() =>
-  import('./features/vehicles/VehiclesPage').then((m) => ({ default: m.VehiclesPage })),
-)
-const ActivityPage = lazy(() =>
-  import('./features/activity/ActivityPage').then((m) => ({ default: m.ActivityPage })),
-)
+const VehiclesPage = lazyNamed(() => import('./features/vehicles/VehiclesPage'), 'VehiclesPage')
+const ActivityPage = lazyNamed(() => import('./features/activity/ActivityPage'), 'ActivityPage')
 
 /** Suspense fallback while a route's chunk loads - same skeleton shape as the onboarding check. */
 function RouteFallback() {
