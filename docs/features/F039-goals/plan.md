@@ -35,7 +35,7 @@ Branch `feature/f039-goals`. Backend first (the projection and the response shap
 - [x] Implement `GoalDetailPage`, `GoalAllocationEditor`, `GoalProjectionChart`, `GoalHistoryChart` on `ChartSvg` and the `/goals/:id` route.
 - [x] Test first: `GoalsWidget` (only flagged goals, hidden when none, status line for a dated and a dateless goal, "View all" link) and the "Allocated to" chips on the product detail page.
 - [x] Implement `GoalsWidget` in `DashboardPage`, the product detail chips, the nav entry, i18n (`en`, `pt-BR`), `PROBLEM_TYPE_MESSAGES` entries and the Activity-page `GOAL` label.
-- [ ] `scripts/verify.sh frontend`.
+- [x] `scripts/verify.sh frontend`.
 
 ## Phase 4 — Docs
 - [ ] `docs/conventions/data-constraints.md`: the contribution `>= 0` exception and the `numeric(5,2)` return percentages.

@@ -60,12 +60,18 @@ export function GoalAllocationEditor({ goal }: { goal: Goal }) {
   const products = productsQuery.data
   const productsState = useQueryState(productsQuery)
   const goalsQuery = useGoals(false)
+  const capacityKnown = goalsQuery.data !== undefined
   const otherGoals = (goalsQuery.data ?? []).filter((g) => g.id !== goal.id)
   const replaceMutation = useReplaceGoalAllocations()
   const saveAction = useAction(setError)
 
   const archived = goal.status === 'ARCHIVED'
-  const nameOf = (productId: string) => products?.find((p) => p.id === productId)?.name ?? ''
+  // Until the product list arrives, the stored allocations already carry their products' names,
+  // so a row can name (and a select can show) its product at once.
+  const catalog =
+    products ??
+    goal.allocations.map((a) => ({ id: a.productId, name: a.productName, closed: false }))
+  const nameOf = (productId: string) => catalog.find((p) => p.id === productId)?.name ?? ''
 
   /** What is left of a product once the other non-archived goals have taken their shares. */
   function availableOf(productId: string): number {
@@ -99,7 +105,7 @@ export function GoalAllocationEditor({ goal }: { goal: Goal }) {
 
   const chosen = new Set(rows.map((r) => r.productId).filter((id) => id !== ''))
   const optionsFor = (row: Row) =>
-    (products ?? []).filter((p) => p.id === row.productId || (!p.closed && !chosen.has(p.id)))
+    catalog.filter((p) => p.id === row.productId || (!p.closed && !chosen.has(p.id)))
 
   function problemOf(row: Row): string | null {
     if (row.productId === '') return null
@@ -112,6 +118,7 @@ export function GoalAllocationEditor({ goal }: { goal: Goal }) {
     ) {
       return t('goals:allocation.invalidPercentage')
     }
+    if (!capacityKnown) return null
     const available = availableOf(row.productId)
     return value > available
       ? t('goals:allocation.overCapacity', { percent: percent(available) })
@@ -119,7 +126,7 @@ export function GoalAllocationEditor({ goal }: { goal: Goal }) {
   }
 
   const complete = rows.every((r) => r.productId !== '' && r.percentage !== '')
-  const valid = complete && rows.every((r) => problemOf(r) === null)
+  const valid = capacityKnown && complete && rows.every((r) => problemOf(r) === null)
   const changed =
     JSON.stringify(rows.map((r) => [r.productId, Number(r.percentage)])) !==
     JSON.stringify(goal.allocations.map((a) => [a.productId, a.percentage]))
@@ -156,7 +163,7 @@ export function GoalAllocationEditor({ goal }: { goal: Goal }) {
         {rows.map((row) => {
           const problem = problemOf(row)
           const name = row.productId ? nameOf(row.productId) : t('goals:allocation.newRow')
-          const available = row.productId ? availableOf(row.productId) : null
+          const available = row.productId && capacityKnown ? availableOf(row.productId) : null
           const value = Number(row.percentage)
           return (
             <Box
