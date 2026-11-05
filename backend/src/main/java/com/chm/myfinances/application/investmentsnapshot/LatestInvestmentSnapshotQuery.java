@@ -21,9 +21,10 @@ import org.springframework.stereotype.Service;
  * and F010's net worth. Holdings need no closed-date filter: the close guard means a closed
  * holding's latest snapshot is {@code 0}.
  *
- * <p>{@link #totalValueByProduct} rolls holdings back up to the product level (a product's value is
- * the sum of its holdings' latest snapshots) - used by the category/sub-category allocation, since
- * a product can be held at more than one account.
+ * <p>{@link #totalValueOfProduct} (and {@link #valueByProduct}, its one-pass form for F039's goals)
+ * rolls holdings back up to the product level (a product's value is the sum of its holdings' latest
+ * snapshots) - used by the category/sub-category allocation, since a product can be held at more
+ * than one account.
  */
 @Service
 public class LatestInvestmentSnapshotQuery {
@@ -77,6 +78,32 @@ public class LatestInvestmentSnapshotQuery {
       }
     }
     return total;
+  }
+
+  /**
+   * Every product's value as of {@code asOfDate} in one pass (F039): the sum of its holdings'
+   * latest snapshots plus the most recent of those snapshot dates. A product none of whose holdings
+   * has a snapshot yet is absent (read it as zero). The bulk form of {@link #totalValueOfProduct},
+   * for callers that value many products at once and must not rescan the snapshots per product.
+   */
+  public Map<UUID, ProductSnapshotValue> valueByProduct(LocalDate asOfDate) {
+    Map<UUID, InvestmentSnapshot> latest = latestByHolding(asOfDate);
+    Map<UUID, ProductSnapshotValue> values = new HashMap<>();
+    for (InvestmentHolding holding : holdingRepository.findAll()) {
+      InvestmentSnapshot snapshot = latest.get(holding.getId());
+      if (snapshot != null) {
+        values.merge(
+            holding.getProductId(),
+            new ProductSnapshotValue(snapshot.getBalance(), snapshot.getDate()),
+            (current, next) ->
+                new ProductSnapshotValue(
+                    current.value().add(next.value()),
+                    next.latestSnapshotDate().isAfter(current.latestSnapshotDate())
+                        ? next.latestSnapshotDate()
+                        : current.latestSnapshotDate()));
+      }
+    }
+    return values;
   }
 
   private static Map<UUID, InvestmentSnapshot> reduceToLatest(List<InvestmentSnapshot> snapshots) {
