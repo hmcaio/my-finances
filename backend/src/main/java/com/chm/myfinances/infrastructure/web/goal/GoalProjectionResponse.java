@@ -1,12 +1,10 @@
 package com.chm.myfinances.infrastructure.web.goal;
 
 import com.chm.myfinances.application.goal.GoalProjection;
-import com.chm.myfinances.application.goal.ProjectionPoint;
 import com.chm.myfinances.application.goal.ProjectionScenario;
 import com.chm.myfinances.application.goal.ScenarioProjection;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.YearMonth;
 import java.util.List;
 
 /**
@@ -26,7 +24,7 @@ public record GoalProjectionResponse(
   public record ScenarioProjectionResponse(
       ProjectionScenario scenario,
       BigDecimal annualReturn,
-      List<PointResponse> points,
+      List<GoalPointResponse> points,
       BigDecimal projectedValueAtTargetDate,
       BigDecimal shortfallAtTargetDate,
       BigDecimal requiredMonthlyContribution,
@@ -36,19 +34,11 @@ public record GoalProjectionResponse(
       return new ScenarioProjectionResponse(
           scenario.scenario(),
           scenario.annualReturn(),
-          scenario.points().stream().map(PointResponse::from).toList(),
+          scenario.points().stream().map(GoalPointResponse::from).toList(),
           scenario.projectedValueAtTargetDate(),
           scenario.shortfallAtTargetDate(),
           scenario.requiredMonthlyContribution(),
           scenario.monthsToTarget());
-    }
-  }
-
-  /** One month of a series. */
-  public record PointResponse(YearMonth month, BigDecimal value) {
-
-    static PointResponse from(ProjectionPoint point) {
-      return new PointResponse(point.month(), point.value());
     }
   }
 

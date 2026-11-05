@@ -36,6 +36,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/goals/{id}/allocations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["goalAllocation_replace"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/fii/allocation-plan": {
         parameters: {
             query?: never;
@@ -254,6 +270,22 @@ export interface paths {
         get: operations["institution_list"];
         put?: never;
         post: operations["institution_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["goal_list"];
+        put?: never;
+        post: operations["goal_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -486,6 +518,38 @@ export interface paths {
         patch: operations["institution_rename"];
         trace?: never;
     };
+    "/api/goals/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["goal_get"];
+        put?: never;
+        post?: never;
+        delete: operations["goal_delete"];
+        options?: never;
+        head?: never;
+        patch: operations["goal_edit"];
+        trace?: never;
+    };
+    "/api/goals/{id}/show-on-dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["goal_setShowOnDashboard"];
+        trace?: never;
+    };
     "/api/categories/{id}": {
         parameters: {
             query?: never;
@@ -710,6 +774,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/investment-products/{id}/goal-allocations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["goalAllocation_forProduct"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/investment-categories": {
         parameters: {
             query?: never;
@@ -734,6 +814,70 @@ export interface paths {
             cookie?: never;
         };
         get: operations["health_health"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goals/{id}/projection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["goalReport_projection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goals/{id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["goalReport_history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goals/emergency-fund-suggestion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["goalReport_emergencyFundSuggestion"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goals/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["goalReport_dashboard"];
         put?: never;
         post?: never;
         delete?: never;
@@ -958,6 +1102,19 @@ export interface components {
             quantity?: number;
             unitPrice?: number;
             amountContributed?: number;
+        };
+        AllocationRequest: {
+            /** Format: uuid */
+            productId: string;
+            percentage: number;
+        };
+        ReplaceAllocationsRequest: {
+            allocations: components["schemas"]["AllocationRequest"][];
+        };
+        GoalAllocationResponse: {
+            /** Format: uuid */
+            productId?: string;
+            percentage?: number;
         };
         AllocationPlanEntryRequest: {
             /** Format: uuid */
@@ -1215,6 +1372,47 @@ export interface components {
             name?: string;
             builtIn?: boolean;
         };
+        CreateGoalRequest: {
+            name: string;
+            notes?: string;
+            targetAmount: number;
+            /** Format: date */
+            targetDate?: string;
+            plannedMonthlyContribution: number;
+            returnPessimistic: number;
+            returnBase: number;
+            returnOptimistic: number;
+            showOnDashboard?: boolean;
+        };
+        AllocationResponse: {
+            /** Format: uuid */
+            productId?: string;
+            productName?: string;
+            percentage?: number;
+        };
+        GoalResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            notes?: string;
+            targetAmount?: number;
+            /** Format: date */
+            targetDate?: string;
+            plannedMonthlyContribution?: number;
+            returnPessimistic?: number;
+            returnBase?: number;
+            returnOptimistic?: number;
+            /** @enum {string} */
+            status?: "ACTIVE" | "ACHIEVED" | "ARCHIVED";
+            showOnDashboard?: boolean;
+            allocatedValue?: number;
+            progressPercent?: number;
+            targetReached?: boolean;
+            projectedShortfall?: number;
+            /** Format: int32 */
+            monthsToTarget?: number;
+            allocations?: components["schemas"]["AllocationResponse"][];
+        };
         CreateCategoryRequest: {
             name: string;
             /** @enum {string} */
@@ -1345,6 +1543,23 @@ export interface components {
         };
         UpdateInstitutionRequest: {
             name: string;
+        };
+        UpdateGoalRequest: {
+            name: string;
+            notes?: string;
+            targetAmount: number;
+            /** Format: date */
+            targetDate?: string;
+            plannedMonthlyContribution: number;
+            returnPessimistic: number;
+            returnBase: number;
+            returnOptimistic: number;
+            /** @enum {string} */
+            status: "ACTIVE" | "ACHIEVED" | "ARCHIVED";
+            showOnDashboard: boolean;
+        };
+        ShowOnDashboardRequest: {
+            showOnDashboard: boolean;
         };
         UpdateCategoryRequest: {
             name: string;
@@ -1486,6 +1701,12 @@ export interface components {
             content?: components["schemas"]["InvestmentProductResponse"][];
             page?: components["schemas"]["PageMetadata"];
         };
+        ProductGoalAllocationResponse: {
+            /** Format: uuid */
+            goalId?: string;
+            goalName?: string;
+            percentage?: number;
+        };
         InvestmentSnapshotResponse: {
             /** Format: uuid */
             id?: string;
@@ -1505,6 +1726,49 @@ export interface components {
             /** Format: uuid */
             id?: string;
             name?: string;
+        };
+        GoalPointResponse: {
+            month?: string;
+            value?: number;
+        };
+        GoalProjectionResponse: {
+            allocatedValue?: number;
+            /** Format: date */
+            latestSnapshotDate?: string;
+            scenarios?: components["schemas"]["ScenarioProjectionResponse"][];
+        };
+        ScenarioProjectionResponse: {
+            /** @enum {string} */
+            scenario?: "PESSIMISTIC" | "BASE" | "OPTIMISTIC";
+            annualReturn?: number;
+            points?: components["schemas"]["GoalPointResponse"][];
+            projectedValueAtTargetDate?: number;
+            shortfallAtTargetDate?: number;
+            requiredMonthlyContribution?: number;
+            /** Format: int32 */
+            monthsToTarget?: number;
+        };
+        EmergencyFundSuggestionResponse: {
+            /** Format: int32 */
+            months?: number;
+            averageMonthlyExpense?: number;
+            suggestedTarget?: number;
+            /** Format: int32 */
+            monthsAveraged?: number;
+        };
+        GoalSummaryResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            targetAmount?: number;
+            /** Format: date */
+            targetDate?: string;
+            allocatedValue?: number;
+            progressPercent?: number;
+            targetReached?: boolean;
+            projectedShortfall?: number;
+            /** Format: int32 */
+            monthsToTarget?: number;
         };
         FiiPortfolioRowResponse: {
             /** Format: uuid */
@@ -1587,7 +1851,7 @@ export interface components {
             /** Format: date-time */
             occurredAt?: string;
             /** @enum {string} */
-            entityType?: "TRANSACTION" | "TRANSFER" | "ACCOUNT" | "CATEGORY" | "PAYMENT_METHOD" | "INSTITUTION" | "BUDGET" | "RECURRING_TEMPLATE" | "INVESTMENT_CATEGORY" | "INVESTMENT_SUBCATEGORY" | "INVESTMENT_PRODUCT" | "INVESTMENT_HOLDING" | "INVESTMENT_SNAPSHOT" | "INVESTMENT_OPENING_POSITION" | "INVESTMENT_SEGMENT" | "ALLOCATION_PLAN" | "VEHICLE";
+            entityType?: "TRANSACTION" | "TRANSFER" | "ACCOUNT" | "CATEGORY" | "PAYMENT_METHOD" | "INSTITUTION" | "BUDGET" | "RECURRING_TEMPLATE" | "INVESTMENT_CATEGORY" | "INVESTMENT_SUBCATEGORY" | "INVESTMENT_PRODUCT" | "INVESTMENT_HOLDING" | "INVESTMENT_SNAPSHOT" | "INVESTMENT_OPENING_POSITION" | "INVESTMENT_SEGMENT" | "ALLOCATION_PLAN" | "GOAL" | "VEHICLE";
             /** Format: uuid */
             entityId?: string;
             entityLabel?: string;
@@ -1826,6 +2090,59 @@ export interface operations {
                 };
             };
             /** @description type: urn:my-finances:error:investment-holding-closed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    goalAllocation_replace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplaceAllocationsRequest"];
+            };
+        };
+        responses: {
+            /** @description The stored allocations. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GoalAllocationResponse"][];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:invalid-goal (a repeated product or an invalid percentage), urn:my-finances:error:method-argument-not-valid, carrying an errors[] array of {field, code} with code one of: not-null, positive, decimal-max, digits */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:goal-not-found, urn:my-finances:error:investment-product-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:goal-archived, urn:my-finances:error:goal-allocation-exceeds-product */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -2618,6 +2935,61 @@ export interface operations {
             };
             /** @description type: urn:my-finances:error:institution-name-already-exists */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    goal_list: {
+        parameters: {
+            query?: {
+                includeArchived?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The goals, non-archived unless includeArchived=true. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GoalResponse"][];
+                };
+            };
+        };
+    };
+    goal_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateGoalRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GoalResponse"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:method-argument-not-valid, carrying an errors[] array of {field, code} with code one of: not-blank, size, not-null, positive, positive-or-zero, decimal-min, decimal-max, digits; or urn:my-finances:error:invalid-goal (a domain violation or a target date not after today) */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3556,6 +3928,172 @@ export interface operations {
             };
         };
     };
+    goal_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The goal. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GoalResponse"];
+                };
+            };
+            /** @description type: urn:my-finances:error:goal-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    goal_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description type: urn:my-finances:error:goal-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    goal_edit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateGoalRequest"];
+            };
+        };
+        responses: {
+            /** @description The edited goal. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GoalResponse"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:method-argument-not-valid, carrying an errors[] array of {field, code} with code one of: not-blank, size, not-null, positive, positive-or-zero, decimal-min, decimal-max, digits; or urn:my-finances:error:invalid-goal (a domain violation or a changed target date not after today) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:goal-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:goal-allocation-exceeds-product (restoring an archived goal whose percentages no longer fit) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    goal_setShowOnDashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShowOnDashboardRequest"];
+            };
+        };
+        responses: {
+            /** @description The goal with the flag applied. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GoalResponse"];
+                };
+            };
+            /** @description type: urn:my-finances:error:method-argument-not-valid (not-null) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:goal-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:goal-archived (turning it on for an archived goal) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
     category_delete: {
         parameters: {
             query?: never;
@@ -4047,6 +4585,37 @@ export interface operations {
             };
         };
     };
+    goalAllocation_forProduct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The non-archived goals the product is allocated to, largest share first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProductGoalAllocationResponse"][];
+                };
+            };
+            /** @description type: urn:my-finances:error:investment-product-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
     investmentCategory_list: {
         parameters: {
             query?: never;
@@ -4085,6 +4654,131 @@ export interface operations {
                     "*/*": {
                         [key: string]: Record<string, never>;
                     };
+                };
+            };
+        };
+    };
+    goalReport_projection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The pessimistic, base and optimistic projections, in today's money. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GoalProjectionResponse"];
+                };
+            };
+            /** @description type: urn:my-finances:error:goal-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    goalReport_history: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Monthly values of the goal as of its current allocation. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GoalPointResponse"][];
+                };
+            };
+            /** @description type: urn:my-finances:error:invalid-value-series-range */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:goal-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    goalReport_emergencyFundSuggestion: {
+        parameters: {
+            query?: {
+                months?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description months x the average monthly expense of the last 12 full months. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EmergencyFundSuggestionResponse"];
+                };
+            };
+            /** @description type: one of urn:my-finances:error:handler-method-validation (months outside 1..120), urn:my-finances:error:invalid-goal */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    goalReport_dashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The goals flagged to show on the dashboard, in the standard order. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GoalSummaryResponse"][];
                 };
             };
         };
@@ -4280,7 +4974,7 @@ export interface operations {
             query: {
                 from?: string;
                 to?: string;
-                entityType?: "TRANSACTION" | "TRANSFER" | "ACCOUNT" | "CATEGORY" | "PAYMENT_METHOD" | "INSTITUTION" | "BUDGET" | "RECURRING_TEMPLATE" | "INVESTMENT_CATEGORY" | "INVESTMENT_SUBCATEGORY" | "INVESTMENT_PRODUCT" | "INVESTMENT_HOLDING" | "INVESTMENT_SNAPSHOT" | "INVESTMENT_OPENING_POSITION" | "INVESTMENT_SEGMENT" | "ALLOCATION_PLAN" | "VEHICLE";
+                entityType?: "TRANSACTION" | "TRANSFER" | "ACCOUNT" | "CATEGORY" | "PAYMENT_METHOD" | "INSTITUTION" | "BUDGET" | "RECURRING_TEMPLATE" | "INVESTMENT_CATEGORY" | "INVESTMENT_SUBCATEGORY" | "INVESTMENT_PRODUCT" | "INVESTMENT_HOLDING" | "INVESTMENT_SNAPSHOT" | "INVESTMENT_OPENING_POSITION" | "INVESTMENT_SEGMENT" | "ALLOCATION_PLAN" | "GOAL" | "VEHICLE";
                 action?: "CREATE" | "UPDATE" | "DELETE" | "CLOSE" | "REOPEN" | "STOPPED" | "GENERATED";
                 origin?: "USER" | "SYSTEM";
                 entityId?: string;

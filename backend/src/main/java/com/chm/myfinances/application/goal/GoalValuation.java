@@ -9,6 +9,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -65,6 +66,6 @@ final class GoalValuation {
   }
 
   GoalValue valueOf(UUID goalId, LocalDate asOf) {
-    return valuesByGoal(java.util.List.of(goalId), asOf).get(goalId);
+    return valuesByGoal(List.of(goalId), asOf).get(goalId);
   }
 }

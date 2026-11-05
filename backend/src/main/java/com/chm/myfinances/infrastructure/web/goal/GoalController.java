@@ -1,5 +1,6 @@
 package com.chm.myfinances.infrastructure.web.goal;
 
+import com.chm.myfinances.application.goal.GoalListQuery;
 import com.chm.myfinances.application.goal.GoalService;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -37,9 +38,16 @@ public class GoalController {
           + " decimal-max, digits";
 
   private final GoalService goalService;
+  private final GoalListQuery goalListQuery;
 
-  public GoalController(GoalService goalService) {
+  public GoalController(GoalService goalService, GoalListQuery goalListQuery) {
     this.goalService = goalService;
+    this.goalListQuery = goalListQuery;
+  }
+
+  /** Every write answers with the goal as the detail shows it (figures and allocations). */
+  private GoalResponse respond(UUID goalId) {
+    return GoalResponse.from(goalListQuery.get(goalId));
   }
 
   @GetMapping
@@ -50,7 +58,7 @@ public class GoalController {
           @Content(array = @ArraySchema(schema = @Schema(implementation = GoalResponse.class))))
   public List<GoalResponse> list(
       @RequestParam(name = "includeArchived", defaultValue = "false") boolean includeArchived) {
-    return goalService.findAll(includeArchived).stream().map(GoalResponse::from).toList();
+    return goalListQuery.list(includeArchived).stream().map(GoalResponse::from).toList();
   }
 
   @PostMapping
@@ -64,7 +72,7 @@ public class GoalController {
               + " after today)",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public GoalResponse create(@Valid @RequestBody CreateGoalRequest request) {
-    return GoalResponse.from(goalService.create(request.toInput()));
+    return respond(goalService.create(request.toInput()).getId());
   }
 
   @GetMapping("/{id}")
@@ -77,7 +85,7 @@ public class GoalController {
       description = "type: urn:my-finances:error:goal-not-found",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public GoalResponse get(@PathVariable UUID id) {
-    return GoalResponse.from(goalService.findById(id));
+    return respond(id);
   }
 
   @PatchMapping("/{id}")
@@ -104,7 +112,7 @@ public class GoalController {
               + " whose percentages no longer fit)",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public GoalResponse edit(@PathVariable UUID id, @Valid @RequestBody UpdateGoalRequest request) {
-    return GoalResponse.from(goalService.edit(id, request.toInput(), request.status()));
+    return respond(goalService.edit(id, request.toInput(), request.status()).getId());
   }
 
   @PatchMapping("/{id}/show-on-dashboard")
@@ -127,7 +135,7 @@ public class GoalController {
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public GoalResponse setShowOnDashboard(
       @PathVariable UUID id, @Valid @RequestBody ShowOnDashboardRequest request) {
-    return GoalResponse.from(goalService.setShowOnDashboard(id, request.showOnDashboard()));
+    return respond(goalService.setShowOnDashboard(id, request.showOnDashboard()).getId());
   }
 
   @DeleteMapping("/{id}")

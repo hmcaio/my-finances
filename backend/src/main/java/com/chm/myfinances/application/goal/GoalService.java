@@ -14,6 +14,7 @@ import com.chm.myfinances.domain.shared.IdGenerator;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -179,13 +180,6 @@ public class GoalService {
     return allocations;
   }
 
-  /** Every goal, non-archived unless {@code includeArchived}; replaced by {@code GoalListQuery}. */
-  public List<Goal> findAll(boolean includeArchived) {
-    return goalRepository.findAll().stream()
-        .filter(goal -> includeArchived || goal.getStatus() != GoalStatus.ARCHIVED)
-        .toList();
-  }
-
   public Goal findById(UUID id) {
     return goalRepository.findById(id).orElseThrow(() -> new GoalNotFoundException(id));
   }
@@ -198,7 +192,7 @@ public class GoalService {
 
   private List<GoalAllocation> buildAllocations(UUID goalId, List<AllocationInput> inputs) {
     Set<UUID> seen = new HashSet<>();
-    List<GoalAllocation> allocations = new java.util.ArrayList<>();
+    List<GoalAllocation> allocations = new ArrayList<>();
     for (AllocationInput input : inputs) {
       if (input.productId() != null && !seen.add(input.productId())) {
         throw new InvalidGoalException("a product can appear only once per goal");

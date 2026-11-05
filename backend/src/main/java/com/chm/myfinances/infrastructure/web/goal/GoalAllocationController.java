@@ -1,6 +1,7 @@
 package com.chm.myfinances.infrastructure.web.goal;
 
 import com.chm.myfinances.application.goal.AllocationInput;
+import com.chm.myfinances.application.goal.GoalAllocationForProductQuery;
 import com.chm.myfinances.application.goal.GoalService;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -10,6 +11,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.ProblemDetail;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -27,9 +29,31 @@ import org.springframework.web.bind.annotation.RestController;
 public class GoalAllocationController {
 
   private final GoalService goalService;
+  private final GoalAllocationForProductQuery forProductQuery;
 
-  public GoalAllocationController(GoalService goalService) {
+  public GoalAllocationController(
+      GoalService goalService, GoalAllocationForProductQuery forProductQuery) {
     this.goalService = goalService;
+    this.forProductQuery = forProductQuery;
+  }
+
+  @GetMapping("/investment-products/{id}/goal-allocations")
+  @ApiResponse(
+      responseCode = "200",
+      description = "The non-archived goals the product is allocated to, largest share first.",
+      content =
+          @Content(
+              array =
+                  @ArraySchema(
+                      schema = @Schema(implementation = ProductGoalAllocationResponse.class))))
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:investment-product-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  public List<ProductGoalAllocationResponse> forProduct(@PathVariable UUID id) {
+    return forProductQuery.forProduct(id).stream()
+        .map(ProductGoalAllocationResponse::from)
+        .toList();
   }
 
   @PutMapping("/goals/{id}/allocations")

@@ -17,17 +17,17 @@ Branch `feature/f039-goals`. Backend first (the projection and the response shap
 ## Phase 2 — Backend: projection, history, dashboard, helper
 - [x] Test first (`GoalProjectionQuery`, fixed `Clock`, non-UTC zone): zero return and zero contribution leaves the value flat; zero return equals `V0 + N × C`; a known 12-month case matches the closed form to the cent; required contribution is `0` when `V0` already reaches the target; required contribution reproduces the target when fed back into the loop; a past `targetDate` projects over zero months; a dateless goal reports `monthsToTarget` `0` when already reached, the right month for a known case, and `null` at the 600-month cap; the three scenarios are ordered.
 - [x] Implement `GoalProjectionQuery` and `GET /api/goals/{id}/projection` (controller test `200/404`).
-- [ ] Test first (`GoalHistoryQuery`): sums `percentage / 100 × product series value` per month over several products; an invalid range is `400`; a goal with no allocations yields zero-valued points.
-- [ ] Implement `GoalHistoryQuery` and `GET /api/goals/{id}/history`.
-- [ ] Test first (`GoalDashboardQuery`, `GoalListQuery`): only flagged goals appear, an archived goal never does, standard order (dated by date, then dateless by name ignoring case), `progressPercent` may exceed 100, `targetReached` flag.
-- [ ] Implement `GoalDashboardQuery`, `GoalListQuery`, `GET /api/goals/dashboard` and the list's allocation fields.
-- [ ] Test first (`EmergencyFundSuggestionQuery`): averages the last 12 full months, skips leading months with no expense, returns `0` with no expenses, ignores transfers, `months` outside `1..120` is `400`.
-- [ ] Implement `EmergencyFundSuggestionQuery` and `GET /api/goals/emergency-fund-suggestion`, plus `GoalAllocationForProductQuery` and `GET /api/investment-products/{id}/goal-allocations`.
-- [ ] Regenerate `frontend/src/api/generated/schema.ts` (`npm run generate-api-types -- --offline`).
-- [ ] `./gradlew spotlessApply` then `scripts/verify.sh backend` (Docker running).
+- [x] Test first (`GoalHistoryQuery`): sums `percentage / 100 × product series value` per month over several products; an invalid range is `400`; a goal with no allocations yields zero-valued points.
+- [x] Implement `GoalHistoryQuery` and `GET /api/goals/{id}/history`.
+- [x] Test first (`GoalDashboardQuery`, `GoalListQuery`): only flagged goals appear, an archived goal never does, standard order (dated by date, then dateless by name ignoring case), `progressPercent` may exceed 100, `targetReached` flag.
+- [x] Implement `GoalDashboardQuery`, `GoalListQuery`, `GET /api/goals/dashboard` and the list's allocation fields.
+- [x] Test first (`EmergencyFundSuggestionQuery`): averages the last 12 full months, skips leading months with no expense, returns `0` with no expenses, ignores transfers, `months` outside `1..120` is `400`.
+- [x] Implement `EmergencyFundSuggestionQuery` and `GET /api/goals/emergency-fund-suggestion`, plus `GoalAllocationForProductQuery` and `GET /api/investment-products/{id}/goal-allocations`.
+- [x] Regenerate `frontend/src/api/generated/schema.ts` (`npm run generate-api-types -- --offline`).
+- [x] `./gradlew spotlessApply` then `scripts/verify.sh backend` (Docker running).
 
 ## Phase 3 — Frontend
-- [ ] Test first: API modules and hooks (list, detail, mutations invalidating the goals and dashboard keys, projection, history, suggestion, per-product allocations) against MSW.
+- [x] Test first: API modules and hooks (list, detail, mutations invalidating the goals and dashboard keys, projection, history, suggestion, per-product allocations) against MSW.
 - [ ] Implement `src/api/goals/goals.ts`, `goalsQueries.ts`, MSW handlers and fixtures.
 - [ ] Test first: `GoalsPage` (loading, empty prompt, list with progress and badge, dashboard switch calls the PATCH, archived filter); `GoalForm` (validation, `maxLength`, status only on edit); `TargetHelperDialog` (emergency fund fills `months × average`, retirement fills `income × 12 ÷ rate`, nothing is stored).
 - [ ] Implement `GoalsPage`, `GoalForm`, `TargetHelperDialog` and the `/goals` route.
