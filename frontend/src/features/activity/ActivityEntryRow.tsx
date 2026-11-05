@@ -21,6 +21,7 @@ import { formatDate } from '../../i18n/format'
 import { actionLabel, entityTypeLabel, originLabel } from './activityEnumLabels'
 import { formatDiffValue } from './activityDiff'
 import { fieldLabel } from './fieldLabels'
+import { WRAP_ANYWHERE } from '../../components/layout/layoutSx'
 
 function originColor(origin: AuditOrigin): 'primary' | 'default' {
   return origin === 'USER' ? 'primary' : 'default'
@@ -53,10 +54,10 @@ function DiffTable({ entry }: { entry: AuditLogEntry }) {
         {fields.map((field) => (
           <TableRow key={field}>
             <TableCell>{fieldLabel(entry.entityType, field, t)}</TableCell>
-            <TableCell sx={{ overflowWrap: 'anywhere' }}>
+            <TableCell sx={WRAP_ANYWHERE}>
               {formatDiffValue(entry.changes[field].from, locale, t)}
             </TableCell>
-            <TableCell sx={{ overflowWrap: 'anywhere' }}>
+            <TableCell sx={WRAP_ANYWHERE}>
               {formatDiffValue(entry.changes[field].to, locale, t)}
             </TableCell>
           </TableRow>
@@ -106,7 +107,7 @@ export function ActivityEntryRow({ entry, expanded, onToggle }: ActivityEntryRow
       <Paper variant="outlined" sx={{ p: 1.5, mb: 1 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <Box sx={{ minWidth: 0 }}>
-            <Typography variant="subtitle2" sx={{ overflowWrap: 'anywhere' }}>
+            <Typography variant="subtitle2" sx={WRAP_ANYWHERE}>
               {entry.entityLabel ?? entityTypeLabel(entry.entityType, t)}
             </Typography>
             <Typography variant="body2" color="text.secondary">
@@ -136,7 +137,7 @@ export function ActivityEntryRow({ entry, expanded, onToggle }: ActivityEntryRow
         <TableCell>{time}</TableCell>
         <TableCell>{actionLabel(entry.action, t)}</TableCell>
         <TableCell>{entityTypeLabel(entry.entityType, t)}</TableCell>
-        <TableCell sx={{ overflowWrap: 'anywhere' }}>
+        <TableCell sx={WRAP_ANYWHERE}>
           {entry.entityLabel ?? <Typography color="text.secondary">—</Typography>}
         </TableCell>
         <TableCell>

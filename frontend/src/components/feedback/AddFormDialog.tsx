@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Box, Button, DialogActions, DialogContent, DialogTitle } from '@mui/material'
+import { Button, DialogActions, DialogTitle } from '@mui/material'
 import { ErrorAlert } from './ErrorAlert'
 import { FormGrid, ResponsiveDialog } from './ResponsiveDialog'
+import { FormDialogContent } from './FormDialogContent'
 
 interface AddFormDialogProps {
   open: boolean
@@ -48,13 +49,11 @@ export function AddFormDialog({
   return (
     <ResponsiveDialog open={open} onClose={onCancel}>
       <DialogTitle>{title}</DialogTitle>
-      <DialogContent>
-        <Box sx={{ pt: 1 }}>
-          <ErrorAlert message={error} onDismiss={onDismissError} />
-          <FormGrid columns={columns}>{children}</FormGrid>
-          {afterFields}
-        </Box>
-      </DialogContent>
+      <FormDialogContent>
+        <ErrorAlert message={error} onDismiss={onDismissError} />
+        <FormGrid columns={columns}>{children}</FormGrid>
+        {afterFields}
+      </FormDialogContent>
       <DialogActions>
         <Button onClick={onCancel} disabled={busy}>
           {t('actions.cancel')}

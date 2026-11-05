@@ -26,6 +26,8 @@ import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/R
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { translateSeedName } from '../../i18n/seedNames'
 import { nameLookup } from '../../utils/nameLookup'
+import { WRAP_ANYWHERE } from '../../components/layout/layoutSx'
+import { SELECT_MIN_WIDTH } from '../../components/layout/layoutSx'
 
 const PAGE_SIZE = 20
 
@@ -153,7 +155,7 @@ export function InvestmentProductsListSection() {
             updateFilter({ categoryId: e.target.value || undefined, subcategoryId: undefined })
           }
           aria-label={t('productsList.categoryFilterAria')}
-          sx={{ minWidth: 160 }}
+          sx={SELECT_MIN_WIDTH}
         >
           <MenuItem value="">{t('productsList.allCategories')}</MenuItem>
           {categories?.map((c) => (
@@ -169,7 +171,7 @@ export function InvestmentProductsListSection() {
           onChange={(e) => updateFilter({ subcategoryId: e.target.value || undefined })}
           disabled={!filters.categoryId}
           aria-label={t('productsList.subcategoryFilterAria')}
-          sx={{ minWidth: 160 }}
+          sx={SELECT_MIN_WIDTH}
         >
           <MenuItem value="">{t('productsList.allSubcategories')}</MenuItem>
           {subcategoryOptions.map((s) => (
@@ -184,7 +186,7 @@ export function InvestmentProductsListSection() {
           value={filters.accountId ?? ''}
           onChange={(e) => updateFilter({ accountId: e.target.value || undefined })}
           aria-label={t('productsList.accountFilterAria')}
-          sx={{ minWidth: 160 }}
+          sx={SELECT_MIN_WIDTH}
         >
           <MenuItem value="">{t('productsList.allAccounts')}</MenuItem>
           {investmentAccounts.map((a) => (
@@ -227,7 +229,7 @@ export function InvestmentProductsListSection() {
             <Box
               sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}
             >
-              <Typography variant="subtitle1" component="div" sx={{ overflowWrap: 'anywhere' }}>
+              <Typography variant="subtitle1" component="div" sx={WRAP_ANYWHERE}>
                 {productLink(product)}
               </Typography>
               {statusChip(product, t)}

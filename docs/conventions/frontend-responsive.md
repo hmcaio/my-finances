@@ -10,13 +10,13 @@ Read when building or changing a list table, a form dialog, a filter row, inline
 ## Components
 
 - `ResponsiveTable` (F021): the list table for pages with 3+ data columns. Declare columns once (`role`: `primary`/`secondary`/`hideOnCard`, `tabletPriority: 'low'` to drop on tablet, where each row gets a chevron expanding the hidden columns as label/value pairs), get a table from `sm` up and cards below it (`renderCard` overrides the generic card); `actions` render in both modes. It wraps `DataTableBody`, so pass the same `state`/`onRetry`. 1-2 column tables stay tables; `embedded` drops the table's outlined frame for lists inside an already-outlined section.
-- `ResponsiveDialog` (`feedback/`) for form dialogs (full-screen below `sm`; `FormGrid` for one-column-on-phone fields; `ConfirmDialog` stays as is).
+- `ResponsiveDialog` (`feedback/`) for form dialogs (full-screen below `sm`; `FormGrid` for one-column-on-phone fields, `FormDialogContent` for the body; `ConfirmDialog` stays as is).
 - `ResponsiveFilterBar` (`layout/`) for filter rows (inline from `sm`, "Filters" sheet with count badge below; filters apply live, no Apply step).
 - `PaginationControls` goes compact by itself.
 
 ## Row editing pattern
 
-Put a row's edit inputs in one component and render it inline in the cell (tablet/desktop) and inside a `ResponsiveDialog` (mobile, from the card's Edit) so both share validation. `TransactionFormFields` (`features/transactions`) is the reference (fields only, the parent supplies layout and buttons; long fields carry `gridColumn: '1 / -1'` for the dialog's `FormGrid`), and `ResponsiveTable.test.tsx` has a minimal example.
+Put a row's edit inputs in one component and render it inline in the cell (tablet/desktop) and inside a `ResponsiveDialog` (mobile, from the card's Edit) so both share validation. `TransactionFormFields` (`features/transactions`) is the reference (fields only, the parent supplies layout and buttons; long fields carry `FORM_GRID_FULL_ROW` (`gridColumn: '1 / -1'`, `components/layout/layoutSx`) for the dialog's `FormGrid`), and `ResponsiveTable.test.tsx` has a minimal example.
 
 Keep a page's `ResponsiveColumn[]` and card out of the page body: a sibling `<area>Columns.tsx` exports `build<Area>Columns(ctx)` (and `render<Area>Card(ctx, row, actions)` for a custom card) with an explicit, minimal typed `ctx` (`t`, `locale`, name lookups, and an `inlineEdit` object that is `null` unless a row is being edited inline, which the page also keeps `null` on mobile), and the row's edit/stop/close buttons are a `<Area>RowActions` component next to it. `AccountsPage`, `BudgetsPage` and `RecurringTemplatesPage` are the references; a context that would need ~10 fields or mostly re-passes page state is a sign to leave that piece in the page.
 

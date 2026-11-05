@@ -4,7 +4,6 @@ import {
   Box,
   Button,
   DialogActions,
-  DialogContent,
   DialogTitle,
   FormControlLabel,
   Switch,
@@ -34,6 +33,9 @@ import { isAccountEditValid } from './accountEdit'
 import { buildAccountColumns } from './accountColumns'
 import { AccountEditFields } from './AccountEditFields'
 import { AccountRowActions } from './AccountRowActions'
+import { PageContainer } from '../../components/layout/PageContainer'
+import { PageHeader } from '../../components/layout/PageHeader'
+import { FormDialogContent } from '../../components/feedback/FormDialogContent'
 
 /**
  * Account list/management screen (F003 spec): table with name, institution, type, running
@@ -160,23 +162,12 @@ export function AccountsPage() {
   }
 
   return (
-    <Box sx={{ py: { xs: 2, sm: 4 } }}>
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 2,
-          mb: 1,
-        }}
-      >
-        <Typography variant="h4" component="h1">
-          {t('accounts:title')}
-        </Typography>
+    <PageContainer>
+      <PageHeader title={t('accounts:title')}>
         <Button variant="contained" onClick={() => setAddDialogOpen(true)}>
           {t('accounts:addButton')}
         </Button>
-      </Box>
+      </PageHeader>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         {t('accounts:description')}
       </Typography>
@@ -221,22 +212,20 @@ export function AccountsPage() {
 
       <ResponsiveDialog open={editDialogOpen} onClose={saveAction.pending ? undefined : cancelEdit}>
         <DialogTitle>{t('accounts:editDialogTitle')}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 1 }}>
-            <ErrorAlert message={error} onDismiss={() => setError(null)} />
-            <FormGrid>
-              <AccountEditFields
-                name={editingName}
-                institutionId={editingInstitutionId}
-                onNameChange={(name) => edit.setDraft((d) => ({ ...d, name }))}
-                onInstitutionChange={(institutionId) =>
-                  edit.setDraft((d) => ({ ...d, institutionId }))
-                }
-                onSubmit={() => editingId && void saveEdit(editingId)}
-              />
-            </FormGrid>
-          </Box>
-        </DialogContent>
+        <FormDialogContent>
+          <ErrorAlert message={error} onDismiss={() => setError(null)} />
+          <FormGrid>
+            <AccountEditFields
+              name={editingName}
+              institutionId={editingInstitutionId}
+              onNameChange={(name) => edit.setDraft((d) => ({ ...d, name }))}
+              onInstitutionChange={(institutionId) =>
+                edit.setDraft((d) => ({ ...d, institutionId }))
+              }
+              onSubmit={() => editingId && void saveEdit(editingId)}
+            />
+          </FormGrid>
+        </FormDialogContent>
         <DialogActions>
           <Button onClick={cancelEdit} disabled={saveAction.pending}>
             {t('common:actions.cancel')}
@@ -270,6 +259,6 @@ export function AccountsPage() {
         onConfirm={() => void confirmDelete()}
         onCancel={() => setDeleteTarget(null)}
       />
-    </Box>
+    </PageContainer>
   )
 }

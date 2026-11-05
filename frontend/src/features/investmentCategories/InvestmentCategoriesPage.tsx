@@ -19,6 +19,7 @@ import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { DataTableBody } from '../../components/table/DataTableBody'
 import { useQueryState } from '../../hooks/queryState'
 import { translateSeedName } from '../../i18n/seedNames'
+import { PageContainer } from '../../components/layout/PageContainer'
 
 /**
  * Read-only expandable list of the two-level investment taxonomy (F008 spec, F034/ADR 0028): every
@@ -54,7 +55,7 @@ export function InvestmentCategoriesPage() {
   }
 
   return (
-    <Box sx={{ py: { xs: 2, sm: 4 } }}>
+    <PageContainer>
       <Typography variant="h4" component="h1" sx={{ mb: 1 }}>
         {t('investmentCategories:title')}
       </Typography>
@@ -134,6 +135,6 @@ export function InvestmentCategoriesPage() {
           </Table>
         </TableContainer>
       </Paper>
-    </Box>
+    </PageContainer>
   )
 }

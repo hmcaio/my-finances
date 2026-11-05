@@ -27,6 +27,7 @@ import { formatMoney } from '../../i18n/format'
 import { translateSeedName } from '../../i18n/seedNames'
 import { nameLookup } from '../../utils/nameLookup'
 import { InvestmentProductForm, type InvestmentProductFormValues } from './InvestmentProductForm'
+import { WRAP_ANYWHERE } from '../../components/layout/layoutSx'
 
 interface InvestmentProductsSectionProps {
   /** The INVESTMENT account whose holdings are listed. */
@@ -209,12 +210,12 @@ export function InvestmentProductsSection({
     return (
       <Paper variant="outlined" sx={{ p: 1.5 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-          <Typography variant="subtitle1" component="div" sx={{ overflowWrap: 'anywhere' }}>
+          <Typography variant="subtitle1" component="div" sx={WRAP_ANYWHERE}>
             {productLink(holding)}
           </Typography>
           {statusChips(holding)}
         </Box>
-        <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
+        <Typography variant="body2" color="text.secondary" sx={WRAP_ANYWHERE}>
           {product ? categoryName(product.investmentCategoryId) : ''}
           {product?.investmentSubcategoryId
             ? ` · ${subcategoryName(product.investmentSubcategoryId)}`

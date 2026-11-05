@@ -1,18 +1,10 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  Box,
-  Button,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  MenuItem,
-  Select,
-  TextField,
-} from '@mui/material'
+import { Button, DialogActions, DialogTitle, MenuItem, Select, TextField } from '@mui/material'
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
 import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
 import type { HoldingActions } from './useHoldingActions'
+import { FormDialogContent } from '../../components/feedback/FormDialogContent'
 
 interface HoldingDialogsProps {
   actions: HoldingActions
@@ -34,37 +26,35 @@ export function HoldingDialogs({ actions, accountName, banner }: HoldingDialogsP
         fullWidth
       >
         <DialogTitle>{t('investmentProducts:detail.addHoldingDialogTitle')}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 1 }}>
-            {banner}
-            <FormGrid>
-              <Select
-                size="small"
-                displayEmpty
-                value={add.accountId}
-                onChange={(e) => add.setAccountId(e.target.value)}
-                aria-label={t('investmentProducts:detail.accountLabel')}
-              >
-                <MenuItem value="" disabled>
-                  {t('investmentProducts:detail.accountLabel')}
+        <FormDialogContent>
+          {banner}
+          <FormGrid>
+            <Select
+              size="small"
+              displayEmpty
+              value={add.accountId}
+              onChange={(e) => add.setAccountId(e.target.value)}
+              aria-label={t('investmentProducts:detail.accountLabel')}
+            >
+              <MenuItem value="" disabled>
+                {t('investmentProducts:detail.accountLabel')}
+              </MenuItem>
+              {add.availableAccounts.map((a) => (
+                <MenuItem key={a.id} value={a.id}>
+                  {a.name}
                 </MenuItem>
-                {add.availableAccounts.map((a) => (
-                  <MenuItem key={a.id} value={a.id}>
-                    {a.name}
-                  </MenuItem>
-                ))}
-              </Select>
-              <TextField
-                label={t('investmentProducts:detail.notesLabel')}
-                size="small"
-                multiline
-                value={add.notes}
-                onChange={(e) => add.setNotes(e.target.value)}
-                slotProps={{ htmlInput: { maxLength: 500 } }}
-              />
-            </FormGrid>
-          </Box>
-        </DialogContent>
+              ))}
+            </Select>
+            <TextField
+              label={t('investmentProducts:detail.notesLabel')}
+              size="small"
+              multiline
+              value={add.notes}
+              onChange={(e) => add.setNotes(e.target.value)}
+              slotProps={{ htmlInput: { maxLength: 500 } }}
+            />
+          </FormGrid>
+        </FormDialogContent>
         <DialogActions>
           <Button onClick={add.close} disabled={add.pending}>
             {t('common:actions.cancel')}
@@ -86,22 +76,20 @@ export function HoldingDialogs({ actions, accountName, banner }: HoldingDialogsP
         fullWidth
       >
         <DialogTitle>{t('investmentProducts:detail.editHoldingNotesTitle')}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 1 }}>
-            {banner}
-            <TextField
-              label={t('investmentProducts:detail.notesLabel')}
-              size="small"
-              fullWidth
-              multiline
-              value={notes.edit?.value ?? ''}
-              onChange={(e) =>
-                notes.setEdit((prev) => (prev ? { ...prev, value: e.target.value } : prev))
-              }
-              slotProps={{ htmlInput: { maxLength: 500 } }}
-            />
-          </Box>
-        </DialogContent>
+        <FormDialogContent>
+          {banner}
+          <TextField
+            label={t('investmentProducts:detail.notesLabel')}
+            size="small"
+            fullWidth
+            multiline
+            value={notes.edit?.value ?? ''}
+            onChange={(e) =>
+              notes.setEdit((prev) => (prev ? { ...prev, value: e.target.value } : prev))
+            }
+            slotProps={{ htmlInput: { maxLength: 500 } }}
+          />
+        </FormDialogContent>
         <DialogActions>
           <Button onClick={() => notes.setEdit(null)} disabled={notes.pending}>
             {t('common:actions.cancel')}

@@ -4,7 +4,6 @@ import { Link as RouterLink } from 'react-router-dom'
 import {
   Box,
   Link as MuiLink,
-  Paper,
   Tab,
   Table,
   TableCell,
@@ -23,9 +22,10 @@ import { InvestmentAccountAllocationChart } from './InvestmentAccountAllocationC
 import { InvestmentAllocationChart } from './InvestmentAllocationChart'
 import { InvestmentProductsListSection } from './InvestmentProductsListSection'
 import { InvestmentSubcategoryAllocationChart } from './InvestmentSubcategoryAllocationChart'
+import { PageContainer } from '../../components/layout/PageContainer'
+import { PageSection } from '../../components/layout/PageSection'
 
 /** Tighter section padding on phones (F021), matching `AccountDetailPage`. */
-const SECTION_PADDING = { xs: 2, sm: 3 }
 
 type InvestmentsTab = 'accounts' | 'products'
 
@@ -58,7 +58,7 @@ export function InvestmentsPage() {
   }
 
   return (
-    <Box sx={{ py: { xs: 2, sm: 4 } }}>
+    <PageContainer>
       <Typography variant="h4" component="h1" gutterBottom>
         {t('title')}
       </Typography>
@@ -74,24 +74,24 @@ export function InvestmentsPage() {
           mb: 3,
         }}
       >
-        <Paper variant="outlined" sx={{ p: SECTION_PADDING }}>
+        <PageSection>
           <Typography variant="h6" gutterBottom>
             {t('byCategory')}
           </Typography>
           <InvestmentAllocationChart />
-        </Paper>
-        <Paper variant="outlined" sx={{ p: SECTION_PADDING }}>
+        </PageSection>
+        <PageSection>
           <Typography variant="h6" gutterBottom>
             {t('bySubcategory')}
           </Typography>
           <InvestmentSubcategoryAllocationChart />
-        </Paper>
-        <Paper variant="outlined" sx={{ p: SECTION_PADDING }}>
+        </PageSection>
+        <PageSection>
           <Typography variant="h6" gutterBottom>
             {t('byAccount')}
           </Typography>
           <InvestmentAccountAllocationChart />
-        </Paper>
+        </PageSection>
       </Box>
 
       <Tabs value={tab} onChange={handleTabChange} aria-label={t('tabsAria')}>
@@ -117,7 +117,7 @@ export function InvestmentsPage() {
         sx={{ mt: 3 }}
       >
         {tab === 'accounts' && (
-          <Paper variant="outlined" sx={{ p: SECTION_PADDING }}>
+          <PageSection>
             <Typography variant="h6" gutterBottom>
               {t('investmentAccountsTitle')}
             </Typography>
@@ -154,7 +154,7 @@ export function InvestmentsPage() {
                 </DataTableBody>
               </Table>
             </TableContainer>
-          </Paper>
+          </PageSection>
         )}
       </Box>
 
@@ -166,14 +166,14 @@ export function InvestmentsPage() {
         sx={{ mt: 3 }}
       >
         {tab === 'products' && (
-          <Paper variant="outlined" sx={{ p: SECTION_PADDING }}>
+          <PageSection>
             <Typography variant="h6" gutterBottom>
               {t('productsTitle')}
             </Typography>
             <InvestmentProductsListSection />
-          </Paper>
+          </PageSection>
         )}
       </Box>
-    </Box>
+    </PageContainer>
   )
 }

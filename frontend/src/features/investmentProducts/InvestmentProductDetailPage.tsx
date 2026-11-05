@@ -19,7 +19,6 @@ import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { nameLookup } from '../../utils/nameLookup'
 import { CurrentValueCard } from './CurrentValueCard'
-import { SECTION_PADDING } from './detailLayout'
 import { HoldingDialogs } from './HoldingDialogs'
 import { HoldingsPanel } from './HoldingsPanel'
 import { OpeningPositionCard } from './OpeningPositionCard'
@@ -33,6 +32,8 @@ import { useProductActions } from './useProductActions'
 import { useSnapshotActions } from './useSnapshotActions'
 import { useTradeDialog } from './useTradeDialog'
 import { ValueOverTimePanel } from './ValueOverTimePanel'
+import { PageContainer } from '../../components/layout/PageContainer'
+import { WRAP_ANYWHERE } from '../../components/layout/layoutSx'
 
 /**
  * Per-product detail view (F008 spec, made holding-aware by F022/ADR 0020): the product's taxonomy
@@ -118,7 +119,7 @@ export function InvestmentProductDetailPage() {
     holdingActions.add.open
 
   return (
-    <Box sx={{ py: { xs: 2, sm: 4 } }}>
+    <PageContainer>
       <MuiLink
         component={RouterLink}
         to={selectedHolding ? `/accounts/${selectedHolding.accountId}` : '/accounts'}
@@ -144,7 +145,7 @@ export function InvestmentProductDetailPage() {
           <Box
             sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2, mb: 1, flexWrap: 'wrap' }}
           >
-            <Typography variant="h4" component="h1" sx={{ overflowWrap: 'anywhere' }}>
+            <Typography variant="h4" component="h1" sx={WRAP_ANYWHERE}>
               {product.name}
             </Typography>
             <IconButton
@@ -165,7 +166,7 @@ export function InvestmentProductDetailPage() {
             )}
           </Box>
           {product.additionalNotes && (
-            <Typography color="text.secondary" sx={{ mb: 2, overflowWrap: 'anywhere' }}>
+            <Typography color="text.secondary" sx={{ mb: 2, ...WRAP_ANYWHERE }}>
               {product.additionalNotes}
             </Typography>
           )}
@@ -204,7 +205,7 @@ export function InvestmentProductDetailPage() {
                   onTrade={tradeDialog.open}
                 />
 
-                <OpeningPositionCard holding={selectedHolding} padding={SECTION_PADDING} />
+                <OpeningPositionCard holding={selectedHolding} />
               </Box>
 
               <SnapshotsPanel
@@ -245,6 +246,6 @@ export function InvestmentProductDetailPage() {
       />
 
       <HoldingDialogs actions={holdingActions} accountName={accountName} banner={errorBanner} />
-    </Box>
+    </PageContainer>
   )
 }

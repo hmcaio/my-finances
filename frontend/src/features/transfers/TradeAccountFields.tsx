@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { MenuItem, Select, TextField } from '@mui/material'
 import type { Account } from '../../api/accounts/accounts'
 import type { FormState } from './transferFormState'
+import { SELECT_MIN_WIDTH } from '../../components/layout/layoutSx'
 
 interface TradeAccountFieldsProps {
   form: FormState
@@ -31,7 +32,7 @@ export function TradeAccountFields({
         value={form.cashAccountId}
         onChange={(e) => patch({ cashAccountId: e.target.value })}
         aria-label={t('transfers:form.cashAccountLabel')}
-        sx={{ minWidth: 160 }}
+        sx={SELECT_MIN_WIDTH}
       >
         <MenuItem value="" disabled>
           {t('transfers:form.cashAccountLabel')}
@@ -50,7 +51,7 @@ export function TradeAccountFields({
         value={form.investmentAccountId}
         onChange={(e) => onInvestmentAccountChange(e.target.value)}
         aria-label={t('transfers:form.investmentAccountLabel')}
-        sx={{ minWidth: 160 }}
+        sx={SELECT_MIN_WIDTH}
       >
         <MenuItem value="" disabled>
           {t('transfers:form.investmentAccountLabel')}

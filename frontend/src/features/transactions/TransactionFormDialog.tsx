@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Box, Button, DialogActions, DialogContent, DialogTitle } from '@mui/material'
+import { Button, DialogActions, DialogTitle } from '@mui/material'
 import { useAccounts } from '../../api/accounts/accountsQueries'
 import { useCategories } from '../../api/categories/categoriesQueries'
 import { defaultErrorMessage } from '../../api/core/apiError'
@@ -20,6 +20,7 @@ import {
   isTransactionFormValid,
   type TransactionFormValues,
 } from './transactionForm'
+import { FormDialogContent } from '../../components/feedback/FormDialogContent'
 
 interface TransactionFormDialogProps {
   /** The full transaction to edit, or `null` to add a new one. */
@@ -108,21 +109,19 @@ export function TransactionFormDialog({
       <DialogTitle>
         {editing ? t('transactions:editDialogTitle') : t('transactions:addDialogTitle')}
       </DialogTitle>
-      <DialogContent>
-        <Box sx={{ pt: 1 }}>
-          <ErrorAlert message={error} onDismiss={() => setError(null)} />
-          <FormGrid>
-            <TransactionFormFields
-              form={form}
-              onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))}
-              categories={categories}
-              accounts={openAccounts}
-              paymentMethods={paymentMethods}
-              vehicles={vehicles}
-            />
-          </FormGrid>
-        </Box>
-      </DialogContent>
+      <FormDialogContent>
+        <ErrorAlert message={error} onDismiss={() => setError(null)} />
+        <FormGrid>
+          <TransactionFormFields
+            form={form}
+            onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))}
+            categories={categories}
+            accounts={openAccounts}
+            paymentMethods={paymentMethods}
+            vehicles={vehicles}
+          />
+        </FormGrid>
+      </FormDialogContent>
       <DialogActions>
         <Button onClick={onClose} disabled={saving}>
           {t('common:actions.cancel')}

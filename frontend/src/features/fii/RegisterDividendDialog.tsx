@@ -21,6 +21,7 @@ import { useAction } from '../../hooks/useAction'
 import { translateSeedName } from '../../i18n/seedNames'
 import { today } from '../../utils/localDate'
 import { nameLookup } from '../../utils/nameLookup'
+import { FORM_GRID_FULL_ROW } from '../../components/layout/layoutSx'
 
 interface RegisterDividendDialogProps {
   open: boolean
@@ -211,7 +212,7 @@ export function RegisterDividendDialog({
             size="small"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            sx={{ gridColumn: '1 / -1' }}
+            sx={FORM_GRID_FULL_ROW}
           />
         </FormGrid>
       </DialogContent>

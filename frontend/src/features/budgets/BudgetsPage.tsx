@@ -4,7 +4,6 @@ import {
   Box,
   Button,
   DialogActions,
-  DialogContent,
   DialogTitle,
   MenuItem,
   Select,
@@ -39,6 +38,9 @@ import { buildBudgetColumns } from './budgetColumns'
 import { BudgetRowActions } from './BudgetRowActions'
 import { isBudgetCapValid } from './budgetEdit'
 import { BudgetVsActualReport } from './BudgetVsActualReport'
+import { PageContainer } from '../../components/layout/PageContainer'
+import { PageHeader } from '../../components/layout/PageHeader'
+import { FormDialogContent } from '../../components/feedback/FormDialogContent'
 
 /**
  * Budgets screen (F006 spec): a settings-style list of budgeted categories with their current cap
@@ -172,23 +174,12 @@ export function BudgetsPage() {
   }
 
   return (
-    <Box sx={{ py: { xs: 2, sm: 4 } }}>
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 2,
-          mb: 1,
-        }}
-      >
-        <Typography variant="h4" component="h1">
-          {t('budgets:title')}
-        </Typography>
+    <PageContainer>
+      <PageHeader title={t('budgets:title')}>
         <Button variant="contained" onClick={addDialog.show}>
           {t('budgets:addButton')}
         </Button>
-      </Box>
+      </PageHeader>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         {t('budgets:description')}
       </Typography>
@@ -267,14 +258,12 @@ export function BudgetsPage() {
             : t('budgets:editBudgetCapTitle')}
           {editingBudget ? ` — ${categoryName(editingBudget.categoryId)}` : ''}
         </DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 1 }}>
-            <ErrorAlert message={error} onDismiss={() => setError(null)} />
-            <FormGrid columns={1}>
-              <BudgetCapField value={editingCap} onChange={setEditingCap} autoFocus />
-            </FormGrid>
-          </Box>
-        </DialogContent>
+        <FormDialogContent>
+          <ErrorAlert message={error} onDismiss={() => setError(null)} />
+          <FormGrid columns={1}>
+            <BudgetCapField value={editingCap} onChange={setEditingCap} autoFocus />
+          </FormGrid>
+        </FormDialogContent>
         <DialogActions>
           <Button onClick={cancelEditCap} disabled={capAction.pending}>
             {t('common:actions.cancel')}
@@ -313,6 +302,6 @@ export function BudgetsPage() {
       </Box>
 
       <BudgetVsActualReport month={reportMonth} />
-    </Box>
+    </PageContainer>
   )
 }

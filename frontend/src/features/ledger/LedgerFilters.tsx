@@ -25,6 +25,7 @@ import {
   type LedgerTypeParam,
   type LedgerView,
 } from './ledgerSearchParams'
+import { SELECT_MIN_WIDTH } from '../../components/layout/layoutSx'
 
 /** How long typing must pause before the search text reaches the URL (and so the request). */
 const SEARCH_DEBOUNCE_MS = 300
@@ -155,7 +156,7 @@ export function LedgerFilters({
           value={accounts?.some((a) => a.id === view.account) ? view.account : ''}
           onChange={(e) => onChange({ account: e.target.value })}
           aria-label={t('ledger:filters.accountAria')}
-          sx={{ minWidth: 160 }}
+          sx={SELECT_MIN_WIDTH}
         >
           <MenuItem value="">{t('ledger:filters.allAccounts')}</MenuItem>
           {accounts?.map((a) => (
@@ -171,7 +172,7 @@ export function LedgerFilters({
           value={categories?.some((c) => c.id === view.category) ? view.category : ''}
           onChange={(e) => onChange({ category: e.target.value })}
           aria-label={t('ledger:filters.categoryAria')}
-          sx={{ minWidth: 160 }}
+          sx={SELECT_MIN_WIDTH}
         >
           <MenuItem value="">{t('ledger:filters.allCategories')}</MenuItem>
           {categories?.map((c) => (
@@ -187,7 +188,7 @@ export function LedgerFilters({
           value={paymentMethods?.some((p) => p.id === view.paymentMethod) ? view.paymentMethod : ''}
           onChange={(e) => onChange({ paymentMethod: e.target.value })}
           aria-label={t('ledger:filters.paymentMethodAria')}
-          sx={{ minWidth: 160 }}
+          sx={SELECT_MIN_WIDTH}
         >
           <MenuItem value="">{t('ledger:filters.allPaymentMethods')}</MenuItem>
           {paymentMethods?.map((p) => (

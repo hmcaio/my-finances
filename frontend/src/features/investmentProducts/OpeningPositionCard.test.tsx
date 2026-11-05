@@ -19,7 +19,7 @@ const open = seedInvestmentHoldings.find((h) => h.id === 'iholding-selic')!
 const closed = seedInvestmentHoldings.find((h) => h.id === 'iholding-old')!
 
 function renderCard(holding: InvestmentHolding = open) {
-  renderWithQueryClient(<OpeningPositionCard holding={holding} padding={{ xs: 2, sm: 3 }} />)
+  renderWithQueryClient(<OpeningPositionCard holding={holding} />)
   return userEvent.setup({ delay: null })
 }
 

@@ -8,6 +8,7 @@ import { NetWorthTrendChart } from '../netWorth/NetWorthTrendChart'
 import { PendingOccurrencesWidget } from '../recurringTemplates/PendingOccurrencesWidget'
 import { AccountBalancesWidget } from './AccountBalancesWidget'
 import { SpendByCategoryWidget } from './SpendByCategoryWidget'
+import { PageContainer } from '../../components/layout/PageContainer'
 
 function Section({ title, children }: PropsWithChildren<{ title: string }>) {
   return (
@@ -29,7 +30,7 @@ function Section({ title, children }: PropsWithChildren<{ title: string }>) {
 export function DashboardPage() {
   const { t } = useTranslation('dashboard')
   return (
-    <Box sx={{ py: { xs: 2, sm: 4 } }}>
+    <PageContainer>
       <Typography variant="h4" component="h1" gutterBottom>
         {t('title')}
       </Typography>
@@ -82,6 +83,6 @@ export function DashboardPage() {
           <PendingOccurrencesWidget />
         </Box>
       </Box>
-    </Box>
+    </PageContainer>
   )
 }

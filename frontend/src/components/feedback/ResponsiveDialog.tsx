@@ -14,7 +14,7 @@ export function ResponsiveDialog(props: Omit<DialogProps, 'fullScreen'>) {
 }
 
 /** Grid for form fields: one column at `xs`, `columns` (default 2) from `sm` up. Spanning children
- * can set `sx={{ gridColumn: '1 / -1' }}`. */
+ * can set `sx={FORM_GRID_FULL_ROW}` (`layout/layoutSx`). */
 const formGridSx = (columns: number) => ({
   display: 'grid',
   gap: 2,

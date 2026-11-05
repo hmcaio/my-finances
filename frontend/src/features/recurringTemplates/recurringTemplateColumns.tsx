@@ -9,6 +9,7 @@ import {
   RecurringTemplateAmountField,
   RecurringTemplateDayOfMonthField,
 } from './RecurringTemplateEditFields'
+import { WRAP_ANYWHERE } from '../../components/layout/layoutSx'
 
 type RecurringT = TFunction<['recurringTemplates', 'common']>
 
@@ -126,12 +127,12 @@ export function renderRecurringTemplateCard(
   return (
     <Paper variant="outlined" sx={{ p: 1.5 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
-        <Typography variant="subtitle1" component="div" sx={{ overflowWrap: 'anywhere' }}>
+        <Typography variant="subtitle1" component="div" sx={WRAP_ANYWHERE}>
           {template.description}
         </Typography>
         {statusChip(template, t)}
       </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
+      <Typography variant="body2" color="text.secondary" sx={WRAP_ANYWHERE}>
         {categoryName(template.categoryId)} · {accountName(template.accountId)}
       </Typography>
       <Typography variant="body2" color="text.secondary">

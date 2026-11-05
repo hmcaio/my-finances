@@ -11,6 +11,7 @@ import { useLocale } from '../../hooks/locale/useLocale'
 import { formatMoney } from '../../i18n/format'
 import { translateSeedName } from '../../i18n/seedNames'
 import { nameLookup } from '../../utils/nameLookup'
+import { WRAP_ANYWHERE } from '../../components/layout/layoutSx'
 
 interface BudgetVsActualReportProps {
   /** The month to report on, `YYYY-MM`. */
@@ -64,13 +65,13 @@ export function BudgetVsActualReport({ month }: BudgetVsActualReportProps) {
                     mb: 0.5,
                   }}
                 >
-                  <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>
+                  <Typography variant="body2" sx={WRAP_ANYWHERE}>
                     {categoryName(line.categoryId)}
                   </Typography>
                   <Typography
                     variant="body2"
                     color={overCap ? 'error' : 'text.secondary'}
-                    sx={{ fontWeight: overCap ? 'bold' : undefined, overflowWrap: 'anywhere' }}
+                    sx={{ fontWeight: overCap ? 'bold' : undefined, ...WRAP_ANYWHERE }}
                   >
                     {t('budgets:report.lineAmounts', {
                       actual: formatMoney(line.actual, locale),

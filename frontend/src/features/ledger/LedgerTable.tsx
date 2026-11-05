@@ -9,6 +9,7 @@ import type { LoadState } from '../../hooks/queryState'
 import { useLocale } from '../../hooks/locale/useLocale'
 import { formatEntryAmount, ledgerEntryStyle } from './ledgerEntryStyle'
 import type { LedgerLookups } from './useLedgerLookups'
+import { WRAP_ANYWHERE } from '../../components/layout/layoutSx'
 
 /** Buy/Sell chips shown on a trade confirmation before collapsing into "+N more" (F027). */
 const MAX_TRADE_CHIPS = 3
@@ -194,7 +195,7 @@ export function LedgerTable({
           <Typography
             variant="subtitle1"
             component="div"
-            sx={{ overflowWrap: 'anywhere', display: 'flex', gap: 0.75, alignItems: 'flex-start' }}
+            sx={{ ...WRAP_ANYWHERE, display: 'flex', gap: 0.75, alignItems: 'flex-start' }}
           >
             {typeIcon(entry)}
             <span>{entry.description}</span>
@@ -211,22 +212,12 @@ export function LedgerTable({
             {amountText(entry)}
           </Typography>
         </Box>
-        <Typography
-          variant="body2"
-          component="div"
-          color="text.secondary"
-          sx={{ overflowWrap: 'anywhere' }}
-        >
+        <Typography variant="body2" component="div" color="text.secondary" sx={WRAP_ANYWHERE}>
           {isTransfer
             ? entry.date
             : `${entry.date} · ${lookups.categoryName(entry.categoryId ?? '')}`}
         </Typography>
-        <Typography
-          variant="body2"
-          component="div"
-          color="text.secondary"
-          sx={{ overflowWrap: 'anywhere' }}
-        >
+        <Typography variant="body2" component="div" color="text.secondary" sx={WRAP_ANYWHERE}>
           {isTransfer
             ? accountCell(entry)
             : `${lookups.accountName(entry.accountId ?? '')} · ${lookups.paymentMethodName(entry.paymentMethodId ?? '')}`}

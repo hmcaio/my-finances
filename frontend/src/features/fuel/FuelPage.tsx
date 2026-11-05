@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { Box, Button, MenuItem, Paper, Select, Typography, useTheme } from '@mui/material'
+import { Button, MenuItem, Paper, Select, Typography, useTheme } from '@mui/material'
 import type { Theme } from '@mui/material/styles'
 import { useCategories } from '../../api/categories/categoriesQueries'
 import { useVehicleFuelHistory, useVehicles } from '../../api/vehicles/vehiclesQueries'
@@ -14,6 +14,8 @@ import { formatMoney, formatNumber } from '../../i18n/format'
 import { fuelTypeLabel } from '../../utils/fuelType'
 import type { Transaction } from '../../api/transactions/transactions'
 import { FuelTimeSeriesChart, type FuelSeries } from './FuelTimeSeriesChart'
+import { PageContainer } from '../../components/layout/PageContainer'
+import { PageHeader } from '../../components/layout/PageHeader'
 
 /** One color per fuel type (F024 spec: "price/liter chart shows separate lines per fuel type
  * used"), drawn from the theme's existing palette slots rather than inventing new brand colors. */
@@ -167,24 +169,12 @@ export function FuelPage() {
   }
 
   return (
-    <Box sx={{ py: { xs: 2, sm: 4 } }}>
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 2,
-          mb: 1,
-          flexWrap: 'wrap',
-        }}
-      >
-        <Typography variant="h4" component="h1">
-          {t('title')}
-        </Typography>
+    <PageContainer>
+      <PageHeader title={t('title')} sx={{ flexWrap: 'wrap' }}>
         <Button variant="contained" onClick={addFuelTransaction} disabled={!fuelCategory}>
           {t('addFuelTransactionButton')}
         </Button>
-      </Box>
+      </PageHeader>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         {t('description')}
       </Typography>
@@ -264,6 +254,6 @@ export function FuelPage() {
           />
         </>
       )}
-    </Box>
+    </PageContainer>
   )
 }

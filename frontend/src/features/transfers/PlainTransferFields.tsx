@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { MenuItem, Select, TextField } from '@mui/material'
 import type { Account } from '../../api/accounts/accounts'
 import type { FormState } from './transferFormState'
+import { SELECT_MIN_WIDTH } from '../../components/layout/layoutSx'
 
 interface PlainTransferFieldsProps {
   form: FormState
@@ -21,7 +22,7 @@ export function PlainTransferFields({ form, patch, cashOptions }: PlainTransferF
         value={form.fromAccountId}
         onChange={(e) => patch({ fromAccountId: e.target.value })}
         aria-label={t('transfers:form.fromAccountLabel')}
-        sx={{ minWidth: 160 }}
+        sx={SELECT_MIN_WIDTH}
       >
         <MenuItem value="" disabled>
           {t('transfers:form.fromAccountLabel')}
@@ -38,7 +39,7 @@ export function PlainTransferFields({ form, patch, cashOptions }: PlainTransferF
         value={form.toAccountId}
         onChange={(e) => patch({ toAccountId: e.target.value })}
         aria-label={t('transfers:form.toAccountLabel')}
-        sx={{ minWidth: 160 }}
+        sx={SELECT_MIN_WIDTH}
       >
         <MenuItem value="" disabled>
           {t('transfers:form.toAccountLabel')}

@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Box, Button, DialogActions, DialogContent, DialogTitle, TextField } from '@mui/material'
+import { Button, DialogActions, DialogTitle, TextField } from '@mui/material'
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
 import { FormGrid, ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
 import { isValidSnapshotInput, type SnapshotActions } from './useSnapshotActions'
+import { FormDialogContent } from '../../components/feedback/FormDialogContent'
 
 interface SnapshotDialogsProps {
   actions: SnapshotActions
@@ -36,28 +37,26 @@ export function SnapshotDialogs({ actions, banner }: SnapshotDialogsProps) {
         fullWidth
       >
         <DialogTitle>{t('investmentProducts:detail.recordSnapshotDialogTitle')}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 1 }}>
-            {banner}
-            <FormGrid>
-              <TextField
-                label={t('investmentProducts:detail.snapshotDateLabel')}
-                type="date"
-                value={record.form.date}
-                onChange={(e) => record.setForm((prev) => ({ ...prev, date: e.target.value }))}
-                slotProps={{ inputLabel: { shrink: true } }}
-              />
-              <TextField
-                label={t('investmentProducts:detail.balanceLabel')}
-                type="number"
-                value={record.form.balance}
-                onChange={(e) => record.setForm((prev) => ({ ...prev, balance: e.target.value }))}
-                helperText={t('investmentProducts:detail.balanceHelperText')}
-                slotProps={{ htmlInput: { step: '0.01', min: '0' } }}
-              />
-            </FormGrid>
-          </Box>
-        </DialogContent>
+        <FormDialogContent>
+          {banner}
+          <FormGrid>
+            <TextField
+              label={t('investmentProducts:detail.snapshotDateLabel')}
+              type="date"
+              value={record.form.date}
+              onChange={(e) => record.setForm((prev) => ({ ...prev, date: e.target.value }))}
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+            <TextField
+              label={t('investmentProducts:detail.balanceLabel')}
+              type="number"
+              value={record.form.balance}
+              onChange={(e) => record.setForm((prev) => ({ ...prev, balance: e.target.value }))}
+              helperText={t('investmentProducts:detail.balanceHelperText')}
+              slotProps={{ htmlInput: { step: '0.01', min: '0' } }}
+            />
+          </FormGrid>
+        </FormDialogContent>
         <DialogActions>
           <Button onClick={record.closeDialog} disabled={record.pending}>
             {t('common:actions.cancel')}

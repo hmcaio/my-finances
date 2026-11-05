@@ -4,7 +4,6 @@ import {
   Box,
   Button,
   DialogActions,
-  DialogContent,
   DialogTitle,
   IconButton,
   MenuItem,
@@ -35,6 +34,8 @@ import { useAction } from '../../hooks/useAction'
 import { formatMoney } from '../../i18n/format'
 import { translateSeedName } from '../../i18n/seedNames'
 import { nameLookup } from '../../utils/nameLookup'
+import { FormDialogContent } from '../../components/feedback/FormDialogContent'
+import { WRAP_ANYWHERE } from '../../components/layout/layoutSx'
 
 /**
  * "Upcoming recurring bills" widget (F007 spec, embedded on F012's dashboard and on {@link
@@ -214,17 +215,17 @@ export function PendingOccurrencesWidget() {
     return (
       <Paper variant="outlined" sx={{ p: 1.5 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
-          <Typography variant="subtitle1" component="div" sx={{ overflowWrap: 'anywhere' }}>
+          <Typography variant="subtitle1" component="div" sx={WRAP_ANYWHERE}>
             {template?.description ?? '—'}
           </Typography>
           <Typography variant="subtitle1" component="div" sx={{ flexShrink: 0, fontWeight: 600 }}>
             {formatMoney(occurrence.amount, locale)}
           </Typography>
         </Box>
-        <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
+        <Typography variant="body2" color="text.secondary" sx={WRAP_ANYWHERE}>
           {occurrence.dueDate} · {template ? categoryName(template.categoryId) : '—'}
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
+        <Typography variant="body2" color="text.secondary" sx={WRAP_ANYWHERE}>
           {template ? accountName(template.accountId) : '—'}
         </Typography>
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 0.5 }}>{actions}</Box>
@@ -260,61 +261,59 @@ export function PendingOccurrencesWidget() {
         onClose={confirmAction.pending ? undefined : closeConfirm}
       >
         <DialogTitle>{t('recurringTemplates:pending.confirmDialogTitle')}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 1 }}>
-            <ErrorAlert message={error} onDismiss={() => setError(null)} />
-            <FormGrid>
-              <TextField
-                label={t('recurringTemplates:amountLabel')}
-                type="number"
-                size="small"
-                value={confirmAmount}
-                onChange={(e) => setConfirmAmount(e.target.value)}
-                slotProps={{ htmlInput: { step: '0.01', min: '0.01' } }}
-              />
-              <TextField
-                label={t('recurringTemplates:pending.dateLabel')}
-                type="date"
-                size="small"
-                value={confirmDate}
-                onChange={(e) => setConfirmDate(e.target.value)}
-                slotProps={{ inputLabel: { shrink: true } }}
-              />
-              <Select
-                size="small"
-                displayEmpty
-                value={confirmAccountId}
-                onChange={(e) => setConfirmAccountId(e.target.value)}
-                aria-label={t('recurringTemplates:pending.accountLabel')}
-              >
-                <MenuItem value="" disabled>
-                  {t('recurringTemplates:pending.accountLabel')}
+        <FormDialogContent>
+          <ErrorAlert message={error} onDismiss={() => setError(null)} />
+          <FormGrid>
+            <TextField
+              label={t('recurringTemplates:amountLabel')}
+              type="number"
+              size="small"
+              value={confirmAmount}
+              onChange={(e) => setConfirmAmount(e.target.value)}
+              slotProps={{ htmlInput: { step: '0.01', min: '0.01' } }}
+            />
+            <TextField
+              label={t('recurringTemplates:pending.dateLabel')}
+              type="date"
+              size="small"
+              value={confirmDate}
+              onChange={(e) => setConfirmDate(e.target.value)}
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+            <Select
+              size="small"
+              displayEmpty
+              value={confirmAccountId}
+              onChange={(e) => setConfirmAccountId(e.target.value)}
+              aria-label={t('recurringTemplates:pending.accountLabel')}
+            >
+              <MenuItem value="" disabled>
+                {t('recurringTemplates:pending.accountLabel')}
+              </MenuItem>
+              {accounts?.map((a) => (
+                <MenuItem key={a.id} value={a.id}>
+                  {a.name}
                 </MenuItem>
-                {accounts?.map((a) => (
-                  <MenuItem key={a.id} value={a.id}>
-                    {a.name}
-                  </MenuItem>
-                ))}
-              </Select>
-              <Select
-                size="small"
-                displayEmpty
-                value={confirmPaymentMethodId}
-                onChange={(e) => setConfirmPaymentMethodId(e.target.value)}
-                aria-label={t('recurringTemplates:pending.paymentMethodLabel')}
-              >
-                <MenuItem value="" disabled>
-                  {t('recurringTemplates:pending.paymentMethodLabel')}
+              ))}
+            </Select>
+            <Select
+              size="small"
+              displayEmpty
+              value={confirmPaymentMethodId}
+              onChange={(e) => setConfirmPaymentMethodId(e.target.value)}
+              aria-label={t('recurringTemplates:pending.paymentMethodLabel')}
+            >
+              <MenuItem value="" disabled>
+                {t('recurringTemplates:pending.paymentMethodLabel')}
+              </MenuItem>
+              {paymentMethods?.map((p) => (
+                <MenuItem key={p.id} value={p.id}>
+                  {translateSeedName('paymentMethods', p.name, t)}
                 </MenuItem>
-                {paymentMethods?.map((p) => (
-                  <MenuItem key={p.id} value={p.id}>
-                    {translateSeedName('paymentMethods', p.name, t)}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormGrid>
-          </Box>
-        </DialogContent>
+              ))}
+            </Select>
+          </FormGrid>
+        </FormDialogContent>
         <DialogActions>
           <Button onClick={closeConfirm} disabled={confirmAction.pending}>
             {t('common:actions.cancel')}

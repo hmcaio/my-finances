@@ -1,14 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  Box,
-  Button,
-  DialogActions,
-  DialogContent,
-  MenuItem,
-  Select,
-  TextField,
-} from '@mui/material'
+import { Box, Button, DialogActions, MenuItem, Select, TextField } from '@mui/material'
 import type { Account, AccountType } from '../../api/accounts/accounts'
 import { useCreateAccount } from '../../api/accounts/accountsQueries'
 import { defaultErrorMessage } from '../../api/core/apiError'
@@ -16,6 +8,8 @@ import { FormGrid } from '../../components/feedback/ResponsiveDialog'
 import { today } from '../../utils/localDate'
 import { InstitutionSelect } from '../institutions/InstitutionSelect'
 import { ACCOUNT_TYPES, accountTypeLabel } from './accountTypes'
+import { FormDialogContent } from '../../components/feedback/FormDialogContent'
+import { FORM_GRID_FULL_ROW } from '../../components/layout/layoutSx'
 
 interface AccountCreateFormProps {
   /** Called with the created account once the backend accepted it. Lists refetch on their own. */
@@ -95,7 +89,7 @@ export function AccountCreateForm({
         size="small"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        sx={{ gridColumn: '1 / -1' }}
+        sx={FORM_GRID_FULL_ROW}
       />
       <InstitutionSelect value={institutionId} onChange={setInstitutionId} fullWidth />
       <Select
@@ -145,12 +139,10 @@ export function AccountCreateForm({
   if (dialog) {
     return (
       <>
-        <DialogContent>
-          <Box sx={{ pt: 1 }}>
-            {banner}
-            <FormGrid>{fields}</FormGrid>
-          </Box>
-        </DialogContent>
+        <FormDialogContent>
+          {banner}
+          <FormGrid>{fields}</FormGrid>
+        </FormDialogContent>
         <DialogActions>
           {onCancel && (
             <Button onClick={onCancel} disabled={adding}>

@@ -27,6 +27,8 @@ import {
 import { useConsumeNavigationState } from './useConsumeNavigationState'
 import { useFocusParam } from './useFocusParam'
 import { useLedgerLookups } from './useLedgerLookups'
+import { PageContainer } from '../../components/layout/PageContainer'
+import { PageHeader } from '../../components/layout/PageHeader'
 
 /** What a row's edit button points at; the full record is fetched by id before its dialog opens. */
 interface EditTarget {
@@ -147,19 +149,8 @@ export function LedgerPage() {
   const bannerError = dialogOpen ? null : (error ?? editLoadError)
 
   return (
-    <Box sx={{ py: { xs: 2, sm: 4 } }}>
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 2,
-          mb: 1,
-        }}
-      >
-        <Typography variant="h4" component="h1">
-          {t('ledger:title')}
-        </Typography>
+    <PageContainer>
+      <PageHeader title={t('ledger:title')}>
         <Button
           variant="contained"
           endIcon={<ArrowDropDownIcon />}
@@ -191,7 +182,7 @@ export function LedgerPage() {
             {t('ledger:newTransfer')}
           </MenuItem>
         </Menu>
-      </Box>
+      </PageHeader>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         {t('ledger:description')}
       </Typography>
@@ -299,6 +290,6 @@ export function LedgerPage() {
         onConfirm={() => void confirmDelete()}
         onCancel={() => setDeleteTarget(null)}
       />
-    </Box>
+    </PageContainer>
   )
 }

@@ -1,13 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  Box,
-  Button,
-  DialogActions,
-  DialogContent,
-  ToggleButton,
-  ToggleButtonGroup,
-} from '@mui/material'
+import { Box, Button, DialogActions, ToggleButton, ToggleButtonGroup } from '@mui/material'
 import type { Account } from '../../api/accounts/accounts'
 import { defaultErrorMessage } from '../../api/core/apiError'
 import { useInvestmentHoldingsByAccount } from '../../api/investments/investmentHoldingsQueries'
@@ -28,6 +21,8 @@ import { PlainTransferFields } from './PlainTransferFields'
 import { TradeAccountFields } from './TradeAccountFields'
 import { TransferCommonFields } from './TransferCommonFields'
 import { useTransferForm } from './useTransferForm'
+import { FormDialogContent } from '../../components/feedback/FormDialogContent'
+import { FORM_GRID_FULL_ROW } from '../../components/layout/layoutSx'
 
 export type { TransferFormPreset }
 
@@ -116,7 +111,7 @@ export function TransferForm({
 
   // Inline: wrapping flex rows, as before. Dialog: a one-column-on-phone grid, where the long
   // fields carry `gridColumn: '1 / -1'` (`wide`).
-  const wide = dialog ? { gridColumn: '1 / -1' } : undefined
+  const wide = dialog ? FORM_GRID_FULL_ROW : undefined
   function fieldRow(children: ReactNode, columns = 2) {
     return dialog ? (
       <FormGrid columns={columns}>{children}</FormGrid>
@@ -185,12 +180,10 @@ export function TransferForm({
   if (dialog) {
     return (
       <>
-        <DialogContent>
-          <Box sx={{ pt: 1 }}>
-            {banner}
-            {body}
-          </Box>
-        </DialogContent>
+        <FormDialogContent>
+          {banner}
+          {body}
+        </FormDialogContent>
         <DialogActions>
           {cancelButton}
           {submitButton}

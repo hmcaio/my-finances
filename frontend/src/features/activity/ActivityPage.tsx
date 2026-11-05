@@ -23,6 +23,7 @@ import { useLocale } from '../../hooks/locale/useLocale'
 import { ActivityEntryRow } from './ActivityEntryRow'
 import { ActivityFilterBar } from './ActivityFilterBar'
 import { groupEntriesByLocalDay } from './groupByDay'
+import { PageContainer } from '../../components/layout/PageContainer'
 
 const PAGE_SIZE = 20
 
@@ -71,7 +72,7 @@ export function ActivityPage() {
   }
 
   return (
-    <Box sx={{ py: { xs: 2, sm: 4 } }}>
+    <PageContainer>
       <Typography variant="h4" component="h1" sx={{ mb: 1 }}>
         {t('title')}
       </Typography>
@@ -141,6 +142,6 @@ export function ActivityPage() {
       )}
 
       <PaginationControls pageInfo={pageInfo} onPageChange={setPage} sx={{ mb: 3 }} />
-    </Box>
+    </PageContainer>
   )
 }

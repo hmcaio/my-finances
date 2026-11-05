@@ -24,6 +24,7 @@ import { DataTableBody } from '../../components/table/DataTableBody'
 import { useQueryState } from '../../hooks/queryState'
 import { useLocale } from '../../hooks/locale/useLocale'
 import { formatMoney } from '../../i18n/format'
+import { SELECT_MIN_WIDTH } from '../../components/layout/layoutSx'
 
 interface DividendHistorySectionProps {
   fiiProducts: InvestmentProduct[]
@@ -66,7 +67,7 @@ export function DividendHistorySection({ fiiProducts }: DividendHistorySectionPr
           value={productId}
           onChange={(e) => setProductId(e.target.value)}
           aria-label={t('dividendHistory.tickerAria')}
-          sx={{ minWidth: 160 }}
+          sx={SELECT_MIN_WIDTH}
         >
           <MenuItem value="">{t('dividendHistory.allTickers')}</MenuItem>
           {fiiProducts.map((product) => (

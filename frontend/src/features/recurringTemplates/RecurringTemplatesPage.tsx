@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Box, Button, DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material'
+import { Box, Button, DialogActions, DialogTitle, Typography } from '@mui/material'
 import { useAccounts } from '../../api/accounts/accountsQueries'
 import { useCategories } from '../../api/categories/categoriesQueries'
 import type { RecurringTemplate } from '../../api/recurringTemplates/recurringTemplates'
@@ -36,6 +36,9 @@ import {
   EMPTY_RECURRING_TEMPLATE_CREATE_FORM,
   isRecurringTemplateEditValid,
 } from './recurringTemplateEdit'
+import { PageContainer } from '../../components/layout/PageContainer'
+import { PageHeader } from '../../components/layout/PageHeader'
+import { FormDialogContent } from '../../components/feedback/FormDialogContent'
 
 /**
  * Recurring templates settings screen (F007 spec): a list of templates (description, category,
@@ -205,23 +208,12 @@ export function RecurringTemplatesPage() {
   }
 
   return (
-    <Box sx={{ py: { xs: 2, sm: 4 } }}>
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 2,
-          mb: 1,
-        }}
-      >
-        <Typography variant="h4" component="h1">
-          {t('recurringTemplates:title')}
-        </Typography>
+    <PageContainer>
+      <PageHeader title={t('recurringTemplates:title')}>
         <Button variant="contained" onClick={addDialog.show}>
           {t('recurringTemplates:addButton')}
         </Button>
-      </Box>
+      </PageHeader>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         {t('recurringTemplates:description')}
       </Typography>
@@ -271,19 +263,17 @@ export function RecurringTemplatesPage() {
         onClose={capAction.pending ? undefined : cancelEditCap}
       >
         <DialogTitle>{t('recurringTemplates:editDialogTitle')}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 1 }}>
-            <ErrorAlert message={error} onDismiss={() => setError(null)} />
-            <FormGrid columns={1}>
-              <RecurringTemplateEditFields
-                amount={editAmount}
-                dayOfMonth={editDayOfMonth}
-                onAmountChange={(amount) => edit.setDraft((d) => ({ ...d, amount }))}
-                onDayOfMonthChange={(dayOfMonth) => edit.setDraft((d) => ({ ...d, dayOfMonth }))}
-              />
-            </FormGrid>
-          </Box>
-        </DialogContent>
+        <FormDialogContent>
+          <ErrorAlert message={error} onDismiss={() => setError(null)} />
+          <FormGrid columns={1}>
+            <RecurringTemplateEditFields
+              amount={editAmount}
+              dayOfMonth={editDayOfMonth}
+              onAmountChange={(amount) => edit.setDraft((d) => ({ ...d, amount }))}
+              onDayOfMonthChange={(dayOfMonth) => edit.setDraft((d) => ({ ...d, dayOfMonth }))}
+            />
+          </FormGrid>
+        </FormDialogContent>
         <DialogActions>
           <Button onClick={cancelEditCap} disabled={capAction.pending}>
             {t('common:actions.cancel')}
@@ -301,6 +291,6 @@ export function RecurringTemplatesPage() {
       </ResponsiveDialog>
 
       <PendingOccurrencesWidget />
-    </Box>
+    </PageContainer>
   )
 }

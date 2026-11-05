@@ -31,6 +31,8 @@ import { useInlineEdit } from '../../hooks/useInlineEdit'
 import { useQueryState } from '../../hooks/queryState'
 import { translateSeedName } from '../../i18n/seedNames'
 import { sortInstitutions } from './sortInstitutions'
+import { PageContainer } from '../../components/layout/PageContainer'
+import { PageHeader } from '../../components/layout/PageHeader'
 
 /**
  * Settings-style CRUD screen for institutions (F017 spec): table with name, inline rename,
@@ -102,23 +104,12 @@ export function InstitutionsPage() {
   }
 
   return (
-    <Box sx={{ py: { xs: 2, sm: 4 } }}>
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 2,
-          mb: 1,
-        }}
-      >
-        <Typography variant="h4" component="h1">
-          {t('institutions:title')}
-        </Typography>
+    <PageContainer>
+      <PageHeader title={t('institutions:title')}>
         <Button variant="contained" onClick={addDialog.show}>
           {t('institutions:addButton')}
         </Button>
-      </Box>
+      </PageHeader>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         {t('institutions:description')}
       </Typography>
@@ -221,6 +212,6 @@ export function InstitutionsPage() {
           }}
         />
       </AddFormDialog>
-    </Box>
+    </PageContainer>
   )
 }

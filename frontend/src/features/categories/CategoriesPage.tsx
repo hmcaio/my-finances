@@ -40,6 +40,8 @@ import { useQueryState } from '../../hooks/queryState'
 import { translateSeedName } from '../../i18n/seedNames'
 import { sortCategories } from './sortCategories'
 import { StarterCategoriesPrompt } from './StarterCategoriesPrompt'
+import { PageContainer } from '../../components/layout/PageContainer'
+import { PageHeader } from '../../components/layout/PageHeader'
 
 /**
  * Settings-style CRUD screen for categories (F002 spec): table with name + type, inline rename,
@@ -120,23 +122,12 @@ export function CategoriesPage() {
   }
 
   return (
-    <Box sx={{ py: { xs: 2, sm: 4 } }}>
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 2,
-          mb: 1,
-        }}
-      >
-        <Typography variant="h4" component="h1">
-          {t('categories:title')}
-        </Typography>
+    <PageContainer>
+      <PageHeader title={t('categories:title')}>
         <Button variant="contained" onClick={addDialog.show}>
           {t('categories:addButton')}
         </Button>
-      </Box>
+      </PageHeader>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         {t('categories:description')}
       </Typography>
@@ -265,6 +256,6 @@ export function CategoriesPage() {
           <MenuItem value="INCOME">{t('categories:typeIncome')}</MenuItem>
         </Select>
       </AddFormDialog>
-    </Box>
+    </PageContainer>
   )
 }
