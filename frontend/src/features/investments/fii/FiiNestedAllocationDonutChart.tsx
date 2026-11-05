@@ -12,7 +12,13 @@ import { combineLoadState, useQueryState } from '../../../hooks/queryState'
 import { useDelayedFlag } from '../../../hooks/useDelayedFlag'
 import { useLocale } from '../../../providers/locale/useLocale'
 import { formatNumber } from '../../../i18n/format'
-import { CENTER, SIZE, SLICE_COLORS, VISUALLY_HIDDEN, segmentPath } from '../overview/donutGeometry'
+import {
+  CENTER,
+  SIZE,
+  SLICE_COLORS,
+  VISUALLY_HIDDEN,
+  segmentPath,
+} from '../overview/lib/donutGeometry'
 
 const NO_SEGMENT_KEY = 'none'
 

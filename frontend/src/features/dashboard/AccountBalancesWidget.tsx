@@ -17,7 +17,7 @@ import { useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { useLocale } from '../../providers/locale/useLocale'
 import { formatMoney } from '../../i18n/format'
-import { accountTypeLabel } from '../accounts/accountTypes'
+import { accountTypeLabel } from '../accounts/lib/accountTypes'
 
 /**
  * Balances of every open account (F012 spec, from F003's account list), each linking to its detail

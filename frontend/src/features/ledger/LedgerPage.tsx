@@ -13,20 +13,20 @@ import { ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useAction } from '../../hooks/useAction'
 import { TransactionFormDialog } from '../transactions/TransactionFormDialog'
-import { TransferForm } from '../transfers/TransferForm'
-import { LedgerFilters } from './LedgerFilters'
-import { LedgerSummary } from './LedgerSummary'
-import { LedgerTable } from './LedgerTable'
+import { TransferForm } from '../transfers/components/TransferForm'
+import { LedgerFilters } from './components/LedgerFilters'
+import { LedgerSummary } from './components/LedgerSummary'
+import { LedgerTable } from './components/LedgerTable'
 import {
   isAllTime,
   parseLedgerView,
   serializeLedgerView,
   toLedgerFilter,
   type LedgerView,
-} from './ledgerSearchParams'
-import { useConsumeNavigationState } from './useConsumeNavigationState'
-import { useFocusParam } from './useFocusParam'
-import { useLedgerLookups } from './useLedgerLookups'
+} from './lib/ledgerSearchParams'
+import { useConsumeNavigationState } from './hooks/useConsumeNavigationState'
+import { useFocusParam } from './hooks/useFocusParam'
+import { useLedgerLookups } from './hooks/useLedgerLookups'
 import { PageContainer } from '../../components/layout/PageContainer'
 import { PageHeader } from '../../components/layout/PageHeader'
 
