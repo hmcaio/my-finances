@@ -8,7 +8,7 @@ import { seedInvestmentProducts } from '../../mocks/handlers/investmentProducts'
 import { BUILT_IN_INSTITUTION_ID, seedInstitutions } from '../../mocks/handlers/institutions'
 import { seedGroceriesTransaction } from '../../mocks/handlers/transactions'
 import { seedCreditCardPaymentTransfer } from '../../mocks/handlers/transfers'
-import { renderWithRouter } from '../../test/testUtils'
+import { renderWithRouter } from '../../test/utils/testUtils'
 import { formatMoney } from '../../i18n/format'
 import { AccountDetailPage } from './AccountDetailPage'
 

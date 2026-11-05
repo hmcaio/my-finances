@@ -2,7 +2,7 @@ import type { TFunction } from 'i18next'
 import { Typography } from '@mui/material'
 import type { Budget } from '../../api/budgets/budgets'
 import type { ResponsiveColumn } from '../../components/table/ResponsiveTable'
-import type { Locale } from '../../hooks/locale/useLocale'
+import type { Locale } from '../../providers/locale/useLocale'
 import { formatMoney } from '../../i18n/format'
 import { BudgetCapField } from './BudgetEditFields'
 

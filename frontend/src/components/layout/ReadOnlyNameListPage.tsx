@@ -12,8 +12,8 @@ import {
 import type { UseQueryResult } from '@tanstack/react-query'
 import { ErrorAlert } from '../feedback/ErrorAlert'
 import { useQueryState } from '../../hooks/queryState'
-import { DataTableBody } from './DataTableBody'
-import { PageContainer } from '../layout/PageContainer'
+import { DataTableBody } from '../table/DataTableBody'
+import { PageContainer } from './PageContainer'
 
 interface NamedRow {
   id: string

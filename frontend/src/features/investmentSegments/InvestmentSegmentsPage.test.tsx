@@ -3,8 +3,8 @@ import { screen } from '@testing-library/react'
 import i18n from '../../i18n/i18n'
 import { seedInvestmentSegments } from '../../mocks/handlers/investmentSegments'
 import { translateSeedName } from '../../i18n/seedNames'
-import { expectLoadStates } from '../../test/loadStates'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
+import { expectLoadStates } from '../../test/contracts/loadStates'
+import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
 import { InvestmentSegmentsPage } from './InvestmentSegmentsPage'
 
 /**
@@ -15,7 +15,7 @@ import { InvestmentSegmentsPage } from './InvestmentSegmentsPage'
  * Unlike the other taxonomy fixtures (category/payment-method/institution seed names, which are
  * already English words), the segment seed names are Portuguese market jargon, so their English
  * translation genuinely differs from the raw literal ("Shoppings" -> "Shopping Malls") - resolved
- * against a fixed `en` `t()` (`i18n.getFixedT`, same pattern as `test/errorMessages.ts`), not the
+ * against a fixed `en` `t()` (`i18n.getFixedT`, same pattern as `test/utils/errorMessages.ts`), not the
  * live active language, since this runs at module/describe-body evaluation time.
  */
 const t = i18n.getFixedT('en')

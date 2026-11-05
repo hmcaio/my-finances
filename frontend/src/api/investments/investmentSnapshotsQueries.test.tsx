@@ -4,7 +4,7 @@ import { seedBitcoinSnapshots } from '../../mocks/handlers/investmentSnapshots'
 import { seedAllocationByCategory } from '../../mocks/handlers/investmentAllocation'
 import { seedBitcoinSeries } from '../../mocks/handlers/investmentValueSeries'
 import { seedBitcoinBuyTransfer } from '../../mocks/handlers/transfers'
-import { renderHookWithQueryClient } from '../../test/renderWithQueryClient'
+import { renderHookWithQueryClient } from '../../test/utils/renderWithQueryClient'
 import { useInvestmentAllocation } from './investmentAllocationQueries'
 import { useInvestmentHolding } from './investmentHoldingsQueries'
 import {

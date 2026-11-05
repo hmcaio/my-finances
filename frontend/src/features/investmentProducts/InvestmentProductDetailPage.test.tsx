@@ -22,9 +22,9 @@ import {
 } from '../../mocks/handlers/investmentOpeningPositions'
 import { seedBitcoinSnapshots } from '../../mocks/handlers/investmentSnapshots'
 import { seedBitcoinBuyTransfer, seedBitcoinSellTransfer } from '../../mocks/handlers/transfers'
-import { resolveErrorMessage } from '../../test/errorMessages'
-import { renderWithRouter, selectOption } from '../../test/testUtils'
-import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
+import { resolveErrorMessage } from '../../test/utils/errorMessages'
+import { renderWithRouter, selectOption } from '../../test/utils/testUtils'
+import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/utils/viewport'
 import { formatMoney } from '../../i18n/format'
 import { InvestmentProductDetailPage } from './InvestmentProductDetailPage'
 

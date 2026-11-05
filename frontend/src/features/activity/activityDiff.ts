@@ -1,5 +1,5 @@
 import type { TFunction } from 'i18next'
-import type { Locale } from '../../hooks/locale/useLocale'
+import type { Locale } from '../../providers/locale/useLocale'
 import { formatNumber } from '../../i18n/format'
 
 /** A reference field's value once the backend has resolved its label (see `AuditReferenceLabels`). */

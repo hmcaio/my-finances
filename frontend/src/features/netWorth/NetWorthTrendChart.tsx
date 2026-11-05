@@ -10,7 +10,7 @@ import { fadeInSx } from '../../components/feedback/fadeIn'
 import { LoadFailedNotice } from '../../components/feedback/LoadFailedNotice'
 import { useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
-import { useLocale, type Locale } from '../../hooks/locale/useLocale'
+import { useLocale, type Locale } from '../../providers/locale/useLocale'
 import { formatMoney, formatNumber } from '../../i18n/format'
 
 const MARGIN = { top: 16, right: 16, bottom: 32, left: 72 }

@@ -2,7 +2,7 @@ import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz'
 import type { LedgerEntryType } from '../../api/ledger/ledger'
-import type { Locale } from '../../hooks/locale/useLocale'
+import type { Locale } from '../../providers/locale/useLocale'
 import { formatMoney } from '../../i18n/format'
 
 /**

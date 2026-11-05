@@ -14,12 +14,12 @@ import {
   seedGroceriesBudget,
   seedGroceriesBudgetReportLine,
 } from '../../mocks/handlers/budgets'
-import { resolveErrorMessage } from '../../test/errorMessages'
-import { findRow } from '../../test/testUtils'
-import { expectLoadStates } from '../../test/loadStates'
-import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
+import { resolveErrorMessage } from '../../test/utils/errorMessages'
+import { findRow } from '../../test/utils/testUtils'
+import { expectLoadStates } from '../../test/contracts/loadStates'
+import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/utils/viewport'
 import { BudgetsPage } from './BudgetsPage'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
+import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
 
 /** Scopes queries to the budget settings table - the category name also appears in the
  * budget-vs-actual section below it, so an unscoped `getByText` would be ambiguous. */

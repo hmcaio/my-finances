@@ -6,8 +6,8 @@ import {
   vehicleDeleteConflictHandler,
 } from '../../mocks/handlers/vehicles'
 import { VEHICLE_NAME_MAX_LENGTH } from '../../api/vehicles/vehicles'
-import { resolveErrorMessage } from '../../test/errorMessages'
-import { describeSettingsPageOnly } from '../../test/settingsPageContract'
+import { resolveErrorMessage } from '../../test/utils/errorMessages'
+import { describeSettingsPageOnly } from '../../test/contracts/settingsPageContract'
 import { VehiclesPage } from './VehiclesPage'
 
 describeSettingsPageOnly('VehiclesPage', {

@@ -4,9 +4,9 @@ import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import { seedNetWorthTrend } from '../../mocks/handlers/netWorth'
-import { expectLoadStates } from '../../test/loadStates'
+import { expectLoadStates } from '../../test/contracts/loadStates'
 import { NetWorthTrendChart } from './NetWorthTrendChart'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
+import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
 
 describe('NetWorthTrendChart', () => {
   it('draws the monthly net worth line with a point per month', async () => {

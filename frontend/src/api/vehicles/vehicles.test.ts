@@ -5,8 +5,8 @@ import {
   vehicleDeleteConflictHandler,
   vehicleRenameConflictHandler,
 } from '../../mocks/handlers/vehicles'
-import { describeNamedEntityApi } from '../../test/apiContract'
-import { resolveErrorMessage } from '../../test/errorMessages'
+import { describeNamedEntityApi } from '../../test/contracts/apiContract'
+import { resolveErrorMessage } from '../../test/utils/errorMessages'
 import {
   createVehicle,
   deleteVehicle,

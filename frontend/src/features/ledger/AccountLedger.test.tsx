@@ -6,8 +6,8 @@ import { server } from '../../mocks/server'
 import { seedCheckingAccount } from '../../mocks/handlers/accounts'
 import { seedGroceriesTransaction } from '../../mocks/handlers/transactions'
 import { seedCreditCardPaymentTransfer } from '../../mocks/handlers/transfers'
-import { renderWithRouter } from '../../test/testUtils'
-import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
+import { renderWithRouter } from '../../test/utils/testUtils'
+import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/utils/viewport'
 import { AccountLedger } from './AccountLedger'
 
 describe('AccountLedger', () => {

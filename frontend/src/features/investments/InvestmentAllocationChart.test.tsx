@@ -7,10 +7,10 @@ import {
   seedAllocationByCategory,
   seedAllocationBySubcategory,
 } from '../../mocks/handlers/investmentAllocation'
-import { expectLoadStates } from '../../test/loadStates'
+import { expectLoadStates } from '../../test/contracts/loadStates'
 import { formatMoney } from '../../i18n/format'
 import { InvestmentAllocationChart } from './InvestmentAllocationChart'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
+import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
 
 function legend() {
   return within(screen.getByRole('list', { name: 'Allocation legend' }))

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { Box } from '@mui/material'
-import { emittedCss, emotionClass } from '../../test/emittedCss'
+import { emittedCss, emotionClass } from '../../test/utils/emittedCss'
 import { FORM_GRID_FULL_ROW, SECTION_PADDING, SELECT_MIN_WIDTH, WRAP_ANYWHERE } from './layoutSx'
 
 describe('layoutSx', () => {

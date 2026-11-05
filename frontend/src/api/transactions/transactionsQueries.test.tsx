@@ -7,8 +7,8 @@ import {
   seedGroceriesTransaction,
   transactionClosedAccountConflictHandler,
 } from '../../mocks/handlers/transactions'
-import { renderHookWithQueryClient } from '../../test/renderWithQueryClient'
-import { resolveErrorMessage } from '../../test/errorMessages'
+import { renderHookWithQueryClient } from '../../test/utils/renderWithQueryClient'
+import { resolveErrorMessage } from '../../test/utils/errorMessages'
 import { useLedger } from '../ledger/ledgerQueries'
 import {
   useCreateTransaction,

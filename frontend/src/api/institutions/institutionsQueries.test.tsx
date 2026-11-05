@@ -4,7 +4,7 @@ import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import { seedInstitutions } from '../../mocks/handlers/institutions'
 import { seedPaymentMethods } from '../../mocks/handlers/paymentMethods'
-import { renderHookWithQueryClient } from '../../test/renderWithQueryClient'
+import { renderHookWithQueryClient } from '../../test/utils/renderWithQueryClient'
 import { useCreateInstitution, useInstitutions } from './institutionsQueries'
 import { usePaymentMethods } from '../paymentMethods/paymentMethodsQueries'
 

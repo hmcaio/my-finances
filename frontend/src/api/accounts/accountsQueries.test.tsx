@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { waitFor } from '@testing-library/react'
 import { seedAccounts, seedCheckingAccount } from '../../mocks/handlers/accounts'
-import { renderHookWithQueryClient } from '../../test/renderWithQueryClient'
+import { renderHookWithQueryClient } from '../../test/utils/renderWithQueryClient'
 import { useAccount, useAccounts, useCloseAccount, useDeleteAccount } from './accountsQueries'
 
 describe('accounts hooks', () => {

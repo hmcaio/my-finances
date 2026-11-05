@@ -22,7 +22,7 @@ import {
 import type { InvestmentProduct } from '../../api/investments/investmentProducts'
 import { DataTableBody } from '../../components/table/DataTableBody'
 import { useQueryState } from '../../hooks/queryState'
-import { useLocale } from '../../hooks/locale/useLocale'
+import { useLocale } from '../../providers/locale/useLocale'
 import { formatMoney } from '../../i18n/format'
 import { SELECT_MIN_WIDTH } from '../../components/layout/layoutSx'
 

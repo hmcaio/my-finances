@@ -6,7 +6,7 @@ import {
   transactionClosedAccountConflictHandler,
 } from '../../mocks/handlers/transactions'
 import { ApiError } from '../core/apiError'
-import { resolveErrorMessage } from '../../test/errorMessages'
+import { resolveErrorMessage } from '../../test/utils/errorMessages'
 import {
   createTransaction,
   deleteTransaction,

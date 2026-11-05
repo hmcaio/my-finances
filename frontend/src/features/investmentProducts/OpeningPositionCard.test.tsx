@@ -11,8 +11,8 @@ import {
   seedOpeningPosition,
 } from '../../mocks/handlers/investmentOpeningPositions'
 import { investmentSnapshotsStore } from '../../mocks/handlers/investmentSnapshots'
-import { resolveErrorMessage } from '../../test/errorMessages'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
+import { resolveErrorMessage } from '../../test/utils/errorMessages'
+import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
 import { OpeningPositionCard } from './OpeningPositionCard'
 
 const open = seedInvestmentHoldings.find((h) => h.id === 'iholding-selic')!

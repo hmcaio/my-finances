@@ -5,7 +5,7 @@ import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import { categoryCreateConflictHandler } from '../../mocks/handlers/categories'
 import { CategorySuggestionsStep } from './CategorySuggestionsStep'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
+import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
 
 describe('CategorySuggestionsStep', () => {
   it('lists all 11 suggestions pre-checked, grouped expense then income', async () => {

@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { server } from '../../mocks/server'
 import { seedAccounts } from '../../mocks/handlers/accounts'
 import { AccountBalancesWidget } from './AccountBalancesWidget'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
+import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
 import { formatMoney } from '../../i18n/format'
 
 describe('AccountBalancesWidget', () => {

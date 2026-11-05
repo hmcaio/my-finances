@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import { seedAccounts, seedInvestmentAccount } from '../../mocks/handlers/accounts'
-import { renderWithRouter } from '../../test/testUtils'
+import { renderWithRouter } from '../../test/utils/testUtils'
 import { InvestmentsPage } from './InvestmentsPage'
 
 describe('InvestmentsPage', () => {

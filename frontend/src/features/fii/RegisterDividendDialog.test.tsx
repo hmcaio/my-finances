@@ -6,8 +6,8 @@ import { server } from '../../mocks/server'
 import { seedAccounts, seedInvestmentAccount } from '../../mocks/handlers/accounts'
 import { seedCategories, seedDividendCategory } from '../../mocks/handlers/categories'
 import { seedInvestmentProducts } from '../../mocks/handlers/investmentProducts'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
-import { selectOption } from '../../test/testUtils'
+import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
+import { selectOption } from '../../test/utils/testUtils'
 import { RegisterDividendDialog } from './RegisterDividendDialog'
 
 // Two products that each already have an open holding in the seeded investment account, relabelled

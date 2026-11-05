@@ -5,11 +5,11 @@ import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import { seedAccounts, seedInvestmentAccount } from '../../mocks/handlers/accounts'
 import { seedBitcoinBuyTransfer, seedBitcoinSellTransfer } from '../../mocks/handlers/transfers'
-import { resolveErrorMessage } from '../../test/errorMessages'
-import { selectOption } from '../../test/testUtils'
+import { resolveErrorMessage } from '../../test/utils/errorMessages'
+import { selectOption } from '../../test/utils/testUtils'
 import { formatMoney } from '../../i18n/format'
 import { TransferForm, type TransferFormPreset } from './TransferForm'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
+import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
 
 const accounts = [...seedAccounts, seedInvestmentAccount]
 const CHECKING = seedAccounts[0].name

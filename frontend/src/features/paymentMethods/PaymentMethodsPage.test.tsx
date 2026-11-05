@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { screen } from '@testing-library/react'
 import { seedPaymentMethods } from '../../mocks/handlers/paymentMethods'
-import { expectLoadStates } from '../../test/loadStates'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
+import { expectLoadStates } from '../../test/contracts/loadStates'
+import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
 import { PaymentMethodsPage } from './PaymentMethodsPage'
 
 /**

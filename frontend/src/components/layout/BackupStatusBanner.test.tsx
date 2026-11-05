@@ -4,7 +4,7 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { server } from '../../mocks/server'
 import { BackupStatusBanner } from './BackupStatusBanner'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
+import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
 import type { BackupStatus } from '../../api/backupStatus/backupStatus'
 
 function mockStatus(overrides: Partial<BackupStatus>) {

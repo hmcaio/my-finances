@@ -1,5 +1,5 @@
-import i18n from '../i18n/i18n'
-import { PROBLEM_TYPE_MESSAGES, VALIDATION_CODE_MESSAGES } from '../api/core/apiError'
+import i18n from '../../i18n/i18n'
+import { PROBLEM_TYPE_MESSAGES, VALIDATION_CODE_MESSAGES } from '../../api/core/apiError'
 
 /**
  * Test-only helpers resolving an RFC 9457 `type` / bean-validation `code` to its English text

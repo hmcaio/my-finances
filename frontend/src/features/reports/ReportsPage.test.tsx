@@ -8,10 +8,10 @@ import { seedCategories } from '../../mocks/handlers/categories'
 import { seedVehicles } from '../../mocks/handlers/vehicles'
 import { reportsBadRequestHandler } from '../../mocks/handlers/reports'
 import { reversedRangeMessage } from '../../api/reports/reports'
-import { selectOption } from '../../test/testUtils'
-import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
+import { selectOption } from '../../test/utils/testUtils'
+import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/utils/viewport'
 import { ReportsPage } from './ReportsPage'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
+import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
 
 describe('ReportsPage', () => {
   beforeEach(() => {

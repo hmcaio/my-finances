@@ -2,7 +2,7 @@ import { it, expect } from 'vitest'
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse, type JsonBodyType } from 'msw'
-import { server } from '../mocks/server'
+import { server } from '../../mocks/server'
 
 /** Config for {@link expectLoadStates}. */
 export interface LoadStatesConfig {

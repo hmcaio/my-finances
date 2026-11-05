@@ -3,13 +3,13 @@ import { waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import { seedInvestmentProducts } from '../../mocks/handlers/investmentProducts'
-import { renderHookWithQueryClient } from '../../test/renderWithQueryClient'
+import { renderHookWithQueryClient } from '../../test/utils/renderWithQueryClient'
 import {
   useCreateInvestmentProduct,
   useInvestmentProduct,
   useInvestmentProducts,
 } from './investmentProductsQueries'
-import { resolveErrorMessage } from '../../test/errorMessages'
+import { resolveErrorMessage } from '../../test/utils/errorMessages'
 
 // F034/ADR 0028: InvestmentCategory/InvestmentSubcategory lost create/rename/delete - every row
 // is fixed, migration-seeded content, so there is no mutation left to exercise a refetch through.

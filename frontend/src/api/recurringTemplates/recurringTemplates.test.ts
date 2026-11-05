@@ -6,7 +6,7 @@ import {
   seedRecurringTemplates,
 } from '../../mocks/handlers/recurringTemplates'
 import { ApiError } from '../core/apiError'
-import { resolveErrorMessage } from '../../test/errorMessages'
+import { resolveErrorMessage } from '../../test/utils/errorMessages'
 import {
   confirmPendingRecurringOccurrence,
   createRecurringTemplate,

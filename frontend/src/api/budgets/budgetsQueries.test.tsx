@@ -6,8 +6,8 @@ import {
   seedBudgets,
 } from '../../mocks/handlers/budgets'
 import { server } from '../../mocks/server'
-import { renderHookWithQueryClient } from '../../test/renderWithQueryClient'
-import { resolveErrorMessage } from '../../test/errorMessages'
+import { renderHookWithQueryClient } from '../../test/utils/renderWithQueryClient'
+import { resolveErrorMessage } from '../../test/utils/errorMessages'
 import {
   useBudgetReport,
   useBudgets,

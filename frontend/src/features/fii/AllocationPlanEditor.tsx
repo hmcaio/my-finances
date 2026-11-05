@@ -8,7 +8,7 @@ import {
 import type { InvestmentProduct } from '../../api/investments/investmentProducts'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
 import { MonthPicker } from '../../components/inputs/MonthPicker'
-import { useLocale } from '../../hooks/locale/useLocale'
+import { useLocale } from '../../providers/locale/useLocale'
 import { useAction } from '../../hooks/useAction'
 import { formatNumber } from '../../i18n/format'
 import { currentMonth } from '../../utils/localDate'

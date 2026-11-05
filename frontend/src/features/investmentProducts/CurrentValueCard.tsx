@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { Box, Button, Chip, Tooltip, Typography } from '@mui/material'
 import type { InvestmentHolding } from '../../api/investments/investmentHoldings'
-import { useLocale } from '../../hooks/locale/useLocale'
+import { useLocale } from '../../providers/locale/useLocale'
 import { formatMoney } from '../../i18n/format'
 import { PageSection } from '../../components/layout/PageSection'
 

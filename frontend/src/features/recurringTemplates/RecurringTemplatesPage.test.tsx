@@ -18,12 +18,12 @@ import {
   seedRentPendingOccurrence,
   seedRentRecurringTemplate,
 } from '../../mocks/handlers/recurringTemplates'
-import { findRow } from '../../test/testUtils'
-import { expectLoadStates } from '../../test/loadStates'
-import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
+import { findRow } from '../../test/utils/testUtils'
+import { expectLoadStates } from '../../test/contracts/loadStates'
+import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/utils/viewport'
 import { formatMoney } from '../../i18n/format'
 import { RecurringTemplatesPage } from './RecurringTemplatesPage'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
+import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
 
 /** Scopes queries to the templates settings table - the pending-occurrences widget below it
  * renders overlapping text (description/category/account), so an unscoped `getByText` would be

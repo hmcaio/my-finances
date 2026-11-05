@@ -3,8 +3,8 @@ import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { InvestmentCategory } from '../../api/investments/investmentCategories'
 import type { InvestmentSegment } from '../../api/investments/investmentSegments'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
-import { selectOption } from '../../test/testUtils'
+import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
+import { selectOption } from '../../test/utils/testUtils'
 import { InvestmentProductForm, type InvestmentProductFormValues } from './InvestmentProductForm'
 
 const categories: InvestmentCategory[] = [

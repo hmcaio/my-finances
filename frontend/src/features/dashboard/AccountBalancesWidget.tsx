@@ -15,7 +15,7 @@ import { fadeInSx } from '../../components/feedback/fadeIn'
 import { LoadFailedNotice } from '../../components/feedback/LoadFailedNotice'
 import { useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
-import { useLocale } from '../../hooks/locale/useLocale'
+import { useLocale } from '../../providers/locale/useLocale'
 import { formatMoney } from '../../i18n/format'
 import { accountTypeLabel } from '../accounts/accountTypes'
 

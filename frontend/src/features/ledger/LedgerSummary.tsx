@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { Box, Typography } from '@mui/material'
 import type { LedgerSummary as LedgerSummaryData } from '../../api/ledger/ledger'
-import { useLocale } from '../../hooks/locale/useLocale'
+import { useLocale } from '../../providers/locale/useLocale'
 import { formatMoney } from '../../i18n/format'
 import { WRAP_ANYWHERE } from '../../components/layout/layoutSx'
 

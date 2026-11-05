@@ -5,9 +5,9 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { server } from '../../mocks/server'
 import { seedDebitCardPaymentMethod } from '../../mocks/handlers/paymentMethods'
-import { findRow } from '../../test/testUtils'
+import { findRow } from '../../test/utils/testUtils'
 import { DashboardPage } from './DashboardPage'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
+import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
 
 function renderDashboard() {
   return renderWithQueryClient(

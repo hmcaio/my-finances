@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom'
 import i18n from '../../i18n/i18n'
 import { formatMoney } from '../../i18n/format'
 import { seedAccounts } from '../../mocks/handlers/accounts'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
+import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
 import {
   buildAccountColumns,
   type AccountColumnsContext,

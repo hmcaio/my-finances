@@ -3,7 +3,7 @@ import { waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { server } from '../mocks/server'
 import { useCreateAccount } from '../api/accounts/accountsQueries'
-import { renderHookWithQueryClient } from '../test/renderWithQueryClient'
+import { renderHookWithQueryClient } from '../test/utils/renderWithQueryClient'
 import { useHasAccounts } from './useHasAccounts'
 
 describe('useHasAccounts', () => {

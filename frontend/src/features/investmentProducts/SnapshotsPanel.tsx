@@ -16,7 +16,7 @@ import type { InvestmentSnapshot } from '../../api/investments/investmentSnapsho
 import { DataTableBody } from '../../components/table/DataTableBody'
 import { InlineEditActions } from '../../components/table/InlineEditActions'
 import type { LoadState } from '../../hooks/queryState'
-import { useLocale } from '../../hooks/locale/useLocale'
+import { useLocale } from '../../providers/locale/useLocale'
 import { formatMoney } from '../../i18n/format'
 import { PageSection } from '../../components/layout/PageSection'
 
