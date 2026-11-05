@@ -179,6 +179,13 @@ public class GoalService {
     return allocations;
   }
 
+  /** Every goal, non-archived unless {@code includeArchived}; replaced by {@code GoalListQuery}. */
+  public List<Goal> findAll(boolean includeArchived) {
+    return goalRepository.findAll().stream()
+        .filter(goal -> includeArchived || goal.getStatus() != GoalStatus.ARCHIVED)
+        .toList();
+  }
+
   public Goal findById(UUID id) {
     return goalRepository.findById(id).orElseThrow(() -> new GoalNotFoundException(id));
   }

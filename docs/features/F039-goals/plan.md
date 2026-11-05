@@ -11,7 +11,7 @@ Branch `feature/f039-goals`. Backend first (the projection and the response shap
 - [x] JPA entities, Spring Data repositories and adapters under `infrastructure/persistence/goal/`, including `sumPercentageByProductExcludingGoal` (non-archived only) and `existsByProductId`.
 - [x] Test first (`GoalService`, fakes): create/edit/delete audited; `targetDate` not after today is `400`, an unchanged passed date is accepted; replace allocations rejects a duplicate product, an unknown product (`404`), an archived goal (`409`) and a product over 100% across other non-archived goals (`409`); archiving frees percentages; restoring re-checks them (`409`); `setShowOnDashboard(true)` on an archived goal is `409`.
 - [x] Implement `application/goal/GoalService`, the exceptions (`GoalNotFoundException`, `InvalidGoalException`, `GoalArchivedException`, `GoalAllocationExceedsProductException`, `InvestmentProductAllocatedToGoalException`), `AuditEntityType.GOAL`, and the product hard-delete guard (`409`).
-- [ ] REST: `GoalController` (`GET/POST /api/goals`, `GET/PUT/DELETE /api/goals/{id}`, `PATCH .../show-on-dashboard`), `PUT /api/goals/{id}/allocations`; DTOs with `@Size`/`@Positive`/`@PositiveOrZero`/`@DecimalMin`/`@DecimalMax`; controller tests for `200/201/204/400/404/409`.
+- [x] REST: `GoalController` (`GET/POST /api/goals`, `GET/PATCH/DELETE /api/goals/{id}`, `PATCH .../show-on-dashboard`), `PUT /api/goals/{id}/allocations`; DTOs with `@Size`/`@Positive`/`@PositiveOrZero`/`@DecimalMin`/`@DecimalMax`; controller tests for `200/201/204/400/404/409`.
 - [ ] `./gradlew spotlessApply` then `scripts/verify.sh backend` (Docker running).
 
 ## Phase 2 — Backend: projection, history, dashboard, helper
