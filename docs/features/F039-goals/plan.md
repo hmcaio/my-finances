@@ -5,8 +5,8 @@
 Branch `feature/f039-goals`. Backend first (the projection and the response shapes must exist before the frontend has anything to consume), allocation before projection, queries before the dashboard.
 
 ## Phase 1 — Backend: goal and allocation
-- [ ] Test first: `Goal` rejects blank/over-long name, over-long notes, a zero or negative target, a negative contribution, a return outside `-50..100`, unordered returns; `archive()` clears `showOnDashboard`; `setShowOnDashboard(true)` on an archived goal throws. `GoalAllocation` rejects `0`, negative and `> 100` percentages.
-- [ ] Implement `domain/goal/Goal.java`, `GoalStatus.java`, `GoalAllocation.java` and the two repository ports.
+- [x] Test first: `Goal` rejects blank/over-long name, over-long notes, a zero or negative target, a negative contribution, a return outside `-50..100`, unordered returns; `archive()` clears `showOnDashboard`; `setShowOnDashboard(true)` on an archived goal throws. `GoalAllocation` rejects `0`, negative and `> 100` percentages.
+- [x] Implement `domain/goal/Goal.java`, `GoalStatus.java`, `GoalAllocation.java` and the two repository ports.
 - [ ] Flyway migration `V28__goals.sql` (`goals`, `goal_allocations`, checks and unique constraint per the spec), plus its migration test (each check rejects its bad row).
 - [ ] JPA entities, Spring Data repositories and adapters under `infrastructure/persistence/goal/`, including `sumPercentageByProductExcludingGoal` (non-archived only) and `existsByProductId`.
 - [ ] Test first (`GoalService`, fakes): create/edit/delete audited; `targetDate` not after today is `400`, an unchanged passed date is accepted; replace allocations rejects a duplicate product, an unknown product (`404`), an archived goal (`409`) and a product over 100% across other non-archived goals (`409`); archiving frees percentages; restoring re-checks them (`409`); `setShowOnDashboard(true)` on an archived goal is `409`.
