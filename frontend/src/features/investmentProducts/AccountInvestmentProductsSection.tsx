@@ -29,7 +29,7 @@ import { nameLookup } from '../../utils/nameLookup'
 import { InvestmentProductForm, type InvestmentProductFormValues } from './InvestmentProductForm'
 import { WRAP_ANYWHERE } from '../../components/layout/layoutSx'
 
-interface InvestmentProductsSectionProps {
+interface AccountInvestmentProductsSectionProps {
   /** The INVESTMENT account whose holdings are listed. */
   accountId: string
   /** A closed account takes no new products (F008 spec). */
@@ -46,10 +46,10 @@ interface InvestmentProductsSectionProps {
  * Responsive (F021): `ResponsiveTable` embedded in the account detail page's own outlined
  * "Products" section (cards below `sm`, Sub-category hidden on tablet behind the row expander).
  */
-export function InvestmentProductsSection({
+export function AccountInvestmentProductsSection({
   accountId,
   accountClosed,
-}: InvestmentProductsSectionProps) {
+}: AccountInvestmentProductsSectionProps) {
   const { t } = useTranslation(['investmentProducts', 'common'])
   const { locale } = useLocale()
   const [error, setError] = useState<string | null>(null)

@@ -48,7 +48,7 @@ function statusChip(product: InvestmentProduct, t: TFunction<'investments'>) {
  * (F022) for management (create/edit/close/add-holding stay there, so that flow isn't duplicated).
  * Mirrors `TransactionsPage`'s filter/table/pagination structure.
  */
-export function InvestmentProductsListSection() {
+export function InvestmentProductsOverviewSection() {
   const { t } = useTranslation('investments')
   const [page, setPage] = useState(0)
   const [filters, setFilters] = useState<InvestmentProductFilter>({ status: 'OPEN' })

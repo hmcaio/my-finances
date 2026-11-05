@@ -21,7 +21,7 @@ export const investmentProductKeys = {
 
 /**
  * Every product, regardless of status (pure taxonomy, F022 - no longer filterable by account).
- * Used by name-lookup callers (`InvestmentProductsSection`, the transfer form) - the global,
+ * Used by name-lookup callers (`AccountInvestmentProductsSection`, the transfer form) - the global,
  * filtered Products list (F023) uses {@link useInvestmentProductsPage} instead.
  */
 export function useInvestmentProducts() {

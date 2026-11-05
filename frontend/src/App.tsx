@@ -1,89 +1,22 @@
-import { Suspense, useMemo, useState, type PropsWithChildren } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { Suspense, useMemo, useState } from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Box, CssBaseline, Skeleton, ThemeProvider } from '@mui/material'
 import { ColorModeProvider } from './providers/colorMode/ColorModeProvider'
 import { useColorMode } from './providers/colorMode/useColorMode'
 import { LocaleProvider } from './providers/locale/LocaleProvider'
-import { lazyNamed } from './utils/lazyNamed'
 import { useHasAccounts } from './hooks/useHasAccounts'
 import { getTheme } from './theme'
 import { Layout } from './components/layout/Layout'
-import { ErrorBoundary } from './components/feedback/ErrorBoundary'
 import { BackupStatusBanner } from './components/layout/BackupStatusBanner'
 import { LoadFailedNotice } from './components/feedback/LoadFailedNotice'
 import { fadeInSx } from './components/feedback/fadeIn'
 import { useDelayedFlag } from './hooks/useDelayedFlag'
 import { OnboardingPage } from './features/onboarding/OnboardingPage'
 import { RequireAuth } from './features/auth/RequireAuth'
-import { TransactionsRedirect, TransfersRedirect } from './features/ledger/LegacyRedirects'
-
-// Route-level code splitting: each page is its own chunk, fetched on first navigation instead of
-// all being bundled into one >500kB entry chunk. Named exports, so each goes through `lazyNamed`.
-const LoginPage = lazyNamed(() => import('./features/auth/LoginPage'), 'LoginPage')
-const DashboardPage = lazyNamed(() => import('./features/dashboard/DashboardPage'), 'DashboardPage')
-const AccountsPage = lazyNamed(() => import('./features/accounts/AccountsPage'), 'AccountsPage')
-const AccountDetailPage = lazyNamed(
-  () => import('./features/accounts/AccountDetailPage'),
-  'AccountDetailPage',
-)
-const CategoriesPage = lazyNamed(
-  () => import('./features/categories/CategoriesPage'),
-  'CategoriesPage',
-)
-const FuelPage = lazyNamed(() => import('./features/fuel/FuelPage'), 'FuelPage')
-const InstitutionsPage = lazyNamed(
-  () => import('./features/institutions/InstitutionsPage'),
-  'InstitutionsPage',
-)
-const InvestmentsPage = lazyNamed(
-  () => import('./features/investments/InvestmentsPage'),
-  'InvestmentsPage',
-)
-const InvestmentProductDetailPage = lazyNamed(
-  () => import('./features/investmentProducts/InvestmentProductDetailPage'),
-  'InvestmentProductDetailPage',
-)
-const InvestmentCategoriesPage = lazyNamed(
-  () => import('./features/investmentCategories/InvestmentCategoriesPage'),
-  'InvestmentCategoriesPage',
-)
-const InvestmentSegmentsPage = lazyNamed(
-  () => import('./features/investmentSegments/InvestmentSegmentsPage'),
-  'InvestmentSegmentsPage',
-)
-const FiiPage = lazyNamed(() => import('./features/fii/FiiPage'), 'FiiPage')
-const PaymentMethodsPage = lazyNamed(
-  () => import('./features/paymentMethods/PaymentMethodsPage'),
-  'PaymentMethodsPage',
-)
-const LedgerPage = lazyNamed(() => import('./features/ledger/LedgerPage'), 'LedgerPage')
-const BudgetsPage = lazyNamed(() => import('./features/budgets/BudgetsPage'), 'BudgetsPage')
-const ReportsPage = lazyNamed(() => import('./features/reports/ReportsPage'), 'ReportsPage')
-const RecurringTemplatesPage = lazyNamed(
-  () => import('./features/recurringTemplates/RecurringTemplatesPage'),
-  'RecurringTemplatesPage',
-)
-const VehiclesPage = lazyNamed(() => import('./features/vehicles/VehiclesPage'), 'VehiclesPage')
-const ActivityPage = lazyNamed(() => import('./features/activity/ActivityPage'), 'ActivityPage')
-
-/** Suspense fallback while a route's chunk loads - same skeleton shape as the onboarding check. */
-function RouteFallback() {
-  return (
-    <Box sx={{ maxWidth: 720, mx: 'auto', px: 2, py: 6, ...fadeInSx }}>
-      <Skeleton variant="text" width="60%" height={48} />
-      <Skeleton variant="rounded" height={120} />
-    </Box>
-  )
-}
-
-/**
- * Wraps the routed page (inside `Layout`, so the nav/theme survive a page crash). Keyed on the
- * pathname so navigating to another page resets a boundary that has already tripped.
- */
-function PageErrorBoundary({ children }: PropsWithChildren) {
-  const { pathname } = useLocation()
-  return <ErrorBoundary key={pathname}>{children}</ErrorBoundary>
-}
+import { LoginPage } from './routes/lazyPages'
+import { AuthenticatedRoutes } from './routes/AuthenticatedRoutes'
+import { PageErrorBoundary } from './routes/PageErrorBoundary'
+import { RouteFallback } from './routes/RouteFallback'
 
 /**
  * Everything behind the login (F036, ADR 0029): mounted only once `RequireAuth` has a session, so
@@ -141,33 +74,7 @@ function AuthenticatedApp() {
         <Layout>
           <PageErrorBoundary>
             <Suspense fallback={<RouteFallback />}>
-              <Routes>
-                <Route path="/" element={<DashboardPage />} />
-                <Route path="/ledger" element={<LedgerPage />} />
-                {/* F037: the Transactions and Transfers pages became the Ledger; old links redirect. */}
-                <Route path="/transactions" element={<TransactionsRedirect />} />
-                <Route path="/fuel" element={<FuelPage />} />
-                <Route path="/accounts" element={<AccountsPage />} />
-                <Route path="/accounts/:id" element={<AccountDetailPage />} />
-                <Route path="/investment-products/:id" element={<InvestmentProductDetailPage />} />
-                <Route path="/transfers" element={<TransfersRedirect />} />
-                <Route path="/budgets" element={<BudgetsPage />} />
-                <Route path="/recurring" element={<RecurringTemplatesPage />} />
-                <Route path="/investments" element={<InvestmentsPage />} />
-                <Route path="/fii" element={<FiiPage />} />
-                <Route path="/settings/categories" element={<CategoriesPage />} />
-                <Route path="/settings/institutions" element={<InstitutionsPage />} />
-                <Route
-                  path="/settings/investment-categories"
-                  element={<InvestmentCategoriesPage />}
-                />
-                <Route path="/settings/investment-segments" element={<InvestmentSegmentsPage />} />
-                <Route path="/settings/payment-methods" element={<PaymentMethodsPage />} />
-                <Route path="/settings/vehicles" element={<VehiclesPage />} />
-                <Route path="/reports" element={<ReportsPage />} />
-                <Route path="/activity" element={<ActivityPage />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
+              <AuthenticatedRoutes />
             </Suspense>
           </PageErrorBoundary>
         </Layout>
