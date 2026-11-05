@@ -8,6 +8,7 @@ import { categoriesHandlers } from './handlers/categories'
 import { fiiAllocationHandlers } from './handlers/fiiAllocation'
 import { fiiDividendsHandlers } from './handlers/fiiDividends'
 import { fiiPortfolioHandlers } from './handlers/fiiPortfolio'
+import { goalsHandlers } from './handlers/goals'
 import { institutionsHandlers } from './handlers/institutions'
 import { investmentCategoriesHandlers } from './handlers/investmentCategories'
 import { investmentAllocationHandlers } from './handlers/investmentAllocation'
@@ -46,6 +47,7 @@ export const handlers = [
   ...fiiAllocationHandlers,
   ...fiiDividendsHandlers,
   ...fiiPortfolioHandlers,
+  ...goalsHandlers,
   ...institutionsHandlers,
   ...investmentCategoriesHandlers,
   ...investmentAllocationHandlers,

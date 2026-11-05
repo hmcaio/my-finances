@@ -17,6 +17,7 @@ export const ENTITY_TYPES: AuditEntityType[] = [
   'INVESTMENT_OPENING_POSITION',
   'INVESTMENT_SEGMENT',
   'ALLOCATION_PLAN',
+  'GOAL',
   'VEHICLE',
 ]
 

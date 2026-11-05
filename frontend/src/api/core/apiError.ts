@@ -178,6 +178,14 @@ export const PROBLEM_TYPE_MESSAGES: Record<string, string> = {
     'errors:problemType.allocationPlanSumInvalid',
   'urn:my-finances:error:allocation-plan-duplicate-product':
     'errors:problemType.allocationPlanDuplicateProduct',
+
+  // Goals (F039). `goal-not-found` is left to the page that special-cases its 404.
+  'urn:my-finances:error:invalid-goal': 'errors:problemType.invalidGoal',
+  'urn:my-finances:error:goal-archived': 'errors:problemType.goalArchived',
+  'urn:my-finances:error:goal-allocation-exceeds-product':
+    'errors:problemType.goalAllocationExceedsProduct',
+  'urn:my-finances:error:investment-product-allocated-to-goal':
+    'errors:problemType.investmentProductAllocatedToGoal',
 }
 
 /**

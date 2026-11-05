@@ -50,7 +50,8 @@
     "investmentSegment": "Segmento de investimento",
     "allocationPlan": "Plano de alocação",
     "vehicle": "Veículo",
-    "investmentOpeningPosition": "Posição inicial de investimento"
+    "investmentOpeningPosition": "Posição inicial de investimento",
+    "goal": "Meta"
   },
   "actions": {
     "create": "Criar",
@@ -151,6 +152,20 @@
       "asOfDate": "Em",
       "quantity": "Quantidade",
       "unitPrice": "Preço unitário"
+    },
+    "goal": {
+      "notes": "Observações",
+      "targetAmount": "Valor alvo",
+      "targetDate": "Data alvo",
+      "plannedMonthlyContribution": "Aporte mensal planejado",
+      "returnPessimistic": "Retorno pessimista (%)",
+      "returnBase": "Retorno base (%)",
+      "returnOptimistic": "Retorno otimista (%)",
+      "status": "Situação",
+      "showOnDashboard": "Mostrar no painel",
+      "allocations": "Alocações",
+      "productId": "Produto",
+      "percentage": "Percentual"
     }
   }
 }

@@ -50,6 +50,10 @@
     "investmentOpeningPositionNotFound": "Esta posição não tem posição inicial.",
     "invalidOpeningPosition": "A posição inicial é inválida: a data não pode estar no futuro, e as cotas e o preço médio devem ser positivos.",
     "openingPositionAfterTrades": "A posição inicial não pode ter data posterior à primeira operação desta posição. Use a data da operação ou uma anterior.",
+    "invalidGoal": "A meta é inválida: a data alvo deve estar no futuro, os retornos devem ir do pessimista ao otimista e um produto só pode aparecer uma vez.",
+    "goalArchived": "Esta meta está arquivada. Restaure-a primeiro.",
+    "goalAllocationExceedsProduct": "Um produto não pode ter mais de 100% alocado entre as suas metas. Reduza um percentual aqui ou em outra meta que o use.",
+    "investmentProductAllocatedToGoal": "Este produto está alocado a uma meta e não pode ser excluído. Remova-o da meta primeiro ou encerre-o.",
     "tradeBeforeOpeningPosition": "A posição inicial desta posição tem data posterior à operação. Use a data da posição inicial ou uma posterior."
   },
   "validationCode": {
