@@ -3,7 +3,7 @@ import type { TFunction } from 'i18next'
 import { Box, Chip, Paper, Typography } from '@mui/material'
 import type { RecurringTemplate } from '../../api/recurringTemplates/recurringTemplates'
 import type { ResponsiveColumn } from '../../components/table/ResponsiveTable'
-import type { Locale } from '../../hooks/locale/useLocale'
+import type { Locale } from '../../providers/locale/useLocale'
 import { formatMoney } from '../../i18n/format'
 import {
   RecurringTemplateAmountField,

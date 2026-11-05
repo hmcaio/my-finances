@@ -4,9 +4,9 @@ import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { server } from './mocks/server'
 import { seedCheckingAccount } from './mocks/handlers/accounts'
-import { findRow } from './test/testUtils'
+import { findRow } from './test/utils/testUtils'
 import App from './App'
-import { renderWithQueryClient } from './test/renderWithQueryClient'
+import { renderWithQueryClient } from './test/utils/renderWithQueryClient'
 
 // jsdom does not implement `matchMedia`, and ColorModeProvider (rendered by App) reads it to pick
 // the initial theme - same stub as useColorMode.test.tsx. `min-width` queries match so Layout

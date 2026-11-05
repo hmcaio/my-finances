@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { seedInvestmentCategories } from '../../mocks/handlers/investmentCategories'
-import { expectLoadStates } from '../../test/loadStates'
-import { findRow } from '../../test/testUtils'
+import { expectLoadStates } from '../../test/contracts/loadStates'
+import { findRow } from '../../test/utils/testUtils'
 import { InvestmentCategoriesPage } from './InvestmentCategoriesPage'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
+import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
 
 const FIXED = seedInvestmentCategories.find((c) => c.name === 'Fixed Income')!
 const CRYPTO = seedInvestmentCategories.find((c) => c.name === 'Crypto')!

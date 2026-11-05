@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { screen, within } from '@testing-library/react'
 import { seedAllocationBySubcategory } from '../../mocks/handlers/investmentAllocation'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
+import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
 import { formatMoney } from '../../i18n/format'
 import { InvestmentSubcategoryAllocationChart } from './InvestmentSubcategoryAllocationChart'
 

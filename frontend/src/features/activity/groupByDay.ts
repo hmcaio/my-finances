@@ -1,5 +1,5 @@
 import type { AuditLogEntry } from '../../api/auditLog/auditLog'
-import type { Locale } from '../../hooks/locale/useLocale'
+import type { Locale } from '../../providers/locale/useLocale'
 import { formatDate } from '../../i18n/format'
 
 export interface AuditLogDayGroup {

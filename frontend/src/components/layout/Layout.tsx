@@ -24,8 +24,8 @@ import LogoutIcon from '@mui/icons-material/Logout'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { useLogout } from '../../api/auth/authQueries'
-import { useColorMode } from '../../hooks/colorMode/useColorMode'
-import { useLocale } from '../../hooks/locale/useLocale'
+import { useColorMode } from '../../providers/colorMode/useColorMode'
+import { useLocale } from '../../providers/locale/useLocale'
 import { useBreakpointBand } from '../../hooks/useBreakpointBand'
 
 const DRAWER_WIDTH = 240

@@ -8,7 +8,7 @@ import type { InvestmentProductStatus } from '../../api/investments/investmentPr
 import { useQueryState } from '../../hooks/queryState'
 import { MonthPicker } from '../../components/inputs/MonthPicker'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
-import { useLocale } from '../../hooks/locale/useLocale'
+import { useLocale } from '../../providers/locale/useLocale'
 import { formatMoney, formatNumber } from '../../i18n/format'
 import { currentMonth } from '../../utils/localDate'
 import { AllocationPlanEditor } from './AllocationPlanEditor'

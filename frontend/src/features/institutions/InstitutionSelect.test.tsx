@@ -10,9 +10,9 @@ import {
   seedInstitutions,
 } from '../../mocks/handlers/institutions'
 import type { Institution } from '../../api/institutions/institutions'
-import { resolveErrorMessage } from '../../test/errorMessages'
+import { resolveErrorMessage } from '../../test/utils/errorMessages'
 import { InstitutionSelect } from './InstitutionSelect'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
+import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
 
 /** A parent that owns the value, like a form does. */
 function Harness({

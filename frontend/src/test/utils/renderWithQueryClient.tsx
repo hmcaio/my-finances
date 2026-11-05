@@ -1,8 +1,8 @@
 import type { ReactElement, ReactNode } from 'react'
 import { render, renderHook, type RenderResult } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { createQueryClient } from '../api/core/queryClient'
-import { LocaleProvider } from '../hooks/locale/LocaleProvider'
+import { createQueryClient } from '../../api/core/queryClient'
+import { LocaleProvider } from '../../providers/locale/LocaleProvider'
 
 /** A fresh client with the app's mutation-invalidation rules but `gcTime: 0`, so nothing leaks
  * between tests. */

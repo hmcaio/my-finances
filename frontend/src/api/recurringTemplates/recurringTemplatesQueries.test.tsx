@@ -8,7 +8,7 @@ import {
   seedRentPendingOccurrence,
   seedRentRecurringTemplate,
 } from '../../mocks/handlers/recurringTemplates'
-import { renderHookWithQueryClient } from '../../test/renderWithQueryClient'
+import { renderHookWithQueryClient } from '../../test/utils/renderWithQueryClient'
 import { createQueryClient } from '../core/queryClient'
 import {
   useConfirmPendingOccurrence,

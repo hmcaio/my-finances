@@ -24,10 +24,10 @@ import {
   seedBitcoinBuyTransfer,
   seedCreditCardPaymentTransfer,
 } from '../../mocks/handlers/transfers'
-import { resolveErrorMessage } from '../../test/errorMessages'
-import { expectLoadStates } from '../../test/loadStates'
-import { findRow, renderWithRouter, selectOption } from '../../test/testUtils'
-import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
+import { resolveErrorMessage } from '../../test/utils/errorMessages'
+import { expectLoadStates } from '../../test/contracts/loadStates'
+import { findRow, renderWithRouter, selectOption } from '../../test/utils/testUtils'
+import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/utils/viewport'
 import { LedgerPage } from './LedgerPage'
 
 /** The seeded rows all fall in January 2026: pin the view to it instead of "this month". */

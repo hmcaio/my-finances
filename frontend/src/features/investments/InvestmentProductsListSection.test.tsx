@@ -3,7 +3,7 @@ import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { server } from '../../mocks/server'
 import { accountsWithInvestmentHandler, seedInvestmentAccount } from '../../mocks/handlers/accounts'
-import { renderWithRouter, selectOption } from '../../test/testUtils'
+import { renderWithRouter, selectOption } from '../../test/utils/testUtils'
 import { InvestmentProductsListSection } from './InvestmentProductsListSection'
 
 function table() {

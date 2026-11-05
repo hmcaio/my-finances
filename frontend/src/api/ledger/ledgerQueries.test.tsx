@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { waitFor } from '@testing-library/react'
 import { seedGroceriesTransaction } from '../../mocks/handlers/transactions'
-import { renderHookWithQueryClient } from '../../test/renderWithQueryClient'
+import { renderHookWithQueryClient } from '../../test/utils/renderWithQueryClient'
 import { useLedger } from './ledgerQueries'
 
 describe('useLedger', () => {

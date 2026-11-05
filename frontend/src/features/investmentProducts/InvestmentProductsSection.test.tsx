@@ -6,9 +6,9 @@ import { server } from '../../mocks/server'
 import { seedInvestmentAccount } from '../../mocks/handlers/accounts'
 import { seedInvestmentHoldings } from '../../mocks/handlers/investmentHoldings'
 import { investmentProductCreateConflictHandler } from '../../mocks/handlers/investmentProducts'
-import { resolveErrorMessage } from '../../test/errorMessages'
-import { findRow, renderWithRouter, selectOption } from '../../test/testUtils'
-import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
+import { resolveErrorMessage } from '../../test/utils/errorMessages'
+import { findRow, renderWithRouter, selectOption } from '../../test/utils/testUtils'
+import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/utils/viewport'
 import { InvestmentProductsSection } from './InvestmentProductsSection'
 
 function renderSection(accountClosed = false) {

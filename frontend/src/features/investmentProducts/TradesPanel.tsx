@@ -4,7 +4,7 @@ import { Box, Chip, Link as MuiLink, Paper, Typography } from '@mui/material'
 import type { TradeConfirmationLineRecord } from '../../api/investments/tradeConfirmationLines'
 import { ResponsiveTable, type ResponsiveColumn } from '../../components/table/ResponsiveTable'
 import type { LoadState } from '../../hooks/queryState'
-import { useLocale } from '../../hooks/locale/useLocale'
+import { useLocale } from '../../providers/locale/useLocale'
 import { formatMoney } from '../../i18n/format'
 import { PageSection } from '../../components/layout/PageSection'
 

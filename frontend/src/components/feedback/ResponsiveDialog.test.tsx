@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { DialogContent, DialogTitle } from '@mui/material'
-import { restoreViewport, setViewportWidth } from '../../test/viewport'
+import { restoreViewport, setViewportWidth } from '../../test/utils/viewport'
 import { FormGrid, ResponsiveDialog } from './ResponsiveDialog'
 
 function renderDialog() {

@@ -17,7 +17,7 @@ import LockIcon from '@mui/icons-material/Lock'
 import type { InvestmentHolding } from '../../api/investments/investmentHoldings'
 import { DataTableBody } from '../../components/table/DataTableBody'
 import type { LoadState } from '../../hooks/queryState'
-import { useLocale } from '../../hooks/locale/useLocale'
+import { useLocale } from '../../providers/locale/useLocale'
 import { formatMoney } from '../../i18n/format'
 import { PageSection } from '../../components/layout/PageSection'
 

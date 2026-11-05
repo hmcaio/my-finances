@@ -5,12 +5,12 @@ import { seedGroceriesCategory } from '../../mocks/handlers/categories'
 import { seedCheckingAccount } from '../../mocks/handlers/accounts'
 import { seedDebitCardPaymentMethod, seedPaymentMethods } from '../../mocks/handlers/paymentMethods'
 import { seedRentPendingOccurrence } from '../../mocks/handlers/recurringTemplates'
-import { findRow } from '../../test/testUtils'
-import { expectLoadStates } from '../../test/loadStates'
-import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
+import { findRow } from '../../test/utils/testUtils'
+import { expectLoadStates } from '../../test/contracts/loadStates'
+import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/utils/viewport'
 import { formatMoney } from '../../i18n/format'
 import { PendingOccurrencesWidget } from './PendingOccurrencesWidget'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
+import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
 
 describe('PendingOccurrencesWidget', () => {
   // jsdom has no viewport, which MUI treats as the tablet band (Category column hidden): these

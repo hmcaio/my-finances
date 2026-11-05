@@ -7,7 +7,7 @@ import {
   transferClosedAccountConflictHandler,
 } from '../../mocks/handlers/transfers'
 import { ApiError } from '../core/apiError'
-import { resolveErrorMessage } from '../../test/errorMessages'
+import { resolveErrorMessage } from '../../test/utils/errorMessages'
 import { createTransfer, deleteTransfer, editTransfer, getTransfer } from './transfers'
 
 describe('transfers API client', () => {

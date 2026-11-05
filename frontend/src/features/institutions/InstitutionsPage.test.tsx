@@ -7,12 +7,12 @@ import {
   seedInstitutions,
 } from '../../mocks/handlers/institutions'
 import { INSTITUTION_NAME_MAX_LENGTH } from '../../api/institutions/institutions'
-import { resolveErrorMessage } from '../../test/errorMessages'
-import { findRow } from '../../test/testUtils'
-import { describeSettingsPage } from '../../test/settingsPageContract'
-import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
+import { resolveErrorMessage } from '../../test/utils/errorMessages'
+import { findRow } from '../../test/utils/testUtils'
+import { describeSettingsPage } from '../../test/contracts/settingsPageContract'
+import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/utils/viewport'
 import { InstitutionsPage } from './InstitutionsPage'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
+import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
 
 const builtIn = seedInstitutions.find((i) => i.builtIn)!
 const regular = seedInstitutions.filter((i) => !i.builtIn)

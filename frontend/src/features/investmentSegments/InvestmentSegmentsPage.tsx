@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { useInvestmentSegments } from '../../api/investments/investmentSegmentsQueries'
-import { ReadOnlyNameListPage } from '../../components/table/ReadOnlyNameListPage'
+import { ReadOnlyNameListPage } from '../../components/layout/ReadOnlyNameListPage'
 import { translateSeedName } from '../../i18n/seedNames'
 
 /**

@@ -1,4 +1,4 @@
-import type { Locale } from '../hooks/locale/useLocale'
+import type { Locale } from '../providers/locale/useLocale'
 
 /**
  * Locale-aware formatters backing every number/date shown in the UI (F033/ADR 0027), replacing

@@ -3,7 +3,7 @@ import { http, HttpResponse } from 'msw'
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useSetBudgetCap } from '../../api/budgets/budgetsQueries'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
+import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
 import { server } from '../../mocks/server'
 import { BudgetVsActualReport } from './BudgetVsActualReport'
 

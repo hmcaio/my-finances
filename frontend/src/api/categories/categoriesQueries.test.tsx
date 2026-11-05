@@ -3,8 +3,8 @@ import { waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import { categoryCreateConflictHandler, seedCategories } from '../../mocks/handlers/categories'
-import { renderHookWithQueryClient } from '../../test/renderWithQueryClient'
-import { resolveErrorMessage } from '../../test/errorMessages'
+import { renderHookWithQueryClient } from '../../test/utils/renderWithQueryClient'
+import { resolveErrorMessage } from '../../test/utils/errorMessages'
 import { useCategories, useCreateCategory } from './categoriesQueries'
 
 describe('categories hooks', () => {

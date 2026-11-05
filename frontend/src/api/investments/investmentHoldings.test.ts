@@ -8,7 +8,7 @@ import {
   seedInvestmentHoldings,
 } from '../../mocks/handlers/investmentHoldings'
 import { ApiError } from '../core/apiError'
-import { resolveErrorMessage } from '../../test/errorMessages'
+import { resolveErrorMessage } from '../../test/utils/errorMessages'
 import {
   closeInvestmentHolding,
   createInvestmentHolding,

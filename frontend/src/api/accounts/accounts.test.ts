@@ -9,7 +9,7 @@ import {
   seedInvestmentAccount,
 } from '../../mocks/handlers/accounts'
 import { ApiError } from '../core/apiError'
-import { resolveErrorMessage } from '../../test/errorMessages'
+import { resolveErrorMessage } from '../../test/utils/errorMessages'
 import {
   closeAccount,
   createAccount,

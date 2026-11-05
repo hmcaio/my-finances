@@ -3,9 +3,9 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { JsonBodyType, RequestHandler } from 'msw'
 import type { ReactElement } from 'react'
-import { server } from '../mocks/server'
-import { findRow } from './testUtils'
-import { renderWithQueryClient } from './renderWithQueryClient'
+import { server } from '../../mocks/server'
+import { findRow } from '../utils/testUtils'
+import { renderWithQueryClient } from '../utils/renderWithQueryClient'
 import { expectLoadStates } from './loadStates'
 
 /** Config for {@link describeSettingsPage}. */

@@ -13,11 +13,11 @@ import {
   seedSalaryCategory,
 } from '../../mocks/handlers/categories'
 import { CATEGORY_NAME_MAX_LENGTH } from '../../api/categories/categories'
-import { resolveErrorMessage } from '../../test/errorMessages'
-import { findRow } from '../../test/testUtils'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
-import { describeSettingsPage } from '../../test/settingsPageContract'
-import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
+import { resolveErrorMessage } from '../../test/utils/errorMessages'
+import { findRow } from '../../test/utils/testUtils'
+import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
+import { describeSettingsPage } from '../../test/contracts/settingsPageContract'
+import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/utils/viewport'
 import { CategoriesPage } from './CategoriesPage'
 
 const builtInExpense = seedCategories.find((c) => c.builtIn && c.type === 'EXPENSE')!

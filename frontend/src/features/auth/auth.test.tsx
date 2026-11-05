@@ -9,7 +9,7 @@ import {
   isMockSessionActive,
   signOutMockSession,
 } from '../../mocks/handlers/auth'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
+import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
 import App from '../../App'
 
 // jsdom has no matchMedia; ColorModeProvider and Layout read it (same stub as App.test.tsx).

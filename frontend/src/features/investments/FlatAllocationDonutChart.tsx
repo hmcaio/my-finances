@@ -7,7 +7,7 @@ import { fadeInSx } from '../../components/feedback/fadeIn'
 import { LoadFailedNotice } from '../../components/feedback/LoadFailedNotice'
 import { useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
-import { useLocale } from '../../hooks/locale/useLocale'
+import { useLocale } from '../../providers/locale/useLocale'
 import { formatMoney, formatNumber } from '../../i18n/format'
 import { CENTER, SIZE, SLICE_COLORS, VISUALLY_HIDDEN, segmentPath } from './donutGeometry'
 

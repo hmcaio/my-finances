@@ -14,9 +14,9 @@ import {
 } from '../../mocks/handlers/accounts'
 import { BUILT_IN_INSTITUTION_ID, seedInstitutions } from '../../mocks/handlers/institutions'
 import { formatMoney } from '../../i18n/format'
-import { resolveErrorMessage } from '../../test/errorMessages'
-import { findRow, renderWithRouter } from '../../test/testUtils'
-import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
+import { resolveErrorMessage } from '../../test/utils/errorMessages'
+import { findRow, renderWithRouter } from '../../test/utils/testUtils'
+import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/utils/viewport'
 import { AccountsPage } from './AccountsPage'
 
 function renderPage() {

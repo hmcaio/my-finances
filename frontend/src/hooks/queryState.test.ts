@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { act, waitFor } from '@testing-library/react'
 import { ApiError } from '../api/core/apiError'
-import { renderHookWithQueryClient } from '../test/renderWithQueryClient'
+import { renderHookWithQueryClient } from '../test/utils/renderWithQueryClient'
 import { combineLoadState, useQueryState } from './queryState'
 
 function deferred<T>() {

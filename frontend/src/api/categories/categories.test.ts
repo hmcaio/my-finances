@@ -5,8 +5,8 @@ import {
   categoryRenameConflictHandler,
   seedCategories,
 } from '../../mocks/handlers/categories'
-import { describeNamedEntityApi } from '../../test/apiContract'
-import { resolveErrorMessage } from '../../test/errorMessages'
+import { describeNamedEntityApi } from '../../test/contracts/apiContract'
+import { resolveErrorMessage } from '../../test/utils/errorMessages'
 import {
   createCategory,
   deleteCategory,

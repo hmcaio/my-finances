@@ -5,8 +5,8 @@ import {
   institutionRenameConflictHandler,
   seedInstitutions,
 } from '../../mocks/handlers/institutions'
-import { describeNamedEntityApi } from '../../test/apiContract'
-import { resolveErrorMessage } from '../../test/errorMessages'
+import { describeNamedEntityApi } from '../../test/contracts/apiContract'
+import { resolveErrorMessage } from '../../test/utils/errorMessages'
 import {
   createInstitution,
   deleteInstitution,

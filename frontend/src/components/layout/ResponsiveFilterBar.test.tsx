@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { restoreViewport, setViewportWidth } from '../../test/viewport'
+import { restoreViewport, setViewportWidth } from '../../test/utils/viewport'
 import { ResponsiveFilterBar } from './ResponsiveFilterBar'
 
 function renderBar(props: { activeCount: number; onClear?: () => void }) {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { emittedCss, emotionClass } from '../../test/emittedCss'
+import { emittedCss, emotionClass } from '../../test/utils/emittedCss'
 import { PageContainer } from './PageContainer'
 
 describe('PageContainer', () => {

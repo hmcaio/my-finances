@@ -3,7 +3,7 @@ import { http, HttpResponse } from 'msw'
 import { screen } from '@testing-library/react'
 import { server } from '../../mocks/server'
 import { SpendByCategoryWidget } from './SpendByCategoryWidget'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
+import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
 
 describe('SpendByCategoryWidget', () => {
   it('lists each category with its total and the grand total', async () => {

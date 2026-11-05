@@ -4,8 +4,8 @@ import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import { seedAuditLogEntries } from '../../mocks/handlers/auditLog'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
-import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/viewport'
+import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
+import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/utils/viewport'
 import { ActivityPage } from './ActivityPage'
 
 describe('ActivityPage', () => {

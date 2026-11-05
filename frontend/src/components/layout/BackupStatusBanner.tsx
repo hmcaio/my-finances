@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { Alert } from '@mui/material'
 import { useBackupStatus } from '../../api/backupStatus/backupStatusQueries'
-import { useLocale, type Locale } from '../../hooks/locale/useLocale'
+import { useLocale, type Locale } from '../../providers/locale/useLocale'
 import { formatDate } from '../../i18n/format'
 
 /**

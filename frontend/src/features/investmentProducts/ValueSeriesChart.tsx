@@ -4,7 +4,7 @@ import { CHART_HEIGHT, CHART_WIDTH, ChartSvg, YGrid } from '../../components/cha
 import { createYScale } from '../../components/charts/chartMath'
 import type { ValueSeriesPoint } from '../../api/investments/investmentValueSeries'
 import { useIsMobile } from '../../hooks/useBreakpointBand'
-import { useLocale } from '../../hooks/locale/useLocale'
+import { useLocale } from '../../providers/locale/useLocale'
 import { formatMoney, formatNumber } from '../../i18n/format'
 
 const MARGIN = { top: 16, right: 16, bottom: 44, left: 64 }

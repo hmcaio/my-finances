@@ -5,9 +5,9 @@ import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import { accountCreateConflictHandler } from '../../mocks/handlers/accounts'
 import { BUILT_IN_INSTITUTION_ID } from '../../mocks/handlers/institutions'
-import { resolveErrorMessage } from '../../test/errorMessages'
+import { resolveErrorMessage } from '../../test/utils/errorMessages'
 import { OnboardingPage } from './OnboardingPage'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
+import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
 
 async function createFirstAccount(user: ReturnType<typeof userEvent.setup>) {
   await screen.findByRole('combobox', { name: 'Institution' })

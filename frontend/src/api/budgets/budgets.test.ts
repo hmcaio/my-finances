@@ -7,7 +7,7 @@ import {
   seedBudgets,
 } from '../../mocks/handlers/budgets'
 import { ApiError } from '../core/apiError'
-import { resolveErrorMessage } from '../../test/errorMessages'
+import { resolveErrorMessage } from '../../test/utils/errorMessages'
 import { createBudget, getBudgetReport, getBudgets, setBudgetCap, stopBudget } from './budgets'
 
 describe('budgets API client', () => {
