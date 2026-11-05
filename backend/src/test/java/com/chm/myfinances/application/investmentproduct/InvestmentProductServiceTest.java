@@ -14,6 +14,7 @@ import com.chm.myfinances.application.investmentsnapshot.InvestmentSnapshotServi
 import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
 import com.chm.myfinances.application.investmentsubcategory.InvestmentSubcategoryNotFoundException;
 import com.chm.myfinances.domain.account.Account;
+import com.chm.myfinances.domain.goal.GoalAllocation;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategory;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
@@ -21,6 +22,8 @@ import com.chm.myfinances.domain.investmentsubcategory.InvestmentSubcategory;
 import com.chm.myfinances.testsupport.TestClocks;
 import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
 import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
+import com.chm.myfinances.testsupport.fakes.FakeGoalAllocationRepository;
+import com.chm.myfinances.testsupport.fakes.FakeGoalRepository;
 import com.chm.myfinances.testsupport.fakes.FakeHasHoldingHistoryChecker;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentCategoryRepository;
@@ -67,6 +70,8 @@ class InvestmentProductServiceTest {
       new FakeInvestmentSnapshotRepository();
   private final LatestInvestmentSnapshotQuery latestSnapshotQuery =
       new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository);
+  private final FakeGoalAllocationRepository goalAllocationRepository =
+      new FakeGoalAllocationRepository(new FakeGoalRepository());
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
   private final FakeAuditLog auditLog = new FakeAuditLog();
   private final InvestmentHoldingService holdingService =
@@ -101,6 +106,7 @@ class InvestmentProductServiceTest {
           subcategoryRepository,
           segmentRepository,
           holdingRepository,
+          goalAllocationRepository,
           holdingService,
           positionService,
           idGenerator,
@@ -138,6 +144,7 @@ class InvestmentProductServiceTest {
             subcategoryRepository,
             segmentRepository,
             holdingRepository,
+            goalAllocationRepository,
             holdingService,
             positionService,
             singleUseIdGenerator,
@@ -399,6 +406,22 @@ class InvestmentProductServiceTest {
 
     assertThatThrownBy(() -> service.delete(created.getId()))
         .isInstanceOf(InvestmentProductHasHoldingsException.class);
+  }
+
+  @Test
+  void deleteIsBlockedWhileAnyGoalAllocatesTheProduct() {
+    InvestmentProduct created = service.create(xpAccountId, cryptoId, null, "Bitcoin Test", null);
+    // Zero holdings, so only the goal allocation stands in the way (F039, ADR 0034).
+    holdingRepository.deleteById(holdingRepository.findByProductId(created.getId()).get(0).getId());
+    goalAllocationRepository.replaceForGoal(
+        UUID.randomUUID(),
+        List.of(
+            GoalAllocation.create(
+                UUID.randomUUID(), UUID.randomUUID(), created.getId(), new BigDecimal("10"))));
+
+    assertThatThrownBy(() -> service.delete(created.getId()))
+        .isInstanceOf(InvestmentProductAllocatedToGoalException.class);
+    assertThat(productRepository.findById(created.getId())).isPresent();
   }
 
   @Test
