@@ -23,6 +23,7 @@ import { HoldingDialogs } from './components/HoldingDialogs'
 import { HoldingsPanel } from './components/HoldingsPanel'
 import { OpeningPositionCard } from './components/OpeningPositionCard'
 import { ProductDialogs } from './components/ProductDialogs'
+import { ProductGoalAllocations } from './components/ProductGoalAllocations'
 import { SnapshotDialogs } from './components/SnapshotDialogs'
 import { SnapshotsPanel } from './components/SnapshotsPanel'
 import { TradeDialog } from './components/TradeDialog'
@@ -170,6 +171,8 @@ export function InvestmentProductDetailPage() {
               {product.additionalNotes}
             </Typography>
           )}
+
+          <ProductGoalAllocations productId={product.id} />
 
           <ErrorAlert message={anyDialogOpen ? null : error} onDismiss={() => setError(null)} />
 

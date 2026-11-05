@@ -33,8 +33,8 @@ Branch `feature/f039-goals`. Backend first (the projection and the response shap
 - [x] Implement `GoalsPage`, `GoalForm`, `TargetHelperDialog` and the `/goals` route.
 - [x] Test first: `GoalAllocationEditor` (remaining capacity per product, the unassigned remainder, an over-100 save shows the mapped `409` message); `GoalProjectionChart` and `GoalHistoryChart` (three lines and a target line, the "today's money" and "as of the current allocation" captions, a dateless "not reached within 50 years" state).
 - [x] Implement `GoalDetailPage`, `GoalAllocationEditor`, `GoalProjectionChart`, `GoalHistoryChart` on `ChartSvg` and the `/goals/:id` route.
-- [ ] Test first: `GoalsWidget` (only flagged goals, hidden when none, status line for a dated and a dateless goal, "View all" link) and the "Allocated to" chips on the product detail page.
-- [ ] Implement `GoalsWidget` in `DashboardPage`, the product detail chips, the nav entry, i18n (`en`, `pt-BR`), `PROBLEM_TYPE_MESSAGES` entries and the Activity-page `GOAL` label.
+- [x] Test first: `GoalsWidget` (only flagged goals, hidden when none, status line for a dated and a dateless goal, "View all" link) and the "Allocated to" chips on the product detail page.
+- [x] Implement `GoalsWidget` in `DashboardPage`, the product detail chips, the nav entry, i18n (`en`, `pt-BR`), `PROBLEM_TYPE_MESSAGES` entries and the Activity-page `GOAL` label.
 - [ ] `scripts/verify.sh frontend`.
 
 ## Phase 4 — Docs
