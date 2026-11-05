@@ -27,7 +27,7 @@ Branch `feature/f039-goals`. Backend first (the projection and the response shap
 - [x] `./gradlew spotlessApply` then `scripts/verify.sh backend` (Docker running).
 
 ## Phase 3 — Frontend
-- [x] Test first: API modules and hooks (list, detail, mutations invalidating the goals and dashboard keys, projection, history, suggestion, per-product allocations) against MSW.
+- [ ] Test first: API modules and hooks (list, detail, mutations invalidating the goals and dashboard keys, projection, history, suggestion, per-product allocations) against MSW.
 - [ ] Implement `src/api/goals/goals.ts`, `goalsQueries.ts`, MSW handlers and fixtures.
 - [ ] Test first: `GoalsPage` (loading, empty prompt, list with progress and badge, dashboard switch calls the PATCH, archived filter); `GoalForm` (validation, `maxLength`, status only on edit); `TargetHelperDialog` (emergency fund fills `months × average`, retirement fills `income × 12 ÷ rate`, nothing is stored).
 - [ ] Implement `GoalsPage`, `GoalForm`, `TargetHelperDialog` and the `/goals` route.
