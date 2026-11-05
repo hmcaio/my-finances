@@ -43,14 +43,14 @@ Branch `feature/f039-goals`. Backend first (the projection and the response shap
 - [x] `docs/features/README.md` row verified against what was built, and F039 removed from its "Status" list; `CHANGELOG.md` entry under `## [Unreleased]` in the same commit as the code.
 
 ## Verification
-- [ ] Create a goal "Car" (target 80,000, target date in 2 years, contribution 2,000, returns 2/4/6) -> it appears on `/goals` and on the dashboard card.
-- [ ] Allocate 60% of a product to "Car" and 40% to a second goal -> the product's detail page lists both chips; allocating another 10% to a third goal is rejected with the exceeds-100% message.
-- [ ] Open the goal -> the projection chart shows three scenario lines and the target line; the table shows value at the date, shortfall or surplus, the required monthly contribution, and the caption "values in today's money".
-- [ ] Create "Emergency fund" without a date, use "Suggest a target" with 6 months -> the target field fills with 6 × the average expense of the last 12 full months; the projection says "reached in N months" or "not reached within 50 years".
-- [ ] Use the retirement helper (income 8,000, rate 4%) -> the target field fills with 2,400,000.
-- [ ] Turn off "Show on dashboard" on one goal from the list -> its dashboard row disappears; turn it off on all of them -> the card disappears.
-- [ ] Archive an allocated goal -> it leaves the dashboard and the list, its percentages free up on the product, restoring it keeps the dashboard flag off, and restoring when the percentages no longer fit is rejected.
-- [ ] Try to delete a product allocated to a goal -> `409` with the mapped message; close it instead -> the goal's allocated value drops by its share.
-- [ ] Open the history chart -> it is labeled "as of the current allocation" and matches the product value series times the percentages.
-- [ ] Switch the language to pt-BR -> every goals string is translated and amounts keep the symbol-less format.
-- [ ] `scripts/verify.sh backend frontend` (Docker running) all green.
+- [x] Create a goal "Car" (target 80,000, target date in 2 years, contribution 2,000, returns 2/4/6) -> it appears on `/goals` and on the dashboard card.
+- [x] Allocate 60% of a product to "Car" and 40% to a second goal -> the product's detail page lists both chips; allocating another 10% to a third goal is rejected with the exceeds-100% message.
+- [x] Open the goal -> the projection chart shows three scenario lines and the target line; the table shows value at the date, shortfall or surplus, the required monthly contribution, and the caption "values in today's money".
+- [x] Create "Emergency fund" without a date, use "Suggest a target" with 6 months -> the target field fills with 6 × the average expense of the last 12 full months; the projection says "reached in N months" or "not reached within 50 years".
+- [x] Use the retirement helper (income 8,000, rate 4%) -> the target field fills with 2,400,000.
+- [x] Turn off "Show on dashboard" on one goal from the list -> its dashboard row disappears; turn it off on all of them -> the card disappears.
+- [x] Archive an allocated goal -> it leaves the dashboard and the list, its percentages free up on the product, restoring it keeps the dashboard flag off, and restoring when the percentages no longer fit is rejected.
+- [x] Try to delete a product allocated to a goal -> `409` with the mapped message; close it instead -> the goal's allocated value drops by its share.
+- [x] Open the history chart -> it is labeled "as of the current allocation" and matches the product value series times the percentages.
+- [x] Switch the language to pt-BR -> every goals string is translated and amounts keep the symbol-less format.
+- [x] `scripts/verify.sh backend frontend` (Docker running) all green.

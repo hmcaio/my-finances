@@ -209,6 +209,45 @@ class GoalRepositoryAdapterTest {
     assertThat(allocationRepository.existsByProductId(product)).isFalse();
   }
 
+  /**
+   * Parity (CODING_STANDARDS "Changes that travel together"): the JPQL sum restates "archived goals
+   * do not count" in SQL, so it is compared with the same rule written in Java, on random statuses
+   * and shares. Change {@code GoalAllocationJpaRepository#sumPercentageByProductExcludingGoal} and
+   * {@code GoalStatus} semantics together.
+   */
+  @Test
+  void theSumMatchesTheJavaRuleOnRandomGoals() {
+    java.util.Random random = new java.util.Random(39);
+    UUID product = newProduct("P Parity Goal Repo Test");
+    Goal self = newGoal(GoalMother.goal().withName("Self Parity Goal Repo Test"));
+    BigDecimal expected = BigDecimal.ZERO;
+    for (int i = 0; i < 25; i++) {
+      GoalStatus status = GoalStatus.values()[random.nextInt(GoalStatus.values().length)];
+      GoalMother mother = GoalMother.goal().withName("Parity " + i + " " + UUID.randomUUID());
+      if (status == GoalStatus.ARCHIVED) {
+        mother = mother.withStatus(status).hiddenFromDashboard();
+      } else {
+        mother = mother.withStatus(status);
+      }
+      Goal goal = newGoal(mother);
+      BigDecimal share = BigDecimal.valueOf(random.nextInt(400) + 1, 2);
+      allocationRepository.replaceForGoal(
+          goal.getId(), List.of(allocation(goal.getId(), product, share.toPlainString())));
+      if (goal.getStatus() != GoalStatus.ARCHIVED) {
+        expected = expected.add(share);
+      }
+    }
+    allocationRepository.replaceForGoal(
+        self.getId(), List.of(allocation(self.getId(), product, "50")));
+
+    BigDecimal actual =
+        allocationRepository
+            .sumPercentageByProductExcludingGoal(Set.of(product), self.getId())
+            .get(product);
+
+    assertThat(actual).isEqualByComparingTo(expected);
+  }
+
   @Test
   void multiIdReadsRunTheSameNumberOfStatementsForFewAndManyGoals() {
     UUID product = newProduct("P Goal Repo Test");
