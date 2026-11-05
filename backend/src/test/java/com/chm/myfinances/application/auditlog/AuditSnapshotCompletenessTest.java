@@ -11,6 +11,8 @@ import com.chm.myfinances.domain.allocationplan.AllocationPlanVersion;
 import com.chm.myfinances.domain.budget.BudgetVersion;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryType;
+import com.chm.myfinances.domain.goal.Goal;
+import com.chm.myfinances.domain.goal.GoalAllocation;
 import com.chm.myfinances.domain.institution.Institution;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentopeningposition.InvestmentOpeningPosition;
@@ -29,6 +31,8 @@ import com.chm.myfinances.infrastructure.persistence.allocationplan.AllocationPl
 import com.chm.myfinances.infrastructure.persistence.allocationplan.AllocationPlanVersionJpaEntity;
 import com.chm.myfinances.infrastructure.persistence.budget.BudgetVersionJpaEntity;
 import com.chm.myfinances.infrastructure.persistence.category.CategoryJpaEntity;
+import com.chm.myfinances.infrastructure.persistence.goal.GoalAllocationJpaEntity;
+import com.chm.myfinances.infrastructure.persistence.goal.GoalJpaEntity;
 import com.chm.myfinances.infrastructure.persistence.institution.InstitutionJpaEntity;
 import com.chm.myfinances.infrastructure.persistence.investmentholding.InvestmentHoldingJpaEntity;
 import com.chm.myfinances.infrastructure.persistence.investmentopeningposition.InvestmentOpeningPositionJpaEntity;
@@ -40,6 +44,7 @@ import com.chm.myfinances.infrastructure.persistence.transaction.TransactionJpaE
 import com.chm.myfinances.infrastructure.persistence.transfer.TransferJpaEntity;
 import com.chm.myfinances.infrastructure.persistence.transfer.TransferTradeLineJpaEntity;
 import com.chm.myfinances.infrastructure.persistence.vehicle.VehicleJpaEntity;
+import com.chm.myfinances.testsupport.mothers.GoalMother;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -240,6 +245,33 @@ class AuditSnapshotCompletenessTest {
             BigDecimal.ONE);
 
     assertThat(position.toAuditSnapshot().keySet()).containsAll(persisted);
+  }
+
+  @Test
+  void goalSnapshotCoversEveryPersistedFieldExceptTechnicalOnes() {
+    Set<String> persisted = declaredFieldNames(GoalJpaEntity.class);
+    persisted.removeAll(technicalFields());
+
+    Goal goal = GoalMother.goal().build();
+
+    assertThat(goal.toAuditSnapshot().keySet()).containsAll(persisted);
+  }
+
+  /**
+   * {@code goal_allocations}'s own columns, excluding {@code id} (technical) and {@code goalId}
+   * (the FK back to the parent goal the entry is recorded against).
+   */
+  @Test
+  void goalAllocationSnapshotCoversEveryPersistedFieldExceptTechnicalAndParentFk() {
+    Set<String> persisted = declaredFieldNames(GoalAllocationJpaEntity.class);
+    persisted.removeAll(technicalFields());
+    persisted.remove("goalId");
+
+    GoalAllocation allocation =
+        GoalAllocation.create(
+            UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), BigDecimal.TEN);
+
+    assertThat(allocation.toAuditSnapshot().keySet()).containsAll(persisted);
   }
 
   @Test
