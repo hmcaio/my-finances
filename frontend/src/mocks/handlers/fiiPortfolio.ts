@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw'
-import type { FiiPortfolioRow } from '../../api/investments/fiiPortfolio'
-import type { InvestmentProductStatus } from '../../api/investments/investmentProducts'
+import type { FiiPortfolioRow } from '../../api/investments/fii/fiiPortfolio'
+import type { InvestmentProductStatus } from '../../api/investments/products/investmentProducts'
 
 const PORTFOLIO_URL = '/api/fii/portfolio'
 

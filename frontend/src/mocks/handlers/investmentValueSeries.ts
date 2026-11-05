@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw'
-import type { ProductValueSeries } from '../../api/investments/investmentValueSeries'
+import type { ProductValueSeries } from '../../api/investments/products/investmentValueSeries'
 
 /**
  * Seed series of the seeded Bitcoin product (`iprod-btc`) over June-August 2026: no snapshot yet in

@@ -3,7 +3,7 @@ import type {
   DividendRow,
   DividendTotalByMonth,
   DividendTotalByTicker,
-} from '../../api/investments/fiiDividends'
+} from '../../api/investments/fii/fiiDividends'
 
 const DIVIDENDS_URL = '/api/fii/dividends'
 
