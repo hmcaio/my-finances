@@ -8,6 +8,7 @@ import {
   DashboardPage,
   FiiPage,
   FuelPage,
+  GoalDetailPage,
   GoalsPage,
   InstitutionsPage,
   InvestmentCategoriesPage,
@@ -42,6 +43,7 @@ export function AuthenticatedRoutes() {
       <Route path="/recurring" element={<RecurringTemplatesPage />} />
       <Route path="/investments" element={<InvestmentsPage />} />
       <Route path="/goals" element={<GoalsPage />} />
+      <Route path="/goals/:id" element={<GoalDetailPage />} />
       <Route path="/fii" element={<FiiPage />} />
       <Route path="/settings/categories" element={<CategoriesPage />} />
       <Route path="/settings/institutions" element={<InstitutionsPage />} />

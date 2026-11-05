@@ -31,8 +31,8 @@ Branch `feature/f039-goals`. Backend first (the projection and the response shap
 - [x] Implement `src/api/goals/goals.ts`, `goalsQueries.ts`, MSW handlers and fixtures.
 - [x] Test first: `GoalsPage` (loading, empty prompt, list with progress and badge, dashboard switch calls the PATCH, archived filter); `GoalForm` (validation, `maxLength`, status only on edit); `TargetHelperDialog` (emergency fund fills `months × average`, retirement fills `income × 12 ÷ rate`, nothing is stored).
 - [x] Implement `GoalsPage`, `GoalForm`, `TargetHelperDialog` and the `/goals` route.
-- [ ] Test first: `GoalAllocationEditor` (remaining capacity per product, the unassigned remainder, an over-100 save shows the mapped `409` message); `GoalProjectionChart` and `GoalHistoryChart` (three lines and a target line, the "today's money" and "as of the current allocation" captions, a dateless "not reached within 50 years" state).
-- [ ] Implement `GoalDetailPage`, `GoalAllocationEditor`, `GoalProjectionChart`, `GoalHistoryChart` on `ChartSvg` and the `/goals/:id` route.
+- [x] Test first: `GoalAllocationEditor` (remaining capacity per product, the unassigned remainder, an over-100 save shows the mapped `409` message); `GoalProjectionChart` and `GoalHistoryChart` (three lines and a target line, the "today's money" and "as of the current allocation" captions, a dateless "not reached within 50 years" state).
+- [x] Implement `GoalDetailPage`, `GoalAllocationEditor`, `GoalProjectionChart`, `GoalHistoryChart` on `ChartSvg` and the `/goals/:id` route.
 - [ ] Test first: `GoalsWidget` (only flagged goals, hidden when none, status line for a dated and a dateless goal, "View all" link) and the "Allocated to" chips on the product detail page.
 - [ ] Implement `GoalsWidget` in `DashboardPage`, the product detail chips, the nav entry, i18n (`en`, `pt-BR`), `PROBLEM_TYPE_MESSAGES` entries and the Activity-page `GOAL` label.
 - [ ] `scripts/verify.sh frontend`.

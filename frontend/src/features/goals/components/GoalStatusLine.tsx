@@ -6,6 +6,8 @@ import { goalStatusLine } from '../lib/goalStatusLine'
 import { formatGoalDate } from '../lib/goalFormat'
 
 interface GoalStatusLineProps {
+  /** The "Target reached" line is left out where the card already carries that badge. */
+  omitReached?: boolean
   goal: {
     targetDate: string | null
     projectedShortfall: number | null
@@ -18,10 +20,11 @@ interface GoalStatusLineProps {
  * dashboard card: "On track", "Short by X by <date>", "Reached in N months", "Target reached" or
  * "Not reached within 50 years".
  */
-export function GoalStatusLine({ goal }: GoalStatusLineProps) {
+export function GoalStatusLine({ goal, omitReached = false }: GoalStatusLineProps) {
   const { t } = useTranslation('goals')
   const { locale } = useLocale()
   const line = goalStatusLine(goal)
+  if (omitReached && line.kind === 'reached') return null
   const text = (() => {
     switch (line.kind) {
       case 'onTrack':

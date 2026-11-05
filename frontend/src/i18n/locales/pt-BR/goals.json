@@ -74,5 +74,71 @@
     "withdrawalRate": "Taxa de retirada (% ao ano)",
     "apply": "Usar este alvo",
     "hint": "Só preenche o campo do alvo; nada é salvo."
+  },
+  "detail": {
+    "backLink": "Voltar para as metas",
+    "notFound": "Meta não encontrada.",
+    "edit": "Editar meta",
+    "allocationHeading": "Alocação",
+    "projectionHeading": "Projeção",
+    "historyHeading": "Histórico de progresso",
+    "plannedContribution": "Aporte mensal planejado: {{amount}}",
+    "returns": "Retornos reais: {{pessimistic}}% / {{base}}% / {{optimistic}}%"
+  },
+  "allocation": {
+    "description": "Escolha os produtos de investimento que financiam esta meta e a parte de cada um. As partes de um produto entre as suas metas ativas somam no máximo 100%.",
+    "newRow": "Nova alocação",
+    "product": "Produto",
+    "percentage": "Percentual",
+    "addProduct": "Adicionar produto",
+    "removeAria": "Remover {{name}}",
+    "available": "Disponível: {{percent}}%",
+    "unassigned": "Não atribuído após esta meta: {{percent}}%",
+    "overCapacity": "Apenas {{percent}}% deste produto está disponível.",
+    "invalidPercentage": "Informe um percentual acima de 0 e até 100, com no máximo duas casas decimais.",
+    "empty": "Nenhum produto alocado ainda.",
+    "save": "Salvar alocação",
+    "archivedNote": "Restaure a meta para alterar a alocação.",
+    "loadFailed": "Não foi possível carregar os produtos."
+  },
+  "projection": {
+    "chartAria": "Valor projetado da meta em três cenários, em relação ao alvo",
+    "target": "Alvo {{amount}}",
+    "captionWithSnapshot": "Valores em moeda de hoje. Último registro em {{date}}.",
+    "captionNoSnapshot": "Valores em moeda de hoje. Nenhum registro de valor ainda.",
+    "scenario": {
+      "PESSIMISTIC": "Pessimista",
+      "BASE": "Base",
+      "OPTIMISTIC": "Otimista"
+    },
+    "legend": "{{name}} ({{rate}}%)",
+    "legendWithDetail": "{{name}} ({{rate}}%) – {{detail}}",
+    "reachedIn_one": "atingida em {{count}} mês",
+    "reachedIn_other": "atingida em {{count}} meses",
+    "alreadyReached": "alvo já atingido",
+    "notReached": "não atingida em 50 anos",
+    "table": {
+      "scenario": "Cenário",
+      "return": "Retorno real",
+      "valueAtDate": "Valor em {{date}}",
+      "gap": "Falta / sobra",
+      "required": "Aporte mensal necessário",
+      "timeToTarget": "Tempo até o alvo",
+      "short": "Faltam {{amount}}",
+      "surplus": "Sobram {{amount}}",
+      "noneNeeded": "Nenhum necessário",
+      "reachedNow": "Alvo atingido",
+      "reachedInMonths_one": "Atingida em {{count}} mês",
+      "reachedInMonths_other": "Atingida em {{count}} meses",
+      "notWithin50Years": "Não atingida em 50 anos",
+      "aria": "Projeção por cenário"
+    }
+  },
+  "history": {
+    "chartAria": "Valor da meta ao longo do tempo, conforme a alocação atual",
+    "caption": "Conforme a alocação atual: a divisão de hoje aplicada ao valor passado de cada produto, em moeda de hoje.",
+    "loading": "Carregando histórico",
+    "empty": "Nenhum histórico para mostrar ainda.",
+    "tooltip": "{{month}}: {{value}}"
   }
 }

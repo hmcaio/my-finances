@@ -222,7 +222,7 @@ function GoalCard({ goal, locale, toggling, onToggle, onEdit, onDelete }: GoalCa
           percent: formatProgress(goal.progressPercent, locale),
         })}
       </Typography>
-      {!archived && <GoalStatusLine goal={goal} />}
+      {!archived && <GoalStatusLine goal={goal} omitReached />}
 
       <FormControlLabel
         sx={{ mt: 1 }}
