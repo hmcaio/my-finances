@@ -4,15 +4,15 @@ import userEvent from '@testing-library/user-event'
 import { server } from '../../mocks/server'
 import { accountsWithInvestmentHandler, seedInvestmentAccount } from '../../mocks/handlers/accounts'
 import { renderWithRouter, selectOption } from '../../test/utils/testUtils'
-import { InvestmentProductsListSection } from './InvestmentProductsListSection'
+import { InvestmentProductsOverviewSection } from './InvestmentProductsOverviewSection'
 
 function table() {
   return screen.getByRole('table', { name: 'Investment products' })
 }
 
-describe('InvestmentProductsListSection', () => {
+describe('InvestmentProductsOverviewSection', () => {
   it('defaults to the Open status filter, excluding a product whose only holding is closed', async () => {
-    renderWithRouter(<InvestmentProductsListSection />)
+    renderWithRouter(<InvestmentProductsOverviewSection />)
 
     expect(await within(table()).findByText('Bitcoin')).toBeInTheDocument()
     expect(within(table()).getByText('Tesouro Selic 2029')).toBeInTheDocument()
@@ -20,7 +20,7 @@ describe('InvestmentProductsListSection', () => {
   })
 
   it('a row links to the product detail page', async () => {
-    renderWithRouter(<InvestmentProductsListSection />)
+    renderWithRouter(<InvestmentProductsOverviewSection />)
 
     const link = await within(table()).findByRole('link', { name: 'Bitcoin' })
     expect(link).toHaveAttribute('href', '/investment-products/iprod-btc')
@@ -28,7 +28,7 @@ describe('InvestmentProductsListSection', () => {
 
   it('the status filter set to All shows every product, each with its own status', async () => {
     const user = userEvent.setup({ delay: null })
-    renderWithRouter(<InvestmentProductsListSection />)
+    renderWithRouter(<InvestmentProductsOverviewSection />)
     await within(table()).findByText('Bitcoin')
 
     await selectOption(user, 'Status filter', 'All')
@@ -43,7 +43,7 @@ describe('InvestmentProductsListSection', () => {
     // isolation (its own doc comment); this page needs it in the Account filter's options.
     server.use(accountsWithInvestmentHandler)
     const user = userEvent.setup({ delay: null })
-    renderWithRouter(<InvestmentProductsListSection />)
+    renderWithRouter(<InvestmentProductsOverviewSection />)
     await within(table()).findByText('Bitcoin')
 
     await selectOption(user, 'Account filter', seedInvestmentAccount.name)
@@ -55,7 +55,7 @@ describe('InvestmentProductsListSection', () => {
 
   it('filters by name, case-insensitive', async () => {
     const user = userEvent.setup({ delay: null })
-    renderWithRouter(<InvestmentProductsListSection />)
+    renderWithRouter(<InvestmentProductsOverviewSection />)
     await within(table()).findByText('Bitcoin')
 
     await user.type(screen.getByRole('textbox', { name: 'Name' }), 'bitcoin')

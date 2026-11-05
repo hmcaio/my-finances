@@ -13,7 +13,7 @@ import { formatMoney } from '../../i18n/format'
 import { translateSeedName } from '../../i18n/seedNames'
 import { nameLookup } from '../../utils/nameLookup'
 import { accountTypeLabel } from './accountTypes'
-import { InvestmentProductsSection } from '../investmentProducts/InvestmentProductsSection'
+import { AccountInvestmentProductsSection } from '../investmentProducts/AccountInvestmentProductsSection'
 import { AccountLedger } from '../ledger/AccountLedger'
 import { PageContainer } from '../../components/layout/PageContainer'
 import { PageSection } from '../../components/layout/PageSection'
@@ -106,7 +106,10 @@ export function AccountDetailPage() {
               <Typography variant="h6" gutterBottom>
                 {t('accounts:detail.products')}
               </Typography>
-              <InvestmentProductsSection accountId={account.id} accountClosed={account.closed} />
+              <AccountInvestmentProductsSection
+                accountId={account.id}
+                accountClosed={account.closed}
+              />
             </PageSection>
           )}
 

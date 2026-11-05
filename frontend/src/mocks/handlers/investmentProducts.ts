@@ -80,7 +80,7 @@ function withClosed(product: InvestmentProduct): InvestmentProduct {
  * F023 added filtering/pagination and the derived `closed` field), backed by an in-memory store
  * restored after each test (see `categories.ts`). Create is a two-write use case like the real
  * backend: it also creates the product's first holding. Applies the same filter dimensions and
- * pagination defaults (page 0, size 20) as the real backend, so `InvestmentProductsListSection`'s
+ * pagination defaults (page 0, size 20) as the real backend, so `InvestmentProductsOverviewSection`'s
  * filter/pagination UI has real behavior to test against without a database.
  */
 export const investmentProductsHandlers = [

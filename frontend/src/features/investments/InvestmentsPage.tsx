@@ -20,7 +20,7 @@ import { useLocale } from '../../providers/locale/useLocale'
 import { formatMoney } from '../../i18n/format'
 import { InvestmentAccountAllocationChart } from './InvestmentAccountAllocationChart'
 import { InvestmentAllocationChart } from './InvestmentAllocationChart'
-import { InvestmentProductsListSection } from './InvestmentProductsListSection'
+import { InvestmentProductsOverviewSection } from './InvestmentProductsOverviewSection'
 import { InvestmentSubcategoryAllocationChart } from './InvestmentSubcategoryAllocationChart'
 import { PageContainer } from '../../components/layout/PageContainer'
 import { PageSection } from '../../components/layout/PageSection'
@@ -170,7 +170,7 @@ export function InvestmentsPage() {
             <Typography variant="h6" gutterBottom>
               {t('productsTitle')}
             </Typography>
-            <InvestmentProductsListSection />
+            <InvestmentProductsOverviewSection />
           </PageSection>
         )}
       </Box>

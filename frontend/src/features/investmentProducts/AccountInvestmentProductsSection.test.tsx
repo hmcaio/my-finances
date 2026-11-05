@@ -9,11 +9,11 @@ import { investmentProductCreateConflictHandler } from '../../mocks/handlers/inv
 import { resolveErrorMessage } from '../../test/utils/errorMessages'
 import { findRow, renderWithRouter, selectOption } from '../../test/utils/testUtils'
 import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/utils/viewport'
-import { InvestmentProductsSection } from './InvestmentProductsSection'
+import { AccountInvestmentProductsSection } from './AccountInvestmentProductsSection'
 
 function renderSection(accountClosed = false) {
   return renderWithRouter(
-    <InvestmentProductsSection
+    <AccountInvestmentProductsSection
       accountId={seedInvestmentAccount.id}
       accountClosed={accountClosed}
     />,
@@ -49,7 +49,7 @@ async function openAddDialog(user: ReturnType<typeof userEvent.setup>) {
  * sub-category, latest value, status), linking out to the product's own page for management. Only
  * product creation (which creates the first holding too) still happens here.
  */
-describe('InvestmentProductsSection', () => {
+describe('AccountInvestmentProductsSection', () => {
   // jsdom has no viewport, which MUI treats as the tablet band: pin the desktop layout so every
   // column (Sub-category included, hidden on tablet) is visible for the assertions below.
   beforeEach(() => setViewportWidth(VIEWPORT.desktop))
@@ -310,7 +310,7 @@ describe('InvestmentProductsSection', () => {
   })
 })
 
-describe('InvestmentProductsSection responsive layout (F021)', () => {
+describe('AccountInvestmentProductsSection responsive layout (F021)', () => {
   afterEach(restoreViewport)
 
   async function findCard(name: string) {
