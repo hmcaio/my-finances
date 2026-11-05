@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw'
-import type { TradeConfirmationLineRecord } from '../../api/investments/tradeConfirmationLines'
+import type { TradeConfirmationLineRecord } from '../../api/investments/products/tradeConfirmationLines'
 import { transfers } from './transfers'
 
 const TRADE_CONFIRMATION_LINES_URL = '/api/trade-confirmation-lines'

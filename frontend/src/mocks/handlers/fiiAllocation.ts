@@ -3,7 +3,7 @@ import type {
   FiiAllocationBasis,
   FiiAllocationGroupBy,
   FiiAllocationRow,
-} from '../../api/investments/fiiAllocation'
+} from '../../api/investments/fii/fiiAllocation'
 
 const ALLOCATION_URL = '/api/fii/allocation'
 

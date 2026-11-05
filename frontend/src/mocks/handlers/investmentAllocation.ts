@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw'
-import type { AllocationRow } from '../../api/investments/investmentAllocation'
+import type { AllocationRow } from '../../api/investments/allocation/investmentAllocation'
 import { seedInvestmentAccount } from './accounts'
 
 /**

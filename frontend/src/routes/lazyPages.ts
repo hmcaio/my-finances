@@ -25,22 +25,22 @@ export const InstitutionsPage = lazyNamed(
   'InstitutionsPage',
 )
 export const InvestmentsPage = lazyNamed(
-  () => import('../features/investments/InvestmentsPage'),
+  () => import('../features/investments/overview/InvestmentsPage'),
   'InvestmentsPage',
 )
 export const InvestmentProductDetailPage = lazyNamed(
-  () => import('../features/investmentProducts/InvestmentProductDetailPage'),
+  () => import('../features/investments/products/InvestmentProductDetailPage'),
   'InvestmentProductDetailPage',
 )
 export const InvestmentCategoriesPage = lazyNamed(
-  () => import('../features/investmentCategories/InvestmentCategoriesPage'),
+  () => import('../features/investments/categories/InvestmentCategoriesPage'),
   'InvestmentCategoriesPage',
 )
 export const InvestmentSegmentsPage = lazyNamed(
-  () => import('../features/investmentSegments/InvestmentSegmentsPage'),
+  () => import('../features/investments/segments/InvestmentSegmentsPage'),
   'InvestmentSegmentsPage',
 )
-export const FiiPage = lazyNamed(() => import('../features/fii/FiiPage'), 'FiiPage')
+export const FiiPage = lazyNamed(() => import('../features/investments/fii/FiiPage'), 'FiiPage')
 export const PaymentMethodsPage = lazyNamed(
   () => import('../features/paymentMethods/PaymentMethodsPage'),
   'PaymentMethodsPage',

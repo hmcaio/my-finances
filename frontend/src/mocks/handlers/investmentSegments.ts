@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw'
-import type { InvestmentSegment } from '../../api/investments/investmentSegments'
+import type { InvestmentSegment } from '../../api/investments/taxonomy/investmentSegments'
 import { createStore } from '../store'
 
 /**

@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw'
 import type {
   OpeningPosition,
   OpeningPositionRequest,
-} from '../../api/investments/investmentOpeningPositions'
+} from '../../api/investments/products/investmentOpeningPositions'
 import { investmentHoldingsStore } from './investmentHoldings'
 import { investmentSnapshotsStore } from './investmentSnapshots'
 import { createStore } from '../store'

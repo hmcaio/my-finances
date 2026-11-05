@@ -6,12 +6,18 @@ import type { Institution } from '../institutions/institutions'
 import type {
   InvestmentCategory,
   InvestmentSubcategoryEntry,
-} from '../investments/investmentCategories'
-import type { AllocationRow } from '../investments/investmentAllocation'
-import type { InvestmentHolding } from '../investments/investmentHoldings'
-import type { InvestmentProduct, InvestmentProductPage } from '../investments/investmentProducts'
-import type { InvestmentSnapshot } from '../investments/investmentSnapshots'
-import type { ProductValueSeries, ValueSeriesPoint } from '../investments/investmentValueSeries'
+} from '../investments/taxonomy/investmentCategories'
+import type { AllocationRow } from '../investments/allocation/investmentAllocation'
+import type { InvestmentHolding } from '../investments/products/investmentHoldings'
+import type {
+  InvestmentProduct,
+  InvestmentProductPage,
+} from '../investments/products/investmentProducts'
+import type { InvestmentSnapshot } from '../investments/products/investmentSnapshots'
+import type {
+  ProductValueSeries,
+  ValueSeriesPoint,
+} from '../investments/products/investmentValueSeries'
 import type { NetWorthPoint } from '../netWorth/netWorth'
 import type { PaymentMethod } from '../paymentMethods/paymentMethods'
 import type {

@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw'
-import type { AllocationPlanVersion } from '../../api/investments/allocationPlan'
+import type { AllocationPlanVersion } from '../../api/investments/fii/allocationPlan'
 import { createStore } from '../store'
 
 const PLAN_URL = '/api/fii/allocation-plan'

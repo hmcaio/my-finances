@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw'
-import type { InvestmentHolding } from '../../api/investments/investmentHoldings'
+import type { InvestmentHolding } from '../../api/investments/products/investmentHoldings'
 import { seedInvestmentAccount } from './accounts'
 import { createStore } from '../store'
 
