@@ -1,0 +1,78 @@
+{
+  "title": "Metas",
+  "description": "Defina um alvo, aloque produtos de investimento a ele e veja se você está no caminho. As estimativas usam apenas os retornos que você informar, em valores de hoje.",
+  "newGoal": "Nova meta",
+  "showArchived": "Mostrar arquivadas",
+  "loading": "Carregando metas",
+  "loadingGoal": "Carregando a meta",
+  "empty": {
+    "title": "Nenhuma meta ainda",
+    "body": "Uma meta é algo para o qual você está poupando: um carro, uma reserva de emergência, a aposentadoria. Aloque produtos de investimento a ela para acompanhar o progresso.",
+    "cta": "Crie sua primeira meta"
+  },
+  "noDate": "Sem data alvo",
+  "targetDate": "Data alvo: {{date}}",
+  "targetReached": "Alvo atingido",
+  "progress": "{{allocated}} de {{target}} ({{percent}}%)",
+  "progressAria": "Progresso de {{name}}",
+  "showOnDashboard": "Mostrar no painel",
+  "showOnDashboardAria": "Mostrar {{name}} no painel",
+  "viewAll": "Ver todas",
+  "editAria": "Editar {{name}}",
+  "deleteAria": "Excluir {{name}}",
+  "status": {
+    "ACTIVE": "Ativa",
+    "ACHIEVED": "Concluída",
+    "ARCHIVED": "Arquivada"
+  },
+  "statusLine": {
+    "onTrack": "No caminho",
+    "short": "Faltam {{amount}} até {{date}}",
+    "reached": "Alvo atingido",
+    "reachedInMonths_one": "Atingida em {{count}} mês",
+    "reachedInMonths_other": "Atingida em {{count}} meses",
+    "notWithin50Years": "Não atingida em 50 anos"
+  },
+  "delete": {
+    "title": "Excluir meta",
+    "body": "Excluir \"{{name}}\" e suas alocações? Isso não pode ser desfeito.",
+    "confirm": "Excluir"
+  },
+  "form": {
+    "createTitle": "Nova meta",
+    "editTitle": "Editar meta",
+    "name": "Nome",
+    "notes": "Observações",
+    "targetAmount": "Valor alvo",
+    "targetDate": "Data alvo (opcional)",
+    "plannedMonthlyContribution": "Aporte mensal planejado",
+    "returnPessimistic": "Retorno pessimista (% ao ano)",
+    "returnBase": "Retorno base (% ao ano)",
+    "returnOptimistic": "Retorno otimista (% ao ano)",
+    "returnsHint": "Retornos reais, acima da inflação: 6 significa \"inflação + 6%\". Vão de -50 a 100 e devem seguir do pessimista ao otimista.",
+    "status": "Situação",
+    "showOnDashboard": "Mostrar no painel",
+    "suggestTarget": "Sugerir um alvo",
+    "dateMustBeFuture": "A data alvo deve estar no futuro.",
+    "returnsOutOfRange": "Os retornos devem estar entre -50 e 100.",
+    "returnsOrder": "Os retornos devem seguir do pessimista ao base e ao otimista.",
+    "twoDecimals": "No máximo duas casas decimais.",
+    "create": "Criar",
+    "save": "Salvar"
+  },
+  "targetHelper": {
+    "title": "Sugerir um alvo",
+    "mode": "Tipo de meta",
+    "emergencyFund": "Reserva de emergência",
+    "retirement": "Aposentadoria",
+    "months": "Meses de despesas",
+    "averageExpense": "Despesa mensal média nos últimos {{months}} meses completos: {{amount}}",
+    "noExpenses": "Nenhuma despesa registrada ainda, então não há média para sugerir.",
+    "loadFailed": "Não foi possível carregar a sua despesa média.",
+    "result": "Alvo sugerido: {{amount}}",
+    "monthlyIncome": "Renda mensal desejada",
+    "withdrawalRate": "Taxa de retirada (% ao ano)",
+    "apply": "Usar este alvo",
+    "hint": "Só preenche o campo do alvo; nada é salvo."
+  }
+}

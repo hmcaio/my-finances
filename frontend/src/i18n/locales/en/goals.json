@@ -1,0 +1,78 @@
+{
+  "title": "Goals",
+  "description": "Set a target, allocate investment products to it and see whether you are on track. Estimates use only the returns you enter, in today's money.",
+  "newGoal": "New goal",
+  "showArchived": "Show archived",
+  "loading": "Loading goals",
+  "loadingGoal": "Loading the goal",
+  "empty": {
+    "title": "No goals yet",
+    "body": "A goal is something you are saving toward: a car, an emergency fund, retirement. Allocate investment products to it to track your progress.",
+    "cta": "Create your first goal"
+  },
+  "noDate": "No target date",
+  "targetDate": "Target date: {{date}}",
+  "targetReached": "Target reached",
+  "progress": "{{allocated}} of {{target}} ({{percent}}%)",
+  "progressAria": "Progress of {{name}}",
+  "showOnDashboard": "Show on dashboard",
+  "showOnDashboardAria": "Show {{name}} on the dashboard",
+  "viewAll": "View all",
+  "editAria": "Edit {{name}}",
+  "deleteAria": "Delete {{name}}",
+  "status": {
+    "ACTIVE": "Active",
+    "ACHIEVED": "Achieved",
+    "ARCHIVED": "Archived"
+  },
+  "statusLine": {
+    "onTrack": "On track",
+    "short": "Short by {{amount}} by {{date}}",
+    "reached": "Target reached",
+    "reachedInMonths_one": "Reached in {{count}} month",
+    "reachedInMonths_other": "Reached in {{count}} months",
+    "notWithin50Years": "Not reached within 50 years"
+  },
+  "delete": {
+    "title": "Delete goal",
+    "body": "Delete \"{{name}}\" and its allocations? This cannot be undone.",
+    "confirm": "Delete"
+  },
+  "form": {
+    "createTitle": "New goal",
+    "editTitle": "Edit goal",
+    "name": "Name",
+    "notes": "Notes",
+    "targetAmount": "Target amount",
+    "targetDate": "Target date (optional)",
+    "plannedMonthlyContribution": "Planned monthly contribution",
+    "returnPessimistic": "Pessimistic return (% a year)",
+    "returnBase": "Base return (% a year)",
+    "returnOptimistic": "Optimistic return (% a year)",
+    "returnsHint": "Real returns, above inflation: 6 means \"inflation + 6%\". They go from -50 to 100 and must run from pessimistic to optimistic.",
+    "status": "Status",
+    "showOnDashboard": "Show on dashboard",
+    "suggestTarget": "Suggest a target",
+    "dateMustBeFuture": "The target date must be in the future.",
+    "returnsOutOfRange": "Returns must be between -50 and 100.",
+    "returnsOrder": "Returns must run from pessimistic to base to optimistic.",
+    "twoDecimals": "At most two decimal places.",
+    "create": "Create",
+    "save": "Save"
+  },
+  "targetHelper": {
+    "title": "Suggest a target",
+    "mode": "Kind of goal",
+    "emergencyFund": "Emergency fund",
+    "retirement": "Retirement",
+    "months": "Months of expenses",
+    "averageExpense": "Average monthly expense over the last {{months}} full months: {{amount}}",
+    "noExpenses": "No expenses recorded yet, so there is no average to suggest from.",
+    "loadFailed": "Could not load your average expense.",
+    "result": "Suggested target: {{amount}}",
+    "monthlyIncome": "Desired monthly income",
+    "withdrawalRate": "Withdrawal rate (% a year)",
+    "apply": "Use this target",
+    "hint": "Only fills the target field; nothing is stored."
+  }
+}

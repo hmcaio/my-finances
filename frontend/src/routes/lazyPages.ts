@@ -20,6 +20,7 @@ export const CategoriesPage = lazyNamed(
   'CategoriesPage',
 )
 export const FuelPage = lazyNamed(() => import('../features/fuel/FuelPage'), 'FuelPage')
+export const GoalsPage = lazyNamed(() => import('../features/goals/GoalsPage'), 'GoalsPage')
 export const InstitutionsPage = lazyNamed(
   () => import('../features/institutions/InstitutionsPage'),
   'InstitutionsPage',
