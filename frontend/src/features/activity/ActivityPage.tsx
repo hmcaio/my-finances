@@ -20,9 +20,9 @@ import { useIsMobile } from '../../hooks/useBreakpointBand'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { useQueryState } from '../../hooks/queryState'
 import { useLocale } from '../../providers/locale/useLocale'
-import { ActivityEntryRow } from './ActivityEntryRow'
-import { ActivityFilterBar } from './ActivityFilterBar'
-import { groupEntriesByLocalDay } from './groupByDay'
+import { ActivityEntryRow } from './components/ActivityEntryRow'
+import { ActivityFilterBar } from './components/ActivityFilterBar'
+import { groupEntriesByLocalDay } from './lib/groupByDay'
 import { PageContainer } from '../../components/layout/PageContainer'
 
 const PAGE_SIZE = 20

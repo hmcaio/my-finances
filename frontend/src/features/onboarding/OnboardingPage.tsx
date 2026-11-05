@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Box, Paper, Step, StepLabel, Stepper, Typography } from '@mui/material'
 import type { Account } from '../../api/accounts/accounts'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
-import { AccountCreateForm } from '../accounts/AccountCreateForm'
+import { AccountCreateForm } from '../accounts/components/AccountCreateForm'
 import { CategorySuggestionsStep } from './CategorySuggestionsStep'
 
 interface OnboardingPageProps {
