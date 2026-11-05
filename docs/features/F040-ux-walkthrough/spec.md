@@ -1,0 +1,135 @@
+# F040 — UX walkthrough fixes
+
+## Summary
+A browser walkthrough of the running app (every route at 1366px and 390px, plus add-expense, batch entry of transactions and transfers, and batch entry of investment snapshots) found friction in the two flows a user repeats most: registering many ledger entries in a row, and recording a snapshot for every investment holding. This feature fixes those flows and the smaller findings from the same pass: a dialog that does not say why "Add" is disabled, no confirmation after a save, a stale "Transfers page" string, same-day Ledger rows in an arbitrary order, an Investments tab that forgets itself, and layout problems on the Dashboard and the mobile FII page.
+
+It implements new bullets under PRD §6.16 (Ledger), §6.6 (Investments), §6.8 (Dashboard), §6.12 (Activity Log) and §6.13 (FII Portfolio), and two lines in §9. No data model change and no migration (`created_at` already exists on both tables). No ADR: nothing reverses a decision or adds a data-model pattern; the two new frontend conventions (success toast, form-dialog shell) are recorded in `docs/conventions/`.
+
+One feature, delivered as ordered slices (see `plan.md`), each shippable as its own PR. Backend work is small (Ledger tie-break, one read and one write endpoint for the snapshot sheet); the rest is frontend.
+
+## Scope
+- Backend: `LedgerQuery` same-day tie-break on `created_at`; `GET` and `POST /api/investment-snapshot-sheet` (open-holdings read, atomic batch write) with row-level error reporting.
+- Frontend: quick fixes (stale copy, "Settings" heading, skip link, wrapping `PageHeader`); a global success toast; a shared form-dialog shell (`required` marks, Enter submits, autofocus); one "New entry" dialog (Expense / Income / Transfer, "Add and new"); the Investments tab in the URL; the snapshot sheet page; the Dashboard grid; the FII phone layout.
+- Docs: PRD bullets, `docs/conventions/frontend-components.md` and `frontend-data-loading.md`, `docs/features/README.md`.
+- Out of scope: see [Non-goals](#non-goals).
+
+## Decisions
+| Decision | Why |
+|---|---|
+| One feature folder, nine slices, one PR per slice. | The findings share a walkthrough and several share code (toast, dialog shell, entry dialog), but most are independently shippable; slicing keeps each PR reviewable and lets the cheap fixes land first. Splitting into several feature folders was not asked for and deviates from the one-folder convention. |
+| Required fields are marked with `*` (MUI `required`), the form gets `noValidate`, and a hint line reads "Fields marked * are required". "Add" stays disabled until the form is valid. | Payment Method is required at every layer (DTO `@NotNull`, domain `requireNonNull`, `payment_method_id ... NOT NULL`) but was unmarked, so a disabled button had no visible cause. Inline error machinery for ~20 dialogs was rejected as disproportionate; the marks answer "why is it disabled". |
+| A shared `FormDialog` shell makes the dialog paper a `<form>`; Enter in a single-line field submits the primary action, and the first field carries `autoFocus`. | Today every dialog hand-codes Enter (or does not) and only the Add dialogs autofocus. One shell removes the per-dialog copies. Applied to the transaction, transfer and snapshot dialogs and to the five dialogs already on `AddFormDialog`; the other ~12 dialogs follow later (non-goal). |
+| The native `<input type="date">` stays; "Date as one tab stop" is dropped. | The three segment stops plus the picker button come from the browser. Fixing them means a custom picker and a new dependency (`@mui/x-date-pickers` is not installed). To be evaluated separately. |
+| One global success toast, fed by `meta.successMessage` on the mutation and shown by `MutationCache.onSuccess`. Every create, update and delete has one; login and logout do not. Texts never carry amounts, names or descriptions. | `MutationCache.onSuccess` already runs for every mutation (ADR 0016), so one hook point covers all writes; per-dialog snackbars would be duplicated 20 times. A convention test keeps a new mutation from shipping without a message. |
+| The Ledger "Add" button opens one **New entry** dialog with a three-way toggle Expense / Income / Transfer; switching keeps the date and the account (a transaction's account is the transfer's "From" and the reverse). The Category list is filtered by the chosen type. | The user needs transaction → transfer → transaction in one sitting without closing the dialog. Folding the Expense/Income choice into the same toggle also fixes the mixed Category list. The two menu entries remain and just preselect a type. |
+| "Add and new" (create only) saves and keeps the dialog open. Transaction: keeps date, account and payment method, clears amount, description, notes and category; if the saved category was the fuel category it stays, together with vehicle and fuel type, and liters, price, km and odometer are cleared. Plain transfer: keeps date, from and to, clears amount, description and notes. Trade confirmations do not get it. Focus goes to the first cleared field in visual order. | These are the fields that repeat within a sitting (a week of receipts, one payment method). Category differs per entry, so keeping it risks a wrong silent default; a fuel fill-up is the exception because the vehicle fields only make sense under it. |
+| Enter in the New entry dialog submits "Add" (closes the dialog), not "Add and new". | The least surprising meaning of Enter; "Add and new" is an explicit click. Revisit after use (see Open questions). |
+| Same-day Ledger rows are ordered by `created_at` newest first, then by the existing keys. | The tie-break today is a random UUID, so three same-day entries came back in neither entry nor alphabetical order. Both tables already store `created_at`; interleaved transaction/transfer entry needs the order to be real across the two types. |
+| The Investments tab lives in the URL as `?tab=products` (omitted for the default `accounts`), changed with `replace`. | Same pattern as the Ledger's view in the URL (`ledgerSearchParams.ts`): survives reload and back-navigation. `replace` keeps tab clicks out of the history. |
+| Bulk snapshots: a sheet page at `/investments/snapshots` lists every **open** holding with a blank balance input; one date for all rows; a blank row is skipped; the previous balance is the placeholder and its own column; a live difference shows next to a filled balance. | Pre-filling would silently re-record unchanged values. Closed holdings are left out because their latest snapshot is zero by the close guard (PRD §5.8). |
+| The sheet saves through **one atomic batch endpoint**, which reuses the existing per-holding `record` rule inside a single transaction. | A half-saved sheet is hard to reason about and would leave a partial run in Activity. Rejected: N calls to the existing endpoint (partial success, "Retry N failed"). Atomicity is made cheap by row-level error reporting (next row). |
+| A failed batch never clears the screen. The client validates every row before sending; the server checks every holding first and returns one 4xx whose `errors` lists **every** offending row (`entries[i].holdingId`, code `investment-holding-not-found`); the screen highlights those rows. A 409 conflict is retried with one click, because same-day replacement makes a resend idempotent. | The cost of a failure must be one more click, never retyping. `errors[]` with an indexed `field` is the F032 format already used for bean validation (`tradeConfirmation.lines[1].quantity`). |
+| A bulk save logs one ordinary audit entry per snapshot (`INVESTMENT_SNAPSHOT`, `CREATE` or `UPDATE`), all sharing the request id. No Activity grouping in this feature. | It matches every other change (ADR 0022: per-entity entries, cascades share a request id) and keeps each diff. Grouping Activity entries by request id is a Future Direction (§9) because it would help recurring catch-up and cascades too. |
+| Dashboard: row 1 is Spend by category, Budget vs actual, Account balances (equal-height cards, Budget vs actual gets the same card styling); row 2 is Investment allocation (1 column) beside Net worth (2 columns at `lg`, full width below); then Upcoming bills full width. | At `lg` the fourth widget sat alone in row 2 with two empty cells, cards had uneven heights, and Budget vs actual was the only widget without a card. |
+| FII on phones: both donuts side by side and small, then one shared comparison table (segment with color dot, Actual %, Planned %, difference). Desktop keeps a legend beside each donut. | The user wants the two charts visible together for comparison. Stacked donuts cost ~800px before any data; one shared table replaces two duplicated legends and compares better. Rejected: tabbing between the donuts (not simultaneous) and stacked bars (not the donuts asked for). |
+| `PageHeader` wraps by default (`flexWrap: 'wrap'`). | The FII "Register dividend" button squeezed the title on phones; only `FuelPage` opted in to wrapping. One default fixes every page. |
+
+## Backend
+
+### Application
+- `application/ledger/LedgerEntry.java`: add `Instant createdAt()` to the sealed interface; `TransactionEntry` and `TransferEntry` return `transaction.getCreatedAt()` / `transfer.getCreatedAt()`.
+- `domain/transaction/Transaction.java` and `domain/transfer/Transfer.java`: add a read-only `Instant getCreatedAt()` (null until persisted, never set by application code, not part of equality). It is populated by the adapters' `toDomain` from `AuditableEntity.getCreatedAt()` (`infrastructure/persistence/transaction/TransactionRepositoryAdapter.java`, the transfer adapter). Not part of `toAuditSnapshot()`: add it to the aggregates' audit exclude lists so the audit-coverage guard test keeps passing.
+- `application/ledger/LedgerQuery.java`: `CAP_PLUS_ONE` sorts `date DESC, createdAt DESC, id DESC`; `NEWEST_FIRST` becomes date descending, then `createdAt` descending, then the existing transactions-before-transfers and id tie-breaks. A null `createdAt` sorts last.
+- `application/investmentsnapshot/InvestmentSnapshotService.java`: `@Transactional recordBatch(LocalDate date, List<SnapshotBatchEntry> entries)` returning `RecordedBatch(int created, int replaced)`. Steps: (1) load every `holdingId` in one repository call (`InvestmentHoldingRepository.findAllByIds`, added if absent); (2) if any is missing, throw `InvestmentSnapshotSheetHoldingsNotFoundException` carrying every offending entry index, before any write; (3) call the existing `record(holdingId, date, balance)` per entry in request order, which writes the audit entry (`recordCreate` or `recordUpdate`, an unchanged same-day balance logs nothing) in the same transaction; (4) count `created` and `replaced` from each `RecordedSnapshot`. A unique-constraint conflict raised by a concurrent insert surfaces as the existing `InvestmentSnapshotDateTakenException` (409) and rolls the whole batch back. A closed holding may still be given a snapshot, as `record` allows today.
+- `application/investmentsnapshot/OpenHoldingSnapshotSheetQuery.java` (read-only): every open holding, one row each: holding id, product id, product name, ticker (nullable), account id, account name, latest snapshot `{date, balance}` (nullable), through `InvestmentHoldingRepository`, the product and account repositories and `LatestInvestmentSnapshotQuery.latestByHolding()`. Ordered by account name, then product name, both case-insensitive.
+
+### Persistence
+No migration. `transactions.created_at` and `transfers.created_at` are `timestamptz NOT NULL` already (`V5__transactions.sql`, `V7__transfers.sql`). Persistence-tier tests (ADR 0013) cover the new sort and the `findAllByIds` method.
+
+### API
+- `GET /api/investment-snapshot-sheet`: `200` with a list of `SnapshotSheetRowResponse` (`holdingId`, `productId`, `productName`, `ticker`, `accountId`, `accountName`, `latestSnapshot { date, balance }` or `null`). Authenticated like every controller. New controller `infrastructure/web/investmentsnapshot/InvestmentSnapshotSheetController.java`.
+- `POST /api/investment-snapshot-sheet`: body `RecordSnapshotSheetRequest { date: LocalDate @NotNull, entries: @NotEmpty @Size(max = 200) List<@Valid Entry> }` with `Entry { holdingId: UUID @NotNull, balance: BigDecimal @NotNull @PositiveOrZero @Digits(integer = 17, fraction = 2) }` (the same balance rules as `RecordSnapshotRequest`) and a method-level `@AssertTrue isHoldingIdsUnique()` (a holding at most once per request; the F032 `errors` list reports it as the method property, see `docs/conventions/errors.md`). Responses:
+  - `200` `RecordSnapshotSheetResponse { created, replaced }`.
+  - `400` `method-argument-not-valid` with `errors[]` of `{field, code}`; row fields are `entries[i].balance` and `entries[i].holdingId`.
+  - `404` `urn:my-finances:error:investment-snapshot-sheet-holdings-not-found` (type derived from the exception class name, `detail` null) with an extra `errors[]` member listing every missing holding as `{ field: "entries[i].holdingId", code: "investment-holding-not-found" }`. `GlobalExceptionHandler` builds it from the exception's indexes, the same way it builds the bean-validation list.
+  - `409` `investment-snapshot-date-taken` for a concurrent write to the same holding and date.
+- Regenerate `frontend/src/api/generated/schema.ts` (`npm run generate-api-types -- --offline`).
+- Log lines carry ids and counts only: the batch logs the entry count and the created/replaced counts, never balances or names (ADR 0011).
+
+## Frontend
+Paths are under `frontend/src/`.
+
+### Quick fixes
+- `i18n/locales/en/investments.json` (`description`) and its `pt-BR` twin: replace "(or the Transfers page)" with the Ledger wording; the Transfers page became the Ledger in F037.
+- `components/layout/Layout.tsx`: the Settings `ListSubheader` is restyled as a section heading (heavier weight, `text.primary`, small caps spacing) so it no longer reads as a disabled item. This is a styling fix, not a compliance claim (see Open questions).
+- Skip link: the first focusable element in `Layout` is a visually hidden link, shown on focus, to `#main-content` (the `main` region gets `id="main-content"` and `tabIndex={-1}`); key `common:nav.skipToContent`.
+- `components/layout/PageHeader.tsx`: `flexWrap: 'wrap'` in the base row; remove the now-redundant `sx` in `features/fuel/FuelPage.tsx`.
+
+### Success toast
+- `providers/notifications/`: `notificationStore.ts` (a tiny external store with `publish(message)`, readable through `useSyncExternalStore`) and `NotificationHost.tsx` (MUI `Snackbar` + `Alert severity="success" role="status"`, `autoHideDuration` 4000, bottom start on desktop and above the page content on phones). `Layout` renders the host once.
+- `api/core/queryClient.ts`: add `successMessage?: string` (an i18n key) and `successMessageOptions?: (data: unknown, variables: unknown) => Record<string, unknown>` to the registered `mutationMeta`; `MutationCache.onSuccess` publishes `i18n.t(meta.successMessage, options)` when present, independent of `skipInvalidate`.
+- Every create, update and delete mutation in `api/**/*Queries.ts` sets `meta.successMessage` (keys in each area's namespace, English and Brazilian Portuguese, e.g. `transactions:saved`). Login and logout and the read-with-side-effect mutations are on an explicit allowlist. `src/test/contracts/mutationMessages.test.ts` fails when a mutation hook has neither.
+- `docs/conventions/frontend-data-loading.md` (writes) and `frontend-components.md` get the rule.
+
+### Dialog shell
+- `components/feedback/FormDialog.tsx`: wraps `ResponsiveDialog` with `slotProps={{ paper: { component: 'form', noValidate: true, onSubmit } }}`; `onSubmit` calls `preventDefault()` and runs the primary action only when `canSubmit && !busy`. Props: `open`, `title`, `onClose`, `onSubmit`, `canSubmit`, `busy`, `submitLabel`, `error`, `onDismissError`, `children`, `extraActions` (rendered before the submit button). Renders the error banner, the fields, the required hint and Cancel / submit (`type="submit"`).
+- `components/feedback/AddFormDialog.tsx` is rebuilt on `FormDialog`, so Institutions, Categories, Vehicles, Budgets and Recurring templates get Enter-to-submit and required marks with no page change beyond marking `required` fields and `autoFocus` on the first.
+- Apply to `features/transactions/` (the new entry dialog), the transfer create/edit dialog, and `features/investments/products/components/SnapshotDialogs.tsx` (Record snapshot).
+- Required marks: `required` on Date, Amount, Category, Account, Payment Method and Description in `features/transactions/TransactionFormFields.tsx`; the transfer fields already mark Description (`TransferCommonFields.tsx`) and gain the rest; snapshot Date and Balance.
+- `docs/conventions/frontend-components.md` and `frontend-responsive.md` (form dialogs) get the shell.
+
+### New entry dialog (Ledger)
+- `features/ledger/components/EntryDialog.tsx` replaces the create paths of `TransactionFormDialog` and the transfer dialog in `LedgerPage.tsx`; edit opens the same dialog with the type fixed (the toggle hidden) and a single "Save changes" button. `ledger:addButton` still opens a menu with `newTransaction` / `newTransfer`; each opens the dialog on Expense or Transfer. The Fuel page's `presetCategoryId` opens it on Expense with that category.
+- `features/ledger/hooks/useEntryDraft.ts` holds the type, the carried `{ date, accountId }` and the per-type drafts. Switching type remounts the matching form (`key`) seeded from the carry; the form reports its current date and account back through a callback so a later switch carries them. Switching between Expense and Income clears a category whose `Category.type` no longer matches.
+- Categories are filtered by `Category.type` in `TransactionFormFields.tsx` (new `type` prop).
+- `features/transfers/components/TransferForm.tsx` gains `onAddAnother?: (saved: Transfer) => void` and a `carry` seed (date, from, to) used with `initialFormState`; "Add and new" is rendered only in plain mode when not editing. The trade dialog on the product page keeps using `TransferForm` unchanged.
+- After "Add and new": keep the carried fields, clear the rest per the Decisions table, focus the first cleared field, toast through the mutation meta.
+- Same-day order needs no frontend change.
+
+### Investments tab in the URL
+- `features/investments/overview/InvestmentsPage.tsx`: `tab` comes from `useSearchParams` (`accounts` | `products`, anything else is `accounts`), written with `replace`. Parse/serialize live in `features/investments/overview/lib/investmentsSearchParams.ts` with a test, mirroring `ledgerSearchParams.ts`.
+
+### Snapshot sheet
+- Route `/investments/snapshots`: a `lazyNamed` line in `routes/lazyPages.ts` and a `<Route>` in `routes/AuthenticatedRoutes.tsx`. A "Record snapshots" button in the Investments page header links to it; no new nav item.
+- `features/investments/snapshots/InvestmentSnapshotSheetPage.tsx`, `components/SnapshotSheetTable.tsx`, `hooks/useSnapshotSheet.ts`, `lib/snapshotSheet.ts` (row state, validation, difference, building the request, mapping `errors[]` back to rows).
+- Behaviour: one required Date field (default today); one row per open holding, grouped by account then product, with columns Product, Account, Previous balance (with its date), Balance (blank input, previous balance as placeholder), Difference (live, signed, through `i18n/format.ts`). Enter in a balance moves focus to the next row's balance; Enter in the last one focuses Save. Save is disabled until at least one valid filled row exists; it sends only filled rows. Client validation mirrors the DTO (`>= 0`, two decimals, max digits) and flags a bad row inline.
+- On `200`: one toast ("N snapshots saved", plural in both languages), inputs cleared, data refetched once (the global invalidation), the Previous column now shows the new values. On `400`/`404` with `errors[]`: nothing cleared, offending rows highlighted with the reason, one error banner. On `409`: banner with a "try again" hint, inputs kept. Empty state when there are no open holdings, with a link to the Products tab.
+- Phones: the table becomes cards through `ResponsiveTable`; the balance input renders in both layouts and each input has an `aria-label` naming the product and account.
+- `api/investments/products/investmentSnapshotSheet.ts` and `investmentSnapshotSheetQueries.ts` (`useSnapshotSheet()`, `useRecordSnapshotSheet()` with `successMessage` and `successMessageOptions` for the count), a handler in `mocks/handlers/`, `api/core/apiError.ts` maps for `investment-snapshot-sheet-holdings-not-found` and the `investment-holding-not-found` validation code.
+
+### Layout
+- `features/dashboard/DashboardPage.tsx`: `Paper` cards use `height: 100%` and `Section` is a flex column so a row's cards match; `BudgetVsActualReport` gets the same outlined `Paper` as the other widgets; Net worth spans two columns at `lg` (`gridColumn: { sm: '1 / -1', lg: 'span 2' }`) and Pending occurrences stays full width. `NetWorthTrendChart` fills its card width (check `components/charts/ChartSvg.tsx` and `docs/conventions/frontend-charts.md`).
+- `features/investments/fii/FiiPage.tsx`: below `sm` (through `useIsMobile`), the two donuts sit in a two-column grid, each with its legend hidden (a `compact` prop on `FiiNestedAllocationDonutChart.tsx`), followed by the new `FiiAllocationComparison.tsx` table (segments with ticker rows beneath, color dots shared with the donuts, Actual %, Planned %, difference) fed by the same allocation queries. From `sm` up the page is unchanged.
+
+### Testing
+Frontend tests follow `docs/conventions/frontend-testing.md`: Vitest for the sheet row logic, `useEntryDraft` carry rules, `investmentsSearchParams`, the toast store and the mutation-message contract test; component tests for `FormDialog` (Enter submits, disabled blocks Enter, required marks), `EntryDialog` (interleaving, "Add and new" carry, edit locks the type) and the sheet (blank rows skipped, error rows highlighted, one toast); an MSW handler for each new endpoint; a Playwright geometry check for the phone FII layout and the sheet cards at 360px (`docs/conventions/frontend-e2e.md`).
+
+## Docs
+- `docs/PRD.md`: §6.16 Ledger (New entry dialog, Add and new, same-day order), §6.6 Investments (snapshot sheet), §6.8 Dashboard (layout), §6.12 Activity Log (a batch logs one entry per snapshot), §6.13 FII Portfolio (phone layout), §9 (custom date picker; grouping Activity by request id). Written in the docs PR that adds this spec.
+- `docs/conventions/frontend-components.md` (toast, `FormDialog`), `frontend-data-loading.md` (`meta.successMessage`), `frontend-responsive.md` (form dialogs), `errors.md` (the 404 with an `errors` member).
+- `docs/features/README.md`: one table row and a "Status" bullet (removed when the last slice ships).
+- `CHANGELOG.md`: each slice's PR adds its bullet under `## [Unreleased]` (root `CLAUDE.md`, `docs/conventions/release.md`); the new endpoints carry no `Upgrade:` note (no migration).
+
+## Non-goals
+- A single tab stop for the Date field: the native input stays; evaluate MUI's date picker later (§9).
+- Moving the other ~12 form dialogs onto `FormDialog`: follow-up, one PR per page.
+- Inline per-field validation messages in dialogs: required marks and the hint only.
+- Per-row partial success for the snapshot sheet (individual calls): the batch is atomic.
+- "Add and new" for trade confirmations, and a batch mode for editing.
+- Closed holdings on the snapshot sheet; per-holding dates (one date per sheet).
+- Grouping Activity entries by request id (§9).
+- A "bulk" path for transfers or transactions through a single endpoint: the New entry dialog still saves one entry per request.
+
+## Open questions
+- Should Enter in the New entry dialog trigger "Add and new" instead of "Add"? Settled as "Add" for now; revisit after the user has entered a real batch.
+- The Activity row of a snapshot: `record` passes no entity label to `AuditRecorder`. Confirm whether the feed already shows the product (through `AuditReferenceLabels`) and, if it shows a blank label, give snapshots a label (product and account name) in the audit snapshot.
+- Which domain shape exposes `createdAt` without breaking the ArchUnit rules (ADR 0014): a field on the aggregates (as written above) or a `LedgerEntry` built from an adapter projection. Pick whichever the architecture tests accept.
+- The measured contrast of the Settings subheader was not computed; the finding is that it reads like a disabled item, and the fix is a heading style.
+- `NetWorthTrendChart` stopping short of its card: confirm whether the cause is a fixed `ChartSvg` width or a `maxWidth` before changing it.
+- unverified - confirm during implementation: pressing Enter in a single-line field of a `<form>` whose only submit button is disabled does nothing (HTML Standard, "implicit submission"); `FormDialog` also guards `canSubmit` in its handler, so the behavior holds either way, but add a component test for it.
+- unverified - confirm during implementation: a `@Transactional` method calling another `@Transactional` method of the same bean (`recordBatch` calling `record`) runs in the outer transaction and rolls everything back on a `RuntimeException` (Spring Framework reference, "Using @Transactional"); add a persistence-tier test that a failing row leaves no snapshot and no audit entry behind.
+- unverified - confirm during implementation: a unique-violation raised inside the batch transaction surfaces as `InvestmentSnapshotDateTakenException` (409), not as a 500 at commit time; `insertSnapshot` catches `DataIntegrityViolationException` around `save`, which may not flush until commit.
+- unverified - confirm during implementation: `Sort.by(desc("date"), desc("createdAt"), desc("id"))` resolves on `TransactionJpaEntity` and `TransferJpaEntity` (both extend `AuditableEntity`, which maps `createdAt`; the multi-order sort itself was not run).
+
+## Dependencies
+F037 (the Ledger and its dialogs), F025 (the audit log and its request id), F009 and F022 (snapshots and holdings, whose single `record` rule the batch reuses), F021 (`ResponsiveDialog`, the responsive table and the breakpoint hook), F032 (the `errors[]` format), F019 (the dashboard widgets), F027 (the trade confirmation form kept inside the Transfer type). Touches F024's fuel fields and the FII page's charts without changing their behavior; touches the five `AddFormDialog` pages (Institutions, Categories, Vehicles, Budgets, Recurring templates) only to mark required fields and autofocus.
