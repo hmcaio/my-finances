@@ -38,9 +38,9 @@ Branch `feature/f039-goals`. Backend first (the projection and the response shap
 - [x] `scripts/verify.sh frontend`.
 
 ## Phase 4 — Docs
-- [ ] `docs/conventions/data-constraints.md`: the contribution `>= 0` exception and the `numeric(5,2)` return percentages.
-- [ ] Root/backend/frontend `CLAUDE.md`: no new rule expected; add one only if implementation surfaces a gotcha the code cannot show.
-- [ ] `docs/features/README.md` row verified against what was built, and F039 removed from its "Status" list; `CHANGELOG.md` entry under `## [Unreleased]` in the same commit as the code.
+- [x] `docs/conventions/data-constraints.md`: the contribution `>= 0` exception and the `numeric(5,2)` return percentages.
+- [x] Root/backend/frontend `CLAUDE.md`: no new rule expected; add one only if implementation surfaces a gotcha the code cannot show.
+- [x] `docs/features/README.md` row verified against what was built, and F039 removed from its "Status" list; `CHANGELOG.md` entry under `## [Unreleased]` in the same commit as the code.
 
 ## Verification
 - [ ] Create a goal "Car" (target 80,000, target date in 2 years, contribution 2,000, returns 2/4/6) -> it appears on `/goals` and on the dashboard card.
