@@ -5,8 +5,9 @@
 #
 # Needs the dev Postgres up (`docker compose up -d`, or `--profile full`) and the backend started
 # at least once, so Flyway has created the schema. Refuses to run when accounts, transactions,
-# transfers, investment products, vehicles or recurring templates already hold data. A second dev stack (STACK_NAME, docs/conventions/tooling.md) is
-# seeded by exporting the same STACK_NAME. This is dev tooling only: never point it at prod.
+# transfers, investment products, vehicles, recurring templates or goals already hold data. A
+# second dev stack (STACK_NAME, docs/conventions/tooling.md) is seeded by exporting the same
+# STACK_NAME. This is dev tooling only: never point it at prod.
 set -eu
 cd "$(dirname "$0")/.."
 

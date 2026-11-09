@@ -204,6 +204,62 @@ class DevSeedScriptTest extends AbstractMigrationTest {
   }
 
   @Test
+  void seedsGoalsThatFollowTheAllocationRules() throws Exception {
+    flyway("latest").migrate();
+    try (Connection connection = connection()) {
+      runSeed(connection);
+
+      assertThat(count(connection, "SELECT count(*) FROM goals")).isEqualTo(5);
+      assertThat(count(connection, "SELECT count(*) FROM goal_allocations")).isEqualTo(9);
+      assertThat(count(connection, "SELECT count(*) FROM goals WHERE status = 'ARCHIVED'"))
+          .isEqualTo(1);
+      // Three goals feed the dashboard card; the archived one never does (also a CHECK).
+      assertThat(count(connection, "SELECT count(*) FROM goals WHERE show_on_dashboard"))
+          .isEqualTo(3);
+      assertThat(
+              count(
+                  connection,
+                  "SELECT count(*) FROM goals WHERE status = 'ARCHIVED' AND show_on_dashboard"))
+          .isZero();
+      // One undated goal (the emergency fund), the rest have a target date.
+      assertThat(count(connection, "SELECT count(*) FROM goals WHERE target_date IS NULL"))
+          .isEqualTo(1);
+      // GoalService's rule: per product, the percentages across NON-archived goals sum to <= 100.
+      assertThat(
+              count(
+                  connection,
+                  "SELECT count(*) FROM (SELECT a.product_id FROM goal_allocations a"
+                      + " JOIN goals g ON g.id = a.goal_id WHERE g.status <> 'ARCHIVED'"
+                      + " GROUP BY a.product_id HAVING sum(a.percentage) > 100) bad"))
+          .isZero();
+      // A product allocated to the archived goal still has room on its own: the archived share
+      // does not count (Demo Logistics FII is 100% retirement plus 50% archived).
+      assertThat(
+              count(
+                  connection,
+                  "SELECT count(*) FROM goal_allocations a JOIN goals g ON g.id = a.goal_id"
+                      + " WHERE g.status = 'ARCHIVED'"))
+          .isEqualTo(1);
+      // The closed holding's product is not allocated (its value reads as zero).
+      assertThat(
+              count(
+                  connection,
+                  "SELECT count(*) FROM goal_allocations a"
+                      + " JOIN investment_holdings h ON h.product_id = a.product_id"
+                      + " WHERE h.closed_date IS NOT NULL"))
+          .isZero();
+      // Demo Receivables FII keeps part of its value unassigned: 50% + 25% of 100.
+      assertThat(
+              count(
+                  connection,
+                  "SELECT count(*) FROM (SELECT a.product_id FROM goal_allocations a"
+                      + " JOIN goals g ON g.id = a.goal_id WHERE g.status <> 'ARCHIVED'"
+                      + " GROUP BY a.product_id HAVING sum(a.percentage) < 100) partial"))
+          .isEqualTo(1);
+    }
+  }
+
+  @Test
   void refusesToRunOverExistingData() throws Exception {
     flyway("latest").migrate();
     try (Connection connection = connection()) {
