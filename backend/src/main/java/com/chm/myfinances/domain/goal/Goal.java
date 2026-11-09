@@ -247,7 +247,8 @@ public final class Goal {
   private static BigDecimal requireReturn(BigDecimal value, String field) {
     requireNotNull(value, field);
     if (value.compareTo(MIN_RETURN) < 0 || value.compareTo(MAX_RETURN) > 0) {
-      throw new IllegalArgumentException(field + " must be between -50 and 100");
+      throw new IllegalArgumentException(
+          field + " must be between " + MIN_RETURN + " and " + MAX_RETURN);
     }
     return value;
   }
