@@ -13,10 +13,10 @@ Branch `feature/f041-goal-history-estimates`. Backend first (the `pace` field an
 - [x] `./gradlew spotlessApply` then `scripts/verify.sh backend` (Docker running).
 
 ## Phase 2 — Backend: contribution suggestion
-- [ ] Test first (`GoalContributionSuggestionQuery`): averages the last 12 full months, excluding the current one; starts at the first month with a contribution; multiplies each product's contribution by the goal's percentage; removes an opening position's cost in its as-of month; a net-sell average is `0`; no allocations returns `0` and `0`; a goal that does not exist is `404`.
-- [ ] Implement `application/goal/GoalContributionSuggestionQuery`, `ContributionSuggestion` and `GET /api/goals/{id}/contribution-suggestion` in `GoalReportController` (controller test `200/404`).
-- [ ] Regenerate `frontend/src/api/generated/schema.ts` (`npm run generate-api-types -- --offline`).
-- [ ] `./gradlew spotlessApply` then `scripts/verify.sh backend` (Docker running).
+- [x] Test first (`GoalContributionSuggestionQuery`): averages the last 12 full months, excluding the current one; starts at the first month with a contribution; multiplies each product's contribution by the goal's percentage; removes an opening position's cost in its as-of month; a net-sell average is `0`; no allocations returns `0` and `0`; a goal that does not exist is `404`.
+- [x] Implement `application/goal/GoalContributionSuggestionQuery`, `ContributionSuggestion` and `GET /api/goals/{id}/contribution-suggestion` in `GoalReportController` (controller test `200/404`).
+- [x] Regenerate `frontend/src/api/generated/schema.ts` (`npm run generate-api-types -- --offline`).
+- [x] `./gradlew spotlessApply` then `scripts/verify.sh backend` (Docker running).
 
 ## Phase 3 — Frontend
 - [ ] Test first: API module and hook (`pace` on the projection, `getGoalContributionSuggestion`, `useGoalContributionSuggestion` only fetching when enabled) against MSW.
