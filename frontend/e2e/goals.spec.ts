@@ -1,7 +1,7 @@
 import { expect, expectNoHorizontalOverflow, test } from './support'
 
-// F039: the goals list, a goal's page (summary, allocation editor, projection chart and results
-// table, history chart) and the dashboard's goals card at each viewport project (mobile 390,
+// F039: the goals list, a goal's page (summary, allocation editor, timeline chart (history and
+// projection) and results table) and the dashboard's goals card at each viewport project (mobile 390,
 // tablet 768, desktop 1280): none of them may scroll sideways, and the projection results become
 // cards on a phone like every other 3+ column table.
 test.describe('goals', () => {
@@ -25,11 +25,8 @@ test.describe('goals', () => {
     await expect(page.getByRole('group', { name: 'Tesouro Selic 2029' })).toBeVisible()
     await expect(
       page.getByRole('img', {
-        name: 'Projected value of the goal in three scenarios, against the target',
+        name: 'Value of the goal: history as of its current allocation, then three projected scenarios, against the target',
       }),
-    ).toBeVisible()
-    await expect(
-      page.getByRole('img', { name: 'Value of the goal over time, as of its current allocation' }),
     ).toBeVisible()
     await expect(page.getByRole('table')).toHaveCount(mobile ? 0 : 1)
     await page.waitForLoadState('networkidle')

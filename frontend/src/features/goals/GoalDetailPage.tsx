@@ -25,15 +25,14 @@ import { formatMoney, formatNumber } from '../../i18n/format'
 import { useLocale } from '../../providers/locale/useLocale'
 import { GoalAllocationEditor } from './components/GoalAllocationEditor'
 import { GoalForm } from './components/GoalForm'
-import { GoalHistoryChart } from './components/GoalHistoryChart'
-import { GoalProjectionChart } from './components/GoalProjectionChart'
 import { GoalScenarioTable } from './components/GoalScenarioTable'
 import { GoalStatusLine } from './components/GoalStatusLine'
+import { GoalTimelineChart } from './components/GoalTimelineChart'
 import { barValue, formatGoalDate, formatProgress } from './lib/goalFormat'
 
 /**
- * One goal (PRD S6.17, F039): its summary and progress, the allocation editor, the projection
- * (chart plus the per-scenario results table) and the progress history. The numbers are
+ * One goal (PRD S6.17, F039): its summary and progress, the allocation editor, and one timeline
+ * chart of the progress history and the projection with the per-scenario results table. The numbers are
  * estimates in today's money; each section fetches and fails on its own, so one failed read does
  * not blank the page.
  */
@@ -79,19 +78,12 @@ export function GoalDetailPage() {
 
           <PageSection sx={{ mb: 3 }}>
             <Typography variant="h5" component="h2" gutterBottom>
-              {t('goals:detail.projectionHeading')}
+              {t('goals:detail.timelineHeading')}
             </Typography>
-            <GoalProjectionChart goal={goal} />
+            <GoalTimelineChart goal={goal} />
             <Box sx={{ mt: 2 }}>
               <GoalScenarioTable goal={goal} />
             </Box>
-          </PageSection>
-
-          <PageSection sx={{ mb: 3 }}>
-            <Typography variant="h5" component="h2" gutterBottom>
-              {t('goals:detail.historyHeading')}
-            </Typography>
-            <GoalHistoryChart goalId={goal.id} />
           </PageSection>
 
           {editing && <GoalForm open goal={goal} onClose={() => setEditing(false)} />}

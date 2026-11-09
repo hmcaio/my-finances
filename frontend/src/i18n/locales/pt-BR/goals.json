@@ -80,8 +80,7 @@
     "notFound": "Meta não encontrada.",
     "edit": "Editar meta",
     "allocationHeading": "Alocação",
-    "projectionHeading": "Projeção",
-    "historyHeading": "Histórico de progresso",
+    "timelineHeading": "Progresso e projeção",
     "plannedContribution": "Aporte mensal planejado: {{amount}}",
     "returns": "Retornos reais: {{pessimistic}}% / {{base}}% / {{optimistic}}%"
   },
@@ -102,7 +101,6 @@
     "loadFailed": "Não foi possível carregar os produtos."
   },
   "projection": {
-    "chartAria": "Valor projetado da meta em três cenários, em relação ao alvo",
     "target": "Alvo {{amount}}",
     "captionWithSnapshot": "Valores em moeda de hoje. Último registro em {{date}}.",
     "captionNoSnapshot": "Valores em moeda de hoje. Nenhum registro de valor ainda.",
@@ -135,10 +133,17 @@
     }
   },
   "history": {
-    "chartAria": "Valor da meta ao longo do tempo, conforme a alocação atual",
     "caption": "Conforme a alocação atual: a divisão de hoje aplicada ao valor passado de cada produto, em moeda de hoje.",
-    "loading": "Carregando histórico",
-    "empty": "Nenhum histórico para mostrar ainda.",
     "tooltip": "{{month}}: {{value}}"
+  },
+  "timeline": {
+    "chartAria": "Valor da meta: histórico conforme a alocação atual, depois três cenários projetados, em relação ao alvo",
+    "historyLegend": "Histórico",
+    "today": "Hoje",
+    "historyUnavailable": "Não foi possível carregar o histórico de progresso.",
+    "horizonAria": "Horizonte do gráfico",
+    "horizonYears_one": "{{count}} ano",
+    "horizonYears_other": "{{count}} anos",
+    "horizonAll": "Tudo"
   }
 }

@@ -12,7 +12,7 @@ import { formatGoalDate } from '../lib/goalFormat'
  * The projection results per scenario (PRD S6.17, F039). A dated goal gets the projected value at
  * the target date, the shortfall or surplus against the target and the monthly contribution needed
  * to reach it on time; a dateless goal gets the time until the target is reached (or that it is
- * not within 50 years). Reads the same query as `GoalProjectionChart`, so it costs no extra
+ * not within 50 years). Reads the same query as `GoalTimelineChart`, so it costs no extra
  * request. Amounts are in today's money.
  */
 export function GoalScenarioTable({ goal }: { goal: Goal }) {

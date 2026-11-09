@@ -80,8 +80,7 @@
     "notFound": "Goal not found.",
     "edit": "Edit goal",
     "allocationHeading": "Allocation",
-    "projectionHeading": "Projection",
-    "historyHeading": "Progress history",
+    "timelineHeading": "Progress and projection",
     "plannedContribution": "Planned monthly contribution: {{amount}}",
     "returns": "Real returns: {{pessimistic}}% / {{base}}% / {{optimistic}}%"
   },
@@ -102,7 +101,6 @@
     "loadFailed": "Could not load the products."
   },
   "projection": {
-    "chartAria": "Projected value of the goal in three scenarios, against the target",
     "target": "Target {{amount}}",
     "captionWithSnapshot": "Values in today's money. Latest snapshot: {{date}}.",
     "captionNoSnapshot": "Values in today's money. No snapshot recorded yet.",
@@ -135,10 +133,17 @@
     }
   },
   "history": {
-    "chartAria": "Value of the goal over time, as of its current allocation",
     "caption": "As of the current allocation: today's split applied to each product's past value, in today's money.",
-    "loading": "Loading history",
-    "empty": "No history to show yet.",
     "tooltip": "{{month}}: {{value}}"
+  },
+  "timeline": {
+    "chartAria": "Value of the goal: history as of its current allocation, then three projected scenarios, against the target",
+    "historyLegend": "History",
+    "today": "Today",
+    "historyUnavailable": "The progress history could not be loaded.",
+    "horizonAria": "Chart horizon",
+    "horizonYears_one": "{{count}} year",
+    "horizonYears_other": "{{count}} years",
+    "horizonAll": "All"
   }
 }

@@ -24,5 +24,5 @@ A projection also collides with PRD §3 ("no computed investment math") unless t
 - Projection accuracy is only as good as the assumptions and the freshness of the manual snapshots; the UI says "values in today's money" and shows the latest snapshot date.
 - A product with goal allocations can no longer be hard-deleted (`409`); closing it is unaffected, and its value then reads as zero.
 - Deleting or archiving a goal needs no cascade into investments: the link table is the only dependency, and `goal_allocations` rows go with the goal.
-- Because splits are edited in place, the history chart is an "as of the current allocation" view; a future feature storing allocation history would supersede that label.
+- Because splits are edited in place, the history part of the goal chart is an "as of the current allocation" view; a future feature storing allocation history would supersede that label.
 - The rate math needs a fractional power, which `BigDecimal` does not provide; money results are rounded to two decimals at the edges (verified, see F039's spec).

@@ -31,8 +31,8 @@ Branch `feature/f039-goals`. Backend first (the projection and the response shap
 - [x] Implement `src/api/goals/goals.ts`, `goalsQueries.ts`, MSW handlers and fixtures.
 - [x] Test first: `GoalsPage` (loading, empty prompt, list with progress and badge, dashboard switch calls the PATCH, archived filter); `GoalForm` (validation, `maxLength`, status only on edit); `TargetHelperDialog` (emergency fund fills `months × average`, retirement fills `income × 12 ÷ rate`, nothing is stored).
 - [x] Implement `GoalsPage`, `GoalForm`, `TargetHelperDialog` and the `/goals` route.
-- [x] Test first: `GoalAllocationEditor` (remaining capacity per product, the unassigned remainder, an over-100 save shows the mapped `409` message); `GoalProjectionChart` and `GoalHistoryChart` (three lines and a target line, the "today's money" and "as of the current allocation" captions, a dateless "not reached within 50 years" state).
-- [x] Implement `GoalDetailPage`, `GoalAllocationEditor`, `GoalProjectionChart`, `GoalHistoryChart` on `ChartSvg` and the `/goals/:id` route.
+- [x] Test first: `GoalAllocationEditor` (remaining capacity per product, the unassigned remainder, an over-100 save shows the mapped `409` message); `GoalTimelineChart` (the history line, three scenario lines forking from the today marker, a target line, the "today's money" and "as of the current allocation" captions, a dateless "not reached within 50 years" state, the horizon selector).
+- [x] Implement `GoalDetailPage`, `GoalAllocationEditor`, `GoalTimelineChart` on `ChartSvg` and the `/goals/:id` route.
 - [x] Test first: `GoalsWidget` (only flagged goals, hidden when none, status line for a dated and a dateless goal, "View all" link) and the "Allocated to" chips on the product detail page.
 - [x] Implement `GoalsWidget` in `DashboardPage`, the product detail chips, the nav entry, i18n (`en`, `pt-BR`), `PROBLEM_TYPE_MESSAGES` entries and the Activity-page `GOAL` label.
 - [x] `scripts/verify.sh frontend`.
@@ -45,12 +45,12 @@ Branch `feature/f039-goals`. Backend first (the projection and the response shap
 ## Verification
 - [x] Create a goal "Car" (target 80,000, target date in 2 years, contribution 2,000, returns 2/4/6) -> it appears on `/goals` and on the dashboard card.
 - [x] Allocate 60% of a product to "Car" and 40% to a second goal -> the product's detail page lists both chips; allocating another 10% to a third goal is rejected with the exceeds-100% message.
-- [x] Open the goal -> the projection chart shows three scenario lines and the target line; the table shows value at the date, shortfall or surplus, the required monthly contribution, and the caption "values in today's money".
+- [x] Open the goal -> the timeline chart shows the history line, three scenario lines forking from the "Today" marker and the target line; the table shows value at the date, shortfall or surplus, the required monthly contribution, and the caption "values in today's money".
 - [x] Create "Emergency fund" without a date, use "Suggest a target" with 6 months -> the target field fills with 6 × the average expense of the last 12 full months; the projection says "reached in N months" or "not reached within 50 years".
 - [x] Use the retirement helper (income 8,000, rate 4%) -> the target field fills with 2,400,000.
 - [x] Turn off "Show on dashboard" on one goal from the list -> its dashboard row disappears; turn it off on all of them -> the card disappears.
 - [x] Archive an allocated goal -> it leaves the dashboard and the list, its percentages free up on the product, restoring it keeps the dashboard flag off, and restoring when the percentages no longer fit is rejected.
 - [x] Try to delete a product allocated to a goal -> `409` with the mapped message; close it instead -> the goal's allocated value drops by its share.
-- [x] Open the history chart -> it is labeled "as of the current allocation" and matches the product value series times the percentages.
+- [x] Look at the history part of the chart -> it is labeled "as of the current allocation" and matches the product value series times the percentages.
 - [x] Switch the language to pt-BR -> every goals string is translated and amounts keep the symbol-less format.
 - [x] `scripts/verify.sh backend frontend` (Docker running) all green.

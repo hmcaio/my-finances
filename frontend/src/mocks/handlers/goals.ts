@@ -92,7 +92,7 @@ function scenario(
   dated: boolean,
 ): ScenarioProjection {
   const points: GoalPoint[] = [0, 1, 2].map((offset) => ({
-    month: `2026-${String(11 + offset > 12 ? 11 + offset - 12 : 11 + offset).padStart(2, '0')}`,
+    month: `${2026 + Math.floor((10 + offset) / 12)}-${String(((10 + offset) % 12) + 1).padStart(2, '0')}`,
     value: start + offset * 1000 + annualReturn * 10,
   }))
   return {

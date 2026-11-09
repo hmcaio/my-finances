@@ -18,7 +18,7 @@ function renderDetail(id: string) {
 }
 
 describe('GoalDetailPage', () => {
-  it('shows the goal summary, its allocation, the projection and the history', async () => {
+  it('shows the goal summary, its allocation and the history with the projection in one chart', async () => {
     renderDetail('goal-car')
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Car' })).toBeInTheDocument()
@@ -27,17 +27,12 @@ describe('GoalDetailPage', () => {
     expect(screen.getByText('Planned monthly contribution: 2,000.00')).toBeInTheDocument()
     expect(screen.getByText('Real returns: 2% / 4% / 6%')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Allocation' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Projection' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Progress history' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Progress and projection' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Progress history' })).not.toBeInTheDocument()
     expect(await screen.findByRole('group', { name: 'Tesouro Selic 2029' })).toBeInTheDocument()
     expect(
       await screen.findByRole('img', {
-        name: 'Projected value of the goal in three scenarios, against the target',
-      }),
-    ).toBeInTheDocument()
-    expect(
-      await screen.findByRole('img', {
-        name: 'Value of the goal over time, as of its current allocation',
+        name: 'Value of the goal: history as of its current allocation, then three projected scenarios, against the target',
       }),
     ).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Back to goals' })).toHaveAttribute('href', '/goals')
