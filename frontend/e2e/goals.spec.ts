@@ -1,7 +1,7 @@
 import { expect, expectNoHorizontalOverflow, test } from './support'
 
-// F039: the goals list, a goal's page (summary, allocation editor, timeline chart (history and
-// projection) and results table) and the dashboard's goals card at each viewport project (mobile 390,
+// F039: the goals list, a goal's page (summary, timeline chart (history and
+// projection), results table and allocation editor) and the dashboard's goals card at each viewport project (mobile 390,
 // tablet 768, desktop 1280): none of them may scroll sideways, and the projection results become
 // cards on a phone like every other 3+ column table.
 test.describe('goals', () => {

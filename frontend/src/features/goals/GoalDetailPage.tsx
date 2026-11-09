@@ -31,8 +31,8 @@ import { GoalTimelineChart } from './components/GoalTimelineChart'
 import { barValue, formatGoalDate, formatProgress } from './lib/goalFormat'
 
 /**
- * One goal (PRD S6.17, F039): its summary and progress, the allocation editor, and one timeline
- * chart of the progress history and the projection with the per-scenario results table. The numbers are
+ * One goal (PRD S6.17, F039): its summary and progress, one timeline chart of the progress history
+ * and the projection with the per-scenario results table, and the allocation editor. The numbers are
  * estimates in today's money; each section fetches and fails on its own, so one failed read does
  * not blank the page.
  */
@@ -71,19 +71,19 @@ export function GoalDetailPage() {
 
           <PageSection sx={{ mb: 3 }}>
             <Typography variant="h5" component="h2" gutterBottom>
-              {t('goals:detail.allocationHeading')}
-            </Typography>
-            <GoalAllocationEditor goal={goal} />
-          </PageSection>
-
-          <PageSection sx={{ mb: 3 }}>
-            <Typography variant="h5" component="h2" gutterBottom>
               {t('goals:detail.timelineHeading')}
             </Typography>
             <GoalTimelineChart goal={goal} />
             <Box sx={{ mt: 2 }}>
               <GoalScenarioTable goal={goal} />
             </Box>
+          </PageSection>
+
+          <PageSection sx={{ mb: 3 }}>
+            <Typography variant="h5" component="h2" gutterBottom>
+              {t('goals:detail.allocationHeading')}
+            </Typography>
+            <GoalAllocationEditor goal={goal} />
           </PageSection>
 
           {editing && <GoalForm open goal={goal} onClose={() => setEditing(false)} />}
