@@ -76,10 +76,33 @@ export interface ScenarioProjection {
   monthsToTarget: number | null
 }
 
+/**
+ * The current-pace line (F041, ADR 0035): a straight line from the value now, rising `monthlyPace`
+ * a month (the average monthly increase of the recorded value over the last 12 months of history;
+ * zero or negative is possible). Nominal money, not deflated. Target fields follow a scenario's
+ * contract: a dated goal gets `projectedValueAtTargetDate` and `shortfallAtTargetDate` (negative =
+ * surplus), a dateless one `monthsToTarget` (`0` = reached, `null` = not within 50 years).
+ */
+export interface GoalPace {
+  monthlyPace: number
+  points: GoalPoint[]
+  projectedValueAtTargetDate: number | null
+  shortfallAtTargetDate: number | null
+  monthsToTarget: number | null
+}
+
+/** `pace` is `null` when the goal has too little history (fewer than four months) for one. */
 export interface GoalProjection {
   allocatedValue: number
   latestSnapshotDate: string | null
   scenarios: ScenarioProjection[]
+  pace: GoalPace | null
+}
+
+/** The planned contribution suggested from history; `monthsAveraged` `0` means no contributions. */
+export interface ContributionSuggestion {
+  averageMonthlyContribution: number
+  monthsAveraged: number
 }
 
 export interface EmergencyFundSuggestion {
@@ -158,6 +181,14 @@ export async function replaceGoalAllocations(
 
 export async function getGoalProjection(id: string): Promise<GoalProjection> {
   return unwrap(apiClient.get<GoalProjection>(`/goals/${id}/projection`))
+}
+
+/**
+ * The average monthly amount put into the goal's products over the last 12 full months (its share
+ * of the buys minus sells, opening positions excluded). `404` `goal-not-found` for an unknown id.
+ */
+export async function getGoalContributionSuggestion(id: string): Promise<ContributionSuggestion> {
+  return unwrap(apiClient.get<ContributionSuggestion>(`/goals/${id}/contribution-suggestion`))
 }
 
 /** The goal's monthly values as of its current allocation. */

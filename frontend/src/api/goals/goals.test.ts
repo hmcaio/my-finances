@@ -4,6 +4,8 @@ import { server } from '../../mocks/server'
 import {
   goalsStore,
   projectionFor,
+  projectionWithoutPace,
+  seedContributionSuggestion,
   seedEmergencyFundSuggestion,
   seedGoalCar,
   seedGoalFund,
@@ -17,6 +19,7 @@ import {
   editGoal,
   getEmergencyFundSuggestion,
   getGoal,
+  getGoalContributionSuggestion,
   getGoalDashboard,
   getGoalHistory,
   getGoalProjection,
@@ -129,6 +132,33 @@ describe('goals API client', () => {
 
   it('getGoalProjection returns the three scenarios', async () => {
     await expect(getGoalProjection('goal-car')).resolves.toEqual(projectionFor(seedGoalCar))
+  })
+
+  it('getGoalProjection returns the pace beside the scenarios, or null without enough history', async () => {
+    const projection = await getGoalProjection('goal-car')
+    expect(projection.scenarios).toHaveLength(3)
+    expect(projection.pace).toMatchObject({ monthlyPace: 500, monthsToTarget: null })
+    expect(projection.pace?.points[0]).toEqual({ month: '2026-11', value: 30000 })
+
+    server.use(
+      http.get('/api/goals/:id/projection', () =>
+        HttpResponse.json(projectionWithoutPace(seedGoalCar)),
+      ),
+    )
+    await expect(getGoalProjection('goal-car')).resolves.toMatchObject({ pace: null })
+  })
+
+  it('getGoalContributionSuggestion returns the average and the months behind it', async () => {
+    await expect(getGoalContributionSuggestion('goal-car')).resolves.toEqual(
+      seedContributionSuggestion,
+    )
+  })
+
+  it('getGoalContributionSuggestion for an unknown goal throws the not-found problem', async () => {
+    const error = await getGoalContributionSuggestion('goal-nope').catch((e: unknown) => e)
+
+    expect(error).toBeInstanceOf(ApiError)
+    expect((error as ApiError).type).toBe('urn:my-finances:error:goal-not-found')
   })
 
   it('getGoalHistory sends the range as query parameters', async () => {

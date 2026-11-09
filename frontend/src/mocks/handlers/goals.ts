@@ -1,7 +1,9 @@
 import { http, HttpResponse } from 'msw'
 import type {
+  ContributionSuggestion,
   EmergencyFundSuggestion,
   Goal,
+  GoalPace,
   GoalPoint,
   GoalProjection,
   GoalSummary,
@@ -106,6 +108,23 @@ function scenario(
   }
 }
 
+/** A current pace of 500 a month, over the same three months as `scenario`'s points. */
+function paceFor(goal: Goal): GoalPace {
+  const dated = goal.targetDate !== null
+  const points: GoalPoint[] = [0, 1, 2].map((offset) => ({
+    month: `${2026 + Math.floor((10 + offset) / 12)}-${String(((10 + offset) % 12) + 1).padStart(2, '0')}`,
+    value: goal.allocatedValue + offset * 500,
+  }))
+  return {
+    monthlyPace: 500,
+    points,
+    projectedValueAtTargetDate: dated ? points[2].value : null,
+    shortfallAtTargetDate: dated ? goal.targetAmount - points[2].value : null,
+    monthsToTarget: dated ? null : Math.ceil((goal.targetAmount - goal.allocatedValue) / 500),
+  }
+}
+
+/** The projection with a pace; `projectionWithoutPace` is the too-little-history variant. */
 export function projectionFor(goal: Goal): GoalProjection {
   const dated = goal.targetDate !== null
   return {
@@ -116,7 +135,18 @@ export function projectionFor(goal: Goal): GoalProjection {
       scenario('BASE', goal.returnBase, goal.allocatedValue, dated),
       scenario('OPTIMISTIC', goal.returnOptimistic, goal.allocatedValue, dated),
     ],
+    pace: paceFor(goal),
   }
+}
+
+export function projectionWithoutPace(goal: Goal): GoalProjection {
+  return { ...projectionFor(goal), pace: null }
+}
+
+/** What "Suggest from history" returns by default: 1,500 a month over a full year. */
+export const seedContributionSuggestion: ContributionSuggestion = {
+  averageMonthlyContribution: 1500,
+  monthsAveraged: 12,
 }
 
 export const seedGoalHistory: GoalPoint[] = [
@@ -238,6 +268,11 @@ export const goalsHandlers = [
   http.get(`${GOALS_URL}/:id/projection`, ({ params }) => {
     const goal = goalsStore.find(params.id as string)
     return goal ? HttpResponse.json(projectionFor(goal)) : problem('goal-not-found', 404)
+  }),
+
+  http.get(`${GOALS_URL}/:id/contribution-suggestion`, ({ params }) => {
+    const goal = goalsStore.find(params.id as string)
+    return goal ? HttpResponse.json(seedContributionSuggestion) : problem('goal-not-found', 404)
   }),
 
   http.get(`${GOALS_URL}/:id/history`, ({ params }) => {

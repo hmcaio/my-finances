@@ -19,8 +19,8 @@ Branch `feature/f041-goal-history-estimates`. Backend first (the `pace` field an
 - [x] `./gradlew spotlessApply` then `scripts/verify.sh backend` (Docker running).
 
 ## Phase 3 — Frontend
-- [ ] Test first: API module and hook (`pace` on the projection, `getGoalContributionSuggestion`, `useGoalContributionSuggestion` only fetching when enabled) against MSW.
-- [ ] Implement the API types, hook, MSW handlers and fixtures (a projection with a pace and one without).
+- [x] Test first: API module and hook (`pace` on the projection, `getGoalContributionSuggestion`, `useGoalContributionSuggestion` only fetching when enabled) against MSW.
+- [x] Implement the API types, hook, MSW handlers and fixtures (a projection with a pace and one without).
 - [ ] Test first (`GoalTimelineChart`): a fourth line (`data-pace`) forks from the "Today" marker and follows the horizon selector; its legend entry; the inflation note appears with the line; "Not enough history for a pace yet." when `pace` is `null` and the goal has allocations, nothing when it has none.
 - [ ] Implement the pace line, legend entry and notes in `GoalTimelineChart`.
 - [ ] Test first (`GoalScenarioTable`): a "Current pace" row for a dated goal (value at the date, surplus or shortfall) and a dateless goal (time to target, "not reached within 50 years"), "–" in the real-return and contribution-needed cells, no row when `pace` is `null`, a card on a phone.
