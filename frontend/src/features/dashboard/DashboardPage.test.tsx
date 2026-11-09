@@ -40,6 +40,9 @@ describe('DashboardPage', () => {
     const allocation = screen.getByRole('region', { name: 'Investment allocation' })
     expect(await within(allocation).findByRole('img')).toBeInTheDocument()
 
+    const goals = await screen.findByRole('region', { name: 'Goals' })
+    expect(await within(goals).findByRole('link', { name: 'Car' })).toBeInTheDocument()
+
     expect(screen.getByRole('heading', { name: 'Upcoming recurring bills' })).toBeInTheDocument()
     expect(await findRow('Rent')).toBeDefined()
   })

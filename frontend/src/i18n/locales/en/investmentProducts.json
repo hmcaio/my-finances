@@ -5,6 +5,8 @@
     "loading": "Loading product",
     "editProductAria": "Edit product",
     "deleteProductAria": "Delete product",
+    "allocatedTo": "Allocated to",
+    "goalChip": "{{name}} · {{percent}}%",
     "holdingsTitle": "Holdings",
     "addHoldingButton": "Add holding",
     "holdingsColumns": {

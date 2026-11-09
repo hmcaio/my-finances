@@ -8,7 +8,6 @@ Every feature below is built except those listed here (documented, not built; de
 
 - F028 — investment splits, backend ([ADR 0025](../adr/0025-investment-split-as-read-side-adjustment.md))
 - F029 — investment splits, frontend (the product-detail split panel and dialog for F028)
-- F039 — goals: allocate investment products to goals, deterministic projections, dashboard card ([ADR 0034](../adr/0034-goals-as-allocation-and-deterministic-projection.md))
 - F040 — UX walkthrough fixes: a New entry dialog with "Add and new", a snapshot sheet for every open holding, a success toast, a shared form-dialog shell and layout fixes (no ADR)
 
 ## Features

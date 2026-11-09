@@ -50,7 +50,11 @@
     "investmentOpeningPositionNotFound": "This holding has no opening position.",
     "invalidOpeningPosition": "The opening position is invalid: the date cannot be in the future, and cotas and average price must be positive.",
     "openingPositionAfterTrades": "The opening position cannot be dated after this holding's earliest trade. Use the trade's date or an earlier one.",
-    "tradeBeforeOpeningPosition": "This holding's opening position is dated after the trade. Use the opening position's date or a later one."
+    "tradeBeforeOpeningPosition": "This holding's opening position is dated after the trade. Use the opening position's date or a later one.",
+    "invalidGoal": "The goal is invalid: the target date must be in the future, the returns must go from pessimistic to optimistic, and a product can appear only once.",
+    "goalArchived": "This goal is archived. Restore it first.",
+    "goalAllocationExceedsProduct": "A product cannot be allocated more than 100% across your goals. Lower a percentage here or on another goal that uses it.",
+    "investmentProductAllocatedToGoal": "This product is allocated to a goal, so it cannot be deleted. Remove it from the goal first, or close it instead."
   },
   "validationCode": {
     "notBlank": "This field is required.",

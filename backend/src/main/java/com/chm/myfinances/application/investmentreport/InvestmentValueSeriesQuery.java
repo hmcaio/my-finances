@@ -68,12 +68,7 @@ public class InvestmentValueSeriesQuery {
    * point per month from {@code from} to {@code to} inclusive (clamped to the current month).
    */
   public List<ProductSeries> series(YearMonth from, YearMonth to, UUID productId) {
-    if (from.isAfter(to)) {
-      throw new InvalidValueSeriesRangeException("from must not be after to");
-    }
-    if (from.until(to, ChronoUnit.MONTHS) >= MAX_MONTHS) {
-      throw new InvalidValueSeriesRangeException("range must not exceed " + MAX_MONTHS + " months");
-    }
+    requireValidRange(from, to);
     List<InvestmentProduct> products =
         productId == null
             ? productRepository.findAll().stream()
@@ -89,6 +84,21 @@ public class InvestmentValueSeriesQuery {
     LocalDate today = LocalDate.now(clock);
     YearMonth last = to.isAfter(YearMonth.from(today)) ? YearMonth.from(today) : to;
     return products.stream().map(product -> seriesOf(product, from, last, today)).toList();
+  }
+
+  /**
+   * The range rule of {@link #series}, reusable by a caller that may not reach it (F039's goal
+   * history with nothing allocated still rejects a reversed or over-long range): 400 {@link
+   * InvalidValueSeriesRangeException} when {@code from} is after {@code to} or the range spans
+   * {@value #MAX_MONTHS} months or more.
+   */
+  public static void requireValidRange(YearMonth from, YearMonth to) {
+    if (from.isAfter(to)) {
+      throw new InvalidValueSeriesRangeException("from must not be after to");
+    }
+    if (from.until(to, ChronoUnit.MONTHS) >= MAX_MONTHS) {
+      throw new InvalidValueSeriesRangeException("range must not exceed " + MAX_MONTHS + " months");
+    }
   }
 
   private ProductSeries seriesOf(

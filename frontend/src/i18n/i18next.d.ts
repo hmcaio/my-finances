@@ -22,6 +22,7 @@ import type onboardingEn from './locales/en/onboarding.json'
 import type reportsEn from './locales/en/reports.json'
 import type vehiclesEn from './locales/en/vehicles.json'
 import type investmentSegmentsEn from './locales/en/investmentSegments.json'
+import type goalsEn from './locales/en/goals.json'
 
 /**
  * Types `t()` call sites against the `en` resources (the canonical key set, F033/ADR 0027) - a
@@ -57,6 +58,7 @@ declare module 'i18next' {
       reports: typeof reportsEn
       vehicles: typeof vehiclesEn
       investmentSegments: typeof investmentSegmentsEn
+      goals: typeof goalsEn
     }
   }
 }

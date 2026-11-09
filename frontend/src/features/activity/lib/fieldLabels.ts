@@ -97,6 +97,20 @@ const BY_ENTITY_TYPE: Partial<Record<AuditEntityType, Record<string, QualifiedKe
     investmentProductId: 'activity:fields.allocationPlan.investmentProductId',
     targetPercentage: 'activity:fields.allocationPlan.targetPercentage',
   },
+  GOAL: {
+    notes: 'activity:fields.goal.notes',
+    targetAmount: 'activity:fields.goal.targetAmount',
+    targetDate: 'activity:fields.goal.targetDate',
+    plannedMonthlyContribution: 'activity:fields.goal.plannedMonthlyContribution',
+    returnPessimistic: 'activity:fields.goal.returnPessimistic',
+    returnBase: 'activity:fields.goal.returnBase',
+    returnOptimistic: 'activity:fields.goal.returnOptimistic',
+    status: 'activity:fields.goal.status',
+    showOnDashboard: 'activity:fields.goal.showOnDashboard',
+    allocations: 'activity:fields.goal.allocations',
+    productId: 'activity:fields.goal.productId',
+    percentage: 'activity:fields.goal.percentage',
+  },
 }
 
 /**

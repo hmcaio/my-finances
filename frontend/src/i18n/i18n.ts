@@ -25,6 +25,7 @@ import onboardingEn from './locales/en/onboarding.json'
 import reportsEn from './locales/en/reports.json'
 import vehiclesEn from './locales/en/vehicles.json'
 import investmentSegmentsEn from './locales/en/investmentSegments.json'
+import goalsEn from './locales/en/goals.json'
 import authPtBR from './locales/pt-BR/auth.json'
 import commonPtBR from './locales/pt-BR/common.json'
 import errorsPtBR from './locales/pt-BR/errors.json'
@@ -49,6 +50,7 @@ import onboardingPtBR from './locales/pt-BR/onboarding.json'
 import reportsPtBR from './locales/pt-BR/reports.json'
 import vehiclesPtBR from './locales/pt-BR/vehicles.json'
 import investmentSegmentsPtBR from './locales/pt-BR/investmentSegments.json'
+import goalsPtBR from './locales/pt-BR/goals.json'
 
 export const defaultNS = 'common'
 
@@ -85,6 +87,7 @@ export const resources = {
     reports: reportsEn,
     vehicles: vehiclesEn,
     investmentSegments: investmentSegmentsEn,
+    goals: goalsEn,
   },
   'pt-BR': {
     common: commonPtBR,
@@ -111,6 +114,7 @@ export const resources = {
     reports: reportsPtBR,
     vehicles: vehiclesPtBR,
     investmentSegments: investmentSegmentsPtBR,
+    goals: goalsPtBR,
   },
 } as const
 

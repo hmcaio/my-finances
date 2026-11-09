@@ -6,9 +6,9 @@
 -- budgets (with one cap change), four investment products and holdings (a Treasury bond with an
 -- opening position, a CDB, two FIIs) with trade confirmations, snapshots and dividends, a fifth
 -- FII that was bought, paid a dividend, then fully sold and closed, a two-version FII allocation
--- plan, one vehicle with fuel fill-ups, and four recurring templates (one with two versions) whose
--- past cycles are already approved. The current cycle is left for the app's catch-up, so the pending
--- list is not empty.
+-- plan, one vehicle with fuel fill-ups, four recurring templates (one with two versions) whose
+-- past cycles are already approved (the current cycle is left for the app's catch-up, so the pending
+-- list is not empty), and five goals (one archived) with percentage allocations of those products.
 --
 -- Every date is relative to current_date (pg_temp.d below), so the data always looks recent.
 -- Nothing is random: re-seeding an emptied database gives the same shape. The ids come from
@@ -17,8 +17,8 @@
 -- are reused by name, never duplicated. Investment events are dated in past months only, so none
 -- can fall after "today".
 --
--- Refuses to run unless accounts, transactions, transfers, investment products, vehicles and
--- recurring templates are all empty, so it can never mix sample rows into data you entered. One
+-- Refuses to run unless accounts, transactions, transfers, investment products, vehicles,
+-- recurring templates and goals are all empty, so it can never mix sample rows into data you entered. One
 -- transaction: it either seeds everything or nothing.
 
 BEGIN;
@@ -32,8 +32,9 @@ DO $$
 BEGIN
     IF EXISTS (SELECT 1 FROM accounts) OR EXISTS (SELECT 1 FROM transactions)
        OR EXISTS (SELECT 1 FROM transfers) OR EXISTS (SELECT 1 FROM investment_products)
-       OR EXISTS (SELECT 1 FROM vehicles) OR EXISTS (SELECT 1 FROM recurring_templates) THEN
-        RAISE EXCEPTION 'dev seed refused: accounts, transactions, transfers, investment products, vehicles or recurring templates already hold data (empty the database first)';
+       OR EXISTS (SELECT 1 FROM vehicles) OR EXISTS (SELECT 1 FROM recurring_templates)
+       OR EXISTS (SELECT 1 FROM goals) THEN
+        RAISE EXCEPTION 'dev seed refused: accounts, transactions, transfers, investment products, vehicles, recurring templates or goals already hold data (empty the database first)';
     END IF;
 END $$;
 
@@ -391,6 +392,50 @@ FROM (VALUES
 ) AS v(category, months_back, monthly_cap)
 JOIN categories c ON c.name = v.category
 JOIN budgets b ON b.category_id = c.id;
+
+-- ---------------------------------------------------------------------------------------------
+-- Goals (F039, ADR 0034) and their allocations. Five goals: an undated emergency fund, a dated
+-- retirement, car and PC upgrade (the PC is hidden from the dashboard card), and an archived one.
+-- Returns are real annual percentages, ordered pessimistic <= base <= optimistic. Per product the
+-- percentages across the NON-archived goals sum to at most 100 (GoalService's rule, not a
+-- constraint): Tesouro Selic and the CDB are fully assigned, Demo Receivables FII keeps 25%
+-- unassigned, Demo Logistics FII is all retirement. The archived goal's allocation does not count
+-- toward that sum. The closed Demo Hotel FII is not allocated.
+-- ---------------------------------------------------------------------------------------------
+
+INSERT INTO goals (id, name, notes, target_amount, target_date, planned_monthly_contribution,
+                   return_pessimistic, return_base, return_optimistic, status, show_on_dashboard,
+                   created_at, last_modified_at)
+SELECT gen_random_uuid(), g.name, g.notes, g.target_amount, g.target_date, g.contribution,
+       g.r_low, g.r_base, g.r_high, g.status, g.on_dashboard, now(), now()
+FROM (VALUES
+    ('Emergency fund', 'Six months of expenses, no deadline',
+        30000.00, NULL::date,                                 800.00, 1.00, 3.00, 5.00, 'ACTIVE',   true),
+    ('Retirement',     'Long horizon, mostly fixed income and FIIs',
+        1200000.00, (current_date + interval '20 years')::date, 1500.00, 2.00, 4.00, 6.00, 'ACTIVE',   true),
+    ('Car',            'Down payment for a used car',
+        60000.00, (current_date + interval '2 years')::date,  1800.00, 1.50, 3.50, 5.50, 'ACTIVE',   true),
+    ('PC upgrade',     'New desktop, kept off the dashboard on purpose',
+        8000.00, (current_date + interval '8 months')::date,  600.00, 0.00, 2.00, 4.00, 'ACTIVE',   false),
+    ('Trip 2025',      'Done and archived: its allocation no longer counts toward a product''s 100%',
+        15000.00, (current_date - interval '3 months')::date, 0.00,  0.00, 2.00, 4.00, 'ARCHIVED', false)
+) AS g(name, notes, target_amount, target_date, contribution, r_low, r_base, r_high, status, on_dashboard);
+
+INSERT INTO goal_allocations (id, goal_id, product_id, percentage, created_at, last_modified_at)
+SELECT gen_random_uuid(), g.id, ip.id, a.percentage, now(), now()
+FROM (VALUES
+    ('Emergency fund', 'Tesouro Selic 2029',   40.00),
+    ('Emergency fund', 'CDB 110% CDI',         50.00),
+    ('Retirement',     'Tesouro Selic 2029',   40.00),
+    ('Retirement',     'Demo Logistics FII',  100.00),
+    ('Retirement',     'Demo Receivables FII', 50.00),
+    ('Car',            'CDB 110% CDI',         50.00),
+    ('Car',            'Demo Receivables FII', 25.00),
+    ('PC upgrade',     'Tesouro Selic 2029',   20.00),
+    ('Trip 2025',      'Demo Logistics FII',   50.00)
+) AS a(goal, product, percentage)
+JOIN goals g ON g.name = a.goal
+JOIN investment_products ip ON ip.name = a.product;
 
 DROP FUNCTION pg_temp.d(int, int);
 

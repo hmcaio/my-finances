@@ -5,6 +5,8 @@
     "loading": "Carregando produto",
     "editProductAria": "Editar produto",
     "deleteProductAria": "Excluir produto",
+    "allocatedTo": "Alocado a",
+    "goalChip": "{{name}} · {{percent}}%",
     "holdingsTitle": "Posições",
     "addHoldingButton": "Adicionar posição",
     "holdingsColumns": {

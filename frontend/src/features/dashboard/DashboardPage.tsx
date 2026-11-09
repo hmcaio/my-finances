@@ -7,6 +7,7 @@ import { InvestmentAllocationChart } from '../investments/overview/components/In
 import { NetWorthTrendChart } from '../netWorth/NetWorthTrendChart'
 import { PendingOccurrencesWidget } from '../recurringTemplates/PendingOccurrencesWidget'
 import { AccountBalancesWidget } from './AccountBalancesWidget'
+import { GoalsWidget } from './GoalsWidget'
 import { SpendByCategoryWidget } from './SpendByCategoryWidget'
 import { PageContainer } from '../../components/layout/PageContainer'
 
@@ -70,6 +71,9 @@ export function DashboardPage() {
             <InvestmentAllocationChart />
           </Paper>
         </Section>
+
+        {/* F039: renders nothing, heading included, while no goal is flagged for the dashboard. */}
+        <GoalsWidget />
 
         <Box sx={{ gridColumn: { sm: '1 / -1' } }}>
           <Section title={t('sections.netWorth')}>

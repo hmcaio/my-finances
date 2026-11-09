@@ -7,6 +7,7 @@ import com.chm.myfinances.application.investmentholding.InvestmentHoldingService
 import com.chm.myfinances.application.investmentopeningposition.InvestmentOpeningPositionService;
 import com.chm.myfinances.application.investmentsegment.InvestmentSegmentNotFoundException;
 import com.chm.myfinances.application.investmentsubcategory.InvestmentSubcategoryNotFoundException;
+import com.chm.myfinances.domain.goal.GoalAllocationRepository;
 import com.chm.myfinances.domain.investmentcategory.InvestmentCategoryRepository;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
@@ -51,6 +52,7 @@ public class InvestmentProductService {
   private final InvestmentSubcategoryRepository subcategoryRepository;
   private final InvestmentSegmentRepository segmentRepository;
   private final InvestmentHoldingRepository holdingRepository;
+  private final GoalAllocationRepository goalAllocationRepository;
   private final InvestmentHoldingService holdingService;
   private final InvestmentOpeningPositionService openingPositionService;
   private final IdGenerator idGenerator;
@@ -62,6 +64,7 @@ public class InvestmentProductService {
       InvestmentSubcategoryRepository subcategoryRepository,
       InvestmentSegmentRepository segmentRepository,
       InvestmentHoldingRepository holdingRepository,
+      GoalAllocationRepository goalAllocationRepository,
       InvestmentHoldingService holdingService,
       InvestmentOpeningPositionService openingPositionService,
       IdGenerator idGenerator,
@@ -71,6 +74,7 @@ public class InvestmentProductService {
     this.subcategoryRepository = subcategoryRepository;
     this.segmentRepository = segmentRepository;
     this.holdingRepository = holdingRepository;
+    this.goalAllocationRepository = goalAllocationRepository;
     this.holdingService = holdingService;
     this.openingPositionService = openingPositionService;
     this.idGenerator = idGenerator;
@@ -306,13 +310,18 @@ public class InvestmentProductService {
 
   /**
    * Hard-deletes a product only while it has zero holdings (F022 spec) - even a closed, empty
-   * holding still counts and must be removed first.
+   * holding still counts and must be removed first - and no goal allocates it (F039, ADR 0034;
+   * {@link InvestmentProductAllocatedToGoalException}, so the foreign key is never reached as a
+   * 500). Closing it is unaffected.
    */
   @Transactional
   public void delete(UUID id) {
     InvestmentProduct product = findById(id);
     if (holdingRepository.existsByProductId(id)) {
       throw new InvestmentProductHasHoldingsException(id);
+    }
+    if (goalAllocationRepository.existsByProductId(id)) {
+      throw new InvestmentProductAllocatedToGoalException(id);
     }
     productRepository.deleteById(id);
     auditRecorder.recordDelete(

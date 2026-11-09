@@ -45,6 +45,7 @@ const MAIN_NAV_ITEMS: NavItem[] = [
   { labelKey: 'nav.budgets', path: '/budgets' },
   { labelKey: 'nav.recurring', path: '/recurring' },
   { labelKey: 'nav.investments', path: '/investments' },
+  { labelKey: 'nav.goals', path: '/goals' },
   { labelKey: 'nav.fiiPortfolio', path: '/fii' },
 ]
 

@@ -91,6 +91,28 @@ describe('unwrap', () => {
     expect((error as ApiError).message).toBe('One of the values is not valid.')
   })
 
+  it.each([
+    ['goal-archived', 'This goal is archived. Restore it first.'],
+    [
+      'goal-allocation-exceeds-product',
+      'A product cannot be allocated more than 100% across your goals. Lower a percentage here or on another goal that uses it.',
+    ],
+    [
+      'investment-product-allocated-to-goal',
+      'This product is allocated to a goal, so it cannot be deleted. Remove it from the goal first, or close it instead.',
+    ],
+  ])('maps the goals type %s (F039) to its message', async (slug, message) => {
+    server.use(
+      http.get('/api/things', () =>
+        HttpResponse.json({ type: `urn:my-finances:error:${slug}` }, { status: 409 }),
+      ),
+    )
+
+    const error: unknown = await unwrap(apiClient.get('/things')).catch((err: unknown) => err)
+
+    expect((error as ApiError).message).toBe(message)
+  })
+
   it('falls back to the generic status message when the type is absent', async () => {
     server.use(http.get('/api/things', () => new HttpResponse(null, { status: 404 })))
 

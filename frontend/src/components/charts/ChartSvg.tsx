@@ -9,17 +9,36 @@ interface ChartSvgProps {
   /** Accessible name of the chart. */
   label: string
   children: ReactNode
+  /**
+   * A chart that measures its container (`useElementWidth`) passes its own viewBox size and fills
+   * the width: it is drawn 1:1, so text and strokes keep their size at any width. Without these the
+   * frame is the fixed `CHART_WIDTH` x `CHART_HEIGHT`, scaled down to fit and capped at that width.
+   */
+  width?: number
+  height?: number
+  fillWidth?: boolean
 }
 
 /** The fluid, accessible `<svg>` frame of the hand-drawn line charts. */
-export function ChartSvg({ label, children }: ChartSvgProps) {
+export function ChartSvg({
+  label,
+  children,
+  width = CHART_WIDTH,
+  height = CHART_HEIGHT,
+  fillWidth = false,
+}: ChartSvgProps) {
   return (
     <Box
       component="svg"
-      viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
+      viewBox={`0 0 ${width} ${height}`}
       role="img"
       aria-label={label}
-      sx={{ width: '100%', maxWidth: CHART_WIDTH, height: 'auto', display: 'block' }}
+      sx={{
+        width: '100%',
+        maxWidth: fillWidth ? 'none' : CHART_WIDTH,
+        height: 'auto',
+        display: 'block',
+      }}
     >
       {children}
     </Box>
@@ -34,6 +53,8 @@ interface YGridProps {
   gridColor: string
   axisColor: string
   formatTick: (value: number) => string
+  /** The frame's viewBox width; defaults to `CHART_WIDTH`. */
+  width?: number
 }
 
 /** Horizontal gridlines with a right-aligned value label at the left of each. */
@@ -45,6 +66,7 @@ export function YGrid({
   gridColor,
   axisColor,
   formatTick,
+  width = CHART_WIDTH,
 }: YGridProps) {
   return (
     <>
@@ -52,7 +74,7 @@ export function YGrid({
         <g key={tick}>
           <line
             x1={marginLeft}
-            x2={CHART_WIDTH - marginRight}
+            x2={width - marginRight}
             y1={y(tick)}
             y2={y(tick)}
             stroke={gridColor}

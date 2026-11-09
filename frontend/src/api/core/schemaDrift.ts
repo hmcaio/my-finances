@@ -24,6 +24,16 @@ import type {
   PendingRecurringOccurrence,
   RecurringTemplate,
 } from '../recurringTemplates/recurringTemplates'
+import type {
+  EmergencyFundSuggestion,
+  Goal,
+  GoalAllocation,
+  GoalPoint,
+  GoalProjection,
+  GoalSummary,
+  ProductGoalAllocation,
+  ScenarioProjection,
+} from '../goals/goals'
 import type { Ledger, LedgerEntry, LedgerSummary, LedgerTradeLine } from '../ledger/ledger'
 import type { CategorySpend, Transaction } from '../transactions/transactions'
 import type { Transfer } from '../transfers/transfers'
@@ -112,4 +122,19 @@ export type LedgerEntryKeys = Assert<SameKeys<LedgerEntry, Schemas['LedgerEntryR
 export type LedgerSummaryKeys = Assert<SameKeys<LedgerSummary, Schemas['LedgerSummaryResponse']>>
 export type LedgerTradeLineKeys = Assert<
   SameKeys<LedgerTradeLine, Schemas['LedgerTradeLineResponse']>
+>
+// F039: goals, their allocations, the projection and the helpers.
+export type GoalKeys = Assert<SameKeys<Goal, Schemas['GoalResponse']>>
+export type GoalAllocationKeys = Assert<SameKeys<GoalAllocation, Schemas['AllocationResponse']>>
+export type GoalSummaryKeys = Assert<SameKeys<GoalSummary, Schemas['GoalSummaryResponse']>>
+export type GoalProjectionKeys = Assert<SameKeys<GoalProjection, Schemas['GoalProjectionResponse']>>
+export type ScenarioProjectionKeys = Assert<
+  SameKeys<ScenarioProjection, Schemas['ScenarioProjectionResponse']>
+>
+export type GoalPointKeys = Assert<SameKeys<GoalPoint, Schemas['GoalPointResponse']>>
+export type EmergencyFundSuggestionKeys = Assert<
+  SameKeys<EmergencyFundSuggestion, Schemas['EmergencyFundSuggestionResponse']>
+>
+export type ProductGoalAllocationKeys = Assert<
+  SameKeys<ProductGoalAllocation, Schemas['ProductGoalAllocationResponse']>
 >

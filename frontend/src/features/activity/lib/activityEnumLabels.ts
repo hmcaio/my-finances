@@ -23,6 +23,7 @@ const ENTITY_TYPE_KEYS: Record<AuditEntityType, QualifiedKey> = {
   INVESTMENT_OPENING_POSITION: 'activity:entityTypes.investmentOpeningPosition',
   INVESTMENT_SEGMENT: 'activity:entityTypes.investmentSegment',
   ALLOCATION_PLAN: 'activity:entityTypes.allocationPlan',
+  GOAL: 'activity:entityTypes.goal',
   VEHICLE: 'activity:entityTypes.vehicle',
 }
 

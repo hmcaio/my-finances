@@ -136,4 +136,44 @@ class LatestInvestmentSnapshotQueryTest {
     assertThat(query.totalValueOfProduct(UUID.randomUUID(), LocalDate.of(2026, 2, 1)))
         .isEqualByComparingTo("0");
   }
+
+  /** F039: the goals read every product's value in one pass instead of one scan per product. */
+  @Test
+  void valueByProductSumsEachProductsHoldingsAndReportsTheLatestSnapshotDate() {
+    UUID productOne = UUID.randomUUID();
+    UUID productTwo = UUID.randomUUID();
+    UUID holdingAtXp =
+        holdingRepository
+            .save(InvestmentHoldingMother.holding().withProductId(productOne).build())
+            .getId();
+    UUID holdingAtNu =
+        holdingRepository
+            .save(InvestmentHoldingMother.holding().withProductId(productOne).build())
+            .getId();
+    UUID holdingOfTwo =
+        holdingRepository
+            .save(InvestmentHoldingMother.holding().withProductId(productTwo).build())
+            .getId();
+    snapshot(holdingAtXp, LocalDate.of(2026, 1, 31), "500.00");
+    snapshot(holdingAtXp, LocalDate.of(2026, 1, 15), "999.00");
+    snapshot(holdingAtNu, LocalDate.of(2026, 1, 20), "400.00");
+    snapshot(holdingOfTwo, LocalDate.of(2026, 1, 5), "70.00");
+    snapshot(holdingOfTwo, LocalDate.of(2026, 3, 5), "9999.00");
+
+    Map<UUID, ProductSnapshotValue> values = query.valueByProduct(LocalDate.of(2026, 2, 1));
+
+    assertThat(values).containsOnlyKeys(productOne, productTwo);
+    assertThat(values.get(productOne).value()).isEqualByComparingTo("900.00");
+    assertThat(values.get(productOne).latestSnapshotDate()).isEqualTo(LocalDate.of(2026, 1, 31));
+    assertThat(values.get(productTwo).value()).isEqualByComparingTo("70.00");
+    assertThat(values.get(productTwo).latestSnapshotDate()).isEqualTo(LocalDate.of(2026, 1, 5));
+  }
+
+  @Test
+  void valueByProductOmitsAProductWhoseHoldingsHaveNoSnapshotYet() {
+    UUID productId = UUID.randomUUID();
+    holdingRepository.save(InvestmentHoldingMother.holding().withProductId(productId).build());
+
+    assertThat(query.valueByProduct(LocalDate.of(2026, 2, 1))).isEmpty();
+  }
 }

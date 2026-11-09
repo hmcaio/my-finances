@@ -4,8 +4,9 @@ import { ACTIONS, ENTITY_TYPES, ORIGINS, endOfDayIso, startOfDayIso } from './ac
 describe('activity filter options', () => {
   it('lists every entity type, action and origin once', () => {
     expect(new Set(ENTITY_TYPES).size).toBe(ENTITY_TYPES.length)
-    expect(ENTITY_TYPES).toHaveLength(17)
+    expect(ENTITY_TYPES).toHaveLength(18)
     expect(ENTITY_TYPES).toContain('INVESTMENT_OPENING_POSITION')
+    expect(ENTITY_TYPES).toContain('GOAL')
     expect(ACTIONS).toEqual([
       'CREATE',
       'UPDATE',

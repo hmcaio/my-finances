@@ -59,6 +59,13 @@ describe('Layout', () => {
     expect(await screen.findByRole('link', { name: 'Ledger' })).toBeVisible()
   })
 
+  it('links the Goals page in the main nav (F039)', () => {
+    setViewportWidth(1280)
+    renderLayout()
+
+    expect(screen.getByRole('link', { name: 'Goals' })).toHaveAttribute('href', '/goals')
+  })
+
   it('closes the temporary drawer when a nav link is followed', async () => {
     setViewportWidth(390)
     const user = userEvent.setup({ delay: null })

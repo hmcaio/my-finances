@@ -66,6 +66,23 @@ describe('InvestmentProductDetailPage', () => {
     )
   })
 
+  it('lists, read-only, the goals the product is allocated to as chips linking to them (F039)', async () => {
+    renderDetail('iprod-selic')
+
+    expect(await screen.findByText('Allocated to')).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: 'Car · 60%' })).toHaveAttribute(
+      'href',
+      '/goals/goal-car',
+    )
+  })
+
+  it('shows no "Allocated to" list for a product no goal uses (F039)', async () => {
+    renderDetail('iprod-btc')
+    await screen.findByRole('heading', { name: 'Bitcoin' })
+
+    await waitFor(() => expect(screen.queryByText('Allocated to')).not.toBeInTheDocument())
+  })
+
   it("shows the selected holding's opening position card, with an add action when there is none (F038)", async () => {
     renderDetail('iprod-btc')
 
