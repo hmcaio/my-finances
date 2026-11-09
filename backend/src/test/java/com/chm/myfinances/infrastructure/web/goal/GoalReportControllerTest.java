@@ -144,6 +144,13 @@ class GoalReportControllerTest {
     return productId;
   }
 
+  /** Another snapshot for the product's (single) holding. */
+  private void snapshotOf(UUID productId, LocalDate date, String balance) {
+    UUID holdingId = holdingRepository.findByProductId(productId).get(0).getId();
+    snapshotRepository.save(
+        InvestmentSnapshot.create(UUID.randomUUID(), holdingId, date, new BigDecimal(balance)));
+  }
+
   private void allocate(String goalId, UUID productId, String percentage) throws Exception {
     Map<String, Object> share = new LinkedHashMap<>();
     share.put("productId", productId.toString());
@@ -203,6 +210,41 @@ class GoalReportControllerTest {
         .andExpect(jsonPath("$.allocatedValue").value(1000.00))
         .andExpect(jsonPath("$.latestSnapshotDate").value("2026-10-20"))
         .andExpect(jsonPath("$.scenarios[1].projectedValueAtTargetDate").value(1000.00));
+  }
+
+  @Test
+  void aGoalWithEnoughHistoryReturnsThePaceBesideTheScenarios() throws Exception {
+    String id = createGoal("Pace Goal Report", LocalDate.of(2027, 11, 15), "5000", "0", true);
+    UUID product = productWorth("Fund Pace", LocalDate.of(2026, 8, 1), "1000.00");
+    snapshotOf(product, LocalDate.of(2026, 9, 1), "1100.00");
+    snapshotOf(product, LocalDate.of(2026, 10, 1), "1200.00");
+    snapshotOf(product, LocalDate.of(2026, 11, 1), "1300.00");
+    allocate(id, product, "100");
+
+    mockMvc
+        .perform(get("/api/goals/" + id + "/projection"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.scenarios.length()").value(3))
+        .andExpect(jsonPath("$.pace.monthlyPace").value(100.00))
+        .andExpect(jsonPath("$.pace.points.length()").value(13))
+        .andExpect(jsonPath("$.pace.points[0].month").value("2026-11"))
+        .andExpect(jsonPath("$.pace.points[0].value").value(1300.00))
+        .andExpect(jsonPath("$.pace.points[12].month").value("2027-11"))
+        .andExpect(jsonPath("$.pace.projectedValueAtTargetDate").value(2500.00))
+        .andExpect(jsonPath("$.pace.shortfallAtTargetDate").value(2500.00))
+        .andExpect(jsonPath("$.pace.monthsToTarget").doesNotExist());
+  }
+
+  @Test
+  void aGoalWithTooLittleHistoryHasNoPace() throws Exception {
+    String id = createGoal("No Pace Goal Report", LocalDate.of(2027, 11, 15), "5000", "0", true);
+    allocate(id, productWorth("Fund No Pace", LocalDate.of(2026, 10, 20), "1000.00"), "100");
+
+    mockMvc
+        .perform(get("/api/goals/" + id + "/projection"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.scenarios.length()").value(3))
+        .andExpect(jsonPath("$.pace").doesNotExist());
   }
 
   @Test

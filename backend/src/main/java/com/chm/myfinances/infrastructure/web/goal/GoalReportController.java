@@ -57,7 +57,9 @@ public class GoalReportController {
   @GetMapping("/{id}/projection")
   @ApiResponse(
       responseCode = "200",
-      description = "The pessimistic, base and optimistic projections, in today's money.",
+      description =
+          "The pessimistic, base and optimistic projections, in today's money, and the current"
+              + " pace drawn from history (null when there is too little of it).",
       content = @Content(schema = @Schema(implementation = GoalProjectionResponse.class)))
   @ApiResponse(
       responseCode = "404",

@@ -21,21 +21,27 @@ import org.springframework.stereotype.Service;
  * <p>A dated goal reports the projected value at the target date, the shortfall against the target
  * and the contribution required; a dateless goal (an emergency fund) reports the first month the
  * value reaches the target, and its points run until the pessimistic scenario gets there.
+ *
+ * <p>The projection also carries the current-pace line ({@link GoalPaceQuery}, F041): derived from
+ * recorded history, not from assumptions, and {@code null} when there is too little of it.
  */
 @Service
 public class GoalProjectionQuery {
 
   private final GoalRepository goalRepository;
   private final GoalValuation valuation;
+  private final GoalPaceQuery paceQuery;
   private final Clock clock;
 
   public GoalProjectionQuery(
       GoalRepository goalRepository,
       GoalAllocationRepository allocationRepository,
       LatestInvestmentSnapshotQuery snapshotQuery,
+      GoalPaceQuery paceQuery,
       Clock clock) {
     this.goalRepository = goalRepository;
     this.valuation = new GoalValuation(allocationRepository, snapshotQuery);
+    this.paceQuery = paceQuery;
     this.clock = clock;
   }
 
@@ -56,6 +62,10 @@ public class GoalProjectionQuery {
     if (goal.getTargetDate() == null) {
       scenarios = GoalScenarioCalculator.trimToPessimisticHorizon(scenarios);
     }
-    return new GoalProjection(value.allocatedValue(), value.latestSnapshotDate(), scenarios);
+    // The pace runs as far as the scenarios do (F041, ADR 0035), never past them.
+    int horizonMonths = scenarios.get(0).points().size() - 1;
+    PaceProjection pace =
+        paceQuery.pace(goal, value.allocatedValue(), horizonMonths, today).orElse(null);
+    return new GoalProjection(value.allocatedValue(), value.latestSnapshotDate(), scenarios, pace);
   }
 }

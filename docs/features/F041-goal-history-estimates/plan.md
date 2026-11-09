@@ -9,8 +9,8 @@ Branch `feature/f041-goal-history-estimates`. Backend first (the `pace` field an
 - [x] Implement the two functions in `application/goal/GoalProjectionMath` and `application/goal/PaceProjection`.
 - [x] Test first (`GoalPaceQuery`, fakes, fixed `Clock`, non-UTC zone): leading zero months are skipped; the window starts after the latest opening position of any allocated product's holding; fewer than 4 points left is empty; a dated goal gets the value at the target date and the shortfall; a dateless goal gets `monthsToTarget` and the scenarios' horizon, never longer; the pace points start at `allocatedValue` in the current month; a negative pace falls and never reaches the target.
 - [x] Implement `application/goal/GoalPaceQuery`, add the nullable `pace` to `GoalProjection` and fill it in `GoalProjectionQuery`; add a read by product ids to the holding and opening-position ports if missing.
-- [ ] REST: `pace` on the `GET /api/goals/{id}/projection` response; controller test for a goal with enough history, one without, and `404`.
-- [ ] `./gradlew spotlessApply` then `scripts/verify.sh backend` (Docker running).
+- [x] REST: `pace` on the `GET /api/goals/{id}/projection` response; controller test for a goal with enough history, one without, and `404`.
+- [x] `./gradlew spotlessApply` then `scripts/verify.sh backend` (Docker running).
 
 ## Phase 2 — Backend: contribution suggestion
 - [ ] Test first (`GoalContributionSuggestionQuery`): averages the last 12 full months, excluding the current one; starts at the first month with a contribution; multiplies each product's contribution by the goal's percentage; removes an opening position's cost in its as-of month; a net-sell average is `0`; no allocations returns `0` and `0`; a goal that does not exist is `404`.
