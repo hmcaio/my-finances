@@ -25,9 +25,9 @@ Branch `feature/f041-goal-history-estimates`. Backend first (the `pace` field an
 - [x] Implement the pace line, legend entry and notes in `GoalTimelineChart`.
 - [x] Test first (`GoalScenarioTable`): a "Current pace" row for a dated goal (value at the date, surplus or shortfall) and a dateless goal (time to target, "not reached within 50 years"), "–" in the real-return and contribution-needed cells, no row when `pace` is `null`, a card on a phone.
 - [x] Implement the "Current pace" row in `GoalScenarioTable`.
-- [ ] Test first (`GoalForm`): "Suggest from history" appears only when editing a goal with allocations; it fills the planned contribution with the average without saving; it shows "Average of the last N months: X"; a `monthsAveraged` of `0` shows the hint and fills `0`.
-- [ ] Implement the button in `GoalForm`, the `pace.*` and `contribution.*` i18n keys (`en`, `pt-BR`) and update the e2e goals spec if its selectors change.
-- [ ] `scripts/verify.sh frontend`.
+- [x] Test first (`GoalForm`): "Suggest from history" appears only when editing a goal with allocations; it fills the planned contribution with the average without saving; it shows "Average of the last N months: X"; a `monthsAveraged` of `0` shows the hint and fills `0`.
+- [x] Implement the button in `GoalForm`, the `pace.*` and `contribution.*` i18n keys (`en`, `pt-BR`) and update the e2e goals spec if its selectors change.
+- [x] `scripts/verify.sh frontend`.
 
 ## Phase 4 — Docs
 - [ ] `docs/features/README.md` row verified against what was built, and F041 removed from its "Status" list; `CHANGELOG.md` entry under `## [Unreleased]` in the same commit as the code.

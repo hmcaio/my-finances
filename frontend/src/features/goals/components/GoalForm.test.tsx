@@ -3,7 +3,7 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../../mocks/server'
-import { goalsStore, seedGoalCar, seedGoalOld } from '../../../mocks/handlers/goals'
+import { goalsStore, seedGoalCar, seedGoalFund, seedGoalOld } from '../../../mocks/handlers/goals'
 import { resolveErrorMessage } from '../../../test/utils/errorMessages'
 import { selectOption } from '../../../test/utils/testUtils'
 import { renderWithQueryClient } from '../../../test/utils/renderWithQueryClient'
@@ -216,6 +216,106 @@ describe('GoalForm - edit', () => {
       returnOptimistic: 6,
       status: 'ACHIEVED',
       showOnDashboard: true,
+    })
+  })
+
+  describe('Suggest from history (F041)', () => {
+    it('is not offered when creating a goal', () => {
+      renderForm()
+
+      expect(screen.queryByRole('button', { name: 'Suggest from history' })).not.toBeInTheDocument()
+    })
+
+    it('is not offered for a goal with no allocations', () => {
+      renderForm(seedGoalFund)
+
+      expect(screen.queryByRole('button', { name: 'Suggest from history' })).not.toBeInTheDocument()
+    })
+
+    it('fills the planned contribution with the average, says how it was averaged and saves nothing', async () => {
+      let patched = false
+      server.use(
+        http.patch('/api/goals/:id', () => {
+          patched = true
+          return HttpResponse.json(seedGoalCar)
+        }),
+      )
+      const { user } = renderForm(seedGoalCar)
+      expect(screen.getByLabelText('Planned monthly contribution')).toHaveValue(2000)
+
+      await user.click(screen.getByRole('button', { name: 'Suggest from history' }))
+
+      await waitFor(() =>
+        expect(screen.getByLabelText('Planned monthly contribution')).toHaveValue(1500),
+      )
+      expect(screen.getByText('Average of the last 12 months: 1,500.00')).toBeInTheDocument()
+      expect(patched).toBe(false)
+      expect(goalsStore.find('goal-car')?.plannedMonthlyContribution).toBe(2000)
+    })
+
+    it('saves the filled value only when Save is pressed', async () => {
+      let sentBody: { plannedMonthlyContribution?: number } = {}
+      server.use(
+        http.patch('/api/goals/:id', async ({ request }) => {
+          sentBody = (await request.json()) as typeof sentBody
+          return HttpResponse.json(seedGoalCar)
+        }),
+      )
+      const { onClose, user } = renderForm(seedGoalCar)
+      await user.click(screen.getByRole('button', { name: 'Suggest from history' }))
+      await waitFor(() =>
+        expect(screen.getByLabelText('Planned monthly contribution')).toHaveValue(1500),
+      )
+
+      await user.click(screen.getByRole('button', { name: 'Save' }))
+
+      await waitFor(() => expect(onClose).toHaveBeenCalled())
+      expect(sentBody.plannedMonthlyContribution).toBe(1500)
+    })
+
+    it('fills 0 and explains when there is nothing to average', async () => {
+      server.use(
+        http.get('/api/goals/:id/contribution-suggestion', () =>
+          HttpResponse.json({ averageMonthlyContribution: 0, monthsAveraged: 0 }),
+        ),
+      )
+      const { user } = renderForm(seedGoalCar)
+
+      await user.click(screen.getByRole('button', { name: 'Suggest from history' }))
+
+      await waitFor(() =>
+        expect(screen.getByLabelText('Planned monthly contribution')).toHaveValue(0),
+      )
+      expect(
+        screen.getByText(/No contributions to this goal's products in the last 12 months/),
+      ).toBeInTheDocument()
+      expect(screen.queryByText(/^Average of the last/)).not.toBeInTheDocument()
+    })
+
+    it('shows the mapped error and keeps the field when the suggestion fails', async () => {
+      server.use(
+        http.get('/api/goals/:id/contribution-suggestion', () =>
+          HttpResponse.json({ type: 'urn:my-finances:error:invalid-goal' }, { status: 400 }),
+        ),
+      )
+      const { user } = renderForm(seedGoalCar)
+
+      await user.click(screen.getByRole('button', { name: 'Suggest from history' }))
+
+      expect(
+        await screen.findByText(resolveErrorMessage('urn:my-finances:error:invalid-goal')),
+      ).toBeInTheDocument()
+      expect(screen.getByLabelText('Planned monthly contribution')).toHaveValue(2000)
+    })
+
+    it('drops the stale note once the field is edited by hand', async () => {
+      const { user } = renderForm(seedGoalCar)
+      await user.click(screen.getByRole('button', { name: 'Suggest from history' }))
+      await screen.findByText('Average of the last 12 months: 1,500.00')
+
+      await user.type(screen.getByLabelText('Planned monthly contribution'), '5')
+
+      expect(screen.queryByText(/^Average of the last/)).not.toBeInTheDocument()
     })
   })
 

@@ -12,12 +12,19 @@ import {
   TextField,
 } from '@mui/material'
 import type { Goal, GoalStatus } from '../../../api/goals/goals'
-import { useCreateGoal, useEditGoal } from '../../../api/goals/goalsQueries'
+import type { ContributionSuggestion } from '../../../api/goals/goals'
+import {
+  useCreateGoal,
+  useEditGoal,
+  useGoalContributionSuggestion,
+} from '../../../api/goals/goalsQueries'
 import { ErrorAlert } from '../../../components/feedback/ErrorAlert'
 import { FormDialogContent } from '../../../components/feedback/FormDialogContent'
 import { FormGrid, ResponsiveDialog } from '../../../components/feedback/ResponsiveDialog'
 import { FORM_GRID_FULL_ROW } from '../../../components/layout/layoutSx'
 import { useAction } from '../../../hooks/useAction'
+import { formatMoney } from '../../../i18n/format'
+import { useLocale } from '../../../providers/locale/useLocale'
 import { today } from '../../../utils/localDate'
 import { hasAtMostTwoDecimals } from '../lib/goalFormat'
 import { TargetHelperDialog } from './TargetHelperDialog'
@@ -41,7 +48,10 @@ export interface GoalFormProps {
 /**
  * The create / edit dialog of a goal (PRD S6.17, F039): name, notes, target amount (with a
  * "Suggest a target" helper), optional target date, planned monthly contribution, the three real
- * annual returns, the status (edit only) and "Show on dashboard". Validates what the backend
+ * annual returns, the status (edit only) and "Show on dashboard". Editing a goal that has
+ * allocations also offers "Suggest from history" beside the planned contribution (F041): it asks
+ * for the 12-month average of what was put into the goal's products and fills the field, nothing
+ * is saved until Save. Validates what the backend
  * would reject so the button stays disabled until the draft is valid; a save error shows inside
  * the open dialog. An archived goal (or one being archived) has its dashboard switch off and
  * disabled, and restoring does not turn it back on.
@@ -61,6 +71,7 @@ function parse(text: string): number {
 
 function GoalFormBody({ goal, onClose }: { goal?: Goal; onClose: () => void }) {
   const { t } = useTranslation(['goals', 'common'])
+  const { locale } = useLocale()
   const editing = goal !== undefined
   const [error, setError] = useState<string | null>(null)
   const [name, setName] = useState(goal?.name ?? '')
@@ -76,10 +87,26 @@ function GoalFormBody({ goal, onClose }: { goal?: Goal; onClose: () => void }) {
   const [status, setStatus] = useState<GoalStatus>(goal?.status ?? 'ACTIVE')
   const [showOnDashboard, setShowOnDashboard] = useState(goal?.showOnDashboard ?? true)
   const [helperOpen, setHelperOpen] = useState(false)
+  // What "Suggest from history" last filled in; cleared as soon as the field is edited by hand.
+  const [suggestion, setSuggestion] = useState<ContributionSuggestion | null>(null)
 
   const createMutation = useCreateGoal()
   const editMutation = useEditGoal()
   const saveAction = useAction(setError)
+  // Fetched only when the button is pressed (`refetch`), never while the form is open.
+  const suggestionQuery = useGoalContributionSuggestion(goal?.id, false)
+  const suggestAction = useAction(setError)
+  const canSuggest = editing && goal.allocations.length > 0
+
+  async function suggestFromHistory() {
+    setSuggestion(null)
+    await suggestAction.run(async () => {
+      const { data } = await suggestionQuery.refetch({ throwOnError: true })
+      if (data === undefined) return
+      setContribution(String(data.averageMonthlyContribution))
+      setSuggestion(data)
+    })
+  }
 
   const target = parse(targetAmount)
   const monthly = parse(contribution)
@@ -187,14 +214,41 @@ function GoalFormBody({ goal, onClose }: { goal?: Goal; onClose: () => void }) {
             error={!dateValid}
             helperText={dateValid ? undefined : t('goals:form.dateMustBeFuture')}
           />
-          <TextField
-            label={t('goals:form.plannedMonthlyContribution')}
-            type="number"
-            value={contribution}
-            onChange={(e) => setContribution(e.target.value)}
-            slotProps={{ htmlInput: { min: 0, step: '0.01' } }}
-            error={contribution !== '' && !(monthly >= 0 && hasAtMostTwoDecimals(contribution))}
-          />
+          <Box sx={{ ...FORM_GRID_FULL_ROW, display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+            <TextField
+              label={t('goals:form.plannedMonthlyContribution')}
+              type="number"
+              value={contribution}
+              onChange={(e) => {
+                setContribution(e.target.value)
+                setSuggestion(null)
+              }}
+              slotProps={{ htmlInput: { min: 0, step: '0.01' } }}
+              error={contribution !== '' && !(monthly >= 0 && hasAtMostTwoDecimals(contribution))}
+              helperText={
+                suggestion === null
+                  ? canSuggest
+                    ? t('goals:contribution.hint')
+                    : undefined
+                  : suggestion.monthsAveraged === 0
+                    ? t('goals:contribution.none')
+                    : t('goals:contribution.average', {
+                        count: suggestion.monthsAveraged,
+                        amount: formatMoney(suggestion.averageMonthlyContribution, locale),
+                      })
+              }
+              sx={{ flex: 1 }}
+            />
+            {canSuggest && (
+              <Button
+                sx={{ mt: 1, whiteSpace: 'normal' }}
+                disabled={suggestAction.pending}
+                onClick={() => void suggestFromHistory()}
+              >
+                {t('goals:contribution.suggest')}
+              </Button>
+            )}
+          </Box>
           <TextField
             label={t('goals:form.returnPessimistic')}
             type="number"

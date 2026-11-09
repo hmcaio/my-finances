@@ -44,6 +44,35 @@ test.describe('goals', () => {
     await expectNoHorizontalOverflow(page)
   })
 
+  // F041: the edit form of a goal with allocations adds "Suggest from history" beside the planned
+  // contribution, and the pace adds a legend entry and a table row.
+  test('the edit form with "Suggest from history" fits the viewport', async ({ page }) => {
+    await page.goto('/goals')
+    await page.getByRole('button', { name: 'Edit Car' }).click()
+
+    await expect(page.getByRole('dialog', { name: 'Edit goal' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Suggest from history' })).toBeVisible()
+
+    await expectNoHorizontalOverflow(page)
+  })
+
+  test("a goal's page shows the pace beside the scenarios without overflow", async ({
+    page,
+  }, testInfo) => {
+    const mobile = testInfo.project.name === 'mobile'
+    await page.goto('/goals/goal-car')
+
+    await expect(page.getByText(/Pace \(based on history\)/)).toBeVisible()
+    await expect(
+      mobile
+        ? page.getByRole('list', { name: 'Projection by scenario' }).getByText('Current pace')
+        : page.getByRole('row', { name: /Current pace/ }),
+    ).toBeVisible()
+    await page.waitForLoadState('networkidle')
+
+    await expectNoHorizontalOverflow(page)
+  })
+
   test('the dashboard shows the goals card', async ({ page }) => {
     await page.goto('/')
 
