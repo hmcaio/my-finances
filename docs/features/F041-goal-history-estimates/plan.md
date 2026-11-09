@@ -30,14 +30,14 @@ Branch `feature/f041-goal-history-estimates`. Backend first (the `pace` field an
 - [x] `scripts/verify.sh frontend`.
 
 ## Phase 4 — Docs
-- [ ] `docs/features/README.md` row verified against what was built, and F041 removed from its "Status" list; `CHANGELOG.md` entry under `## [Unreleased]` in the same commit as the code.
-- [ ] Root/backend/frontend `CLAUDE.md`: no new rule expected; add one only if implementation surfaces a gotcha the code cannot show.
+- [x] `docs/features/README.md` row verified against what was built, and F041 removed from its "Status" list; `CHANGELOG.md` entry under `## [Unreleased]` in the same commit as the code.
+- [x] Root/backend/frontend `CLAUDE.md`: no new rule expected; add one only if implementation surfaces a gotcha the code cannot show.
 
 ## Verification
-- [ ] Open a goal with allocated products and at least 4 months of snapshots (the dev seed) -> the chart shows a fourth grey line labeled "Pace (based on history)" from the "Today" marker, the note about inflation, and the table has a "Current pace" row.
-- [ ] Open a goal whose products have no history yet -> "Not enough history for a pace yet." and no fourth line or row.
-- [ ] Open a goal allocated to a product that has an opening position -> the pace ignores the jump of the opening position (the line is not steep from it).
-- [ ] Choose the 1-year horizon on a long goal -> the pace line is cut with the scenarios and the history stays.
-- [ ] Edit a goal with allocations, click "Suggest from history" -> the planned contribution fills with the 12-month average and nothing is saved until Save; create a new goal -> no such button.
-- [ ] Switch the language to pt-BR -> every new string is translated.
-- [ ] `scripts/verify.sh backend frontend` (Docker running) all green.
+- [x] Open a goal with allocated products and at least 4 months of snapshots (the dev seed) -> the chart shows a fourth grey line labeled "Pace (based on history)" from the "Today" marker, the note about inflation, and the table has a "Current pace" row.
+- [x] Open a goal whose products have no history yet -> "Not enough history for a pace yet." and no fourth line or row.
+- [x] Open a goal allocated to a product that has an opening position -> the pace ignores the jump of the opening position (the line is not steep from it).
+- [x] Choose the 1-year horizon on a long goal -> the pace line is cut with the scenarios and the history stays.
+- [x] Edit a goal with allocations, click "Suggest from history" -> the planned contribution fills with the 12-month average and nothing is saved until Save; create a new goal -> no such button.
+- [x] Switch the language to pt-BR -> every new string is translated.
+- [x] `scripts/verify.sh backend frontend` (Docker running) all green.
