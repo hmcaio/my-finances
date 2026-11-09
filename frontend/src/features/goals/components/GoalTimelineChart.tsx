@@ -15,6 +15,7 @@ import { fadeInSx } from '../../../components/feedback/fadeIn'
 import { LoadFailedNotice } from '../../../components/feedback/LoadFailedNotice'
 import { useQueryState } from '../../../hooks/queryState'
 import { useDelayedFlag } from '../../../hooks/useDelayedFlag'
+import { useElementWidth } from '../../../hooks/useElementWidth'
 import { formatMoney, formatNumber } from '../../../i18n/format'
 import { useLocale, type Locale } from '../../../providers/locale/useLocale'
 import { formatGoalDate, formatGoalMonth } from '../lib/goalFormat'
@@ -22,6 +23,14 @@ import { monthRange } from '../lib/monthRange'
 
 const MARGIN = { top: 24, right: 16, bottom: 32, left: 72 }
 const X_LABELS = 4
+/** Below this drawing width the axis shows one month label fewer, so neighbours do not touch. */
+const NARROW_CHART_WIDTH = 480
+
+/** The drawing never gets narrower than this, so the plot stays readable on a tiny container. */
+const MIN_CHART_WIDTH = 280
+/** The drawing is about this tall per unit of width, within the bounds below. */
+const HEIGHT_RATIO = 0.35
+const MAX_CHART_HEIGHT = 400
 
 /** The shorter horizons the selector offers, in months; "All" is always there. */
 const HORIZON_MONTHS = [12, 24, 60]
@@ -58,8 +67,21 @@ interface GoalTimelineChartProps {
  * month axis and meet at the "today" marker. A failed or empty history leaves the projection
  * drawn alone. A long projection can be cut to the next 1, 2 or 5 years with the horizon selector,
  * so the history is not squashed against a 20-year line. Every value is in today's money.
+ *
+ * The chart fills the width it is given: it measures its container and draws at that width (a
+ * 1:1 viewBox, so text and strokes keep their size), instead of scaling a fixed 640 wide frame.
+ * Where the width cannot be measured it falls back to that default frame.
  */
 export function GoalTimelineChart({ goal }: GoalTimelineChartProps) {
+  const [ref, width] = useElementWidth<HTMLDivElement>()
+  return (
+    <Box ref={ref}>
+      <GoalTimeline goal={goal} availableWidth={width} />
+    </Box>
+  )
+}
+
+function GoalTimeline({ goal, availableWidth }: { goal: Goal; availableWidth: number | null }) {
   const { t } = useTranslation('goals')
   const { locale } = useLocale()
   const theme = useTheme()
@@ -131,6 +153,7 @@ export function GoalTimelineChart({ goal }: GoalTimelineChartProps) {
         target={goal.targetAmount}
         colors={colors}
         historyColor={historyColor}
+        availableWidth={availableWidth}
         axisColor={theme.palette.text.secondary}
         gridColor={theme.palette.divider}
         targetColor={theme.palette.text.primary}
@@ -219,6 +242,8 @@ interface ChartProps {
   target: number
   colors: Record<ProjectionScenarioName, string>
   historyColor: string
+  /** The container's measured width, or `null` to use the default frame. */
+  availableWidth: number | null
   axisColor: string
   gridColor: string
   targetColor: string
@@ -232,12 +257,18 @@ function Chart({
   target,
   colors,
   historyColor,
+  availableWidth,
   axisColor,
   gridColor,
   targetColor,
   t,
   locale,
 }: ChartProps) {
+  const measured = availableWidth !== null
+  const chartWidth = measured ? Math.max(MIN_CHART_WIDTH, availableWidth) : CHART_WIDTH
+  const chartHeight = measured
+    ? Math.min(MAX_CHART_HEIGHT, Math.max(CHART_HEIGHT, Math.round(chartWidth * HEIGHT_RATIO)))
+    : CHART_HEIGHT
   const projectionStart = scenarios[0].points[0].month
   const projectionEnd = scenarios[0].points[scenarios[0].points.length - 1].month
   // One continuous month axis: the history (if any) ends where the projection starts.
@@ -251,10 +282,11 @@ function Chart({
   const { ticks, y } = createYScale({
     min: Math.min(0, ...values),
     max: Math.max(target, ...values),
-    height: CHART_HEIGHT,
+    height: chartHeight,
     margin: MARGIN,
   })
-  const innerWidth = CHART_WIDTH - MARGIN.left - MARGIN.right
+  const innerWidth = chartWidth - MARGIN.left - MARGIN.right
+  const labelCount = chartWidth < NARROW_CHART_WIDTH ? X_LABELS - 1 : X_LABELS
   // Months are evenly spaced; a single month sits in the middle.
   const x = (month: string) => {
     const index = indexOf.get(month) ?? 0
@@ -265,23 +297,29 @@ function Chart({
   }
   const labelIndexes = [
     ...new Set(
-      Array.from({ length: Math.min(X_LABELS, months.length) }, (_, i) =>
-        months.length === 1 ? 0 : Math.round((i * (months.length - 1)) / (X_LABELS - 1)),
+      Array.from({ length: Math.min(labelCount, months.length) }, (_, i) =>
+        months.length === 1 ? 0 : Math.round((i * (months.length - 1)) / (labelCount - 1)),
       ),
     ),
   ]
   const linePath = (points: GoalPoint[]) =>
     points.map((p, index) => `${index === 0 ? 'M' : 'L'}${x(p.month)},${y(p.value)}`).join(' ')
   const todayX = x(projectionStart)
-  const todayLabelX = Math.min(Math.max(todayX, MARGIN.left + 18), CHART_WIDTH - MARGIN.right - 18)
+  const todayLabelX = Math.min(Math.max(todayX, MARGIN.left + 18), chartWidth - MARGIN.right - 18)
 
   return (
-    <ChartSvg label={t('timeline.chartAria')}>
+    <ChartSvg
+      label={t('timeline.chartAria')}
+      width={chartWidth}
+      height={chartHeight}
+      fillWidth={measured}
+    >
       <YGrid
         ticks={ticks}
         y={y}
         marginLeft={MARGIN.left}
         marginRight={MARGIN.right}
+        width={chartWidth}
         gridColor={gridColor}
         axisColor={axisColor}
         formatTick={(tick) => formatNumber(tick, locale, 0)}
@@ -290,7 +328,7 @@ function Chart({
         <text
           key={months[index]}
           x={x(months[index])}
-          y={CHART_HEIGHT - MARGIN.bottom + 18}
+          y={chartHeight - MARGIN.bottom + 18}
           textAnchor={
             months.length === 1
               ? 'middle'
@@ -309,7 +347,7 @@ function Chart({
       <line
         data-target=""
         x1={MARGIN.left}
-        x2={CHART_WIDTH - MARGIN.right}
+        x2={chartWidth - MARGIN.right}
         y1={y(target)}
         y2={y(target)}
         stroke={targetColor}
@@ -317,7 +355,7 @@ function Chart({
         strokeDasharray="8 4"
       />
       <text
-        x={CHART_WIDTH - MARGIN.right}
+        x={chartWidth - MARGIN.right}
         y={y(target) - 6}
         textAnchor="end"
         fontSize="11"
@@ -332,7 +370,7 @@ function Chart({
             x1={todayX}
             x2={todayX}
             y1={MARGIN.top}
-            y2={CHART_HEIGHT - MARGIN.bottom}
+            y2={chartHeight - MARGIN.bottom}
             stroke={axisColor}
             strokeWidth={1}
             strokeDasharray="2 3"

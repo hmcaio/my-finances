@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { screen, within } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse } from 'msw'
 import { server } from '../../../mocks/server'
@@ -42,6 +42,25 @@ function longProjection(goal: Goal, count: number) {
         }
       }),
     })),
+  }
+}
+
+class FakeResizeObserver {
+  static instances: FakeResizeObserver[] = []
+
+  private readonly callback: (entries: { contentRect: { width: number } }[]) => void
+
+  constructor(callback: (entries: { contentRect: { width: number } }[]) => void) {
+    this.callback = callback
+    FakeResizeObserver.instances.push(this)
+  }
+
+  observe() {}
+
+  disconnect() {}
+
+  report(width: number) {
+    this.callback([{ contentRect: { width } }])
   }
 }
 
@@ -190,6 +209,63 @@ describe('GoalTimelineChart', () => {
     await user.click(retry)
 
     expect(await screen.findByRole('img', { name: CHART_NAME })).toBeInTheDocument()
+  })
+
+  describe('width', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals()
+      FakeResizeObserver.instances = []
+    })
+
+    it('keeps the default 640 by 260 frame where the width cannot be measured', async () => {
+      renderChart(seedGoalCar)
+
+      const chart = await screen.findByRole('img', { name: CHART_NAME })
+      expect(chart.getAttribute('viewBox')).toBe('0 0 640 260')
+    })
+
+    it('fills the measured width: the plot runs to the right margin and the text keeps its size', async () => {
+      vi.stubGlobal('ResizeObserver', FakeResizeObserver)
+      renderChart(seedGoalCar)
+      await screen.findByRole('img', { name: CHART_NAME })
+
+      act(() => FakeResizeObserver.instances.forEach((observer) => observer.report(960)))
+
+      const chart = screen.getByRole('img', { name: CHART_NAME })
+      expect(chart.getAttribute('viewBox')).toBe('0 0 960 336')
+      // The last projected month sits on the right margin (16) of the 960 wide frame, and the
+      // dashed target line spans the plot.
+      expect(pathX(chart.querySelector('path[data-scenario]'), 'last')).toBeCloseTo(944, 5)
+      expect(Number(chart.querySelector('line[data-target]')?.getAttribute('x2'))).toBe(944)
+      expect(chart).toHaveStyle({ maxWidth: 'none' })
+    })
+
+    it('labels fewer months on a narrow frame so they do not touch', async () => {
+      vi.stubGlobal('ResizeObserver', FakeResizeObserver)
+      renderChart(seedGoalCar)
+      await screen.findByRole('img', { name: CHART_NAME })
+      const labels = () =>
+        [...screen.getByRole('img', { name: CHART_NAME }).querySelectorAll('text')].filter((node) =>
+          /^[A-Z][a-z]{2} \d{4}$/.test(node.textContent ?? ''),
+        )
+
+      act(() => FakeResizeObserver.instances.forEach((observer) => observer.report(960)))
+      expect(labels()).toHaveLength(4)
+      act(() => FakeResizeObserver.instances.forEach((observer) => observer.report(328)))
+      expect(labels()).toHaveLength(3)
+    })
+
+    it('follows a narrow container instead of scaling a 640 frame down', async () => {
+      vi.stubGlobal('ResizeObserver', FakeResizeObserver)
+      renderChart(seedGoalCar)
+      await screen.findByRole('img', { name: CHART_NAME })
+
+      act(() => FakeResizeObserver.instances.forEach((observer) => observer.report(328)))
+
+      const chart = screen.getByRole('img', { name: CHART_NAME })
+      expect(chart.getAttribute('viewBox')).toBe('0 0 328 260')
+      expect(pathX(chart.querySelector('path[data-scenario]'), 'last')).toBeCloseTo(312, 5)
+    })
   })
 
   describe('horizon selector', () => {
