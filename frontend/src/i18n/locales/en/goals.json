@@ -159,5 +159,11 @@
     "average_other": "Average of the last {{count}} months: {{amount}}",
     "none": "No contributions to this goal's products in the last 12 months, so there is nothing to suggest. The field is set to 0.",
     "hint": "Fills the field with what you actually put into this goal's products; nothing is saved until you press Save."
+  },
+  "toast": {
+    "saved": "Goal saved",
+    "updated": "Goal updated",
+    "deleted": "Goal deleted",
+    "allocationsSaved": "Allocations saved"
   }
 }

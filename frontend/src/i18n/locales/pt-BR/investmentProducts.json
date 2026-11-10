@@ -154,5 +154,19 @@
     "deleteBody": "Excluir a posição inicial de {{date}}? As cotas e o valor aportado deixam de incluí-la. Os registros de valor são mantidos.",
     "deleteConfirm": "Excluir",
     "loading": "Carregando posição inicial"
+  },
+  "toast": {
+    "productSaved": "Produto salvo",
+    "productUpdated": "Produto atualizado",
+    "productDeleted": "Produto excluído",
+    "holdingSaved": "Posição salva",
+    "holdingUpdated": "Posição atualizada",
+    "holdingClosed": "Posição encerrada",
+    "holdingDeleted": "Posição excluída",
+    "openingPositionSaved": "Posição inicial salva",
+    "openingPositionDeleted": "Posição inicial excluída",
+    "snapshotSaved": "Registro salvo",
+    "snapshotUpdated": "Registro atualizado",
+    "snapshotDeleted": "Registro excluído"
   }
 }

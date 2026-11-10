@@ -3,6 +3,7 @@ import { cleanup } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll } from 'vitest'
 import { server } from '../mocks/server'
 import { resetStores } from '../mocks/store'
+import { resetNotifications } from '../providers/notifications/notificationStore'
 import i18n from '../i18n/i18n'
 
 // Vitest global setup (wired via vite.config.ts's `test.setupFiles`, F015 spec): every test file
@@ -15,6 +16,9 @@ afterEach(() => {
   cleanup()
   server.resetHandlers()
   resetStores()
+  // The toast store is module-level too: a message published by one test must not be on screen
+  // (or already queued for a host) in the next.
+  resetNotifications()
   // i18next is a module-level singleton, and vite.config.ts's `isolate: false` shares the module
   // graph across test files in a worker - a test that drives a LocaleProvider toggle (or calls
   // i18next.changeLanguage directly) would otherwise leak its language into every test that runs

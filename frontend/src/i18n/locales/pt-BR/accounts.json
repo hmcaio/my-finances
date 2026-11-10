@@ -53,5 +53,11 @@
     "closedSuffix": " · Encerrada em {{date}}",
     "products": "Produtos",
     "ledger": "Transações e transferências"
+  },
+  "toast": {
+    "saved": "Conta salva",
+    "updated": "Conta atualizada",
+    "closed": "Conta encerrada",
+    "deleted": "Conta excluída"
   }
 }

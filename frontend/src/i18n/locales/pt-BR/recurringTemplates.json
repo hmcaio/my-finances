@@ -50,5 +50,13 @@
       "body": "Nenhuma transação será criada para ela. Isso não pode ser desfeito, mas a próxima execução de atualização também não a regenerará.",
       "confirmLabel": "Descartar"
     }
+  },
+  "toast": {
+    "saved": "Modelo recorrente salvo",
+    "updated": "Modelo recorrente atualizado",
+    "stopped": "Modelo recorrente interrompido",
+    "reactivated": "Modelo recorrente reativado",
+    "confirmed": "Ocorrência confirmada",
+    "dismissed": "Ocorrência descartada"
   }
 }

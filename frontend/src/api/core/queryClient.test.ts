@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
+import type { MutationMeta } from '@tanstack/react-query'
+import { getSnapshot } from '../../providers/notifications/notificationStore'
 import { ApiError } from './apiError'
 import { createQueryClient, SESSION_QUERY_KEY } from './queryClient'
 
@@ -71,6 +73,74 @@ describe('createQueryClient', () => {
 
     expect(spy).not.toHaveBeenCalled()
   })
+  describe('success message (F040)', () => {
+    async function run(
+      meta: MutationMeta | undefined,
+      result: () => Promise<unknown> = async () => 'ok',
+    ) {
+      const client = createQueryClient()
+      await client
+        .getMutationCache()
+        .build(client, { mutationFn: result, meta })
+        .execute(undefined)
+        .catch(() => undefined)
+    }
+
+    it('publishes the translated message when the mutation succeeds', async () => {
+      await run({ successMessage: 'common:nav.dashboard' })
+
+      expect(getSnapshot()?.message).toBe('Dashboard')
+    })
+
+    it('interpolates the options built from the result and the variables', async () => {
+      const client = createQueryClient()
+      await client
+        .getMutationCache()
+        .build(client, {
+          mutationFn: async (variables: number) => ({ extra: variables + 1 }),
+          meta: {
+            successMessage: 'transfers:moreChips',
+            successMessageOptions: (data, variables) => ({
+              count: (data as { extra: number }).extra + (variables as number),
+            }),
+          },
+        })
+        .execute(1)
+
+      expect(getSnapshot()?.message).toBe('+3 more')
+    })
+
+    it('translates in the language active when it publishes', async () => {
+      const { default: i18n } = await import('../../i18n/i18n')
+      await i18n.changeLanguage('pt-BR')
+
+      await run({ successMessage: 'common:nav.dashboard' })
+
+      expect(getSnapshot()?.message).toBe('Painel')
+    })
+
+    it('still publishes when the mutation skips the invalidation', async () => {
+      await run({ successMessage: 'common:nav.dashboard', skipInvalidate: true })
+
+      expect(getSnapshot()?.message).toBe('Dashboard')
+    })
+
+    it('publishes nothing when the mutation fails', async () => {
+      await run({ successMessage: 'common:nav.dashboard' }, async () => {
+        throw new Error('boom')
+      })
+
+      expect(getSnapshot()).toBeNull()
+    })
+
+    it('publishes nothing for a mutation without the meta', async () => {
+      await run(undefined)
+      await run({ skipInvalidate: true })
+
+      expect(getSnapshot()).toBeNull()
+    })
+  })
+
   describe('session expiry (F036)', () => {
     const unauthenticated = new ApiError(401, 'x', 'urn:my-finances:error:unauthenticated')
 

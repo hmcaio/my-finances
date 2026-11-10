@@ -34,5 +34,10 @@
     "overBudgetSuffix": " — over budget",
     "usageAria": "{{category}} budget usage",
     "loadingAria": "Loading budget report"
+  },
+  "toast": {
+    "saved": "Budget saved",
+    "updated": "Budget updated",
+    "stopped": "Budget stopped"
   }
 }

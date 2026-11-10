@@ -39,16 +39,23 @@ export function useSpendByCategory(month: string) {
 }
 
 export function useCreateTransaction() {
-  return useMutation({ mutationFn: createTransaction })
+  return useMutation({
+    meta: { successMessage: 'transactions:toast.saved' },
+    mutationFn: createTransaction,
+  })
 }
 
 export function useEditTransaction() {
   return useMutation({
+    meta: { successMessage: 'transactions:toast.updated' },
     mutationFn: ({ id, ...request }: UpdateTransactionRequest & { id: string }) =>
       editTransaction(id, request),
   })
 }
 
 export function useDeleteTransaction() {
-  return useMutation({ mutationFn: deleteTransaction })
+  return useMutation({
+    meta: { successMessage: 'transactions:toast.deleted' },
+    mutationFn: deleteTransaction,
+  })
 }

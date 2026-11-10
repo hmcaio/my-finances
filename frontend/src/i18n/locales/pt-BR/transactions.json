@@ -27,5 +27,10 @@
     "kmSinceLastFillLabel": "Km Desde o Último Abastecimento",
     "kmSinceLastFillHelper": "Deixe em branco no primeiro abastecimento registrado do veículo",
     "odometerLabel": "Odômetro"
+  },
+  "toast": {
+    "saved": "Transação salva",
+    "updated": "Transação atualizada",
+    "deleted": "Transação excluída"
   }
 }

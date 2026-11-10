@@ -27,5 +27,8 @@ export function useAllocationPlanVersions() {
 }
 
 export function useSetAllocationPlan() {
-  return useMutation({ mutationFn: setAllocationPlan })
+  return useMutation({
+    meta: { successMessage: 'fii:toast.planSaved' },
+    mutationFn: setAllocationPlan,
+  })
 }

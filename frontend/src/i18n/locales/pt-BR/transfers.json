@@ -42,5 +42,10 @@
     "cashAccountFallback": "conta em dinheiro",
     "investmentAccountFallback": "conta de investimento",
     "saveChanges": "Salvar alterações"
+  },
+  "toast": {
+    "saved": "Transferência salva",
+    "updated": "Transferência atualizada",
+    "deleted": "Transferência excluída"
   }
 }

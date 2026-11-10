@@ -3,5 +3,10 @@
   "description": "Which car a fuel purchase belongs to - a plain label, not a valued asset (net worth is unaffected).",
   "addButton": "Add vehicle",
   "addDialogTitle": "Add vehicle",
-  "emptyList": "No vehicles yet."
+  "emptyList": "No vehicles yet.",
+  "toast": {
+    "saved": "Vehicle saved",
+    "updated": "Vehicle updated",
+    "deleted": "Vehicle deleted"
+  }
 }

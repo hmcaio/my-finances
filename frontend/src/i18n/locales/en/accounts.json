@@ -53,5 +53,11 @@
     "closedSuffix": " · Closed {{date}}",
     "products": "Products",
     "ledger": "Transactions & transfers"
+  },
+  "toast": {
+    "saved": "Account saved",
+    "updated": "Account updated",
+    "closed": "Account closed",
+    "deleted": "Account deleted"
   }
 }

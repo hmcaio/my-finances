@@ -34,5 +34,10 @@
     "overBudgetSuffix": " — acima do orçamento",
     "usageAria": "Uso do orçamento de {{category}}",
     "loadingAria": "Carregando relatório de orçamento"
+  },
+  "toast": {
+    "saved": "Orçamento salvo",
+    "updated": "Orçamento atualizado",
+    "stopped": "Orçamento interrompido"
   }
 }

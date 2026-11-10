@@ -25,6 +25,7 @@ export function useInstitutions() {
 export function useCreateInstitution() {
   const queryClient = useQueryClient()
   return useMutation({
+    meta: { successMessage: 'institutions:toast.saved' },
     mutationFn: createInstitution,
     // The caller selects the new row right away (`InstitutionSelect`), so hold the mutation open
     // until the list has it. `cancelRefetch: false` joins the refetch the global invalidation
@@ -36,11 +37,15 @@ export function useCreateInstitution() {
 
 export function useRenameInstitution() {
   return useMutation({
+    meta: { successMessage: 'institutions:toast.updated' },
     mutationFn: ({ id, ...request }: UpdateInstitutionRequest & { id: string }) =>
       renameInstitution(id, request),
   })
 }
 
 export function useDeleteInstitution() {
-  return useMutation({ mutationFn: deleteInstitution })
+  return useMutation({
+    meta: { successMessage: 'institutions:toast.deleted' },
+    mutationFn: deleteInstitution,
+  })
 }

@@ -102,28 +102,34 @@ export function useProductGoalAllocations(productId: string | undefined) {
 // dashboard, the projection and the per-product allocations; nothing is patched.
 
 export function useCreateGoal() {
-  return useMutation({ mutationFn: createGoal })
+  return useMutation({ meta: { successMessage: 'goals:toast.saved' }, mutationFn: createGoal })
 }
 
 export function useEditGoal() {
   return useMutation({
+    meta: { successMessage: 'goals:toast.updated' },
     mutationFn: ({ id, ...request }: UpdateGoalRequest & { id: string }) => editGoal(id, request),
   })
 }
 
 export function useSetGoalShowOnDashboard() {
   return useMutation({
+    meta: { successMessage: 'goals:toast.updated' },
     mutationFn: ({ id, showOnDashboard }: { id: string; showOnDashboard: boolean }) =>
       setGoalShowOnDashboard(id, showOnDashboard),
   })
 }
 
 export function useDeleteGoal() {
-  return useMutation({ mutationFn: (id: string) => deleteGoal(id) })
+  return useMutation({
+    meta: { successMessage: 'goals:toast.deleted' },
+    mutationFn: (id: string) => deleteGoal(id),
+  })
 }
 
 export function useReplaceGoalAllocations() {
   return useMutation({
+    meta: { successMessage: 'goals:toast.allocationsSaved' },
     mutationFn: ({ id, ...request }: ReplaceAllocationsRequest & { id: string }) =>
       replaceGoalAllocations(id, request),
   })

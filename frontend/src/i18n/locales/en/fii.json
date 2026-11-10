@@ -74,5 +74,9 @@
     "descriptionLabel": "Description (optional)",
     "defaultDescription": "Dividend - {{ticker}}",
     "registerButton": "Register"
+  },
+  "toast": {
+    "planSaved": "Allocation plan saved",
+    "dividendRegistered": "Dividend registered"
   }
 }

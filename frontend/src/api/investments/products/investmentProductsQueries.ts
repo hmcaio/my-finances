@@ -54,16 +54,23 @@ export function useInvestmentProduct(id: string | undefined) {
 }
 
 export function useCreateInvestmentProduct() {
-  return useMutation({ mutationFn: createInvestmentProduct })
+  return useMutation({
+    meta: { successMessage: 'investmentProducts:toast.productSaved' },
+    mutationFn: createInvestmentProduct,
+  })
 }
 
 export function useEditInvestmentProduct() {
   return useMutation({
+    meta: { successMessage: 'investmentProducts:toast.productUpdated' },
     mutationFn: ({ id, ...request }: UpdateInvestmentProductRequest & { id: string }) =>
       editInvestmentProduct(id, request),
   })
 }
 
 export function useDeleteInvestmentProduct() {
-  return useMutation({ mutationFn: deleteInvestmentProduct })
+  return useMutation({
+    meta: { successMessage: 'investmentProducts:toast.productDeleted' },
+    mutationFn: deleteInvestmentProduct,
+  })
 }

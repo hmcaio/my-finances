@@ -13,3 +13,7 @@ export const SELECT_MIN_WIDTH = { minWidth: 160 } as const
 
 /** A `FormGrid` child that spans every column (a long field). */
 export const FORM_GRID_FULL_ROW = { gridColumn: '1 / -1' } as const
+
+/** Width of `Layout`'s navigation drawer; the permanent one (from `lg`) takes this much of the
+ * left edge, so anything anchored to the start of the viewport clears it (the success toast). */
+export const DRAWER_WIDTH = 240

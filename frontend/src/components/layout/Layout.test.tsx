@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Link, MemoryRouter } from 'react-router-dom'
 import { ThemeProvider } from '@mui/material/styles'
@@ -10,6 +10,7 @@ import { getTheme } from '../../theme'
 import { ColorModeProvider } from '../../providers/colorMode/ColorModeProvider'
 import { LocaleProvider } from '../../providers/locale/LocaleProvider'
 import { restoreViewport, setViewportWidth } from '../../test/utils/viewport'
+import { publish } from '../../providers/notifications/notificationStore'
 import { Layout } from './Layout'
 
 function renderLayout({ pageContent }: { pageContent?: ReactNode } = {}) {
@@ -31,6 +32,16 @@ function renderLayout({ pageContent }: { pageContent?: ReactNode } = {}) {
 describe('Layout', () => {
   afterEach(() => {
     restoreViewport()
+  })
+
+  it('renders the notification host once, so a published message shows on every page (F040)', () => {
+    setViewportWidth(1280)
+    renderLayout()
+
+    act(() => publish('Transaction saved'))
+
+    expect(screen.getAllByRole('status')).toHaveLength(1)
+    expect(screen.getByRole('status')).toHaveTextContent('Transaction saved')
   })
 
   it.each([
