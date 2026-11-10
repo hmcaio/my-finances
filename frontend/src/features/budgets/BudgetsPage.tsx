@@ -225,12 +225,14 @@ export function BudgetsPage() {
         <Select
           size="small"
           displayEmpty
+          required
+          autoFocus
           value={addDialog.draft.categoryId}
           onChange={(e) => addDialog.setDraft((prev) => ({ ...prev, categoryId: e.target.value }))}
           aria-label={t('budgets:categoryLabel')}
         >
           <MenuItem value="" disabled>
-            {t('budgets:categoryLabel')}
+            {`${t('budgets:categoryLabel')} *`}
           </MenuItem>
           {unbudgetedExpenseCategories.map((c) => (
             <MenuItem key={c.id} value={c.id}>
@@ -242,6 +244,7 @@ export function BudgetsPage() {
           label={t('budgets:monthlyCapLabel')}
           type="number"
           size="small"
+          required
           value={addDialog.draft.cap}
           onChange={(e) => addDialog.setDraft((prev) => ({ ...prev, cap: e.target.value }))}
           slotProps={{ htmlInput: { step: '0.01', min: '0.01' } }}

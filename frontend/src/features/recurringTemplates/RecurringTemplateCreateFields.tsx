@@ -24,12 +24,14 @@ export function RecurringTemplateCreateFields({ form, setForm, categories, accou
       <Select
         size="small"
         displayEmpty
+        required
+        autoFocus
         value={form.categoryId}
         onChange={(e) => setForm((prev) => ({ ...prev, categoryId: e.target.value }))}
         aria-label={t('recurringTemplates:categoryLabel')}
       >
         <MenuItem value="" disabled>
-          {t('recurringTemplates:categoryLabel')}
+          {`${t('recurringTemplates:categoryLabel')} *`}
         </MenuItem>
         {categories.map((c) => (
           <MenuItem key={c.id} value={c.id}>
@@ -40,12 +42,13 @@ export function RecurringTemplateCreateFields({ form, setForm, categories, accou
       <Select
         size="small"
         displayEmpty
+        required
         value={form.accountId}
         onChange={(e) => setForm((prev) => ({ ...prev, accountId: e.target.value }))}
         aria-label={t('recurringTemplates:accountLabel')}
       >
         <MenuItem value="" disabled>
-          {t('recurringTemplates:accountLabel')}
+          {`${t('recurringTemplates:accountLabel')} *`}
         </MenuItem>
         {accounts.map((a) => (
           <MenuItem key={a.id} value={a.id}>
@@ -56,6 +59,7 @@ export function RecurringTemplateCreateFields({ form, setForm, categories, accou
       <TextField
         label={t('recurringTemplates:descriptionLabel')}
         size="small"
+        required
         value={form.description}
         onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
         slotProps={{ htmlInput: { maxLength: 150 } }}
@@ -65,6 +69,7 @@ export function RecurringTemplateCreateFields({ form, setForm, categories, accou
         label={t('recurringTemplates:amountLabel')}
         type="number"
         size="small"
+        required
         value={form.amount}
         onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value }))}
         slotProps={{ htmlInput: { step: '0.01', min: '0.01' } }}
@@ -73,6 +78,7 @@ export function RecurringTemplateCreateFields({ form, setForm, categories, accou
         label={t('recurringTemplates:dayOfMonthLabel')}
         type="number"
         size="small"
+        required
         value={form.dayOfMonth}
         onChange={(e) => setForm((prev) => ({ ...prev, dayOfMonth: e.target.value }))}
         slotProps={{ htmlInput: { min: 1, max: 31 } }}

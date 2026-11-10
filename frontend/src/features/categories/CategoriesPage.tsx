@@ -241,9 +241,7 @@ export function CategoriesPage() {
           onChange={(e) => addDialog.setDraft((prev) => ({ ...prev, name: e.target.value }))}
           slotProps={{ htmlInput: { maxLength: CATEGORY_NAME_MAX_LENGTH } }}
           autoFocus
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') void handleAdd()
-          }}
+          required
         />
         <Select
           size="small"

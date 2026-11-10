@@ -230,7 +230,11 @@ export function InvestmentProductDetailPage() {
         </Box>
       )}
 
-      <SnapshotDialogs actions={snapshotActions} banner={errorBanner} />
+      <SnapshotDialogs
+        actions={snapshotActions}
+        error={error}
+        onDismissError={() => setError(null)}
+      />
 
       <TradeDialog
         trade={tradeDialog}

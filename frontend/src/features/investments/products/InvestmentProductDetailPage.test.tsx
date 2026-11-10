@@ -162,8 +162,8 @@ describe('InvestmentProductDetailPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Record snapshot' }))
     const dialog = within(await screen.findByRole('dialog', { name: 'Record snapshot' }))
-    await user.clear(dialog.getByLabelText('Snapshot date'))
-    await user.type(dialog.getByLabelText('Snapshot date'), '2026-09-01')
+    await user.clear(dialog.getByLabelText(/Snapshot date/))
+    await user.type(dialog.getByLabelText(/Snapshot date/), '2026-09-01')
     await user.type(dialog.getByRole('spinbutton', { name: 'Balance' }), '1234.5')
     await user.click(dialog.getByRole('button', { name: 'Record snapshot' }))
 
@@ -177,6 +177,31 @@ describe('InvestmentProductDetailPage', () => {
     expect(within(history).getAllByRole('row')[1]).toHaveTextContent('2026-09-01')
   })
 
+  it('focuses Balance, marks Date and Balance required and records on Enter (F040)', async () => {
+    const user = userEvent.setup({ delay: null })
+    renderDetail()
+    await screen.findByRole('heading', { name: 'Bitcoin' })
+    const history = screen.getByRole('table', { name: 'Snapshot history' })
+
+    await user.click(screen.getByRole('button', { name: 'Record snapshot' }))
+    const dialog = within(await screen.findByRole('dialog', { name: 'Record snapshot' }))
+    const balance = dialog.getByRole('spinbutton', { name: 'Balance' })
+    expect(balance).toHaveFocus()
+    expect(balance).toBeRequired()
+    expect(dialog.getByLabelText(/Snapshot date/)).toBeRequired()
+    expect(dialog.getByText('Fields marked * are required')).toBeVisible()
+
+    // Enter with an empty balance does nothing; the dialog stays open.
+    await user.type(balance, '{Enter}')
+    expect(screen.getByRole('dialog', { name: 'Record snapshot' })).toBeInTheDocument()
+    await user.type(balance, '1234.5{Enter}')
+
+    expect(await within(history).findByText(formatMoney(1234.5, 'en'))).toBeInTheDocument()
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Record snapshot' })).not.toBeInTheDocument(),
+    )
+  })
+
   it('a same-day snapshot replaces the earlier row instead of adding one', async () => {
     const user = userEvent.setup({ delay: null })
     renderDetail()
@@ -186,8 +211,8 @@ describe('InvestmentProductDetailPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Record snapshot' }))
     const dialog = within(await screen.findByRole('dialog', { name: 'Record snapshot' }))
-    await user.clear(dialog.getByLabelText('Snapshot date'))
-    await user.type(dialog.getByLabelText('Snapshot date'), seedBitcoinSnapshots[0].date)
+    await user.clear(dialog.getByLabelText(/Snapshot date/))
+    await user.type(dialog.getByLabelText(/Snapshot date/), seedBitcoinSnapshots[0].date)
     await user.type(dialog.getByRole('spinbutton', { name: 'Balance' }), '950')
     await user.click(dialog.getByRole('button', { name: 'Record snapshot' }))
 

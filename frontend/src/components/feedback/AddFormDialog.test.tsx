@@ -36,6 +36,21 @@ describe('AddFormDialog', () => {
     expect(onCancel).toHaveBeenCalledTimes(1)
   })
 
+  it('submits on Enter in a field once valid, and shows the required hint', async () => {
+    const { user, onSubmit } = renderDialog()
+
+    expect(screen.getByText('Fields marked * are required')).toBeVisible()
+    await user.type(screen.getByLabelText('one'), '{Enter}')
+    expect(onSubmit).toHaveBeenCalledTimes(1)
+  })
+
+  it('does nothing on Enter while the draft is invalid', async () => {
+    const { user, onSubmit } = renderDialog({ canSubmit: false })
+
+    await user.type(screen.getByLabelText('one'), '{Enter}')
+    expect(onSubmit).not.toHaveBeenCalled()
+  })
+
   it('disables Add until the draft is valid, and both buttons while busy', () => {
     renderDialog({ canSubmit: false })
     expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled()
