@@ -35,7 +35,7 @@ No change.
 ### Application
 - `application/goal/GoalProjectionMath`: pure functions `monthlyPace(List<BigDecimal> values)` and `paceMonthsToTarget(allocatedValue, monthlyPace, target)`; the 4-point minimum and the rounding live here.
 - `application/goal/PaceProjection.java`: record `PaceProjection(BigDecimal monthlyPace, List<ProjectionPoint> points, BigDecimal projectedValueAtTargetDate, BigDecimal shortfallAtTargetDate, Integer monthsToTarget)`.
-- `application/goal/GoalPaceQuery.pace(Goal goal, BigDecimal allocatedValue, int horizonMonths, LocalDate today)`: returns `Optional<PaceProjection>` per the Decisions table. It reads `GoalHistoryQuery`, the goal's allocations, and the holdings and opening positions of the allocated products through the existing `InvestmentHoldingRepository` and `InvestmentOpeningPositionRepository` ports (add a read by product ids if one is missing).
+- `application/goal/GoalPaceQuery.pace(Goal goal, BigDecimal allocatedValue, int horizonMonths, LocalDate today)`: returns `Optional<PaceProjection>` per the Decisions table. It reads `GoalHistoryQuery`, the goal's allocations, and the holdings and opening positions of the allocated products through the existing `InvestmentHoldingRepository.findByProductId` (once per allocated product, the same bounded loop `GoalHistoryQuery` already runs) and `InvestmentOpeningPositionRepository.findByHoldingIds` ports; no new port method.
 - `application/goal/GoalProjection`: gains a nullable `PaceProjection pace`; `GoalProjectionQuery.projection(goalId)` fills it from `GoalPaceQuery` using the scenarios' horizon. Time from the injected `Clock`.
 - `application/goal/ContributionSuggestion.java`: record `(BigDecimal averageMonthlyContribution, int monthsAveraged)`. `application/goal/GoalContributionSuggestionQuery.suggest(goalId)`: `404` `GoalNotFoundException`; the rest per the Decisions table. Read-only, so no audit entry.
 - Log lines carry goal and product ids and counts only (ADR 0011); no new exception types.
@@ -50,9 +50,9 @@ No migration and no new table.
 - Regenerate `frontend/src/api/generated/schema.ts` (`npm run generate-api-types -- --offline`).
 
 ## Frontend
-- `src/api/goals/goals.ts` and `goalsQueries.ts`: the `pace` type on the projection, `getGoalContributionSuggestion`, and `useGoalContributionSuggestion(id, enabled)` (fetched only on demand, like `useEmergencyFundSuggestion`). MSW handlers and fixtures under `src/mocks` (`projectionFor` gets a `pace`; one fixture without it).
+- `src/api/goals/goals.ts` and `goalsQueries.ts`: the `pace` type on the projection, `getGoalContributionSuggestion`, and `useGoalContributionSuggestion(id, enabled)` (`enabled` is off in the form, which calls `refetch()` from the button, so it is fetched only on demand). MSW handlers and fixtures under `src/mocks` (`projectionFor` gets a `pace`; one fixture without it).
 - `src/features/goals/components/GoalTimelineChart.tsx`: a fourth grey line, drawn apart from the scenarios (a dash-dot pattern, `data-pace`), whose points start on the "Today" marker and follow the horizon selector; a legend entry "Pace (based on history): +N a month"; a note "Pace is based on recorded values, not adjusted for inflation" when the line is drawn; "Not enough history for a pace yet." when `pace` is `null` and the goal has allocations.
-- `src/features/goals/components/GoalScenarioTable.tsx`: a fourth row "Current pace" (value at the date and surplus or shortfall for a dated goal, time to target for a dateless one, "–" for the real return and the monthly contribution needed); a card on a phone like the other rows.
+- `src/features/goals/components/GoalScenarioTable.tsx`: a fourth row "Current pace" (value at the date and surplus or shortfall for a dated goal, time to target for a dateless one, "—" (the em dash the other empty cells use) for the real return and the monthly contribution needed); a card on a phone like the other rows.
 - `src/features/goals/components/GoalForm.tsx`: a "Suggest from history" button beside "Planned monthly contribution", shown when editing a goal with allocations; it fetches the suggestion, fills the field, and shows "Average of the last N months: X" (and a hint when `monthsAveraged` is `0`). It does not save.
 - i18n namespace `goals` in `en` and `pt-BR`: `pace.*` and `contribution.*` keys; the locale parity test covers both.
 - Date logic and tests pin a non-UTC zone (`test.env.TZ`).
@@ -72,7 +72,7 @@ No migration and no new table.
 - Monte Carlo and the other F039 deferrals (PRD §9).
 
 ## Open questions
-- Whether `InvestmentHoldingRepository` and `InvestmentOpeningPositionRepository` already offer a read by product ids; add one in the same style if not (a bounded read, with a statement-count pin if the goal queries pin one).
+- Resolved (implementation): `InvestmentHoldingRepository` has `findByProductId` and `InvestmentOpeningPositionRepository` has `findByHoldingIds`, so no port method was added. The projection read is not pinned by `GoalQueriesStatementCountTest` (only the list and the dashboard are), so no statement-count pin was added either; the pace and suggestion cost a few reads per allocated product, like the history chart.
 - Whether the pace for a goal with a very large first-month jump from something other than an opening position (a first trade confirmation into a product with an existing snapshot) needs a second exclusion rule; v1 treats only opening positions as the known case.
 
 ## Dependencies

@@ -6,6 +6,7 @@ import {
   editGoal,
   getEmergencyFundSuggestion,
   getGoal,
+  getGoalContributionSuggestion,
   getGoalDashboard,
   getGoalHistory,
   getGoalProjection,
@@ -24,6 +25,7 @@ export const goalKeys = {
   detail: (id: string) => [...goalKeys.all, 'detail', id] as const,
   projection: (id: string) => [...goalKeys.all, 'projection', id] as const,
   history: (id: string, params: HistoryParams) => [...goalKeys.all, 'history', id, params] as const,
+  contributionSuggestion: (id: string) => [...goalKeys.all, 'contribution-suggestion', id] as const,
   dashboard: () => [...goalKeys.all, 'dashboard'] as const,
   suggestion: (months: number) => [...goalKeys.all, 'emergency-fund-suggestion', months] as const,
   forProduct: (productId: string) => [...goalKeys.all, 'for-product', productId] as const,
@@ -72,6 +74,18 @@ export function useEmergencyFundSuggestion(months: number, enabled: boolean) {
     queryKey: goalKeys.suggestion(months),
     queryFn: () => getEmergencyFundSuggestion(months),
     enabled,
+  })
+}
+
+/**
+ * The planned contribution suggested from the goal's history (F041). Fetched only on demand: the
+ * form leaves `enabled` off and calls `refetch()` from its "Suggest from history" button.
+ */
+export function useGoalContributionSuggestion(id: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: goalKeys.contributionSuggestion(id ?? ''),
+    queryFn: () => getGoalContributionSuggestion(id ?? ''),
+    enabled: enabled && id !== undefined,
   })
 }
 

@@ -145,5 +145,19 @@
     "horizonYears_one": "{{count}} year",
     "horizonYears_other": "{{count}} years",
     "horizonAll": "All"
+  },
+  "pace": {
+    "name": "Current pace",
+    "legend": "Pace (based on history): {{amount}} a month",
+    "tooltip": "Current pace: {{value}}",
+    "inflationNote": "Pace is based on recorded values, not adjusted for inflation.",
+    "notEnoughHistory": "Not enough history for a pace yet."
+  },
+  "contribution": {
+    "suggest": "Suggest from history",
+    "average_one": "Average of the last month: {{amount}}",
+    "average_other": "Average of the last {{count}} months: {{amount}}",
+    "none": "No contributions to this goal's products in the last 12 months, so there is nothing to suggest. The field is set to 0.",
+    "hint": "Fills the field with what you actually put into this goal's products; nothing is saved until you press Save."
   }
 }

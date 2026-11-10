@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
-import type { Goal, ScenarioProjection } from '../../../api/goals/goals'
+import type { Goal, GoalProjection } from '../../../api/goals/goals'
 import { useGoalProjection } from '../../../api/goals/goalsQueries'
 import { ResponsiveTable, type ResponsiveColumn } from '../../../components/table/ResponsiveTable'
 import { useQueryState } from '../../../hooks/queryState'
@@ -9,11 +9,51 @@ import { useLocale, type Locale } from '../../../providers/locale/useLocale'
 import { formatGoalDate } from '../lib/goalFormat'
 
 /**
- * The projection results per scenario (PRD S6.17, F039). A dated goal gets the projected value at
- * the target date, the shortfall or surplus against the target and the monthly contribution needed
- * to reach it on time; a dateless goal gets the time until the target is reached (or that it is
- * not within 50 years). Reads the same query as `GoalTimelineChart`, so it costs no extra
- * request. Amounts are in today's money.
+ * One line of the table: a scenario, or (F041) the current pace, which has no real return and no
+ * monthly contribution needed (`null`, shown as a dash).
+ */
+interface ResultRow {
+  key: string
+  name: string
+  annualReturn: number | null
+  projectedValueAtTargetDate: number | null
+  shortfallAtTargetDate: number | null
+  requiredMonthlyContribution: number | null
+  monthsToTarget: number | null
+}
+
+function rowsOf(projection: GoalProjection, t: TFunction<'goals'>): ResultRow[] {
+  const rows: ResultRow[] = projection.scenarios.map((s) => ({
+    key: s.scenario,
+    name: t(`projection.scenario.${s.scenario}`),
+    annualReturn: s.annualReturn,
+    projectedValueAtTargetDate: s.projectedValueAtTargetDate,
+    shortfallAtTargetDate: s.shortfallAtTargetDate,
+    requiredMonthlyContribution: s.requiredMonthlyContribution,
+    monthsToTarget: s.monthsToTarget,
+  }))
+  if (projection.pace) {
+    rows.push({
+      key: 'PACE',
+      name: t('pace.name'),
+      annualReturn: null,
+      projectedValueAtTargetDate: projection.pace.projectedValueAtTargetDate,
+      shortfallAtTargetDate: projection.pace.shortfallAtTargetDate,
+      requiredMonthlyContribution: null,
+      monthsToTarget: projection.pace.monthsToTarget,
+    })
+  }
+  return rows
+}
+
+/**
+ * The projection results per scenario (PRD S6.17, F039), then a "Current pace" row when the goal
+ * has enough history for one (F041). A dated goal gets the projected value at the target date, the
+ * shortfall or surplus against the target and the monthly contribution needed to reach it on time;
+ * a dateless goal gets the time until the target is reached (or that it is not within 50 years).
+ * The pace row has no real return and no contribution needed, so those cells are dashes. Reads the
+ * same query as `GoalTimelineChart`, so it costs no extra request. The scenarios are in today's
+ * money; the pace is in recorded (nominal) money.
  */
 export function GoalScenarioTable({ goal }: { goal: Goal }) {
   const { t } = useTranslation('goals')
@@ -29,31 +69,30 @@ export function GoalScenarioTable({ goal }: { goal: Goal }) {
     <ResponsiveTable
       aria-label={t('projection.table.aria')}
       columns={columns}
-      rows={projectionQuery.data?.scenarios}
-      getRowKey={(scenario) => scenario.scenario}
+      rows={projectionQuery.data ? rowsOf(projectionQuery.data, t) : undefined}
+      getRowKey={(row) => row.key}
       state={state}
     />
   )
 }
 
-function scenarioColumns(
-  t: TFunction<'goals'>,
-  locale: Locale,
-): ResponsiveColumn<ScenarioProjection>[] {
+function scenarioColumns(t: TFunction<'goals'>, locale: Locale): ResponsiveColumn<ResultRow>[] {
   return [
     {
       key: 'scenario',
       header: t('projection.table.scenario'),
       role: 'primary',
-      render: (s) => t(`projection.scenario.${s.scenario}`),
+      render: (row) => row.name,
     },
     {
       key: 'return',
       header: t('projection.table.return'),
       align: 'right',
       tabletPriority: 'low',
-      render: (s) =>
-        `${formatNumber(s.annualReturn, locale, Number.isInteger(s.annualReturn) ? 0 : 2)}%`,
+      render: (row) =>
+        row.annualReturn === null
+          ? '—'
+          : `${formatNumber(row.annualReturn, locale, Number.isInteger(row.annualReturn) ? 0 : 2)}%`,
     },
   ]
 }
@@ -62,28 +101,28 @@ function datedColumns(
   targetDate: string,
   t: TFunction<'goals'>,
   locale: Locale,
-): ResponsiveColumn<ScenarioProjection>[] {
+): ResponsiveColumn<ResultRow>[] {
   return [
     ...scenarioColumns(t, locale),
     {
       key: 'valueAtDate',
       header: t('projection.table.valueAtDate', { date: formatGoalDate(targetDate, locale) }),
       align: 'right',
-      render: (s) =>
-        s.projectedValueAtTargetDate === null
+      render: (row) =>
+        row.projectedValueAtTargetDate === null
           ? '—'
-          : formatMoney(s.projectedValueAtTargetDate, locale),
+          : formatMoney(row.projectedValueAtTargetDate, locale),
     },
     {
       key: 'gap',
       header: t('projection.table.gap'),
       align: 'right',
-      render: (s) => {
-        if (s.shortfallAtTargetDate === null) return '—'
-        return s.shortfallAtTargetDate > 0
-          ? t('projection.table.short', { amount: formatMoney(s.shortfallAtTargetDate, locale) })
+      render: (row) => {
+        if (row.shortfallAtTargetDate === null) return '—'
+        return row.shortfallAtTargetDate > 0
+          ? t('projection.table.short', { amount: formatMoney(row.shortfallAtTargetDate, locale) })
           : t('projection.table.surplus', {
-              amount: formatMoney(-s.shortfallAtTargetDate, locale),
+              amount: formatMoney(-row.shortfallAtTargetDate, locale),
             })
       },
     },
@@ -91,31 +130,28 @@ function datedColumns(
       key: 'required',
       header: t('projection.table.required'),
       align: 'right',
-      render: (s) => {
-        if (s.requiredMonthlyContribution === null) return '—'
-        return s.requiredMonthlyContribution === 0
+      render: (row) => {
+        if (row.requiredMonthlyContribution === null) return '—'
+        return row.requiredMonthlyContribution === 0
           ? t('projection.table.noneNeeded')
-          : formatMoney(s.requiredMonthlyContribution, locale)
+          : formatMoney(row.requiredMonthlyContribution, locale)
       },
     },
   ]
 }
 
-function datelessColumns(
-  t: TFunction<'goals'>,
-  locale: Locale,
-): ResponsiveColumn<ScenarioProjection>[] {
+function datelessColumns(t: TFunction<'goals'>, locale: Locale): ResponsiveColumn<ResultRow>[] {
   return [
     ...scenarioColumns(t, locale),
     {
       key: 'timeToTarget',
       header: t('projection.table.timeToTarget'),
       align: 'right',
-      render: (s) => {
-        if (s.monthsToTarget === null) return t('projection.table.notWithin50Years')
-        return s.monthsToTarget === 0
+      render: (row) => {
+        if (row.monthsToTarget === null) return t('projection.table.notWithin50Years')
+        return row.monthsToTarget === 0
           ? t('projection.table.reachedNow')
-          : t('projection.table.reachedInMonths', { count: s.monthsToTarget })
+          : t('projection.table.reachedInMonths', { count: row.monthsToTarget })
       },
     },
   ]

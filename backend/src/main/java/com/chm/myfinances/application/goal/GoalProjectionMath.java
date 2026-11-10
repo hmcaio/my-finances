@@ -2,6 +2,8 @@ package com.chm.myfinances.application.goal;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * The rate math behind a goal projection (F039 spec, ADR 0034), run in {@code double} because the
@@ -55,6 +57,42 @@ final class GoalProjectionMath {
     return BigDecimal.valueOf(needed)
         .setScale(6, RoundingMode.HALF_UP)
         .setScale(2, RoundingMode.CEILING);
+  }
+
+  /** The fewest monthly values (three intervals) a pace is drawn from (ADR 0035). */
+  static final int MIN_PACE_POINTS = 4;
+
+  /**
+   * The average monthly increase of a series of consecutive monthly values (F041 spec, ADR 0035):
+   * {@code (last - first) / (count - 1)} to the cent, {@code HALF_UP}. It may be zero or negative.
+   * Empty with fewer than {@value #MIN_PACE_POINTS} values: too little to call a pace.
+   */
+  static Optional<BigDecimal> monthlyPace(List<BigDecimal> values) {
+    if (values.size() < MIN_PACE_POINTS) {
+      return Optional.empty();
+    }
+    BigDecimal increase = values.get(values.size() - 1).subtract(values.get(0));
+    return Optional.of(
+        increase.divide(BigDecimal.valueOf(values.size() - 1L), 2, RoundingMode.HALF_UP));
+  }
+
+  /**
+   * The months a straight line rising {@code monthlyPace} a month from {@code allocatedValue} needs
+   * to reach {@code target}: {@code 0} when it already has, {@code null} when the pace is zero or
+   * negative or the target is not reached within {@value #MAX_MONTHS} months, else {@code
+   * ceil((target - value) / pace)}.
+   */
+  static Integer paceMonthsToTarget(
+      BigDecimal allocatedValue, BigDecimal monthlyPace, BigDecimal target) {
+    BigDecimal gap = target.subtract(allocatedValue);
+    if (gap.signum() <= 0) {
+      return 0;
+    }
+    if (monthlyPace.signum() <= 0) {
+      return null;
+    }
+    BigDecimal months = gap.divide(monthlyPace, 0, RoundingMode.CEILING);
+    return months.compareTo(BigDecimal.valueOf(MAX_MONTHS)) > 0 ? null : months.intValueExact();
   }
 
   /** A value rounded to cents, {@code HALF_UP}. */

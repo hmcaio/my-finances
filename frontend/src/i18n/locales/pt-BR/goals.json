@@ -145,5 +145,19 @@
     "horizonYears_one": "{{count}} ano",
     "horizonYears_other": "{{count}} anos",
     "horizonAll": "Tudo"
+  },
+  "pace": {
+    "name": "Ritmo atual",
+    "legend": "Ritmo (com base no histórico): {{amount}} por mês",
+    "tooltip": "Ritmo atual: {{value}}",
+    "inflationNote": "O ritmo se baseia nos valores registrados, sem ajuste pela inflação.",
+    "notEnoughHistory": "Ainda não há histórico suficiente para calcular um ritmo."
+  },
+  "contribution": {
+    "suggest": "Sugerir pelo histórico",
+    "average_one": "Média do último mês: {{amount}}",
+    "average_other": "Média dos últimos {{count}} meses: {{amount}}",
+    "none": "Nenhum aporte nos produtos desta meta nos últimos 12 meses, então não há o que sugerir. O campo foi preenchido com 0.",
+    "hint": "Preenche o campo com o que você realmente aportou nos produtos desta meta; nada é salvo até você clicar em Salvar."
   }
 }

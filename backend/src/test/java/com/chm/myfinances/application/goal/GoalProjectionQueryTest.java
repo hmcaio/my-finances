@@ -3,6 +3,7 @@ package com.chm.myfinances.application.goal;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.chm.myfinances.application.investmentreport.InvestmentValueSeriesQuery;
 import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
 import com.chm.myfinances.domain.goal.Goal;
 import com.chm.myfinances.domain.goal.GoalAllocation;
@@ -12,10 +13,15 @@ import com.chm.myfinances.testsupport.TestClocks;
 import com.chm.myfinances.testsupport.fakes.FakeGoalAllocationRepository;
 import com.chm.myfinances.testsupport.fakes.FakeGoalRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentOpeningPositionRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
+import com.chm.myfinances.testsupport.fakes.FakeTransferTradeLineRepository;
 import com.chm.myfinances.testsupport.mothers.GoalMother;
 import com.chm.myfinances.testsupport.mothers.InvestmentHoldingMother;
+import com.chm.myfinances.testsupport.mothers.InvestmentProductMother;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
@@ -35,20 +41,46 @@ class GoalProjectionQueryTest {
   private final FakeGoalRepository goalRepository = new FakeGoalRepository();
   private final FakeGoalAllocationRepository allocationRepository =
       new FakeGoalAllocationRepository(goalRepository);
+  private final FakeInvestmentProductRepository productRepository =
+      new FakeInvestmentProductRepository();
   private final FakeInvestmentHoldingRepository holdingRepository =
       new FakeInvestmentHoldingRepository();
   private final FakeInvestmentSnapshotRepository snapshotRepository =
       new FakeInvestmentSnapshotRepository();
+  private final FakeInvestmentOpeningPositionRepository openingPositionRepository =
+      new FakeInvestmentOpeningPositionRepository();
+  private final Clock clock = TestClocks.fixedAtStartOf(TODAY);
   private final GoalProjectionQuery query =
       new GoalProjectionQuery(
           goalRepository,
           allocationRepository,
           new LatestInvestmentSnapshotQuery(snapshotRepository, holdingRepository),
-          TestClocks.fixedAtStartOf(TODAY));
+          new GoalPaceQuery(
+              new GoalHistoryQuery(
+                  goalRepository,
+                  allocationRepository,
+                  new InvestmentValueSeriesQuery(
+                      productRepository,
+                      holdingRepository,
+                      snapshotRepository,
+                      new FakeTransferTradeLineRepository(),
+                      openingPositionRepository,
+                      clock),
+                  clock),
+              allocationRepository,
+              holdingRepository,
+              openingPositionRepository),
+          clock);
+
+  private UUID newProduct() {
+    return productRepository
+        .save(InvestmentProductMother.product().withName("Product " + UUID.randomUUID()).build())
+        .getId();
+  }
 
   /** A product whose single holding was last valued at {@code value} on {@code snapshotDate}. */
   private UUID productWorth(String value, LocalDate snapshotDate) {
-    UUID productId = UUID.randomUUID();
+    UUID productId = newProduct();
     InvestmentHolding holding =
         holdingRepository.save(InvestmentHoldingMother.holding().withProductId(productId).build());
     snapshotRepository.save(
@@ -440,7 +472,7 @@ class GoalProjectionQueryTest {
   @Test
   void aProductWithNoSnapshotCountsAsZeroAndNothingAllocatedHasNoSnapshotDate() {
     Goal goal = goalRepository.save(GoalMother.goal().withTargetDate(IN_TWELVE_MONTHS).build());
-    UUID unvalued = UUID.randomUUID();
+    UUID unvalued = newProduct();
     holdingRepository.save(InvestmentHoldingMother.holding().withProductId(unvalued).build());
     allocate(goal, unvalued, "50");
 
@@ -458,6 +490,72 @@ class GoalProjectionQueryTest {
     allocate(goal, productWorth("9999.00", TODAY.plusDays(1)), "100");
 
     assertThat(query.projection(goal.getId()).allocatedValue()).isEqualByComparingTo("0");
+  }
+
+  // --- the pace (F041) ---
+
+  /** A product valued on the 1st of each month from 2026-06, one balance per month. */
+  private UUID productWithMonthlyHistory(String... balances) {
+    UUID productId = newProduct();
+    InvestmentHolding holding =
+        holdingRepository.save(InvestmentHoldingMother.holding().withProductId(productId).build());
+    for (int i = 0; i < balances.length; i++) {
+      snapshotRepository.save(
+          InvestmentSnapshot.create(
+              UUID.randomUUID(),
+              holding.getId(),
+              YearMonth.of(2026, 6).plusMonths(i).atDay(1),
+              new BigDecimal(balances[i])));
+    }
+    return productId;
+  }
+
+  @Test
+  void theProjectionCarriesThePaceLineFromTheValueNowAsAFieldBesideTheScenarios() {
+    Goal goal = goalRepository.save(GoalMother.goal().withTargetDate(IN_TWELVE_MONTHS).build());
+    allocate(
+        goal, productWithMonthlyHistory("1000", "1100", "1200", "1300", "1400", "1500"), "100");
+
+    GoalProjection projection = query.projection(goal.getId());
+
+    assertThat(projection.scenarios()).hasSize(3);
+    PaceProjection pace = projection.pace();
+    assertThat(pace).isNotNull();
+    assertThat(pace.monthlyPace()).isEqualByComparingTo("100.00");
+    // The pace runs exactly as far as the scenarios (the 12 months to the target month).
+    assertThat(pace.points()).hasSameSizeAs(projection.scenarios().get(0).points()).hasSize(13);
+    assertThat(pace.points().get(0).month()).isEqualTo(YearMonth.of(2026, 11));
+    assertThat(pace.points().get(0).value()).isEqualByComparingTo("1500.00");
+    assertThat(pace.projectedValueAtTargetDate()).isEqualByComparingTo("2700.00");
+  }
+
+  @Test
+  void aDatelessGoalsPaceStopsAtThePessimisticHorizon() {
+    Goal goal =
+        goalRepository.save(
+            GoalMother.goal()
+                .dateless()
+                .withTargetAmount("2000")
+                .withContribution("100")
+                .withReturns("0", "0", "0")
+                .build());
+    allocate(
+        goal, productWithMonthlyHistory("1000", "1100", "1200", "1300", "1400", "1500"), "100");
+
+    GoalProjection projection = query.projection(goal.getId());
+
+    // 500 more at 100 a month: five months for the scenarios and for the pace.
+    assertThat(projection.scenarios().get(0).points()).hasSize(6);
+    assertThat(projection.pace().points()).hasSize(6);
+    assertThat(projection.pace().monthsToTarget()).isEqualTo(5);
+  }
+
+  @Test
+  void aGoalWithTooLittleHistoryHasNoPace() {
+    Goal goal = goalRepository.save(GoalMother.goal().withTargetDate(IN_TWELVE_MONTHS).build());
+    allocate(goal, productWorth("1000.00", TODAY.minusDays(3)), "100");
+
+    assertThat(query.projection(goal.getId()).pace()).isNull();
   }
 
   @Test

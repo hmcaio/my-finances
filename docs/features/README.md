@@ -9,7 +9,6 @@ Every feature below is built except those listed here (documented, not built; de
 - F028 — investment splits, backend ([ADR 0025](../adr/0025-investment-split-as-read-side-adjustment.md))
 - F029 — investment splits, frontend (the product-detail split panel and dialog for F028)
 - F040 — UX walkthrough fixes: a New entry dialog with "Add and new", a snapshot sheet for every open holding, a success toast, a shared form-dialog shell and layout fixes (no ADR)
-- F041 — goal history estimates: a current-pace line and a contribution suggestion from the last 12 months of history ([ADR 0035](../adr/0035-goal-estimates-from-history.md); needs F039 merged)
 
 ## Features
 

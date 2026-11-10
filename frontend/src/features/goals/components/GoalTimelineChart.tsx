@@ -4,6 +4,7 @@ import type { TFunction } from 'i18next'
 import { Box, Skeleton, ToggleButton, ToggleButtonGroup, Typography, useTheme } from '@mui/material'
 import type {
   Goal,
+  GoalPace,
   GoalPoint,
   ProjectionScenarioName,
   ScenarioProjection,
@@ -42,6 +43,9 @@ const DASH: Record<ProjectionScenarioName, string | undefined> = {
   OPTIMISTIC: '2 3',
 }
 
+/** The pace line is drawn apart from the scenarios: grey and dash-dot (ADR 0035). */
+const PACE_DASH = '8 3 2 3'
+
 /** Visually hidden marker the skeleton carries for screen readers. */
 const VISUALLY_HIDDEN = {
   position: 'absolute',
@@ -66,7 +70,12 @@ interface GoalTimelineChartProps {
  * The projection starts at the current month and the history ends there, so both sit on one
  * month axis and meet at the "today" marker. A failed or empty history leaves the projection
  * drawn alone. A long projection can be cut to the next 1, 2 or 5 years with the horizon selector,
- * so the history is not squashed against a 20-year line. Every value is in today's money.
+ * so the history is not squashed against a 20-year line. The scenarios are in today's money.
+ *
+ * A fourth, grey dash-dot line is the current pace (F041, ADR 0035): the value now rising at the
+ * average monthly increase of the last 12 months of recorded history. It starts on the "today"
+ * marker, follows the horizon selector and is nominal money, so a note says it is not adjusted for
+ * inflation; a goal with allocations but too little history says so instead of drawing it.
  *
  * The chart fills the width it is given: it measures its container and draws at that width (a
  * 1:1 viewBox, so text and strokes keep their size), instead of scaling a fixed 640 wide frame.
@@ -118,6 +127,13 @@ function GoalTimeline({ goal, availableWidth }: { goal: Goal; availableWidth: nu
           ...scenario,
           points: scenario.points.slice(0, activeHorizon + 1),
         }))
+  const pace =
+    projection.pace === null
+      ? null
+      : activeHorizon === null
+        ? projection.pace
+        : { ...projection.pace, points: projection.pace.points.slice(0, activeHorizon + 1) }
+  const paceColor = theme.palette.grey[500]
   const colors: Record<ProjectionScenarioName, string> = {
     PESSIMISTIC: theme.palette.error.main,
     BASE: theme.palette.primary.main,
@@ -150,6 +166,8 @@ function GoalTimeline({ goal, availableWidth }: { goal: Goal; availableWidth: nu
       <Chart
         history={history}
         scenarios={scenarios}
+        pace={pace}
+        paceColor={paceColor}
         target={goal.targetAmount}
         colors={colors}
         historyColor={historyColor}
@@ -192,6 +210,24 @@ function GoalTimeline({ goal, availableWidth }: { goal: Goal; availableWidth: nu
             <Typography variant="body2">{legendText(scenario, dateless, t, locale)}</Typography>
           </Box>
         ))}
+        {projection.pace && (
+          <Box component="li" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <svg width="24" height="8" aria-hidden="true">
+              <line
+                x1="0"
+                x2="24"
+                y1="4"
+                y2="4"
+                stroke={paceColor}
+                strokeWidth={2}
+                strokeDasharray={PACE_DASH}
+              />
+            </svg>
+            <Typography variant="body2">
+              {t('pace.legend', { amount: signedMoney(projection.pace.monthlyPace, locale) })}
+            </Typography>
+          </Box>
+        )}
       </Box>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
         {projection.latestSnapshotDate
@@ -200,6 +236,16 @@ function GoalTimeline({ goal, availableWidth }: { goal: Goal; availableWidth: nu
             })
           : t('projection.captionNoSnapshot')}
       </Typography>
+      {projection.pace && (
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+          {t('pace.inflationNote')}
+        </Typography>
+      )}
+      {projection.pace === null && goal.allocations.length > 0 && (
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+          {t('pace.notEnoughHistory')}
+        </Typography>
+      )}
       {history.length > 0 && (
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
           {t('history.caption')}
@@ -212,6 +258,11 @@ function GoalTimeline({ goal, availableWidth }: { goal: Goal; availableWidth: nu
       )}
     </Box>
   )
+}
+
+/** An amount with an explicit `+` when it rises (a pace of zero or below carries its own sign). */
+function signedMoney(amount: number, locale: Locale): string {
+  return `${amount > 0 ? '+' : ''}${formatMoney(amount, locale)}`
 }
 
 function rateText(rate: number, locale: Locale): string {
@@ -239,6 +290,9 @@ function legendText(
 interface ChartProps {
   history: GoalPoint[]
   scenarios: ScenarioProjection[]
+  /** The current-pace line, already cut to the horizon; `null` when there is none. */
+  pace: GoalPace | null
+  paceColor: string
   target: number
   colors: Record<ProjectionScenarioName, string>
   historyColor: string
@@ -254,6 +308,8 @@ interface ChartProps {
 function Chart({
   history,
   scenarios,
+  pace,
+  paceColor,
   target,
   colors,
   historyColor,
@@ -278,7 +334,9 @@ function Chart({
     projectionEnd,
   )
   const indexOf = new Map(months.map((month, index) => [month, index]))
-  const values = [...history, ...scenarios.flatMap((s) => s.points)].map((p) => p.value)
+  const values = [...history, ...scenarios.flatMap((s) => s.points), ...(pace?.points ?? [])].map(
+    (p) => p.value,
+  )
   const { ticks, y } = createYScale({
     min: Math.min(0, ...values),
     max: Math.max(target, ...values),
@@ -427,6 +485,30 @@ function Chart({
           </g>
         )
       })}
+      {pace && pace.points.length > 0 && (
+        <g>
+          <path
+            data-pace=""
+            d={linePath(pace.points)}
+            fill="none"
+            stroke={paceColor}
+            strokeWidth={2}
+            strokeDasharray={PACE_DASH}
+          />
+          <circle
+            cx={x(pace.points[pace.points.length - 1].month)}
+            cy={y(pace.points[pace.points.length - 1].value)}
+            r={3.5}
+            fill={paceColor}
+          >
+            <title>
+              {t('pace.tooltip', {
+                value: formatMoney(pace.points[pace.points.length - 1].value, locale),
+              })}
+            </title>
+          </circle>
+        </g>
+      )}
     </ChartSvg>
   )
 }

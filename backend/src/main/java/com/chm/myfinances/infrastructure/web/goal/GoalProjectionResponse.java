@@ -1,6 +1,7 @@
 package com.chm.myfinances.infrastructure.web.goal;
 
 import com.chm.myfinances.application.goal.GoalProjection;
+import com.chm.myfinances.application.goal.PaceProjection;
 import com.chm.myfinances.application.goal.ProjectionScenario;
 import com.chm.myfinances.application.goal.ScenarioProjection;
 import java.math.BigDecimal;
@@ -14,11 +15,34 @@ import java.util.List;
  * and {@code requiredMonthlyContribution} are set and {@code monthsToTarget} is null; for a
  * dateless goal it is the other way round ({@code monthsToTarget} null means "not reached within 50
  * years").
+ *
+ * <p>{@code pace} (F041, ADR 0035) is the current-pace line drawn from the goal's recorded history,
+ * in nominal money, with the same target fields as a scenario; it is {@code null} when there is too
+ * little history for one.
  */
 public record GoalProjectionResponse(
     BigDecimal allocatedValue,
     LocalDate latestSnapshotDate,
-    List<ScenarioProjectionResponse> scenarios) {
+    List<ScenarioProjectionResponse> scenarios,
+    PaceProjectionResponse pace) {
+
+  /** The current-pace line: the average monthly increase of the last 12 months, projected. */
+  public record PaceProjectionResponse(
+      BigDecimal monthlyPace,
+      List<GoalPointResponse> points,
+      BigDecimal projectedValueAtTargetDate,
+      BigDecimal shortfallAtTargetDate,
+      Integer monthsToTarget) {
+
+    static PaceProjectionResponse from(PaceProjection pace) {
+      return new PaceProjectionResponse(
+          pace.monthlyPace(),
+          pace.points().stream().map(GoalPointResponse::from).toList(),
+          pace.projectedValueAtTargetDate(),
+          pace.shortfallAtTargetDate(),
+          pace.monthsToTarget());
+    }
+  }
 
   /** One scenario of the projection. */
   public record ScenarioProjectionResponse(
@@ -46,6 +70,7 @@ public record GoalProjectionResponse(
     return new GoalProjectionResponse(
         projection.allocatedValue(),
         projection.latestSnapshotDate(),
-        projection.scenarios().stream().map(ScenarioProjectionResponse::from).toList());
+        projection.scenarios().stream().map(ScenarioProjectionResponse::from).toList(),
+        projection.pace() == null ? null : PaceProjectionResponse.from(projection.pace()));
   }
 }

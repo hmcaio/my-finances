@@ -1,6 +1,7 @@
 package com.chm.myfinances.infrastructure.web.goal;
 
 import com.chm.myfinances.application.goal.EmergencyFundSuggestionQuery;
+import com.chm.myfinances.application.goal.GoalContributionSuggestionQuery;
 import com.chm.myfinances.application.goal.GoalDashboardQuery;
 import com.chm.myfinances.application.goal.GoalHistoryQuery;
 import com.chm.myfinances.application.goal.GoalProjectionQuery;
@@ -24,9 +25,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Read-only goal computations (F039 spec, ADR 0034): the projection, the progress history, the
- * dashboard summaries and the emergency-fund suggestion. Computed on read, never stored. There is
- * deliberately no class-level {@code @Validated}: the parameter constraint below raises Spring's
- * own {@code HandlerMethodValidationException} (a 400, docs/conventions/errors.md).
+ * dashboard summaries, the emergency-fund suggestion and (F041) the contribution suggestion from
+ * history. Computed on read, never stored. There is deliberately no class-level {@code @Validated}:
+ * the parameter constraint below raises Spring's own {@code HandlerMethodValidationException} (a
+ * 400, docs/conventions/errors.md).
  */
 @RestController
 @RequestMapping("/api/goals")
@@ -39,6 +41,7 @@ public class GoalReportController {
   private final GoalHistoryQuery historyQuery;
   private final GoalDashboardQuery dashboardQuery;
   private final EmergencyFundSuggestionQuery suggestionQuery;
+  private final GoalContributionSuggestionQuery contributionSuggestionQuery;
   private final Clock clock;
 
   public GoalReportController(
@@ -46,18 +49,22 @@ public class GoalReportController {
       GoalHistoryQuery historyQuery,
       GoalDashboardQuery dashboardQuery,
       EmergencyFundSuggestionQuery suggestionQuery,
+      GoalContributionSuggestionQuery contributionSuggestionQuery,
       Clock clock) {
     this.projectionQuery = projectionQuery;
     this.historyQuery = historyQuery;
     this.dashboardQuery = dashboardQuery;
     this.suggestionQuery = suggestionQuery;
+    this.contributionSuggestionQuery = contributionSuggestionQuery;
     this.clock = clock;
   }
 
   @GetMapping("/{id}/projection")
   @ApiResponse(
       responseCode = "200",
-      description = "The pessimistic, base and optimistic projections, in today's money.",
+      description =
+          "The pessimistic, base and optimistic projections, in today's money, and the current"
+              + " pace drawn from history (null when there is too little of it).",
       content = @Content(schema = @Schema(implementation = GoalProjectionResponse.class)))
   @ApiResponse(
       responseCode = "404",
@@ -99,6 +106,20 @@ public class GoalReportController {
     return historyQuery.history(id, effectiveFrom, effectiveTo).stream()
         .map(GoalPointResponse::from)
         .toList();
+  }
+
+  @GetMapping("/{id}/contribution-suggestion")
+  @ApiResponse(
+      responseCode = "200",
+      description =
+          "The average monthly amount put into the goal's products over the last 12 full months.",
+      content = @Content(schema = @Schema(implementation = ContributionSuggestionResponse.class)))
+  @ApiResponse(
+      responseCode = "404",
+      description = "type: urn:my-finances:error:goal-not-found",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  public ContributionSuggestionResponse contributionSuggestion(@PathVariable UUID id) {
+    return ContributionSuggestionResponse.from(contributionSuggestionQuery.suggest(id));
   }
 
   @GetMapping("/dashboard")

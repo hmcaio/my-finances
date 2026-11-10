@@ -20,6 +20,9 @@ import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshotRepository;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
+import com.chm.myfinances.domain.transfer.TradeConfirmation;
+import com.chm.myfinances.domain.transfer.TradeConfirmationLine;
+import com.chm.myfinances.domain.transfer.TradeSide;
 import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.domain.transfer.TransferRepository;
 import com.chm.myfinances.testsupport.MutableClock;
@@ -144,6 +147,13 @@ class GoalReportControllerTest {
     return productId;
   }
 
+  /** Another snapshot for the product's (single) holding. */
+  private void snapshotOf(UUID productId, LocalDate date, String balance) {
+    UUID holdingId = holdingRepository.findByProductId(productId).get(0).getId();
+    snapshotRepository.save(
+        InvestmentSnapshot.create(UUID.randomUUID(), holdingId, date, new BigDecimal(balance)));
+  }
+
   private void allocate(String goalId, UUID productId, String percentage) throws Exception {
     Map<String, Object> share = new LinkedHashMap<>();
     share.put("productId", productId.toString());
@@ -203,6 +213,41 @@ class GoalReportControllerTest {
         .andExpect(jsonPath("$.allocatedValue").value(1000.00))
         .andExpect(jsonPath("$.latestSnapshotDate").value("2026-10-20"))
         .andExpect(jsonPath("$.scenarios[1].projectedValueAtTargetDate").value(1000.00));
+  }
+
+  @Test
+  void aGoalWithEnoughHistoryReturnsThePaceBesideTheScenarios() throws Exception {
+    String id = createGoal("Pace Goal Report", LocalDate.of(2027, 11, 15), "5000", "0", true);
+    UUID product = productWorth("Fund Pace", LocalDate.of(2026, 8, 1), "1000.00");
+    snapshotOf(product, LocalDate.of(2026, 9, 1), "1100.00");
+    snapshotOf(product, LocalDate.of(2026, 10, 1), "1200.00");
+    snapshotOf(product, LocalDate.of(2026, 11, 1), "1300.00");
+    allocate(id, product, "100");
+
+    mockMvc
+        .perform(get("/api/goals/" + id + "/projection"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.scenarios.length()").value(3))
+        .andExpect(jsonPath("$.pace.monthlyPace").value(100.00))
+        .andExpect(jsonPath("$.pace.points.length()").value(13))
+        .andExpect(jsonPath("$.pace.points[0].month").value("2026-11"))
+        .andExpect(jsonPath("$.pace.points[0].value").value(1300.00))
+        .andExpect(jsonPath("$.pace.points[12].month").value("2027-11"))
+        .andExpect(jsonPath("$.pace.projectedValueAtTargetDate").value(2500.00))
+        .andExpect(jsonPath("$.pace.shortfallAtTargetDate").value(2500.00))
+        .andExpect(jsonPath("$.pace.monthsToTarget").doesNotExist());
+  }
+
+  @Test
+  void aGoalWithTooLittleHistoryHasNoPace() throws Exception {
+    String id = createGoal("No Pace Goal Report", LocalDate.of(2027, 11, 15), "5000", "0", true);
+    allocate(id, productWorth("Fund No Pace", LocalDate.of(2026, 10, 20), "1000.00"), "100");
+
+    mockMvc
+        .perform(get("/api/goals/" + id + "/projection"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.scenarios.length()").value(3))
+        .andExpect(jsonPath("$.pace").doesNotExist());
   }
 
   @Test
@@ -391,6 +436,69 @@ class GoalReportControllerTest {
         .perform(get("/api/goals/emergency-fund-suggestion").param("months", "121"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.type").value(TYPE_PREFIX + "handler-method-validation"));
+  }
+
+  // --- contribution suggestion (F041) ---
+
+  private void buyInto(UUID productId, UUID fromAccount, LocalDate date, String amount) {
+    UUID investmentAccount = holdingRepository.findByProductId(productId).get(0).getAccountId();
+    transferRepository.save(
+        Transfer.createTradeConfirmation(
+            UUID.randomUUID(),
+            date,
+            fromAccount,
+            investmentAccount,
+            "Buy",
+            null,
+            BigDecimal.ZERO,
+            TradeConfirmation.of(
+                List.of(
+                    new TradeConfirmationLine(
+                        productId,
+                        TradeSide.BUY,
+                        BigDecimal.ONE,
+                        new BigDecimal(amount),
+                        null,
+                        false)))));
+  }
+
+  @Test
+  void theContributionSuggestionAveragesTheGoalsShareOfTheFullMonthBuys() throws Exception {
+    String id = createGoal("Contribution Goal Report", null, "5000", "0", true);
+    UUID product = productWorth("Fund Contribution", LocalDate.of(2026, 10, 20), "1000.00");
+    UUID checking =
+        TestFixtures.checkingAccount(
+                accountRepository, institutionRepository, "Cash Contribution Goal")
+            .getId();
+    buyInto(product, checking, LocalDate.of(2026, 9, 10), "800.00");
+    buyInto(product, checking, LocalDate.of(2026, 10, 10), "400.00");
+    buyInto(product, checking, LocalDate.of(2026, 11, 2), "9999.00"); // the current month
+    allocate(id, product, "50");
+
+    mockMvc
+        .perform(get("/api/goals/" + id + "/contribution-suggestion"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.monthsAveraged").value(2))
+        .andExpect(jsonPath("$.averageMonthlyContribution").value(300.00));
+  }
+
+  @Test
+  void aGoalWithNothingAllocatedSuggestsZeroOverZeroMonths() throws Exception {
+    String id = createGoal("Empty Contribution Goal Report", null, "5000", "0", true);
+
+    mockMvc
+        .perform(get("/api/goals/" + id + "/contribution-suggestion"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.monthsAveraged").value(0))
+        .andExpect(jsonPath("$.averageMonthlyContribution").value(0));
+  }
+
+  @Test
+  void anUnknownGoalIs404OnTheContributionSuggestion() throws Exception {
+    mockMvc
+        .perform(get("/api/goals/" + UUID.randomUUID() + "/contribution-suggestion"))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.type").value(TYPE_PREFIX + "goal-not-found"));
   }
 
   // --- the product side ---

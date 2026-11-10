@@ -4,6 +4,7 @@ import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import {
   projectionFor,
+  seedContributionSuggestion,
   seedEmergencyFundSuggestion,
   seedGoalCar,
   seedGoalFund,
@@ -17,6 +18,7 @@ import {
   useEditGoal,
   useEmergencyFundSuggestion,
   useGoal,
+  useGoalContributionSuggestion,
   useGoalDashboard,
   useGoalHistory,
   useGoalProjection,
@@ -57,6 +59,35 @@ describe('goals reads', () => {
         { goalId: 'goal-car', goalName: 'Car', percentage: 60 },
       ]),
     )
+  })
+
+  it('loads the contribution suggestion of a goal and the pace on its projection', async () => {
+    const { result } = renderHookWithQueryClient(() => ({
+      suggestion: useGoalContributionSuggestion('goal-car', true),
+      projection: useGoalProjection('goal-car'),
+    }))
+
+    await waitFor(() => expect(result.current.suggestion.data).toEqual(seedContributionSuggestion))
+    await waitFor(() => expect(result.current.projection.data?.pace?.monthlyPace).toBe(500))
+  })
+
+  it('does not fetch a contribution suggestion until it is enabled or without a goal id', async () => {
+    let calls = 0
+    server.use(
+      http.get('/api/goals/:id/contribution-suggestion', () => {
+        calls += 1
+        return HttpResponse.json(seedContributionSuggestion)
+      }),
+    )
+
+    const { result } = renderHookWithQueryClient(() => ({
+      disabled: useGoalContributionSuggestion('goal-car', false),
+      noId: useGoalContributionSuggestion(undefined, true),
+    }))
+
+    expect(result.current.disabled.fetchStatus).toBe('idle')
+    expect(result.current.noId.fetchStatus).toBe('idle')
+    expect(calls).toBe(0)
   })
 
   it('does not fetch a disabled suggestion or a goal without an id', async () => {

@@ -3,7 +3,12 @@ import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse } from 'msw'
 import { server } from '../../../mocks/server'
-import { projectionFor, seedGoalCar, seedGoalFund } from '../../../mocks/handlers/goals'
+import {
+  projectionFor,
+  projectionWithoutPace,
+  seedGoalCar,
+  seedGoalFund,
+} from '../../../mocks/handlers/goals'
 import { renderWithQueryClient } from '../../../test/utils/renderWithQueryClient'
 import type { Goal, GoalPoint } from '../../../api/goals/goals'
 import { GoalTimelineChart } from './GoalTimelineChart'
@@ -29,19 +34,19 @@ function pathPointCount(path: Element | null): number {
 /** A long dated projection: `count` monthly points per scenario starting at 2026-11. */
 function longProjection(goal: Goal, count: number) {
   const base = projectionFor(goal)
+  const points = (step: number) =>
+    Array.from({ length: count }, (_, index): GoalPoint => {
+      const month = 10 + index
+      const year = 2026 + Math.floor(month / 12)
+      return {
+        month: `${year}-${String((month % 12) + 1).padStart(2, '0')}`,
+        value: 12000 + index * step,
+      }
+    })
   return {
     ...base,
-    scenarios: base.scenarios.map((scenario) => ({
-      ...scenario,
-      points: Array.from({ length: count }, (_, index): GoalPoint => {
-        const month = 10 + index
-        const year = 2026 + Math.floor(month / 12)
-        return {
-          month: `${year}-${String((month % 12) + 1).padStart(2, '0')}`,
-          value: 12000 + index * 500,
-        }
-      }),
-    })),
+    scenarios: base.scenarios.map((scenario) => ({ ...scenario, points: points(500) })),
+    pace: base.pace && { ...base.pace, points: points(300) },
   }
 }
 
@@ -99,6 +104,91 @@ describe('GoalTimelineChart', () => {
     // The history lies to the left of today, on the same month axis (Sep, Oct, Nov, Dec, Jan).
     expect(historyStart).toBeLessThan(historyEnd)
     expect(pathX(chart.querySelector('path[data-scenario]'), 'last')).toBeGreaterThan(historyEnd)
+  })
+
+  describe('current pace (F041)', () => {
+    it('draws a fourth line forking from the today marker, with its legend and the inflation note', async () => {
+      const { container } = renderChart(seedGoalCar)
+
+      const chart = await screen.findByRole('img', { name: CHART_NAME })
+      const pace = chart.querySelector('path[data-pace]')
+      expect(pace).not.toBeNull()
+      // Drawn apart from the scenarios: a different dash pattern, and not one of data-scenario.
+      expect(chart.querySelectorAll('path[data-scenario]')).toHaveLength(3)
+      expect(pace?.getAttribute('stroke-dasharray')).toBe('8 3 2 3')
+      const today = Number(chart.querySelector('line[data-today]')?.getAttribute('x1'))
+      expect(pathX(pace, 'first')).toBeCloseTo(today, 5)
+      expect(pathPointCount(pace)).toBe(3)
+      expect(container.textContent).toContain('Pace (based on history): +500.00 a month')
+      expect(
+        screen.getByText('Pace is based on recorded values, not adjusted for inflation.'),
+      ).toBeInTheDocument()
+      expect(chart.textContent).toContain('Current pace: 31,000.00')
+    })
+
+    it('shows a falling pace with its sign', async () => {
+      const projection = projectionFor(seedGoalCar)
+      server.use(
+        http.get('/api/goals/:id/projection', () =>
+          HttpResponse.json({
+            ...projection,
+            pace: { ...projection.pace, monthlyPace: -200 },
+          }),
+        ),
+      )
+      const { container } = renderChart(seedGoalCar)
+
+      await screen.findByRole('img', { name: CHART_NAME })
+      expect(container.textContent).toContain('Pace (based on history): -200.00 a month')
+    })
+
+    it('says there is not enough history when a goal with allocations has no pace', async () => {
+      server.use(
+        http.get('/api/goals/:id/projection', () =>
+          HttpResponse.json(projectionWithoutPace(seedGoalCar)),
+        ),
+      )
+      const { container } = renderChart(seedGoalCar)
+
+      const chart = await screen.findByRole('img', { name: CHART_NAME })
+      expect(chart.querySelectorAll('path[data-pace]')).toHaveLength(0)
+      expect(screen.getByText('Not enough history for a pace yet.')).toBeInTheDocument()
+      expect(container.textContent).not.toContain('Pace (based on history)')
+      expect(screen.queryByText(/not adjusted for inflation/)).not.toBeInTheDocument()
+    })
+
+    it('says nothing about the pace when the goal has no allocations', async () => {
+      server.use(
+        http.get('/api/goals/:id/projection', () =>
+          HttpResponse.json(projectionWithoutPace(seedGoalFund)),
+        ),
+      )
+      renderChart(seedGoalFund)
+
+      await screen.findByRole('img', { name: CHART_NAME })
+      expect(screen.queryByText('Not enough history for a pace yet.')).not.toBeInTheDocument()
+      expect(screen.queryByText(/based on history/)).not.toBeInTheDocument()
+    })
+
+    it('follows the horizon selector with the scenarios', async () => {
+      server.use(
+        http.get('/api/goals/:id/projection', () =>
+          HttpResponse.json(longProjection(seedGoalCar, 61)),
+        ),
+      )
+      renderChart(seedGoalCar)
+      const user = userEvent.setup()
+
+      const chart = await screen.findByRole('img', { name: CHART_NAME })
+      expect(pathPointCount(chart.querySelector('path[data-pace]'))).toBe(61)
+
+      await user.click(screen.getByRole('button', { name: '1 year' }))
+      expect(pathPointCount(chart.querySelector('path[data-pace]'))).toBe(13)
+      expect(pathPointCount(chart.querySelector('path[data-scenario]'))).toBe(13)
+
+      await user.click(screen.getByRole('button', { name: 'All' }))
+      expect(pathPointCount(chart.querySelector('path[data-pace]'))).toBe(61)
+    })
   })
 
   it('puts each history point value in its tooltip', async () => {

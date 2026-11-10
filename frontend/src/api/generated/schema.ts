@@ -854,6 +854,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/goals/{id}/contribution-suggestion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["goalReport_contributionSuggestion"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/goals/emergency-fund-suggestion": {
         parameters: {
             query?: never;
@@ -1736,6 +1752,15 @@ export interface components {
             /** Format: date */
             latestSnapshotDate?: string;
             scenarios?: components["schemas"]["ScenarioProjectionResponse"][];
+            pace?: components["schemas"]["PaceProjectionResponse"];
+        };
+        PaceProjectionResponse: {
+            monthlyPace?: number;
+            points?: components["schemas"]["GoalPointResponse"][];
+            projectedValueAtTargetDate?: number;
+            shortfallAtTargetDate?: number;
+            /** Format: int32 */
+            monthsToTarget?: number;
         };
         ScenarioProjectionResponse: {
             /** @enum {string} */
@@ -1747,6 +1772,11 @@ export interface components {
             requiredMonthlyContribution?: number;
             /** Format: int32 */
             monthsToTarget?: number;
+        };
+        ContributionSuggestionResponse: {
+            averageMonthlyContribution?: number;
+            /** Format: int32 */
+            monthsAveraged?: number;
         };
         EmergencyFundSuggestionResponse: {
             /** Format: int32 */
@@ -4669,7 +4699,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The pessimistic, base and optimistic projections, in today's money. */
+            /** @description The pessimistic, base and optimistic projections, in today's money, and the current pace drawn from history (null when there is too little of it). */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -4719,6 +4749,37 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:goal-not-found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    goalReport_contributionSuggestion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The average monthly amount put into the goal's products over the last 12 full months. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ContributionSuggestionResponse"];
                 };
             };
             /** @description type: urn:my-finances:error:goal-not-found */
