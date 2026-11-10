@@ -16,7 +16,8 @@ import { barValue, formatProgress } from '../goals/lib/goalFormat'
  * the goals list's order, each with a progress bar and one base-scenario status line, plus a
  * "View all" link to `/goals`. A prop-less widget that fetches its own data (one request serves the
  * whole card, however many goals are flagged); it renders nothing - not even its heading - when no
- * goal is flagged, so a dashboard without goals looks as it did before.
+ * goal is flagged, so a dashboard without goals looks as it did before. As a dashboard grid child it
+ * takes a full row from `sm` up (F040).
  */
 export function GoalsWidget() {
   const { t } = useTranslation('goals')
@@ -30,7 +31,9 @@ export function GoalsWidget() {
   if (goals === undefined && !loadError && !showSkeleton) return null
 
   return (
-    <Box component="section" aria-label={t('title')}>
+    // The row-spanning style sits on this root, not on a wrapper in the page, so that rendering
+    // nothing above leaves no empty grid cell or row gap.
+    <Box component="section" aria-label={t('title')} sx={{ gridColumn: { sm: '1 / -1' } }}>
       <Typography variant="h5" component="h2" gutterBottom>
         {t('title')}
       </Typography>

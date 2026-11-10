@@ -1,6 +1,14 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Box, LinearProgress, Paper, Skeleton, Typography } from '@mui/material'
+import {
+  Box,
+  LinearProgress,
+  Paper,
+  Skeleton,
+  Typography,
+  type SxProps,
+  type Theme,
+} from '@mui/material'
 import { useBudgetReport } from '../../api/budgets/budgetsQueries'
 import { useCategories } from '../../api/categories/categoriesQueries'
 import { fadeInSx } from '../../components/feedback/fadeIn'
@@ -16,6 +24,8 @@ import { WRAP_ANYWHERE } from '../../components/layout/layoutSx'
 interface BudgetVsActualReportProps {
   /** The month to report on, `YYYY-MM`. */
   month: string
+  /** Extra styling for the report's outlined card (the dashboard stretches it to its row). */
+  sx?: SxProps<Theme>
 }
 
 /**
@@ -23,7 +33,7 @@ interface BudgetVsActualReportProps {
  * page (with its month picker) and embedded by F012's dashboard (current month). Fetches its own
  * data; an over-cap category is flagged in red.
  */
-export function BudgetVsActualReport({ month }: BudgetVsActualReportProps) {
+export function BudgetVsActualReport({ month, sx }: BudgetVsActualReportProps) {
   const { t } = useTranslation(['budgets', 'common'])
   const { locale } = useLocale()
   const categoriesQuery = useCategories()
@@ -42,7 +52,11 @@ export function BudgetVsActualReport({ month }: BudgetVsActualReportProps) {
   )
 
   return (
-    <Paper variant="outlined" sx={{ p: 2 }} aria-busy={view.loading}>
+    <Paper
+      variant="outlined"
+      sx={[{ p: 2 }, ...(Array.isArray(sx) ? sx : [sx])]}
+      aria-busy={view.loading}
+    >
       {showSkeleton && <BudgetReportSkeleton />}
       {view.loadError && <LoadFailedNotice message={view.loadError} onRetry={view.reload} />}
       {report !== undefined && categories !== undefined && (

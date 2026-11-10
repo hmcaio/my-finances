@@ -21,12 +21,15 @@ import com.chm.myfinances.domain.transaction.TransactionRepository;
 import com.chm.myfinances.testsupport.DatabaseIntegrationTest;
 import com.chm.myfinances.testsupport.mothers.TaxonomySeeder;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
+import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,6 +53,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 class TransactionRepositoryAdapterTest {
 
   @Autowired private JdbcTemplate jdbcTemplate;
+  @Autowired private EntityManager entityManager;
 
   @Autowired private InstitutionRepository institutionRepository;
   @Autowired private TransactionRepository transactionRepository;
@@ -508,6 +512,79 @@ class TransactionRepositoryAdapterTest {
             .getContent();
 
     assertThat(ids).hasSize(40).isSortedAccordingTo(Comparator.reverseOrder());
+  }
+
+  @Test
+  void exposesTheStoredCreatedAtOnTheDomainObject() {
+    Transaction transaction = newTransaction(LocalDate.of(2095, 7, 1), BigDecimal.ONE);
+    Instant before = Instant.now();
+
+    Transaction saved = transactionRepository.save(transaction);
+    entityManager.flush();
+    entityManager.clear();
+    Transaction reloaded = transactionRepository.findById(transaction.getId()).orElseThrow();
+
+    assertThat(transaction.getCreatedAt()).as("the aggregate the caller built").isNull();
+    assertThat(saved.getCreatedAt()).isNotNull();
+    assertThat(reloaded.getCreatedAt()).isBetween(before.minusSeconds(5), Instant.now());
+  }
+
+  /**
+   * F040 open question, confirmed against the real mapping: {@code Sort.by(desc("date"),
+   * desc("createdAt"), desc("id"))} resolves on {@code TransactionJpaEntity} (the {@code createdAt}
+   * property comes from {@code AuditableEntity}) and orders the page as written.
+   */
+  @Test
+  void pagesByDateThenCreatedAtThenIdDescending() {
+    LocalDate day = LocalDate.of(2095, 7, 2);
+    Transaction oldest = saveCreatedAt(day, "2095-07-02T08:00:00Z");
+    Transaction newest = saveCreatedAt(day, "2095-07-02T10:00:00Z");
+    Transaction middle = saveCreatedAt(day, "2095-07-02T09:00:00Z");
+    Transaction earlierDayCreatedLast = saveCreatedAt(day.minusDays(1), "2095-07-02T23:00:00Z");
+    Transaction tieA = saveCreatedAt(day.plusDays(1), "2095-07-03T07:00:00Z");
+    Transaction tieB = saveCreatedAt(day.plusDays(1), "2095-07-03T07:00:00Z");
+    entityManager.flush();
+    entityManager.clear();
+    TransactionFilter filter =
+        new TransactionFilter(day.minusDays(1), day.plusDays(1), null, accountId, null);
+
+    List<UUID> ids =
+        transactionRepository
+            .findAll(
+                filter,
+                PageRequest.of(
+                    0,
+                    100,
+                    Sort.by(
+                        Sort.Order.desc("date"),
+                        Sort.Order.desc("createdAt"),
+                        Sort.Order.desc("id"))))
+            .map(Transaction::getId)
+            .getContent();
+
+    List<UUID> tied =
+        Stream.of(tieA, tieB)
+            .sorted(Comparator.comparing((Transaction t) -> t.getId().toString()).reversed())
+            .map(Transaction::getId)
+            .toList();
+    assertThat(ids)
+        .containsExactly(
+            tied.get(0),
+            tied.get(1),
+            newest.getId(),
+            middle.getId(),
+            oldest.getId(),
+            earlierDayCreatedLast.getId());
+  }
+
+  private Transaction saveCreatedAt(LocalDate date, String createdAt) {
+    Transaction saved = transactionRepository.save(newTransaction(date, BigDecimal.ONE));
+    entityManager.flush();
+    jdbcTemplate.update(
+        "update transactions set created_at = ?::timestamptz where id = ?",
+        createdAt,
+        saved.getId());
+    return saved;
   }
 
   private Transaction saveDescribed(

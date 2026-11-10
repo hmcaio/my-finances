@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import { goalsStore } from '../../mocks/handlers/goals'
+import { emittedCss, emotionClass } from '../../test/utils/emittedCss'
 import { renderWithRouter } from '../../test/utils/testUtils'
 import { GoalsWidget } from './GoalsWidget'
 
@@ -95,6 +96,17 @@ describe('GoalsWidget', () => {
     expect(screen.getByText('Target reached')).toBeInTheDocument()
   })
 
+  it('spans the whole dashboard row from its own root element, not a wrapper', async () => {
+    const { container } = renderWidget()
+
+    const region = await screen.findByRole('region', { name: 'Goals' })
+    // The section is the widget's only element, so a parent grid sees one child, and none at all
+    // while no goal is flagged (see the next test): no wrapper that would leave an empty cell.
+    expect(container.firstElementChild).toBe(region)
+    const css = emittedCss().replace(/\s+/g, '')
+    expect(css).toContain(`@media(min-width:600px){.${emotionClass(region)}{grid-column:1/-1;}}`)
+  })
+
   it('links each goal to its page and offers View all', async () => {
     renderWidget()
 
@@ -114,6 +126,8 @@ describe('GoalsWidget', () => {
     await new Promise((resolve) => setTimeout(resolve, 100))
     expect(screen.queryByRole('region', { name: 'Goals' })).not.toBeInTheDocument()
     expect(screen.queryByText('View all')).not.toBeInTheDocument()
+    // Nothing at all in the place the card would have taken, not an empty element.
+    expect(document.body.querySelector('section')).toBeNull()
   })
 
   it('shows a load failure with a retry', async () => {

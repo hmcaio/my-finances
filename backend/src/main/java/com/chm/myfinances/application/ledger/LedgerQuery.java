@@ -8,6 +8,7 @@ import com.chm.myfinances.domain.transaction.TransactionRepository;
 import com.chm.myfinances.domain.transfer.TransferFilter;
 import com.chm.myfinances.domain.transfer.TransferRepository;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -23,11 +24,11 @@ import org.springframework.transaction.annotation.Transactional;
  * their own repository ports and merges the two lists in memory, newest first. Read-only; the two
  * reads and the summary sums see one snapshot because the method is a single read-only transaction.
  *
- * <p>Each side is fetched with the page request {@code (0, MAX_ENTRIES + 1, date DESC, id DESC)},
- * which guarantees the top {@code MAX_ENTRIES} of the merge are present; the merged list is
- * re-sorted and cut. The summary is not computed from the returned entries but from {@link
- * TransactionRepository#sumAmountByType} over the whole filtered scope, so it stays correct when
- * the list is truncated.
+ * <p>Each side is fetched with the page request {@code (0, MAX_ENTRIES + 1, date DESC, createdAt
+ * DESC, id DESC)}, which guarantees the top {@code MAX_ENTRIES} of the merge are present; the
+ * merged list is re-sorted and cut. The summary is not computed from the returned entries but from
+ * {@link TransactionRepository#sumAmountByType} over the whole filtered scope, so it stays correct
+ * when the list is truncated.
  *
  * <p>Filter semantics (spec): {@code type} INCOME/EXPENSE reads transactions only, TRANSFER reads
  * transfers only, and a set {@code categoryId} or {@code paymentMethodId} excludes transfers (they
@@ -40,19 +41,26 @@ public class LedgerQuery {
   public static final int MAX_ENTRIES = 1000;
 
   /**
-   * Date descending, then transactions before transfers, then id descending compared as the
-   * lower-case canonical string - which is how Postgres orders {@code uuid} (bytewise), so the
-   * tie-break agrees with the repositories' own {@code id DESC} page order.
+   * Date descending, then creation time descending across both kinds (F040: the order the user
+   * entered same-day rows in; an entry with no {@code createdAt} sorts last), then transactions
+   * before transfers, then id descending compared as the lower-case canonical string - which is how
+   * Postgres orders {@code uuid} (bytewise), so the tie-break agrees with the repositories' own
+   * {@code id DESC} page order.
    */
   private static final Comparator<LedgerEntry> NEWEST_FIRST =
       Comparator.comparing(LedgerEntry::date)
           .reversed()
+          .thenComparing(
+              LedgerEntry::createdAt, Comparator.nullsLast(Comparator.<Instant>reverseOrder()))
           .thenComparing(entry -> entry instanceof TransferEntry)
           .thenComparing(
               Comparator.comparing((LedgerEntry entry) -> entry.id().toString()).reversed());
 
   private static final Pageable CAP_PLUS_ONE =
-      PageRequest.of(0, MAX_ENTRIES + 1, Sort.by(Sort.Order.desc("date"), Sort.Order.desc("id")));
+      PageRequest.of(
+          0,
+          MAX_ENTRIES + 1,
+          Sort.by(Sort.Order.desc("date"), Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
 
   private final TransactionRepository transactionRepository;
   private final TransferRepository transferRepository;

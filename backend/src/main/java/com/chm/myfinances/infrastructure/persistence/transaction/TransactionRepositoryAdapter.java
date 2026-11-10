@@ -284,6 +284,7 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
         entity.getDescription(),
         entity.getAdditionalNotes(),
         fuelDetails,
-        entity.getInvestmentHoldingId());
+        entity.getInvestmentHoldingId(),
+        entity.getCreatedAt());
   }
 }

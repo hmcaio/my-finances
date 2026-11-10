@@ -5,6 +5,7 @@ import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transaction.TransactionFilter;
 import com.chm.myfinances.domain.transaction.TransactionRepository;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
@@ -45,8 +46,11 @@ public final class FakeTransactionRepository extends InMemoryRepository<Transact
             .filter(t -> !filter.hasSearchText() || matchesSearch(t, filter.searchText()))
             .sorted(
                 Comparator.comparing(Transaction::getDate)
-                    .thenComparing(t -> t.getId().toString())
-                    .reversed())
+                    .reversed()
+                    .thenComparing(
+                        Transaction::getCreatedAt,
+                        Comparator.nullsLast(Comparator.<Instant>reverseOrder()))
+                    .thenComparing(t -> t.getId().toString(), Comparator.reverseOrder()))
             .toList();
 
     // Pageable.unpaged() (used by F006's BudgetReportQuery, which wants every matching

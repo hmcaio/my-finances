@@ -4,6 +4,7 @@ import com.chm.myfinances.domain.transfer.TradeConfirmation;
 import com.chm.myfinances.domain.transfer.TradeConfirmationLine;
 import com.chm.myfinances.domain.transfer.Transfer;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -32,6 +33,7 @@ public final class TransferMother {
   private UUID investmentAccountId;
   private BigDecimal taxes;
   private List<TradeConfirmationLine> lines;
+  private Instant createdAt = null;
 
   private TransferMother() {}
 
@@ -95,7 +97,30 @@ public final class TransferMother {
     return this;
   }
 
+  /**
+   * The time the row was stored (F040): only a persisted aggregate has one, so a plain transfer
+   * with it is built through {@link Transfer#reconstitute}, the way the repository adapter does.
+   * Not supported together with {@link #withTradeConfirmation}.
+   */
+  public TransferMother withCreatedAt(Instant createdAt) {
+    this.createdAt = createdAt;
+    return this;
+  }
+
   public Transfer build() {
+    if (createdAt != null && lines == null) {
+      return Transfer.reconstitute(
+          id,
+          date,
+          fromAccountId,
+          toAccountId,
+          amount,
+          description,
+          additionalNotes,
+          null,
+          null,
+          createdAt);
+    }
     if (lines != null) {
       return Transfer.createTradeConfirmation(
           id,

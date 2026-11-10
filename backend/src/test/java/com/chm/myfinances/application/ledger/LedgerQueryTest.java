@@ -9,7 +9,9 @@ import com.chm.myfinances.testsupport.fakes.FakeTransferRepository;
 import com.chm.myfinances.testsupport.mothers.TransactionMother;
 import com.chm.myfinances.testsupport.mothers.TransferMother;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -27,6 +29,11 @@ class LedgerQueryTest {
   private final FakeTransactionRepository transactionRepository = new FakeTransactionRepository();
   private final FakeTransferRepository transferRepository = new FakeTransferRepository();
   private final LedgerQuery query = new LedgerQuery(transactionRepository, transferRepository);
+
+  /** A fixed instant on {@link #MARCH}; only the ordering of two of them matters. */
+  private static Instant at(int hour, int minute) {
+    return MARCH.atTime(hour, minute).toInstant(ZoneOffset.UTC);
+  }
 
   private static LedgerFilter filter(LedgerEntryType type) {
     return new LedgerFilter(null, null, type, null, null, null, null);
@@ -63,6 +70,89 @@ class LedgerQueryTest {
             LedgerEntryType.EXPENSE,
             LedgerEntryType.TRANSFER,
             LedgerEntryType.TRANSFER);
+  }
+
+  @Test
+  void sameDayEntriesAreOrderedByCreatedAtNewestFirstAcrossBothTypes() {
+    Transaction firstExpense =
+        transactionRepository.save(
+            TransactionMother.expense().withDate(MARCH).withCreatedAt(at(10, 0)).build());
+    Transfer middleTransfer =
+        transferRepository.save(
+            TransferMother.transfer().withDate(MARCH).withCreatedAt(at(10, 1)).build());
+    Transaction lastIncome =
+        transactionRepository.save(
+            TransactionMother.income().withDate(MARCH).withCreatedAt(at(10, 2)).build());
+
+    Ledger ledger = query.find(LedgerFilter.none());
+
+    assertThat(ledger.entries())
+        .extracting(LedgerEntry::id)
+        .containsExactly(lastIncome.getId(), middleTransfer.getId(), firstExpense.getId());
+    assertThat(ledger.entries())
+        .extracting(LedgerEntry::createdAt)
+        .containsExactly(at(10, 2), at(10, 1), at(10, 0));
+  }
+
+  @Test
+  void aTransferCreatedAfterATransactionOfTheSameDayComesFirstDespiteTheTypeTieBreak() {
+    Transaction expense =
+        transactionRepository.save(
+            TransactionMother.expense().withDate(MARCH).withCreatedAt(at(9, 0)).build());
+    Transfer transfer =
+        transferRepository.save(
+            TransferMother.transfer().withDate(MARCH).withCreatedAt(at(9, 1)).build());
+
+    assertThat(query.find(LedgerFilter.none()).entries())
+        .extracting(LedgerEntry::id)
+        .containsExactly(transfer.getId(), expense.getId());
+  }
+
+  @Test
+  void anEntryWithoutCreatedAtSortsLastOnItsDay() {
+    Transaction unstamped =
+        transactionRepository.save(TransactionMother.expense().withDate(MARCH).build());
+    Transfer stampedTransfer =
+        transferRepository.save(
+            TransferMother.transfer().withDate(MARCH).withCreatedAt(at(8, 0)).build());
+    Transaction stampedExpense =
+        transactionRepository.save(
+            TransactionMother.expense().withDate(MARCH).withCreatedAt(at(7, 0)).build());
+
+    assertThat(query.find(LedgerFilter.none()).entries())
+        .extracting(LedgerEntry::id)
+        .containsExactly(stampedTransfer.getId(), stampedExpense.getId(), unstamped.getId());
+  }
+
+  @Test
+  void theDateStillDominatesCreatedAt() {
+    Transaction newerDayCreatedEarlier =
+        transactionRepository.save(
+            TransactionMother.expense().withDate(MARCH).withCreatedAt(at(1, 0)).build());
+    Transfer olderDayCreatedLater =
+        transferRepository.save(
+            TransferMother.transfer()
+                .withDate(MARCH.minusDays(1))
+                .withCreatedAt(at(23, 0))
+                .build());
+
+    assertThat(query.find(LedgerFilter.none()).entries())
+        .extracting(LedgerEntry::id)
+        .containsExactly(newerDayCreatedEarlier.getId(), olderDayCreatedLater.getId());
+  }
+
+  @Test
+  void entriesCreatedAtTheSameInstantFallBackToTransactionsBeforeTransfers() {
+    Transfer transfer =
+        transferRepository.save(
+            TransferMother.transfer().withDate(MARCH).withCreatedAt(at(6, 0)).build());
+    Transaction expense =
+        transactionRepository.save(
+            TransactionMother.expense().withDate(MARCH).withCreatedAt(at(6, 0)).build());
+
+    assertThat(query.find(LedgerFilter.none()).entries())
+        .extracting(LedgerEntry::id)
+        .containsExactly(expense.getId(), transfer.getId());
   }
 
   @Test

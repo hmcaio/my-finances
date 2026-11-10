@@ -5,6 +5,8 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { server } from '../../mocks/server'
 import { seedDebitCardPaymentMethod } from '../../mocks/handlers/paymentMethods'
+import { goalsStore } from '../../mocks/handlers/goals'
+import { emittedCss, emotionClass } from '../../test/utils/emittedCss'
 import { findRow } from '../../test/utils/testUtils'
 import { DashboardPage } from './DashboardPage'
 import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
@@ -91,5 +93,106 @@ describe('DashboardPage', () => {
 
     expect(await screen.findByText('Nothing pending right now.')).toBeInTheDocument()
     expect(spendRequests).toBe(1)
+  })
+
+  describe('layout (F040)', () => {
+    /** The grid the widgets are children of. */
+    function grid() {
+      return screen.getByRole('region', { name: 'Spend by category' }).parentElement as HTMLElement
+    }
+
+    /** What each grid child is called: its region label, or the heading of the pending widget. */
+    function childNames() {
+      return Array.from(grid().children).map(
+        (child) => child.getAttribute('aria-label') ?? child.querySelector('h2')?.textContent,
+      )
+    }
+
+    const css = () => emittedCss().replace(/\s+/g, '')
+
+    it('lists spend, budget, balances, allocation, net worth, goals and pending in that order', async () => {
+      renderDashboard()
+      await screen.findByRole('region', { name: 'Goals' })
+
+      expect(childNames()).toEqual([
+        'Spend by category',
+        'Budget vs. actual',
+        'Account balances',
+        'Investment allocation',
+        'Net worth',
+        'Goals',
+        'Upcoming recurring bills',
+      ])
+    })
+
+    it('spans net worth two columns at lg and the whole row below, goals and pending the whole row from sm', async () => {
+      renderDashboard()
+      const goals = await screen.findByRole('region', { name: 'Goals' })
+
+      const netWorth = screen.getByRole('region', { name: 'Net worth' })
+      const pending = grid().lastElementChild as HTMLElement
+      expect(css()).toContain(
+        `@media(min-width:600px){.${emotionClass(netWorth)}{grid-column:1/-1;}}`,
+      )
+      expect(css()).toContain(
+        `@media(min-width:1200px){.${emotionClass(netWorth)}{grid-column:span2;}}`,
+      )
+      expect(css()).toContain(`@media(min-width:600px){.${emotionClass(goals)}{grid-column:1/-1;}}`)
+      expect(css()).toContain(
+        `@media(min-width:600px){.${emotionClass(pending)}{grid-column:1/-1;}}`,
+      )
+    })
+
+    it('leaves no gap where the goals card would be while no goal is flagged', async () => {
+      goalsStore.replace('goal-car', (g) => ({ ...g, showOnDashboard: false }))
+      goalsStore.replace('goal-fund', (g) => ({ ...g, showOnDashboard: false }))
+      renderDashboard()
+      await within(screen.getByRole('region', { name: 'Net worth' })).findByRole('img')
+      await findRow('Rent')
+      await new Promise((resolve) => setTimeout(resolve, 200))
+
+      // Six children, none of them an empty placeholder for the missing card.
+      expect(childNames()).toEqual([
+        'Spend by category',
+        'Budget vs. actual',
+        'Account balances',
+        'Investment allocation',
+        'Net worth',
+        'Upcoming recurring bills',
+      ])
+      expect(Array.from(grid().children).every((child) => child.childElementCount > 0)).toBe(true)
+    })
+
+    it('makes a card fill its row: the section is a flex column and its card grows', async () => {
+      renderDashboard()
+      await screen.findByRole('region', { name: 'Goals' })
+
+      for (const name of [
+        'Spend by category',
+        'Budget vs. actual',
+        'Account balances',
+        'Investment allocation',
+        'Net worth',
+      ]) {
+        const section = screen.getByRole('region', { name })
+        const sectionRule = css().match(new RegExp(`\\.${emotionClass(section)}\\{([^}]*)\\}`))
+        expect(sectionRule?.[1], `${name} section`).toContain('display:flex')
+        expect(sectionRule?.[1], `${name} section`).toContain('flex-direction:column')
+        const card = section.querySelector('.MuiPaper-root') as HTMLElement
+        expect(css(), `${name} card`).toMatch(
+          new RegExp(`\\.${emotionClass(card)}\\{[^}]*flex-grow:1[;}]`),
+        )
+      }
+    })
+
+    it('puts the budget report in an outlined card like the other widgets', async () => {
+      renderDashboard()
+
+      const budgets = screen.getByRole('region', { name: 'Budget vs. actual' })
+      const card = budgets.querySelector('.MuiPaper-root')
+      expect(card).toHaveClass('MuiPaper-outlined')
+      // One card per section: the report is not nested in a second Paper.
+      expect(budgets.querySelectorAll('.MuiPaper-root')).toHaveLength(1)
+    })
   })
 })

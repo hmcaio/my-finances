@@ -10,8 +10,8 @@ import type {
   ScenarioProjection,
 } from '../../../api/goals/goals'
 import { useGoalHistory, useGoalProjection } from '../../../api/goals/goalsQueries'
-import { CHART_HEIGHT, CHART_WIDTH, ChartSvg, YGrid } from '../../../components/charts/ChartSvg'
-import { createYScale } from '../../../components/charts/chartMath'
+import { CHART_HEIGHT, ChartSvg, YGrid } from '../../../components/charts/ChartSvg'
+import { createYScale, fitChartSize } from '../../../components/charts/chartMath'
 import { fadeInSx } from '../../../components/feedback/fadeIn'
 import { LoadFailedNotice } from '../../../components/feedback/LoadFailedNotice'
 import { useQueryState } from '../../../hooks/queryState'
@@ -26,12 +26,6 @@ const MARGIN = { top: 24, right: 16, bottom: 32, left: 72 }
 const X_LABELS = 4
 /** Below this drawing width the axis shows one month label fewer, so neighbours do not touch. */
 const NARROW_CHART_WIDTH = 480
-
-/** The drawing never gets narrower than this, so the plot stays readable on a tiny container. */
-const MIN_CHART_WIDTH = 280
-/** The drawing is about this tall per unit of width, within the bounds below. */
-const HEIGHT_RATIO = 0.35
-const MAX_CHART_HEIGHT = 400
 
 /** The shorter horizons the selector offers, in months; "All" is always there. */
 const HORIZON_MONTHS = [12, 24, 60]
@@ -321,10 +315,7 @@ function Chart({
   locale,
 }: ChartProps) {
   const measured = availableWidth !== null
-  const chartWidth = measured ? Math.max(MIN_CHART_WIDTH, availableWidth) : CHART_WIDTH
-  const chartHeight = measured
-    ? Math.min(MAX_CHART_HEIGHT, Math.max(CHART_HEIGHT, Math.round(chartWidth * HEIGHT_RATIO)))
-    : CHART_HEIGHT
+  const { width: chartWidth, height: chartHeight } = fitChartSize(availableWidth)
   const projectionStart = scenarios[0].points[0].month
   const projectionEnd = scenarios[0].points[scenarios[0].points.length - 1].month
   // One continuous month axis: the history (if any) ends where the projection starts.

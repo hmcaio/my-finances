@@ -3,6 +3,7 @@ package com.chm.myfinances.testsupport.fakes;
 import com.chm.myfinances.domain.transfer.Transfer;
 import com.chm.myfinances.domain.transfer.TransferFilter;
 import com.chm.myfinances.domain.transfer.TransferRepository;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
@@ -53,8 +54,11 @@ public final class FakeTransferRepository extends InMemoryRepository<Transfer>
                         || FakeTextSearch.contains(t.getAdditionalNotes(), filter.searchText()))
             .sorted(
                 Comparator.comparing(Transfer::getDate)
-                    .thenComparing(t -> t.getId().toString())
-                    .reversed())
+                    .reversed()
+                    .thenComparing(
+                        Transfer::getCreatedAt,
+                        Comparator.nullsLast(Comparator.<Instant>reverseOrder()))
+                    .thenComparing(t -> t.getId().toString(), Comparator.reverseOrder()))
             .toList();
 
     // Pageable.unpaged() means "every match" (F013 export), as for real Spring Data JPA.

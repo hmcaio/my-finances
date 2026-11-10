@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -362,6 +363,7 @@ class TransferTest {
             "Reconstituted",
             "Notes",
             null,
+            null,
             null);
 
     assertThat(transfer.getId()).isEqualTo(id);
@@ -370,6 +372,36 @@ class TransferTest {
     assertThat(transfer.getAdditionalNotes()).isEqualTo("Notes");
     assertThat(transfer.getTaxes()).isNull();
     assertThat(transfer.getTradeConfirmation()).isEmpty();
+  }
+
+  @Test
+  void createdAtIsNullUntilPersistedAndIsNotPartOfTheAuditSnapshot() {
+    Transfer created =
+        Transfer.create(
+            UUID.randomUUID(),
+            LocalDate.of(2026, 1, 1),
+            FROM_ACCOUNT_ID,
+            TO_ACCOUNT_ID,
+            BigDecimal.TEN,
+            "Transfer",
+            null);
+    Instant storedAt = Instant.parse("2026-03-10T10:15:30Z");
+    Transfer reloaded =
+        Transfer.reconstitute(
+            created.getId(),
+            created.getDate(),
+            FROM_ACCOUNT_ID,
+            TO_ACCOUNT_ID,
+            BigDecimal.TEN,
+            "Transfer",
+            null,
+            null,
+            null,
+            storedAt);
+
+    assertThat(created.getCreatedAt()).isNull();
+    assertThat(reloaded.getCreatedAt()).isEqualTo(storedAt);
+    assertThat(reloaded.toAuditSnapshot()).doesNotContainKey("createdAt");
   }
 
   private static final UUID PRODUCT_ID = UUID.randomUUID();

@@ -4,6 +4,7 @@ import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.transaction.FuelDetails;
 import com.chm.myfinances.domain.transaction.Transaction;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -26,6 +27,7 @@ public final class TransactionMother {
   private String description = "Groceries";
   private String additionalNotes = null;
   private FuelDetails fuelDetails = null;
+  private Instant createdAt = null;
 
   private TransactionMother() {}
 
@@ -92,7 +94,32 @@ public final class TransactionMother {
     return this;
   }
 
+  /**
+   * The time the row was stored (F040): only a persisted aggregate has one, so setting it builds
+   * through {@link Transaction#reconstitute}, the way the repository adapter does.
+   */
+  public TransactionMother withCreatedAt(Instant createdAt) {
+    this.createdAt = createdAt;
+    return this;
+  }
+
   public Transaction build() {
+    if (createdAt != null) {
+      return Transaction.reconstitute(
+          id,
+          date,
+          amount,
+          categoryId,
+          type,
+          accountId,
+          paymentMethodId,
+          recurringTemplateVersionId,
+          description,
+          additionalNotes,
+          fuelDetails,
+          null,
+          createdAt);
+    }
     return Transaction.create(
         id,
         date,
