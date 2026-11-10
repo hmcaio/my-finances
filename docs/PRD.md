@@ -406,7 +406,7 @@ See [ADR 0034](../adr/0034-goals-as-allocation-and-deterministic-projection.md).
 - Net worth trend over time (line chart), switchable between change-date points and monthly points.
 - Investment allocation by category, drilling into sub-categories (pie/bar chart, from latest product snapshots).
 - Upcoming recurring bills (pending occurrences awaiting confirmation).
-- Layout: three equal-height cards in the first row (spend by category, budget vs actual, account balances), then investment allocation beside a wider net worth chart, then upcoming bills across the full width; the widgets stack in the same order on narrower screens.
+- Layout: three equal-height cards in the first row (spend by category, budget vs actual, account balances), then investment allocation beside a wider net worth chart, then the goals card (only while a goal is flagged, §6.17) and upcoming bills, each across the full width; the widgets stack in the same order on narrower screens.
 - Goals (§6.17): the goals the user flagged "show on dashboard", each with a progress bar and one status line; hidden when none is flagged.
 
 ### 6.9 Reports

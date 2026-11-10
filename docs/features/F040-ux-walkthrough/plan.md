@@ -1,6 +1,6 @@
 # F040 — Action Plan
 
-**Depends on**: F037, F025, F009, F022, F021, F032 (all built). No ADR; the PRD bullets are already in `docs/PRD.md` from the docs PR that added this folder.
+**Depends on**: F037, F025, F009, F022, F021, F032, F039 (all built). No ADR; the PRD bullets are already in `docs/PRD.md` from the docs PR that added this folder.
 
 Each phase below is one PR on its own branch off `main` (`feature/f040-<slug>`, ADR 0032), with its CHANGELOG bullet in the same commit; phases 1 to 3 and 6 are independent and can ship in any order, phase 5 needs 2 and 3, phase 8 needs 7. The order below puts the cheap fixes first, then the shared mechanisms (toast, dialog shell), then the two big flows. Backend before frontend inside a flow ("the batch endpoint's body shape must exist before the sheet has anything to call").
 
@@ -15,7 +15,7 @@ Each phase below is one PR on its own branch off `main` (`feature/f040-<slug>`, 
 - [ ] Test first: the notification store (publish, subscribe, reset between tests in `src/test/setup.ts`) and `NotificationHost` (renders the message with `role="status"`, hides after the timeout, a second message replaces the first).
 - [ ] Implement `providers/notifications/notificationStore.ts` and `NotificationHost.tsx`; render the host in `components/layout/Layout.tsx`.
 - [ ] Test first: `createQueryClient` publishes `i18n.t(meta.successMessage, options)` on success, still publishes when `skipInvalidate` is set, publishes nothing on error and nothing without the meta. Implement the two `mutationMeta` keys and the `onSuccess` branch in `api/core/queryClient.ts`.
-- [ ] Add `meta.successMessage` (English and Brazilian Portuguese keys) to every create, update and delete mutation in `api/**/*Queries.ts`; allowlist login, logout and other non-write mutations.
+- [ ] Add `meta.successMessage` (English and Brazilian Portuguese keys) to every create, update and delete mutation in `api/**/*Queries.ts`; allowlist login, logout and other non-write mutations. Includes the five goals mutations in `api/goals/goalsQueries.ts` (create, edit, show on dashboard, delete, replace allocations), with their keys in both `goals.json` files.
 - [ ] `src/test/contracts/mutationMessages.test.ts`: fails for a mutation hook with neither a message nor an allowlist entry.
 - [ ] `docs/conventions/frontend-data-loading.md` and `frontend-components.md`: the toast rule.
 - [ ] `scripts/verify.sh frontend`.
@@ -57,12 +57,12 @@ Each phase below is one PR on its own branch off `main` (`feature/f040-<slug>`, 
 ## Phase 8 — Snapshot sheet (frontend)
 - [ ] Test first for `features/investments/snapshots/lib/snapshotSheet.ts`: blank rows are skipped; a negative or over-precise balance is flagged; the difference is signed; the request carries only filled rows; `errors[]` indexes map back to the right rows when blank rows sit between them.
 - [ ] Test first for the page: renders one row per open holding grouped by account then product; Enter moves down the rows and from the last row to Save; Save is disabled with no valid row; a `200` shows one plural toast, clears the inputs and updates the Previous column; a `404` with `errors[]` highlights exactly those rows and keeps every input; a `409` keeps the inputs and offers to retry; the empty state links to Products.
-- [ ] Implement `api/investments/products/investmentSnapshotSheet.ts` and `investmentSnapshotSheetQueries.ts` (with `successMessage` and `successMessageOptions`), the MSW handlers, the `apiError.ts` maps, `InvestmentSnapshotSheetPage.tsx`, `components/SnapshotSheetTable.tsx`, `hooks/useSnapshotSheet.ts`, the route in `routes/lazyPages.ts` and `routes/AuthenticatedRoutes.tsx`, and the "Record snapshots" button in `InvestmentsPage.tsx` (English and Brazilian Portuguese strings).
+- [ ] Implement `api/investments/products/investmentSnapshotSheet.ts` and `investmentSnapshotSheetQueries.ts` (with `successMessage` and `successMessageOptions`), the MSW handlers, the `apiError.ts` maps with their strings in both `errors.json` files, `InvestmentSnapshotSheetPage.tsx`, `components/SnapshotSheetTable.tsx`, `hooks/useSnapshotSheet.ts`, the route in `routes/lazyPages.ts` and `routes/AuthenticatedRoutes.tsx`, and the "Record snapshots" button in `InvestmentsPage.tsx` (English and Brazilian Portuguese strings).
 - [ ] Playwright geometry check: the sheet renders as cards at 360px with a reachable balance input per card.
 - [ ] `scripts/verify.sh frontend`.
 
 ## Phase 9 — Dashboard and FII layout (frontend)
-- [ ] Dashboard: equal-height cards, `BudgetVsActualReport` in a `Paper`, Net worth spanning two columns at `lg`, the chart filling its card (`features/dashboard/DashboardPage.tsx`, `NetWorthTrendChart`); update the layout test and the Playwright geometry check for the three bands.
+- [ ] Dashboard: equal-height cards, `BudgetVsActualReport` in a `Paper`, children reordered to spend, budget, balances, allocation, net worth, goals, pending; Net worth spanning two columns at `lg`; `GoalsWidget` keeping its null render with its full-width `gridColumn` on its own root element (no wrapper, so no empty row without a flagged goal); `NetWorthTrendChart` filling its card through `useElementWidth` and `ChartSvg`'s `fillWidth` (`features/dashboard/DashboardPage.tsx`, `GoalsWidget.tsx`, `NetWorthTrendChart`); update the layout test and the Playwright geometry check for the three bands, with and without a flagged goal.
 - [ ] Test first for `features/investments/fii/FiiAllocationComparison.tsx` (segments with ticker rows, Actual %, Planned %, difference, color dots matching the donuts, empty and loading states). Implement it and the `compact` prop of `FiiNestedAllocationDonutChart.tsx`; wire `FiiPage.tsx` so only phones (`useIsMobile`) get the two-column donuts plus the table; desktop unchanged.
 - [ ] `docs/conventions/frontend-charts.md` if the net-worth chart sizing rule changes.
 - [ ] `scripts/verify.sh frontend`.
@@ -82,5 +82,6 @@ Each phase below is one PR on its own branch off `main` (`feature/f040-<slug>`, 
 - [ ] Fill a row, delete that product in another tab, press Save: that row is highlighted with its reason, nothing else is lost, no snapshot of the others was saved; remove the row and Save again: it succeeds.
 - [ ] Enter a negative balance: the row is flagged before anything is sent.
 - [ ] At 390px: the FII page shows both donuts side by side with the comparison table below, "Register dividend" no longer squeezes the title, and the snapshot sheet rows are cards.
-- [ ] At 1366px the Dashboard has three equal cards in row 1, Investment allocation beside a wider Net worth chart in row 2, Upcoming bills below; the first Tab stop is "Skip to content".
+- [ ] At 1366px the Dashboard has three equal cards in row 1, Investment allocation beside a wider Net worth chart in row 2 (the chart fills its card), Upcoming bills below, with no empty cell; flag a goal for the dashboard: its card appears on its own full-width row between Net worth and Upcoming bills and no hole opens; unflag it: no blank row remains; the first Tab stop is "Skip to content".
+- [ ] Record a snapshot through the sheet for a product allocated to a goal: the goal's value on its page and on the dashboard updates.
 - [ ] `scripts/verify.sh backend frontend` (Docker running) all green.
