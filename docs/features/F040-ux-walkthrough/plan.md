@@ -9,7 +9,7 @@ Each phase below is one PR on its own branch off `main` (`feature/f040-<slug>`, 
 - [x] Restyle the Settings `ListSubheader` in `components/layout/Layout.tsx` as a section heading (light and dark).
 - [x] Test first: a jsdom test that the skip link is the first tab stop and moves focus to `#main-content`. Implement the skip link in `Layout.tsx` (`common:nav.skipToContent`, English and Brazilian Portuguese); give the `main` region `id` and `tabIndex={-1}`.
 - [x] `components/layout/PageHeader.tsx`: `flexWrap: 'wrap'` by default; drop the redundant `sx` in `features/fuel/FuelPage.tsx`; a Playwright geometry check (new `e2e/fii.spec.ts`; no FII spec existed to extend) that the FII header at 360px does not squeeze the title.
-- [ ] `scripts/verify.sh frontend`.
+- [x] `scripts/verify.sh frontend`.
 
 ## Phase 2 — Success toast (frontend)
 - [ ] Test first: the notification store (publish, subscribe, reset between tests in `src/test/setup.ts`) and `NotificationHost` (renders the message with `role="status"`, hides after the timeout, a second message replaces the first).
