@@ -25,7 +25,7 @@ Each phase below is one PR on its own branch off `main` (`feature/f040-<slug>`, 
 - [x] Implement `FormDialog.tsx`; rebuild `AddFormDialog.tsx` on it; mark required fields and `autoFocus` the first field on the five pages that use it (Institutions, Categories, Vehicles, Budgets add, Recurring add), dropping their hand-coded Enter handlers where the shell now covers them.
 - [x] Move `features/investments/products/components/SnapshotDialogs.tsx` (Record snapshot) onto `FormDialog`, with Date and Balance marked required and Balance focused first.
 - [x] `docs/conventions/frontend-components.md` and `frontend-responsive.md`: the shell and the autofocus and required rules.
-- [ ] `scripts/verify.sh frontend`.
+- [x] `scripts/verify.sh frontend`.
 
 ## Phase 4 — Same-day Ledger order (backend)
 - [ ] Test first (logic tier, fakes): `LedgerQuery` orders three same-day entries (a transaction, a transfer, a transaction) by `createdAt` newest first across both types; an entry with a null `createdAt` sorts last; the date still dominates.
