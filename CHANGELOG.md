@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **F040 — UX walkthrough fixes** — every save, edit and delete now confirms itself with a short message ("Transaction saved", "Goal deleted") that disappears by itself after a few seconds: at the bottom left on a computer, at the top of the screen on a phone, where it never blocks a tap. A failed save shows no confirmation, only its error. The messages never repeat amounts or names, and follow the language you picked.
 - **F040 — UX walkthrough fixes** — the "Add" dialogs (institutions, categories, vehicles, budgets, recurring templates) and "Record snapshot" now say what is needed to enable "Add": required fields carry an asterisk and a line reads "Fields marked * are required" (in Portuguese, "Campos marcados com * são obrigatórios"). The first field is focused when the dialog opens (Balance, for a snapshot) and pressing Enter in a field saves once the form is valid; while it is not valid, or a save is running, Enter does nothing and the browser shows no validation bubble.
 - **F040 — UX walkthrough fixes** — rows of the same day in the Ledger now appear in the order you entered them, newest first, whether they are transactions or transfers (they used to come back in an arbitrary order within the day).
+- **F040 — UX walkthrough fixes** — the Investments page remembers its tab in the address (`?tab=products`; Accounts, the default, adds nothing), so a reload or a shared link opens the tab you were on, and switching tabs does not add browser history entries.
 
 ### Fixed
 

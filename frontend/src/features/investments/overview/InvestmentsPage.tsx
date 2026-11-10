@@ -1,6 +1,6 @@
-import { useMemo, useState, type SyntheticEvent } from 'react'
+import { useMemo, type SyntheticEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link as RouterLink } from 'react-router-dom'
+import { Link as RouterLink, useSearchParams } from 'react-router-dom'
 import {
   Box,
   Link as MuiLink,
@@ -22,12 +22,13 @@ import { InvestmentAccountAllocationChart } from './components/InvestmentAccount
 import { InvestmentAllocationChart } from './components/InvestmentAllocationChart'
 import { InvestmentProductsOverviewSection } from './components/InvestmentProductsOverviewSection'
 import { InvestmentSubcategoryAllocationChart } from './components/InvestmentSubcategoryAllocationChart'
+import {
+  parseInvestmentsTab,
+  serializeInvestmentsTab,
+  type InvestmentsTab,
+} from './lib/investmentsSearchParams'
 import { PageContainer } from '../../../components/layout/PageContainer'
 import { PageSection } from '../../../components/layout/PageSection'
-
-/** Tighter section padding on phones (F021), matching `AccountDetailPage`. */
-
-type InvestmentsTab = 'accounts' | 'products'
 
 /**
  * The Investments page (F009 spec, rebuilt into a dashboard by F023): a row of three allocation
@@ -44,7 +45,8 @@ type InvestmentsTab = 'accounts' | 'products'
 export function InvestmentsPage() {
   const { t } = useTranslation('investments')
   const { locale } = useLocale()
-  const [tab, setTab] = useState<InvestmentsTab>('accounts')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tab = parseInvestmentsTab(searchParams)
   const accountsQuery = useAccounts()
   const accounts = accountsQuery.data
   const accountsState = useQueryState(accountsQuery)
@@ -54,7 +56,8 @@ export function InvestmentsPage() {
   )
 
   function handleTabChange(_: SyntheticEvent, value: InvestmentsTab) {
-    setTab(value)
+    // replace: a tab click is a view change, not a page to go back to (same as the Ledger's filters)
+    setSearchParams(serializeInvestmentsTab(value), { replace: true })
   }
 
   return (

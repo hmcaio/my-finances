@@ -31,7 +31,7 @@ Each phase below is one PR on its own branch off `main` (`feature/f040-<slug>`, 
 - [x] Test first (logic tier, fakes): `LedgerQuery` orders three same-day entries (a transaction, a transfer, a transaction) by `createdAt` newest first across both types; an entry with a null `createdAt` sorts last; the date still dominates.
 - [x] Test first (persistence tier): the transaction and transfer adapters expose `createdAt` on the domain object and page by `date DESC, createdAt DESC, id DESC`.
 - [x] Implement `getCreatedAt()` on `Transaction` and `Transfer` (mapped in the adapters, excluded from `toAuditSnapshot()` and its guard test), `LedgerEntry.createdAt()`, the `CAP_PLUS_ONE` sort and `NEWEST_FIRST` in `application/ledger/LedgerQuery.java`.
-- [ ] `./gradlew spotlessApply` then `scripts/verify.sh backend` (Docker running).
+- [x] `./gradlew spotlessApply` then `scripts/verify.sh backend` (Docker running).
 
 ## Phase 5 — New entry dialog (frontend)
 - [ ] Test first for `features/ledger/hooks/useEntryDraft.ts`: switching Expense to Transfer carries date and account to From; Transfer to Income carries From to account; Expense to Income clears a mismatched category; "Add and new" carry rules for a plain transaction, a fuel transaction (category, vehicle, fuel type kept; liters, price, km, odometer cleared) and a plain transfer; edit mode locks the type.
@@ -41,8 +41,8 @@ Each phase below is one PR on its own branch off `main` (`feature/f040-<slug>`, 
 - [ ] `scripts/verify.sh frontend`.
 
 ## Phase 6 — Investments tab in the URL (frontend)
-- [ ] Test first: `features/investments/overview/lib/investmentsSearchParams.ts` (default omitted, `products` kept, an unknown value falls back to `accounts`) and `InvestmentsPage` (a reload with `?tab=products` opens Products; clicking a tab writes the URL with `replace`).
-- [ ] Implement the parse/serialize helpers and wire `InvestmentsPage.tsx`.
+- [x] Test first: `features/investments/overview/lib/investmentsSearchParams.ts` (default omitted, `products` kept, an unknown value falls back to `accounts`) and `InvestmentsPage` (a reload with `?tab=products` opens Products; clicking a tab writes the URL with `replace`).
+- [x] Implement the parse/serialize helpers and wire `InvestmentsPage.tsx`.
 - [ ] `scripts/verify.sh frontend`.
 
 ## Phase 7 — Snapshot sheet (backend)
