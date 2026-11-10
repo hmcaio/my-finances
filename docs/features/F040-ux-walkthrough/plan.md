@@ -5,7 +5,7 @@
 Each phase below is one PR on its own branch off `main` (`feature/f040-<slug>`, ADR 0032), with its CHANGELOG bullet in the same commit; phases 1 to 3 and 6 are independent and can ship in any order, phase 5 needs 2 and 3, phase 8 needs 7. The order below puts the cheap fixes first, then the shared mechanisms (toast, dialog shell), then the two big flows. Backend before frontend inside a flow ("the batch endpoint's body shape must exist before the sheet has anything to call").
 
 ## Phase 1 — Quick fixes (frontend)
-- [ ] Replace "(or the Transfers page)" in `i18n/locales/en/investments.json` and the `pt-BR` twin with the Ledger wording; update the test that asserts the old text, if any.
+- [x] Replace "(or the Transfers page)" in `i18n/locales/en/investments.json` and the `pt-BR` twin with the Ledger wording; update the test that asserts the old text, if any.
 - [ ] Restyle the Settings `ListSubheader` in `components/layout/Layout.tsx` as a section heading (light and dark).
 - [ ] Test first: a jsdom test that the skip link is the first tab stop and moves focus to `#main-content`. Implement the skip link in `Layout.tsx` (`common:nav.skipToContent`, English and Brazilian Portuguese); give the `main` region `id` and `tabIndex={-1}`.
 - [ ] `components/layout/PageHeader.tsx`: `flexWrap: 'wrap'` by default; drop the redundant `sx` in `features/fuel/FuelPage.tsx`; extend the Playwright geometry check so the FII header at 360px does not squeeze the title.
