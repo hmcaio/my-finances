@@ -38,7 +38,7 @@ Each phase below is one PR on its own branch off `main` (`feature/f040-<slug>`, 
 - [x] Test first for `features/ledger/components/EntryDialog.tsx`: transaction, then transfer, then transaction in one open dialog with three saves; categories filtered by type; "Add and new" hidden for trade confirmations and in edit mode; focus lands on the first cleared field; Enter submits "Add" and closes.
 - [x] Implement `EntryDialog.tsx`, `useEntryDraft.ts`, the `type` filter in `features/transactions/TransactionFormFields.tsx`, `onAddAnother` and the carry seed in `features/transfers/components/TransferForm.tsx`; wire `features/ledger/LedgerPage.tsx` (menu entries preselect a type, the Fuel page preset opens Expense) and remove the replaced create paths of `TransactionFormDialog.tsx` and the inline transfer dialog; required marks on Date, Amount, Category, Account, Payment Method, Description and the transfer equivalents.
 - [x] Update the MSW handlers and the page tests that open the old dialogs.
-- [ ] `scripts/verify.sh frontend`.
+- [x] `scripts/verify.sh frontend`.
 
 ## Phase 6 — Investments tab in the URL (frontend)
 - [x] Test first: `features/investments/overview/lib/investmentsSearchParams.ts` (default omitted, `products` kept, an unknown value falls back to `accounts`) and `InvestmentsPage` (a reload with `?tab=products` opens Products; clicking a tab writes the URL with `replace`).
