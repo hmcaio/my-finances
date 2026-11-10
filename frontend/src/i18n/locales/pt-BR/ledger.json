@@ -4,6 +4,10 @@
   "addButton": "Adicionar",
   "newTransaction": "Nova transação",
   "newTransfer": "Nova transferência",
+  "entry": {
+    "title": "Novo lançamento",
+    "typeAria": "Tipo de lançamento"
+  },
   "aria": "Lançamentos",
   "columns": {
     "date": "Data",
