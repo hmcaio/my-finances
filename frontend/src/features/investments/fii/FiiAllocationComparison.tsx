@@ -95,7 +95,13 @@ export function FiiAllocationComparison({ month }: FiiAllocationComparisonProps)
   }
 
   return (
-    <Table size="small" aria-label={t('comparison.aria')} sx={fadeInSx}>
+    <Table
+      size="small"
+      aria-label={t('comparison.aria')}
+      // Tight cell padding: this table lives in a 358px column, and the label column takes what the
+      // three numeric columns leave.
+      sx={{ ...fadeInSx, '& .MuiTableCell-root': { px: 1 } }}
+    >
       <TableHead>
         <TableRow>
           <TableCell>{t('comparison.segmentColumn')}</TableCell>
@@ -112,7 +118,7 @@ export function FiiAllocationComparison({ month }: FiiAllocationComparisonProps)
               scope={row.isSegment ? 'row' : undefined}
               sx={{
                 ...WRAP_ANYWHERE,
-                pl: row.isSegment ? 2 : 4,
+                pl: row.isSegment ? 1 : 3,
                 fontWeight: row.isSegment ? 700 : 400,
               }}
             >

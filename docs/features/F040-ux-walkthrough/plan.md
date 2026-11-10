@@ -43,7 +43,7 @@ Each phase below is one PR on its own branch off `main` (`feature/f040-<slug>`, 
 ## Phase 6 — Investments tab in the URL (frontend)
 - [x] Test first: `features/investments/overview/lib/investmentsSearchParams.ts` (default omitted, `products` kept, an unknown value falls back to `accounts`) and `InvestmentsPage` (a reload with `?tab=products` opens Products; clicking a tab writes the URL with `replace`).
 - [x] Implement the parse/serialize helpers and wire `InvestmentsPage.tsx`.
-- [ ] `scripts/verify.sh frontend`.
+- [x] `scripts/verify.sh frontend`.
 
 ## Phase 7 — Snapshot sheet (backend)
 - [ ] Test first (logic tier, fakes): `InvestmentSnapshotService.recordBatch` creates new snapshots and replaces same-day ones in one call and reports `created` and `replaced`; a batch with an unknown holding writes nothing and reports every offending entry index; a failure after the first row leaves no snapshot and no audit entry; each recorded row writes its own `INVESTMENT_SNAPSHOT` audit entry and an unchanged same-day balance writes none.
@@ -65,7 +65,7 @@ Each phase below is one PR on its own branch off `main` (`feature/f040-<slug>`, 
 - [x] Dashboard: equal-height cards, `BudgetVsActualReport` in a `Paper`, children reordered to spend, budget, balances, allocation, net worth, goals, pending; Net worth spanning two columns at `lg`; `GoalsWidget` keeping its null render with its full-width `gridColumn` on its own root element (no wrapper, so no empty row without a flagged goal); `NetWorthTrendChart` filling its card through `useElementWidth` and `ChartSvg`'s `fillWidth` (`features/dashboard/DashboardPage.tsx`, `GoalsWidget.tsx`, `NetWorthTrendChart`); update the layout test and the Playwright geometry check for the three bands, with and without a flagged goal.
 - [x] Test first for `features/investments/fii/FiiAllocationComparison.tsx` (segments with ticker rows, Actual %, Planned %, difference, color dots matching the donuts, empty and loading states). Implement it and the `compact` prop of `FiiNestedAllocationDonutChart.tsx`; wire `FiiPage.tsx` so only phones (`useIsMobile`) get the two-column donuts plus the table; desktop unchanged.
 - [x] `docs/conventions/frontend-charts.md` if the net-worth chart sizing rule changes.
-- [ ] `scripts/verify.sh frontend`.
+- [x] `scripts/verify.sh frontend`.
 
 ## Phase 10 — Docs
 - [ ] `docs/features/README.md`: the F040 row verified against what was built, and the feature removed from its "Status" list.
@@ -77,11 +77,11 @@ Each phase below is one PR on its own branch off `main` (`feature/f040-<slug>`, 
 - [ ] In the same dialog switch to Transfer, enter a transfer, switch to Income, enter one, then close: all three appear in the Ledger, newest-created first within the same day.
 - [ ] Open "New transaction" and leave Payment Method empty: it has an asterisk, the hint is visible and "Add" is disabled; fill everything and press Enter in Description: it saves and closes.
 - [ ] Save a fuel fill-up with "Add and new": category, vehicle and fuel type stay, liters, price, km and odometer clear.
-- [ ] Open `/investments?tab=products`, reload: the Products tab is selected; switch tabs: the URL updates without adding history entries.
+- [x] Open `/investments?tab=products`, reload: the Products tab is selected; switch tabs: the URL updates without adding history entries.
 - [ ] Open "Record snapshots" from Investments, fill three of the four rows, press Save: one toast ("3 snapshots saved"), the Previous column updates, the blank row was not recorded; open Activity: three `Investment snapshot` entries.
 - [ ] Fill a row, delete that product in another tab, press Save: that row is highlighted with its reason, nothing else is lost, no snapshot of the others was saved; remove the row and Save again: it succeeds.
 - [ ] Enter a negative balance: the row is flagged before anything is sent.
 - [ ] At 390px: the FII page shows both donuts side by side with the comparison table below, "Register dividend" no longer squeezes the title, and the snapshot sheet rows are cards.
-- [ ] At 1366px the Dashboard has three equal cards in row 1, Investment allocation beside a wider Net worth chart in row 2 (the chart fills its card), Upcoming bills below, with no empty cell; flag a goal for the dashboard: its card appears on its own full-width row between Net worth and Upcoming bills and no hole opens; unflag it: no blank row remains; the first Tab stop is "Skip to content".
+- [x] At 1366px the Dashboard has three equal cards in row 1, Investment allocation beside a wider Net worth chart in row 2 (the chart fills its card), Upcoming bills below, with no empty cell; flag a goal for the dashboard: its card appears on its own full-width row between Net worth and Upcoming bills and no hole opens; unflag it: no blank row remains; the first Tab stop is "Skip to content".
 - [ ] Record a snapshot through the sheet for a product allocated to a goal: the goal's value on its page and on the dashboard updates.
 - [ ] `scripts/verify.sh backend frontend` (Docker running) all green.
