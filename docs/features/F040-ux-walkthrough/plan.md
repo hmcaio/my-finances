@@ -21,7 +21,7 @@ Each phase below is one PR on its own branch off `main` (`feature/f040-<slug>`, 
 - [x] `scripts/verify.sh frontend`.
 
 ## Phase 3 — Form dialog shell (frontend)
-- [ ] Test first for `components/feedback/FormDialog.tsx`: Enter in a text field submits when valid; Enter does nothing while `canSubmit` is false or `busy`; required fields render the asterisk and the hint; the submit button is `type="submit"`; `noValidate` suppresses the native bubble; Esc and Cancel close.
+- [x] Test first for `components/feedback/FormDialog.tsx`: Enter in a text field submits when valid; Enter does nothing while `canSubmit` is false or `busy`; required fields render the asterisk and the hint; the submit button is `type="submit"`; `noValidate` suppresses the native bubble; Esc and Cancel close.
 - [ ] Implement `FormDialog.tsx`; rebuild `AddFormDialog.tsx` on it; mark required fields and `autoFocus` the first field on the five pages that use it (Institutions, Categories, Vehicles, Budgets add, Recurring add), dropping their hand-coded Enter handlers where the shell now covers them.
 - [ ] Move `features/investments/products/components/SnapshotDialogs.tsx` (Record snapshot) onto `FormDialog`, with Date and Balance marked required and Balance focused first.
 - [ ] `docs/conventions/frontend-components.md` and `frontend-responsive.md`: the shell and the autofocus and required rules.
