@@ -33,6 +33,31 @@ describe('Layout', () => {
     restoreViewport()
   })
 
+  it.each([
+    ['desktop', 1280],
+    ['mobile', 390],
+  ])(
+    'makes a skip link the first tab stop on %s and moves focus to the main region (F040)',
+    async (_name, width) => {
+      setViewportWidth(width)
+      const user = userEvent.setup({ delay: null })
+      renderLayout()
+
+      await user.tab()
+
+      const skipLink = screen.getByRole('link', { name: 'Skip to content' })
+      expect(skipLink).toHaveFocus()
+      expect(skipLink).toHaveAttribute('href', '#main-content')
+
+      await user.keyboard('{Enter}')
+
+      const main = screen.getByRole('main')
+      expect(main).toHaveAttribute('id', 'main-content')
+      expect(main).toHaveAttribute('tabindex', '-1')
+      expect(main).toHaveFocus()
+    },
+  )
+
   it('shows a permanent drawer and no hamburger on desktop', () => {
     setViewportWidth(1280)
     renderLayout()

@@ -22,7 +22,8 @@
     "vehicles": "Veículos",
     "activity": "Atividade",
     "reports": "Relatórios",
-    "settingsHeading": "Configurações"
+    "settingsHeading": "Configurações",
+    "skipToContent": "Ir para o conteúdo"
   },
   "layout": {
     "logout": "Sair",
