@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createDayScale, createYScale, dayNumber, niceStep } from './chartMath'
+import { createDayScale, createYScale, dayNumber, fitChartSize, niceStep } from './chartMath'
 
 describe('niceStep', () => {
   it.each([
@@ -65,5 +65,24 @@ describe('createDayScale', () => {
   it('centers every date when the span is zero', () => {
     const x = createDayScale('2024-01-01', '2024-01-01', 64, 500)
     expect(x('2024-01-01')).toBe(64 + 250)
+  })
+})
+
+describe('fitChartSize', () => {
+  it('keeps the default 640 by 260 frame where the width is not measured', () => {
+    expect(fitChartSize(null)).toEqual({ width: 640, height: 260 })
+  })
+
+  it('uses the measured width and a height of about a third of it', () => {
+    expect(fitChartSize(960)).toEqual({ width: 960, height: 336 })
+  })
+
+  it('never goes below the default height or the minimum width', () => {
+    expect(fitChartSize(500)).toEqual({ width: 500, height: 260 })
+    expect(fitChartSize(100)).toEqual({ width: 280, height: 260 })
+  })
+
+  it('caps the height on a very wide container', () => {
+    expect(fitChartSize(2000)).toEqual({ width: 2000, height: 400 })
   })
 })

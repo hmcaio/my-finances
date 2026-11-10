@@ -4,12 +4,13 @@ import type { TFunction } from 'i18next'
 import { Box, Skeleton, ToggleButton, ToggleButtonGroup, Typography, useTheme } from '@mui/material'
 import type { NetWorthGranularity, NetWorthPoint } from '../../api/netWorth/netWorth'
 import { useNetWorthTrend } from '../../api/netWorth/netWorthQueries'
-import { CHART_HEIGHT, CHART_WIDTH, ChartSvg, YGrid } from '../../components/charts/ChartSvg'
-import { createDayScale, createYScale } from '../../components/charts/chartMath'
+import { CHART_HEIGHT, ChartSvg, YGrid } from '../../components/charts/ChartSvg'
+import { createDayScale, createYScale, fitChartSize } from '../../components/charts/chartMath'
 import { fadeInSx } from '../../components/feedback/fadeIn'
 import { LoadFailedNotice } from '../../components/feedback/LoadFailedNotice'
 import { useQueryState } from '../../hooks/queryState'
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
+import { useElementWidth } from '../../hooks/useElementWidth'
 import { useLocale, type Locale } from '../../providers/locale/useLocale'
 import { formatMoney, formatNumber } from '../../i18n/format'
 
@@ -40,8 +41,23 @@ function dateLabel(date: string, granularity: NetWorthGranularity): string {
  * embedded widgets), so F012's dashboard can drop it in. The
  * assets / investments / liabilities split is in each point's tooltip and the latest one below the
  * chart. Hand-drawn SVG, no chart dependency.
+ *
+ * The chart fills the width it is given (F040): it measures its container and draws at that width
+ * (`fitChartSize`, a 1:1 viewBox, so text and strokes keep their size) instead of scaling a fixed
+ * 640 wide frame, which on the dashboard's two-column card left it short and capped at 640. The
+ * measured box is a wrapper mounted before the data loads; where the width cannot be measured the
+ * default frame is used.
  */
 export function NetWorthTrendChart() {
+  const [ref, width] = useElementWidth<HTMLDivElement>()
+  return (
+    <Box ref={ref}>
+      <NetWorthTrend availableWidth={width} />
+    </Box>
+  )
+}
+
+function NetWorthTrend({ availableWidth }: { availableWidth: number | null }) {
   const { t } = useTranslation('netWorth')
   const { locale } = useLocale()
   const theme = useTheme()
@@ -96,6 +112,7 @@ export function NetWorthTrendChart() {
         <Chart
           points={points}
           granularity={granularity}
+          availableWidth={availableWidth}
           lineColor={theme.palette.primary.main}
           axisColor={theme.palette.text.secondary}
           gridColor={theme.palette.divider}
@@ -110,6 +127,8 @@ export function NetWorthTrendChart() {
 interface ChartProps {
   points: NetWorthPoint[]
   granularity: NetWorthGranularity
+  /** The container's measured width, or `null` to use the default frame. */
+  availableWidth: number | null
   lineColor: string
   axisColor: string
   gridColor: string
@@ -117,17 +136,27 @@ interface ChartProps {
   locale: Locale
 }
 
-function Chart({ points, granularity, lineColor, axisColor, gridColor, t, locale }: ChartProps) {
+function Chart({
+  points,
+  granularity,
+  availableWidth,
+  lineColor,
+  axisColor,
+  gridColor,
+  t,
+  locale,
+}: ChartProps) {
+  const { width: chartWidth, height: chartHeight } = fitChartSize(availableWidth)
   const values = points.map((p) => p.netWorth)
   const max = Math.max(0, ...values)
   const min = Math.min(0, ...values)
-  const { ticks, y } = createYScale({ min, max, height: CHART_HEIGHT, margin: MARGIN })
+  const { ticks, y } = createYScale({ min, max, height: chartHeight, margin: MARGIN })
   // A single point (or several on one day) sits in the middle.
   const x = createDayScale(
     points[0].date,
     points[points.length - 1].date,
     MARGIN.left,
-    CHART_WIDTH - MARGIN.left - MARGIN.right,
+    chartWidth - MARGIN.left - MARGIN.right,
   )
 
   const labelIndexes = [
@@ -152,9 +181,15 @@ function Chart({ points, granularity, lineColor, axisColor, gridColor, t, locale
 
   return (
     <Box>
-      <ChartSvg label={granularity === 'MONTH' ? t('chartAriaMonth') : t('chartAriaChange')}>
+      <ChartSvg
+        label={granularity === 'MONTH' ? t('chartAriaMonth') : t('chartAriaChange')}
+        width={chartWidth}
+        height={chartHeight}
+        fillWidth={availableWidth !== null}
+      >
         <YGrid
           ticks={ticks}
+          width={chartWidth}
           y={y}
           marginLeft={MARGIN.left}
           marginRight={MARGIN.right}
@@ -166,7 +201,7 @@ function Chart({ points, granularity, lineColor, axisColor, gridColor, t, locale
           <text
             key={points[index].date}
             x={x(points[index].date)}
-            y={CHART_HEIGHT - MARGIN.bottom + 18}
+            y={chartHeight - MARGIN.bottom + 18}
             textAnchor={
               points.length === 1
                 ? 'middle'

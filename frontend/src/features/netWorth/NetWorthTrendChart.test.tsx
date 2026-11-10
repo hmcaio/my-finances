@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { act, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
@@ -7,6 +7,25 @@ import { seedNetWorthTrend } from '../../mocks/handlers/netWorth'
 import { expectLoadStates } from '../../test/contracts/loadStates'
 import { NetWorthTrendChart } from './NetWorthTrendChart'
 import { renderWithQueryClient } from '../../test/utils/renderWithQueryClient'
+
+class FakeResizeObserver {
+  static instances: FakeResizeObserver[] = []
+
+  private readonly callback: (entries: { contentRect: { width: number } }[]) => void
+
+  constructor(callback: (entries: { contentRect: { width: number } }[]) => void) {
+    this.callback = callback
+    FakeResizeObserver.instances.push(this)
+  }
+
+  observe() {}
+
+  disconnect() {}
+
+  report(width: number) {
+    this.callback([{ contentRect: { width } }])
+  }
+}
 
 describe('NetWorthTrendChart', () => {
   it('draws the monthly net worth line with a point per month', async () => {
@@ -90,6 +109,48 @@ describe('NetWorthTrendChart', () => {
     renderWithQueryClient(<NetWorthTrendChart />)
 
     expect(await screen.findByText(/net worth -20.00 = assets 60.00/)).toBeInTheDocument()
+  })
+
+  describe('width (F040)', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals()
+      FakeResizeObserver.instances = []
+    })
+
+    it('keeps the default 640 by 260 frame where the width cannot be measured', async () => {
+      renderWithQueryClient(<NetWorthTrendChart />)
+
+      const chart = await screen.findByRole('img', { name: 'Net worth by month' })
+      expect(chart.getAttribute('viewBox')).toBe('0 0 640 260')
+    })
+
+    it('fills the measured width: the plot runs to the right margin and the frame is not capped', async () => {
+      vi.stubGlobal('ResizeObserver', FakeResizeObserver)
+      renderWithQueryClient(<NetWorthTrendChart />)
+      await screen.findByRole('img', { name: 'Net worth by month' })
+
+      act(() => FakeResizeObserver.instances.forEach((observer) => observer.report(960)))
+
+      const chart = screen.getByRole('img', { name: 'Net worth by month' })
+      expect(chart.getAttribute('viewBox')).toBe('0 0 960 336')
+      // The gridlines end at the 16px right margin of the 960 wide frame, and so does the last point.
+      expect(Number(chart.querySelector('line')?.getAttribute('x2'))).toBe(944)
+      const circles = chart.querySelectorAll('circle')
+      expect(Number(circles[circles.length - 1].getAttribute('cx'))).toBe(944)
+      expect(chart).toHaveStyle({ maxWidth: 'none' })
+    })
+
+    it('measures a box that is mounted before the data arrives, so the first paint is already fitted', async () => {
+      vi.stubGlobal('ResizeObserver', FakeResizeObserver)
+      renderWithQueryClient(<NetWorthTrendChart />)
+      // The observer exists while the chart has not loaded yet: a ref on the data branch would
+      // never attach.
+      expect(FakeResizeObserver.instances).toHaveLength(1)
+      act(() => FakeResizeObserver.instances[0].report(800))
+
+      const chart = await screen.findByRole('img', { name: 'Net worth by month' })
+      expect(chart.getAttribute('viewBox')).toBe('0 0 800 280')
+    })
   })
 
   describe('load states', () => {

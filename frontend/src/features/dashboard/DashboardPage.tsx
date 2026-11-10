@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Box, Paper, Typography } from '@mui/material'
+import { Box, Paper, Typography, type SxProps, type Theme } from '@mui/material'
 import { currentMonth } from '../../utils/localDate'
 import { BudgetVsActualReport } from '../budgets/BudgetVsActualReport'
 import { InvestmentAllocationChart } from '../investments/overview/components/InvestmentAllocationChart'
@@ -11,14 +11,35 @@ import { GoalsWidget } from './GoalsWidget'
 import { SpendByCategoryWidget } from './SpendByCategoryWidget'
 import { PageContainer } from '../../components/layout/PageContainer'
 
-function Section({ title, children }: PropsWithChildren<{ title: string }>) {
+/**
+ * A titled dashboard section. It is a flex column so its card can grow to the height of its grid
+ * row (the cards of one row end level, whatever each holds); `sx` places it in the grid.
+ */
+function Section({
+  title,
+  sx,
+  children,
+}: PropsWithChildren<{ title: string; sx?: SxProps<Theme> }>) {
   return (
-    <Box component="section" aria-label={title}>
+    <Box
+      component="section"
+      aria-label={title}
+      sx={[{ display: 'flex', flexDirection: 'column' }, ...(Array.isArray(sx) ? sx : [sx])]}
+    >
       <Typography variant="h5" component="h2" gutterBottom>
         {title}
       </Typography>
       {children}
     </Box>
+  )
+}
+
+/** The outlined card every widget sits in; it grows to fill the rest of its `Section`. */
+function Card({ padding = 2, children }: PropsWithChildren<{ padding?: number }>) {
+  return (
+    <Paper variant="outlined" sx={{ p: padding, flexGrow: 1 }}>
+      {children}
+    </Paper>
   )
 }
 
@@ -37,8 +58,11 @@ export function DashboardPage() {
       </Typography>
 
       {/* Fluid widget grid (F021 spec): 1 column below `sm`, 2 from `sm` to `lg`, 3 from `lg` up -
-          matching the tablet/desktop bands `useBreakpointBand` reports. The two wide sections
-          (Net worth, Pending occurrences) span every column at both multi-column widths. */}
+          matching the tablet/desktop bands `useBreakpointBand` reports. Three bands at `lg`: spend,
+          budget and balances; investment allocation beside a double-width net worth; then the
+          full-width goals card (F039, only while a goal is flagged) and pending occurrences. Each
+          band's cards end level (see `Section`). The goals card spans its own row from its own
+          root element, so with no goal flagged it leaves neither a cell nor a row gap. */}
       <Box
         sx={{
           display: 'grid',
@@ -51,37 +75,35 @@ export function DashboardPage() {
         }}
       >
         <Section title={t('sections.spendByCategory')}>
-          <Paper variant="outlined" sx={{ p: 2 }}>
+          <Card>
             <SpendByCategoryWidget />
-          </Paper>
+          </Card>
         </Section>
 
         <Section title={t('sections.budgetVsActual')}>
-          <BudgetVsActualReport month={currentMonth()} />
+          <BudgetVsActualReport month={currentMonth()} sx={{ flexGrow: 1 }} />
         </Section>
 
         <Section title={t('sections.accountBalances')}>
-          <Paper variant="outlined" sx={{ p: 1 }}>
+          <Card padding={1}>
             <AccountBalancesWidget />
-          </Paper>
+          </Card>
         </Section>
 
         <Section title={t('sections.investmentAllocation')}>
-          <Paper variant="outlined" sx={{ p: 2 }}>
+          <Card>
             <InvestmentAllocationChart />
-          </Paper>
+          </Card>
+        </Section>
+
+        <Section title={t('sections.netWorth')} sx={{ gridColumn: { sm: '1 / -1', lg: 'span 2' } }}>
+          <Card>
+            <NetWorthTrendChart />
+          </Card>
         </Section>
 
         {/* F039: renders nothing, heading included, while no goal is flagged for the dashboard. */}
         <GoalsWidget />
-
-        <Box sx={{ gridColumn: { sm: '1 / -1' } }}>
-          <Section title={t('sections.netWorth')}>
-            <Paper variant="outlined" sx={{ p: 2 }}>
-              <NetWorthTrendChart />
-            </Paper>
-          </Section>
-        </Box>
 
         <Box sx={{ gridColumn: { sm: '1 / -1' } }}>
           <PendingOccurrencesWidget />

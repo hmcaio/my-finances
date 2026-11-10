@@ -62,9 +62,9 @@ Each phase below is one PR on its own branch off `main` (`feature/f040-<slug>`, 
 - [ ] `scripts/verify.sh frontend`.
 
 ## Phase 9 — Dashboard and FII layout (frontend)
-- [ ] Dashboard: equal-height cards, `BudgetVsActualReport` in a `Paper`, children reordered to spend, budget, balances, allocation, net worth, goals, pending; Net worth spanning two columns at `lg`; `GoalsWidget` keeping its null render with its full-width `gridColumn` on its own root element (no wrapper, so no empty row without a flagged goal); `NetWorthTrendChart` filling its card through `useElementWidth` and `ChartSvg`'s `fillWidth` (`features/dashboard/DashboardPage.tsx`, `GoalsWidget.tsx`, `NetWorthTrendChart`); update the layout test and the Playwright geometry check for the three bands, with and without a flagged goal.
+- [x] Dashboard: equal-height cards, `BudgetVsActualReport` in a `Paper`, children reordered to spend, budget, balances, allocation, net worth, goals, pending; Net worth spanning two columns at `lg`; `GoalsWidget` keeping its null render with its full-width `gridColumn` on its own root element (no wrapper, so no empty row without a flagged goal); `NetWorthTrendChart` filling its card through `useElementWidth` and `ChartSvg`'s `fillWidth` (`features/dashboard/DashboardPage.tsx`, `GoalsWidget.tsx`, `NetWorthTrendChart`); update the layout test and the Playwright geometry check for the three bands, with and without a flagged goal.
 - [x] Test first for `features/investments/fii/FiiAllocationComparison.tsx` (segments with ticker rows, Actual %, Planned %, difference, color dots matching the donuts, empty and loading states). Implement it and the `compact` prop of `FiiNestedAllocationDonutChart.tsx`; wire `FiiPage.tsx` so only phones (`useIsMobile`) get the two-column donuts plus the table; desktop unchanged.
-- [ ] `docs/conventions/frontend-charts.md` if the net-worth chart sizing rule changes.
+- [x] `docs/conventions/frontend-charts.md` if the net-worth chart sizing rule changes.
 - [ ] `scripts/verify.sh frontend`.
 
 ## Phase 10 — Docs
