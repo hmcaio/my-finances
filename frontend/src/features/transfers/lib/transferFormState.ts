@@ -23,6 +23,16 @@ export interface TransferFormPreset {
   productName: string
 }
 
+/**
+ * What a plain create starts with besides a blank form (F040): the date and the From/To accounts
+ * the New entry dialog carries over from the previous entry. Ignored when editing or presetting.
+ */
+export interface TransferCarry {
+  date: string
+  fromAccountId: string
+  toAccountId: string
+}
+
 export interface LineState {
   key: number
   productId: string
@@ -93,6 +103,7 @@ export function initialFormState(
   preset: TransferFormPreset | null,
   accounts: Account[],
   t: Translate,
+  carry: TransferCarry | null = null,
 ): FormState {
   const blank: FormState = {
     mode: 'plain',
@@ -154,7 +165,7 @@ export function initialFormState(
       ),
     }
   }
-  return blank
+  return carry ? { ...blank, ...carry } : blank
 }
 
 /**

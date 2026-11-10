@@ -6,19 +6,9 @@ import type { PaymentMethod } from '../../api/paymentMethods/paymentMethods'
 import type { Vehicle } from '../../api/vehicles/vehicles'
 import { translateSeedName } from '../../i18n/seedNames'
 import { FUEL_TYPES, fuelTypeLabel } from '../../utils/fuelType'
-import type { TransactionFormValues } from './transactionForm'
+import { EMPTY_FUEL_FIELDS, type TransactionFormValues } from './transactionForm'
 import { SELECT_MIN_WIDTH } from '../../components/layout/layoutSx'
 import { FORM_GRID_FULL_ROW } from '../../components/layout/layoutSx'
-
-/** Every field F024 added, empty/cleared. */
-const EMPTY_FUEL_FIELDS = {
-  vehicleId: '',
-  fuelType: '',
-  liters: '',
-  pricePerLiter: '',
-  kmSinceLastFill: '',
-  odometer: '',
-}
 
 interface TransactionFormFieldsProps {
   form: TransactionFormValues
