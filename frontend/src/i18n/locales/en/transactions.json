@@ -27,5 +27,10 @@
     "kmSinceLastFillLabel": "Km Since Last Fill",
     "kmSinceLastFillHelper": "Leave blank on the vehicle's first recorded fill",
     "odometerLabel": "Odometer"
+  },
+  "toast": {
+    "saved": "Transaction saved",
+    "updated": "Transaction updated",
+    "deleted": "Transaction deleted"
   }
 }

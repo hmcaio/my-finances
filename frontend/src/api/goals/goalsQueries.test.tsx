@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
+import { getSnapshot } from '../../providers/notifications/notificationStore'
 import {
   projectionFor,
   seedContributionSuggestion,
@@ -202,6 +203,19 @@ describe('goals writes refresh every goal read', () => {
     await result.current.remove.mutateAsync('goal-fund')
 
     await waitFor(() => expect(result.current.list.data?.map((g) => g.id)).toEqual(['goal-car']))
+  })
+
+  it('a goals write confirms itself with a short message (F040)', async () => {
+    const { result } = renderHookWithQueryClient(() => ({
+      toggle: useSetGoalShowOnDashboard(),
+      remove: useDeleteGoal(),
+    }))
+
+    await result.current.toggle.mutateAsync({ id: 'goal-car', showOnDashboard: true })
+    expect(getSnapshot()?.message).toBe('Goal updated')
+
+    await result.current.remove.mutateAsync('goal-fund')
+    expect(getSnapshot()?.message).toBe('Goal deleted')
   })
 
   it('a failed write invalidates nothing and surfaces the problem', async () => {

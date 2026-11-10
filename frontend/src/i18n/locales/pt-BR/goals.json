@@ -159,5 +159,11 @@
     "average_other": "Média dos últimos {{count}} meses: {{amount}}",
     "none": "Nenhum aporte nos produtos desta meta nos últimos 12 meses, então não há o que sugerir. O campo foi preenchido com 0.",
     "hint": "Preenche o campo com o que você realmente aportou nos produtos desta meta; nada é salvo até você clicar em Salvar."
+  },
+  "toast": {
+    "saved": "Meta salva",
+    "updated": "Meta atualizada",
+    "deleted": "Meta excluída",
+    "allocationsSaved": "Alocações salvas"
   }
 }

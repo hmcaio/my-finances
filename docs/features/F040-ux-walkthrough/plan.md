@@ -15,7 +15,7 @@ Each phase below is one PR on its own branch off `main` (`feature/f040-<slug>`, 
 - [x] Test first: the notification store (publish, subscribe, reset between tests in `src/test/setup.ts`) and `NotificationHost` (renders the message with `role="status"`, hides after the timeout, a second message replaces the first).
 - [x] Implement `providers/notifications/notificationStore.ts` and `NotificationHost.tsx`; render the host in `components/layout/Layout.tsx`.
 - [x] Test first: `createQueryClient` publishes `i18n.t(meta.successMessage, options)` on success, still publishes when `skipInvalidate` is set, publishes nothing on error and nothing without the meta. Implement the two `mutationMeta` keys and the `onSuccess` branch in `api/core/queryClient.ts`.
-- [ ] Add `meta.successMessage` (English and Brazilian Portuguese keys) to every create, update and delete mutation in `api/**/*Queries.ts`; allowlist login, logout and other non-write mutations. Includes the five goals mutations in `api/goals/goalsQueries.ts` (create, edit, show on dashboard, delete, replace allocations), with their keys in both `goals.json` files.
+- [x] Add `meta.successMessage` (English and Brazilian Portuguese keys) to every create, update and delete mutation in `api/**/*Queries.ts`; allowlist login, logout and other non-write mutations. Includes the five goals mutations in `api/goals/goalsQueries.ts` (create, edit, show on dashboard, delete, replace allocations), with their keys in both `goals.json` files.
 - [ ] `src/test/contracts/mutationMessages.test.ts`: fails for a mutation hook with neither a message nor an allowlist entry.
 - [ ] `docs/conventions/frontend-data-loading.md` and `frontend-components.md`: the toast rule.
 - [ ] `scripts/verify.sh frontend`.

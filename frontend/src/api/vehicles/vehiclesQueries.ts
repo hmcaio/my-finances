@@ -35,16 +35,23 @@ export function useVehicleFuelHistory(vehicleId: string | null, filter: FuelHist
 }
 
 export function useCreateVehicle() {
-  return useMutation({ mutationFn: createVehicle })
+  return useMutation({
+    meta: { successMessage: 'vehicles:toast.saved' },
+    mutationFn: createVehicle,
+  })
 }
 
 export function useRenameVehicle() {
   return useMutation({
+    meta: { successMessage: 'vehicles:toast.updated' },
     mutationFn: ({ id, ...request }: UpdateVehicleRequest & { id: string }) =>
       renameVehicle(id, request),
   })
 }
 
 export function useDeleteVehicle() {
-  return useMutation({ mutationFn: deleteVehicle })
+  return useMutation({
+    meta: { successMessage: 'vehicles:toast.deleted' },
+    mutationFn: deleteVehicle,
+  })
 }

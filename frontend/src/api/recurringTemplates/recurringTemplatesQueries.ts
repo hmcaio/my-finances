@@ -36,26 +36,37 @@ export function usePendingRecurringOccurrences() {
 }
 
 export function useCreateRecurringTemplate() {
-  return useMutation({ mutationFn: createRecurringTemplate })
+  return useMutation({
+    meta: { successMessage: 'recurringTemplates:toast.saved' },
+    mutationFn: createRecurringTemplate,
+  })
 }
 
 export function useSetRecurringTemplateCap() {
   return useMutation({
+    meta: { successMessage: 'recurringTemplates:toast.updated' },
     mutationFn: ({ id, ...request }: UpdateRecurringTemplateCapRequest & { id: string }) =>
       setRecurringTemplateCap(id, request),
   })
 }
 
 export function useStopRecurringTemplate() {
-  return useMutation({ mutationFn: stopRecurringTemplate })
+  return useMutation({
+    meta: { successMessage: 'recurringTemplates:toast.stopped' },
+    mutationFn: stopRecurringTemplate,
+  })
 }
 
 export function useReactivateRecurringTemplate() {
-  return useMutation({ mutationFn: reactivateRecurringTemplate })
+  return useMutation({
+    meta: { successMessage: 'recurringTemplates:toast.reactivated' },
+    mutationFn: reactivateRecurringTemplate,
+  })
 }
 
 export function useConfirmPendingOccurrence() {
   return useMutation({
+    meta: { successMessage: 'recurringTemplates:toast.confirmed' },
     mutationFn: ({ id, ...request }: ConfirmPendingOccurrenceRequest & { id: string }) =>
       confirmPendingRecurringOccurrence(id, request),
   })
@@ -69,7 +80,7 @@ export function useDismissPendingOccurrence() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: dismissPendingRecurringOccurrence,
-    meta: { skipInvalidate: true },
+    meta: { skipInvalidate: true, successMessage: 'recurringTemplates:toast.dismissed' },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: recurringTemplateKeys.pending() }),
   })
 }

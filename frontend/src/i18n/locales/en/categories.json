@@ -9,5 +9,10 @@
   "typeIncome": "Income",
   "starterPrompt": "Start with a set of suggested categories, or keep adding your own.",
   "starterButton": "Suggest categories",
-  "starterDialogTitle": "Suggested categories"
+  "starterDialogTitle": "Suggested categories",
+  "toast": {
+    "saved": "Category saved",
+    "updated": "Category updated",
+    "deleted": "Category deleted"
+  }
 }

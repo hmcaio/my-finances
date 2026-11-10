@@ -42,5 +42,10 @@
     "cashAccountFallback": "cash account",
     "investmentAccountFallback": "investment account",
     "saveChanges": "Save changes"
+  },
+  "toast": {
+    "saved": "Transfer saved",
+    "updated": "Transfer updated",
+    "deleted": "Transfer deleted"
   }
 }

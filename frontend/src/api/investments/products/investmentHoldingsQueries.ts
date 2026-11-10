@@ -57,20 +57,30 @@ export function useInvestmentHolding(id: string | undefined) {
 }
 
 export function useCreateInvestmentHolding() {
-  return useMutation({ mutationFn: createInvestmentHolding })
+  return useMutation({
+    meta: { successMessage: 'investmentProducts:toast.holdingSaved' },
+    mutationFn: createInvestmentHolding,
+  })
 }
 
 export function useEditInvestmentHoldingNotes() {
   return useMutation({
+    meta: { successMessage: 'investmentProducts:toast.holdingUpdated' },
     mutationFn: ({ id, ...request }: UpdateInvestmentHoldingRequest & { id: string }) =>
       editInvestmentHoldingNotes(id, request),
   })
 }
 
 export function useCloseInvestmentHolding() {
-  return useMutation({ mutationFn: closeInvestmentHolding })
+  return useMutation({
+    meta: { successMessage: 'investmentProducts:toast.holdingClosed' },
+    mutationFn: closeInvestmentHolding,
+  })
 }
 
 export function useDeleteInvestmentHolding() {
-  return useMutation({ mutationFn: deleteInvestmentHolding })
+  return useMutation({
+    meta: { successMessage: 'investmentProducts:toast.holdingDeleted' },
+    mutationFn: deleteInvestmentHolding,
+  })
 }

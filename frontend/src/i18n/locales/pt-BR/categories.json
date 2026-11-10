@@ -9,5 +9,10 @@
   "typeIncome": "Receita",
   "starterPrompt": "Comece com um conjunto de categorias sugeridas, ou continue adicionando as suas.",
   "starterButton": "Sugerir categorias",
-  "starterDialogTitle": "Categorias sugeridas"
+  "starterDialogTitle": "Categorias sugeridas",
+  "toast": {
+    "saved": "Categoria salva",
+    "updated": "Categoria atualizada",
+    "deleted": "Categoria excluída"
+  }
 }

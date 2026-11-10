@@ -50,5 +50,13 @@
       "body": "No transaction will be created for it. This can't be undone, but the next catch-up run won't regenerate it either.",
       "confirmLabel": "Dismiss"
     }
+  },
+  "toast": {
+    "saved": "Recurring template saved",
+    "updated": "Recurring template updated",
+    "stopped": "Recurring template stopped",
+    "reactivated": "Recurring template reactivated",
+    "confirmed": "Occurrence confirmed",
+    "dismissed": "Occurrence dismissed"
   }
 }

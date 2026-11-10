@@ -43,20 +43,30 @@ export function useAccount(id: string | undefined) {
 }
 
 export function useCreateAccount() {
-  return useMutation({ mutationFn: createAccount })
+  return useMutation({
+    meta: { successMessage: 'accounts:toast.saved' },
+    mutationFn: createAccount,
+  })
 }
 
 export function useEditAccount() {
   return useMutation({
+    meta: { successMessage: 'accounts:toast.updated' },
     mutationFn: ({ id, ...request }: UpdateAccountRequest & { id: string }) =>
       editAccount(id, request),
   })
 }
 
 export function useCloseAccount() {
-  return useMutation({ mutationFn: closeAccount })
+  return useMutation({
+    meta: { successMessage: 'accounts:toast.closed' },
+    mutationFn: closeAccount,
+  })
 }
 
 export function useDeleteAccount() {
-  return useMutation({ mutationFn: deleteAccount })
+  return useMutation({
+    meta: { successMessage: 'accounts:toast.deleted' },
+    mutationFn: deleteAccount,
+  })
 }

@@ -23,16 +23,23 @@ export function useCategories() {
 }
 
 export function useCreateCategory() {
-  return useMutation({ mutationFn: createCategory })
+  return useMutation({
+    meta: { successMessage: 'categories:toast.saved' },
+    mutationFn: createCategory,
+  })
 }
 
 export function useRenameCategory() {
   return useMutation({
+    meta: { successMessage: 'categories:toast.updated' },
     mutationFn: ({ id, ...request }: UpdateCategoryRequest & { id: string }) =>
       renameCategory(id, request),
   })
 }
 
 export function useDeleteCategory() {
-  return useMutation({ mutationFn: deleteCategory })
+  return useMutation({
+    meta: { successMessage: 'categories:toast.deleted' },
+    mutationFn: deleteCategory,
+  })
 }

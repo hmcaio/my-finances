@@ -154,5 +154,19 @@
     "deleteBody": "Delete the opening position as of {{date}}? Cotas held and the amount contributed no longer include it. Snapshots are kept.",
     "deleteConfirm": "Delete",
     "loading": "Loading opening position"
+  },
+  "toast": {
+    "productSaved": "Product saved",
+    "productUpdated": "Product updated",
+    "productDeleted": "Product deleted",
+    "holdingSaved": "Holding saved",
+    "holdingUpdated": "Holding updated",
+    "holdingClosed": "Holding closed",
+    "holdingDeleted": "Holding deleted",
+    "openingPositionSaved": "Opening position saved",
+    "openingPositionDeleted": "Opening position deleted",
+    "snapshotSaved": "Snapshot saved",
+    "snapshotUpdated": "Snapshot updated",
+    "snapshotDeleted": "Snapshot deleted"
   }
 }

@@ -5,5 +5,10 @@
   "addDialogTitle": "Adicionar instituição",
   "emptyList": "Nenhuma instituição ainda.",
   "defaultSelectLabel": "Instituição",
-  "addNewOption": "Adicionar “{{name}}”"
+  "addNewOption": "Adicionar “{{name}}”",
+  "toast": {
+    "saved": "Instituição salva",
+    "updated": "Instituição atualizada",
+    "deleted": "Instituição excluída"
+  }
 }

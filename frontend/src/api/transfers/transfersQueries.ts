@@ -29,16 +29,23 @@ export function useTransfer(id: string | null) {
 }
 
 export function useCreateTransfer() {
-  return useMutation({ mutationFn: createTransfer })
+  return useMutation({
+    meta: { successMessage: 'transfers:toast.saved' },
+    mutationFn: createTransfer,
+  })
 }
 
 export function useEditTransfer() {
   return useMutation({
+    meta: { successMessage: 'transfers:toast.updated' },
     mutationFn: ({ id, ...request }: UpdateTransferRequest & { id: string }) =>
       editTransfer(id, request),
   })
 }
 
 export function useDeleteTransfer() {
-  return useMutation({ mutationFn: deleteTransfer })
+  return useMutation({
+    meta: { successMessage: 'transfers:toast.deleted' },
+    mutationFn: deleteTransfer,
+  })
 }

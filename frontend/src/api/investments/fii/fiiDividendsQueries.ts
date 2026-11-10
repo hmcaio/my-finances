@@ -44,5 +44,8 @@ export function useDividendTotalsByMonth(filter: Omit<DividendFilter, 'productId
  * `Transaction`, so this reuses `createTransaction` rather than a bespoke endpoint).
  */
 export function useRegisterDividend() {
-  return useMutation({ mutationFn: createTransaction })
+  return useMutation({
+    meta: { successMessage: 'fii:toast.dividendRegistered' },
+    mutationFn: createTransaction,
+  })
 }

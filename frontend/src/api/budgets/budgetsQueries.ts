@@ -26,18 +26,20 @@ export function useBudgetReport(month: string) {
 }
 
 export function useCreateBudget() {
-  return useMutation({ mutationFn: createBudget })
+  return useMutation({ meta: { successMessage: 'budgets:toast.saved' }, mutationFn: createBudget })
 }
 
 /** Stops budgeting from a month onward; resume with `useSetBudgetCap`. */
 export function useStopBudget() {
   return useMutation({
+    meta: { successMessage: 'budgets:toast.stopped' },
     mutationFn: ({ id, ...request }: StopBudgetRequest & { id: string }) => stopBudget(id, request),
   })
 }
 
 export function useSetBudgetCap() {
   return useMutation({
+    meta: { successMessage: 'budgets:toast.updated' },
     mutationFn: ({ id, ...request }: UpdateBudgetCapRequest & { id: string }) =>
       setBudgetCap(id, request),
   })

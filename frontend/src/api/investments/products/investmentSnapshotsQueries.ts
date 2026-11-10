@@ -27,6 +27,7 @@ export function useInvestmentSnapshots(holdingId: string | undefined) {
 
 export function useRecordInvestmentSnapshot() {
   return useMutation({
+    meta: { successMessage: 'investmentProducts:toast.snapshotSaved' },
     mutationFn: ({ holdingId, ...request }: RecordSnapshotRequest & { holdingId: string }) =>
       recordInvestmentSnapshot(holdingId, request),
   })
@@ -34,6 +35,7 @@ export function useRecordInvestmentSnapshot() {
 
 export function useUpdateInvestmentSnapshot() {
   return useMutation({
+    meta: { successMessage: 'investmentProducts:toast.snapshotUpdated' },
     mutationFn: ({
       holdingId,
       snapshotId,
@@ -45,6 +47,7 @@ export function useUpdateInvestmentSnapshot() {
 
 export function useDeleteInvestmentSnapshot() {
   return useMutation({
+    meta: { successMessage: 'investmentProducts:toast.snapshotDeleted' },
     mutationFn: ({ holdingId, snapshotId }: { holdingId: string; snapshotId: string }) =>
       deleteInvestmentSnapshot(holdingId, snapshotId),
   })

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
+import { getSnapshot } from '../../providers/notifications/notificationStore'
 import {
   seedCategorySpend,
   seedGroceriesTransaction,
@@ -63,6 +64,28 @@ describe('transactions hooks', () => {
         seedGroceriesTransaction.id,
       ),
     )
+  })
+
+  it('shows a short confirmation after a create and a delete (F040)', async () => {
+    const { result } = renderHookWithQueryClient(() => ({
+      create: useCreateTransaction(),
+      remove: useDeleteTransaction(),
+    }))
+
+    await result.current.create.mutateAsync(request)
+    expect(getSnapshot()?.message).toBe('Transaction saved')
+
+    await result.current.remove.mutateAsync(seedGroceriesTransaction.id)
+    expect(getSnapshot()?.message).toBe('Transaction deleted')
+  })
+
+  it('shows no confirmation after a rejected create (F040)', async () => {
+    server.use(transactionClosedAccountConflictHandler)
+    const { result } = renderHookWithQueryClient(() => useCreateTransaction())
+
+    await expect(result.current.mutateAsync(request)).rejects.toThrow()
+
+    expect(getSnapshot()).toBeNull()
   })
 
   it('does not refetch after a rejected create, and keeps the closed-account message', async () => {

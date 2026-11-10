@@ -32,6 +32,7 @@ export function useOpeningPosition(holdingId: string | undefined) {
  */
 export function useSaveOpeningPosition() {
   return useMutation({
+    meta: { successMessage: 'investmentProducts:toast.openingPositionSaved' },
     mutationFn: ({ holdingId, ...request }: OpeningPositionRequest & { holdingId: string }) =>
       putOpeningPosition(holdingId, request),
   })
@@ -39,6 +40,7 @@ export function useSaveOpeningPosition() {
 
 export function useDeleteOpeningPosition() {
   return useMutation({
+    meta: { successMessage: 'investmentProducts:toast.openingPositionDeleted' },
     mutationFn: (holdingId: string) => deleteOpeningPosition(holdingId),
   })
 }
