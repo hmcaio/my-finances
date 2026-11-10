@@ -102,15 +102,48 @@ describe('BudgetsPage', () => {
 
     await user.click(within(dialog).getByLabelText('Category'))
     await user.click(await screen.findByRole('option', { name: 'Dining' }))
-    await user.type(within(dialog).getByLabelText('Monthly cap'), '150')
+    await user.type(within(dialog).getByRole('spinbutton', { name: 'Monthly cap' }), '150')
     await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 
     const reopened = await openAddDialog(user)
-    expect(within(reopened).getByLabelText('Monthly cap')).toHaveValue(null)
+    expect(within(reopened).getByRole('spinbutton', { name: 'Monthly cap' })).toHaveValue(null)
     expect(within(reopened).getByRole('combobox', { name: 'Category' })).not.toHaveTextContent(
       'Dining',
     )
+  })
+
+  it('marks the required fields, focuses the first and adds on Enter (F040)', async () => {
+    server.use(
+      http.get('/api/categories', () =>
+        HttpResponse.json([
+          ...seedCategories,
+          { id: 'cat-5', name: 'Dining', type: 'EXPENSE', builtIn: false, fuelCategory: false },
+        ]),
+      ),
+    )
+    const user = userEvent.setup({ delay: null })
+    renderWithQueryClient(<BudgetsPage />)
+    await findRow(seedGroceriesCategory.name, settingsTable())
+    const dialog = await openAddDialog(user)
+
+    const category = within(dialog).getByLabelText('Category')
+    const cap = within(dialog).getByRole('spinbutton', { name: 'Monthly cap' })
+    expect(category).toHaveFocus()
+    expect(category).toHaveAttribute('aria-required', 'true')
+    expect(within(dialog).getByText('Category *')).toBeVisible()
+    expect(cap).toBeRequired()
+    expect(within(dialog).getByText('Fields marked * are required')).toBeVisible()
+    expect(within(dialog).getByRole('button', { name: 'Add' })).toBeDisabled()
+
+    await user.click(category)
+    await user.click(await screen.findByRole('option', { name: 'Dining' }))
+    await user.type(cap, '{Enter}')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    await user.type(cap, '150{Enter}')
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(await settingsTable().findByText('Dining')).toBeInTheDocument()
   })
 
   it('adds a new budget for an unbudgeted expense category', async () => {
@@ -129,7 +162,7 @@ describe('BudgetsPage', () => {
 
     await user.click(within(dialog).getByLabelText('Category'))
     await user.click(await screen.findByRole('option', { name: 'Dining' }))
-    await user.type(within(dialog).getByLabelText('Monthly cap'), '150')
+    await user.type(within(dialog).getByRole('spinbutton', { name: 'Monthly cap' }), '150')
     await user.click(within(dialog).getByRole('button', { name: 'Add' }))
 
     // The dialog (which hides the table from the accessibility tree while open) must close before
@@ -155,7 +188,7 @@ describe('BudgetsPage', () => {
 
     await user.click(within(dialog).getByLabelText('Category'))
     await user.click(await screen.findByRole('option', { name: 'Dining' }))
-    await user.type(within(dialog).getByLabelText('Monthly cap'), '150')
+    await user.type(within(dialog).getByRole('spinbutton', { name: 'Monthly cap' }), '150')
     await user.click(within(dialog).getByRole('button', { name: 'Add' }))
 
     expect(

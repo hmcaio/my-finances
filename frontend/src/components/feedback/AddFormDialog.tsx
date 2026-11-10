@@ -1,9 +1,7 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, DialogActions, DialogTitle } from '@mui/material'
-import { ErrorAlert } from './ErrorAlert'
-import { FormGrid, ResponsiveDialog } from './ResponsiveDialog'
-import { FormDialogContent } from './FormDialogContent'
+import { FormDialog } from './FormDialog'
+import { FormGrid } from './ResponsiveDialog'
 
 interface AddFormDialogProps {
   open: boolean
@@ -11,7 +9,7 @@ interface AddFormDialogProps {
   /** The page's save error, shown inside the open dialog (the page hides its own banner then). */
   error: string | null
   onDismissError: () => void
-  /** A save is in flight: Cancel and Add are disabled. */
+  /** A save is in flight: Cancel and Add are disabled, Enter does nothing. */
   busy: boolean
   /** The draft is valid; Add stays disabled until it is. */
   canSubmit: boolean
@@ -20,7 +18,7 @@ interface AddFormDialogProps {
   onSubmit: () => void
   /** Cancel button and Esc/backdrop. The page's handler resets the draft (`useAddDialog.close`). */
   onCancel: () => void
-  /** The fields, laid out in the `FormGrid`. */
+  /** The fields, laid out in the `FormGrid`: mark the required ones `required` and the first `autoFocus`. */
   children: ReactNode
   /** Rendered below the grid, inside the dialog body (e.g. a hint about the fields). */
   afterFields?: ReactNode
@@ -28,9 +26,9 @@ interface AddFormDialogProps {
 
 /**
  * The shell the settings-style pages share for their "Add" dialog (Institutions, Categories,
- * Vehicles, Budgets, Recurring templates; issue #232): a `ResponsiveDialog` with the title, the
- * error banner, the fields in a `FormGrid`, and Cancel / Add. The fields and the draft state stay
- * in the page (`useAddDialog`), since they differ per page.
+ * Vehicles, Budgets, Recurring templates; issue #232): a `FormDialog` (Enter submits, required
+ * hint, Cancel / Add) with the fields in a `FormGrid`. The fields and the draft state stay in the
+ * page (`useAddDialog`), since they differ per page.
  */
 export function AddFormDialog({
   open,
@@ -47,21 +45,19 @@ export function AddFormDialog({
 }: AddFormDialogProps) {
   const { t } = useTranslation('common')
   return (
-    <ResponsiveDialog open={open} onClose={onCancel}>
-      <DialogTitle>{title}</DialogTitle>
-      <FormDialogContent>
-        <ErrorAlert message={error} onDismiss={onDismissError} />
-        <FormGrid columns={columns}>{children}</FormGrid>
-        {afterFields}
-      </FormDialogContent>
-      <DialogActions>
-        <Button onClick={onCancel} disabled={busy}>
-          {t('actions.cancel')}
-        </Button>
-        <Button variant="contained" disabled={busy || !canSubmit} onClick={onSubmit}>
-          {t('actions.add')}
-        </Button>
-      </DialogActions>
-    </ResponsiveDialog>
+    <FormDialog
+      open={open}
+      title={title}
+      onClose={onCancel}
+      onSubmit={onSubmit}
+      canSubmit={canSubmit}
+      busy={busy}
+      submitLabel={t('actions.add')}
+      error={error}
+      onDismissError={onDismissError}
+    >
+      <FormGrid columns={columns}>{children}</FormGrid>
+      {afterFields}
+    </FormDialog>
   )
 }

@@ -207,9 +207,7 @@ export function InstitutionsPage() {
           onChange={(e) => addDialog.setDraft(e.target.value)}
           slotProps={{ htmlInput: { maxLength: INSTITUTION_NAME_MAX_LENGTH } }}
           autoFocus
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') void handleAdd()
-          }}
+          required
         />
       </AddFormDialog>
     </PageContainer>

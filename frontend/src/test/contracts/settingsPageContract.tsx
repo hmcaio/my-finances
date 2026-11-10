@@ -92,10 +92,31 @@ export function describeSettingsPage<Entity extends { id: string; name: string }
 
     await user.click(screen.getByRole('button', { name: addButtonLabel }))
     const dialog = screen.getByRole('dialog')
-    await user.type(within(dialog).getByLabelText('Name'), newName)
+    await user.type(within(dialog).getByRole('textbox', { name: 'Name' }), newName)
     await user.click(within(dialog).getByRole('button', { name: 'Add' }))
 
     expect(await screen.findByText(newName)).toBeInTheDocument()
+  })
+
+  it('marks the name required, focuses it and adds on Enter (F040)', async () => {
+    const user = userEvent.setup({ delay: null })
+    renderWithQueryClient(page)
+    await screen.findByText(seedRows[0].name)
+
+    await user.click(screen.getByRole('button', { name: addButtonLabel }))
+    const dialog = within(screen.getByRole('dialog'))
+    const name = dialog.getByRole('textbox', { name: 'Name' })
+    expect(name).toBeRequired()
+    expect(name).toHaveFocus()
+    expect(dialog.getByText('Fields marked * are required')).toBeVisible()
+    // Enter does nothing while the name is blank...
+    await user.keyboard('{Enter}')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    // ...and submits once it is filled.
+    await user.type(name, `${newName}{Enter}`)
+
+    expect(await screen.findByText(newName)).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
 
   it('reopens the add dialog empty after Cancel (issue #232)', async () => {
@@ -104,12 +125,17 @@ export function describeSettingsPage<Entity extends { id: string; name: string }
     await screen.findByText(seedRows[0].name)
 
     await user.click(screen.getByRole('button', { name: addButtonLabel }))
-    await user.type(within(screen.getByRole('dialog')).getByLabelText('Name'), newName)
+    await user.type(
+      within(screen.getByRole('dialog')).getByRole('textbox', { name: 'Name' }),
+      newName,
+    )
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 
     await user.click(screen.getByRole('button', { name: addButtonLabel }))
-    expect(within(screen.getByRole('dialog')).getByLabelText('Name')).toHaveValue('')
+    expect(within(screen.getByRole('dialog')).getByRole('textbox', { name: 'Name' })).toHaveValue(
+      '',
+    )
   })
 
   it('renames a row inline', async () => {
@@ -162,7 +188,7 @@ export function describeSettingsPage<Entity extends { id: string; name: string }
 
     await user.click(screen.getByRole('button', { name: addButtonLabel }))
     const dialog = screen.getByRole('dialog')
-    await user.type(within(dialog).getByLabelText('Name'), seedRows[0].name)
+    await user.type(within(dialog).getByRole('textbox', { name: 'Name' }), seedRows[0].name)
     await user.click(within(dialog).getByRole('button', { name: 'Add' }))
 
     expect(await screen.findByText(duplicateName.message)).toBeInTheDocument()
@@ -176,7 +202,10 @@ export function describeSettingsPage<Entity extends { id: string; name: string }
 
       await user.click(screen.getByRole('button', { name: addButtonLabel }))
       const dialog = screen.getByRole('dialog')
-      expect(within(dialog).getByLabelText('Name')).toHaveAttribute('maxlength', String(maxLength))
+      expect(within(dialog).getByRole('textbox', { name: 'Name' })).toHaveAttribute(
+        'maxlength',
+        String(maxLength),
+      )
       // Close the dialog before touching the row below: it's aria-hidden while the dialog is open.
       await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())

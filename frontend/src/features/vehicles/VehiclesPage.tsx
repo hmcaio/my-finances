@@ -188,9 +188,7 @@ export function VehiclesPage() {
           onChange={(e) => addDialog.setDraft(e.target.value)}
           slotProps={{ htmlInput: { maxLength: VEHICLE_NAME_MAX_LENGTH } }}
           autoFocus
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') void handleAdd()
-          }}
+          required
         />
       </AddFormDialog>
     </PageContainer>
