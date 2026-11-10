@@ -70,6 +70,16 @@ const SYSTEM_VALUES_NAV_ITEMS: NavItem[] = [
 
 const MAIN_CONTENT_ID = 'main-content'
 
+/** The Settings group label: a section heading, not a disabled-looking item (F040). */
+const SETTINGS_HEADING_SX = {
+  color: 'text.primary',
+  fontSize: '0.75rem',
+  fontWeight: 700,
+  letterSpacing: '0.08em',
+  lineHeight: '36px',
+  textTransform: 'uppercase',
+} as const
+
 /** Hidden until it takes keyboard focus, then drawn above the AppBar (F040). The clip-based
  * hiding keeps it a real tab stop; `1px`, not a bare number, because `width: 1` means 100%. */
 const SKIP_LINK_SX = (theme: Theme) => ({
@@ -169,7 +179,7 @@ export function Layout({ children }: PropsWithChildren) {
         {MAIN_NAV_ITEMS.map((item) => (
           <NavListItem key={item.path} item={item} pathname={pathname} t={t} />
         ))}
-        <ListSubheader component="div" disableSticky>
+        <ListSubheader component="div" disableSticky sx={SETTINGS_HEADING_SX}>
           {t('nav.settingsHeading')}
         </ListSubheader>
         {SETTINGS_NAV_ITEMS.map((item) => (

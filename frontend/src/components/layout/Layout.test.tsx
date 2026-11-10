@@ -160,6 +160,16 @@ describe('Layout', () => {
     }
   })
 
+  it('styles the Settings label as a section heading, not a disabled-looking item (F040)', () => {
+    setViewportWidth(1280)
+    renderLayout()
+
+    expect(screen.getByText('Settings')).toHaveStyle({
+      fontWeight: '700',
+      textTransform: 'uppercase',
+    })
+  })
+
   it('renders the "System values" nav group collapsed by default (F034/ADR 0028)', () => {
     setViewportWidth(1280)
     renderLayout()
