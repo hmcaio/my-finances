@@ -170,7 +170,7 @@ export function FuelPage() {
 
   return (
     <PageContainer>
-      <PageHeader title={t('title')} sx={{ flexWrap: 'wrap' }}>
+      <PageHeader title={t('title')}>
         <Button variant="contained" onClick={addFuelTransaction} disabled={!fuelCategory}>
           {t('addFuelTransactionButton')}
         </Button>

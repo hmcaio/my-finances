@@ -8,7 +8,7 @@ Each phase below is one PR on its own branch off `main` (`feature/f040-<slug>`, 
 - [x] Replace "(or the Transfers page)" in `i18n/locales/en/investments.json` and the `pt-BR` twin with the Ledger wording; update the test that asserts the old text, if any.
 - [x] Restyle the Settings `ListSubheader` in `components/layout/Layout.tsx` as a section heading (light and dark).
 - [x] Test first: a jsdom test that the skip link is the first tab stop and moves focus to `#main-content`. Implement the skip link in `Layout.tsx` (`common:nav.skipToContent`, English and Brazilian Portuguese); give the `main` region `id` and `tabIndex={-1}`.
-- [ ] `components/layout/PageHeader.tsx`: `flexWrap: 'wrap'` by default; drop the redundant `sx` in `features/fuel/FuelPage.tsx`; extend the Playwright geometry check so the FII header at 360px does not squeeze the title.
+- [x] `components/layout/PageHeader.tsx`: `flexWrap: 'wrap'` by default; drop the redundant `sx` in `features/fuel/FuelPage.tsx`; a Playwright geometry check (new `e2e/fii.spec.ts`; no FII spec existed to extend) that the FII header at 360px does not squeeze the title.
 - [ ] `scripts/verify.sh frontend`.
 
 ## Phase 2 — Success toast (frontend)

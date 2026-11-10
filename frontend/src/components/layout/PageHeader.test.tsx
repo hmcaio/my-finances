@@ -31,13 +31,21 @@ describe('PageHeader', () => {
       gap: '16px',
       marginBottom: '8px',
     })
-    expect(row).not.toHaveStyle({ flexWrap: 'wrap' })
+  })
+
+  it('wraps by default so an action never squeezes the title on a phone (F040)', () => {
+    expect(renderHeader()).toHaveStyle({ flexWrap: 'wrap' })
   })
 
   it('merges a per-site sx after the base', () => {
-    const row = renderHeader({ sx: { flexWrap: 'wrap' } })
+    const row = renderHeader({ sx: { flexWrap: 'nowrap', gap: 1 } })
 
-    expect(row).toHaveStyle({ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap' })
+    expect(row).toHaveStyle({
+      display: 'flex',
+      justifyContent: 'space-between',
+      flexWrap: 'nowrap',
+      gap: '8px',
+    })
   })
 
   it('renders without actions', () => {

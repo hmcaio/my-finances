@@ -6,18 +6,20 @@ interface PageHeaderProps {
   title: ReactNode
   /** The page-level actions (an "Add" button, its menu), at the end of the row. */
   children?: ReactNode
-  /** Per-site additions, merged after the base row (e.g. `{ flexWrap: 'wrap' }`). */
+  /** Per-site additions, merged after the base row. */
   sx?: SxProps<Theme>
 }
 
-/** The title row of a list page: the `h1` at the start, its actions at the end, 8px above the
- * description. Pages with only a title and no action keep a plain `Typography`. */
+/** The title row of a list page: the `h1` at the start, its actions at the end (wrapping under the
+ * title when they do not fit, so a phone never squeezes it), 8px above the description. Pages with
+ * only a title and no action keep a plain `Typography`. */
 export function PageHeader({ title, children, sx }: PageHeaderProps) {
   return (
     <Box
       sx={[
         {
           display: 'flex',
+          flexWrap: 'wrap',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 2,
