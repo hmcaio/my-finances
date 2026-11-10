@@ -73,13 +73,14 @@ export function TradeLinesFields({
         <Select
           size="small"
           displayEmpty
+          required
           value={holdingOptions.some((h) => h.productId === line.productId) ? line.productId : ''}
           onChange={(e) => lineActions.update(line.key, { productId: e.target.value })}
           aria-label={t('transfers:form.productLabel')}
           sx={{ minWidth: 180 }}
         >
           <MenuItem value="" disabled>
-            {t('transfers:form.productLabel')}
+            {`${t('transfers:form.productLabel')} *`}
           </MenuItem>
           {holdingOptions.map((h) => (
             <MenuItem key={h.id} value={h.productId}>
@@ -100,6 +101,7 @@ export function TradeLinesFields({
           label={t('transfers:form.quantityLabel')}
           type="number"
           size="small"
+          required
           value={line.quantity}
           onChange={(e) => lineActions.update(line.key, { quantity: e.target.value })}
           slotProps={{ htmlInput: { step: 'any', min: '0' } }}
@@ -108,6 +110,7 @@ export function TradeLinesFields({
           label={t('transfers:form.unitPriceLabel')}
           type="number"
           size="small"
+          required
           value={line.unitPrice}
           onChange={(e) => lineActions.update(line.key, { unitPrice: e.target.value })}
           slotProps={{ htmlInput: { step: 'any', min: '0' } }}

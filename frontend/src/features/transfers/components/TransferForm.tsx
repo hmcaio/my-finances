@@ -1,18 +1,20 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Box, Button, DialogActions, ToggleButton, ToggleButtonGroup } from '@mui/material'
+import { Box, Button, ToggleButton, ToggleButtonGroup } from '@mui/material'
 import type { Account } from '../../../api/accounts/accounts'
 import { defaultErrorMessage } from '../../../api/core/apiError'
 import { useInvestmentHoldingsByAccount } from '../../../api/investments/products/investmentHoldingsQueries'
 import { useInvestmentProducts } from '../../../api/investments/products/investmentProductsQueries'
 import type { Transfer } from '../../../api/transfers/transfers'
 import { useCreateTransfer, useEditTransfer } from '../../../api/transfers/transfersQueries'
+import { FormDialogPane } from '../../../components/feedback/FormDialogPane'
 import { FormGrid } from '../../../components/feedback/ResponsiveDialog'
 import { useQueryState } from '../../../hooks/queryState'
 import {
   buildTransferRequest,
   pickerAccounts,
   type FormMode,
+  type TransferCarry,
   type TransferFormPreset,
 } from '../lib/transferFormState'
 import { isTransferFormValid } from '../lib/transferValidation'
@@ -21,10 +23,9 @@ import { PlainTransferFields } from './PlainTransferFields'
 import { TradeAccountFields } from './TradeAccountFields'
 import { TransferCommonFields } from './TransferCommonFields'
 import { useTransferForm } from '../hooks/useTransferForm'
-import { FormDialogContent } from '../../../components/feedback/FormDialogContent'
 import { FORM_GRID_FULL_ROW } from '../../../components/layout/layoutSx'
 
-export type { TransferFormPreset }
+export type { TransferCarry, TransferFormPreset }
 
 interface TransferFormProps {
   /** Every account; closed ones are left out of the pickers. */
@@ -33,8 +34,18 @@ interface TransferFormProps {
   editing?: Transfer | null
   /** Starts a create with a buy/sell of one product (ignored when editing). */
   preset?: TransferFormPreset | null
+  /** Starts a plain create from the previous entry's date and accounts (ignored when editing or presetting). */
+  carry?: TransferCarry | null
   /** Called with the saved transfer once the create/edit succeeded. */
   onSaved: (transfer: Transfer) => void
+  /**
+   * Dialog mode, plain create only (F040): renders "Add and new", which saves and calls this
+   * instead of `onSaved`, leaving the dialog open for the caller to restart the form from the
+   * saved transfer (`carry`). Never offered for a trade confirmation or an edit.
+   */
+  onAddAnother?: (saved: Transfer) => void
+  /** Reports the form's date and account (From, or the cash account of a trade) whenever either changes. */
+  onCarryChange?: (carry: { date: string; accountId: string }) => void
   /** Called with a message when the save failed, or `null` when a new attempt starts. */
   onError: (message: string | null) => void
   /** Renders a Cancel button when given. */
@@ -48,6 +59,14 @@ interface TransferFormProps {
   dialog?: boolean
   /** Dialog mode: shown above the fields (the caller's error banner), so a save error is visible. */
   banner?: ReactNode
+  /** Dialog mode: focuses Description when the form mounts, the first field a user must fill. */
+  autoFocusDescription?: boolean
+  /**
+   * Focuses Description from an effect on mount (F040, after "Add and new" remounted the form).
+   * Explicit, unlike `autoFocusDescription`, which does not stick on open under the Vite dev
+   * server (`docs/conventions/frontend-components.md`).
+   */
+  focusDescriptionOnMount?: boolean
 }
 
 /**
@@ -63,19 +82,35 @@ export function TransferForm({
   accounts,
   editing = null,
   preset = null,
+  carry = null,
   onSaved,
+  onAddAnother,
+  onCarryChange,
   onError,
   onCancel,
   dialog = false,
   banner,
+  autoFocusDescription = false,
+  focusDescriptionOnMount = false,
 }: TransferFormProps) {
   const { t } = useTranslation(['transfers', 'common'])
   const { form, patch, setMode, setInvestmentAccountId, lineActions } = useTransferForm(
     accounts,
     editing,
     preset,
+    carry,
   )
   const [saving, setSaving] = useState(false)
+  const descriptionInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (focusDescriptionOnMount) descriptionInputRef.current?.focus()
+  }, [focusDescriptionOnMount])
+
+  const reportedAccountId = form.mode === 'plain' ? form.fromAccountId : form.cashAccountId
+  useEffect(() => {
+    onCarryChange?.({ date: form.date, accountId: reportedAccountId })
+  }, [onCarryChange, form.date, reportedAccountId])
 
   const { cashOptions, investmentAccounts } = pickerAccounts(accounts)
 
@@ -92,7 +127,7 @@ export function TransferForm({
 
   const formValid = isTransferFormValid(form)
 
-  async function handleSubmit() {
+  async function handleSubmit(another = false) {
     if (!formValid) return
     onError(null)
     setSaving(true)
@@ -101,7 +136,8 @@ export function TransferForm({
       const saved = editing
         ? await editMutation.mutateAsync({ id: editing.id, ...request })
         : await createMutation.mutateAsync(request)
-      onSaved(saved)
+      if (another) onAddAnother?.(saved)
+      else onSaved(saved)
     } catch (err) {
       onError(defaultErrorMessage(err))
     } finally {
@@ -138,7 +174,13 @@ export function TransferForm({
 
       {fieldRow(
         <>
-          <TransferCommonFields form={form} patch={patch} wide={wide} />
+          <TransferCommonFields
+            form={form}
+            patch={patch}
+            wide={wide}
+            descriptionInputRef={descriptionInputRef}
+            autoFocusDescription={autoFocusDescription}
+          />
           {form.mode === 'plain' ? (
             <PlainTransferFields form={form} patch={patch} cashOptions={cashOptions} />
           ) : (
@@ -178,17 +220,25 @@ export function TransferForm({
   )
 
   if (dialog) {
+    const canAddAnother = onAddAnother !== undefined && !editing && form.mode === 'plain'
     return (
-      <>
-        <FormDialogContent>
-          {banner}
-          {body}
-        </FormDialogContent>
-        <DialogActions>
-          {cancelButton}
-          {submitButton}
-        </DialogActions>
-      </>
+      <FormDialogPane
+        onSubmit={() => void handleSubmit()}
+        canSubmit={formValid}
+        busy={saving}
+        submitLabel={editing ? t('transfers:form.saveChanges') : t('common:actions.add')}
+        onCancel={() => onCancel?.()}
+        extraActions={
+          canAddAnother && (
+            <Button disabled={saving || !formValid} onClick={() => void handleSubmit(true)}>
+              {t('common:actions.addAndNew')}
+            </Button>
+          )
+        }
+      >
+        {banner}
+        {body}
+      </FormDialogPane>
     )
   }
 

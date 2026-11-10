@@ -19,13 +19,14 @@ export function PlainTransferFields({ form, patch, cashOptions }: PlainTransferF
       <Select
         size="small"
         displayEmpty
+        required
         value={form.fromAccountId}
         onChange={(e) => patch({ fromAccountId: e.target.value })}
         aria-label={t('transfers:form.fromAccountLabel')}
         sx={SELECT_MIN_WIDTH}
       >
         <MenuItem value="" disabled>
-          {t('transfers:form.fromAccountLabel')}
+          {`${t('transfers:form.fromAccountLabel')} *`}
         </MenuItem>
         {cashOptions.map((a) => (
           <MenuItem key={a.id} value={a.id}>
@@ -36,13 +37,14 @@ export function PlainTransferFields({ form, patch, cashOptions }: PlainTransferF
       <Select
         size="small"
         displayEmpty
+        required
         value={form.toAccountId}
         onChange={(e) => patch({ toAccountId: e.target.value })}
         aria-label={t('transfers:form.toAccountLabel')}
         sx={SELECT_MIN_WIDTH}
       >
         <MenuItem value="" disabled>
-          {t('transfers:form.toAccountLabel')}
+          {`${t('transfers:form.toAccountLabel')} *`}
         </MenuItem>
         {cashOptions
           .filter((a) => a.id !== form.fromAccountId)
@@ -56,6 +58,7 @@ export function PlainTransferFields({ form, patch, cashOptions }: PlainTransferF
         label={t('transfers:form.amountLabel')}
         type="number"
         size="small"
+        required
         value={form.amount}
         onChange={(e) => patch({ amount: e.target.value })}
         slotProps={{ htmlInput: { step: '0.01', min: '0.01' } }}
