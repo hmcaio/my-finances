@@ -4,6 +4,9 @@ import {
   QueryClient,
   type QueryClientConfig,
 } from '@tanstack/react-query'
+import i18n from '../../i18n/i18n'
+import { translateKey, type QualifiedKey } from '../../i18n/translate'
+import { publish } from '../../providers/notifications/notificationStore'
 import { ApiError } from './apiError'
 
 declare module '@tanstack/react-query' {
@@ -14,6 +17,14 @@ declare module '@tanstack/react-query' {
       /** A 401 from this mutation is its own answer (the login form's "wrong password"), not an
        * expired session: don't sign the app out because of it (F036). */
       skipSessionExpiry?: boolean
+      /** The success toast (F040): a namespaced i18n key (`transactions:saved`), translated and
+       * shown when the mutation succeeds, whether or not it skips the invalidation. Every create,
+       * update and delete sets one (`src/test/contracts/mutationMessages.test.ts`). The text never
+       * carries amounts, names or descriptions. */
+      successMessage?: QualifiedKey
+      /** Interpolation values for `successMessage` (a count for a plural), built from the
+       * mutation's result and variables. */
+      successMessageOptions?: (data: unknown, variables: unknown) => Record<string, unknown>
     }
   }
 }
@@ -72,7 +83,11 @@ export function createQueryClient(
         if (mutation.meta?.skipSessionExpiry) return
         handleSessionExpiry(error)
       },
-      onSuccess: (_data, _variables, _context, mutation) => {
+      onSuccess: (data, variables, _context, mutation) => {
+        const { successMessage, successMessageOptions } = mutation.meta ?? {}
+        if (successMessage) {
+          publish(translateKey(i18n.t, successMessage, successMessageOptions?.(data, variables)))
+        }
         if (mutation.meta?.skipInvalidate) return
         // Not awaited: the mutation resolves as soon as the write did; views refetch behind it.
         void client.invalidateQueries()
