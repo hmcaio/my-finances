@@ -28,9 +28,9 @@ Each phase below is one PR on its own branch off `main` (`feature/f040-<slug>`, 
 - [x] `scripts/verify.sh frontend`.
 
 ## Phase 4 — Same-day Ledger order (backend)
-- [ ] Test first (logic tier, fakes): `LedgerQuery` orders three same-day entries (a transaction, a transfer, a transaction) by `createdAt` newest first across both types; an entry with a null `createdAt` sorts last; the date still dominates.
-- [ ] Test first (persistence tier): the transaction and transfer adapters expose `createdAt` on the domain object and page by `date DESC, createdAt DESC, id DESC`.
-- [ ] Implement `getCreatedAt()` on `Transaction` and `Transfer` (mapped in the adapters, excluded from `toAuditSnapshot()` and its guard test), `LedgerEntry.createdAt()`, the `CAP_PLUS_ONE` sort and `NEWEST_FIRST` in `application/ledger/LedgerQuery.java`.
+- [x] Test first (logic tier, fakes): `LedgerQuery` orders three same-day entries (a transaction, a transfer, a transaction) by `createdAt` newest first across both types; an entry with a null `createdAt` sorts last; the date still dominates.
+- [x] Test first (persistence tier): the transaction and transfer adapters expose `createdAt` on the domain object and page by `date DESC, createdAt DESC, id DESC`.
+- [x] Implement `getCreatedAt()` on `Transaction` and `Transfer` (mapped in the adapters, excluded from `toAuditSnapshot()` and its guard test), `LedgerEntry.createdAt()`, the `CAP_PLUS_ONE` sort and `NEWEST_FIRST` in `application/ledger/LedgerQuery.java`.
 - [ ] `./gradlew spotlessApply` then `scripts/verify.sh backend` (Docker running).
 
 ## Phase 5 — New entry dialog (frontend)

@@ -2,6 +2,7 @@ package com.chm.myfinances.domain.transfer;
 
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -55,6 +56,7 @@ public final class Transfer {
   private String additionalNotes;
   private BigDecimal taxes;
   private TradeConfirmation tradeConfirmation;
+  private final Instant createdAt;
 
   private Transfer(
       UUID id,
@@ -65,7 +67,8 @@ public final class Transfer {
       String description,
       String additionalNotes,
       BigDecimal taxes,
-      TradeConfirmation tradeConfirmation) {
+      TradeConfirmation tradeConfirmation,
+      Instant createdAt) {
     this.id = Objects.requireNonNull(id, "id must not be null");
     this.date = Objects.requireNonNull(date, "date must not be null");
     this.fromAccountId = Objects.requireNonNull(fromAccountId, "fromAccountId must not be null");
@@ -76,6 +79,7 @@ public final class Transfer {
     this.additionalNotes = requireValidAdditionalNotes(additionalNotes);
     this.tradeConfirmation = tradeConfirmation;
     this.taxes = requireValidTaxes(tradeConfirmation, taxes);
+    this.createdAt = createdAt;
   }
 
   /**
@@ -90,7 +94,16 @@ public final class Transfer {
       String description,
       String additionalNotes) {
     return new Transfer(
-        id, date, fromAccountId, toAccountId, amount, description, additionalNotes, null, null);
+        id,
+        date,
+        fromAccountId,
+        toAccountId,
+        amount,
+        description,
+        additionalNotes,
+        null,
+        null,
+        null);
   }
 
   /**
@@ -123,10 +136,14 @@ public final class Transfer {
         description,
         additionalNotes,
         taxes,
-        confirmation);
+        confirmation,
+        null);
   }
 
-  /** Rebuilds a Transfer from already-validated persisted state. */
+  /**
+   * Rebuilds a Transfer from already-validated persisted state, including the time it was stored
+   * (F040); only the persistence adapter passes a {@code createdAt}.
+   */
   public static Transfer reconstitute(
       UUID id,
       LocalDate date,
@@ -136,7 +153,8 @@ public final class Transfer {
       String description,
       String additionalNotes,
       BigDecimal taxes,
-      TradeConfirmation tradeConfirmation) {
+      TradeConfirmation tradeConfirmation,
+      Instant createdAt) {
     return new Transfer(
         id,
         date,
@@ -146,7 +164,8 @@ public final class Transfer {
         description,
         additionalNotes,
         taxes,
-        tradeConfirmation);
+        tradeConfirmation,
+        createdAt);
   }
 
   /** Edit of a plain transfer: clears any trade confirmation and taxes. */
@@ -304,6 +323,15 @@ public final class Transfer {
   /** Empty for a plain transfer. */
   public Optional<TradeConfirmation> getTradeConfirmation() {
     return Optional.ofNullable(tradeConfirmation);
+  }
+
+  /**
+   * When the row was first stored (F040): {@code null} until the aggregate has been through the
+   * persistence adapter, never set by application code and not part of {@link #toAuditSnapshot()}.
+   * It only orders same-day Ledger rows ({@code LedgerQuery}).
+   */
+  public Instant getCreatedAt() {
+    return createdAt;
   }
 
   /**

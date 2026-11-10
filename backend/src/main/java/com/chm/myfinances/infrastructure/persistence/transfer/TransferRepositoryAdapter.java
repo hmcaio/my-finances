@@ -225,6 +225,7 @@ public class TransferRepositoryAdapter implements TransferRepository {
         entity.getDescription(),
         entity.getAdditionalNotes(),
         entity.getTaxes(),
-        confirmation);
+        confirmation,
+        entity.getCreatedAt());
   }
 }

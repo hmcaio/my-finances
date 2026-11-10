@@ -26,6 +26,7 @@ import com.chm.myfinances.testsupport.mothers.TransactionMother;
 import com.chm.myfinances.testsupport.mothers.TransferMother;
 import com.chm.myfinances.testsupport.web.MockMvcSupport;
 import com.chm.myfinances.testsupport.web.WebIntegrationTest;
+import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -48,6 +49,7 @@ import org.springframework.web.context.WebApplicationContext;
 class LedgerControllerTest {
 
   @Autowired private JdbcTemplate jdbcTemplate;
+  @Autowired private EntityManager entityManager;
 
   private static final LocalDate DAY = LocalDate.of(2094, 5, 10);
 
@@ -156,6 +158,40 @@ class LedgerControllerTest {
         .andExpect(jsonPath("$.summary.income").value(1000.00))
         .andExpect(jsonPath("$.summary.expense").value(50.00))
         .andExpect(jsonPath("$.summary.net").value(950.00));
+  }
+
+  /**
+   * F040: three rows of one day, a transaction then a transfer then a transaction, come back
+   * newest-created first across both types, with an older day below them whatever its creation
+   * time.
+   */
+  @Test
+  void sameDayRowsComeBackNewestCreatedFirstAcrossBothTypes() throws Exception {
+    Transaction first = saveExpense("First", "10.00", DAY);
+    Transfer second = saveTransfer("Second", "20.00", DAY);
+    Transaction third = saveIncome("30.00", DAY);
+    Transaction olderDay = saveExpense("Older day", "40.00", DAY.minusDays(1));
+    stampCreatedAt("transactions", first.getId(), "2094-05-10T08:00:00Z");
+    stampCreatedAt("transfers", second.getId(), "2094-05-10T09:00:00Z");
+    stampCreatedAt("transactions", third.getId(), "2094-05-10T10:00:00Z");
+    stampCreatedAt("transactions", olderDay.getId(), "2094-05-10T23:00:00Z");
+    // the managed entities still hold their in-memory timestamps: re-read the stamped rows
+    entityManager.clear();
+
+    mockMvc
+        .perform(ledger())
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.entries.length()").value(4))
+        .andExpect(jsonPath("$.entries[0].id").value(third.getId().toString()))
+        .andExpect(jsonPath("$.entries[1].id").value(second.getId().toString()))
+        .andExpect(jsonPath("$.entries[2].id").value(first.getId().toString()))
+        .andExpect(jsonPath("$.entries[3].id").value(olderDay.getId().toString()));
+  }
+
+  private void stampCreatedAt(String table, UUID id, String createdAt) {
+    entityManager.flush();
+    jdbcTemplate.update(
+        "update " + table + " set created_at = ?::timestamptz where id = ?", createdAt, id);
   }
 
   @Test

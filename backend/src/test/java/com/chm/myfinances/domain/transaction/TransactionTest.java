@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.shared.TextFieldConstraints;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
@@ -652,6 +653,42 @@ class TransactionTest {
   }
 
   @Test
+  void createdAtIsNullUntilPersistedAndIsNotPartOfTheAuditSnapshot() {
+    Transaction created =
+        Transaction.create(
+            UUID.randomUUID(),
+            LocalDate.now(),
+            BigDecimal.TEN,
+            CATEGORY_ID,
+            CategoryType.EXPENSE,
+            ACCOUNT_ID,
+            PAYMENT_METHOD_ID,
+            null,
+            "Lunch",
+            null);
+    Instant storedAt = Instant.parse("2026-03-10T10:15:30Z");
+    Transaction reloaded =
+        Transaction.reconstitute(
+            created.getId(),
+            created.getDate(),
+            created.getAmount(),
+            CATEGORY_ID,
+            CategoryType.EXPENSE,
+            ACCOUNT_ID,
+            PAYMENT_METHOD_ID,
+            null,
+            "Lunch",
+            null,
+            null,
+            null,
+            storedAt);
+
+    assertThat(created.getCreatedAt()).isNull();
+    assertThat(reloaded.getCreatedAt()).isEqualTo(storedAt);
+    assertThat(reloaded.toAuditSnapshot()).doesNotContainKey("createdAt");
+  }
+
+  @Test
   void reconstituteCarriesTheInvestmentHoldingIdThrough() {
     UUID holdingId = UUID.randomUUID();
 
@@ -668,7 +705,8 @@ class TransactionTest {
             "Dividends",
             null,
             null,
-            holdingId);
+            holdingId,
+            null);
 
     assertThat(transaction.getInvestmentHoldingId()).isEqualTo(holdingId);
   }

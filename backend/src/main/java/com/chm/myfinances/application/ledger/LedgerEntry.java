@@ -3,6 +3,7 @@ package com.chm.myfinances.application.ledger;
 import com.chm.myfinances.domain.category.CategoryType;
 import com.chm.myfinances.domain.transaction.Transaction;
 import com.chm.myfinances.domain.transfer.Transfer;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -19,6 +20,9 @@ public sealed interface LedgerEntry {
 
   LedgerEntryType type();
 
+  /** When the row was stored; {@code null} only for an aggregate that was never persisted. */
+  Instant createdAt();
+
   /** A transaction row: {@link LedgerEntryType#INCOME} or {@link LedgerEntryType#EXPENSE}. */
   record TransactionEntry(Transaction transaction) implements LedgerEntry {
 
@@ -30,6 +34,11 @@ public sealed interface LedgerEntry {
     @Override
     public LocalDate date() {
       return transaction.getDate();
+    }
+
+    @Override
+    public Instant createdAt() {
+      return transaction.getCreatedAt();
     }
 
     @Override
@@ -51,6 +60,11 @@ public sealed interface LedgerEntry {
     @Override
     public LocalDate date() {
       return transfer.getDate();
+    }
+
+    @Override
+    public Instant createdAt() {
+      return transfer.getCreatedAt();
     }
 
     @Override

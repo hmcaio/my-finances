@@ -20,6 +20,7 @@ import com.chm.myfinances.testsupport.StatementCount;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -365,6 +367,75 @@ class TransferRepositoryAdapterTest {
             .getContent();
 
     assertThat(ids).hasSize(40).isSortedAccordingTo(Comparator.reverseOrder());
+  }
+
+  @Test
+  void exposesTheStoredCreatedAtOnTheDomainObject() {
+    Transfer transfer = newTransfer(LocalDate.of(2095, 7, 1), checkingId, savingsId);
+    Instant before = Instant.now();
+
+    Transfer saved = transferRepository.save(transfer);
+    entityManager.flush();
+    entityManager.clear();
+    Transfer reloaded = transferRepository.findById(transfer.getId()).orElseThrow();
+
+    assertThat(transfer.getCreatedAt()).as("the aggregate the caller built").isNull();
+    assertThat(saved.getCreatedAt()).isNotNull();
+    assertThat(reloaded.getCreatedAt()).isBetween(before.minusSeconds(5), Instant.now());
+  }
+
+  /**
+   * F040 open question, confirmed against the real mapping: {@code Sort.by(desc("date"),
+   * desc("createdAt"), desc("id"))} resolves on {@code TransferJpaEntity} (the {@code createdAt}
+   * property comes from {@code AuditableEntity}) and orders the page as written.
+   */
+  @Test
+  void pagesByDateThenCreatedAtThenIdDescending() {
+    LocalDate day = LocalDate.of(2095, 7, 2);
+    Transfer oldest = saveCreatedAt(day, "2095-07-02T08:00:00Z");
+    Transfer newest = saveCreatedAt(day, "2095-07-02T10:00:00Z");
+    Transfer middle = saveCreatedAt(day, "2095-07-02T09:00:00Z");
+    Transfer earlierDayCreatedLast = saveCreatedAt(day.minusDays(1), "2095-07-02T23:00:00Z");
+    Transfer tieA = saveCreatedAt(day.plusDays(1), "2095-07-03T07:00:00Z");
+    Transfer tieB = saveCreatedAt(day.plusDays(1), "2095-07-03T07:00:00Z");
+    entityManager.flush();
+    entityManager.clear();
+
+    List<UUID> ids =
+        transferRepository
+            .findAll(
+                new TransferFilter(day.minusDays(1), day.plusDays(1), checkingId, null),
+                PageRequest.of(
+                    0,
+                    100,
+                    Sort.by(
+                        Sort.Order.desc("date"),
+                        Sort.Order.desc("createdAt"),
+                        Sort.Order.desc("id"))))
+            .map(Transfer::getId)
+            .getContent();
+
+    List<UUID> tied =
+        Stream.of(tieA, tieB)
+            .sorted(Comparator.comparing((Transfer t) -> t.getId().toString()).reversed())
+            .map(Transfer::getId)
+            .toList();
+    assertThat(ids)
+        .containsExactly(
+            tied.get(0),
+            tied.get(1),
+            newest.getId(),
+            middle.getId(),
+            oldest.getId(),
+            earlierDayCreatedLast.getId());
+  }
+
+  private Transfer saveCreatedAt(LocalDate date, String createdAt) {
+    Transfer saved = transferRepository.save(newTransfer(date, checkingId, savingsId));
+    entityManager.flush();
+    jdbcTemplate.update(
+        "update transfers set created_at = ?::timestamptz where id = ?", createdAt, saved.getId());
+    return saved;
   }
 
   private Transfer saveDescribed(LocalDate date, String description, String notes) {
