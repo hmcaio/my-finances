@@ -35,9 +35,9 @@ Each phase below is one PR on its own branch off `main` (`feature/f040-<slug>`, 
 
 ## Phase 5 — New entry dialog (frontend)
 - [x] Test first for `features/ledger/hooks/useEntryDraft.ts`: switching Expense to Transfer carries date and account to From; Transfer to Income carries From to account; Expense to Income clears a mismatched category; "Add and new" carry rules for a plain transaction, a fuel transaction (category, vehicle, fuel type kept; liters, price, km, odometer cleared) and a plain transfer; edit mode locks the type.
-- [ ] Test first for `features/ledger/components/EntryDialog.tsx`: transaction, then transfer, then transaction in one open dialog with three saves; categories filtered by type; "Add and new" hidden for trade confirmations and in edit mode; focus lands on the first cleared field; Enter submits "Add" and closes.
-- [ ] Implement `EntryDialog.tsx`, `useEntryDraft.ts`, the `type` filter in `features/transactions/TransactionFormFields.tsx`, `onAddAnother` and the carry seed in `features/transfers/components/TransferForm.tsx`; wire `features/ledger/LedgerPage.tsx` (menu entries preselect a type, the Fuel page preset opens Expense) and remove the replaced create paths of `TransactionFormDialog.tsx` and the inline transfer dialog; required marks on Date, Amount, Category, Account, Payment Method, Description and the transfer equivalents.
-- [ ] Update the MSW handlers and the page tests that open the old dialogs.
+- [x] Test first for `features/ledger/components/EntryDialog.tsx`: transaction, then transfer, then transaction in one open dialog with three saves; categories filtered by type; "Add and new" hidden for trade confirmations and in edit mode; focus lands on the first cleared field; Enter submits "Add" and closes.
+- [x] Implement `EntryDialog.tsx`, `useEntryDraft.ts`, the `type` filter in `features/transactions/TransactionFormFields.tsx`, `onAddAnother` and the carry seed in `features/transfers/components/TransferForm.tsx`; wire `features/ledger/LedgerPage.tsx` (menu entries preselect a type, the Fuel page preset opens Expense) and remove the replaced create paths of `TransactionFormDialog.tsx` and the inline transfer dialog; required marks on Date, Amount, Category, Account, Payment Method, Description and the transfer equivalents.
+- [x] Update the MSW handlers and the page tests that open the old dialogs.
 - [ ] `scripts/verify.sh frontend`.
 
 ## Phase 6 — Investments tab in the URL (frontend)
@@ -73,10 +73,10 @@ Each phase below is one PR on its own branch off `main` (`feature/f040-<slug>`, 
 - [ ] Root/frontend `CLAUDE.md`: only if a rule was added that the code cannot show and no check enforces (the toast convention is enforced by its contract test, so likely none).
 
 ## Verification
-- [ ] Open the Ledger "Add" menu, choose "New transaction", fill Date 1 day back, an expense and press "Add and new": the dialog stays open, a toast appears, date, account and payment method are kept, amount, description and category are cleared, focus is in Amount.
-- [ ] In the same dialog switch to Transfer, enter a transfer, switch to Income, enter one, then close: all three appear in the Ledger, newest-created first within the same day.
-- [ ] Open "New transaction" and leave Payment Method empty: it has an asterisk, the hint is visible and "Add" is disabled; fill everything and press Enter in Description: it saves and closes.
-- [ ] Save a fuel fill-up with "Add and new": category, vehicle and fuel type stay, liters, price, km and odometer clear.
+- [x] Open the Ledger "Add" menu, choose "New transaction", fill Date 1 day back, an expense and press "Add and new": the dialog stays open, a toast appears, date, account and payment method are kept, amount, description and category are cleared, focus is in Amount.
+- [x] In the same dialog switch to Transfer, enter a transfer, switch to Income, enter one, then close: all three appear in the Ledger, newest-created first within the same day.
+- [x] Open "New transaction" and leave Payment Method empty: it has an asterisk, the hint is visible and "Add" is disabled; fill everything and press Enter in Description: it saves and closes.
+- [x] Save a fuel fill-up with "Add and new": category, vehicle and fuel type stay, liters, price, km and odometer clear.
 - [x] Open `/investments?tab=products`, reload: the Products tab is selected; switch tabs: the URL updates without adding history entries.
 - [ ] Open "Record snapshots" from Investments, fill three of the four rows, press Save: one toast ("3 snapshots saved"), the Previous column updates, the blank row was not recorded; open Activity: three `Investment snapshot` entries.
 - [ ] Fill a row, delete that product in another tab, press Save: that row is highlighted with its reason, nothing else is lost, no snapshot of the others was saved; remove the row and Save again: it succeeds.
