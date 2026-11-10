@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
+import { Dialog, DialogTitle } from '@mui/material'
 import { NotificationHost } from './NotificationHost'
 import { publish } from './notificationStore'
 import { emittedCss } from '../../test/utils/emittedCss'
@@ -112,5 +113,54 @@ describe('NotificationHost', () => {
     const root = screen.getByRole('status').closest('.MuiSnackbar-root')
     expect(root).toHaveClass('MuiSnackbar-anchorOriginTopCenter')
     expect(root).toHaveStyle({ pointerEvents: 'none' })
+  })
+
+  describe('while a dialog is open', () => {
+    // The 4 s auto-hide is far beyond these assertions; real timers let `waitFor` poll.
+    beforeEach(() => vi.useRealTimers())
+
+    // MUI's modal manager marks every other child of `body` aria-hidden while a modal is open; a
+    // toast inside that subtree is not announced, and "Add and new" keeps the dialog open.
+    function App({ dialogOpen }: { dialogOpen: boolean }) {
+      return (
+        <>
+          <main>Page</main>
+          <NotificationHost />
+          <Dialog open={dialogOpen}>
+            <DialogTitle>New entry</DialogTitle>
+          </Dialog>
+        </>
+      )
+    }
+
+    it('keeps a toast published while the dialog is open reachable as a status', async () => {
+      render(<App dialogOpen />)
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+      act(() => publish('Transaction saved'))
+
+      await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Transaction saved'))
+    })
+
+    it('keeps a toast that is already showing reachable when a dialog opens over it', async () => {
+      const { rerender } = render(<App dialogOpen={false} />)
+      act(() => publish('Transaction saved'))
+      expect(screen.getByRole('status')).toBeInTheDocument()
+
+      rerender(<App dialogOpen />)
+
+      await screen.findByRole('dialog')
+      await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Transaction saved'))
+    })
+
+    it('still hides the page behind the dialog', async () => {
+      render(<App dialogOpen />)
+      act(() => publish('Transaction saved'))
+
+      await screen.findByRole('status')
+
+      expect(screen.queryByRole('main')).not.toBeInTheDocument()
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+    })
   })
 })

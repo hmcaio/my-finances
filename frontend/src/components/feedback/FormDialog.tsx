@@ -1,8 +1,7 @@
 import type { FormEvent, ReactNode } from 'react'
-import { useTranslation } from 'react-i18next'
-import { Button, DialogActions, DialogTitle, Typography, type PaperProps } from '@mui/material'
+import { DialogTitle, type PaperProps } from '@mui/material'
 import { ErrorAlert } from './ErrorAlert'
-import { FormDialogContent } from './FormDialogContent'
+import { FormDialogSections } from './FormDialogPane'
 import { ResponsiveDialog } from './ResponsiveDialog'
 
 interface FormDialogProps {
@@ -49,8 +48,6 @@ export function FormDialog({
   children,
   extraActions,
 }: FormDialogProps) {
-  const { t } = useTranslation('common')
-
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
     if (canSubmit && !busy) onSubmit()
@@ -72,22 +69,16 @@ export function FormDialog({
       slotProps={{ paper: formPaperProps }}
     >
       <DialogTitle>{title}</DialogTitle>
-      <FormDialogContent>
+      <FormDialogSections
+        onCancel={onClose}
+        canSubmit={canSubmit}
+        busy={busy}
+        submitLabel={submitLabel}
+        extraActions={extraActions}
+      >
         <ErrorAlert message={error} onDismiss={onDismissError} />
         {children}
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>
-          {t('form.requiredHint')}
-        </Typography>
-      </FormDialogContent>
-      <DialogActions>
-        <Button onClick={onClose} disabled={busy}>
-          {t('actions.cancel')}
-        </Button>
-        {extraActions}
-        <Button type="submit" variant="contained" disabled={busy || !canSubmit}>
-          {submitLabel}
-        </Button>
-      </DialogActions>
+      </FormDialogSections>
     </ResponsiveDialog>
   )
 }

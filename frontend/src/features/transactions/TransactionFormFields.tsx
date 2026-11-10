@@ -1,24 +1,15 @@
+import type { Ref } from 'react'
 import { MenuItem, Select, TextField } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 import type { Account } from '../../api/accounts/accounts'
-import type { Category } from '../../api/categories/categories'
+import type { Category, CategoryType } from '../../api/categories/categories'
 import type { PaymentMethod } from '../../api/paymentMethods/paymentMethods'
 import type { Vehicle } from '../../api/vehicles/vehicles'
 import { translateSeedName } from '../../i18n/seedNames'
 import { FUEL_TYPES, fuelTypeLabel } from '../../utils/fuelType'
-import type { TransactionFormValues } from './transactionForm'
+import { EMPTY_FUEL_FIELDS, type TransactionFormValues } from './transactionForm'
 import { SELECT_MIN_WIDTH } from '../../components/layout/layoutSx'
 import { FORM_GRID_FULL_ROW } from '../../components/layout/layoutSx'
-
-/** Every field F024 added, empty/cleared. */
-const EMPTY_FUEL_FIELDS = {
-  vehicleId: '',
-  fuelType: '',
-  liters: '',
-  pricePerLiter: '',
-  kmSinceLastFill: '',
-  odometer: '',
-}
 
 interface TransactionFormFieldsProps {
   form: TransactionFormValues
@@ -29,6 +20,10 @@ interface TransactionFormFieldsProps {
   paymentMethods: PaymentMethod[] | undefined
   /** F024: offered only while the selected category is the fuel category. */
   vehicles: Vehicle[] | undefined
+  /** F040: offers only the categories of this type (Expense or Income); omit to offer every one. */
+  type?: CategoryType
+  /** The amount input, for an explicit `focus()` (F040: after "Add and new"). */
+  amountInputRef?: Ref<HTMLInputElement>
 }
 
 /**
@@ -48,9 +43,12 @@ export function TransactionFormFields({
   accounts,
   paymentMethods,
   vehicles,
+  type,
+  amountInputRef,
 }: TransactionFormFieldsProps) {
   const { t } = useTranslation(['transactions', 'common'])
-  const selectedCategory = categories?.find((c) => c.id === form.categoryId)
+  const categoryOptions = type ? categories?.filter((c) => c.type === type) : categories
+  const selectedCategory = categoryOptions?.find((c) => c.id === form.categoryId)
   const isFuelCategory = selectedCategory?.fuelCategory ?? false
 
   function handleCategoryChange(categoryId: string) {
@@ -64,6 +62,7 @@ export function TransactionFormFields({
         label={t('transactions:form.dateLabel')}
         type="date"
         size="small"
+        required
         value={form.date}
         onChange={(e) => onChange({ date: e.target.value })}
         slotProps={{ inputLabel: { shrink: true } }}
@@ -72,6 +71,9 @@ export function TransactionFormFields({
         label={t('transactions:form.amountLabel')}
         type="number"
         size="small"
+        required
+        autoFocus
+        inputRef={amountInputRef}
         value={form.amount}
         onChange={(e) => onChange({ amount: e.target.value })}
         slotProps={{ htmlInput: { step: '0.01', min: '0.01' } }}
@@ -79,6 +81,7 @@ export function TransactionFormFields({
       <Select
         size="small"
         displayEmpty
+        required
         // A preset category (the Fuel page's "add fill-up") can arrive before the list has loaded;
         // showing it only once its option exists avoids MUI's out-of-range warning.
         value={selectedCategory ? form.categoryId : ''}
@@ -87,9 +90,9 @@ export function TransactionFormFields({
         sx={SELECT_MIN_WIDTH}
       >
         <MenuItem value="" disabled>
-          {t('transactions:form.categoryPlaceholder')}
+          {`${t('transactions:form.categoryPlaceholder')} *`}
         </MenuItem>
-        {categories?.map((c) => (
+        {categoryOptions?.map((c) => (
           <MenuItem key={c.id} value={c.id}>
             {translateSeedName('categories', c.name, t)}
           </MenuItem>
@@ -98,13 +101,14 @@ export function TransactionFormFields({
       <Select
         size="small"
         displayEmpty
+        required
         value={form.accountId}
         onChange={(e) => onChange({ accountId: e.target.value })}
         aria-label={t('transactions:form.accountAria')}
         sx={SELECT_MIN_WIDTH}
       >
         <MenuItem value="" disabled>
-          {t('transactions:form.accountPlaceholder')}
+          {`${t('transactions:form.accountPlaceholder')} *`}
         </MenuItem>
         {accounts.map((a) => (
           <MenuItem key={a.id} value={a.id}>
@@ -115,13 +119,14 @@ export function TransactionFormFields({
       <Select
         size="small"
         displayEmpty
+        required
         value={form.paymentMethodId}
         onChange={(e) => onChange({ paymentMethodId: e.target.value })}
         aria-label={t('transactions:form.paymentMethodAria')}
         sx={SELECT_MIN_WIDTH}
       >
         <MenuItem value="" disabled>
-          {t('transactions:form.paymentMethodPlaceholder')}
+          {`${t('transactions:form.paymentMethodPlaceholder')} *`}
         </MenuItem>
         {paymentMethods?.map((p) => (
           <MenuItem key={p.id} value={p.id}>
@@ -151,13 +156,14 @@ export function TransactionFormFields({
           <Select
             size="small"
             displayEmpty
+            required
             value={form.vehicleId}
             onChange={(e) => onChange({ vehicleId: e.target.value })}
             aria-label={t('transactions:form.vehicleAria')}
             sx={SELECT_MIN_WIDTH}
           >
             <MenuItem value="" disabled>
-              {t('transactions:form.vehiclePlaceholder')}
+              {`${t('transactions:form.vehiclePlaceholder')} *`}
             </MenuItem>
             {vehicles?.map((v) => (
               <MenuItem key={v.id} value={v.id}>
@@ -168,13 +174,14 @@ export function TransactionFormFields({
           <Select
             size="small"
             displayEmpty
+            required
             value={form.fuelType}
             onChange={(e) => onChange({ fuelType: e.target.value })}
             aria-label={t('transactions:form.fuelTypeAria')}
             sx={SELECT_MIN_WIDTH}
           >
             <MenuItem value="" disabled>
-              {t('transactions:form.fuelTypePlaceholder')}
+              {`${t('transactions:form.fuelTypePlaceholder')} *`}
             </MenuItem>
             {FUEL_TYPES.map((f) => (
               <MenuItem key={f} value={f}>

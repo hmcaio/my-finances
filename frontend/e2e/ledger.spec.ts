@@ -174,6 +174,32 @@ test.describe('ledger', () => {
     expect(overflow).toBeLessThanOrEqual(0)
   })
 
+  test('the New entry dialog keeps the type toggle and its three buttons inside the viewport', async ({
+    page,
+  }) => {
+    await page.goto(JANUARY)
+    await expect(page.getByText('Weekly groceries')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Add' }).click()
+    await page.getByRole('menuitem', { name: 'New transaction' }).click()
+    const dialog = page.getByRole('dialog')
+    const viewport = page.viewportSize()!
+    for (const type of ['Expense', 'Income', 'Transfer']) {
+      await dialog
+        .getByRole('group', { name: 'Entry type' })
+        .getByRole('button', { name: type })
+        .click()
+      for (const name of ['Cancel', 'Add and new', 'Add']) {
+        const box = await dialog.getByRole('button', { name, exact: true }).boundingBox()
+        expect(box, `${name} on ${type} is rendered`).not.toBeNull()
+        expect(box!.x).toBeGreaterThanOrEqual(0)
+        expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width)
+        expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height)
+      }
+      await expectNoHorizontalOverflow(page)
+    }
+  })
+
   test('shows an empty state without overflow', async ({ page }) => {
     await page.goto('/ledger?month=2020-01')
 

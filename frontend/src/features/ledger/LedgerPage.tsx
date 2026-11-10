@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
-import { Alert, Box, Button, DialogTitle, Menu, MenuItem, Typography } from '@mui/material'
+import { Alert, Box, Button, Menu, MenuItem, Typography } from '@mui/material'
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown'
 import type { LedgerEntry } from '../../api/ledger/ledger'
 import { useLedger } from '../../api/ledger/ledgerQueries'
@@ -9,14 +9,13 @@ import { useDeleteTransaction, useTransaction } from '../../api/transactions/tra
 import { useDeleteTransfer, useTransfer } from '../../api/transfers/transfersQueries'
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
 import { ErrorAlert } from '../../components/feedback/ErrorAlert'
-import { ResponsiveDialog } from '../../components/feedback/ResponsiveDialog'
 import { combineLoadState, useQueryState } from '../../hooks/queryState'
 import { useAction } from '../../hooks/useAction'
-import { TransactionFormDialog } from '../transactions/TransactionFormDialog'
-import { TransferForm } from '../transfers/components/TransferForm'
+import { EntryDialog } from './components/EntryDialog'
 import { LedgerFilters } from './components/LedgerFilters'
 import { LedgerSummary } from './components/LedgerSummary'
 import { LedgerTable } from './components/LedgerTable'
+import type { EntryType } from './lib/entryDraft'
 import {
   isAllTime,
   parseLedgerView,
@@ -48,11 +47,11 @@ const readPresetCategoryId = (state: unknown) =>
  * refresh restores it; the list loads whole, capped at 1,000 rows with a notice.
  *
  * <p>Create, edit and delete go through the existing transaction and transfer endpoints: a split
- * "Add" menu opens the transaction or the transfer dialog, and a row's edit button fetches the full
- * record by id (a ledger row carries only the list columns) and opens the matching dialog.
- * `?focus={transferId}` (the product page's "View confirmation" link) opens that transfer the same
- * way, whatever the current period; `location.state.presetCategoryId` (the Fuel page's "add
- * fill-up") opens the new-transaction dialog with that category chosen.
+ * "Add" menu opens the New entry dialog (F040) on Expense or on Transfer, and a row's edit button
+ * fetches the full record by id (a ledger row carries only the list columns) and opens the same
+ * dialog with the type fixed. `?focus={transferId}` (the product page's "View confirmation" link)
+ * opens that transfer the same way, whatever the current period; `location.state.presetCategoryId`
+ * (the Fuel page's "add fill-up") opens the dialog on Expense with that category chosen.
  */
 export function LedgerPage() {
   const { t } = useTranslation(['ledger', 'transactions', 'transfers', 'common'])
@@ -87,10 +86,10 @@ export function LedgerPage() {
   // The Fuel page's "add fill-up" arrives with the fuel category in the navigation state, consumed
   // once so the dialog opens straight into an add form for it (and a back-navigation does not).
   const presetCategoryId = useConsumeNavigationState(readPresetCategoryId)
-  const [newTransaction, setNewTransaction] = useState<{ presetCategoryId?: string } | null>(() =>
-    presetCategoryId ? { presetCategoryId } : null,
-  )
-  const [newTransfer, setNewTransfer] = useState(false)
+  const [newEntry, setNewEntry] = useState<{
+    type: EntryType
+    presetCategoryId?: string
+  } | null>(() => (presetCategoryId ? { type: 'EXPENSE', presetCategoryId } : null))
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<LedgerEntry | null>(null)
   const deleteAction = useAction(setError)
@@ -112,14 +111,10 @@ export function LedgerPage() {
   const editingTransaction = editTarget?.kind === 'transaction' ? transactionToEdit.data : undefined
   const editingTransfer = editTarget?.kind === 'transfer' ? transferToEdit.data : undefined
   const dialogOpen =
-    newTransaction !== null ||
-    newTransfer ||
-    editingTransaction !== undefined ||
-    editingTransfer !== undefined
+    newEntry !== null || editingTransaction !== undefined || editingTransfer !== undefined
 
   function closeDialogs() {
-    setNewTransaction(null)
-    setNewTransfer(false)
+    setNewEntry(null)
     setEditTarget(null)
     setError(null)
   }
@@ -168,7 +163,7 @@ export function LedgerPage() {
           <MenuItem
             onClick={() => {
               setAddMenuAnchor(null)
-              setNewTransaction({})
+              setNewEntry({ type: 'EXPENSE' })
             }}
           >
             {t('ledger:newTransaction')}
@@ -176,7 +171,7 @@ export function LedgerPage() {
           <MenuItem
             onClick={() => {
               setAddMenuAnchor(null)
-              setNewTransfer(true)
+              setNewEntry({ type: 'TRANSFER' })
             }}
           >
             {t('ledger:newTransfer')}
@@ -236,37 +231,26 @@ export function LedgerPage() {
         )}
       </Box>
 
-      {newTransaction !== null && (
-        <TransactionFormDialog
-          editing={null}
-          presetCategoryId={newTransaction.presetCategoryId}
+      {newEntry !== null && (
+        <EntryDialog
+          initialType={newEntry.type}
+          presetCategoryId={newEntry.presetCategoryId}
           onClose={closeDialogs}
         />
       )}
       {editingTransaction !== undefined && (
-        <TransactionFormDialog
+        <EntryDialog
           key={editingTransaction.id}
-          editing={editingTransaction}
+          editingTransaction={editingTransaction}
           onClose={closeDialogs}
         />
       )}
-
-      {(newTransfer || editingTransfer !== undefined) && (
-        <ResponsiveDialog open onClose={closeDialogs} fullWidth maxWidth="md">
-          <DialogTitle>
-            {editingTransfer ? t('transfers:editDialogTitle') : t('transfers:addDialogTitle')}
-          </DialogTitle>
-          <TransferForm
-            key={editingTransfer?.id ?? 'new'}
-            dialog
-            banner={<ErrorAlert message={error} onDismiss={() => setError(null)} />}
-            accounts={accounts ?? []}
-            editing={editingTransfer ?? null}
-            onSaved={closeDialogs}
-            onError={setError}
-            onCancel={closeDialogs}
-          />
-        </ResponsiveDialog>
+      {editingTransfer !== undefined && (
+        <EntryDialog
+          key={editingTransfer.id}
+          editingTransfer={editingTransfer}
+          onClose={closeDialogs}
+        />
       )}
 
       <ConfirmDialog

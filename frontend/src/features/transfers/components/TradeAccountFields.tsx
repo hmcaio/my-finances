@@ -29,13 +29,14 @@ export function TradeAccountFields({
       <Select
         size="small"
         displayEmpty
+        required
         value={form.cashAccountId}
         onChange={(e) => patch({ cashAccountId: e.target.value })}
         aria-label={t('transfers:form.cashAccountLabel')}
         sx={SELECT_MIN_WIDTH}
       >
         <MenuItem value="" disabled>
-          {t('transfers:form.cashAccountLabel')}
+          {`${t('transfers:form.cashAccountLabel')} *`}
         </MenuItem>
         {cashOptions
           .filter((a) => a.id !== form.investmentAccountId)
@@ -48,13 +49,14 @@ export function TradeAccountFields({
       <Select
         size="small"
         displayEmpty
+        required
         value={form.investmentAccountId}
         onChange={(e) => onInvestmentAccountChange(e.target.value)}
         aria-label={t('transfers:form.investmentAccountLabel')}
         sx={SELECT_MIN_WIDTH}
       >
         <MenuItem value="" disabled>
-          {t('transfers:form.investmentAccountLabel')}
+          {`${t('transfers:form.investmentAccountLabel')} *`}
         </MenuItem>
         {investmentAccounts
           .filter((a) => a.id !== form.cashAccountId)

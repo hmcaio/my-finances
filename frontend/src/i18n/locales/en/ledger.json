@@ -4,6 +4,10 @@
   "addButton": "Add",
   "newTransaction": "New transaction",
   "newTransfer": "New transfer",
+  "entry": {
+    "title": "New entry",
+    "typeAria": "Entry type"
+  },
   "aria": "Ledger",
   "columns": {
     "date": "Date",

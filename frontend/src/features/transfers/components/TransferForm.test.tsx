@@ -628,3 +628,141 @@ describe('TransferForm characterization', () => {
     expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled()
   })
 })
+
+describe('TransferForm in a New entry dialog (F040)', () => {
+  const NUBANK = seedAccounts[2].name
+
+  function renderDialogForm(props: Partial<Parameters<typeof TransferForm>[0]> = {}) {
+    const handlers = { onSaved: vi.fn(), onAddAnother: vi.fn(), onCancel: vi.fn() }
+    renderWithQueryClient(
+      <TransferForm dialog accounts={accounts} onError={vi.fn()} {...handlers} {...props} />,
+    )
+    return handlers
+  }
+
+  async function fillPlain(user: ReturnType<typeof userEvent.setup>, description = 'Pay') {
+    await selectOption(user, 'From Account', CHECKING)
+    await selectOption(user, 'To Account', NUBANK)
+    await user.type(screen.getByRole('spinbutton', { name: 'Amount' }), '25')
+    await user.type(screen.getByRole('textbox', { name: 'Description' }), description)
+  }
+
+  it('marks the fields every plain transfer needs as required and shows the hint', () => {
+    renderDialogForm()
+
+    expect(screen.getByText('Fields marked * are required')).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Description' })).toBeRequired()
+    expect(screen.getByRole('spinbutton', { name: 'Amount' })).toBeRequired()
+    expect(screen.getByLabelText(/^Date/)).toBeRequired()
+    expect(screen.getByRole('combobox', { name: 'From Account' })).toHaveTextContent(
+      'From Account *',
+    )
+    expect(screen.getByRole('combobox', { name: 'To Account' })).toHaveTextContent('To Account *')
+  })
+
+  it('submits Add on Enter in a field, and not Add and new', async () => {
+    const user = userEvent.setup({ delay: null })
+    captureCreate()
+    const { onSaved, onAddAnother } = renderDialogForm()
+    await fillPlain(user)
+
+    await user.type(screen.getByRole('textbox', { name: 'Description' }), '{Enter}')
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1))
+    expect(onAddAnother).not.toHaveBeenCalled()
+  })
+
+  it('does nothing on Enter while the form is not valid', async () => {
+    const user = userEvent.setup({ delay: null })
+    const { onSaved, onAddAnother } = renderDialogForm()
+
+    await user.type(screen.getByRole('textbox', { name: 'Description' }), 'Pay{Enter}')
+
+    expect(onSaved).not.toHaveBeenCalled()
+    expect(onAddAnother).not.toHaveBeenCalled()
+  })
+
+  it('Add and new saves, then reports the saved transfer instead of closing', async () => {
+    const user = userEvent.setup({ delay: null })
+    captureCreate()
+    const { onSaved, onAddAnother } = renderDialogForm()
+    await fillPlain(user)
+
+    expect(screen.getByRole('button', { name: 'Add and new' })).toBeEnabled()
+    await user.click(screen.getByRole('button', { name: 'Add and new' }))
+
+    await waitFor(() => expect(onAddAnother).toHaveBeenCalledTimes(1))
+    expect(onAddAnother).toHaveBeenCalledWith(seedBitcoinBuyTransfer)
+    expect(onSaved).not.toHaveBeenCalled()
+  })
+
+  it('has Add and new disabled until the form is valid', () => {
+    renderDialogForm()
+
+    expect(screen.getByRole('button', { name: 'Add and new' })).toBeDisabled()
+  })
+
+  it('offers Add and new in plain mode only, not for a trade confirmation', async () => {
+    const user = userEvent.setup({ delay: null })
+    renderDialogForm()
+
+    await user.click(screen.getByRole('button', { name: 'Trade confirmation' }))
+    expect(screen.queryByRole('button', { name: 'Add and new' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Plain transfer' }))
+    expect(screen.getByRole('button', { name: 'Add and new' })).toBeInTheDocument()
+  })
+
+  it('offers no Add and new when editing', () => {
+    renderDialogForm({ editing: seedBitcoinSellTransfer })
+
+    expect(screen.queryByRole('button', { name: 'Add and new' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeInTheDocument()
+  })
+
+  it('offers no Add and new without onAddAnother (the product page trade dialog)', () => {
+    renderDialogForm({ onAddAnother: undefined })
+
+    expect(screen.queryByRole('button', { name: 'Add and new' })).not.toBeInTheDocument()
+  })
+
+  it('starts from the carried date, From and To, with the rest blank', () => {
+    renderDialogForm({
+      carry: {
+        date: '2026-01-14',
+        fromAccountId: seedAccounts[0].id,
+        toAccountId: seedAccounts[2].id,
+      },
+    })
+
+    expect(screen.getByLabelText(/^Date/)).toHaveValue('2026-01-14')
+    expect(screen.getByRole('combobox', { name: 'From Account' })).toHaveTextContent(CHECKING)
+    expect(screen.getByRole('combobox', { name: 'To Account' })).toHaveTextContent(NUBANK)
+    expect(screen.getByRole('spinbutton', { name: 'Amount' })).toHaveValue(null)
+    expect(screen.getByRole('textbox', { name: 'Description' })).toHaveValue('')
+  })
+
+  it('reports its date and From account as the form changes', async () => {
+    const user = userEvent.setup({ delay: null })
+    const onCarryChange = vi.fn()
+    renderDialogForm({ onCarryChange })
+
+    await selectOption(user, 'From Account', CHECKING)
+
+    expect(onCarryChange).toHaveBeenLastCalledWith({
+      date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+      accountId: seedAccounts[0].id,
+    })
+  })
+
+  it('focuses the description on mount when asked to (after Add and new)', () => {
+    renderDialogForm({ focusDescriptionOnMount: true })
+
+    expect(screen.getByRole('textbox', { name: 'Description' })).toHaveFocus()
+  })
+
+  it('leaves focus alone otherwise', () => {
+    renderDialogForm()
+
+    expect(screen.getByRole('textbox', { name: 'Description' })).not.toHaveFocus()
+  })
+})

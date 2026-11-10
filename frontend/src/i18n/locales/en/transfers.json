@@ -1,6 +1,5 @@
 {
   "editDialogTitle": "Edit transfer",
-  "addDialogTitle": "Add transfer",
   "tradeLabelBuy": "Buy {{product}}",
   "tradeLabelSell": "Sell {{product}}",
   "moreChips": "+{{count}} more",

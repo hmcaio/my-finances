@@ -15,6 +15,7 @@ import {
   type FormMode,
   type FormState,
   type LineState,
+  type TransferCarry,
   type TransferFormPreset,
 } from '../lib/transferFormState'
 
@@ -35,9 +36,10 @@ export function useTransferForm(
   accounts: Account[],
   editing: Transfer | null,
   preset: TransferFormPreset | null,
+  carry: TransferCarry | null = null,
 ) {
   const { t } = useTranslation(['transfers'])
-  const [form, setForm] = useState(() => initialFormState(editing, preset, accounts, t))
+  const [form, setForm] = useState(() => initialFormState(editing, preset, accounts, t, carry))
   const [nextLineKey, setNextLineKey] = useState(form.lines.length)
 
   function patch(changes: Partial<FormState>) {

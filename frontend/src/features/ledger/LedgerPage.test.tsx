@@ -445,7 +445,11 @@ describe('LedgerPage', () => {
 
       await user.click(screen.getByRole('button', { name: 'Add' }))
       await user.click(await screen.findByRole('menuitem', { name: 'New transaction' }))
-      expect(await screen.findByText('Add transaction')).toBeInTheDocument()
+      expect(await screen.findByRole('heading', { name: 'New entry' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Expense' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      )
       await fillAndSubmitTransaction(user)
 
       // The form date defaults to today (not January), so the row is not in this month's list:
@@ -462,13 +466,17 @@ describe('LedgerPage', () => {
       await user.click(screen.getByRole('button', { name: 'Add' }))
       await user.click(await screen.findByRole('menuitem', { name: 'New transfer' }))
       const dialog = await screen.findByRole('dialog')
-      expect(within(dialog).getByText('Add transfer')).toBeInTheDocument()
+      expect(within(dialog).getByRole('heading', { name: 'New entry' })).toBeInTheDocument()
+      expect(within(dialog).getByRole('button', { name: 'Transfer' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      )
       const openAccounts = seedAccounts.filter((a) => !a.closed)
       await user.type(await screen.findByRole('spinbutton', { name: 'Amount' }), '15')
       await selectOption(user, 'From Account', openAccounts[0].name)
       await selectOption(user, 'To Account', openAccounts[1].name)
       await user.type(screen.getByRole('textbox', { name: 'Description' }), 'Move to savings')
-      fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-01-15' } })
+      fireEvent.change(screen.getByLabelText(/^Date/), { target: { value: '2026-01-15' } })
       await user.click(screen.getByRole('button', { name: 'Add' }))
 
       expect(await screen.findByText('Move to savings')).toBeInTheDocument()
@@ -500,6 +508,10 @@ describe('LedgerPage', () => {
       renderLedger({ pathname: '/ledger', state: { presetCategoryId: seedFuelCategory.id } })
 
       const dialog = await screen.findByRole('dialog')
+      expect(within(dialog).getByRole('button', { name: 'Expense' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      )
       expect(await within(dialog).findByRole('combobox', { name: 'Vehicle' })).toBeInTheDocument()
       expect(within(dialog).getByRole('combobox', { name: 'Category' })).toHaveTextContent(
         seedFuelCategory.name,

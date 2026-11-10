@@ -20,6 +20,16 @@ export interface TransactionFormValues {
   odometer: string
 }
 
+/** Every field F024 added, empty/cleared: what a non-fuel category leaves behind. */
+export const EMPTY_FUEL_FIELDS = {
+  vehicleId: '',
+  fuelType: '',
+  liters: '',
+  pricePerLiter: '',
+  kmSinceLastFill: '',
+  odometer: '',
+} as const satisfies Partial<TransactionFormValues>
+
 /** A fresh form, built per use so its date is today's local date rather than the date the page
  * module was first loaded. `presetCategoryId` pre-selects a category - the Fuel page's "add fuel
  * transaction" action uses it to arrive with the fuel category already chosen (F024 spec). */
