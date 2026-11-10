@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, render, screen } from '@testing-library/react'
 import { NotificationHost } from './NotificationHost'
 import { publish } from './notificationStore'
+import { emittedCss } from '../../test/utils/emittedCss'
+import { DRAWER_WIDTH } from '../../components/layout/layoutSx'
 import { restoreViewport, setViewportWidth, VIEWPORT } from '../../test/utils/viewport'
 
 /** Runs the timers, then once more so the exit transition (started by the close) can finish. */
@@ -89,6 +91,17 @@ describe('NotificationHost', () => {
 
     const root = screen.getByRole('status').closest('.MuiSnackbar-root')
     expect(root).toHaveClass('MuiSnackbar-anchorOriginBottomLeft')
+  })
+
+  it('starts beside the permanent drawer from lg, so it does not cover the nav items', () => {
+    setViewportWidth(VIEWPORT.desktop)
+    render(<NotificationHost />)
+    act(() => publish('Saved'))
+
+    const css = emittedCss().replace(/\s+/g, '')
+    expect(css).toMatch(
+      new RegExp(`@media\\(min-width:1200px\\)\\{[^}]*left:${DRAWER_WIDTH + 24}px`),
+    )
   })
 
   it('anchors at the top on a phone, above the page content, and lets taps through', () => {

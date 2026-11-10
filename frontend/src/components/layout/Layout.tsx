@@ -29,8 +29,7 @@ import { useColorMode } from '../../providers/colorMode/useColorMode'
 import { useLocale } from '../../providers/locale/useLocale'
 import { NotificationHost } from '../../providers/notifications/NotificationHost'
 import { useBreakpointBand } from '../../hooks/useBreakpointBand'
-
-const DRAWER_WIDTH = 240
+import { DRAWER_WIDTH } from './layoutSx'
 
 type NavLabelKey = ParseKeys<'common'>
 

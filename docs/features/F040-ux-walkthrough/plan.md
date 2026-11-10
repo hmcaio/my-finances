@@ -18,7 +18,7 @@ Each phase below is one PR on its own branch off `main` (`feature/f040-<slug>`, 
 - [x] Add `meta.successMessage` (English and Brazilian Portuguese keys) to every create, update and delete mutation in `api/**/*Queries.ts`; allowlist login, logout and other non-write mutations. Includes the five goals mutations in `api/goals/goalsQueries.ts` (create, edit, show on dashboard, delete, replace allocations), with their keys in both `goals.json` files.
 - [x] `src/test/contracts/mutationMessages.test.ts`: fails for a mutation hook with neither a message nor an allowlist entry.
 - [x] `docs/conventions/frontend-data-loading.md` and `frontend-components.md`: the toast rule.
-- [ ] `scripts/verify.sh frontend`.
+- [x] `scripts/verify.sh frontend`.
 
 ## Phase 3 — Form dialog shell (frontend)
 - [ ] Test first for `components/feedback/FormDialog.tsx`: Enter in a text field submits when valid; Enter does nothing while `canSubmit` is false or `busy`; required fields render the asterisk and the hint; the submit button is `type="submit"`; `noValidate` suppresses the native bubble; Esc and Cancel close.
