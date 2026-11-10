@@ -1,6 +1,6 @@
 {
   "title": "Investimentos",
-  "description": "Onde seu dinheiro está investido, a partir do último registro de cada posição. Compre e venda a partir da página de um produto (ou da página de Transferências); seu valor só muda quando você registra um novo valor.",
+  "description": "Onde seu dinheiro está investido, a partir do último registro de cada posição. Compre e venda a partir da página de um produto (ou em Lançamentos); seu valor só muda quando você registra um novo valor.",
   "byCategory": "Por categoria",
   "bySubcategory": "Por subcategoria",
   "byAccount": "Por conta",

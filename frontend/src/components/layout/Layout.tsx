@@ -1,4 +1,4 @@
-import { Fragment, useState, type PropsWithChildren } from 'react'
+import { Fragment, useRef, useState, type MouseEvent, type PropsWithChildren } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { ParseKeys, TFunction } from 'i18next'
@@ -16,6 +16,7 @@ import {
   ListSubheader,
   Toolbar,
   Typography,
+  type Theme,
 } from '@mui/material'
 import MenuIcon from '@mui/icons-material/Menu'
 import DarkModeIcon from '@mui/icons-material/DarkMode'
@@ -66,6 +67,46 @@ const SYSTEM_VALUES_NAV_ITEMS: NavItem[] = [
   { labelKey: 'nav.investmentCategories', path: '/settings/investment-categories' },
   { labelKey: 'nav.investmentSegments', path: '/settings/investment-segments' },
 ]
+
+const MAIN_CONTENT_ID = 'main-content'
+
+/** The Settings group label: a section heading, not a disabled-looking item (F040). */
+const SETTINGS_HEADING_SX = {
+  color: 'text.primary',
+  fontSize: '0.75rem',
+  fontWeight: 700,
+  letterSpacing: '0.08em',
+  lineHeight: '36px',
+  textTransform: 'uppercase',
+} as const
+
+/** Hidden until it takes keyboard focus, then drawn above the AppBar (F040). The clip-based
+ * hiding keeps it a real tab stop; `1px`, not a bare number, because `width: 1` means 100%. */
+const SKIP_LINK_SX = (theme: Theme) => ({
+  '&:not(:focus)': {
+    position: 'absolute',
+    width: '1px',
+    height: '1px',
+    overflow: 'hidden',
+    clip: 'rect(0 0 0 0)',
+    clipPath: 'inset(50%)',
+    whiteSpace: 'nowrap',
+  },
+  '&:focus': {
+    position: 'fixed',
+    top: theme.spacing(1),
+    left: theme.spacing(1),
+    zIndex: theme.zIndex.drawer + 2,
+    px: 2,
+    py: 1,
+    borderRadius: 1,
+    boxShadow: theme.shadows[4],
+    bgcolor: 'background.paper',
+    color: 'text.primary',
+    fontWeight: 500,
+    textDecoration: 'none',
+  },
+})
 
 const ACTIVITY_NAV_ITEM: NavItem = { labelKey: 'nav.activity', path: '/activity' }
 const REPORTS_NAV_ITEM: NavItem = { labelKey: 'nav.reports', path: '/reports' }
@@ -118,6 +159,14 @@ export function Layout({ children }: PropsWithChildren) {
     setDrawerState({ pathname, open: false })
   }
   const navOpen = drawerState.open
+  const mainRef = useRef<HTMLElement>(null)
+
+  // The anchor's own jump would add a hash to the URL and, on a `tabIndex={-1}` target, is not
+  // reliable about moving focus: focus the region directly.
+  function skipToContent(event: MouseEvent<HTMLAnchorElement>) {
+    event.preventDefault()
+    mainRef.current?.focus()
+  }
   // Collapsed by default, local state only - not persisted to localStorage, same as every other
   // nav state in this app (F034/ADR 0028). Resets on reload.
   const [systemValuesOpen, setSystemValuesOpen] = useState(false)
@@ -130,7 +179,7 @@ export function Layout({ children }: PropsWithChildren) {
         {MAIN_NAV_ITEMS.map((item) => (
           <NavListItem key={item.path} item={item} pathname={pathname} t={t} />
         ))}
-        <ListSubheader component="div" disableSticky>
+        <ListSubheader component="div" disableSticky sx={SETTINGS_HEADING_SX}>
           {t('nav.settingsHeading')}
         </ListSubheader>
         {SETTINGS_NAV_ITEMS.map((item) => (
@@ -165,6 +214,9 @@ export function Layout({ children }: PropsWithChildren) {
 
   return (
     <Box sx={{ display: 'flex' }}>
+      <Box component="a" href={`#${MAIN_CONTENT_ID}`} onClick={skipToContent} sx={SKIP_LINK_SX}>
+        {t('nav.skipToContent')}
+      </Box>
       <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
         <Toolbar>
           {!isDesktop && (
@@ -236,7 +288,20 @@ export function Layout({ children }: PropsWithChildren) {
           {nav}
         </Drawer>
       )}
-      <Box component="main" sx={{ flexGrow: 1, minWidth: 0, maxWidth: 1600, p: isMobile ? 2 : 3 }}>
+      <Box
+        component="main"
+        id={MAIN_CONTENT_ID}
+        tabIndex={-1}
+        ref={mainRef}
+        sx={{
+          flexGrow: 1,
+          minWidth: 0,
+          maxWidth: 1600,
+          p: isMobile ? 2 : 3,
+          // Focused by the skip link only: a ring around the whole page would be noise.
+          '&:focus': { outline: 'none' },
+        }}
+      >
         <Toolbar />
         {children}
       </Box>

@@ -33,6 +33,31 @@ describe('Layout', () => {
     restoreViewport()
   })
 
+  it.each([
+    ['desktop', 1280],
+    ['mobile', 390],
+  ])(
+    'makes a skip link the first tab stop on %s and moves focus to the main region (F040)',
+    async (_name, width) => {
+      setViewportWidth(width)
+      const user = userEvent.setup({ delay: null })
+      renderLayout()
+
+      await user.tab()
+
+      const skipLink = screen.getByRole('link', { name: 'Skip to content' })
+      expect(skipLink).toHaveFocus()
+      expect(skipLink).toHaveAttribute('href', '#main-content')
+
+      await user.keyboard('{Enter}')
+
+      const main = screen.getByRole('main')
+      expect(main).toHaveAttribute('id', 'main-content')
+      expect(main).toHaveAttribute('tabindex', '-1')
+      expect(main).toHaveFocus()
+    },
+  )
+
   it('shows a permanent drawer and no hamburger on desktop', () => {
     setViewportWidth(1280)
     renderLayout()
@@ -133,6 +158,16 @@ describe('Layout', () => {
     for (const label of ['Categories', 'Institutions', 'Vehicles', 'Reports']) {
       expect(screen.getByRole('link', { name: label })).toBeVisible()
     }
+  })
+
+  it('styles the Settings label as a section heading, not a disabled-looking item (F040)', () => {
+    setViewportWidth(1280)
+    renderLayout()
+
+    expect(screen.getByText('Settings')).toHaveStyle({
+      fontWeight: '700',
+      textTransform: 'uppercase',
+    })
   })
 
   it('renders the "System values" nav group collapsed by default (F034/ADR 0028)', () => {

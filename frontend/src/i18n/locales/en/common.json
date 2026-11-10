@@ -22,7 +22,8 @@
     "vehicles": "Vehicles",
     "activity": "Activity",
     "reports": "Reports",
-    "settingsHeading": "Settings"
+    "settingsHeading": "Settings",
+    "skipToContent": "Skip to content"
   },
   "layout": {
     "logout": "Log out",

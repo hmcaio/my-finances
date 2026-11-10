@@ -28,6 +28,15 @@ describe('InvestmentsPage', () => {
     expect(within(accounts).queryByText(seedAccounts[0].name)).not.toBeInTheDocument()
   })
 
+  it('points buying and selling at the Ledger, not at the retired Transfers page (F040)', async () => {
+    renderWithRouter(<InvestmentsPage />)
+
+    expect(
+      await screen.findByText(/Buy and sell from a product's page \(or the Ledger\)/),
+    ).toBeVisible()
+    expect(screen.queryByText(/Transfers page/)).not.toBeInTheDocument()
+  })
+
   it('hints at adding an investment account when there is none', async () => {
     renderWithRouter(<InvestmentsPage />)
 
