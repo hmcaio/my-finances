@@ -5,6 +5,7 @@ import { useInvestmentCategories } from '../../../api/investments/taxonomy/inves
 import { useFiiPortfolio } from '../../../api/investments/fii/fiiPortfolioQueries'
 import { useInvestmentProducts } from '../../../api/investments/products/investmentProductsQueries'
 import type { InvestmentProductStatus } from '../../../api/investments/products/investmentProducts'
+import { useIsMobile } from '../../../hooks/useBreakpointBand'
 import { useQueryState } from '../../../hooks/queryState'
 import { MonthPicker } from '../../../components/inputs/MonthPicker'
 import { ResponsiveTable, type ResponsiveColumn } from '../../../components/table/ResponsiveTable'
@@ -13,6 +14,7 @@ import { formatMoney, formatNumber } from '../../../i18n/format'
 import { currentMonth } from '../../../utils/localDate'
 import { AllocationPlanEditor } from './AllocationPlanEditor'
 import { DividendHistorySection } from './DividendHistorySection'
+import { FiiAllocationComparison } from './FiiAllocationComparison'
 import { FiiNestedAllocationDonutChart } from './FiiNestedAllocationDonutChart'
 import { RegisterDividendDialog } from './RegisterDividendDialog'
 import type { FiiPortfolioRow } from '../../../api/investments/fii/fiiPortfolio'
@@ -35,10 +37,15 @@ type FiiTab = 'allocation' | 'dividends'
  * (Addendum: Month Selector) drives the portfolio list and both charts, defaulting to (and clamped
  * to) the current month; the `needsSnapshot` badge is hidden whenever a past month is selected,
  * since it's a "today" concept the backend never recomputes against a past date.
+ *
+ * Phones (F040, below `sm`): the two donuts sit side by side in two half-width columns with their
+ * legends left out, followed by `FiiAllocationComparison`, one table that replaces both legends and
+ * lines Actual up against Planned. From `sm` up each donut keeps its own legend beside it.
  */
 export function FiiPage() {
   const { t } = useTranslation('fii')
   const { locale } = useLocale()
+  const isMobile = useIsMobile()
   const categoriesQuery = useInvestmentCategories()
   const categories = categoriesQuery.data
   const productsQuery = useInvestmentProducts()
@@ -69,6 +76,21 @@ export function FiiPage() {
   function handleTabChange(_: SyntheticEvent, value: FiiTab) {
     setTab(value)
   }
+
+  const allocationCharts = [
+    {
+      basis: 'ACTUAL',
+      title: t('actualAllocationTitle'),
+      ariaLabel: t('actualAllocationAria'),
+      emptyMessage: t('actualEmptyMessage'),
+    },
+    {
+      basis: 'PLANNED',
+      title: t('plannedAllocationTitle'),
+      ariaLabel: t('plannedAllocationAria'),
+      emptyMessage: t('plannedEmptyMessage'),
+    },
+  ] as const
 
   const columns: ResponsiveColumn<FiiPortfolioRow>[] = [
     { key: 'ticker', header: t('columns.ticker'), render: (r) => r.ticker ?? '-', role: 'primary' },
@@ -114,30 +136,45 @@ export function FiiPage() {
         {t('description')}
       </Typography>
 
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Typography variant="h6" component="h2" sx={{ mb: 1 }}>
-            {t('actualAllocationTitle')}
-          </Typography>
-          <FiiNestedAllocationDonutChart
-            basis="ACTUAL"
-            month={month}
-            ariaLabel={t('actualAllocationAria')}
-            emptyMessage={t('actualEmptyMessage')}
-          />
+      {isMobile ? (
+        <Box sx={{ mb: 3 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 2 }}>
+            {allocationCharts.map((chart) => (
+              <Box key={chart.basis}>
+                <Typography variant="subtitle1" component="h2" sx={{ mb: 1 }}>
+                  {chart.title}
+                </Typography>
+                <FiiNestedAllocationDonutChart
+                  basis={chart.basis}
+                  month={month}
+                  ariaLabel={chart.ariaLabel}
+                  emptyMessage={chart.emptyMessage}
+                  compact
+                />
+              </Box>
+            ))}
+          </Box>
+          <Box sx={{ mt: 2 }}>
+            <FiiAllocationComparison month={month} />
+          </Box>
+        </Box>
+      ) : (
+        <Grid container spacing={3} sx={{ mb: 3 }}>
+          {allocationCharts.map((chart) => (
+            <Grid key={chart.basis} size={{ xs: 12, md: 6 }}>
+              <Typography variant="h6" component="h2" sx={{ mb: 1 }}>
+                {chart.title}
+              </Typography>
+              <FiiNestedAllocationDonutChart
+                basis={chart.basis}
+                month={month}
+                ariaLabel={chart.ariaLabel}
+                emptyMessage={chart.emptyMessage}
+              />
+            </Grid>
+          ))}
         </Grid>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Typography variant="h6" component="h2" sx={{ mb: 1 }}>
-            {t('plannedAllocationTitle')}
-          </Typography>
-          <FiiNestedAllocationDonutChart
-            basis="PLANNED"
-            month={month}
-            ariaLabel={t('plannedAllocationAria')}
-            emptyMessage={t('plannedEmptyMessage')}
-          />
-        </Grid>
-      </Grid>
+      )}
 
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mb: 2 }}>
         <MonthPicker

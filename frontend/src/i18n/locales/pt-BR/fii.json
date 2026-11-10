@@ -59,6 +59,16 @@
     "legendAriaSuffix": " legenda",
     "sliceTooltip": "{{label}}: {{percentage}}%"
   },
+  "comparison": {
+    "aria": "Alocação atual versus planejada",
+    "segmentColumn": "Segmento / ticker",
+    "actualColumn": "Atual %",
+    "plannedColumn": "Planejada %",
+    "differenceColumn": "Diferença (p.p.)",
+    "empty": "Nada para comparar ainda.",
+    "loading": "Carregando…",
+    "loadingAria": "Carregando comparação da alocação"
+  },
   "registerDialog": {
     "title": "Registrar dividendo",
     "tickerAria": "Ticker",

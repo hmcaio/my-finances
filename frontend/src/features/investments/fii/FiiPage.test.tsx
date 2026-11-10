@@ -14,6 +14,7 @@ import { renderWithQueryClient } from '../../../test/utils/renderWithQueryClient
 import { selectOption } from '../../../test/utils/testUtils'
 import { currentMonth } from '../../../utils/localDate'
 import { formatMoney } from '../../../i18n/format'
+import { restoreViewport, setViewportWidth, VIEWPORT } from '../../../test/utils/viewport'
 import { FiiPage } from './FiiPage'
 
 /** The month after `currentMonth()`, `YYYY-MM` (handles the December-to-January rollover). */
@@ -257,6 +258,45 @@ describe('FiiPage', () => {
 
     await waitFor(() => {
       expect(portfolioTable().getByText(flaggedValue)).toBeInTheDocument()
+    })
+  })
+
+  describe('allocation charts by width (F040)', () => {
+    afterEach(restoreViewport)
+
+    it('on a phone shows both donuts without legends and one comparison table', async () => {
+      setViewportWidth(VIEWPORT.mobile)
+      renderWithQueryClient(<FiiPage />)
+
+      expect(await screen.findByRole('img', { name: 'Actual allocation' })).toBeInTheDocument()
+      expect(screen.getByRole('img', { name: 'Planned allocation' })).toBeInTheDocument()
+      expect(
+        screen.queryByRole('list', { name: 'Actual allocation legend' }),
+      ).not.toBeInTheDocument()
+      expect(
+        screen.queryByRole('list', { name: 'Planned allocation legend' }),
+      ).not.toBeInTheDocument()
+      const comparison = await screen.findByRole('table', {
+        name: 'Actual versus planned allocation',
+      })
+      expect(await within(comparison).findByText('Shoppings')).toBeInTheDocument()
+      expect(within(comparison).getByText('KNRI11')).toBeInTheDocument()
+    })
+
+    it.each([
+      ['tablet', VIEWPORT.tablet],
+      ['desktop', VIEWPORT.desktop],
+    ])('on %s keeps a legend beside each donut and no comparison table', async (_band, width) => {
+      setViewportWidth(width)
+      renderWithQueryClient(<FiiPage />)
+
+      expect(
+        await screen.findByRole('list', { name: 'Actual allocation legend' }),
+      ).toBeInTheDocument()
+      expect(screen.getByRole('list', { name: 'Planned allocation legend' })).toBeInTheDocument()
+      expect(
+        screen.queryByRole('table', { name: 'Actual versus planned allocation' }),
+      ).not.toBeInTheDocument()
     })
   })
 })

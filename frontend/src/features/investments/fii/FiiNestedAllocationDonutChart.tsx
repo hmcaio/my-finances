@@ -1,10 +1,6 @@
-import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Box, Skeleton, Typography } from '@mui/material'
-import type {
-  FiiAllocationBasis,
-  FiiAllocationRow,
-} from '../../../api/investments/fii/fiiAllocation'
+import type { FiiAllocationBasis } from '../../../api/investments/fii/fiiAllocation'
 import { useFiiAllocation } from '../../../api/investments/fii/fiiAllocationQueries'
 import { fadeInSx } from '../../../components/feedback/fadeIn'
 import { LoadFailedNotice } from '../../../components/feedback/LoadFailedNotice'
@@ -12,15 +8,8 @@ import { combineLoadState, useQueryState } from '../../../hooks/queryState'
 import { useDelayedFlag } from '../../../hooks/useDelayedFlag'
 import { useLocale } from '../../../providers/locale/useLocale'
 import { formatNumber } from '../../../i18n/format'
-import {
-  CENTER,
-  SIZE,
-  SLICE_COLORS,
-  VISUALLY_HIDDEN,
-  segmentPath,
-} from '../overview/lib/donutGeometry'
-
-const NO_SEGMENT_KEY = 'none'
+import { CENTER, SIZE, VISUALLY_HIDDEN, segmentPath } from '../overview/lib/donutGeometry'
+import { buildSegmentSlices, useFiiSegmentPalette } from './fiiAllocationSlices'
 
 // Two radius bands sharing the chart's SIZE=200/CENTER=100 canvas, a 4px gap between them.
 const OUTER_RING_OUTER_RADIUS = 90
@@ -28,52 +17,17 @@ const OUTER_RING_INNER_RADIUS = 68
 const INNER_RING_OUTER_RADIUS = 64
 const INNER_RING_INNER_RADIUS = 40
 
-interface TickerSlice {
-  key: string
-  label: string
-  percentage: number
-  color: string
-}
-
-interface SegmentSlice {
-  key: string
-  label: string
-  /** Sum of this segment's own ticker percentages, not the backend's independently-rounded
-   * segment-row percentage - so the inner arc's width always exactly matches what its outer-ring
-   * children add up to, with no rounding seam between the two rings. */
-  percentage: number
-  color: string
-  tickers: TickerSlice[]
-}
-
 interface FiiNestedAllocationDonutChartProps {
   basis: FiiAllocationBasis
   /** `YYYY-MM`, defaults to the current month (Addendum: Month Selector). */
   month: string
   ariaLabel: string
   emptyMessage: string
-}
-
-/** `#rrggbb` at a given opacity, so a segment's tickers read as shades of their parent's color. */
-function withOpacity(hex: string, opacity: number): string {
-  const r = parseInt(hex.slice(1, 3), 16)
-  const g = parseInt(hex.slice(3, 5), 16)
-  const b = parseInt(hex.slice(5, 7), 16)
-  return `rgba(${r}, ${g}, ${b}, ${opacity})`
-}
-
-function groupTickersBySegment(rows: FiiAllocationRow[]): Map<string, FiiAllocationRow[]> {
-  const bySegment = new Map<string, FiiAllocationRow[]>()
-  for (const row of rows) {
-    const key = row.segmentId ?? NO_SEGMENT_KEY
-    const list = bySegment.get(key)
-    if (list) {
-      list.push(row)
-    } else {
-      bySegment.set(key, [row])
-    }
-  }
-  return bySegment
+  /**
+   * Phones (F040): the donut shrinks to fit a half-width column and its legend is left out,
+   * because the page's `FiiAllocationComparison` table is the shared legend there.
+   */
+  compact?: boolean
 }
 
 /**
@@ -84,13 +38,16 @@ function groupTickersBySegment(rows: FiiAllocationRow[]): Map<string, FiiAllocat
  * nests the ticker rows under their segment via the `segmentId` each ticker row now carries. A
  * segment's inner arc and its tickers' outer arcs are computed from the exact same cumulative
  * percentages (the segment's "size" here is the sum of its own tickers, not the backend's
- * independently-rounded segment-row percentage), so the two rings tile with no visible seam.
+ * independently-rounded segment-row percentage), so the two rings tile with no visible seam. A
+ * segment has the same color in the Actual and the Planned donut and in `FiiAllocationComparison`
+ * (`useFiiSegmentPalette`).
  */
 export function FiiNestedAllocationDonutChart({
   basis,
   month,
   ariaLabel,
   emptyMessage,
+  compact = false,
 }: FiiNestedAllocationDonutChartProps) {
   const { t } = useTranslation('fii')
   const { locale } = useLocale()
@@ -99,29 +56,14 @@ export function FiiNestedAllocationDonutChart({
   const segmentRows = segmentQuery.data
   const tickerRows = tickerQuery.data
   const state = combineLoadState(useQueryState(segmentQuery), useQueryState(tickerQuery))
-  const showSkeleton = useDelayedFlag(state.loading)
+  // Segment colors come from both bases (see `useFiiSegmentPalette`), so wait for the other one too.
+  const palette = useFiiSegmentPalette(month)
+  const showSkeleton = useDelayedFlag(state.loading || !palette.ready)
 
-  const segments = useMemo<SegmentSlice[]>(() => {
-    if (!segmentRows || !tickerRows) return []
-    const tickersBySegment = groupTickersBySegment(tickerRows)
-    return segmentRows.map((segmentRow, index) => {
-      const segmentKey = segmentRow.key ?? NO_SEGMENT_KEY
-      const color = SLICE_COLORS[index % SLICE_COLORS.length]
-      const tickers = tickersBySegment.get(segmentKey) ?? []
-      return {
-        key: segmentKey,
-        label: segmentRow.label,
-        percentage: tickers.reduce((sum, t) => sum + t.percentage, 0),
-        color,
-        tickers: tickers.map((ticker, tickerIndex) => ({
-          key: ticker.key ?? NO_SEGMENT_KEY,
-          label: ticker.label,
-          percentage: ticker.percentage,
-          color: withOpacity(color, Math.max(1 - tickerIndex * 0.22, 0.35)),
-        })),
-      }
-    })
-  }, [segmentRows, tickerRows])
+  const segments =
+    segmentRows && tickerRows && palette.ready
+      ? buildSegmentSlices(segmentRows, tickerRows, palette.colorOf)
+      : []
 
   const drawnSegments = segments.filter((s) => s.percentage > 0)
   const segmentArcs = drawnSegments.map((segment, index) => {
@@ -162,7 +104,7 @@ export function FiiNestedAllocationDonutChart({
       </Box>
     )
   }
-  if (!segmentRows || !tickerRows) return null
+  if (!segmentRows || !tickerRows || !palette.ready) return null
 
   if (drawnSegments.length === 0) {
     return (
@@ -180,7 +122,11 @@ export function FiiNestedAllocationDonutChart({
           viewBox={`0 0 ${SIZE} ${SIZE}`}
           role="img"
           aria-label={ariaLabel}
-          sx={{ width: SIZE, height: SIZE, flexShrink: 0 }}
+          sx={
+            compact
+              ? { width: '100%', maxWidth: SIZE, height: 'auto', display: 'block' }
+              : { width: SIZE, height: SIZE, flexShrink: 0 }
+          }
         >
           {segmentArcs.map(({ segment, start, end }) => (
             <path
@@ -224,60 +170,62 @@ export function FiiNestedAllocationDonutChart({
           </text>
         </Box>
 
-        <Box
-          component="ul"
-          aria-label={`${ariaLabel}${t('donut.legendAriaSuffix')}`}
-          sx={{ listStyle: 'none', p: 0, m: 0 }}
-        >
-          {drawnSegments.map((segment) => (
-            <Box component="li" key={segment.key} sx={{ py: 0.25 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', px: 1 }}>
-                <Box
-                  component="span"
-                  aria-hidden="true"
-                  sx={{
-                    display: 'inline-block',
-                    width: 12,
-                    height: 12,
-                    borderRadius: '50%',
-                    bgcolor: segment.color,
-                    mr: 1,
-                  }}
-                />
-                <Typography component="span" sx={{ fontWeight: 'bold', mr: 2 }}>
-                  {segment.label}
-                </Typography>
-                <Typography component="span" color="text.secondary">
-                  {formatNumber(segment.percentage, locale, 1)}%
-                </Typography>
+        {!compact && (
+          <Box
+            component="ul"
+            aria-label={`${ariaLabel}${t('donut.legendAriaSuffix')}`}
+            sx={{ listStyle: 'none', p: 0, m: 0 }}
+          >
+            {drawnSegments.map((segment) => (
+              <Box component="li" key={segment.key} sx={{ py: 0.25 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', px: 1 }}>
+                  <Box
+                    component="span"
+                    aria-hidden="true"
+                    sx={{
+                      display: 'inline-block',
+                      width: 12,
+                      height: 12,
+                      borderRadius: '50%',
+                      bgcolor: segment.color,
+                      mr: 1,
+                    }}
+                  />
+                  <Typography component="span" sx={{ fontWeight: 'bold', mr: 2 }}>
+                    {segment.label}
+                  </Typography>
+                  <Typography component="span" color="text.secondary">
+                    {formatNumber(segment.percentage, locale, 1)}%
+                  </Typography>
+                </Box>
+                <Box component="ul" sx={{ listStyle: 'none', p: 0, m: 0, pl: 3 }}>
+                  {segment.tickers.map((ticker) => (
+                    <Box component="li" key={ticker.key} sx={{ py: 0.25, px: 1 }}>
+                      <Box
+                        component="span"
+                        aria-hidden="true"
+                        sx={{
+                          display: 'inline-block',
+                          width: 12,
+                          height: 12,
+                          borderRadius: '50%',
+                          bgcolor: ticker.color,
+                          mr: 1,
+                        }}
+                      />
+                      <Typography component="span" sx={{ mr: 2 }}>
+                        {ticker.label}
+                      </Typography>
+                      <Typography component="span" color="text.secondary">
+                        {formatNumber(ticker.percentage, locale, 1)}%
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
               </Box>
-              <Box component="ul" sx={{ listStyle: 'none', p: 0, m: 0, pl: 3 }}>
-                {segment.tickers.map((ticker) => (
-                  <Box component="li" key={ticker.key} sx={{ py: 0.25, px: 1 }}>
-                    <Box
-                      component="span"
-                      aria-hidden="true"
-                      sx={{
-                        display: 'inline-block',
-                        width: 12,
-                        height: 12,
-                        borderRadius: '50%',
-                        bgcolor: ticker.color,
-                        mr: 1,
-                      }}
-                    />
-                    <Typography component="span" sx={{ mr: 2 }}>
-                      {ticker.label}
-                    </Typography>
-                    <Typography component="span" color="text.secondary">
-                      {formatNumber(ticker.percentage, locale, 1)}%
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
-            </Box>
-          ))}
-        </Box>
+            ))}
+          </Box>
+        )}
       </Box>
     </Box>
   )

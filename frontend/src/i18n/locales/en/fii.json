@@ -59,6 +59,16 @@
     "legendAriaSuffix": " legend",
     "sliceTooltip": "{{label}}: {{percentage}}%"
   },
+  "comparison": {
+    "aria": "Actual versus planned allocation",
+    "segmentColumn": "Segment / ticker",
+    "actualColumn": "Actual %",
+    "plannedColumn": "Planned %",
+    "differenceColumn": "Difference (pp)",
+    "empty": "Nothing to compare yet.",
+    "loading": "Loading…",
+    "loadingAria": "Loading allocation comparison"
+  },
   "registerDialog": {
     "title": "Register dividend",
     "tickerAria": "Ticker",
