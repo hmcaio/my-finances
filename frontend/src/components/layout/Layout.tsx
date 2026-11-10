@@ -27,6 +27,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { useLogout } from '../../api/auth/authQueries'
 import { useColorMode } from '../../providers/colorMode/useColorMode'
 import { useLocale } from '../../providers/locale/useLocale'
+import { NotificationHost } from '../../providers/notifications/NotificationHost'
 import { useBreakpointBand } from '../../hooks/useBreakpointBand'
 
 const DRAWER_WIDTH = 240
@@ -305,6 +306,7 @@ export function Layout({ children }: PropsWithChildren) {
         <Toolbar />
         {children}
       </Box>
+      <NotificationHost />
     </Box>
   )
 }
