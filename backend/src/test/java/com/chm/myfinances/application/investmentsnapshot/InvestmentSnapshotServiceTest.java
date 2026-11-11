@@ -491,6 +491,17 @@ class InvestmentSnapshotServiceTest {
         .satisfies(s -> assertThat(s.getBalance()).isEqualByComparingTo("12.00"));
   }
 
+  @Test
+  void anUnchangedSameDayBalanceTypedWithAnotherScaleLogsNothing() {
+    // 70.00 as the database stores it, 70 as a request carries it.
+    service.record(holding.getId(), SHEET_DATE, new BigDecimal("70.00"));
+    auditLog.entries().clear();
+
+    service.record(holding.getId(), SHEET_DATE, new BigDecimal("70"));
+
+    assertThat(auditLog.entries()).isEmpty();
+  }
+
   // ---- the Activity label of a snapshot (F040) ----
 
   @Test

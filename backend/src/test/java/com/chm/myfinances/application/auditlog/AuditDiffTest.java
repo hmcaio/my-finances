@@ -87,4 +87,22 @@ class AuditDiffTest {
 
     assertThat(changes).containsEntry("name", new FieldChange(null, "Groceries"));
   }
+
+  @Test
+  void aMoneyValueWithADifferentScaleIsNotAChange() {
+    // The database hands back 1000.00 and a request carries 1000: the same amount, so re-entering
+    // an unchanged balance must not log a "1000.00 -> 1000" update (F040, the snapshot sheet).
+    Map<String, Object> before = Map.of("balance", new java.math.BigDecimal("1000.00"));
+    Map<String, Object> after = Map.of("balance", new java.math.BigDecimal("1000"));
+
+    assertThat(AuditDiff.diff(before, after)).isEmpty();
+  }
+
+  @Test
+  void aMoneyValueThatReallyChangedIsStillReported() {
+    Map<String, Object> before = Map.of("balance", new java.math.BigDecimal("1000.00"));
+    Map<String, Object> after = Map.of("balance", new java.math.BigDecimal("1000.01"));
+
+    assertThat(AuditDiff.diff(before, after)).containsKey("balance");
+  }
 }
