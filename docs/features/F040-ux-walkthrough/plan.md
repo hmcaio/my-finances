@@ -68,9 +68,9 @@ Each phase below is one PR on its own branch off `main` (`feature/f040-<slug>`, 
 - [x] `scripts/verify.sh frontend`.
 
 ## Phase 10 — Docs
-- [ ] `docs/features/README.md`: the F040 row verified against what was built, and the feature removed from its "Status" list.
-- [ ] Re-read `docs/PRD.md` §6.6, §6.8, §6.12, §6.13, §6.16 and §9 against the shipped behavior; fix any bullet that drifted.
-- [ ] Root/frontend `CLAUDE.md`: only if a rule was added that the code cannot show and no check enforces (the toast convention is enforced by its contract test, so likely none).
+- [x] `docs/features/README.md`: the F040 row verified against what was built, and the feature removed from its "Status" list.
+- [x] Re-read `docs/PRD.md` §6.6, §6.8, §6.12, §6.13, §6.16 and §9 against the shipped behavior; fix any bullet that drifted.
+- [x] Root/frontend `CLAUDE.md`: only if a rule was added that the code cannot show and no check enforces (the toast convention is enforced by its contract test, so likely none).
 
 ## Verification
 - [x] Open the Ledger "Add" menu, choose "New transaction", fill Date 1 day back, an expense and press "Add and new": the dialog stays open, a toast appears, date, account and payment method are kept, amount, description and category are cleared, focus is in Amount.
@@ -78,10 +78,10 @@ Each phase below is one PR on its own branch off `main` (`feature/f040-<slug>`, 
 - [x] Open "New transaction" and leave Payment Method empty: it has an asterisk, the hint is visible and "Add" is disabled; fill everything and press Enter in Description: it saves and closes.
 - [x] Save a fuel fill-up with "Add and new": category, vehicle and fuel type stay, liters, price, km and odometer clear.
 - [x] Open `/investments?tab=products`, reload: the Products tab is selected; switch tabs: the URL updates without adding history entries.
-- [ ] Open "Record snapshots" from Investments, fill three of the four rows, press Save: one toast ("3 snapshots saved"), the Previous column updates, the blank row was not recorded; open Activity: three `Investment snapshot` entries.
-- [ ] Fill a row, delete that product in another tab, press Save: that row is highlighted with its reason, nothing else is lost, no snapshot of the others was saved; remove the row and Save again: it succeeds.
-- [ ] Enter a negative balance: the row is flagged before anything is sent.
-- [ ] At 390px: the FII page shows both donuts side by side with the comparison table below, "Register dividend" no longer squeezes the title, and the snapshot sheet rows are cards.
+- [x] Open "Record snapshots" from Investments, fill three of the four rows, press Save: one toast ("3 snapshots saved"), the Previous column updates, the blank row was not recorded; open Activity: three `Investment snapshot` entries.
+- [x] Fill a row, delete that product in another tab, press Save: that row is highlighted with its reason, nothing else is lost, no snapshot of the others was saved; remove the row and Save again: it succeeds.
+- [x] Enter a negative balance: the row is flagged before anything is sent.
+- [x] At 390px: the FII page shows both donuts side by side with the comparison table below, "Register dividend" no longer squeezes the title, and the snapshot sheet rows are cards.
 - [x] At 1366px the Dashboard has three equal cards in row 1, Investment allocation beside a wider Net worth chart in row 2 (the chart fills its card), Upcoming bills below, with no empty cell; flag a goal for the dashboard: its card appears on its own full-width row between Net worth and Upcoming bills and no hole opens; unflag it: no blank row remains; the first Tab stop is "Skip to content".
-- [ ] Record a snapshot through the sheet for a product allocated to a goal: the goal's value on its page and on the dashboard updates.
-- [ ] `scripts/verify.sh backend frontend` (Docker running) all green.
+- [x] Record a snapshot through the sheet for a product allocated to a goal: the goal's value on its page and on the dashboard updates.
+- [x] `scripts/verify.sh backend frontend` (Docker running) all green.
