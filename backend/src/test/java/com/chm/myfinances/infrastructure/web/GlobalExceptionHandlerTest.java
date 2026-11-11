@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import com.chm.myfinances.TestcontainersConfiguration;
+import com.chm.myfinances.application.investmentsnapshot.InvestmentSnapshotSheetHoldingsNotFoundException;
 import com.chm.myfinances.domain.category.Category;
 import com.chm.myfinances.domain.category.CategoryRepository;
 import com.chm.myfinances.domain.category.CategoryType;
@@ -305,6 +306,34 @@ class GlobalExceptionHandlerTest {
       assertNoLeakedExceptionDetails(result);
       assertThat(logs.eventsAt(Level.ERROR)).isEmpty();
     }
+  }
+
+  // --- F040: the 404 of the snapshot sheet carries an `errors` member, built from entry indexes
+  // ----
+
+  @Test
+  void theSnapshotSheetHoldingsNotFoundExceptionIsA404WithOneIndexedEntryPerMissingHolding() {
+    GlobalExceptionHandler handler = new GlobalExceptionHandler();
+    MockHttpServletRequest request =
+        new MockHttpServletRequest("POST", "/api/investment-snapshot-sheet");
+
+    ResponseEntity<ProblemDetail> response =
+        handler.handleUnexpected(
+            new InvestmentSnapshotSheetHoldingsNotFoundException(List.of(1, 3)), request);
+
+    assertThat(response.getStatusCode().value()).isEqualTo(404);
+    ProblemDetail body = response.getBody();
+    assertThat(body).isNotNull();
+    assertThat(body.getType())
+        .isEqualTo(
+            URI.create("urn:my-finances:error:investment-snapshot-sheet-holdings-not-found"));
+    assertThat(body.getDetail()).isNull();
+    assertThat(body.getProperties()).containsOnlyKeys("errors");
+    assertThat((List<?>) body.getProperties().get("errors"))
+        .extracting(Object::toString)
+        .containsExactly(
+            "ValidationViolation[field=entries[1].holdingId, code=investment-holding-not-found]",
+            "ValidationViolation[field=entries[3].holdingId, code=investment-holding-not-found]");
   }
 
   private static void assertNoLeakedExceptionDetails(MvcResult result) throws Exception {

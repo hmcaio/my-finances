@@ -2,6 +2,7 @@ package com.chm.myfinances.testsupport.fakes;
 
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -15,6 +16,11 @@ public final class FakeInvestmentHoldingRepository extends InMemoryRepository<In
 
   public FakeInvestmentHoldingRepository() {
     super(InvestmentHolding::getId);
+  }
+
+  @Override
+  public List<InvestmentHolding> findAllByIds(Collection<UUID> ids) {
+    return values().stream().filter(h -> ids.contains(h.getId())).toList();
   }
 
   @Override

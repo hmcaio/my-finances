@@ -1,5 +1,6 @@
 package com.chm.myfinances.domain.investmentholding;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -16,6 +17,9 @@ public interface InvestmentHoldingRepository {
   Optional<InvestmentHolding> findById(UUID id);
 
   List<InvestmentHolding> findAll();
+
+  /** The holdings with these ids, in one read; an id that has no holding is simply absent. */
+  List<InvestmentHolding> findAllByIds(Collection<UUID> ids);
 
   /** Every holding of a product, across every account it's held in. */
   List<InvestmentHolding> findByProductId(UUID productId);

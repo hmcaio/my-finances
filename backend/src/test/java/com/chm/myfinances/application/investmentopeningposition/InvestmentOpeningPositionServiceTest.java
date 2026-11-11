@@ -9,6 +9,7 @@ import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingClosedException;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingNotFoundException;
+import com.chm.myfinances.application.investmentsnapshot.HoldingAuditLabels;
 import com.chm.myfinances.application.investmentsnapshot.InvestmentSnapshotService;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentopeningposition.InvestmentOpeningPosition;
@@ -57,7 +58,11 @@ class InvestmentOpeningPositionServiceTest {
           holdingRepository,
           tradeLineRepository,
           new InvestmentSnapshotService(
-              snapshotRepository, holdingRepository, new FakeIdGenerator(), auditRecorder),
+              snapshotRepository,
+              holdingRepository,
+              new FakeIdGenerator(),
+              auditRecorder,
+              HoldingAuditLabels.none()),
           new FakeIdGenerator(),
           clock,
           auditRecorder);
@@ -115,7 +120,11 @@ class InvestmentOpeningPositionServiceTest {
             holdingRepository,
             tradeLineRepository,
             new InvestmentSnapshotService(
-                snapshotRepository, holdingRepository, new FakeIdGenerator(), auditRecorder),
+                snapshotRepository,
+                holdingRepository,
+                new FakeIdGenerator(),
+                auditRecorder,
+                HoldingAuditLabels.none()),
             new FakeIdGenerator(nextId),
             clock,
             auditRecorder);

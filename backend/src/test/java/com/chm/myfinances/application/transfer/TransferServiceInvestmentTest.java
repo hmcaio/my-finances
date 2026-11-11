@@ -8,6 +8,7 @@ import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingClosedException;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingNotFoundException;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingService;
+import com.chm.myfinances.application.investmentsnapshot.HoldingAuditLabels;
 import com.chm.myfinances.application.investmentsnapshot.InvestmentSnapshotService;
 import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
 import com.chm.myfinances.domain.account.Account;
@@ -73,7 +74,8 @@ class TransferServiceInvestmentTest {
               snapshotRepository,
               holdingRepository,
               idGenerator,
-              new AuditRecorder(auditLog, AuditReferenceLabels.none())),
+              new AuditRecorder(auditLog, AuditReferenceLabels.none()),
+              HoldingAuditLabels.none()),
           new InvestmentHoldingService(
               holdingRepository,
               productRepository,

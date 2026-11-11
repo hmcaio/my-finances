@@ -10,6 +10,7 @@ import com.chm.myfinances.application.investmentcategory.InvestmentCategoryNotFo
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingService;
 import com.chm.myfinances.application.investmentopeningposition.InvalidOpeningPositionException;
 import com.chm.myfinances.application.investmentopeningposition.InvestmentOpeningPositionService;
+import com.chm.myfinances.application.investmentsnapshot.HoldingAuditLabels;
 import com.chm.myfinances.application.investmentsnapshot.InvestmentSnapshotService;
 import com.chm.myfinances.application.investmentsnapshot.LatestInvestmentSnapshotQuery;
 import com.chm.myfinances.application.investmentsubcategory.InvestmentSubcategoryNotFoundException;
@@ -95,7 +96,8 @@ class InvestmentProductServiceTest {
               snapshotRepository,
               holdingRepository,
               idGenerator,
-              new AuditRecorder(auditLog, AuditReferenceLabels.none())),
+              new AuditRecorder(auditLog, AuditReferenceLabels.none()),
+              HoldingAuditLabels.none()),
           idGenerator,
           TestClocks.fixedAtStartOf(LocalDate.of(2026, 10, 29)),
           new AuditRecorder(auditLog, AuditReferenceLabels.none()));

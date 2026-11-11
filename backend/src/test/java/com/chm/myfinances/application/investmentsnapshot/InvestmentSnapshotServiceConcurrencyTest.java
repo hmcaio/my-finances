@@ -112,6 +112,51 @@ class InvestmentSnapshotServiceConcurrencyTest {
     }
   }
 
+  /**
+   * F040: the same race through {@code recordBatch}, where the insert joins the batch transaction.
+   * The unique violation must still surface as the 409 {@link InvestmentSnapshotDateTakenException}
+   * (the adapter's {@code saveAndFlush} raises it inside {@code insertSnapshot}'s try/catch, not at
+   * commit), never a 500, and every holding ends with exactly one snapshot.
+   */
+  @Test
+  void concurrentRecordBatchCallsLeaveExactlyOneSnapshotPerHoldingAndNo500() throws Exception {
+    for (int trial = 0; trial < TRIALS; trial++) {
+      UUID first = newHolding();
+      UUID second = newHolding();
+      LocalDate date = LocalDate.of(2026, 3, 31);
+      List<SnapshotBatchEntry> entries =
+          List.of(
+              new SnapshotBatchEntry(first, new BigDecimal("100.00")),
+              new SnapshotBatchEntry(second, new BigDecimal("200.00")));
+
+      AtomicInteger unexpected = new AtomicInteger();
+      runConcurrently(
+          4,
+          () -> {
+            try {
+              snapshotService.recordBatch(date, entries);
+            } catch (InvestmentSnapshotDateTakenException e) {
+              // the loser of the insert race: the expected 409
+            } catch (RuntimeException e) {
+              unexpected.incrementAndGet();
+            }
+          });
+
+      assertThat(unexpected.get())
+          .as("every losing batch must surface as the 409, never an unmapped exception")
+          .isZero();
+      for (UUID holdingId : List.of(first, second)) {
+        assertThat(
+                jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM investment_snapshots WHERE holding_id = ? AND date = ?",
+                    Integer.class,
+                    holdingId,
+                    date))
+            .isEqualTo(1);
+      }
+    }
+  }
+
   private UUID newHolding() {
     String tag = UUID.randomUUID().toString().substring(0, 8);
     UUID brokerId =

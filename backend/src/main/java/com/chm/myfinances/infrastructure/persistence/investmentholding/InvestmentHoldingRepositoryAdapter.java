@@ -2,6 +2,7 @@ package com.chm.myfinances.infrastructure.persistence.investmentholding;
 
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
 import com.chm.myfinances.domain.investmentholding.InvestmentHoldingRepository;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -51,6 +52,13 @@ public class InvestmentHoldingRepositoryAdapter implements InvestmentHoldingRepo
   @Override
   public List<InvestmentHolding> findAll() {
     return jpaRepository.findAll().stream()
+        .map(InvestmentHoldingRepositoryAdapter::toDomain)
+        .toList();
+  }
+
+  @Override
+  public List<InvestmentHolding> findAllByIds(Collection<UUID> ids) {
+    return jpaRepository.findAllById(ids).stream()
         .map(InvestmentHoldingRepositoryAdapter::toDomain)
         .toList();
   }

@@ -15,6 +15,7 @@ import com.chm.myfinances.testsupport.mothers.TaxonomySeeder;
 import com.chm.myfinances.testsupport.mothers.TestFixtures;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -66,6 +67,23 @@ class InvestmentHoldingRepositoryAdapterTest {
 
   private InvestmentHolding newHolding(UUID account) {
     return InvestmentHolding.create(UUID.randomUUID(), productId, account, null);
+  }
+
+  @Test
+  void findAllByIdsReturnsTheExistingHoldingsAndSilentlyOmitsUnknownIds() {
+    InvestmentHolding first = holdingRepository.save(newHolding(accountId));
+    InvestmentHolding second = holdingRepository.save(newHolding(otherAccountId));
+    entityManager.flush();
+    entityManager.clear();
+
+    assertThat(holdingRepository.findAllByIds(List.of(first.getId(), UUID.randomUUID())))
+        .extracting(InvestmentHolding::getId)
+        .containsExactly(first.getId());
+    assertThat(
+            holdingRepository.findAllByIds(List.of(first.getId(), second.getId(), second.getId())))
+        .extracting(InvestmentHolding::getId)
+        .containsExactlyInAnyOrder(first.getId(), second.getId());
+    assertThat(holdingRepository.findAllByIds(List.of())).isEmpty();
   }
 
   @Test

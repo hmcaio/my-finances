@@ -196,6 +196,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/investment-snapshot-sheet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["investmentSnapshotSheet_list"];
+        put?: never;
+        post: operations["investmentSnapshotSheet_record"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/investment-products": {
         parameters: {
             query?: never;
@@ -1319,6 +1335,22 @@ export interface components {
             description?: string;
             additionalNotes?: string;
         };
+        RecordSnapshotSheetRequest: {
+            /** Format: date */
+            date: string;
+            entries: components["schemas"]["SnapshotSheetEntryRequest"][];
+        };
+        SnapshotSheetEntryRequest: {
+            /** Format: uuid */
+            holdingId: string;
+            balance: number;
+        };
+        RecordSnapshotSheetResponse: {
+            /** Format: int32 */
+            created?: number;
+            /** Format: int32 */
+            replaced?: number;
+        };
         CreateInvestmentProductRequest: {
             /** Format: uuid */
             accountId: string;
@@ -1707,6 +1739,18 @@ export interface components {
             institutionName?: string;
             totalValue?: number;
             needsSnapshot?: boolean;
+        };
+        SnapshotSheetRowResponse: {
+            /** Format: uuid */
+            holdingId?: string;
+            /** Format: uuid */
+            productId?: string;
+            productName?: string;
+            ticker?: string;
+            /** Format: uuid */
+            accountId?: string;
+            accountName?: string;
+            latestSnapshot?: components["schemas"]["LatestSnapshotResponse"];
         };
         InvestmentSegmentResponse: {
             /** Format: uuid */
@@ -2635,6 +2679,77 @@ export interface operations {
                 };
             };
             /** @description type: one of urn:my-finances:error:account-closed, urn:my-finances:error:account-type-not-allowed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    investmentSnapshotSheet_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Every open holding with its latest snapshot, ordered by account name then product name. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SnapshotSheetRowResponse"][];
+                };
+            };
+        };
+    };
+    investmentSnapshotSheet_record: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordSnapshotSheetRequest"];
+            };
+        };
+        responses: {
+            /** @description How many snapshots were created and how many replaced a same-day one. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RecordSnapshotSheetResponse"];
+                };
+            };
+            /** @description type: urn:my-finances:error:method-argument-not-valid, carrying an errors[] array of {field, code} with code one of: not-null, not-empty, size, positive-or-zero, digits, holding-ids-unique (field null); row fields are entries[i].holdingId and entries[i].balance */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:investment-snapshot-sheet-holdings-not-found, carrying an errors[] array with one {field: entries[i].holdingId, code: investment-holding-not-found} per missing holding */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description type: urn:my-finances:error:investment-snapshot-date-taken */
             409: {
                 headers: {
                     [name: string]: unknown;

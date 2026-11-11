@@ -46,13 +46,13 @@ Each phase below is one PR on its own branch off `main` (`feature/f040-<slug>`, 
 - [x] `scripts/verify.sh frontend`.
 
 ## Phase 7 — Snapshot sheet (backend)
-- [ ] Test first (logic tier, fakes): `InvestmentSnapshotService.recordBatch` creates new snapshots and replaces same-day ones in one call and reports `created` and `replaced`; a batch with an unknown holding writes nothing and reports every offending entry index; a failure after the first row leaves no snapshot and no audit entry; each recorded row writes its own `INVESTMENT_SNAPSHOT` audit entry and an unchanged same-day balance writes none.
-- [ ] Test first (logic tier): `OpenHoldingSnapshotSheetQuery` returns only open holdings with their latest snapshot (or none), ordered by account name then product name, case-insensitive.
-- [ ] Implement `recordBatch`, `InvestmentSnapshotSheetHoldingsNotFoundException` (`@ResponseStatus(NOT_FOUND)`), `InvestmentHoldingRepository.findAllByIds` and its adapter, and `OpenHoldingSnapshotSheetQuery`.
-- [ ] Controller tests for `GET` and `POST /api/investment-snapshot-sheet`: `200` with counts, `400` for a negative balance, more than two decimals, an empty list, more than 200 entries and a duplicate holding (each with the indexed `errors[].field`), `404` with `errors[]` naming every missing holding, `409` for a concurrent same-day write; the new `404` body shape in `GlobalExceptionHandlerTest`. Check the 409 case against the unverified commit-time behavior in the spec.
-- [ ] `infrastructure/web/investmentsnapshot/InvestmentSnapshotSheetController.java`, request and response DTOs, `@ApiResponse` annotations; regenerate `frontend/src/api/generated/schema.ts`; the ArchUnit rule (every write use case depends on the audit port) stays green.
-- [ ] `docs/conventions/errors.md`: the 404 that carries an `errors` member.
-- [ ] `./gradlew spotlessApply` then `scripts/verify.sh backend` (Docker running).
+- [x] Test first (logic tier, fakes): `InvestmentSnapshotService.recordBatch` creates new snapshots and replaces same-day ones in one call and reports `created` and `replaced`; a batch with an unknown holding writes nothing and reports every offending entry index; a failure after the first row leaves no snapshot and no audit entry; each recorded row writes its own `INVESTMENT_SNAPSHOT` audit entry and an unchanged same-day balance writes none.
+- [x] Test first (logic tier): `OpenHoldingSnapshotSheetQuery` returns only open holdings with their latest snapshot (or none), ordered by account name then product name, case-insensitive.
+- [x] Implement `recordBatch`, `InvestmentSnapshotSheetHoldingsNotFoundException` (`@ResponseStatus(NOT_FOUND)`), `InvestmentHoldingRepository.findAllByIds` and its adapter, and `OpenHoldingSnapshotSheetQuery`.
+- [x] Controller tests for `GET` and `POST /api/investment-snapshot-sheet`: `200` with counts, `400` for a negative balance, more than two decimals, an empty list, more than 200 entries and a duplicate holding (each with the indexed `errors[].field`), `404` with `errors[]` naming every missing holding, `409` for a concurrent same-day write; the new `404` body shape in `GlobalExceptionHandlerTest`. Check the 409 case against the unverified commit-time behavior in the spec.
+- [x] `infrastructure/web/investmentsnapshot/InvestmentSnapshotSheetController.java`, request and response DTOs, `@ApiResponse` annotations; regenerate `frontend/src/api/generated/schema.ts`; the ArchUnit rule (every write use case depends on the audit port) stays green.
+- [x] `docs/conventions/errors.md`: the 404 that carries an `errors` member.
+- [x] `./gradlew spotlessApply` then `scripts/verify.sh backend` (Docker running).
 
 ## Phase 8 — Snapshot sheet (frontend)
 - [ ] Test first for `features/investments/snapshots/lib/snapshotSheet.ts`: blank rows are skipped; a negative or over-precise balance is flagged; the difference is signed; the request carries only filled rows; `errors[]` indexes map back to the right rows when blank rows sit between them.
