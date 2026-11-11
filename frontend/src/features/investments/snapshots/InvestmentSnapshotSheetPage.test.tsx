@@ -347,8 +347,8 @@ describe('InvestmentSnapshotSheetPage', () => {
     window.localStorage.setItem('my-finances:locale', 'pt-BR')
     renderSheet()
 
-    expect(await screen.findByRole('button', { name: 'Salvar instantâneos' })).toBeDisabled()
-    expect(screen.getByRole('heading', { name: 'Registrar instantâneos' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Salvar registros' })).toBeDisabled()
+    expect(screen.getByRole('heading', { name: 'Registrar valores' })).toBeInTheDocument()
     window.localStorage.removeItem('my-finances:locale')
   })
 })

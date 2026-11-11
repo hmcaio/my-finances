@@ -1,10 +1,10 @@
 {
   "toast": {
-    "sheetSaved_one": "{{count}} instantâneo salvo",
-    "sheetSaved_other": "{{count}} instantâneos salvos"
+    "sheetSaved_one": "{{count}} registro salvo",
+    "sheetSaved_other": "{{count}} registros salvos"
   },
   "sheet": {
-    "title": "Registrar instantâneos",
+    "title": "Registrar valores",
     "description": "Informe o saldo atual de cada posição em uma única data. As linhas em branco são ignoradas e as preenchidas são salvas juntas: todas ou nenhuma.",
     "backToInvestments": "Voltar para Investimentos",
     "dateLabel": "Data",
@@ -19,9 +19,9 @@
     "noPrevious": "Nenhum ainda",
     "noDifference": "—",
     "balanceAria": "Saldo de {{product}} em {{account}}",
-    "save": "Salvar instantâneos",
-    "empty": "Não há posições abertas para registrar um instantâneo. Adicione antes um produto a uma conta de investimento.",
+    "save": "Salvar registros",
+    "empty": "Não há posições abertas para registrar um valor. Adicione antes um produto a uma conta de investimento.",
     "emptyLink": "Ir para Produtos",
-    "conflict": "Outra alteração atrapalhou: um desses instantâneos foi gravado no mesmo instante. Nada foi salvo e seus saldos continuam aqui, então tente salvar de novo."
+    "conflict": "Outra alteração atrapalhou: um desses registros foi gravado ao mesmo tempo. Nada foi salvo e seus saldos continuam aqui, então tente salvar de novo."
   }
 }
