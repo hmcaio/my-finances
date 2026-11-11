@@ -13,6 +13,7 @@ import {
   InstitutionsPage,
   InvestmentCategoriesPage,
   InvestmentProductDetailPage,
+  InvestmentSnapshotSheetPage,
   InvestmentSegmentsPage,
   InvestmentsPage,
   LedgerPage,
@@ -42,6 +43,7 @@ export function AuthenticatedRoutes() {
       <Route path="/budgets" element={<BudgetsPage />} />
       <Route path="/recurring" element={<RecurringTemplatesPage />} />
       <Route path="/investments" element={<InvestmentsPage />} />
+      <Route path="/investments/snapshots" element={<InvestmentSnapshotSheetPage />} />
       <Route path="/goals" element={<GoalsPage />} />
       <Route path="/goals/:id" element={<GoalDetailPage />} />
       <Route path="/fii" element={<FiiPage />} />

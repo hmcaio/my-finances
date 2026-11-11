@@ -7,6 +7,7 @@ import type institutionsEn from './locales/en/institutions.json'
 import type accountsEn from './locales/en/accounts.json'
 import type investmentCategoriesEn from './locales/en/investmentCategories.json'
 import type investmentProductsEn from './locales/en/investmentProducts.json'
+import type investmentSnapshotsEn from './locales/en/investmentSnapshots.json'
 import type investmentsEn from './locales/en/investments.json'
 import type budgetsEn from './locales/en/budgets.json'
 import type transactionsEn from './locales/en/transactions.json'
@@ -43,6 +44,7 @@ declare module 'i18next' {
       accounts: typeof accountsEn
       investmentCategories: typeof investmentCategoriesEn
       investmentProducts: typeof investmentProductsEn
+      investmentSnapshots: typeof investmentSnapshotsEn
       investments: typeof investmentsEn
       budgets: typeof budgetsEn
       transactions: typeof transactionsEn

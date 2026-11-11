@@ -10,6 +10,7 @@ import institutionsEn from './locales/en/institutions.json'
 import accountsEn from './locales/en/accounts.json'
 import investmentCategoriesEn from './locales/en/investmentCategories.json'
 import investmentProductsEn from './locales/en/investmentProducts.json'
+import investmentSnapshotsEn from './locales/en/investmentSnapshots.json'
 import investmentsEn from './locales/en/investments.json'
 import budgetsEn from './locales/en/budgets.json'
 import transactionsEn from './locales/en/transactions.json'
@@ -35,6 +36,7 @@ import institutionsPtBR from './locales/pt-BR/institutions.json'
 import accountsPtBR from './locales/pt-BR/accounts.json'
 import investmentCategoriesPtBR from './locales/pt-BR/investmentCategories.json'
 import investmentProductsPtBR from './locales/pt-BR/investmentProducts.json'
+import investmentSnapshotsPtBR from './locales/pt-BR/investmentSnapshots.json'
 import investmentsPtBR from './locales/pt-BR/investments.json'
 import budgetsPtBR from './locales/pt-BR/budgets.json'
 import transactionsPtBR from './locales/pt-BR/transactions.json'
@@ -72,6 +74,7 @@ export const resources = {
     accounts: accountsEn,
     investmentCategories: investmentCategoriesEn,
     investmentProducts: investmentProductsEn,
+    investmentSnapshots: investmentSnapshotsEn,
     investments: investmentsEn,
     budgets: budgetsEn,
     transactions: transactionsEn,
@@ -99,6 +102,7 @@ export const resources = {
     accounts: accountsPtBR,
     investmentCategories: investmentCategoriesPtBR,
     investmentProducts: investmentProductsPtBR,
+    investmentSnapshots: investmentSnapshotsPtBR,
     investments: investmentsPtBR,
     budgets: budgetsPtBR,
     transactions: transactionsPtBR,

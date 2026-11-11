@@ -76,7 +76,9 @@ export const seedAccountIdsWithHistory: readonly string[] = ['acct-1', 'acct-3']
 
 const ACCOUNTS_URL = '/api/accounts'
 
-const accounts = createStore([...seedAccounts, seedInvestmentAccount])
+/** Shared with the snapshot-sheet handler, which joins holdings to their account names. */
+export const accountsStore = createStore([...seedAccounts, seedInvestmentAccount])
+const accounts = accountsStore
 
 interface CreateAccountRequestBody {
   name: string

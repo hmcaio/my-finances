@@ -1,6 +1,7 @@
 {
   "title": "Investments",
   "description": "Where your money is invested, from the latest snapshot of each holding. Buy and sell from a product's page (or the Ledger); its value only changes when you record a snapshot.",
+  "recordSnapshots": "Record snapshots",
   "byCategory": "By category",
   "bySubcategory": "By sub-category",
   "byAccount": "By account",

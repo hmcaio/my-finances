@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Link as RouterLink, useSearchParams } from 'react-router-dom'
 import {
   Box,
+  Button,
   Link as MuiLink,
   Tab,
   Table,
@@ -28,6 +29,7 @@ import {
   type InvestmentsTab,
 } from './lib/investmentsSearchParams'
 import { PageContainer } from '../../../components/layout/PageContainer'
+import { PageHeader } from '../../../components/layout/PageHeader'
 import { PageSection } from '../../../components/layout/PageSection'
 
 /**
@@ -62,9 +64,11 @@ export function InvestmentsPage() {
 
   return (
     <PageContainer>
-      <Typography variant="h4" component="h1" gutterBottom>
-        {t('title')}
-      </Typography>
+      <PageHeader title={t('title')}>
+        <Button component={RouterLink} to="/investments/snapshots" variant="outlined">
+          {t('recordSnapshots')}
+        </Button>
+      </PageHeader>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         {t('description')}
       </Typography>

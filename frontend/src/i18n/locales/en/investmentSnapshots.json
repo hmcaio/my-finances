@@ -1,0 +1,27 @@
+{
+  "toast": {
+    "sheetSaved_one": "{{count}} snapshot saved",
+    "sheetSaved_other": "{{count}} snapshots saved"
+  },
+  "sheet": {
+    "title": "Record snapshots",
+    "description": "Enter the current balance of each holding on one date. Rows you leave blank are skipped, and the filled rows are saved together: all of them or none.",
+    "backToInvestments": "Back to Investments",
+    "dateLabel": "Date",
+    "tableAria": "Open holdings",
+    "columns": {
+      "product": "Product",
+      "account": "Account",
+      "previous": "Previous balance",
+      "balance": "Balance",
+      "difference": "Difference"
+    },
+    "noPrevious": "None yet",
+    "noDifference": "—",
+    "balanceAria": "Balance of {{product}} in {{account}}",
+    "save": "Save snapshots",
+    "empty": "No open holdings to record a snapshot for. Add a product to an investment account first.",
+    "emptyLink": "Go to Products",
+    "conflict": "Another change got in the way: one of these snapshots was written at the same moment. Nothing was saved and your balances are still here, so try saving again."
+  }
+}
