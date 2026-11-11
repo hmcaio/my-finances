@@ -53,6 +53,15 @@ describe('InvestmentsPage', () => {
     expect(within(accounts).queryByText(seedAccounts[0].name)).not.toBeInTheDocument()
   })
 
+  it('links to the snapshot sheet from the page header (F040)', async () => {
+    renderWithRouter(<InvestmentsPage />)
+
+    expect(await screen.findByRole('link', { name: 'Record snapshots' })).toHaveAttribute(
+      'href',
+      '/investments/snapshots',
+    )
+  })
+
   it('points buying and selling at the Ledger, not at the retired Transfers page (F040)', async () => {
     renderWithRouter(<InvestmentsPage />)
 

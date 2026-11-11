@@ -42,6 +42,7 @@
     "investmentHoldingHasHistory": "Esta posição tem histórico (registros ou negociações) e não pode ser excluída - encerre-a em vez disso.",
     "investmentSnapshotDateTaken": "Não foi possível salvar: outro registro já tem essa data, ou a posição está encerrada e isso deixaria seu último registro com um valor diferente de zero.",
     "investmentSnapshotClosedHolding": "Não foi possível excluir: a posição está encerrada e seu último registro deixaria de ser zero.",
+    "investmentSnapshotSheetHoldingsNotFound": "As posições destacadas abaixo não existem mais, então nada foi salvo. Limpe os saldos delas e salve de novo.",
     "investmentSegmentNameAlreadyExists": "Já existe um segmento de investimento com esse nome.",
     "investmentSegmentInUse": "Este segmento ainda é usado por um produto de investimento - reclassifique-o primeiro.",
     "allocationPlanEntryNotFii": "Todo item deve ser um produto classificado na subcategoria \"REITs (FIIs)\".",
@@ -67,7 +68,8 @@
     "decimalMin": "Este valor está abaixo do mínimo permitido.",
     "decimalMax": "Este valor está acima do máximo permitido.",
     "min": "Este valor está abaixo do mínimo permitido.",
-    "max": "Este valor está acima do máximo permitido."
+    "max": "Este valor está acima do máximo permitido.",
+    "investmentHoldingNotFound": "Esta posição não existe mais. Limpe o saldo dela e salve de novo."
   },
   "requestFailed": "A requisição falhou com status {{status}}",
   "networkError": "Erro de rede",

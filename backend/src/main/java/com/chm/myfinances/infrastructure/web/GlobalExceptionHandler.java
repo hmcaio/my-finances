@@ -1,5 +1,7 @@
 package com.chm.myfinances.infrastructure.web;
 
+import com.chm.myfinances.application.investmentholding.InvestmentHoldingNotFoundException;
+import com.chm.myfinances.application.investmentsnapshot.InvestmentSnapshotSheetHoldingsNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.util.ArrayList;
@@ -70,6 +72,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * errors} extension member listing every violation as {@code {field, code}} - built from its {@code
  * BindingResult}, never from the interpolated Jakarta message or the rejected value. No new branch,
  * no new logging.
+ *
+ * <p>F040: {@link InvestmentSnapshotSheetHoldingsNotFoundException} (a 404 through its
+ * {@code @ResponseStatus}) gets the same {@code errors} member, built from the entry indexes it
+ * carries.
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -123,9 +129,26 @@ public class GlobalExceptionHandler {
 
     if (exception instanceof MethodArgumentNotValidException validationException) {
       problemDetail.setProperty("errors", violationsFor(validationException));
+    } else if (exception instanceof InvestmentSnapshotSheetHoldingsNotFoundException notFound) {
+      problemDetail.setProperty("errors", missingHoldingsFor(notFound));
     }
 
     return ResponseEntity.status(status).body(problemDetail);
+  }
+
+  /**
+   * F040: the 404 of the snapshot sheet carries the same {@code errors[]} shape as a validation
+   * failure, one entry per missing holding with the indexed {@code field} of its request entry, so
+   * the sheet can highlight every offending row. The code is the slug of {@link
+   * InvestmentHoldingNotFoundException}, the error a single-holding call reports for the same
+   * condition. Built from the indexes alone: no holding id reaches the response.
+   */
+  private static List<ValidationViolation> missingHoldingsFor(
+      InvestmentSnapshotSheetHoldingsNotFoundException exception) {
+    String code = ProblemTypeSlugs.slugFor(InvestmentHoldingNotFoundException.class);
+    return exception.entryIndexes().stream()
+        .map(index -> new ValidationViolation("entries[" + index + "].holdingId", code))
+        .toList();
   }
 
   /**

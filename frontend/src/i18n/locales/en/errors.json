@@ -42,6 +42,7 @@
     "investmentHoldingHasHistory": "This holding has history (snapshots or trades) and cannot be deleted - close it instead.",
     "investmentSnapshotDateTaken": "Could not save: another snapshot already has that date, or the holding is closed and this would leave it with a non-zero latest snapshot.",
     "investmentSnapshotClosedHolding": "Could not delete: the holding is closed and its latest snapshot would no longer be zero.",
+    "investmentSnapshotSheetHoldingsNotFound": "The holdings highlighted below no longer exist, so nothing was saved. Clear their balances and save again.",
     "investmentSegmentNameAlreadyExists": "An investment segment with this name already exists.",
     "investmentSegmentInUse": "This segment is still used by an investment product - reclassify it first.",
     "allocationPlanEntryNotFii": "Every entry must be a product classified under the \"REITs (FIIs)\" sub-category.",
@@ -67,7 +68,8 @@
     "decimalMin": "This value is below the allowed minimum.",
     "decimalMax": "This value is above the allowed maximum.",
     "min": "This value is below the allowed minimum.",
-    "max": "This value is above the allowed maximum."
+    "max": "This value is above the allowed maximum.",
+    "investmentHoldingNotFound": "This holding no longer exists. Clear its balance and save again."
   },
   "requestFailed": "Request failed with status {{status}}",
   "networkError": "Network error",

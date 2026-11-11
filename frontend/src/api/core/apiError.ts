@@ -25,8 +25,8 @@ export class ApiError extends Error {
    * a screen that genuinely needs different phrasing for the same `type` branch on it, the ADR's
    * own escape hatch now that `unwrap()` no longer takes a per-call-site override. */
   readonly type?: string
-  /** The raw bean-validation violation list (F032) when the response's `type` was
-   * `method-argument-not-valid` and it carried an `errors` extension - `field` is the backend's
+  /** The raw violation list (F032) when the response carried an `errors` extension: a
+   * `method-argument-not-valid` 400, or (F040) the snapshot sheet's 404 - `field` is the backend's
    * own (possibly nested/indexed, e.g. `tradeConfirmation.lines[0].quantity`) path, `null` for a
    * cross-field `@AssertTrue` invariant. This feature itself only folds the list into one summary
    * {@link message}; a future per-field `TextField` UI can read this passthrough without another
@@ -156,6 +156,9 @@ export const PROBLEM_TYPE_MESSAGES: Record<string, string> = {
     'errors:problemType.investmentSnapshotDateTaken',
   'urn:my-finances:error:investment-snapshot-closed-holding':
     'errors:problemType.investmentSnapshotClosedHolding',
+  // The snapshot sheet (F040): a 404 that also carries `errors[]`, one per missing holding.
+  'urn:my-finances:error:investment-snapshot-sheet-holdings-not-found':
+    'errors:problemType.investmentSnapshotSheetHoldingsNotFound',
 
   // Investment opening positions (F038)
   'urn:my-finances:error:investment-opening-position-not-found':
@@ -213,6 +216,19 @@ export const VALIDATION_CODE_MESSAGES: Record<string, string> = {
   'decimal-max': 'errors:validationCode.decimalMax',
   min: 'errors:validationCode.min',
   max: 'errors:validationCode.max',
+  // Not a bean-validation code: the code of a snapshot sheet 404's `errors[]` entries (F040).
+  'investment-holding-not-found': 'errors:validationCode.investmentHoldingNotFound',
+}
+
+/**
+ * The translated reason for one `errors[].code`, or `undefined` for a code without wording. For a
+ * screen that shows each violation next to its own row (the snapshot sheet, F040) instead of the
+ * joined summary in {@link ApiError.message}; the client-side checks of such a screen use the same
+ * codes the backend would answer with, so one set of strings serves both.
+ */
+export function validationCodeMessage(code: string): string | undefined {
+  const key = VALIDATION_CODE_MESSAGES[code]
+  return key ? translate(key) : undefined
 }
 
 /**
@@ -262,11 +278,16 @@ function toApiError(error: unknown): ApiError {
       { type?: string; errors?: { field: string | null; code: string }[] } | undefined
     const type = data?.type
     const fieldErrors = data?.errors
+    // A mapped `type` words the whole failure and wins even when `errors[]` is present (F040: the
+    // snapshot sheet's 404 carries one); an unmapped one (a bean-validation 400) is summarised
+    // from the codes of its violations (F032).
+    const typeMessage =
+      type && PROBLEM_TYPE_MESSAGES[type] && translate(PROBLEM_TYPE_MESSAGES[type])
     const message =
-      fieldErrors && fieldErrors.length > 0
+      typeMessage ||
+      (fieldErrors && fieldErrors.length > 0
         ? summaryFor(fieldErrors, status)
-        : (type && PROBLEM_TYPE_MESSAGES[type] && translate(PROBLEM_TYPE_MESSAGES[type])) ||
-          i18n.t('errors:requestFailed', { status })
+        : i18n.t('errors:requestFailed', { status }))
     return new ApiError(status, message, type, fieldErrors)
   }
   return new ApiError(0, error instanceof Error ? error.message : i18n.t('errors:unknownError'))

@@ -3,16 +3,24 @@ package com.chm.myfinances.application.investmentsnapshot;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.chm.myfinances.application.auditlog.AuditAction;
+import com.chm.myfinances.application.auditlog.AuditEntry;
 import com.chm.myfinances.application.auditlog.AuditRecorder;
 import com.chm.myfinances.application.auditlog.AuditReferenceLabels;
 import com.chm.myfinances.application.investmentholding.InvestmentHoldingNotFoundException;
+import com.chm.myfinances.domain.account.Account;
 import com.chm.myfinances.domain.investmentholding.InvestmentHolding;
+import com.chm.myfinances.domain.investmentproduct.InvestmentProduct;
 import com.chm.myfinances.domain.investmentsnapshot.InvestmentSnapshot;
+import com.chm.myfinances.testsupport.fakes.FakeAccountRepository;
 import com.chm.myfinances.testsupport.fakes.FakeAuditLog;
 import com.chm.myfinances.testsupport.fakes.FakeIdGenerator;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentHoldingRepository;
+import com.chm.myfinances.testsupport.fakes.FakeInvestmentProductRepository;
 import com.chm.myfinances.testsupport.fakes.FakeInvestmentSnapshotRepository;
+import com.chm.myfinances.testsupport.mothers.AccountMother;
 import com.chm.myfinances.testsupport.mothers.InvestmentHoldingMother;
+import com.chm.myfinances.testsupport.mothers.InvestmentProductMother;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -32,6 +40,9 @@ class InvestmentSnapshotServiceTest {
       new FakeInvestmentSnapshotRepository();
   private final FakeInvestmentHoldingRepository holdingRepository =
       new FakeInvestmentHoldingRepository();
+  private final FakeInvestmentProductRepository productRepository =
+      new FakeInvestmentProductRepository();
+  private final FakeAccountRepository accountRepository = new FakeAccountRepository();
   private final FakeIdGenerator idGenerator = new FakeIdGenerator();
   private final FakeAuditLog auditLog = new FakeAuditLog();
   private final InvestmentSnapshotService service =
@@ -39,13 +50,29 @@ class InvestmentSnapshotServiceTest {
           snapshotRepository,
           holdingRepository,
           idGenerator,
-          new AuditRecorder(auditLog, AuditReferenceLabels.none()));
+          new AuditRecorder(auditLog, AuditReferenceLabels.none()),
+          new HoldingAuditLabels(productRepository, accountRepository));
 
   private InvestmentHolding holding;
 
   @BeforeEach
   void setUp() {
     holding = holdingRepository.save(InvestmentHoldingMother.holding().build());
+  }
+
+  /**
+   * A holding of a named product in a named account, both saved, so its Activity label resolves.
+   */
+  private InvestmentHolding namedHolding(String productName, String accountName) {
+    InvestmentProduct product =
+        productRepository.save(InvestmentProductMother.product().withName(productName).build());
+    Account account =
+        accountRepository.save(AccountMother.investment().withName(accountName).build());
+    return holdingRepository.save(
+        InvestmentHoldingMother.holding()
+            .withProductId(product.getId())
+            .withAccountId(account.getId())
+            .build());
   }
 
   @Test
@@ -56,7 +83,8 @@ class InvestmentSnapshotServiceTest {
             snapshotRepository,
             holdingRepository,
             new FakeIdGenerator(nextId),
-            new AuditRecorder(auditLog, AuditReferenceLabels.none()));
+            new AuditRecorder(auditLog, AuditReferenceLabels.none()),
+            HoldingAuditLabels.none());
 
     RecordedSnapshot recorded =
         service.record(holding.getId(), LocalDate.of(2026, 3, 31), new BigDecimal("1234.56"));
@@ -375,5 +403,140 @@ class InvestmentSnapshotServiceTest {
 
     assertThat(auditLog.onlyEntry().action())
         .isEqualTo(com.chm.myfinances.application.auditlog.AuditAction.DELETE);
+  }
+
+  // ---- recordBatch (F040: the snapshot sheet) ----
+
+  private static final LocalDate SHEET_DATE = LocalDate.of(2026, 5, 31);
+
+  private static SnapshotBatchEntry entry(InvestmentHolding holding, String balance) {
+    return new SnapshotBatchEntry(holding.getId(), new BigDecimal(balance));
+  }
+
+  @Test
+  void recordBatchCreatesNewSnapshotsAndReplacesSameDayOnesAndReportsBothCounts() {
+    InvestmentHolding second = holdingRepository.save(InvestmentHoldingMother.holding().build());
+    InvestmentHolding third = holdingRepository.save(InvestmentHoldingMother.holding().build());
+    service.record(second.getId(), SHEET_DATE, new BigDecimal("50.00"));
+
+    RecordedBatch result =
+        service.recordBatch(
+            SHEET_DATE,
+            List.of(entry(holding, "10.00"), entry(second, "60.00"), entry(third, "0")));
+
+    assertThat(result).isEqualTo(new RecordedBatch(2, 1));
+    assertThat(snapshotRepository.findByHoldingId(holding.getId())).hasSize(1);
+    assertThat(snapshotRepository.findByHoldingId(second.getId()))
+        .singleElement()
+        .satisfies(s -> assertThat(s.getBalance()).isEqualByComparingTo("60.00"));
+    assertThat(snapshotRepository.findByHoldingId(third.getId())).hasSize(1);
+  }
+
+  @Test
+  void recordBatchWithUnknownHoldingsWritesNothingAndReportsEveryOffendingIndex() {
+    InvestmentHolding other = holdingRepository.save(InvestmentHoldingMother.holding().build());
+    auditLog.entries().clear();
+
+    assertThatThrownBy(
+            () ->
+                service.recordBatch(
+                    SHEET_DATE,
+                    List.of(
+                        entry(holding, "10.00"),
+                        new SnapshotBatchEntry(UUID.randomUUID(), BigDecimal.ONE),
+                        entry(other, "20.00"),
+                        new SnapshotBatchEntry(UUID.randomUUID(), BigDecimal.TEN))))
+        .isInstanceOfSatisfying(
+            InvestmentSnapshotSheetHoldingsNotFoundException.class,
+            e -> assertThat(e.entryIndexes()).containsExactly(1, 3));
+
+    assertThat(snapshotRepository.findAll()).isEmpty();
+    assertThat(auditLog.entries()).isEmpty();
+  }
+
+  @Test
+  void recordBatchWritesOneInvestmentSnapshotAuditEntryPerChangedRowInRequestOrder() {
+    InvestmentHolding second = holdingRepository.save(InvestmentHoldingMother.holding().build());
+    InvestmentHolding unchanged = holdingRepository.save(InvestmentHoldingMother.holding().build());
+    service.record(second.getId(), SHEET_DATE, new BigDecimal("50.00"));
+    service.record(unchanged.getId(), SHEET_DATE, new BigDecimal("70.00"));
+    auditLog.entries().clear();
+
+    RecordedBatch result =
+        service.recordBatch(
+            SHEET_DATE,
+            List.of(entry(holding, "10.00"), entry(unchanged, "70.00"), entry(second, "60.00")));
+
+    assertThat(result).isEqualTo(new RecordedBatch(1, 2));
+    assertThat(auditLog.entries())
+        .extracting(AuditEntry::action)
+        .containsExactly(AuditAction.CREATE, AuditAction.UPDATE);
+    assertThat(auditLog.entries())
+        .allSatisfy(
+            e ->
+                assertThat(e.entityType())
+                    .isEqualTo(
+                        com.chm.myfinances.application.auditlog.AuditEntityType
+                            .INVESTMENT_SNAPSHOT));
+  }
+
+  @Test
+  void recordBatchOfOneDuplicateHoldingKeepsTheLastBalanceAndCountsItReplaced() {
+    RecordedBatch result =
+        service.recordBatch(SHEET_DATE, List.of(entry(holding, "10.00"), entry(holding, "12.00")));
+
+    assertThat(result).isEqualTo(new RecordedBatch(1, 1));
+    assertThat(snapshotRepository.findByHoldingId(holding.getId()))
+        .singleElement()
+        .satisfies(s -> assertThat(s.getBalance()).isEqualByComparingTo("12.00"));
+  }
+
+  @Test
+  void anUnchangedSameDayBalanceTypedWithAnotherScaleLogsNothing() {
+    // 70.00 as the database stores it, 70 as a request carries it.
+    service.record(holding.getId(), SHEET_DATE, new BigDecimal("70.00"));
+    auditLog.entries().clear();
+
+    service.record(holding.getId(), SHEET_DATE, new BigDecimal("70"));
+
+    assertThat(auditLog.entries()).isEmpty();
+  }
+
+  // ---- the Activity label of a snapshot (F040) ----
+
+  @Test
+  void recordLabelsTheAuditEntryWithTheProductAndAccountNames() {
+    InvestmentHolding named = namedHolding("PETR4", "XP Broker");
+
+    service.record(named.getId(), SHEET_DATE, new BigDecimal("100.00"));
+
+    assertThat(auditLog.onlyEntry().entityLabel()).isEqualTo("PETR4 (XP Broker)");
+  }
+
+  @Test
+  void aSameDayReplaceKeepsTheLabelSoTheUpdateRowNamesTheHolding() {
+    InvestmentHolding named = namedHolding("PETR4", "XP Broker");
+    service.record(named.getId(), SHEET_DATE, new BigDecimal("100.00"));
+    auditLog.entries().clear();
+
+    service.record(named.getId(), SHEET_DATE, new BigDecimal("120.00"));
+
+    assertThat(auditLog.onlyEntry().entityLabel()).isEqualTo("PETR4 (XP Broker)");
+  }
+
+  @Test
+  void theLabelIsClippedToTheAuditColumnWidth() {
+    InvestmentHolding named = namedHolding("P".repeat(100), "A".repeat(100));
+
+    service.record(named.getId(), SHEET_DATE, BigDecimal.TEN);
+
+    assertThat(auditLog.onlyEntry().entityLabel()).hasSize(200);
+  }
+
+  @Test
+  void aHoldingWhoseProductOrAccountNoLongerResolvesGetsNoLabelAndStillRecords() {
+    service.record(holding.getId(), SHEET_DATE, BigDecimal.TEN);
+
+    assertThat(auditLog.onlyEntry().entityLabel()).isNull();
   }
 }

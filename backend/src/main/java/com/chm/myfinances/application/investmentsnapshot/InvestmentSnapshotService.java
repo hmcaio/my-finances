@@ -13,8 +13,13 @@ import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +30,8 @@ import org.springframework.transaction.annotation.Transactional;
  * {@link #findByHolding} lists a holding's history, most recent first. {@link #update} and {@link
  * #delete} fix a wrongly dated or mistaken entry (issue #59). New ids come from the {@link
  * IdGenerator} port (ADR 0005).
+ *
+ * <p>{@link #recordBatch} records many at once for the snapshot sheet (F040), atomically.
  *
  * <p>{@code TransferService.create} calls {@code record} from inside its own transaction when a
  * trade carries a resulting balance, and joins that one.
@@ -38,20 +45,25 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class InvestmentSnapshotService {
 
+  private static final Logger log = LoggerFactory.getLogger(InvestmentSnapshotService.class);
+
   private final InvestmentSnapshotRepository snapshotRepository;
   private final InvestmentHoldingRepository holdingRepository;
   private final IdGenerator idGenerator;
   private final AuditRecorder auditRecorder;
+  private final HoldingAuditLabels holdingLabels;
 
   public InvestmentSnapshotService(
       InvestmentSnapshotRepository snapshotRepository,
       InvestmentHoldingRepository holdingRepository,
       IdGenerator idGenerator,
-      AuditRecorder auditRecorder) {
+      AuditRecorder auditRecorder,
+      HoldingAuditLabels holdingLabels) {
     this.snapshotRepository = snapshotRepository;
     this.holdingRepository = holdingRepository;
     this.idGenerator = idGenerator;
     this.auditRecorder = auditRecorder;
+    this.holdingLabels = holdingLabels;
   }
 
   /**
@@ -61,7 +73,7 @@ public class InvestmentSnapshotService {
    */
   @Transactional
   public RecordedSnapshot record(UUID holdingId, LocalDate date, BigDecimal balance) {
-    requireHolding(holdingId);
+    String label = holdingLabels.labelFor(requireHolding(holdingId));
     return snapshotRepository
         .findByHoldingIdAndDate(holdingId, date)
         .map(
@@ -72,21 +84,64 @@ public class InvestmentSnapshotService {
               auditRecorder.recordUpdate(
                   AuditEntityType.INVESTMENT_SNAPSHOT,
                   saved.getId(),
-                  null,
+                  label,
                   before,
                   saved.toAuditSnapshot());
               return new RecordedSnapshot(saved, false);
             })
-        .orElseGet(() -> insertSnapshot(holdingId, date, balance));
+        .orElseGet(() -> insertSnapshot(holdingId, date, balance, label));
   }
 
-  private RecordedSnapshot insertSnapshot(UUID holdingId, LocalDate date, BigDecimal balance) {
+  /**
+   * Records one snapshot per entry on {@code date} in a single transaction (F040, the snapshot
+   * sheet): all of them or none. Every holding is loaded in one read and checked first, so an
+   * unknown one fails the whole batch before any write with every offending entry index (404); then
+   * each entry goes through {@link #record}, which joins this transaction, replaces a same-day
+   * snapshot, and writes its own audit entry (an unchanged same-day balance writes none). A
+   * concurrent insert that trips the unique constraint surfaces as {@link
+   * InvestmentSnapshotDateTakenException} (409) and rolls the whole batch back.
+   */
+  @Transactional
+  public RecordedBatch recordBatch(LocalDate date, List<SnapshotBatchEntry> entries) {
+    Set<UUID> existing =
+        holdingRepository
+            .findAllByIds(entries.stream().map(SnapshotBatchEntry::holdingId).distinct().toList())
+            .stream()
+            .map(InvestmentHolding::getId)
+            .collect(Collectors.toSet());
+    List<Integer> missing =
+        IntStream.range(0, entries.size())
+            .filter(i -> !existing.contains(entries.get(i).holdingId()))
+            .boxed()
+            .toList();
+    if (!missing.isEmpty()) {
+      throw new InvestmentSnapshotSheetHoldingsNotFoundException(missing);
+    }
+    int created = 0;
+    int replaced = 0;
+    for (SnapshotBatchEntry entry : entries) {
+      if (record(entry.holdingId(), date, entry.balance()).created()) {
+        created++;
+      } else {
+        replaced++;
+      }
+    }
+    log.info(
+        "Recorded snapshot batch: {} entries, {} created, {} replaced",
+        entries.size(),
+        created,
+        replaced);
+    return new RecordedBatch(created, replaced);
+  }
+
+  private RecordedSnapshot insertSnapshot(
+      UUID holdingId, LocalDate date, BigDecimal balance, String label) {
     try {
       InvestmentSnapshot saved =
           snapshotRepository.save(
               InvestmentSnapshot.create(idGenerator.newId(), holdingId, date, balance));
       auditRecorder.recordCreate(
-          AuditEntityType.INVESTMENT_SNAPSHOT, saved.getId(), null, saved.toAuditSnapshot());
+          AuditEntityType.INVESTMENT_SNAPSHOT, saved.getId(), label, saved.toAuditSnapshot());
       return new RecordedSnapshot(saved, true);
     } catch (DataIntegrityViolationException e) {
       throw new InvestmentSnapshotDateTakenException(holdingId);
@@ -127,7 +182,11 @@ public class InvestmentSnapshotService {
     snapshot.replaceBalance(balance);
     InvestmentSnapshot saved = snapshotRepository.save(snapshot);
     auditRecorder.recordUpdate(
-        AuditEntityType.INVESTMENT_SNAPSHOT, saved.getId(), null, before, saved.toAuditSnapshot());
+        AuditEntityType.INVESTMENT_SNAPSHOT,
+        saved.getId(),
+        holdingLabels.labelFor(holding),
+        before,
+        saved.toAuditSnapshot());
     return saved;
   }
 
@@ -145,7 +204,10 @@ public class InvestmentSnapshotService {
     }
     snapshotRepository.deleteById(snapshotId);
     auditRecorder.recordDelete(
-        AuditEntityType.INVESTMENT_SNAPSHOT, snapshot.getId(), null, snapshot.toAuditSnapshot());
+        AuditEntityType.INVESTMENT_SNAPSHOT,
+        snapshot.getId(),
+        holdingLabels.labelFor(holding),
+        snapshot.toAuditSnapshot());
   }
 
   private record DatedBalance(LocalDate date, BigDecimal balance) {}

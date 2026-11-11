@@ -33,6 +33,10 @@ export const InvestmentsPage = lazyNamed(
   () => import('../features/investments/overview/InvestmentsPage'),
   'InvestmentsPage',
 )
+export const InvestmentSnapshotSheetPage = lazyNamed(
+  () => import('../features/investments/snapshots/InvestmentSnapshotSheetPage'),
+  'InvestmentSnapshotSheetPage',
+)
 export const InvestmentProductDetailPage = lazyNamed(
   () => import('../features/investments/products/InvestmentProductDetailPage'),
   'InvestmentProductDetailPage',

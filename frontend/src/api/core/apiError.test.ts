@@ -3,7 +3,39 @@ import { http, HttpResponse } from 'msw'
 import { server } from '../../mocks/server'
 import i18n from '../../i18n/i18n'
 import { apiClient } from './client'
-import { ApiError, defaultErrorMessage, unwrap } from './apiError'
+import { ApiError, defaultErrorMessage, unwrap, validationCodeMessage } from './apiError'
+
+describe('unwrap - F040 a 404 that carries errors[]', () => {
+  const sheetNotFound = {
+    type: 'urn:my-finances:error:investment-snapshot-sheet-holdings-not-found',
+    errors: [
+      { field: 'entries[1].holdingId', code: 'investment-holding-not-found' },
+      { field: 'entries[3].holdingId', code: 'investment-holding-not-found' },
+    ],
+  }
+
+  it('words the failure from its mapped type and still passes the rows through as fieldErrors', async () => {
+    server.use(http.post('/api/things', () => HttpResponse.json(sheetNotFound, { status: 404 })))
+
+    const error: unknown = await unwrap(apiClient.post('/things')).catch((err: unknown) => err)
+
+    const apiError = error as ApiError
+    expect(apiError.status).toBe(404)
+    expect(apiError.type).toBe(sheetNotFound.type)
+    expect(apiError.message).toBe(
+      'The holdings highlighted below no longer exist, so nothing was saved. Clear their balances and save again.',
+    )
+    expect(apiError.fieldErrors).toEqual(sheetNotFound.errors)
+  })
+
+  it('gives each code its own reason for a screen that shows them per row', () => {
+    expect(validationCodeMessage('investment-holding-not-found')).toBe(
+      'This holding no longer exists. Clear its balance and save again.',
+    )
+    expect(validationCodeMessage('positive-or-zero')).toBe("This value can't be negative.")
+    expect(validationCodeMessage('some-brand-new-invariant')).toBeUndefined()
+  })
+})
 
 describe('unwrap - F033 locale-aware messages', () => {
   afterEach(() => {
