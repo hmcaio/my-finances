@@ -180,6 +180,17 @@ for s in "${SERVICES[@]}"; do
   fi
 done
 
+# Network layout (#284): postgres shares no network with nginx, and the network it is on has no
+# route out. Only the sidecar (rclone) has a way out of the stack besides the backend's `edge`.
+echo "smoke: networks"
+nets() { docker inspect -f '{{range $n, $_ := .NetworkSettings.Networks}}{{$n}} {{end}}' "$STACK-$1-prod" | tr -s ' \r\n' '\n' | grep . | sed "s/^${PROJECT}_//" | sort | tr '\n' ' '; }
+check "postgres is on the internal network only" "$(nets postgres)" "backend "
+check "backend is on edge and backend" "$(nets backend)" "backend edge "
+check "backup is on backend and egress" "$(nets backup)" "backend egress "
+check "frontend is on edge only" "$(nets frontend)" "edge "
+check "the backend network is internal" "$(docker network inspect -f '{{.Internal}}' "${PROJECT}_backend" | tr -d '\r')" true
+check "the egress network is not internal" "$(docker network inspect -f '{{.Internal}}' "${PROJECT}_egress" | tr -d '\r')" false
+
 # The sidecar image declares no VOLUME (#204; built on the postgres image it got an anonymous
 # volume per container at /var/lib/postgresql/data, the volume Postgres 17 declared): its only mounts are the two compose binds.
 mounts=$(docker inspect -f '{{range .Mounts}}{{.Type}}:{{.Destination}} {{end}}' "$STACK-backup-prod" | tr -s ' \r\n' '\n' | grep . | sort | tr '\n' ' ')

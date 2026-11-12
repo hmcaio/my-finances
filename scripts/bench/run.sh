@@ -184,7 +184,7 @@ setup_compose() {
     local base_image=$image_prefix-backend:$tag-baseline
     docker build -q -t "$base_image" "$WORKTREE/backend" >/dev/null
     BUILT_IMAGES+=("$base_image")
-    # The baseline gets the backend service's own environment and joins the stack's network.
+    # The baseline gets the backend service's own environment and joins the stack's networks.
     # `compose config` prints a literal $ as $$ (so its output can be fed back to Compose); an
     # env file takes values as they are, and the Argon2 hash is full of them.
     node -e "const e=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).services.backend.environment;
@@ -192,8 +192,12 @@ setup_compose() {
     local base_port
     base_port=$(free_port)
     BASE_CONTAINER=mf-bench-base-$$
-    docker run -d --name "$BASE_CONTAINER" --network "${PROJECT}_default" \
+    # Created on `edge` (a published port does not work on an internal-only network), attached to the
+    # internal `backend` network where postgres is, and only then started so it finds the database.
+    docker create --name "$BASE_CONTAINER" --network "${PROJECT}_edge" \
       -p "127.0.0.1:$base_port:8080" --env-file "$SCRATCH/baseline.env" "$base_image" >/dev/null
+    docker network connect "${PROJECT}_backend" "$BASE_CONTAINER"
+    docker start "$BASE_CONTAINER" >/dev/null
     wait_for_http "http://127.0.0.1:$base_port/api/auth/session" 180 "the baseline backend" "$BASE_CONTAINER"
     export BENCH_BASELINE_API=http://127.0.0.1:$base_port
   fi

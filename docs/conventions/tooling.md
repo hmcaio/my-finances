@@ -28,6 +28,13 @@ The real dev and prod stacks set none of the variables below. A second stack (an
 - **Not covered**: names, ports and volumes only, not the daemon: a `docker rm -f` or `down -v` against the wrong project still reaches real containers. Two dev stacks of one checkout share its bind-mounted source, so give each its own worktree.
 - **A dev stack started from a worktree leaves root-owned paths in it**: `backend/logs/` (the backend container's log file) and an empty `frontend/node_modules/` (the mount point of the named volume). `git worktree remove` then fails with "Permission denied". After the stack is down, clear both with a root container before removing the worktree: `docker run --rm -v "<worktree>/backend:/b" -v "<worktree>/frontend:/f" alpine rm -rf /b/logs /f/node_modules`.
 
+## Prod networks and hardening (#284)
+
+- **Layout** (`docker-compose.prod.yml`): `edge` (frontend, backend), `backend` with `internal: true` (postgres, backend, backup) and `egress` (backup only, so rclone can reach its remote). Postgres is on no network nginx is on, and `backend` has no route out. The backup sidecar must stay on a non-internal network: without it the off-machine copy fails silently and shows only as a FAILING status (ADR 0015). Published ports do not work on an internal-only network, so anything that must publish one (the frontend, the benchmark's baseline backend) joins `edge`.
+- **Networks stay unnamed.** No `name:` and never `external`: Compose then prefixes them with the project name, which `scripts/bench/guard.mjs` requires and which keeps a second stack (`STACK_NAME`) off the real one's networks. A container started by hand against the prod database joins `<project>_backend`.
+- **Hardening**: `no-new-privileges` on every prod service; `cap_drop: [ALL]` on the backend, and on nginx with only `CHOWN`, `SETGID`, `SETUID`, `NET_BIND_SERVICE` added back. Not on `backup` (root for chown and `gosu`) or `postgres` (chowns its data directory). A new service gets `no-new-privileges` and, if it runs non-root, `cap_drop: [ALL]`.
+- **The check**: the `networks` block of `scripts/smoke-prod.sh` asserts each container's networks and that `backend` is internal and `egress` is not.
+
 ## Verify and CI
 
 - `scripts/verify.sh` is the one definition of the checks: CI's jobs call it, so a green local run means a green CI run. Change a check in that script, not only in `ci.yml`. It runs every stage even if one fails.
