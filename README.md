@@ -8,7 +8,7 @@ A personal finance manager, built for exactly one user, running on exactly one t
 
 Manual entry only. There's no bank sync, because there's no server to sync to: the app runs on-demand on your own machine and shuts down when you're not using it.
 
-![The dashboard: spend by category, budget vs. actual, account balances and the net worth trend, with demo data](docs/images/dashboard.png)
+![The dashboard in dark mode: spend by category, budget vs. actual, account balances, investment allocation, the net worth trend and goals, with demo data](docs/images/dashboard.png)
 
 **Contents**
 
