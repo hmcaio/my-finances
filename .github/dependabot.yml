@@ -6,7 +6,7 @@
 # built on the postgres image (#204), so the Alpine packages it installs (age, rclone, ...) are
 # unpinned and not tracked, and its Postgres major is an ARG (POSTGRES_MAJOR) Dependabot cannot see;
 # scripts/check-versions.sh compares that ARG with the compose files' postgres tag. The bats test
-# image (backup/test/Dockerfile) is a second /backup/test entry below.
+# image (backup/test/Dockerfile) rides in the same entry as a second directory.
 #
 # Major bumps of postgres, eclipse-temurin and node are ignored on purpose: each is a coordinated
 # move across several files (postgres: both compose files, Testcontainers, POSTGRES_MAJOR in the
@@ -37,20 +37,20 @@ updates:
     ignore:
       - dependency-name: eclipse-temurin
         update-types: ["version-update:semver-major"]
+  # The sidecar and its bats test image (#213) share one Alpine tag, and scripts/check-versions.sh
+  # fails until the two agree. `directories` + `group-by: dependency-name` makes Dependabot bump
+  # both in one PR (a separate entry per directory opens one PR each, each failing that check).
   - package-ecosystem: docker
-    directory: /backup
+    directories:
+      - /backup
+      - /backup/test
     schedule:
       interval: monthly
     cooldown:
       default-days: 7
-  # The bats test image (#213) is on the sidecar's Alpine tag; Dependabot opens one PR per
-  # directory, and scripts/check-versions.sh fails until the two tags agree, so bump both in one PR.
-  - package-ecosystem: docker
-    directory: /backup/test
-    schedule:
-      interval: monthly
-    cooldown:
-      default-days: 7
+    groups:
+      alpine:
+        group-by: dependency-name
   - package-ecosystem: docker
     directory: /frontend
     schedule:

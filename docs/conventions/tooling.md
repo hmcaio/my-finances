@@ -69,7 +69,7 @@ A tool version is pinned in every file that names it, and `scripts/check-version
 - Node: `frontend/.nvmrc` is the source; `frontend/Dockerfile`, the dev compose `frontend` service, CI's `setup-node` and `engines` follow it.
 - `eclipse-temurin` JDK/JRE: `backend/Dockerfile` + dev compose `backend`. The Java major is also pinned in `backend/build.gradle` (toolchain), `backend/gradle/gradle-daemon-jvm.properties` (regenerate with `./gradlew updateDaemonJvm --jvm-version=<n>`: a stale one makes the image build try to download a second JDK and fail) and CI's `setup-java`; `check-versions.sh` requires all of them to equal the tag's major.
 - `nginx`: only `frontend/Dockerfile`, on the `-alpine-slim` variant (the full image adds modules and libraries the app does not use, which carry scan findings); `check-versions.sh` has no sibling to compare.
-- `backup/test/Dockerfile` (the bats test image, #213): `FROM alpine:<x.y.z>` must be the same full patch tag as `backup/Dockerfile`'s (`check-versions.sh` compares them), so bump both together (Dependabot opens one PR per directory).
+- `backup/test/Dockerfile` (the bats test image, #213): `FROM alpine:<x.y.z>` must be the same full patch tag as `backup/Dockerfile`'s (`check-versions.sh` compares them), so bump both together (one Dependabot entry lists both directories and groups them by dependency name, so they arrive as one PR; the grouping was added unverified against a live run, so if two PRs show up, fold them by hand and fix the group).
 - Trivy: only `scripts/trivy/Dockerfile` (tag + digest, so `check-versions.sh` checks its form, not siblings).
 
 ## Image vulnerability scan (ADR 0031)
