@@ -76,7 +76,7 @@ services:
   # never leak into the Linux containers (and the bind mount stays fast).
   backend:
     profiles: [full]
-    image: eclipse-temurin:25.0.4.1_1-jdk-alpine
+    image: eclipse-temurin:25.0.5_8-jdk-alpine
     container_name: ${STACK_NAME:-my-finances}-backend
     logging: *default-logging
     working_dir: /workspace
