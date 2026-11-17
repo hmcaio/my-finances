@@ -7,6 +7,8 @@ name: CI/CD
 # are made of also builds and scans them and smoke-tests the prod stack (build-images, smoke-prod; no
 # push). Per ADR 0032 (which amends ADR 0006/0031) and
 # docs/features/F014-cicd-production-packaging/spec.md.
+# Every action is pinned to a full commit SHA (a tag can be repointed); the trailing comment names the
+# release, and Dependabot's github-actions entry bumps both together.
 on:
   push:
     branches: [main]
@@ -95,17 +97,17 @@ jobs:
     # daemon already available on GitHub's hosted Ubuntu runners. No credentials to provision
     # or keep in sync here.
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Check pinned tool versions agree across files
         run: bash scripts/verify.sh versions
 
-      - uses: actions/setup-java@v6
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         with:
           distribution: temurin
           java-version: "25"
 
-      - uses: gradle/actions/setup-gradle@v6
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
       - name: spotlessCheck + tests + coverage report
         # scripts/verify.sh is the same entry point you run locally. It runs `test` (fast tier) and
@@ -120,7 +122,7 @@ jobs:
         # paths sit under backend/build, so the artifact holds reports/tests/test/index.html (the
         # browsable report) and test-results/test/*.xml (JUnit XML).
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: backend-test-report
           path: |
@@ -135,7 +137,7 @@ jobs:
         # JaCoCo's HTML report, a static site (open index.html). Nothing is written when the run
         # fails before `jacocoTestReport`, hence `ignore`.
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: backend-coverage
           path: backend/build/reports/jacoco/test/html
@@ -149,9 +151,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: frontend/.nvmrc
           cache: npm
@@ -179,7 +181,7 @@ jobs:
         # report below it isn't a static site: to browse a downloaded copy run
         # `npx vite preview --outDir test-results` from the extracted folder.
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: frontend-test-report
           path: frontend/test-results
@@ -190,7 +192,7 @@ jobs:
         # Also on test failure so a red run still leaves whatever report was produced;
         # `ignore` because Vitest writes no report when the run fails early.
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: frontend-coverage
           path: frontend/coverage
@@ -224,9 +226,9 @@ jobs:
       matrix:
         shard: [1, 2, 3]
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: frontend/.nvmrc
           cache: npm
@@ -244,7 +246,7 @@ jobs:
         # regression debuggable. `ignore` in case the run died before writing anything. One artifact
         # per shard (names must be unique within a run).
         if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: playwright-report-${{ matrix.shard }}
           path: |
@@ -288,7 +290,7 @@ jobs:
     # relies on for Testcontainers) - the e2e test (backup/test/e2e.sh) builds the real sidecar
     # image and runs it against throwaway Postgres containers of its own.
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: bats unit tests + Docker end-to-end test
         run: bash scripts/verify.sh backup
@@ -309,7 +311,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Build the three images and scan them for vulnerabilities
         # Builds my-finances-{backend,frontend,backup}:scan and runs the Trivy gate of ADR 0031.
@@ -326,7 +328,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Build the three images and smoke-test docker-compose.prod.yml against them
         # scripts/smoke-prod.sh: throwaway login and .env, own compose project, torn down on exit.
@@ -345,7 +347,7 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Full history and all branches: the guard below needs origin/main.
           fetch-depth: 0
@@ -368,9 +370,9 @@ jobs:
             exit 1
           fi
 
-      - uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      - uses: docker/login-action@v4
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -392,7 +394,7 @@ jobs:
       # `latest`. The sha tag stays first in the list: the scan step reads the first line.
       - name: Backend image metadata
         id: backend-meta
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
           images: ${{ env.BACKEND_IMAGE }}
           flavor: latest=false
@@ -402,7 +404,7 @@ jobs:
             type=ref,event=tag
 
       - name: Build backend image (not pushed yet)
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: ./backend
           file: ./backend/Dockerfile
@@ -412,7 +414,7 @@ jobs:
 
       - name: Frontend image metadata
         id: frontend-meta
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
           images: ${{ env.FRONTEND_IMAGE }}
           flavor: latest=false
@@ -422,7 +424,7 @@ jobs:
             type=ref,event=tag
 
       - name: Build frontend image (not pushed yet)
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
@@ -432,7 +434,7 @@ jobs:
 
       - name: Backup image metadata
         id: backup-meta
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
           images: ${{ env.BACKUP_IMAGE }}
           flavor: latest=false
@@ -445,7 +447,7 @@ jobs:
         # BUILD_ID is the git SHA baked into /etc/backup-build-id (ADR 0015) - it changes exactly
         # when this image does, including for the floating "latest" tag, which a tag-string
         # comparison alone could never detect as different from a previous "latest" build.
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: ./backup
           file: ./backup/Dockerfile
@@ -485,7 +487,7 @@ jobs:
           bash scripts/verify.sh smoke
 
       - name: Push backend image
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: ./backend
           file: ./backend/Dockerfile
@@ -494,7 +496,7 @@ jobs:
           labels: ${{ steps.backend-meta.outputs.labels }}
 
       - name: Push frontend image
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
@@ -503,7 +505,7 @@ jobs:
           labels: ${{ steps.frontend-meta.outputs.labels }}
 
       - name: Push backup image
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: ./backup
           file: ./backup/Dockerfile

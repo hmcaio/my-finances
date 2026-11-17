@@ -23,12 +23,17 @@
 # bumps are ignored and only patch updates within the pinned 1.30.x arrive. To follow the next
 # stable line, move it by hand to the next even minor (e.g. 1.32): bump frontend/Dockerfile and
 # re-run `bash scripts/verify.sh scan`; the Trivy scan gate catches a stale base image meanwhile.
+# Every entry carries a 7-day cooldown: a version is proposed only once it has been public that
+# long, so a freshly published (possibly malicious or broken) release is not offered the day it
+# appears.
 version: 2
 updates:
   - package-ecosystem: docker
     directory: /backend
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 7
     ignore:
       - dependency-name: eclipse-temurin
         update-types: ["version-update:semver-major"]
@@ -36,16 +41,22 @@ updates:
     directory: /backup
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 7
   # The bats test image (#213) is on the sidecar's Alpine tag; Dependabot opens one PR per
   # directory, and scripts/check-versions.sh fails until the two tags agree, so bump both in one PR.
   - package-ecosystem: docker
     directory: /backup/test
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 7
   - package-ecosystem: docker
     directory: /frontend
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 7
     ignore:
       - dependency-name: node
         update-types: ["version-update:semver-major"]
@@ -57,10 +68,14 @@ updates:
     directory: /scripts/trivy
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 7
   - package-ecosystem: docker-compose
     directory: /
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 7
     ignore:
       - dependency-name: postgres
         update-types: ["version-update:semver-major"]
@@ -72,3 +87,5 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 7

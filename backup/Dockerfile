@@ -41,5 +41,10 @@ WORKDIR /backups
 # while `docker compose run --rm --no-deps backup restore.sh <file> --yes` (or backup-keygen)
 # replaces CMD entirely and runs directly. The empty ENTRYPOINT keeps that override idiom the
 # postgres base image used to provide, without its server-specific entrypoint logic.
+# No USER on purpose: the container starts as root and entrypoint.sh drops to
+# BACKUP_UID:BACKUP_GID with gosu, so a bind-mounted /backups of any owner stays writable
+# (ADR 0015). Both Semgrep rules below flag exactly that design.
+# nosemgrep: dockerfile.security.missing-user-entrypoint.missing-user-entrypoint
 ENTRYPOINT []
+# nosemgrep: dockerfile.security.missing-user.missing-user
 CMD ["entrypoint.sh"]
