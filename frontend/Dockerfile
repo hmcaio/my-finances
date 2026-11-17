@@ -1,9 +1,13 @@
-# Production image for the frontend (F014). Not used in local dev (F001 runs the frontend
-# natively via `npm run dev`) — see ADR 0006. Built by CI on `vX.Y.Z` tags (and
-# `vX.Y.Z-rc.N`, ADR 0032) only; can also be built locally for the docker-compose.prod.yml
-# smoke test:
+# Production image for the frontend (F014). Built by CI on `vX.Y.Z` tags (and `vX.Y.Z-rc.N`,
+# ADR 0032) only; can also be built locally for the docker-compose.prod.yml smoke test:
 #   docker build -t my-finances-frontend:local frontend
-FROM node:24.22.2-alpine AS build
+# Native dev (F001) runs `npm run dev`; the dev compose `frontend` service (ADR 0018,
+# `--profile full`) builds only the `nodejs` stage below, so the Node tag is pinned once, here.
+#
+# `nodejs`: Node alone, the base of `build` and of the dev compose service.
+FROM node:24.22.2-alpine AS nodejs
+
+FROM nodejs AS build
 WORKDIR /app
 
 COPY package.json package-lock.json .npmrc ./

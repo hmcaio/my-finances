@@ -11,8 +11,8 @@
 # Major bumps of postgres, eclipse-temurin and node are ignored on purpose: each is a coordinated
 # move across several files (postgres: both compose files, Testcontainers, POSTGRES_MAJOR in the
 # backup image;
-# node: .nvmrc, the frontend Dockerfile, the dev compose service; JDK: backend Dockerfile and dev
-# compose), not something one Dependabot PR can do. Minor/patch updates still arrive. To follow a
+# node: .nvmrc and the frontend Dockerfile; JDK: backend Dockerfile and the Java-major pins; the dev
+# compose services build those Dockerfiles' bare stages and name no tag), not something one Dependabot PR can do. Minor/patch updates still arrive. To follow a
 # new major, bump every sibling by hand in one PR (docs/conventions/tooling.md, "Pinned versions");
 # the ignore is relative to the pinned version, so it keeps applying on the new line. eclipse-temurin:
 # the JDK is an LTS pin (25), so the next LTS is moved by hand the same way; the majors Dependabot
@@ -78,10 +78,6 @@ updates:
       default-days: 7
     ignore:
       - dependency-name: postgres
-        update-types: ["version-update:semver-major"]
-      - dependency-name: eclipse-temurin
-        update-types: ["version-update:semver-major"]
-      - dependency-name: node
         update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /

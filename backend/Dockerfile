@@ -1,13 +1,16 @@
-# Production image for the backend (F014). Not used in local dev (F001 runs the backend
-# natively via `./gradlew bootRun`) — see ADR 0006. Built by CI on `vX.Y.Z` tags (and
-# `vX.Y.Z-rc.N`, ADR 0032) only; can also be built locally for the docker-compose.prod.yml
-# smoke test:
+# Production image for the backend (F014). Built by CI on `vX.Y.Z` tags (and `vX.Y.Z-rc.N`,
+# ADR 0032) only; can also be built locally for the docker-compose.prod.yml smoke test:
 #   docker build -t my-finances-backend:local backend
+# Native dev (F001) runs `./gradlew bootRun`; the dev compose `backend` service (ADR 0018,
+# `--profile full`) builds only the `jdk` stage below, so the JDK tag is pinned once, here.
 #
+# `jdk`: the JDK alone, the base of `build` and of the dev compose service.
+FROM eclipse-temurin:25.0.5_8-jdk-alpine AS jdk
+
 # Build stage: JDK + the project's own Gradle wrapper (not a `gradle:*` base image) so the
 # exact Gradle version pinned in gradle/wrapper/gradle-wrapper.properties (9.7.1) is what
 # actually runs, matching local dev bit-for-bit.
-FROM eclipse-temurin:25.0.5_8-jdk-alpine AS build
+FROM jdk AS build
 WORKDIR /workspace
 
 # --chmod: the wrapper's git mode bit is not trusted (a Windows-authored checkout can lose it),

@@ -78,14 +78,15 @@ test_alpine=$(grep -E '^FROM alpine:[0-9]+\.[0-9]+\.[0-9]+$' backup/test/Dockerf
   || fail "backup/test/Dockerfile must be '${sidecar_alpine:-FROM alpine:<x.y.z>}', the same full patch tag as backup/Dockerfile (found '${test_alpine:-none}')"
 
 # Node: frontend/.nvmrc is the source of truth for CI (setup-node reads it) and native dev
-# (engines); the Dockerfile and the dev compose service must use the same version.
+# (engines); the Dockerfile must use the same version. The dev compose service builds that
+# Dockerfile's `nodejs` stage, so it names no tag of its own.
 nvmrc=$(tr -d '[:space:]' < frontend/.nvmrc)
-for f in frontend/Dockerfile docker-compose.yml; do
-  grep -qE "node:${nvmrc//./\.}-alpine" "$f" || fail "$f does not use node:${nvmrc}-alpine (frontend/.nvmrc)"
-done
+grep -qE "^FROM node:${nvmrc//./\.}-alpine AS nodejs" frontend/Dockerfile \
+  || fail "frontend/Dockerfile does not use node:${nvmrc}-alpine (frontend/.nvmrc)"
 
-# Java: JDK and JRE images must be the same release, in the Dockerfile and the dev compose service.
-java=$(values 'eclipse-temurin:[0-9][0-9A-Za-z._]*-(jdk|jre)' backend/Dockerfile docker-compose.yml) || status=1
+# Java: the JDK and JRE images of backend/Dockerfile must be the same release (the dev compose
+# service builds the Dockerfile's `jdk` stage, so it names no tag of its own).
+java=$(values 'eclipse-temurin:[0-9][0-9A-Za-z._]*-(jdk|jre)' backend/Dockerfile) || status=1
 java=$(printf '%s\n' "$java" | sed -E 's/-(jdk|jre)$//' | sort -u)
 expect_one "eclipse-temurin" $java
 

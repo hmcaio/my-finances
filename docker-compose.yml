@@ -76,7 +76,13 @@ services:
   # never leak into the Linux containers (and the bind mount stays fast).
   backend:
     profiles: [full]
-    image: eclipse-temurin:25.0.5_8-jdk-alpine
+    # The `jdk` stage of backend/Dockerfile, so the JDK tag is pinned in one file. A bare stage
+    # builds in about a second; pull_policy: build rebuilds on every `up`, so a bumped tag is
+    # picked up without `--build` (an `image:` tag was pulled afresh, a built image would not be).
+    build:
+      context: ./backend
+      target: jdk
+    pull_policy: build
     container_name: ${STACK_NAME:-my-finances}-backend
     logging: *default-logging
     working_dir: /workspace
@@ -126,7 +132,11 @@ services:
 
   frontend:
     profiles: [full]
-    image: node:24.22.2-alpine
+    # The `nodejs` stage of frontend/Dockerfile (same reasoning as the backend service above).
+    build:
+      context: ./frontend
+      target: nodejs
+    pull_policy: build
     container_name: ${STACK_NAME:-my-finances}-frontend
     logging: *default-logging
     working_dir: /app
