@@ -2,7 +2,8 @@
 # Local pre-commit guardrail: runs the mechanical formatter/lint gates CI would run, but only for the
 # stacks the commit touches, so a stray blank line in an import block fails here instead of in CI.
 # Docs-only / scripts-only commits touch nothing and exit immediately (no Gradle/npm startup).
-# Enable once with `scripts/setup-hooks.sh`; bypass in an emergency with `git commit --no-verify`.
+# Runs as the `format-check` pre-commit hook (.pre-commit-config.yaml); enable once with
+# `scripts/setup-hooks.sh`; bypass in an emergency with `git commit --no-verify`.
 # `scripts/verify.sh` stays the full definition of the checks; this is its fast, staged-aware subset.
 set -u
 cd "$(git rev-parse --show-toplevel)"
