@@ -39,6 +39,7 @@ One file per decision, numbered sequentially, never renumbered or edited to chan
 | [0033](0033-opening-position-as-cashless-holding-start.md) | Record a holding's starting quantity and cost basis as a cashless opening position | Accepted (amends [0012](0012-investments-as-accounts-and-transfers.md), [0024](0024-trade-confirmations-as-multi-line-transfers.md)) |
 | [0034](0034-goals-as-allocation-and-deterministic-projection.md) | Model goals and allocation as one aggregate, and project them deterministically from user-entered assumptions | Accepted |
 | [0035](0035-goal-estimates-from-history.md) | Add history-based estimates to goals: a current-pace line and a contribution suggestion | Accepted (amends [0034](0034-goals-as-allocation-and-deterministic-projection.md)) |
+| [0036](0036-git-hooks-via-pre-commit-framework.md) | Run git hooks through the pre-commit framework, adding secret and SAST scanning | Accepted |
 
 Template:
 ```
