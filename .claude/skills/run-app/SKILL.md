@@ -70,7 +70,7 @@ Done when the flow exits 0 and you have opened the screenshots with Read and see
 
 Facts about this app that save time:
 
-- A fresh database shows the onboarding screen on first load.
+- A fresh database shows the onboarding screen on first load. It sits outside the app shell, so it has no Log out button: the `login` flow detects it and skips its return-to-path and logout checks (it prints that it did), so create an account first when those checks matter.
 - Dev serves the SPA on `localhost:<FRONTEND_DEV_PORT>` and calls the API on `localhost:<BACKEND_PORT>` cross-origin (5173 and 8080 by default; 15173 and 18080 here). A direct `fetch` from the page needs `credentials: 'include'` plus an `X-XSRF-TOKEN` header copied from the `XSRF-TOKEN` cookie (clicking through the UI sends both itself); a mutation without the header gets 403.
 - Every wrong password counts toward the five-attempt lockout (429); `docker restart my-finances-drive-backend` clears it.
 - Logs hold ids and counts only (ADR 0011); follow one request by its `X-Request-Id`.

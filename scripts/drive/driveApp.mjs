@@ -1,5 +1,5 @@
 // Headless-Chromium driver for a RUNNING my-finances stack (real backend, no mocks).
-// The `run` project skill (.claude/skills/run/SKILL.md) starts the stack and calls this file.
+// The `run-app` project skill (.claude/skills/run-app/SKILL.md) starts the stack and calls this file.
 //
 //   node scripts/drive/driveApp.mjs login
 //
@@ -80,11 +80,23 @@ export async function submitLogin(page, username, password) {
   await page.getByRole('button', { name: 'Sign in' }).click()
 }
 
-/** Sign in with the configured credential and wait until the SPA shell is up. */
+/**
+ * Wait until a sign-in has landed and say where: 'shell' (the app shell, which has the Log out
+ * button) or 'onboarding' (a database with no accounts, App.tsx: the onboarding page sits outside
+ * the shell, so it has no Log out button and does not keep the requested path).
+ */
+export async function waitForSignedIn(page) {
+  const shell = page.getByRole('button', { name: 'Log out' })
+  const onboarding = page.getByRole('heading', { name: 'Welcome to My Finances' })
+  await shell.or(onboarding).first().waitFor({ timeout: 30_000 })
+  return (await shell.isVisible()) ? 'shell' : 'onboarding'
+}
+
+/** Sign in with the configured credential; resolves to 'shell' or 'onboarding' (see waitForSignedIn). */
 export async function signIn(page, config) {
   await page.getByRole('heading', { name: 'Sign in' }).waitFor()
   await submitLogin(page, config.username, config.password)
-  await page.getByRole('button', { name: 'Log out' }).waitFor({ timeout: 30_000 })
+  return waitForSignedIn(page)
 }
 
 export async function signOut(page) {
@@ -123,13 +135,19 @@ export const flows = {
       console.log('wrong password rejected')
 
       await submitLogin(page, config.username, config.password)
-      await page.getByRole('button', { name: 'Log out' }).waitFor({ timeout: 30_000 })
+      const landed = await waitForSignedIn(page)
       await page.waitForLoadState('networkidle')
-      expectPath(page, '/ledger')
       await screenshot(page, config, 'login-2-signed-in')
 
-      await signOut(page)
-      expectPath(page, '/login')
+      if (landed === 'shell') {
+        expectPath(page, '/ledger')
+        await signOut(page)
+        expectPath(page, '/login')
+      } else {
+        // A fresh database: onboarding has no Log out button and drops the requested path, so the
+        // return-to-/ledger and logout checks cannot run. Say so rather than pass silently.
+        console.log('fresh database (onboarding shown): return-to-path and logout checks skipped')
+      }
       console.log(`login flow ok; browser console errors: ${errors.length}`)
       for (const error of errors) console.log(`  ${error}`)
     } finally {
