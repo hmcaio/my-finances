@@ -20,7 +20,7 @@
 # default, doesn't support it at all; backup.sh's local-prune listing needs it to strip the
 # directory prefix down to a bare filename). TLS roots for rclone come from the base image's
 # ca-certificates-bundle.
-FROM alpine:3.24.3
+FROM alpine:3.24.4
 
 ARG POSTGRES_MAJOR=18
 
