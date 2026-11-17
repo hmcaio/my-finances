@@ -1,0 +1,10 @@
+# Semgrep already skips files ignored by .gitignore; these are tracked or generated paths to skip too.
+node_modules/
+backend/build/
+backend/logs/
+frontend/dist/
+frontend/coverage/
+frontend/playwright-report/
+frontend/e2e-results/
+frontend/src/api/generated/
+package-lock.json

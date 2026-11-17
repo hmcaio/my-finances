@@ -92,7 +92,7 @@ backend/                  Spring Boot API (domain / application / infrastructure
 frontend/                 React + TypeScript SPA
 backup/                   Encrypted pg_dump sidecar image for the prod stack (F018)
 scripts/                  verify.sh (what CI runs), check-versions.sh, smoke-prod.sh (prod-stack smoke test),
-                          setup-hooks.sh (pre-commit), apply-rulesets.sh, plus helpers for the e2e driver and the image scan
+                          setup-hooks.sh (git hooks), apply-rulesets.sh, plus helpers for the e2e driver and the image scan
 docs/                     PRD.md, operations.md, features/, adr/, conventions/
 docker-compose.yml        Local dev: Postgres + pgAdmin (+ backend and frontend under --profile full)
 docker-compose.prod.yml   Production-shaped stack: Postgres + backend + frontend + backup
@@ -110,7 +110,7 @@ Which features are built and which are documented but deferred is the "Status" l
 
 Solo project, but run with real process because that's what keeps a project like this coherent over time rather than because a team requires it: [GitHub Flow on `main` only](docs/adr/0032-github-flow-main-only.md) (short-lived branches squash-merged into `main`), [Conventional Commits](docs/adr/0009-conventional-commits.md), and a [single shared SemVer version](docs/adr/0007-single-shared-semver-and-changelog.md) for backend and frontend together, tracked in [`CHANGELOG.md`](CHANGELOG.md). There is no `develop` branch and no promotion step: every change is a PR into `main`, and a release is a `chore/release-vX.Y.Z` PR (CHANGELOG and version bump) squash-merged into `main`, followed by a `vX.Y.Z` tag on that squash commit, which is what publishes the images and moves `latest`. The steps are in [docs/conventions/release.md](docs/conventions/release.md).
 
-- **One-time setup**: run `scripts/setup-hooks.sh` to enable the local pre-commit hook, which runs Spotless (backend) and Prettier + ESLint (frontend) on the stacks a commit touches, so formatting slips fail at commit time instead of in CI. It sets the repo-wide `core.hooksPath` (shared by all worktrees); `--uninstall` undoes it.
+- **One-time setup**: install [pre-commit](https://pre-commit.com) (`uv tool install pre-commit`), then run `scripts/setup-hooks.sh` per clone. The pre-commit hook runs Spotless (backend) and Prettier + ESLint (frontend) on the stacks a commit touches, so formatting slips fail at commit time instead of in CI, plus a Betterleaks secret scan of the staged diff; the pre-push hook runs Semgrep with `--metrics=off`. Hooks are shared by all worktrees of the clone; `--uninstall` removes them ([ADR 0036](docs/adr/0036-git-hooks-via-pre-commit-framework.md)).
 - **Before pushing**: `scripts/verify.sh` runs the same checks CI does (pinned versions, backend spotless + tests, frontend lint, format, build, tests). It needs Docker running and `npm ci` done in `frontend/`.
 - **Production-shaped smoke test** (Docker images end to end, no cloud involved): [docs/conventions/tooling.md](docs/conventions/tooling.md).
 
