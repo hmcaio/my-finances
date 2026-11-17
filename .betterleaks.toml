@@ -1,0 +1,18 @@
+# Betterleaks allowlist, passed to the hook via `args` in .pre-commit-config.yaml
+# (Betterleaks does not auto-load this file without --unsafe-auto-load-config).
+# Every entry below was found by a full tree + history baseline scan and is a dev/test
+# placeholder credential, not a real secret. Keep entries narrow: one rule, explicit paths.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Dev/test placeholder passwords: test credentials, dev DB defaults, mocks, .env.example, the run-app throwaway login"
+targetRules = ["generic-password"]
+paths = [
+  '''^\.env\.example$''',
+  '''^docker-compose\.yml$''',
+  '''^\.claude/skills/run-app/SKILL\.md$''',
+  '''^backend/src/main/resources/application(-dev)?\.yml$''',
+  '''^backend/src/test/java/.*/(TestCredentials|LoginRateLimitTest|SingleUserDetailsServiceTest)\.java$''',
+  '''^frontend/src/mocks/handlers/auth\.ts$''',
+]
