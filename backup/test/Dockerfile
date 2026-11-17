@@ -7,7 +7,7 @@
 #
 # scripts/check-versions.sh requires this tag to equal backup/Dockerfile's, so one Alpine bump
 # (Dependabot opens one PR per directory) cannot leave the tests on another release.
-FROM alpine:3.24.3
+FROM alpine:3.24.4
 
 RUN apk add --no-cache bats bash coreutils findutils jq
 
