@@ -1,0 +1,28 @@
+# Git hooks (ADR 0036). Install once per clone with `scripts/setup-hooks.sh`.
+# Bump pins deliberately: `pre-commit autoupdate`, then review the new tags before accepting.
+default_install_hook_types: [pre-commit, pre-push]
+default_stages: [pre-commit]   # hooks run at commit time unless they say otherwise (semgrep: pre-push)
+repos:
+  - repo: https://github.com/betterleaks/betterleaks
+    rev: v1.10.1
+    hooks:
+      - id: betterleaks
+        # The hook scans staged diffs only; the allowlist is not auto-loaded, so pass it explicitly.
+        args: [--config, .betterleaks.toml]
+  - repo: local
+    hooks:
+      - id: format-check
+        name: format (spotless / prettier / eslint)
+        # Self-filtering on staged files, so docs-only commits exit immediately.
+        entry: scripts/hooks/format-check.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+        verbose: true   # show the script's own output (skip notice, `ok (...)` summary) on a pass
+      - id: semgrep
+        name: semgrep (metrics off)
+        # --config auto is incompatible with --metrics=off, so use explicit packs.
+        entry: semgrep --config p/default --config p/java --config p/javascript --config p/typescript --config p/react --metrics=off --error --quiet
+        language: python
+        additional_dependencies: ['semgrep==1.185.0']
+        stages: [pre-push]
