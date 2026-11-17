@@ -38,10 +38,12 @@ export function parseUnreleased(markdown) {
   return { found: true, sections }
 }
 
+// Literal patterns, one per link kind, so no regexp is assembled from a variable at run time.
+const LINK_NUMBERS = { issues: /\/issues\/(\d+)\)/g, pull: /\/pull\/(\d+)\)/g }
+
 function bulletOf(line, section) {
   const feature = line.match(/^- \*\*(F\d{3})\b/)
-  const numbers = (kind) =>
-    [...line.matchAll(new RegExp(`/${kind}/(\\d+)\\)`, 'g'))].map((m) => Number(m[1]))
+  const numbers = (kind) => [...line.matchAll(LINK_NUMBERS[kind])].map((m) => Number(m[1]))
   // A bare `closes #N` / `part of #N` without a link counts as an issue reference too.
   const bare = [...line.matchAll(/\b(?:closes|part of)\s+#(\d+)/gi)].map((m) => Number(m[1]))
   return {
