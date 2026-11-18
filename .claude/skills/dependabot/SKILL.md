@@ -21,7 +21,7 @@ Dependabot edits one file per PR, so a bump of a tool pinned in several files fa
 
 ## 3. Fold siblings into one branch
 
-Two PRs bumping the same tool (the temurin pair spans `docker` and `docker-compose`) become one: pick one branch, `git checkout` it, `git merge origin/main` (a merge, not a rebase: no force-push), apply the other PR's diff by hand (`gh pr diff <n>`), run `scripts/verify.sh versions`, commit (Conventional Commits, `chore(deps)`), `git push`. Then `gh pr close <other> -c "Folded into #<kept> (sibling pin; check-versions.sh)."`. Done when `verify.sh versions` passes and the duplicate is closed. A file the diff misses shows up in `grep -rn "<old-version>" --exclude-dir=node_modules --exclude-dir=.git .`; a hit in `CHANGELOG.md` under a released version is history, not a sibling.
+Two PRs bumping one tool become one (postgres: the compose files plus `TestcontainersConfiguration.java`, which Dependabot cannot see; alpine in `/backup` and `/backup/test` should arrive grouped, so two PRs mean the group in `.github/dependabot.yml` failed: fold them, then fix the group; eclipse-temurin and node have no compose siblings): pick one branch, `git checkout` it, `git merge origin/main` (a merge, not a rebase: no force-push), apply the other PR's diff by hand (`gh pr diff <n>`), run `scripts/verify.sh versions`, commit (Conventional Commits, `chore(deps)`), `git push`. Then `gh pr close <other> -c "Folded into #<kept> (sibling pin; check-versions.sh)."`. Done when `verify.sh versions` passes and the duplicate is closed. A file the diff misses shows up in `grep -rn "<old-version>" --exclude-dir=node_modules --exclude-dir=.git .`; a hit in `CHANGELOG.md` under a released version is history, not a sibling.
 
 ## 4. Merge one at a time
 
