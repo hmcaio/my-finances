@@ -53,7 +53,9 @@ describe('App', () => {
         renderWithQueryClient(<App />)
         await screen.findByRole('heading', { name: 'Dashboard' })
 
-        expect(emittedCss()).toMatch(new RegExp(`html\\{[^}]*color-scheme:${mode}`))
+        // A literal regex that captures the value (not one built from `mode`), so the assertion
+        // names the scheme the `html` rule actually declares.
+        expect(/html\{[^}]*color-scheme:(\w+)/.exec(emittedCss())?.[1]).toBe(mode)
       },
     )
   })
