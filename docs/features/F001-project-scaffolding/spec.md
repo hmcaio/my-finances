@@ -107,7 +107,7 @@ Set up the repository skeleton and shared conventions every later feature builds
 
 ### UI library (Material UI) & routing (React Router)
 - `@mui/material`, `@mui/icons-material`, `@emotion/react`, `@emotion/styled`. `src/theme.ts` exports a `getTheme(mode: 'light' | 'dark')` function (one palette definition, two modes via MUI's `createTheme({ palette: { mode } })`) wrapped around the app via `ThemeProvider` + `CssBaseline` in `App.tsx`, so every later feature's components share one theme instead of ad hoc styling.
-- Dark mode toggle: a small React context/hook (`useColorMode`) holding the current mode, defaulting to the OS preference (`prefers-color-scheme`) on first load and persisted to `localStorage` after that (no backend involved — this is a per-device UI preference, not product data). A toggle control lives in the shared `Layout`'s `AppBar` (see below), available on every screen.
+- Dark mode toggle: a small React context/hook (`useColorMode`) holding the current mode, defaulting to the OS preference (`prefers-color-scheme`) on first load and persisted to `localStorage` once the toggle is used; until then it follows OS preference changes live (no backend involved — this is a per-device UI preference, not product data). A toggle control lives in the shared `Layout`'s `AppBar` (see below), available on every screen.
 - `react-router-dom`, `BrowserRouter` at the app root. Route tree (mounted only once onboarding, F011, has passed — see below), one path per feature area so `src/features/<area>` maps directly to a route:
   ```
   /                     → Dashboard (F012)
