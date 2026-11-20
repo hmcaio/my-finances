@@ -91,3 +91,6 @@ myfinances:
     # and no mount at all, so the file is simply absent there - GET /api/backup-status returns
     # UNKNOWN, not an error.
     status-path: ${BACKUP_STATUS_PATH:/backups/status.json}
+    # Exactly "1" skips the in-memory-mount check, as for the sidecar's storage.sh (smoke test and
+    # benchmark only; never for a real stack).
+    allow-volatile-storage: ${BACKUP_ALLOW_VOLATILE_STORAGE:}
