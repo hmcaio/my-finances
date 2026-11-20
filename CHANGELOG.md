@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Security
 
+- The frontend image now sends a `Permissions-Policy` header that denies camera, microphone and location access to the app's origin. The app uses none of them, so nothing changes in use; it only stops a script that ever got in from prompting for them. (part of [#305](https://github.com/hmcaio/my-finances/issues/305))
+  - Upgrade: pull the new image; no `.env`, volume or migration change.
 - The frontend image moves from nginx 1.30.6 to 1.30.7, clearing six fixable findings (four critical, two high: use-after-free bugs in the worker process and the resolver, an HTTP/2 flow-control overflow and a TLS denial of service) from the image vulnerability scan.
   - Upgrade: pull the new image; no `.env`, volume or migration change.
 

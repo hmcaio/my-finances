@@ -202,7 +202,7 @@ for i in $(seq 1 30); do req shell / ; [ "$status" = 200 ] && break; sleep 1; do
 # Security headers: each exactly once, on every kind of response nginx produces or proxies.
 sec_once() {
   local f=$1 label=$2 h
-  for h in Content-Security-Policy X-Frame-Options X-Content-Type-Options Referrer-Policy; do
+  for h in Content-Security-Policy X-Frame-Options X-Content-Type-Options Referrer-Policy Permissions-Policy; do
     check "$label: $h count" "$(hcount "$f" "$h")" 1
   done
   check "$label: Cache-Control count" "$(hcount "$f" Cache-Control)" 1
