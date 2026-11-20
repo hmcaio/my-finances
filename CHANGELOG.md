@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- In dark mode the browser's own controls now follow the theme: the date and month pickers, the scrollbars and the page background before the app loads no longer stay light. The page declares both color schemes, and the dark-mode toggle (not only the OS setting) decides which one applies. (part of [#305](https://github.com/hmcaio/my-finances/issues/305))
+
 ### Security
 
 - The frontend image moves from nginx 1.30.6 to 1.30.7, clearing six fixable findings (four critical, two high: use-after-free bugs in the worker process and the resolver, an HTTP/2 flow-control overflow and a TLS denial of service) from the image vulnerability scan.

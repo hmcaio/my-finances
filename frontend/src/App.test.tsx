@@ -1,10 +1,11 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { server } from './mocks/server'
 import { seedCheckingAccount } from './mocks/handlers/accounts'
 import { findRow } from './test/utils/testUtils'
+import { emittedCss } from './test/utils/emittedCss'
 import App from './App'
 import { renderWithQueryClient } from './test/utils/renderWithQueryClient'
 
@@ -37,6 +38,26 @@ describe('App', () => {
     // AccountsPage renders once routed to - its "Show closed accounts" toggle is a good marker
     // that the Accounts route (not just the nav highlight) actually took over the page.
     expect(await screen.findByRole('switch', { name: 'Show closed accounts' })).toBeInTheDocument()
+  })
+
+  describe('native UI color scheme', () => {
+    afterEach(() => localStorage.clear())
+
+    // The stored mode wins over the OS preference, so the same stub covers both: it is the
+    // toggle, not the media query, that has to reach <html>.
+    it.each(['dark', 'light'])(
+      'declares color-scheme: %s on <html> for that mode',
+      async (mode) => {
+        stubMatchMedia()
+        localStorage.setItem('my-finances:color-mode', mode)
+        renderWithQueryClient(<App />)
+        await screen.findByRole('heading', { name: 'Dashboard' })
+
+        // A literal regex that captures the value (not one built from `mode`), so the assertion
+        // names the scheme the `html` rule actually declares.
+        expect(/html\{[^}]*color-scheme:(\w+)/.exec(emittedCss())?.[1]).toBe(mode)
+      },
+    )
   })
 
   it('routes the Reports nav link to the reports page', async () => {
