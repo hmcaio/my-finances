@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- The login form's username field no longer lets a phone keyboard capitalize, autocorrect or spell-check what you type, so the username goes in exactly as typed. (closes [#305](https://github.com/hmcaio/my-finances/issues/305))
 - The app now follows the system light/dark setting while it is open, as long as you have not used the dark-mode toggle: switching the OS theme (or a scheduled switch at sunset) changes the app at once instead of after a reload. Once you press the toggle, your choice is kept and the system setting is ignored, as before. (part of [#305](https://github.com/hmcaio/my-finances/issues/305))
 - In dark mode the browser's own controls now follow the theme: the date and month pickers, the scrollbars and the page background before the app loads no longer stay light. The page declares both color schemes, and the dark-mode toggle (not only the OS setting) decides which one applies. (part of [#305](https://github.com/hmcaio/my-finances/issues/305))
 

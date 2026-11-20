@@ -114,6 +114,17 @@ describe('authentication (F036)', () => {
   })
 
   describe('login form', () => {
+    it('keeps text correction off the username, so a phone keyboard leaves it as typed', async () => {
+      signOutMockSession()
+      renderWithQueryClient(<App />)
+
+      const username = await screen.findByLabelText(/username/i)
+
+      expect(username).toHaveAttribute('autocapitalize', 'none')
+      expect(username).toHaveAttribute('autocorrect', 'off')
+      expect(username).toHaveAttribute('spellcheck', 'false')
+    })
+
     it('shows one fixed message for wrong credentials and stays on /login', async () => {
       signOutMockSession()
       const user = userEvent.setup({ delay: null })
