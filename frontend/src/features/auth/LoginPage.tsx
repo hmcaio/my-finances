@@ -73,7 +73,15 @@ export function LoginPage() {
             autoComplete="username"
             autoFocus
             required
-            slotProps={{ htmlInput: { maxLength: MAX_USERNAME_LENGTH } }}
+            // An identifier, not prose: a phone keyboard must not capitalize or "fix" it.
+            slotProps={{
+              htmlInput: {
+                maxLength: MAX_USERNAME_LENGTH,
+                autoCapitalize: 'none',
+                autoCorrect: 'off',
+                spellCheck: false,
+              },
+            }}
           />
           <TextField
             label={t('login.passwordLabel')}
