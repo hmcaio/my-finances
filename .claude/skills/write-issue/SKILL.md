@@ -26,7 +26,7 @@ Evidence comes from a finance app: replace amounts, descriptions, account/catego
 **Body**, in this order; drop a section only when it has nothing to say:
 
 1. `## Summary`: what is wrong and what it costs (a blocked PR, a lost backup), in two or three sentences.
-2. `## What happens` (bug) or `## Findings` (several items; a table of finding / evidence / proposed fix / effort, and a `## Suggested order` when they depend on each other). Name files as `path:line`.
+2. `## What happens` (bug) or `## Findings` (several items; a table of finding / evidence / proposed fix / effort, and a `## Suggested order` when they depend on each other). Name files by repo-relative path, as `path:line` (a bare class name sends the reader searching).
 3. `## Why nothing caught it`: the missing test, check or signal. This is the part that prevents the next one.
 4. `## Fix`: concrete steps naming the files, constraints and docs to change, ending on a checkable **done when** (a test that fails before and passes after, a command that returns the expected output).
 5. `## Out of scope / deliberately not changed`: what a reader might assume is included, and why it is not.
@@ -37,4 +37,4 @@ Write for a reader who knows the repo but not today's discussion: no "as discuss
 
 1. Write the body to the scratchpad as `issue-body.md`, show title, labels and body to the user.
 2. After approval: `gh issue create --title "..." --body-file <path> [--label bug]`.
-3. Report the number and URL; the fix commit says `Closes #N`.
+3. Report the number and URL; the fix commit says `Closes #N`. An issue fixed across several PRs says `Part of #N` on all but the last PR, which says `Closes #N`.
