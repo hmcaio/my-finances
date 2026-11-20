@@ -116,8 +116,9 @@ services:
       # refused: the container exits for this many seconds so Docker restarts it until the real
       # folder is there, then starts degraded so the app is never kept down (ADR 0015, #239).
       BACKUP_STORAGE_GRACE_SECONDS: ${BACKUP_STORAGE_GRACE_SECONDS:-300}
-      # 1 skips that check. For the smoke test and the benchmark, whose scratch folder can sit on a
-      # host /tmp that is itself a tmpfs; never set it for a real stack.
+      # 1 skips that check (the backend service reads the same variable). For the smoke test and
+      # the benchmark, whose scratch folder can sit on a host /tmp that is itself a tmpfs; never
+      # set it for a real stack.
       BACKUP_ALLOW_VOLATILE_STORAGE: ${BACKUP_ALLOW_VOLATILE_STORAGE:-}
       BACKUP_RCLONE_REMOTE: ${BACKUP_RCLONE_REMOTE:-}
       # rclone reads its config from this path when set. If ./rclone.conf (next to .env,
@@ -173,6 +174,8 @@ services:
       # never the plaintext, and must be single-quoted in .env (it contains $).
       AUTH_USERNAME: ${AUTH_USERNAME:?set AUTH_USERNAME in .env (see .env.example)}
       AUTH_PASSWORD_HASH: ${AUTH_PASSWORD_HASH:?set AUTH_PASSWORD_HASH in .env (see .env.example)}
+      # Same escape hatch as the backup service: its own in-memory-mount check (#239) must agree.
+      BACKUP_ALLOW_VOLATILE_STORAGE: ${BACKUP_ALLOW_VOLATILE_STORAGE:-}
     volumes:
       - my-finances-logs-prod:/var/log/my-finances
       # Read-only (F018): the backend only ever reads status.json through this mount, never writes

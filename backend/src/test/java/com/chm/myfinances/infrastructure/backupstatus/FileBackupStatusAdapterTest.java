@@ -25,7 +25,7 @@ class FileBackupStatusAdapterTest {
 
   /** A mountinfo that does not exist: nothing is known about the mount, so nothing is volatile. */
   private FileBackupStatusAdapter adapterFor(String path) {
-    return new FileBackupStatusAdapter(path, tempDir.resolve("no-mountinfo").toString());
+    return new FileBackupStatusAdapter(path, tempDir.resolve("no-mountinfo").toString(), "");
   }
 
   private static final String FAILED_ATTEMPT_JSON =
@@ -47,6 +47,11 @@ class FileBackupStatusAdapterTest {
   /** A marker in {@code dir}, and a mountinfo saying {@code dir} is a mount of {@code fstype}. */
   private FileBackupStatusAdapter adapterOnMount(String fstype, boolean remoteConfigured)
       throws IOException {
+    return adapterOnMount(fstype, remoteConfigured, "");
+  }
+
+  private FileBackupStatusAdapter adapterOnMount(
+      String fstype, boolean remoteConfigured, String allowVolatileStorage) throws IOException {
     Path dir = Files.createTempDirectory(tempDir, "backups").toRealPath();
     Path marker = dir.resolve("status.json");
     Files.writeString(marker, FAILED_ATTEMPT_JSON.formatted(remoteConfigured));
@@ -61,7 +66,8 @@ class FileBackupStatusAdapterTest {
             + " "
             + fstype
             + " rw\n");
-    return new FileBackupStatusAdapter(marker.toString(), mountInfo.toString());
+    return new FileBackupStatusAdapter(
+        marker.toString(), mountInfo.toString(), allowVolatileStorage);
   }
 
   @Test
@@ -92,6 +98,18 @@ class FileBackupStatusAdapterTest {
   }
 
   @Test
+  void theVolatileStorageOverrideKeepsAnInMemoryFolderFromBeingAnError() throws IOException {
+    // The smoke test and the benchmark set it because the host /tmp can be a tmpfs (issue #293).
+    assertThat(adapterOnMount("tmpfs", false, "1").read().orElseThrow().lastError()).isNull();
+  }
+
+  @Test
+  void anyOtherOverrideValueDoesNotExemptAnInMemoryFolder() throws IOException {
+    assertThat(adapterOnMount("tmpfs", false, "yes").read().orElseThrow().lastError())
+        .isEqualTo("storage_not_persistent");
+  }
+
+  @Test
   void anUnreadableMountinfoNeverRaisesAFalseAlarm() throws IOException {
     Path marker = tempDir.resolve("status.json");
     Files.writeString(marker, FAILED_ATTEMPT_JSON.formatted(false));
@@ -106,7 +124,8 @@ class FileBackupStatusAdapterTest {
     Files.writeString(mountInfo, "2 1 0:2 / " + dir + " rw - tmpfs tmpfs rw\n");
 
     FileBackupStatusAdapter adapter =
-        new FileBackupStatusAdapter(dir.resolve("status.json").toString(), mountInfo.toString());
+        new FileBackupStatusAdapter(
+            dir.resolve("status.json").toString(), mountInfo.toString(), "");
 
     assertThat(adapter.read()).isEmpty();
   }
