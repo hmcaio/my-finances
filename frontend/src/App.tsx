@@ -90,7 +90,9 @@ function ThemedApp() {
   const theme = useMemo(() => getTheme(mode), [mode])
   return (
     <ThemeProvider theme={theme}>
-      <CssBaseline />
+      {/* `enableColorScheme` puts `color-scheme: <palette.mode>` on <html>, so native date pickers
+          and scrollbars follow the manual toggle, not only the OS preference. */}
+      <CssBaseline enableColorScheme />
       <BrowserRouter>
         <Routes>
           {/* The one route reachable without a session; everything else is behind the guard. */}
