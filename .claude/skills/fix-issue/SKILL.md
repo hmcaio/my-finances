@@ -33,11 +33,11 @@ Then read `CODING_STANDARDS.md` against your diff and fix what it flags. Done wh
 
 ## 5. Commit
 
-Conventional Commits (ADR 0009), message via HEREDOC, the body explains *why* and carries `Closes #N`. Stage explicit paths (`git add -- backend frontend docs ...`), then check `git status`. Honor "don't commit yet"; amend or force-push only when asked.
+Conventional Commits (ADR 0009), message via HEREDOC, the body explains *why* and carries `Closes #N`; an issue fixed across several PRs carries `Part of #N` on all but the last PR, and the CHANGELOG bullet says `part of [#N](…)` the same way. Stage explicit paths (`git add -- backend frontend docs ...`), then check `git status`. Honor "don't commit yet"; amend or force-push only when asked.
 
 ## 6. Push and PR: only when asked
 
-Approving the fix is not approval to push. When asked: `git push -u origin <branch>`, `gh pr create --base main`, the body written with the `pr` skill if available. It carries `Closes #N`, what changed and why, and a checked test plan. Return the PR URL.
+Approving the fix is not approval to push. When asked: `git push -u origin <branch>`, `gh pr create --base main`, the body written with the `pr` skill if available. It carries the commit's `Closes #N` or `Part of #N`, what changed and why, and a checked test plan. Return the PR URL.
 
 ## 7. Post-mortem: only when asked
 
